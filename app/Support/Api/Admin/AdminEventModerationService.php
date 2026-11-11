@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Support\Api\Admin;
 
 use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Features\Events\Api\EventModeration;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ModerationService;
 use App\Support\Api\Admin\Concerns\ProvidesWorkflowResponse;
-use App\Support\Moderation\EventModerationWorkflow;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +18,7 @@ final readonly class AdminEventModerationService
 
     public function __construct(
         private AdminResourceRegistry $registry,
-        private ModerationService $moderationService,
+        private EventModeration $eventModeration,
     ) {}
 
     public function canModerate(?User $actor = null): bool
@@ -35,7 +34,7 @@ final readonly class AdminEventModerationService
         abort_unless($this->canModerate($actor), 403);
 
         $event = $this->resolveEvent($recordKey);
-        $availableActions = EventModerationWorkflow::availableActions($event);
+        $availableActions = $this->eventModeration->availableActions((string) $event->getKey());
         $defaultAction = array_key_first($availableActions);
 
         return [
@@ -68,7 +67,7 @@ final readonly class AdminEventModerationService
                             'name' => 'reason_code',
                             'type' => 'string',
                             'required' => false,
-                            'allowed_values' => array_keys(EventModerationWorkflow::reasonOptions()),
+                            'allowed_values' => array_keys($this->eventModeration->reasonOptions()),
                         ],
                         [
                             'name' => 'note',
@@ -102,14 +101,14 @@ final readonly class AdminEventModerationService
         abort_unless($actor instanceof User, 403);
 
         $event = $this->resolveEvent($recordKey);
-        $availableActions = EventModerationWorkflow::availableActions($event);
+        $availableActions = $this->eventModeration->availableActions((string) $event->getKey());
 
         $validated = Validator::make($payload, [
             'action' => ['required', 'string', Rule::in(array_keys($availableActions))],
             'reason_code' => [
                 'nullable',
                 'string',
-                Rule::in(array_keys(EventModerationWorkflow::reasonOptions())),
+                Rule::in(array_keys($this->eventModeration->reasonOptions())),
                 Rule::requiredIf(static fn (): bool => in_array(($payload['action'] ?? null), ['request_changes', 'reject'], true)),
             ],
             'note' => [
@@ -121,18 +120,20 @@ final readonly class AdminEventModerationService
         ])->validate();
 
         $action = (string) $validated['action'];
+        $eventId = (string) $event->getKey();
+        $actorId = (string) $actor->getKey();
         $note = filled($validated['note'] ?? null) ? (string) $validated['note'] : null;
         $reasonCode = filled($validated['reason_code'] ?? null) ? (string) $validated['reason_code'] : null;
 
         match ($action) {
-            'submit_for_moderation' => $this->moderationService->submitForModeration($event),
-            'approve' => $this->moderationService->approve($event, $actor, $note),
-            'request_changes' => $this->moderationService->requestChanges($event, $actor, (string) $reasonCode, (string) $note),
-            'reject' => $this->moderationService->reject($event, $actor, (string) $reasonCode, (string) $note),
-            'cancel' => $this->moderationService->cancel($event, $actor, $note),
-            'reconsider' => $this->moderationService->reconsider($event, $actor, $note),
-            'remoderate' => $this->moderationService->remoderate($event, $actor, $note),
-            'revert_to_draft' => $this->moderationService->revertToDraft($event, $actor, $note),
+            'submit_for_moderation' => $this->eventModeration->submitForModeration($eventId),
+            'approve' => $this->eventModeration->approve($eventId, $actorId, $note),
+            'request_changes' => $this->eventModeration->requestChanges($eventId, $actorId, (string) $reasonCode, (string) $note),
+            'reject' => $this->eventModeration->reject($eventId, $actorId, (string) $reasonCode, (string) $note),
+            'cancel' => $this->eventModeration->cancel($eventId, $actorId, $note),
+            'reconsider' => $this->eventModeration->reconsider($eventId, $actorId, $note),
+            'remoderate' => $this->eventModeration->remoderate($eventId, $actorId, $note),
+            'revert_to_draft' => $this->eventModeration->revertToDraft($eventId, $actorId, $note),
             default => throw new \InvalidArgumentException('Unsupported event moderation action.'),
         };
 

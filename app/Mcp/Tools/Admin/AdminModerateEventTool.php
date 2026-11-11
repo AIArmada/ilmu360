@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
+use App\Features\Events\Api\EventModeration;
 use App\Support\Api\Admin\AdminEventModerationService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
-use App\Support\Moderation\EventModerationWorkflow;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -29,6 +29,7 @@ class AdminModerateEventTool extends AbstractAdminTool
 
     public function __construct(
         private readonly AdminEventModerationService $moderationService,
+        private readonly EventModeration $eventModeration,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
@@ -59,8 +60,8 @@ class AdminModerateEventTool extends AbstractAdminTool
     {
         return [
             'record_key' => $schema->string()->required()->min(1),
-            'action' => $schema->string()->required()->enum(EventModerationWorkflow::allActionKeys()),
-            'reason_code' => $schema->string()->nullable()->enum(array_keys(EventModerationWorkflow::reasonOptions())),
+            'action' => $schema->string()->required()->enum($this->eventModeration->actionKeys()),
+            'reason_code' => $schema->string()->nullable()->enum(array_keys($this->eventModeration->reasonOptions())),
             'note' => $schema->string()->nullable(),
         ];
     }

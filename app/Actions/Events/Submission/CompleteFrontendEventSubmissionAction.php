@@ -24,6 +24,13 @@ use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Exceptions\RoleDoesNotExist;
 use Throwable;
 
+/**
+ * Interim submission-completion adapter.
+ *
+ * Moderation still calls the root ModerationService until E2b/E3b routes this
+ * completion step through Events\Api\EventModeration; registration mode,
+ * access policy and share outcomes stay owned by this root orchestrator.
+ */
 final readonly class CompleteFrontendEventSubmissionAction
 {
     public function __construct(

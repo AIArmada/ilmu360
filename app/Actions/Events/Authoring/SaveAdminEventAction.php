@@ -11,10 +11,10 @@ use Lorisleiva\Actions\Concerns\AsAction;
 /**
  * Interim admin-save adapter.
  *
- * Moderation still lives in the root ModerationService/state machine until the
- * Events lifecycle slice (E3) absorbs it. Everything else delegates to the
- * Events authoring boundary; this class only applies the requested initial
- * status after the feature save commits.
+ * Moderation still lives in the root ModerationService/state machine until
+ * E3b routes this adapter through Events\Api\EventModeration. Everything else
+ * delegates to the Events authoring boundary; this class only applies the
+ * requested initial status after the feature save commits.
  */
 final readonly class SaveAdminEventAction
 {

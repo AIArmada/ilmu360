@@ -6,11 +6,11 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Actions\Events\Submission\ModerateEventOccurrenceSubmissionAction;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Reports\Api\ReportReader;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
-use App\Services\ModerationService;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\NeedsChanges;
@@ -283,8 +283,9 @@ class ModerationQueue extends Page implements HasTable
                             ->label('Note (optional)')
                             ->rows(3),
                     ])
-                    ->action(function (Event $record, array $data, ModerationService $service): void {
-                        $service->approve($record, auth()->user(), $data['note'] ?? null);
+                    ->action(function (Event $record, array $data, EventModeration $moderation): void {
+                        $actorId = auth()->id();
+                        $moderation->approve((string) $record->getKey(), $actorId === null ? null : (string) $actorId, $data['note'] ?? null);
                     })
                     ->visible(fn (Event $record) => $record->status instanceof Pending),
 
@@ -314,8 +315,8 @@ class ModerationQueue extends Page implements HasTable
                             ->required()
                             ->rows(3),
                     ])
-                    ->action(function (Event $record, array $data, ModerationService $service): void {
-                        $service->reject($record, auth()->user(), $data['reason_code'], $data['note']);
+                    ->action(function (Event $record, array $data, EventModeration $moderation): void {
+                        $moderation->reject((string) $record->getKey(), (string) auth()->id(), $data['reason_code'], $data['note']);
                     })
                     ->visible(fn (Event $record) => $record->status instanceof Pending),
 
@@ -331,8 +332,9 @@ class ModerationQueue extends Page implements HasTable
                             ->label('Cancellation note (optional)')
                             ->rows(3),
                     ])
-                    ->action(function (Event $record, array $data, ModerationService $service): void {
-                        $service->cancel($record, auth()->user(), $data['note'] ?? null);
+                    ->action(function (Event $record, array $data, EventModeration $moderation): void {
+                        $actorId = auth()->id();
+                        $moderation->cancel((string) $record->getKey(), $actorId === null ? null : (string) $actorId, $data['note'] ?? null);
                     })
                     ->visible(fn (Event $record) => $record->status instanceof Pending
                         || $record->status instanceof Approved),
@@ -362,8 +364,8 @@ class ModerationQueue extends Page implements HasTable
                             ->required()
                             ->rows(3),
                     ])
-                    ->action(function (Event $record, array $data, ModerationService $service): void {
-                        $service->requestChanges($record, auth()->user(), $data['reason_code'], $data['note']);
+                    ->action(function (Event $record, array $data, EventModeration $moderation): void {
+                        $moderation->requestChanges((string) $record->getKey(), (string) auth()->id(), $data['reason_code'], $data['note']);
                     })
                     ->visible(fn (Event $record) => $record->status instanceof Pending),
 
@@ -379,8 +381,9 @@ class ModerationQueue extends Page implements HasTable
                             ->label('Reason for reconsideration')
                             ->rows(3),
                     ])
-                    ->action(function (Event $record, array $data, ModerationService $service): void {
-                        $service->reconsider($record, auth()->user(), $data['note'] ?? null);
+                    ->action(function (Event $record, array $data, EventModeration $moderation): void {
+                        $actorId = auth()->id();
+                        $moderation->reconsider((string) $record->getKey(), $actorId === null ? null : (string) $actorId, $data['note'] ?? null);
                     })
                     ->visible(fn (Event $record) => $record->status instanceof Rejected),
 
@@ -396,8 +399,9 @@ class ModerationQueue extends Page implements HasTable
                             ->label('Reason (optional)')
                             ->rows(3),
                     ])
-                    ->action(function (Event $record, array $data, ModerationService $service): void {
-                        $service->revertToDraft($record, auth()->user(), $data['note'] ?? null);
+                    ->action(function (Event $record, array $data, EventModeration $moderation): void {
+                        $actorId = auth()->id();
+                        $moderation->revertToDraft((string) $record->getKey(), $actorId === null ? null : (string) $actorId, $data['note'] ?? null);
                     })
                     ->visible(fn (Event $record) => $record->status instanceof Rejected
                         || $record->status instanceof NeedsChanges),
@@ -409,8 +413,8 @@ class ModerationQueue extends Page implements HasTable
                     ->requiresConfirmation()
                     ->modalHeading('Return to Pending')
                     ->modalDescription('Move this event back to pending for moderation review.')
-                    ->action(function (Event $record, ModerationService $service): void {
-                        $service->submitForModeration($record);
+                    ->action(function (Event $record, EventModeration $moderation): void {
+                        $moderation->submitForModeration((string) $record->getKey());
                     })
                     ->visible(fn (Event $record): bool => $record->status instanceof NeedsChanges),
 

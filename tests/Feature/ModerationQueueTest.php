@@ -302,3 +302,19 @@ it('links moderation queue view action to the event infolist page', function () 
         ->assertSuccessful()
         ->assertSee("/admin/events/{$event->id}");
 });
+
+it('runs moderation queue actions through the events moderation boundary', function (): void {
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $event = Event::factory()->create([
+        'status' => 'pending',
+    ]);
+
+    Livewire::actingAs($moderator)
+        ->test(ModerationQueue::class)
+        ->callTableAction('approve', $event, data: ['note' => 'Approved from queue test.'])
+        ->assertHasNoTableActionErrors();
+
+    expect((string) $event->fresh()->status)->toBe('approved');
+});

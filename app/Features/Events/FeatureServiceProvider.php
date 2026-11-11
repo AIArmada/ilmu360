@@ -11,6 +11,7 @@ use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventLocations;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Api\EventSubmissions;
@@ -40,14 +41,15 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  *   the feature scheduling adapter), CreateEventOccurrenceAction /
  *   CreateEventSessionAction / SyncEventLanguagesAction invoked by the
  *   submission persist actions, and lifecycle state machine/transitions.
- * - root SaveAdminEventAction: interim moderation-status adapter (E3).
+ * - root SaveAdminEventAction: interim moderation-status adapter (E3b); E3a
+ *   exposes Events\Api\EventModeration for admin/MCP/queue callers.
  * - root submission orchestrators: `SubmitFrontendEventAction` (validation
  *   and persistence through the EventSubmissions boundary, then completion
  *   side effects) and `CompleteFrontendEventSubmissionAction` (registration
  *   mode, access policy, moderation and share outcomes) remain documented
- *   external writers for `events` until E2b/E3.
+ *   external writers for `events` until E2b/E3b.
  * - root `ModerateEventOccurrenceSubmissionAction` writes `event_submissions`
- *   status until the E3 moderation slice; `event_submission_logs` and
+ *   status until the occurrence moderation slice; `event_submission_logs` and
  *   `event_submission_attachments` stay unclaimed for the same reason (their
  *   only app-side writer is that root action).
  * - root Event model: booted saved/deleting hooks delegate projections,
@@ -82,6 +84,17 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventLocations::class, SyncEventLocationsAction::class);
         $this->app->bind(EventProjections::class, SyncEventProjectionsAction::class);
         $this->app->bind(SeriesAuthoring::class, SeriesAuthoringService::class);
+
+        $moderationAdapter = config('events.moderation.adapter');
+
+        if (! is_string($moderationAdapter) || ! is_a($moderationAdapter, EventModeration::class, true)) {
+            throw new \InvalidArgumentException(sprintf(
+                'The [events.moderation.adapter] config must be a class-string implementing [%s].',
+                EventModeration::class,
+            ));
+        }
+
+        $this->app->bind(EventModeration::class, $moderationAdapter);
 
         $this->app->singleton(EventCategoryCatalogContract::class, EventCategoryCatalog::class);
         $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);

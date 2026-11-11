@@ -6,6 +6,7 @@ use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Api\EventDeletion;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\GuestSubmissionClaims;
@@ -22,6 +23,7 @@ use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Support\Events\EventModerationAdapter;
 use App\Support\Reports\CompositeReportSubjectResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -33,6 +35,11 @@ it('binds the events seams to their interim adapters', function (): void {
         ->and(app(EventSubmissions::class))->toBeInstanceOf(EventSubmissionsService::class)
         ->and(app(EventReportSubjectProvider::class))->toBeInstanceOf(EventReportSubjectResolver::class)
         ->and(app(ReportSubjectResolver::class))->toBeInstanceOf(CompositeReportSubjectResolver::class);
+});
+
+it('binds the events moderation boundary to its configured adapter', function (): void {
+    expect(config('events.moderation.adapter'))->toBe(EventModerationAdapter::class)
+        ->and(app(EventModeration::class))->toBeInstanceOf(EventModerationAdapter::class);
 });
 
 it('registers the event public slug surface from the events provider', function (): void {

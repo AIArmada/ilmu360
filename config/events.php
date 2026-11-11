@@ -32,6 +32,20 @@ return [
         'resolver_class' => \App\Services\PrayerTimeExpressionResolver::class,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Moderation boundary adapter
+    |--------------------------------------------------------------------------
+    |
+    | Events code depends on App\Features\Events\Api\EventModeration and reads
+    | this class string at runtime, so the root implementation can be swapped
+    | without feature code importing root support classes.
+    |
+    */
+    'moderation' => [
+        'adapter' => \App\Support\Events\EventModerationAdapter::class,
+    ],
+
     'database' => [
         'tables' => [
             'event_organizers' => env('EVENTS_TABLE_EVENT_ORGANIZERS', 'event_organizers'),
