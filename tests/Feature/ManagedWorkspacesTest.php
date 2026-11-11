@@ -10,7 +10,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Membership\TransferPersonOwnershipAction;
+use App\Features\Membership\Actions\TransferPersonOwnershipAction;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;

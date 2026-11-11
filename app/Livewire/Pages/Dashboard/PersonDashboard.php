@@ -6,20 +6,19 @@ namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
-use AIArmada\Membership\Actions\ChangeMemberRoleAction;
-use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
 use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Membership\InviteSubjectMember;
-use App\Actions\Membership\TransferPersonOwnershipAction;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Models\Event;
 use App\Models\MemberInvitation;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Authz\MemberPermissionGate;
 use BackedEnum;
 use Filament\Support\Contracts\HasLabel;
@@ -164,7 +163,7 @@ final class PersonDashboard extends Component
         $this->editingRole = MemberRole::Viewer->value;
     }
 
-    public function saveMemberRole(ChangeMemberRoleAction $changeMemberRole): void
+    public function saveMemberRole(MembershipCommands $membershipCommands): void
     {
         $person = $this->selectedPerson();
         $this->authorizeManageMembers($person);
@@ -186,11 +185,16 @@ final class PersonDashboard extends Component
             return;
         }
 
-        DB::transaction(function () use ($changeMemberRole, $member, $person, $validated): void {
+        DB::transaction(function () use ($membershipCommands, $member, $person, $validated): void {
             $person->lockForMembershipMutation();
 
-            OwnerContext::withOwner($person, function () use ($changeMemberRole, $member, $person, $validated): void {
-                $changeMemberRole->handle($person, $member, MemberRole::from((string) $validated['editingRole']));
+            OwnerContext::withOwner($person, function () use ($membershipCommands, $member, $person, $validated): void {
+                $membershipCommands->changeMemberRole(
+                    MembershipSubjectType::Person,
+                    (string) $person->getKey(),
+                    (string) $member->getKey(),
+                    (string) $validated['editingRole'],
+                );
             });
         });
 
@@ -198,7 +202,7 @@ final class PersonDashboard extends Component
         $this->successToast(__('Member role updated.'));
     }
 
-    public function removeMember(string $memberId, RemoveMemberAction $removeMember): void
+    public function removeMember(string $memberId, MembershipCommands $membershipCommands): void
     {
         $person = $this->selectedPerson();
         $this->authorizeManageMembers($person);
@@ -212,11 +216,15 @@ final class PersonDashboard extends Component
         }
 
         try {
-            DB::transaction(function () use ($member, $person, $removeMember): void {
+            DB::transaction(function () use ($member, $membershipCommands, $person): void {
                 $person->lockForMembershipMutation();
 
-                OwnerContext::withOwner($person, function () use ($member, $person, $removeMember): void {
-                    $removeMember->handle($person, $member);
+                OwnerContext::withOwner($person, function () use ($member, $membershipCommands, $person): void {
+                    $membershipCommands->removeMember(
+                        MembershipSubjectType::Person,
+                        (string) $person->getKey(),
+                        (string) $member->getKey(),
+                    );
                 });
             });
         } catch (Throwable $throwable) {
@@ -241,7 +249,7 @@ final class PersonDashboard extends Component
         $this->successToast(__('Invitation revoked.'));
     }
 
-    public function transferOwnership(string $memberId, TransferPersonOwnershipAction $transferOwnership): void
+    public function transferOwnership(string $memberId, MembershipCommands $membershipCommands): void
     {
         $person = $this->selectedPerson();
         $user = $this->currentUser();
@@ -250,8 +258,12 @@ final class PersonDashboard extends Component
 
         $member = $this->memberOrFail($person, $memberId);
 
-        OwnerContext::withOwner($person, function () use ($member, $person, $transferOwnership, $user): void {
-            $transferOwnership->handle($person, $user, $member);
+        OwnerContext::withOwner($person, function () use ($member, $membershipCommands, $person, $user): void {
+            $membershipCommands->transferPersonOwnership(
+                (string) $person->getKey(),
+                (string) $user->getKey(),
+                (string) $member->getKey(),
+            );
         });
 
         $this->successToast(__('Speaker ownership transferred.'));

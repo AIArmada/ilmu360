@@ -3,11 +3,9 @@
 namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Actions\ChangeMemberRoleAction;
-use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\EventVisibility;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
@@ -206,10 +204,13 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             ]);
         }
 
-        OwnerContext::withOwner($institution, fn () => AddMemberAction::run(
-            $institution,
-            $member,
-            MemberRole::tryFrom($validated['newMemberRoleId']) ?? MemberRole::Viewer,
+        $role = MemberRole::tryFrom((string) $validated['newMemberRoleId']) ?? MemberRole::Viewer;
+
+        OwnerContext::withOwner($institution, fn () => app(MembershipCommands::class)->addMember(
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+            (string) $member->getKey(),
+            $role->value,
         ));
 
         $this->newMemberEmail = '';
@@ -263,7 +264,14 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $validated = $this->validate($this->memberRoleRules());
 
-        ChangeMemberRoleAction::run($institution, $member, MemberRole::tryFrom($validated['editingMemberRoleId']) ?? MemberRole::Viewer);
+        $role = MemberRole::tryFrom((string) $validated['editingMemberRoleId']) ?? MemberRole::Viewer;
+
+        app(MembershipCommands::class)->changeMemberRole(
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+            (string) $member->getKey(),
+            $role->value,
+        );
 
         $this->resetMemberEditor();
 
@@ -284,7 +292,11 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return;
         }
 
-        RemoveMemberAction::run($institution, $member);
+        app(MembershipCommands::class)->removeMember(
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+            (string) $member->getKey(),
+        );
 
         if ($this->editingMemberId === $member->id) {
             $this->resetMemberEditor();

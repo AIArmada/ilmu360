@@ -192,7 +192,7 @@ it('writes membership pivots through the command boundary', function (): void {
 
     expect($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'viewer'))->toBeTrue();
 
-    $commands->changeRole(MembershipSubjectType::Institution, $institutionId, $accountId, 'editor');
+    $commands->changeMemberRole(MembershipSubjectType::Institution, $institutionId, $accountId, 'editor');
 
     expect($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'editor'))->toBeTrue()
         ->and($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'viewer'))->toBeFalse();

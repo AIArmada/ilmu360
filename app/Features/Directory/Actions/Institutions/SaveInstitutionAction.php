@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\Institutions;
 
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Directory\Api\InstitutionSubmissionAccess;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\InstitutionFacilities;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Shared\Signals\SignalRecorder;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -28,7 +28,7 @@ final readonly class SaveInstitutionAction
     use AsAction;
 
     public function __construct(
-        private AddMemberAction $addMemberAction,
+        private MembershipCommands $membershipCommands,
         private GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private MediaCollectionSync $mediaSyncService,
         private SignalRecorder $signals,
@@ -91,7 +91,11 @@ final readonly class SaveInstitutionAction
             $attributes['allow_public_event_submission'] = true;
 
             $institution = DirectoryModel::query('institution')->create($attributes);
-            $this->addMemberAction->handle($institution, $actor, MemberRole::Owner);
+            $this->membershipCommands->assignOwner(
+                MembershipSubjectType::Institution,
+                (string) $institution->getKey(),
+                (string) $actor->getKey(),
+            );
         } else {
             $explicitSlug = array_key_exists('slug', $data) ? $this->normalizeOptionalString($data['slug']) : null;
 

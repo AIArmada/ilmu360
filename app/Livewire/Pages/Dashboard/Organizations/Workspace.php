@@ -147,7 +147,7 @@ final class Workspace extends Component
         $member = $this->memberOrFail($organization, $this->editingMemberId);
 
         OwnerContext::withOwner($organization, function () use ($membershipCommands, $member, $organization, $validated): void {
-            $membershipCommands->changeRole(
+            $membershipCommands->changeMemberRole(
                 MembershipSubjectType::Organization,
                 (string) $organization->getKey(),
                 (string) $member->getKey(),

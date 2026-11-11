@@ -39,6 +39,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Models\Builders\EventBuilder;
@@ -48,6 +49,7 @@ use App\Platform\Location\AddressAssignments;
 use App\Platform\Reporting\ReportModelClass;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
@@ -258,7 +260,10 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         });
 
         static::deleting(function (Event $event) {
-            $event->members()->detach();
+            app(MembershipCommands::class)->removeAllMembers(
+                MembershipSubjectType::Event,
+                (string) $event->getKey(),
+            );
             $event->involvements()->delete();
             $event->accessPolicies()->delete();
             $event->keyPeople()->delete();

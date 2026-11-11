@@ -3,13 +3,12 @@
 namespace App\Filament\Resources\Institutions\RelationManagers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Actions\ChangeMemberRoleAction;
-use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Models\Institution;
 use App\Models\User;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -55,10 +54,15 @@ class MembersRelationManager extends RelationManager
                     ])
                     ->action(function (array $data): void {
                         OwnerContext::withOwner($this->getInstitutionOwner(), function () use ($data): void {
-                            app(AddMemberAction::class)->handle(
-                                $this->getInstitutionOwner(),
-                                User::findOrFail($data['user_id']),
-                                MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner,
+                            $institution = $this->getInstitutionOwner();
+                            $member = User::findOrFail($data['user_id']);
+                            $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner;
+
+                            app(MembershipCommands::class)->addMember(
+                                MembershipSubjectType::Institution,
+                                (string) $institution->getKey(),
+                                (string) $member->getKey(),
+                                $role->value,
                             );
                         });
 
@@ -76,10 +80,14 @@ class MembersRelationManager extends RelationManager
                         'role_id' => $this->getMemberRoleId($record),
                     ])
                     ->action(function (array $data, User $record): void {
-                        app(ChangeMemberRoleAction::class)->handle(
-                            $this->getInstitutionOwner(),
-                            $record,
-                            MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer,
+                        $institution = $this->getInstitutionOwner();
+                        $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer;
+
+                        app(MembershipCommands::class)->changeMemberRole(
+                            MembershipSubjectType::Institution,
+                            (string) $institution->getKey(),
+                            (string) $record->getKey(),
+                            $role->value,
                         );
 
                         $this->notifyOwnerEditPage();
@@ -90,7 +98,13 @@ class MembersRelationManager extends RelationManager
                     ->hidden(fn (User $record): bool => $this->memberHasProtectedRole($record))
                     ->requiresConfirmation()
                     ->action(function (User $record): void {
-                        app(RemoveMemberAction::class)->handle($this->getInstitutionOwner(), $record);
+                        $institution = $this->getInstitutionOwner();
+
+                        app(MembershipCommands::class)->removeMember(
+                            MembershipSubjectType::Institution,
+                            (string) $institution->getKey(),
+                            (string) $record->getKey(),
+                        );
 
                         $this->notifyOwnerEditPage();
                     }),

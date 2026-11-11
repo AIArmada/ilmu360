@@ -11,6 +11,8 @@ use AIArmada\Membership\Actions\InviteMemberAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Membership\Actions\DetachSubjectMembersAction;
+use App\Features\Membership\Actions\TransferPersonOwnershipAction;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Platform\Models\MorphModelResolver;
@@ -18,10 +20,12 @@ use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Interim membership command adapter over the canonical package actions.
+ * Membership command adapter over the canonical package actions.
  *
  * Application submission/review and the app invitation notification remain in
- * their current writers until M1/M4 move them behind this boundary.
+ * their current writers until the remaining M slices move them behind this
+ * boundary. Package lifecycle actions remain canonical external writers for
+ * the member pivots.
  */
 final readonly class MembershipCommandsService implements MembershipCommands
 {
@@ -29,10 +33,24 @@ final readonly class MembershipCommandsService implements MembershipCommands
         private AddMemberAction $addMember,
         private ChangeMemberRoleAction $changeMemberRole,
         private RemoveMemberAction $removeMember,
+        private TransferPersonOwnershipAction $transferPersonOwnership,
+        private DetachSubjectMembersAction $detachSubjectMembers,
         private InviteMemberAction $inviteMember,
         private RevokeInvitationAction $revokeInvitation,
         private AcceptInvitationAction $acceptInvitation,
     ) {}
+
+    public function assignOwner(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+        string $accountId,
+    ): void {
+        $this->addMember->handle(
+            $this->subject($subjectType, $subjectId),
+            $this->account($accountId),
+            MemberRole::Owner,
+        );
+    }
 
     public function addMember(
         MembershipSubjectType $subjectType,
@@ -47,7 +65,7 @@ final readonly class MembershipCommandsService implements MembershipCommands
         );
     }
 
-    public function changeRole(
+    public function changeMemberRole(
         MembershipSubjectType $subjectType,
         string $subjectId,
         string $accountId,
@@ -68,6 +86,25 @@ final readonly class MembershipCommandsService implements MembershipCommands
         $this->removeMember->handle(
             $this->subject($subjectType, $subjectId),
             $this->account($accountId),
+        );
+    }
+
+    public function removeAllMembers(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+    ): void {
+        $this->detachSubjectMembers->handle($subjectType, $subjectId);
+    }
+
+    public function transferPersonOwnership(
+        string $personId,
+        string $actorId,
+        string $newOwnerId,
+    ): void {
+        $this->transferPersonOwnership->handle(
+            $this->subject(MembershipSubjectType::Person, $personId),
+            $this->account($actorId),
+            $this->account($newOwnerId),
         );
     }
 

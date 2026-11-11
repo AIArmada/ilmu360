@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\Institutions;
 
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;
+use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 final readonly class CreateInstitutionAction
 {
     public function __construct(
-        private AddMemberAction $addMemberAction,
+        private MembershipCommands $membershipCommands,
         private GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private SyncInstitutionNamesAction $syncInstitutionNames,
         private SyncInstitutionRelationsAction $syncInstitutionRelations,
@@ -48,7 +48,11 @@ final readonly class CreateInstitutionAction
         ]);
 
         if ($actor instanceof Model && $assignOwner) {
-            $this->addMemberAction->handle($institution, $actor, MemberRole::Owner);
+            $this->membershipCommands->assignOwner(
+                MembershipSubjectType::Institution,
+                (string) $institution->getKey(),
+                (string) $actor->getKey(),
+            );
         }
 
         if (is_array($payload['names'] ?? null)) {

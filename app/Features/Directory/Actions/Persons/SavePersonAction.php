@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\Persons;
 
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Directory\Api\PersonSubmissionAccess;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Platform\Addressing\AddressFormState;
 use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
@@ -24,7 +24,7 @@ final readonly class SavePersonAction
     use AsAction;
 
     public function __construct(
-        private AddMemberAction $addMemberAction,
+        private MembershipCommands $membershipCommands,
         private GeneratePersonSlugAction $generatePersonSlugAction,
         private SyncPersonMediaAction $syncPersonMedia,
         private SyncPersonRelationsAction $syncPersonRelations,
@@ -98,7 +98,11 @@ final readonly class SavePersonAction
             $person = DirectoryModel::query('person')->create($attributes);
 
             if ($assignOwner) {
-                $this->addMemberAction->handle($person, $actor, MemberRole::Owner);
+                $this->membershipCommands->assignOwner(
+                    MembershipSubjectType::Person,
+                    (string) $person->getKey(),
+                    (string) $actor->getKey(),
+                );
             }
         } else {
             $person->fill($attributes);

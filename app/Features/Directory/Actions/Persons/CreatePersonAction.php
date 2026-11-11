@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\Persons;
 
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Shared\Auth\AccountActor;
+use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 final readonly class CreatePersonAction
 {
     public function __construct(
-        private AddMemberAction $addMemberAction,
+        private MembershipCommands $membershipCommands,
         private GeneratePersonSlugAction $generatePersonSlugAction,
         private SyncPersonRelationsAction $syncPersonRelations,
     ) {}
@@ -57,7 +57,11 @@ final readonly class CreatePersonAction
         $person = DirectoryModel::query('person')->create($attributes);
 
         if ($actor instanceof Model && $assignOwner) {
-            $this->addMemberAction->handle($person, $actor, MemberRole::Owner);
+            $this->membershipCommands->assignOwner(
+                MembershipSubjectType::Person,
+                (string) $person->getKey(),
+                (string) $actor->getKey(),
+            );
         }
 
         if ($syncRelations) {

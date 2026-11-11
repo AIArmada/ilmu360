@@ -1,5 +1,23 @@
 {
   "schema": 2,
   "name": "Membership",
-  "owns": {}
+  "owns": {
+    "table:institution_members": [
+      "App\\Features\\Membership\\Actions\\DetachSubjectMembersAction",
+      "App\\Features\\Membership\\Actions\\MembershipAccountStateAction"
+    ],
+    "table:person_members": [
+      "App\\Features\\Membership\\Actions\\DetachSubjectMembersAction",
+      "App\\Features\\Membership\\Actions\\MembershipAccountStateAction",
+      "App\\Features\\Membership\\Actions\\TransferPersonOwnershipAction"
+    ],
+    "table:reference_members": [
+      "App\\Features\\Membership\\Actions\\DetachSubjectMembersAction",
+      "App\\Features\\Membership\\Actions\\MembershipAccountStateAction"
+    ],
+    "table:event_members": [
+      "App\\Features\\Membership\\Actions\\DetachSubjectMembersAction",
+      "App\\Features\\Membership\\Actions\\MembershipAccountStateAction"
+    ]
+  }
 }

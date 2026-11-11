@@ -2,13 +2,12 @@
 
 namespace App\Filament\Resources\Persons\RelationManagers;
 
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Actions\ChangeMemberRoleAction;
-use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -55,11 +54,14 @@ class MembersRelationManager extends RelationManager
                         DB::transaction(function () use ($data): void {
                             $person = $this->getPersonOwner();
                             $person->lockForMembershipMutation();
+                            $member = User::findOrFail($data['user_id']);
+                            $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner;
 
-                            app(AddMemberAction::class)->handle(
-                                $person,
-                                User::findOrFail($data['user_id']),
-                                MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner,
+                            app(MembershipCommands::class)->addMember(
+                                MembershipSubjectType::Person,
+                                (string) $person->getKey(),
+                                (string) $member->getKey(),
+                                $role->value,
                             );
                         });
 
@@ -80,11 +82,13 @@ class MembersRelationManager extends RelationManager
                         DB::transaction(function () use ($data, $record): void {
                             $person = $this->getPersonOwner();
                             $person->lockForMembershipMutation();
+                            $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer;
 
-                            app(ChangeMemberRoleAction::class)->handle(
-                                $person,
-                                $record,
-                                MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer,
+                            app(MembershipCommands::class)->changeMemberRole(
+                                MembershipSubjectType::Person,
+                                (string) $person->getKey(),
+                                (string) $record->getKey(),
+                                $role->value,
                             );
                         });
 
@@ -100,7 +104,11 @@ class MembersRelationManager extends RelationManager
                             $person = $this->getPersonOwner();
                             $person->lockForMembershipMutation();
 
-                            app(RemoveMemberAction::class)->handle($person, $record);
+                            app(MembershipCommands::class)->removeMember(
+                                MembershipSubjectType::Person,
+                                (string) $person->getKey(),
+                                (string) $record->getKey(),
+                            );
                         });
 
                         $this->notifyOwnerEditPage();

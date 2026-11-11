@@ -2,8 +2,6 @@
 
 namespace App\Actions\Contributions\Review;
 
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
 use App\Enums\ContributionRequestStatus;
@@ -14,6 +12,7 @@ use App\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
@@ -24,6 +23,7 @@ use App\Platform\Location\AddressAssignments;
 use App\Services\ContributionEntityMutationService;
 use App\Services\ModerationService;
 use App\Services\Notifications\ContributionRequestNotificationService;
+use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -38,7 +38,7 @@ class ApproveContributionRequestAction
         private readonly ModerationService $moderationService,
         private readonly ContributionEntityMutationService $entityMutationService,
         private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
-        private readonly AddMemberAction $addMemberAction,
+        private readonly MembershipCommands $membershipCommands,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
@@ -426,6 +426,10 @@ class ApproveContributionRequestAction
             return;
         }
 
-        $this->addMemberAction->handle($entity, $user, MemberRole::Owner);
+        $this->membershipCommands->assignOwner(
+            MembershipSubjectType::Person,
+            (string) $entity->getKey(),
+            (string) $user->getKey(),
+        );
     }
 }

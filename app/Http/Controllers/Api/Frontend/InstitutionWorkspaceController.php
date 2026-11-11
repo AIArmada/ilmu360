@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use AIArmada\Membership\Actions\AddMemberAction;
-use AIArmada\Membership\Actions\ChangeMemberRoleAction;
-use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\EventVisibility;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
@@ -148,7 +146,7 @@ class InstitutionWorkspaceController extends FrontendController
     public function addMember(
         string $institutionId,
         Request $request,
-        AddMemberAction $addMemberAction,
+        MembershipCommands $membershipCommands,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $institution = $this->selectedInstitutionOrAbort($user, $institutionId);
@@ -169,7 +167,12 @@ class InstitutionWorkspaceController extends FrontendController
             ]);
         }
 
-        $addMemberAction->handle($institution, $member, MemberRole::from((string) $validated['role_id']));
+        $membershipCommands->addMember(
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+            (string) $member->getKey(),
+            MemberRole::from((string) $validated['role_id'])->value,
+        );
 
         return response()->json([
             'data' => [
@@ -194,7 +197,7 @@ class InstitutionWorkspaceController extends FrontendController
         string $institutionId,
         string $memberId,
         Request $request,
-        ChangeMemberRoleAction $changeMemberRoleAction,
+        MembershipCommands $membershipCommands,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $institution = $this->selectedInstitutionOrAbort($user, $institutionId);
@@ -213,7 +216,12 @@ class InstitutionWorkspaceController extends FrontendController
             'role_id' => $this->institutionMemberRoleRules(),
         ]);
 
-        $changeMemberRoleAction->handle($institution, $member, MemberRole::from((string) $validated['role_id']));
+        $membershipCommands->changeMemberRole(
+            MembershipSubjectType::Institution,
+            (string) $institution->getKey(),
+            (string) $member->getKey(),
+            MemberRole::from((string) $validated['role_id'])->value,
+        );
 
         return response()->json([
             'data' => [
@@ -238,7 +246,7 @@ class InstitutionWorkspaceController extends FrontendController
         string $institutionId,
         string $memberId,
         Request $request,
-        RemoveMemberAction $removeMemberAction,
+        MembershipCommands $membershipCommands,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $institution = $this->selectedInstitutionOrAbort($user, $institutionId);
@@ -254,7 +262,11 @@ class InstitutionWorkspaceController extends FrontendController
         }
 
         try {
-            $removeMemberAction->handle($institution, $member);
+            $membershipCommands->removeMember(
+                MembershipSubjectType::Institution,
+                (string) $institution->getKey(),
+                (string) $member->getKey(),
+            );
         } catch (RuntimeException) {
             throw ValidationException::withMessages([
                 'member' => __('Owner roles can only be changed from the global roles screen.'),

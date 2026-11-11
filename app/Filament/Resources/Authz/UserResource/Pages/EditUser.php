@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Authz\UserResource\Pages;
 
-use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
 use App\Enums\MemberSubjectType;
 use App\Features\Identity\Api\AccountAdministration;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Filament\Resources\Authz\UserResource;
 use App\Models\Event;
 use App\Models\Institution;
@@ -142,14 +142,28 @@ class EditUser extends EditRecord
             $subject = $this->firstResolvedSubject($subjectType, $user);
 
             if ($subject !== null) {
+                $membershipSubjectType = MembershipSubjectType::from($subjectType->value);
+                $subjectId = (string) $subject->getKey();
+                $accountId = (string) $user->getKey();
+
                 if ($subject instanceof Person) {
-                    DB::transaction(function () use ($role, $subject, $user): void {
+                    DB::transaction(function () use ($accountId, $membershipSubjectType, $role, $subject, $subjectId): void {
                         $subject->lockForMembershipMutation();
 
-                        app(ChangeMemberRoleAction::class)->handle($subject, $user, $role);
+                        app(MembershipCommands::class)->changeMemberRole(
+                            $membershipSubjectType,
+                            $subjectId,
+                            $accountId,
+                            $role->value,
+                        );
                     });
                 } else {
-                    app(ChangeMemberRoleAction::class)->handle($subject, $user, $role);
+                    app(MembershipCommands::class)->changeMemberRole(
+                        $membershipSubjectType,
+                        $subjectId,
+                        $accountId,
+                        $role->value,
+                    );
                 }
             }
         }

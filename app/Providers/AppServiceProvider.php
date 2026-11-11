@@ -189,6 +189,7 @@ use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\AccountSettingsStore;
 use App\Shared\Auth\NullSignupAttributionSourceResolver;
+use App\Shared\Auth\ScopedMembershipRoleStore;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\Auth\UserMorphType;
@@ -219,6 +220,7 @@ use App\Support\Ai\AiAccountLifecycleContributor;
 use App\Support\Api\Admin\AdminValidateOnlyRemediationEnricher;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\SignupAttributionContextResolverAdapter;
+use App\Support\Authz\EloquentScopedMembershipRoleStore;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Communications\AccountNotificationSettingsAdapter;
 use App\Support\Communications\AppConsentResolver;
@@ -251,7 +253,6 @@ use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
 use App\Support\Membership\EloquentMembershipApplicationReader;
 use App\Support\Membership\EloquentMembershipSubjectCatalog;
-use App\Support\Membership\MembershipAccountLifecycleContributor;
 use App\Support\Moderation\ModerationAccountLifecycleContributor;
 use App\Support\Passport\PassportKeyProvisioner;
 use App\Support\Reports\CompositeReportSubjectResolver;
@@ -345,6 +346,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AccountNotificationSettings::class, AccountNotificationSettingsAdapter::class);
         $this->app->bind(PrayerInstitutionCatalog::class, EloquentPrayerInstitutionCatalog::class);
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
+        $this->app->bind(ScopedMembershipRoleStore::class, EloquentScopedMembershipRoleStore::class);
         $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);
         $this->app->bind(MembershipPermissionEvaluator::class, MemberPermissionGate::class);
         $this->app->bind(MembershipApplicationReader::class, EloquentMembershipApplicationReader::class);
@@ -358,7 +360,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(EngagementReader::class, EloquentEngagementReader::class);
         $this->app->bind(GuestSubmissionClaims::class, ClaimGuestSubmissionsAction::class);
         $this->app->tag([
-            MembershipAccountLifecycleContributor::class,
             DirectoryAccountLifecycleContributor::class,
             EventsAccountLifecycleContributor::class,
             ContributionsAccountLifecycleContributor::class,

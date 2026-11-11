@@ -20,6 +20,7 @@ use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\Models\SocialAccount;
 use App\Features\Reports\Models\Report;
@@ -792,6 +793,51 @@ it('re-syncs submission eligibility after restoring memberships', function (): v
 
     expect($institution->fresh()->allow_public_event_submission)->toBeTrue()
         ->and($institution->fresh()->members()->whereKey($user->id)->exists())->toBeTrue();
+});
+
+it('restores member pivot roles instead of defaulting them to viewer', function (): void {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create();
+    $person = Person::factory()->create();
+    $reference = Reference::factory()->create();
+    $event = Event::factory()->create();
+    $joinedAt = now()->subDay();
+
+    $institution->members()->attach($user->id, [
+        'role' => MemberRole::Admin->spatieRoleName(),
+        'joined_at' => $joinedAt,
+    ]);
+    $person->members()->attach($user->id, [
+        'role' => MemberRole::Owner->spatieRoleName(),
+        'joined_at' => $joinedAt,
+    ]);
+    $reference->members()->attach($user->id, [
+        'role' => MemberRole::Editor->spatieRoleName(),
+        'joined_at' => $joinedAt,
+    ]);
+    $event->members()->attach($user->id, [
+        'role' => MemberRole::Admin->spatieRoleName(),
+        'joined_at' => $joinedAt,
+    ]);
+
+    $user->delete();
+    User::restoreDeletedUser($user->id);
+
+    expect($institution->fresh()->members()->whereKey($user->id)->first()?->pivot?->role)
+        ->toBe(MemberRole::Admin->spatieRoleName())
+        ->and($person->fresh()->members()->whereKey($user->id)->first()?->pivot?->role)
+        ->toBe(MemberRole::Owner->spatieRoleName())
+        ->and($reference->fresh()->members()->whereKey($user->id)->first()?->pivot?->role)
+        ->toBe(MemberRole::Editor->spatieRoleName())
+        ->and($event->fresh()->members()->whereKey($user->id)->first()?->pivot?->role)
+        ->toBe(MemberRole::Admin->spatieRoleName());
+
+    assertDatabaseHas('institution_members', [
+        'institution_id' => $institution->id,
+        'user_id' => $user->id,
+        'role' => MemberRole::Admin->spatieRoleName(),
+        'joined_at' => $joinedAt->toDateTimeString(),
+    ]);
 });
 
 it('does not let non super admins access the deleted users restore page', function (): void {

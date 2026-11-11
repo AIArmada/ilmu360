@@ -9,12 +9,19 @@ use App\Shared\Membership\MembershipSubjectType;
 /**
  * Write boundary for membership rows and invitation lifecycle.
  *
- * Implementations delegate to the canonical package actions; application
- * submission and review stay in MembershipApplications until the M slices move
+ * Implementations resolve scalar identifiers to the owning models and delegate
+ * role mutations to the canonical package actions. Application submission and
+ * review stay in MembershipApplications until the remaining M slices move
  * their writers.
  */
 interface MembershipCommands
 {
+    public function assignOwner(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+        string $accountId,
+    ): void;
+
     public function addMember(
         MembershipSubjectType $subjectType,
         string $subjectId,
@@ -22,7 +29,7 @@ interface MembershipCommands
         string $role,
     ): void;
 
-    public function changeRole(
+    public function changeMemberRole(
         MembershipSubjectType $subjectType,
         string $subjectId,
         string $accountId,
@@ -33,6 +40,20 @@ interface MembershipCommands
         MembershipSubjectType $subjectType,
         string $subjectId,
         string $accountId,
+    ): void;
+
+    /**
+     * Remove every member pivot for one subject without revoking scoped roles.
+     */
+    public function removeAllMembers(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+    ): void;
+
+    public function transferPersonOwnership(
+        string $personId,
+        string $actorId,
+        string $newOwnerId,
     ): void;
 
     public function invite(
