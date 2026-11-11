@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Series\Tables;
 
+use App\Features\Events\Api\SeriesAuthoring;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -11,6 +12,8 @@ use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Throwable;
 
 class SeriesTable
 {
@@ -60,7 +63,28 @@ class SeriesTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (DeleteBulkAction $action, Collection $records): void {
+                            try {
+                                $deleted = app(SeriesAuthoring::class)->deleteMany(
+                                    $records->modelKeys(),
+                                );
+                            } catch (Throwable $exception) {
+                                report($exception);
+
+                                $action->reportCompleteBulkProcessingFailure();
+
+                                return;
+                            }
+
+                            if ($deleted > 0) {
+                                $action->reportBulkProcessingSuccessfulRecordsCount($deleted);
+                            }
+
+                            if ($deleted < $records->count()) {
+                                $action->reportBulkProcessingFailure();
+                            }
+                        }),
                 ]),
             ]);
     }

@@ -5,17 +5,34 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Series\Pages;
 
 use AIArmada\FilamentCommerceSupport\Concerns\AuditsRelatedStateChanges;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Models\Language;
 use App\Models\Series;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 class CreateSeries extends CreateRecord
 {
     use AuditsRelatedStateChanges;
 
     protected static string $resource = SeriesResource::class;
+
+    /**
+     * Filament keeps ownership of the languages relationship and media
+     * collections; the authoring boundary receives scalar form state only.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function handleRecordCreation(array $data): Model
+    {
+        $seriesId = app(SeriesAuthoring::class)->save(
+            Arr::except($data, ['languages', 'cover', 'gallery']),
+        );
+
+        return Series::query()->findOrFail($seriesId);
+    }
 
     protected function afterCreate(): void
     {

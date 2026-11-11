@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Series;
+namespace App\Features\Events\Actions\Series;
 
-use App\Models\Series;
+use AIArmada\Events\Models\EventSeries;
+use App\Features\Events\Support\EventModel;
 use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
+use RuntimeException;
+use Spatie\MediaLibrary\HasMedia;
 
 final readonly class SaveSeriesAction
 {
@@ -22,10 +25,15 @@ final readonly class SaveSeriesAction
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, ?Series $series = null): Series
+    public function handle(array $data, ?string $seriesId = null): EventSeries
     {
-        $creating = ! $series instanceof Series;
-        $series ??= new Series;
+        $creating = $seriesId === null;
+        $seriesClass = EventModel::series();
+        $series = $creating ? new $seriesClass : $seriesClass::query()->findOrFail($seriesId);
+
+        if (! $series instanceof EventSeries || ! $series instanceof HasMedia) {
+            throw new RuntimeException('Expected a media-capable event series model.');
+        }
 
         $series->fill([
             'title' => $this->normalizeRequiredString($data['title'] ?? $series->title, 'Series'),
@@ -42,7 +50,7 @@ final readonly class SaveSeriesAction
                 : ($creating ? 'active' : (string) $series->status),
         ]);
 
-        $this->ensureUniqueSlug($series, (string) $series->slug);
+        $this->ensureUniqueSlug($seriesClass, $series, (string) $series->slug);
         $series->save();
 
         $this->syncLanguages($series, $data);
@@ -54,10 +62,14 @@ final readonly class SaveSeriesAction
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncLanguages(Series $series, array $data): void
+    private function syncLanguages(EventSeries $series, array $data): void
     {
         if (! array_key_exists('languages', $data)) {
             return;
+        }
+
+        if (! method_exists($series, 'syncLanguages')) {
+            throw new RuntimeException('Expected the event series model to support language assignments.');
         }
 
         $languageIds = [];
@@ -78,7 +90,7 @@ final readonly class SaveSeriesAction
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncMedia(Series $series, array $data): void
+    private function syncMedia(EventSeries&HasMedia $series, array $data): void
     {
         if (($data['clear_cover'] ?? false) === true) {
             $this->mediaSyncService->clearCollection($series, 'cover');
@@ -104,9 +116,12 @@ final readonly class SaveSeriesAction
         );
     }
 
-    private function ensureUniqueSlug(Series $series, string $slug): void
+    /**
+     * @param  class-string<EventSeries>  $seriesClass
+     */
+    private function ensureUniqueSlug(string $seriesClass, EventSeries $series, string $slug): void
     {
-        $query = Series::query()->where('slug', $slug);
+        $query = $seriesClass::query()->where('slug', $slug);
 
         if ($series->exists) {
             $query->whereKeyNot($series->getKey());

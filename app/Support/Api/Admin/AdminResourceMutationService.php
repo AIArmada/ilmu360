@@ -19,10 +19,10 @@ use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Features\Directory\Api\ReferenceWorkflow;
-use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\SpaceWorkflow;
 use App\Features\Directory\Api\VenueWorkflow;
-use App\Actions\Series\SaveSeriesAction;
+use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -89,7 +89,7 @@ class AdminResourceMutationService
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
-        private readonly SaveSeriesAction $saveSeriesAction,
+        private readonly SeriesAuthoring $seriesAuthoring,
         private readonly SpaceWorkflow $spaceWorkflow,
         private readonly VenueWorkflow $venueWorkflow,
     ) {}
@@ -408,7 +408,7 @@ class AdminResourceMutationService
             EventResource::class => $this->saveAdminEventAction->handle($validated, $actor),
             InstitutionResource::class => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey())),
             ReferenceResource::class => Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($validated)),
-            SeriesResource::class => $this->saveSeriesAction->handle($validated),
+            SeriesResource::class => Series::query()->with(['languages', 'media'])->findOrFail($this->seriesAuthoring->save($validated)),
             PersonResource::class => Person::query()->findOrFail(
                 $this->personWorkflow->saveFromAdmin($validated, (string) $actor->getKey()),
             ),
@@ -453,7 +453,7 @@ class AdminResourceMutationService
                 ? Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($validated, (string) $record->getKey()))
                 : throw new \RuntimeException('Expected reference record.'),
             SeriesResource::class => $record instanceof Series
-                ? $this->saveSeriesAction->handle($validated, $record)
+                ? Series::query()->with(['languages', 'media'])->findOrFail($this->seriesAuthoring->save($validated, (string) $record->getKey()))
                 : throw new \RuntimeException('Expected series record.'),
             PersonResource::class => $record instanceof Person
                 ? Person::query()->findOrFail(

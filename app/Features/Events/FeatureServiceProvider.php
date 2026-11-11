@@ -11,10 +11,12 @@ use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Api\GuestSubmissionClaims;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Services\EventAuthoringService;
 use App\Features\Events\Services\EventCategoryCatalog;
 use App\Features\Events\Services\EventCategoryPolicy;
 use App\Features\Events\Services\EventReportSubjectResolver;
+use App\Features\Events\Services\SeriesAuthoringService;
 use App\Features\Events\Support\EventModel;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
@@ -40,6 +42,9 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  *   audiences, languages, locations and organizer writes to feature actions.
  * - event_taxonomies/event_terms are created by the package synchronizer that
  *   SyncEventClassificationsAction invokes.
+ * - vendor Filament event resources (until E4) and events package cascades
+ *   remain external writers for series; app-owned series authoring and
+ *   deletion go through the SeriesAuthoring boundary.
  */
 class FeatureServiceProvider extends FeatureModule
 {
@@ -54,6 +59,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventAuthoring::class, EventAuthoringService::class);
         $this->app->bind(EventLocations::class, SyncEventLocationsAction::class);
         $this->app->bind(EventProjections::class, SyncEventProjectionsAction::class);
+        $this->app->bind(SeriesAuthoring::class, SeriesAuthoringService::class);
 
         $this->app->singleton(EventCategoryCatalogContract::class, EventCategoryCatalog::class);
         $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);

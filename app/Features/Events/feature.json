@@ -9,7 +9,15 @@
       "App\\Features\\Events\\Actions\\Scheduling\\SyncEventScheduleAction"
     ],
     "table:event_series_items": [
+      "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction"
+    ],
+    "table:event_series": [
+      "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
+      "App\\Features\\Events\\Actions\\Series\\SaveSeriesAction"
+    ],
+    "table:event_series_rules": [
+      "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction"
     ],
     "table:event_taxonomies": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction"
