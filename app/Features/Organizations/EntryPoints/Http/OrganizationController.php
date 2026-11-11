@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Api\Frontend;
+namespace App\Features\Organizations\EntryPoints\Http;
 
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Organizations\Api\OrganizationAccess;
@@ -16,10 +16,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 
 #[Group('Organizations', 'Public organization discovery and authenticated organization workspace endpoints.')]
-final class OrganizationController extends FrontendController
+final class OrganizationController extends Controller
 {
     #[Endpoint(
         title: 'List public organizations',

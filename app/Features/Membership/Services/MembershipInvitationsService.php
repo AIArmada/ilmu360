@@ -51,6 +51,21 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
             ->all();
     }
 
+    public function recentForSubject(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+        int $limit = 20,
+    ): array {
+        return $this->query()
+            ->where('subject_type', $subjectType->value)
+            ->where('subject_id', $subjectId)
+            ->latest('created_at')
+            ->limit(max(0, $limit))
+            ->get()
+            ->map(static fn (Model $invitation): MembershipInvitationDetail => MembershipValueMapper::invitation($invitation))
+            ->all();
+    }
+
     public function pendingExistsForEmail(
         MembershipSubjectType $subjectType,
         string $subjectId,

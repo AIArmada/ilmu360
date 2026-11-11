@@ -29,6 +29,7 @@ final readonly class MembershipValueMapper
             expiresAt: self::dateTime($invitation->getAttribute('expires_at')),
             acceptedAt: self::dateTime($invitation->getAttribute('accepted_at')),
             createdAt: self::dateTime($invitation->getAttribute('created_at')),
+            isValid: method_exists($invitation, 'isValid') && (bool) $invitation->isValid(),
         );
     }
 

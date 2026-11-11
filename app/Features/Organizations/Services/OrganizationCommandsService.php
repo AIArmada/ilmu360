@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Organizations;
+namespace App\Features\Organizations\Services;
 
 use AIArmada\Organizations\Actions\ArchiveOrganizationAction;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
@@ -20,9 +20,11 @@ use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
 /**
- * Interim organization command adapter over the canonical package actions.
+ * Organization command adapter over the canonical package actions.
  *
- * Authorization, transactions and lifecycle hooks remain inside those actions.
+ * Authorization, transactions and lifecycle hooks remain inside those actions;
+ * this service only resolves scalar account/aggregate identifiers for the
+ * feature boundary.
  */
 final readonly class OrganizationCommandsService implements OrganizationCommands
 {

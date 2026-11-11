@@ -22,5 +22,6 @@ final readonly class MembershipInvitationDetail
         public ?string $expiresAt = null,
         public ?string $acceptedAt = null,
         public ?string $createdAt = null,
+        public bool $isValid = false,
     ) {}
 }

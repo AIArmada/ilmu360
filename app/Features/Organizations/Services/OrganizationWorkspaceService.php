@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Organizations;
+namespace App\Features\Organizations\Services;
 
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Organizations\Api\OrganizationAccess;
@@ -13,7 +13,10 @@ use App\Features\Organizations\Api\OrganizationWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Interim organization workspace reader over the package aggregate.
+ * Organization workspace reader over the package aggregate.
+ *
+ * Reads stay inside the owning feature; the package remains canonical for
+ * organization tables and models.
  */
 final readonly class OrganizationWorkspaceService implements OrganizationWorkspace
 {

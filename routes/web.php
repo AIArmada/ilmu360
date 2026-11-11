@@ -32,10 +32,6 @@ use App\Livewire\Pages\Dashboard\Events\RegistrationQuestions as EventRegistrati
 use App\Livewire\Pages\Dashboard\Events\Schedule as EventSchedule;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
-use App\Livewire\Pages\Dashboard\Organizations\CreateEvent as CreateOrganizationEvent;
-use App\Livewire\Pages\Dashboard\Organizations\CreateOrganization;
-use App\Livewire\Pages\Dashboard\Organizations\Index as OrganizationsIndex;
-use App\Livewire\Pages\Dashboard\Organizations\Workspace as OrganizationWorkspace;
 use App\Livewire\Pages\Dashboard\PersonDashboard;
 use App\Livewire\Pages\Dashboard\ReferralMemberIndex;
 use App\Livewire\Pages\Dashboard\RewardMemberIndex;
@@ -155,10 +151,6 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/majlis/{event:slug}/pendaftaran/{registration}/refund', EventRefund::class)
         ->middleware('verified')
         ->name('events.registration.refund');
-    Route::livewire('/organisasi', OrganizationsIndex::class)->name('dashboard.organizations.index');
-    Route::livewire('/organisasi/cipta', CreateOrganization::class)->name('dashboard.organizations.create');
-    Route::livewire('/organisasi/{organization}', OrganizationWorkspace::class)->name('dashboard.organizations.show');
-    Route::livewire('/organisasi/{organization}/majlis/cipta', CreateOrganizationEvent::class)->name('dashboard.organizations.events.create');
     Route::get('/checkout/result/{session}', [EventCheckoutResultController::class, 'show'])
         ->middleware('verified')
         ->name('checkout.result');

@@ -28,7 +28,6 @@ use App\Http\Controllers\Api\Frontend\InstitutionWorkspaceController;
 use App\Http\Controllers\Api\Frontend\ManifestController;
 use App\Http\Controllers\Api\Frontend\MembershipApplicationController;
 use App\Http\Controllers\Api\Frontend\MobileTelemetryController;
-use App\Http\Controllers\Api\Frontend\OrganizationController;
 use App\Http\Controllers\Api\Frontend\RewardAppealController;
 use App\Http\Controllers\Api\Frontend\RewardAwardController;
 use App\Http\Controllers\Api\Frontend\RewardBalanceController;
@@ -106,8 +105,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/institutions', [SearchController::class, 'institutions'])->name('institutions.index');
         Route::get('/institutions/near', [SearchController::class, 'institutionsNear'])->name('institutions.near');
         Route::get('/institutions/{institutionKey}', [SearchController::class, 'showInstitution'])->name('institutions.show');
-        Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index');
-        Route::get('/organizations/{organizationKey}', [OrganizationController::class, 'show'])->name('organizations.show');
         Route::get('/persons', [SearchController::class, 'persons'])->name('persons.index');
         Route::get('/persons/{personKey}', [SearchController::class, 'showPerson'])->name('persons.show');
         Route::get('/venues/{venueKey}', [SearchController::class, 'showVenue'])->name('venues.show');
@@ -164,10 +161,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         });
 
     Route::name('api.client.')->group(function () {
-        Route::post('/organizations', [OrganizationController::class, 'store'])->name('organizations.store');
-        Route::get('/organization-workspace', [OrganizationController::class, 'workspace'])
-            ->middleware('current.organization:true')
-            ->name('organizations.workspace');
         Route::prefix('share')->name('share.')->group(function (): void {
             Route::get('/analytics', [ShareAnalyticsController::class, 'index'])->name('analytics');
             Route::get('/analytics/links/{link}', [ShareAnalyticsController::class, 'show'])->name('analytics.links.show');

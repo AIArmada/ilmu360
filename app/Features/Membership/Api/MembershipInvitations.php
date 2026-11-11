@@ -25,6 +25,17 @@ interface MembershipInvitations
         string $subjectId,
     ): array;
 
+    /**
+     * Invitations for one subject ordered newest first.
+     *
+     * @return list<MembershipInvitationDetail>
+     */
+    public function recentForSubject(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+        int $limit = 20,
+    ): array;
+
     public function pendingExistsForEmail(
         MembershipSubjectType $subjectType,
         string $subjectId,

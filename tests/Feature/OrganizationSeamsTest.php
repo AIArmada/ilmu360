@@ -9,13 +9,19 @@ use AIArmada\Organizations\Models\Organization;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Features\Organizations\Api\OrganizationWorkspace;
+use App\Features\Organizations\EntryPoints\Http\OrganizationController;
 use App\Features\Organizations\Services\CurrentOrganizationResolver;
 use App\Features\Organizations\Services\OrganizationAccessService;
+use App\Features\Organizations\Services\OrganizationCommandsService;
+use App\Features\Organizations\Services\OrganizationWorkspaceService;
+use App\Livewire\Pages\Dashboard\Organizations\CreateEvent as CreateOrganizationEvent;
+use App\Livewire\Pages\Dashboard\Organizations\CreateOrganization;
+use App\Livewire\Pages\Dashboard\Organizations\Index as OrganizationsIndex;
+use App\Livewire\Pages\Dashboard\Organizations\Workspace as OrganizationWorkspacePage;
 use App\Models\User;
-use App\Support\Organizations\OrganizationCommandsService;
-use App\Support\Organizations\OrganizationWorkspaceService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 it('binds the organization seams to their feature adapters', function (): void {
     expect(app(OrganizationAccess::class))->toBeInstanceOf(OrganizationAccessService::class)
@@ -23,6 +29,58 @@ it('binds the organization seams to their feature adapters', function (): void {
         ->and(app(OrganizationCommands::class))->toBeInstanceOf(OrganizationCommandsService::class)
         ->and(config('organizations.resolver'))->toBe(CurrentOrganizationResolver::class)
         ->and(app(CurrentOrganizationResolverContract::class))->toBeInstanceOf(CurrentOrganizationResolver::class);
+});
+
+it('registers organization transport and route names inside the feature', function (): void {
+    $store = Route::getRoutes()->getByName('api.client.organizations.store');
+    $workspace = Route::getRoutes()->getByName('api.client.organizations.workspace');
+
+    expect($store?->getActionName())->toBe(OrganizationController::class.'@store')
+        ->and($store?->middleware())->toBe(['api', 'auth:sanctum'])
+        ->and($workspace?->getActionName())->toBe(OrganizationController::class.'@workspace')
+        ->and($workspace?->middleware())->toBe([
+            'api',
+            'auth:sanctum',
+            'current.organization:true',
+        ])
+        ->and(Route::getRoutes()->getByName('api.client.organizations.index')?->getActionName())
+        ->toBe(OrganizationController::class.'@index')
+        ->and(Route::getRoutes()->getByName('api.client.organizations.show')?->getActionName())
+        ->toBe(OrganizationController::class.'@show');
+
+    $webRoutes = [
+        'dashboard.organizations.index' => ['/organisasi', 'pages.dashboard.organizations.index'],
+        'dashboard.organizations.create' => ['/organisasi/cipta', 'pages.dashboard.organizations.create-organization'],
+        'dashboard.organizations.show' => ['/organisasi/{organization}', 'pages.dashboard.organizations.workspace'],
+        'dashboard.organizations.events.create' => ['/organisasi/{organization}/majlis/cipta', 'pages.dashboard.organizations.create-event'],
+    ];
+
+    foreach ($webRoutes as $name => [$uri, $component]) {
+        $route = Route::getRoutes()->getByName($name);
+
+        expect($route?->uri())->toBe(ltrim($uri, '/'))
+            ->and($route?->getAction('livewire_component'))->toBe($component)
+            ->and($route?->middleware())->toBe(['web', 'auth']);
+    }
+
+    $finder = app('livewire.finder');
+
+    expect($finder->resolveClassComponentClassName('pages.dashboard.organizations.index'))->toBe(OrganizationsIndex::class)
+        ->and($finder->resolveClassComponentClassName('pages.dashboard.organizations.create-organization'))->toBe(CreateOrganization::class)
+        ->and($finder->resolveClassComponentClassName('pages.dashboard.organizations.workspace'))->toBe(OrganizationWorkspacePage::class)
+        ->and($finder->resolveClassComponentClassName('pages.dashboard.organizations.create-event'))->toBe(CreateOrganizationEvent::class);
+});
+
+it('keeps organization-only members outside ahli and member MCP access', function (): void {
+    $member = User::factory()->create();
+
+    app(OrganizationCommands::class)->create((string) $member->getKey(), [
+        'name' => 'Panel Hold Organization',
+    ]);
+
+    expect($member->hasAhliPanelAccess())->toBeFalse()
+        ->and($member->hasMemberMcpAccess())->toBeFalse()
+        ->and($member->hasAnyMcpAccess())->toBeFalse();
 });
 
 it('creates, reads and transitions organizations through the seam boundaries', function (): void {

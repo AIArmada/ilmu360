@@ -6,25 +6,18 @@ namespace App\Livewire\Pages\Dashboard\Organizations;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
-use AIArmada\Membership\Actions\ChangeMemberRoleAction;
-use AIArmada\Membership\Actions\RemoveMemberAction;
-use AIArmada\Membership\Actions\RevokeInvitationAction;
-use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Enums\MemberRole;
-use AIArmada\Organizations\Actions\ArchiveOrganizationAction;
-use AIArmada\Organizations\Actions\MakeOrganizationPrivateAction;
-use AIArmada\Organizations\Actions\MakeOrganizationPublicAction;
-use AIArmada\Organizations\Actions\RestoreOrganizationAction;
-use AIArmada\Organizations\Actions\SuspendOrganizationAction;
-use AIArmada\Organizations\Actions\TransferOrganizationOwnershipAction;
-use AIArmada\Organizations\Contracts\OrganizationAuthorization;
 use AIArmada\Organizations\Models\Organization;
 use App\Actions\Membership\InviteSubjectMember;
-use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MembershipInvitationDetail;
+use App\Features\Membership\Api\MembershipInvitations;
+use App\Features\Organizations\Api\OrganizationAccess;
+use App\Features\Organizations\Api\OrganizationCommands;
 use App\Models\Event;
-use App\Models\MemberInvitation;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -61,16 +54,21 @@ final class Workspace extends Component
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
 
-        app(OrganizationAuthorization::class)->authorize($user, $organization, 'organization.view');
+        abort_unless(
+            app(OrganizationAccess::class)->can((string) $user->getKey(), (string) $organization->getKey(), 'organization.view'),
+            403,
+        );
 
         $this->organizationId = (string) $organization->getKey();
     }
 
-    public function invite(InviteSubjectMember $inviteSubjectMember, OrganizationAuthorization $authorization): void
-    {
+    public function invite(
+        InviteSubjectMember $inviteSubjectMember,
+        MembershipInvitations $membershipInvitations,
+    ): void {
         $organization = $this->selectedOrganization();
         $user = $this->currentUser();
-        $authorization->authorize($user, $organization, 'organization.manage-members');
+        $this->authorizeManageMembers($organization);
 
         $validated = $this->validate([
             'inviteEmail' => ['required', 'email:rfc', 'max:255'],
@@ -85,20 +83,20 @@ final class Workspace extends Component
             ]);
         }
 
-        $pendingInvitationExists = $this->invitationQuery($organization)
-            ->where('email', $email)
-            ->where('status', InvitationStatus::Pending->value)
-            ->where(function (Builder $query): void {
-                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->exists();
-
-        if ($pendingInvitationExists) {
+        if ($membershipInvitations->pendingExistsForEmail(
+            MembershipSubjectType::Organization,
+            (string) $organization->getKey(),
+            $email,
+        )) {
             throw ValidationException::withMessages([
                 'inviteEmail' => __('There is already a pending invitation for this email address.'),
             ]);
         }
 
+        // Invitation creation stays on the application inviter: it is the
+        // canonical writer for the raw token and the member invitation email.
+        // MembershipCommands::invite wraps the package writer without that
+        // notification (recorded invitation-email asymmetry for M4).
         $inviteSubjectMember->handle(
             $organization,
             $email,
@@ -134,7 +132,7 @@ final class Workspace extends Component
         $this->editingRole = MemberRole::Viewer->value;
     }
 
-    public function saveMemberRole(ChangeMemberRoleAction $changeMemberRole): void
+    public function saveMemberRole(MembershipCommands $membershipCommands): void
     {
         $organization = $this->selectedOrganization();
         $this->authorizeManageMembers($organization);
@@ -148,23 +146,32 @@ final class Workspace extends Component
         ]);
         $member = $this->memberOrFail($organization, $this->editingMemberId);
 
-        OwnerContext::withOwner($organization, function () use ($changeMemberRole, $member, $organization, $validated): void {
-            $changeMemberRole->handle($organization, $member, MemberRole::from((string) $validated['editingRole']));
+        OwnerContext::withOwner($organization, function () use ($membershipCommands, $member, $organization, $validated): void {
+            $membershipCommands->changeRole(
+                MembershipSubjectType::Organization,
+                (string) $organization->getKey(),
+                (string) $member->getKey(),
+                (string) $validated['editingRole'],
+            );
         });
 
         $this->cancelEditingMember();
         $this->successToast(__('Member role updated.'));
     }
 
-    public function removeMember(string $memberId, RemoveMemberAction $removeMember): void
+    public function removeMember(string $memberId, MembershipCommands $membershipCommands): void
     {
         $organization = $this->selectedOrganization();
         $this->authorizeManageMembers($organization);
         $member = $this->memberOrFail($organization, $memberId);
 
         try {
-            OwnerContext::withOwner($organization, function () use ($member, $organization, $removeMember): void {
-                $removeMember->handle($organization, $member);
+            OwnerContext::withOwner($organization, function () use ($membershipCommands, $member, $organization): void {
+                $membershipCommands->removeMember(
+                    MembershipSubjectType::Organization,
+                    (string) $organization->getKey(),
+                    (string) $member->getKey(),
+                );
             });
         } catch (Throwable $throwable) {
             report($throwable);
@@ -176,68 +183,83 @@ final class Workspace extends Component
         $this->successToast(__('Member removed successfully.'));
     }
 
-    public function transferOwnership(string $memberId, TransferOrganizationOwnershipAction $transferOwnership): void
+    public function transferOwnership(string $memberId, OrganizationCommands $organizationCommands): void
     {
         $organization = $this->selectedOrganization();
         $user = $this->currentUser();
         $member = $this->memberOrFail($organization, $memberId);
 
-        OwnerContext::withOwner($organization, function () use ($member, $organization, $transferOwnership, $user): void {
-            $transferOwnership->handle($organization, $user, $member);
+        OwnerContext::withOwner($organization, function () use ($member, $organization, $organizationCommands, $user): void {
+            $organizationCommands->transferOwnership(
+                (string) $organization->getKey(),
+                (string) $user->getKey(),
+                (string) $member->getKey(),
+            );
         });
 
         $this->successToast(__('Organization ownership transferred.'));
     }
 
-    public function revokeInvitation(string $invitationId, RevokeInvitationAction $revokeInvitation): void
-    {
+    public function revokeInvitation(
+        string $invitationId,
+        MembershipCommands $membershipCommands,
+        MembershipInvitations $membershipInvitations,
+    ): void {
         $organization = $this->selectedOrganization();
         $user = $this->currentUser();
-        app(OrganizationAuthorization::class)->authorize($user, $organization, 'organization.manage-members');
+        $this->authorizeManageMembers($organization);
 
-        $invitation = $this->invitationQuery($organization)->whereKey($invitationId)->firstOrFail();
-        $revokeInvitation->handle($invitation, $user);
+        $invitation = $membershipInvitations->find($invitationId);
+
+        abort_unless(
+            $invitation !== null
+            && $invitation->subjectType === MembershipSubjectType::Organization
+            && $invitation->subjectId === (string) $organization->getKey(),
+            404,
+        );
+
+        $membershipCommands->revokeInvitation($invitationId, (string) $user->getKey());
 
         $this->successToast(__('Invitation revoked.'));
     }
 
-    public function makePublic(MakeOrganizationPublicAction $action): void
+    public function makePublic(OrganizationCommands $organizationCommands): void
     {
         $organization = $this->selectedOrganization();
         $this->selectedOrganizationAuthorization('organization.change-visibility');
-        $action->handle($organization, $this->currentUser());
+        $organizationCommands->makePublic((string) $organization->getKey(), (string) $this->currentUser()->getKey());
         $this->successToast(__('Organization is now public.'));
     }
 
-    public function makePrivate(MakeOrganizationPrivateAction $action): void
+    public function makePrivate(OrganizationCommands $organizationCommands): void
     {
         $organization = $this->selectedOrganization();
         $this->selectedOrganizationAuthorization('organization.change-visibility');
-        $action->handle($organization, $this->currentUser());
+        $organizationCommands->makePrivate((string) $organization->getKey(), (string) $this->currentUser()->getKey());
         $this->successToast(__('Organization is now private.'));
     }
 
-    public function suspend(SuspendOrganizationAction $action): void
+    public function suspend(OrganizationCommands $organizationCommands): void
     {
         $organization = $this->selectedOrganization();
         $this->selectedOrganizationAuthorization('organization.change-status');
-        $action->handle($organization, $this->currentUser());
+        $organizationCommands->suspend((string) $organization->getKey(), (string) $this->currentUser()->getKey());
         $this->successToast(__('Organization suspended.'));
     }
 
-    public function restore(RestoreOrganizationAction $action): void
+    public function restore(OrganizationCommands $organizationCommands): void
     {
         $organization = $this->selectedOrganization();
         $this->selectedOrganizationAuthorization('organization.change-status');
-        $action->handle($organization, $this->currentUser());
+        $organizationCommands->restore((string) $organization->getKey(), (string) $this->currentUser()->getKey());
         $this->successToast(__('Organization restored.'));
     }
 
-    public function archive(ArchiveOrganizationAction $action): void
+    public function archive(OrganizationCommands $organizationCommands): void
     {
         $organization = $this->selectedOrganization();
         $this->selectedOrganizationAuthorization('organization.change-status');
-        $action->handle($organization, $this->currentUser());
+        $organizationCommands->archive((string) $organization->getKey(), (string) $this->currentUser()->getKey());
         $this->successToast(__('Organization archived.'));
     }
 
@@ -249,13 +271,14 @@ final class Workspace extends Component
         return OwnerContext::withOwner($organization, fn (): Collection => $organization->members()->orderBy('name')->get());
     }
 
-    /** @return Collection<int, MemberInvitation> */
-    public function invitations(): Collection
+    /** @return list<MembershipInvitationDetail> */
+    public function invitations(): array
     {
-        return $this->invitationQuery($this->selectedOrganization())
-            ->latest()
-            ->limit(20)
-            ->get();
+        return app(MembershipInvitations::class)->recentForSubject(
+            MembershipSubjectType::Organization,
+            (string) $this->selectedOrganization()->getKey(),
+            20,
+        );
     }
 
     /** @return Collection<int, Event> */
@@ -365,19 +388,34 @@ final class Workspace extends Component
             ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($user->getKey()))
             ->firstOrFail();
 
-        app(OrganizationAuthorization::class)->authorize($user, $organization, 'organization.view');
+        abort_unless(
+            app(OrganizationAccess::class)->can((string) $user->getKey(), (string) $organization->getKey(), 'organization.view'),
+            403,
+        );
 
         return $organization;
     }
 
     private function selectedOrganizationAuthorization(string $ability): void
     {
-        app(OrganizationAuthorization::class)->authorize($this->currentUser(), $this->selectedOrganization(), $ability);
+        $organization = $this->selectedOrganization();
+
+        abort_unless(
+            app(OrganizationAccess::class)->can((string) $this->currentUser()->getKey(), (string) $organization->getKey(), $ability),
+            403,
+        );
     }
 
     private function authorizeManageMembers(Organization $organization): void
     {
-        app(OrganizationAuthorization::class)->authorize($this->currentUser(), $organization, 'organization.manage-members');
+        abort_unless(
+            app(OrganizationAccess::class)->can(
+                (string) $this->currentUser()->getKey(),
+                (string) $organization->getKey(),
+                'organization.manage-members',
+            ),
+            403,
+        );
     }
 
     private function currentUser(): User
@@ -395,13 +433,5 @@ final class Workspace extends Component
         abort_unless($member instanceof User, 404);
 
         return $member;
-    }
-
-    /** @return Builder<MemberInvitation> */
-    private function invitationQuery(Organization $organization): Builder
-    {
-        return MemberInvitation::query()
-            ->where('subject_type', MemberSubjectType::Organization->value)
-            ->where('subject_id', $organization->getKey());
     }
 }

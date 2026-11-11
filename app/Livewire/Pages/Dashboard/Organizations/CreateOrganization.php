@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Dashboard\Organizations;
 
-use AIArmada\Organizations\Actions\CreateOrganizationAction;
+use App\Features\Organizations\Api\OrganizationCommands;
 use App\Models\User;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
@@ -33,7 +33,7 @@ final class CreateOrganization extends Component
         }
     }
 
-    public function submit(CreateOrganizationAction $createOrganization): mixed
+    public function submit(OrganizationCommands $organizationCommands): mixed
     {
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
@@ -47,9 +47,9 @@ final class CreateOrganization extends Component
             'description' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $organization = $createOrganization->handle($user, $validated);
+        $organization = $organizationCommands->create((string) $user->getKey(), $validated);
 
-        return redirect()->route('dashboard.organizations.show', $organization);
+        return redirect()->route('dashboard.organizations.show', $organization->id);
     }
 
     private function hasOrganizationMembership(User $user): bool
