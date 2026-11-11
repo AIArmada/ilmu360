@@ -14,13 +14,15 @@ use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Owns the application's self-check-in write path.
+ * Implements the application's attendance command boundary.
  *
- * The vendor EventCheckInService remains the canonical external attendance
- * writer (event_attendances and event_attendance_logs); this action is the
- * app-side aggregate entry point that resolves caller identities through morph
- * aliases, keeps the check-in and share-attribution write in one transaction,
- * and notifies only when this call created the attendance row.
+ * Self check-in is implemented here. The vendor EventCheckInService remains
+ * the canonical external attendance writer (event_attendances and
+ * event_attendance_logs); this action is the app-side aggregate entry point
+ * that resolves caller identities through morph aliases, keeps the check-in
+ * and share-attribution write in one transaction, and notifies only when this
+ * call created the attendance row. Staff-assisted check-in and attendance
+ * corrections delegate to their owning staff actions.
  */
 final readonly class RecordSelfCheckInAction implements AttendanceCommands
 {
@@ -30,6 +32,8 @@ final readonly class RecordSelfCheckInAction implements AttendanceCommands
         private EventCheckInService $checkIns,
         private ParticipationAttribution $attribution,
         private CheckInNotifier $notifier,
+        private RecordEventParticipantCheckInAction $participantCheckIns,
+        private UpdateEventParticipantAttendanceAction $staffAttendance,
     ) {}
 
     /**
@@ -105,5 +109,66 @@ final readonly class RecordSelfCheckInAction implements AttendanceCommands
         }
 
         return $resultData;
+    }
+
+    /**
+     * @return array{status: 'created'|'duplicate', checkin_id: string}
+     */
+    public function recordParticipantCheckIn(
+        string $eventId,
+        string $participantId,
+        string $staffId,
+        ?string $occurrenceId = null,
+        ?string $sessionId = null,
+    ): array {
+        return $this->participantCheckIns->handle(
+            eventId: $eventId,
+            participantId: $participantId,
+            staffId: $staffId,
+            occurrenceId: $occurrenceId,
+            sessionId: $sessionId,
+        );
+    }
+
+    public function setParticipantAttendance(
+        string $eventId,
+        string $participantId,
+        string $status,
+        string $actorId,
+        ?string $occurrenceId = null,
+        ?string $sessionId = null,
+        ?string $note = null,
+        string $source = 'manual_attendance',
+    ): string {
+        return $this->staffAttendance->handle(
+            eventId: $eventId,
+            participantId: $participantId,
+            status: $status,
+            actorId: $actorId,
+            occurrenceId: $occurrenceId,
+            sessionId: $sessionId,
+            note: $note,
+            source: $source,
+        );
+    }
+
+    public function clearAttendance(
+        string $eventId,
+        string $participantId,
+        string $actorId,
+        ?string $occurrenceId = null,
+        ?string $sessionId = null,
+        ?string $note = null,
+        string $source = 'manual_attendance',
+    ): void {
+        $this->staffAttendance->clear(
+            eventId: $eventId,
+            participantId: $participantId,
+            actorId: $actorId,
+            occurrenceId: $occurrenceId,
+            sessionId: $sessionId,
+            note: $note,
+            source: $source,
+        );
     }
 }

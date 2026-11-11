@@ -28,8 +28,15 @@ use App\Platform\FeatureModule;
  * (DefaultEventCheckInService) remains the canonical external writer for
  * event_attendances and event_attendance_logs, so the app action declares
  * ownership of the self-check-in aggregate while delegating the actual row
- * writes. Walk-ins, headcounts, staff attendance updates/clears and the staff
- * participants workspace remain outside this claim until R2b.
+ * writes.
+ *
+ * R2b claims staff-assisted participation attendance. The staff check-in
+ * action writes the event-scope aggregate directly and delegates
+ * occurrence/session-scope rows to the package service; the update action
+ * writes explicit attended/did-not-attend decisions, immutable logs and the
+ * same-transaction check-in outcome reversal. Both are named writers for
+ * event_attendances and event_attendance_logs. The staff participants
+ * workspace stays a root transport adapter over the AttendanceCommands API.
  *
  * The following writers remain root/package-owned and are recorded for the
  * later migration slices:
@@ -43,8 +50,8 @@ use App\Platform\FeatureModule;
  * - the dashboard registration-questions workspace is a Registration entry
  *   point that delegates question writes to the package actions; admission
  *   setup remains Events-owned. Paid checkout orchestration, registration
- *   exports and the staff attendance workspace stay in their root or vendor
- *   homes until R2b-R5.
+ *   exports and the vendor Filament attendance console stay in their root or
+ *   vendor homes until R3-R5.
  */
 class FeatureServiceProvider extends FeatureModule
 {

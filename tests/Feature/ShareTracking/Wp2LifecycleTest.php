@@ -29,14 +29,13 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\Attendance\RecordEventParticipantCheckInAction;
-use App\Actions\Events\Attendance\UpdateEventParticipantAttendanceAction;
 use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Checkout\RecordCheckoutShareProvenanceStep;
-use App\Enums\EventAttendanceStatus;
 use App\Enums\ShareEffectStatus;
 use App\Enums\ShareOutcomeType;
+use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
+use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
@@ -55,6 +54,7 @@ use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ModerationService;
 use App\Services\ShareTrackingService;
+use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -289,27 +289,27 @@ it('inherits registration provenance for staff check-in and reverses on attendan
 
     expect($sourceReceipt->isAttributed())->toBeTrue();
 
-    $result = app(RecordEventParticipantCheckInAction::class)->handle($event, $participant, $staff);
+    $result = app(RecordEventParticipantCheckInAction::class)->handle((string) $event->getKey(), (string) $participant->getKey(), (string) $staff->getKey());
 
     expect($result['status'])->toBe('created');
 
     $checkinReceipt = ShareSourceAttributionReceipt::query()
-        ->where('business_key', ShareOutcomeBusinessKey::eventCheckin((string) $result['checkin']->getKey()))
+        ->where('business_key', ShareOutcomeBusinessKey::eventCheckin((string) $result['checkin_id']))
         ->firstOrFail();
 
     expect($checkinReceipt->isAttributed())->toBeTrue()
         ->and((string) $checkinReceipt->attribution_id)->toBe((string) $sourceReceipt->attribution_id)
         ->and($checkinReceipt->provenance)->toBe(ShareSourceAttributionReceipt::PROVENANCE_REGISTRATION);
 
-    $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $result['checkin']->getKey());
+    $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $result['checkin_id']);
 
     // Correcting the attendance to did-not-attend reverses the check-in
     // outcome in the same transaction.
     app(UpdateEventParticipantAttendanceAction::class)->handle(
-        $event,
-        $participant,
-        EventAttendanceStatus::DidNotAttend,
-        $staff,
+        (string) $event->getKey(),
+        (string) $participant->getKey(),
+        EventAttendanceStatus::DidNotAttend->value,
+        (string) $staff->getKey(),
     );
 
     expect(wp2lcConversionStatus(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $checkinKey))->firstOrFail()))->toBe('reversed')
@@ -319,10 +319,10 @@ it('inherits registration provenance for staff check-in and reverses on attendan
     // Correcting back to attended records the source truth but never
     // reopens the reversed fact into late credit.
     app(UpdateEventParticipantAttendanceAction::class)->handle(
-        $event,
-        $participant,
-        EventAttendanceStatus::Attended,
-        $staff,
+        (string) $event->getKey(),
+        (string) $participant->getKey(),
+        EventAttendanceStatus::Attended->value,
+        (string) $staff->getKey(),
     );
 
     expect(wp2lcConversionStatus(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $checkinKey))->firstOrFail()))->toBe('reversed');
@@ -346,10 +346,14 @@ it('reverses the check-in outcome when attendance is cleared', function (): void
     $staff = User::factory()->create();
     $staff->assignRole('super_admin');
 
-    $result = app(RecordEventParticipantCheckInAction::class)->handle($event, $participant, $staff);
-    $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $result['checkin']->getKey());
+    $result = app(RecordEventParticipantCheckInAction::class)->handle((string) $event->getKey(), (string) $participant->getKey(), (string) $staff->getKey());
+    $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $result['checkin_id']);
 
-    app(UpdateEventParticipantAttendanceAction::class)->clear($event, $participant, $staff);
+    app(UpdateEventParticipantAttendanceAction::class)->clear(
+        (string) $event->getKey(),
+        (string) $participant->getKey(),
+        (string) $staff->getKey(),
+    );
 
     expect(wp2lcConversionStatus(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $checkinKey))->firstOrFail()))->toBe('reversed')
         ->and(ShareOutcomeCorrection::query()->where('business_key', $checkinKey)->count())->toBe(1);
@@ -964,7 +968,7 @@ it('reverses participation outcomes on event cancel while preserving contributio
     $staff = User::factory()->create();
     $staff->assignRole('super_admin');
 
-    $checkinResult = app(RecordEventParticipantCheckInAction::class)->handle($event, $participant, $staff);
+    $checkinResult = app(RecordEventParticipantCheckInAction::class)->handle((string) $event->getKey(), (string) $participant->getKey(), (string) $staff->getKey());
 
     expect($checkinResult['status'])->toBe('created');
 
@@ -997,7 +1001,7 @@ it('reverses participation outcomes on event cancel while preserving contributio
     $otherRegistration = Registration::query()->where('event_id', $otherEvent->getKey())->firstOrFail();
 
     $registrationKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
-    $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkinResult['checkin']->getKey());
+    $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkinResult['checkin_id']);
     $submissionKey = ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey());
     $otherKey = ShareOutcomeBusinessKey::eventRegistration((string) $otherRegistration->getKey());
 

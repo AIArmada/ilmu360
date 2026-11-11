@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
+use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\ShareOutcomeType;
 use App\Models\EventCheckin;
 use App\Models\User;
@@ -23,7 +24,10 @@ use Illuminate\Http\Request;
  */
 final readonly class ShareTrackingParticipationAttribution implements ParticipationAttribution
 {
-    public function __construct(private ShareTrackingService $shareTracking) {}
+    public function __construct(
+        private ShareTrackingService $shareTracking,
+        private ReverseShareOutcomeAction $reverseShareOutcome,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $businessMetadata
@@ -97,6 +101,42 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             actor: $this->findActor($actorId),
             metadata: $this->checkinMetadata($checkin),
             occurredAt: $checkin->created_at ?? now(),
+        );
+    }
+
+    public function recordStaffCheckIn(
+        string $checkinId,
+        string $eventId,
+        string $staffId,
+        string $registrationId,
+    ): void {
+        $checkin = $this->findCheckin($checkinId);
+
+        $this->shareTracking->recordInheritedOutcome(
+            type: ShareOutcomeType::EventCheckin,
+            businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
+            sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
+            subject: $this->findEvent($eventId),
+            actor: null,
+            metadata: [
+                'registration_id' => $registrationId,
+                'staff_assisted' => true,
+                'verified_by_user_id' => $staffId,
+            ],
+            occurredAt: $checkin->created_at ?? now(),
+        );
+    }
+
+    public function reverseCheckIn(
+        string $checkinId,
+        string $reason,
+        ?string $actorId = null,
+    ): void {
+        $this->reverseShareOutcome->handle(
+            ShareOutcomeBusinessKey::eventCheckin($checkinId),
+            $reason,
+            $this->findActor($actorId),
+            request(),
         );
     }
 

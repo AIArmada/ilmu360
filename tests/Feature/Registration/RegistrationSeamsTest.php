@@ -5,8 +5,10 @@ declare(strict_types=1);
 use AIArmada\Events\Models\EventAttendanceLog;
 use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
+use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
 use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
+use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
 use App\Features\Registration\Api\AdmissionFacts;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
@@ -20,6 +22,7 @@ use App\Models\Registration;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Platform\FeatureCatalog;
+use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Shared\Registration\CheckInNotifier;
 use App\Shared\ShareTracking\ParticipationAttribution;
 use App\Support\Registration\EventNotificationCheckInNotifier;
@@ -135,6 +138,14 @@ it('discovers the registration feature manifest and provider exactly once', func
             'table:event_attendances',
             'table:event_attendance_logs',
         ])
+        ->and($catalog['writes'][RecordEventParticipantCheckInAction::class])->toEqualCanonicalizing([
+            'table:event_attendances',
+            'table:event_attendance_logs',
+        ])
+        ->and($catalog['writes'][UpdateEventParticipantAttendanceAction::class])->toEqualCanonicalizing([
+            'table:event_attendances',
+            'table:event_attendance_logs',
+        ])
         ->and(array_keys($providers, RegistrationFeatureServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(RegistrationFeatureServiceProvider::class);
 });
@@ -194,6 +205,65 @@ it('records self check-in through the scalar attendance boundary', function (): 
 
     expect($duplicate['status'])->toBe('duplicate')
         ->and($duplicate['checkin_id'])->toBe($created['checkin_id']);
+});
+
+it('records staff participant attendance through the scalar boundary', function (): void {
+    $staff = User::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+    ]);
+    addTestMember($event, $staff, 'viewer');
+
+    $registration = Registration::factory()
+        ->for($event)
+        ->withPrimaryParticipant('Seam Participant', 'seam-participant@example.test')
+        ->create(['status' => 'confirmed']);
+    $participant = $registration->participants()->firstOrFail();
+    $commands = app(AttendanceCommands::class);
+
+    $created = $commands->recordParticipantCheckIn(
+        eventId: (string) $event->getKey(),
+        participantId: (string) $participant->getKey(),
+        staffId: (string) $staff->getKey(),
+    );
+
+    expect($created['status'])->toBe('created')
+        ->and(EventCheckin::query()->whereKey($created['checkin_id'])->where('check_in_source', 'staff_manual')->exists())->toBeTrue();
+
+    $duplicate = $commands->recordParticipantCheckIn(
+        eventId: (string) $event->getKey(),
+        participantId: (string) $participant->getKey(),
+        staffId: (string) $staff->getKey(),
+    );
+
+    expect($duplicate['status'])->toBe('duplicate')
+        ->and($duplicate['checkin_id'])->toBe($created['checkin_id']);
+
+    $attendanceId = $commands->setParticipantAttendance(
+        eventId: (string) $event->getKey(),
+        participantId: (string) $participant->getKey(),
+        status: EventAttendanceStatus::DidNotAttend->value,
+        actorId: (string) $staff->getKey(),
+        note: 'Seam correction',
+    );
+
+    expect($attendanceId)->toBe($created['checkin_id'])
+        ->and(EventCheckin::query()->whereKey($attendanceId)->value('attendance_type'))
+        ->toBe(EventAttendanceStatus::DidNotAttend->value);
+
+    $commands->clearAttendance(
+        eventId: (string) $event->getKey(),
+        participantId: (string) $participant->getKey(),
+        actorId: (string) $staff->getKey(),
+    );
+
+    expect(EventCheckin::query()->whereKey($attendanceId)->whereNotNull('cancelled_at')->exists())->toBeTrue()
+        ->and(EventAttendanceLog::query()
+            ->where('event_attendance_id', $attendanceId)
+            ->where('action', 'attendance_cleared')
+            ->exists())->toBeTrue();
 });
 
 it('registers free admission through the scalar boundary', function (): void {

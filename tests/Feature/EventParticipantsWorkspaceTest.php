@@ -1,12 +1,12 @@
 <?php
 
 use AIArmada\Events\Models\EventAttendanceLog;
-use App\Enums\EventAttendanceStatus;
 use App\Livewire\Pages\Dashboard\Events\Participants;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;
+use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Support\Events\EventCommercePolicy;
 use App\Support\Events\ParticipantIdentity;
 use Livewire\Livewire;

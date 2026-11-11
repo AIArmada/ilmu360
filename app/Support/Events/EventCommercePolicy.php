@@ -6,10 +6,10 @@ namespace App\Support\Events;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Enums\EventAttendanceStatus;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
+use App\Shared\Events\Enums\EventAttendanceStatus;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use DateTimeInterface;

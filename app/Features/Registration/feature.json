@@ -15,10 +15,14 @@
       "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
     ],
     "table:event_attendances": [
-      "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction"
+      "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction",
+      "App\\Features\\Registration\\Actions\\RecordEventParticipantCheckInAction",
+      "App\\Features\\Registration\\Actions\\UpdateEventParticipantAttendanceAction"
     ],
     "table:event_attendance_logs": [
-      "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction"
+      "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction",
+      "App\\Features\\Registration\\Actions\\RecordEventParticipantCheckInAction",
+      "App\\Features\\Registration\\Actions\\UpdateEventParticipantAttendanceAction"
     ]
   }
 }

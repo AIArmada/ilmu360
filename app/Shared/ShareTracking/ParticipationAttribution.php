@@ -51,4 +51,25 @@ interface ParticipationAttribution
         ?string $actorId,
         string $registrationId,
     ): void;
+
+    /**
+     * Records a staff-assisted check-in outcome that inherits provenance from
+     * its registration while keeping the staff audit metadata.
+     */
+    public function recordStaffCheckIn(
+        string $checkinId,
+        string $eventId,
+        string $staffId,
+        string $registrationId,
+    ): void;
+
+    /**
+     * Reverses a previously recorded check-in outcome without exposing the
+     * tracking service or its business-key vocabulary to the caller.
+     */
+    public function reverseCheckIn(
+        string $checkinId,
+        string $reason,
+        ?string $actorId = null,
+    ): void;
 }

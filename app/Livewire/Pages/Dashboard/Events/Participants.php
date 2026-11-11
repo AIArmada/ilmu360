@@ -7,13 +7,12 @@ namespace App\Livewire\Pages\Dashboard\Events;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventAttendance;
 use AIArmada\Events\Models\EventRegistrationParticipant;
-use App\Actions\Events\Attendance\RecordEventParticipantCheckInAction;
-use App\Actions\Events\Attendance\UpdateEventParticipantAttendanceAction;
-use App\Enums\EventAttendanceStatus;
+use App\Features\Registration\Api\AttendanceCommands;
 use App\Models\Event;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Support\Events\EventCommercePolicy;
 use App\Support\Events\ParticipantIdentity;
 use Carbon\CarbonInterface;
@@ -145,10 +144,8 @@ final class Participants extends Component
         $this->selectedParticipantIds = [];
     }
 
-    public function checkInParticipant(
-        string $participantId,
-        RecordEventParticipantCheckInAction $recordCheckIn,
-    ): void {
+    public function checkInParticipant(string $participantId): void
+    {
         $event = $this->selectedEvent();
         $this->authorizeManageAttendance($event);
 
@@ -161,10 +158,10 @@ final class Participants extends Component
         $participant = $this->participantForAction($event, $participantId);
 
         try {
-            $result = OwnerContext::withOwner(null, fn (): array => $recordCheckIn->handle(
-                event: $event,
-                participant: $participant,
-                staff: $this->currentUserOrAbort(),
+            $result = OwnerContext::withOwner(null, fn (): array => app(AttendanceCommands::class)->recordParticipantCheckIn(
+                eventId: (string) $event->getKey(),
+                participantId: (string) $participant->getKey(),
+                staffId: (string) $this->currentUserOrAbort()->getKey(),
                 occurrenceId: $this->selectedOccurrenceId($event),
                 sessionId: $this->selectedSessionId($event),
             ));
@@ -183,7 +180,6 @@ final class Participants extends Component
     public function markParticipantAttendance(
         string $participantId,
         string $status,
-        UpdateEventParticipantAttendanceAction $updateAttendance,
     ): void {
         $event = $this->selectedEvent();
         $this->authorizeManageAttendance($event);
@@ -198,12 +194,14 @@ final class Participants extends Component
         $participant = $this->participantForAction($event, $participantId);
 
         try {
-            OwnerContext::withOwner(null, function () use ($attendanceStatus, $event, $participant, $updateAttendance): void {
+            OwnerContext::withOwner(null, function () use ($attendanceStatus, $event, $participant): void {
+                $attendanceCommands = app(AttendanceCommands::class);
+
                 if ($attendanceStatus === EventAttendanceStatus::NotRecorded) {
-                    $updateAttendance->clear(
-                        event: $event,
-                        participant: $participant,
-                        actor: $this->currentUserOrAbort(),
+                    $attendanceCommands->clearAttendance(
+                        eventId: (string) $event->getKey(),
+                        participantId: (string) $participant->getKey(),
+                        actorId: (string) $this->currentUserOrAbort()->getKey(),
                         occurrenceId: $this->selectedOccurrenceId($event),
                         sessionId: $this->selectedSessionId($event),
                         note: $this->normalizedNote(),
@@ -212,11 +210,11 @@ final class Participants extends Component
                     return;
                 }
 
-                $updateAttendance->handle(
-                    event: $event,
-                    participant: $participant,
-                    status: $attendanceStatus,
-                    actor: $this->currentUserOrAbort(),
+                $attendanceCommands->setParticipantAttendance(
+                    eventId: (string) $event->getKey(),
+                    participantId: (string) $participant->getKey(),
+                    status: $attendanceStatus->value,
+                    actorId: (string) $this->currentUserOrAbort()->getKey(),
                     occurrenceId: $this->selectedOccurrenceId($event),
                     sessionId: $this->selectedSessionId($event),
                     note: $this->normalizedNote(),
@@ -233,10 +231,8 @@ final class Participants extends Component
         }
     }
 
-    public function markSelectedAttendance(
-        string $status,
-        UpdateEventParticipantAttendanceAction $updateAttendance,
-    ): void {
+    public function markSelectedAttendance(string $status): void
+    {
         $event = $this->selectedEvent();
         $this->authorizeManageAttendance($event);
         $attendanceStatus = EventAttendanceStatus::tryFrom($status);
@@ -263,34 +259,33 @@ final class Participants extends Component
                 $attendanceStatus,
                 $event,
                 $participantIds,
-                $updateAttendance,
             ): int {
                 return DB::transaction(function () use (
                     $attendanceStatus,
                     $event,
                     $participantIds,
-                    $updateAttendance,
                 ): int {
+                    $attendanceCommands = app(AttendanceCommands::class);
                     $updatedCount = 0;
 
                     foreach ($participantIds as $participantId) {
                         $participant = $this->participantForAction($event, $participantId);
 
                         if ($attendanceStatus === EventAttendanceStatus::NotRecorded) {
-                            $updateAttendance->clear(
-                                event: $event,
-                                participant: $participant,
-                                actor: $this->currentUserOrAbort(),
+                            $attendanceCommands->clearAttendance(
+                                eventId: (string) $event->getKey(),
+                                participantId: (string) $participant->getKey(),
+                                actorId: (string) $this->currentUserOrAbort()->getKey(),
                                 occurrenceId: $this->selectedOccurrenceId($event),
                                 sessionId: $this->selectedSessionId($event),
                                 note: $this->normalizedNote(),
                             );
                         } else {
-                            $updateAttendance->handle(
-                                event: $event,
-                                participant: $participant,
-                                status: $attendanceStatus,
-                                actor: $this->currentUserOrAbort(),
+                            $attendanceCommands->setParticipantAttendance(
+                                eventId: (string) $event->getKey(),
+                                participantId: (string) $participant->getKey(),
+                                status: $attendanceStatus->value,
+                                actorId: (string) $this->currentUserOrAbort()->getKey(),
                                 occurrenceId: $this->selectedOccurrenceId($event),
                                 sessionId: $this->selectedSessionId($event),
                                 note: $this->normalizedNote(),

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Enums\EventAttendanceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
+use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Support\Events\ParticipantIdentity;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
