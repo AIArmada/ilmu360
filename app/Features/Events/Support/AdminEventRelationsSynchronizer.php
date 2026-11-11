@@ -2,11 +2,11 @@
 
 namespace App\Features\Events\Support;
 
-use AIArmada\Seating\Models\SeatMap;
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Actions\Authoring\SyncEventAdminRelationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
 use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Seating\SeatMapAssignments;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 
@@ -16,6 +16,7 @@ final readonly class AdminEventRelationsSynchronizer
         private SyncEventResourceRelationsAction $syncEventResourceRelationsAction,
         private SyncEventAdminRelationsAction $syncAdminRelations,
         private MediaCollectionSync $mediaSyncService,
+        private SeatMapAssignments $seatMapAssignments,
     ) {}
 
     /**
@@ -114,12 +115,7 @@ final readonly class AdminEventRelationsSynchronizer
 
         $seatMapIds = $this->normalizeStringArray($state['seat_map_ids'] ?? []);
 
-        $event->seatMaps()->whereNotIn('id', $seatMapIds)->delete();
-
-        SeatMap::query()->whereIn('id', $seatMapIds)->update([
-            'seatable_type' => $event->getMorphClass(),
-            'seatable_id' => $event->getKey(),
-        ]);
+        $this->seatMapAssignments->sync($event, $seatMapIds);
     }
 
     private function shouldClearMediaCollection(mixed $value): bool
