@@ -3,7 +3,9 @@
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
+use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\GuestSubmissionClaims;
@@ -27,6 +29,7 @@ uses(RefreshDatabase::class);
 
 it('binds the events seams to their interim adapters', function (): void {
     expect(app(GuestSubmissionClaims::class))->toBeInstanceOf(ClaimGuestSubmissionsAction::class)
+        ->and(app(EventDeletion::class))->toBeInstanceOf(CleanupEventAction::class)
         ->and(app(EventSubmissions::class))->toBeInstanceOf(EventSubmissionsService::class)
         ->and(app(EventReportSubjectProvider::class))->toBeInstanceOf(EventReportSubjectResolver::class)
         ->and(app(ReportSubjectResolver::class))->toBeInstanceOf(CompositeReportSubjectResolver::class);

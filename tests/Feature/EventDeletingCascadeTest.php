@@ -1,7 +1,10 @@
 <?php
 
+use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventReference;
+use App\Features\Events\Actions\Delete\DeleteEventAction;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;
@@ -46,6 +49,20 @@ it('deletes all related records when an event is deleted', function () {
     ]);
     Registration::factory()->create(['event_id' => $event->id]);
 
+    Bookmark::factory()->create([
+        'bookmarker_type' => $user->getMorphClass(),
+        'bookmarker_id' => $user->id,
+        'bookmarkable_type' => $event->getMorphClass(),
+        'bookmarkable_id' => $event->id,
+    ]);
+    Response::factory()->create([
+        'responder_type' => $user->getMorphClass(),
+        'responder_id' => $user->id,
+        'respondable_type' => $event->getMorphClass(),
+        'respondable_id' => $event->id,
+        'response_type' => 'going',
+    ]);
+
     $eventId = $event->id;
 
     $event->delete();
@@ -66,7 +83,28 @@ it('deletes all related records when an event is deleted', function () {
             ->where('actionable_id', $eventId)
             ->exists()
         )->toBeFalse()
-        ->and(Registration::query()->where('event_id', $eventId)->exists())->toBeFalse();
+        ->and(Registration::query()->where('event_id', $eventId)->exists())->toBeFalse()
+        ->and(Bookmark::query()
+            ->where('bookmarkable_type', $event->getMorphClass())
+            ->where('bookmarkable_id', $eventId)
+            ->exists()
+        )->toBeFalse()
+        ->and(Response::query()
+            ->where('respondable_type', $event->getMorphClass())
+            ->where('respondable_id', $eventId)
+            ->exists()
+        )->toBeFalse();
+});
+
+it('deletes an event through the named delete action', function () {
+    $event = Event::factory()->create();
+    $eventId = (string) $event->getKey();
+
+    $deleted = app(DeleteEventAction::class)->handle($eventId);
+
+    expect($deleted)->toBeTrue()
+        ->and(Event::query()->whereKey($eventId)->exists())->toBeFalse()
+        ->and(app(DeleteEventAction::class)->handle($eventId))->toBeFalse();
 });
 
 it('detaches members when event is deleted', function () {

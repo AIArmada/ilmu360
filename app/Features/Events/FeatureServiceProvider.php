@@ -6,8 +6,10 @@ namespace App\Features\Events;
 
 use App\Features\Events\Actions\Authoring\SyncEventLocationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventProjectionsAction;
+use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventReportSubjectProvider;
@@ -49,7 +51,12 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  *   `event_submission_attachments` stay unclaimed for the same reason (their
  *   only app-side writer is that root action).
  * - root Event model: booted saved/deleting hooks delegate projections,
- *   audiences, languages, locations and organizer writes to feature actions.
+ *   audiences, languages, locations, organizer writes and deletion cleanup
+ *   to feature actions. The `deleted` hook keeps the vendor
+ *   EventDeleteCascade for the remaining event-scoped package tables.
+ *   Deletion cleanup deliberately excludes share-outcome reversal,
+ *   contribution mapping, registration cascade changes and engagement-counter
+ *   updates; those stay with their own feature migrations.
  * - event_taxonomies/event_terms are created by the package synchronizer that
  *   SyncEventClassificationsAction invokes.
  * - vendor Filament event resources (until E4) and events package cascades
@@ -70,6 +77,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventReportSubjectProvider::class, EventReportSubjectResolver::class);
 
         $this->app->bind(EventAuthoring::class, EventAuthoringService::class);
+        $this->app->bind(EventDeletion::class, CleanupEventAction::class);
         $this->app->bind(EventSubmissions::class, EventSubmissionsService::class);
         $this->app->bind(EventLocations::class, SyncEventLocationsAction::class);
         $this->app->bind(EventProjections::class, SyncEventProjectionsAction::class);

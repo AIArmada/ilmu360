@@ -39,9 +39,9 @@ use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Api\EventProjections;
-use App\Features\Membership\Api\MembershipCommands;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Events\Enums\TimingMode;
 use App\Models\Builders\EventBuilder;
@@ -51,7 +51,6 @@ use App\Platform\Location\AddressAssignments;
 use App\Platform\Reporting\ReportModelClass;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipSubjectType;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
@@ -260,39 +259,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             $event->syncAudiences();
         });
 
-        static::deleting(function (Event $event) {
-            app(MembershipCommands::class)->removeAllMembers(
-                MembershipSubjectType::Event,
-                (string) $event->getKey(),
-            );
-            $event->involvements()->delete();
-            $event->accessPolicies()->delete();
-            $event->keyPeople()->delete();
-            $event->referenceRecords()->delete();
-            $event->savedBy()->delete();
-            $event->goingBy()->delete();
-
-            $event->registrations()->each(function ($registration): void {
-                $registration->delete();
-            });
-            $event->checkins()->each(function (EventCheckin $checkin): void {
-                $checkin->delete();
-            });
-            $event->submissions()->each(function (EventSubmission $submission): void {
-                $submission->delete();
-            });
-            $event->moderationReviews()->each(function (ModerationReview $review): void {
-                OwnerContext::withOwner(null, fn () => $review->delete());
-            });
-            $event->changeAnnouncements()->each(function (EventChangeAnnouncement $announcement): void {
-                $announcement->delete();
-            });
-            $event->mediaLinks()->each(function (MediaLink $mediaLink): void {
-                $mediaLink->delete();
-            });
-
-            // Note: MediaLibrary works automatically via InteractsWithMedia if we delete the model,
-            // but we can also be explicit if needed.
+        static::deleting(function (Event $event): void {
+            app(EventDeletion::class)->cleanup((string) $event->getKey());
         });
 
         static::deleted(function (Event $event): void {

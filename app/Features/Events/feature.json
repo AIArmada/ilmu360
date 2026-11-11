@@ -8,7 +8,8 @@
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
       "App\\Features\\Events\\Actions\\Scheduling\\SyncEventScheduleAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",
-      "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction"
+      "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
+      "App\\Features\\Events\\Actions\\Delete\\DeleteEventAction"
     ],
     "table:event_series_items": [
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
@@ -32,11 +33,13 @@
     ],
     "table:event_involvements": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventKeyPeopleAction",
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventOrganizerAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventOrganizerAction",
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
     ],
     "table:event_references": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction",
-      "App\\Features\\Events\\Actions\\Submission\\SubmissionRelationSync"
+      "App\\Features\\Events\\Actions\\Submission\\SubmissionRelationSync",
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
     ],
     "table:event_locations": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventLocationsAction",
@@ -49,7 +52,8 @@
       "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction"
     ],
     "table:event_access_policies": [
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
     ],
     "table:event_links": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventProjectionsAction",
@@ -72,7 +76,8 @@
     "table:event_submissions": [
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction",
-      "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction"
+      "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
     ]
   }
 }
