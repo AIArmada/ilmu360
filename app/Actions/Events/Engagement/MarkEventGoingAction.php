@@ -3,16 +3,11 @@
 namespace App\Actions\Events\Engagement;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
-use AIArmada\Events\Actions\RegisterForFreeAction;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Enums\ShareOutcomeType;
+use App\Features\Registration\Api\AdmissionRegistration;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use App\Services\ShareTrackingService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
-use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -22,7 +17,7 @@ final readonly class MarkEventGoingAction
 
     public function __construct(
         private EngagementCounterService $engagementCounter,
-        private ShareTrackingService $shareTrackingService,
+        private AdmissionRegistration $admissions,
     ) {}
 
     /**
@@ -54,8 +49,13 @@ final readonly class MarkEventGoingAction
                 ->active()
                 ->first();
             if (! $registration instanceof Registration) {
-                $created = app(RegisterForFreeAction::class)->execute(
-                    target: $event,
+                // Going-triggered admissions are canonical registrations and
+                // persist provenance in the caller's transaction like every
+                // other free/admission path. The admission boundary records
+                // only rows created by this call, so idempotent replays never
+                // late-credit through a new cookie.
+                $this->admissions->registerFree(
+                    eventId: (string) $event->getKey(),
                     participants: [[
                         'name' => $user->name,
                         'email' => $user->email,
@@ -63,37 +63,13 @@ final readonly class MarkEventGoingAction
                         'is_primary' => true,
                         'is_purchaser' => true,
                     ]],
-                    registrant: $user,
-                    options: ['with_pass' => true],
+                    registrantId: (string) $user->getKey(),
+                    options: [
+                        'with_pass' => true,
+                        'attribution_metadata' => ['via_going' => true],
+                    ],
+                    request: $request,
                 );
-
-                // Going-triggered admissions are canonical registrations and
-                // persist provenance in the caller's transaction like every
-                // other free/admission path. Only rows created by this call
-                // freeze a decision; idempotent replays never late-credit.
-                foreach ($created as $admission) {
-                    if (! $admission instanceof Model || ! $admission->wasRecentlyCreated) {
-                        continue;
-                    }
-
-                    $admission->refresh();
-
-                    $createdAt = $admission->created_at;
-
-                    $this->shareTrackingService->recordOutcome(
-                        type: ShareOutcomeType::EventRegistration,
-                        businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $admission->getKey()),
-                        subject: $event,
-                        actor: $user,
-                        request: $request ?? request(),
-                        metadata: [
-                            'registration_id' => (string) $admission->getKey(),
-                            'guest' => false,
-                            'via_going' => true,
-                        ],
-                        occurredAt: $createdAt instanceof CarbonInterface ? $createdAt : now(),
-                    );
-                }
             }
         }
 

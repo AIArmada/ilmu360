@@ -13,8 +13,9 @@ use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
-use App\Actions\Events\Registration\RegisterEventWithShareProvenanceAction;
+use App\Features\Registration\Api\AdmissionRegistration;
 use App\Models\Event;
+use App\Models\Registration;
 use App\Models\User;
 use App\Support\Commerce\EventCommerceModes;
 use App\Support\Events\EventTicketingPolicy;
@@ -169,7 +170,7 @@ final class Checkout extends Component
 
     public function submit(
         PrepareEventCheckoutAction $prepareCheckout,
-        RegisterEventWithShareProvenanceAction $registerWithProvenance,
+        AdmissionRegistration $admissions,
         CheckoutServiceInterface $checkoutService,
         EventTicketingPolicy $ticketingPolicy,
     ): void {
@@ -200,15 +201,15 @@ final class Checkout extends Component
                 $event,
                 $participants,
                 $prepareCheckout,
-                $registerWithProvenance,
+                $admissions,
                 $ticket,
                 $user,
             ): void {
                 if ($ticket === null) {
-                    $registrations = $registerWithProvenance->handle(
-                        target: $event,
+                    $result = $admissions->registerFree(
+                        eventId: (string) $event->getKey(),
                         participants: $participants,
-                        registrant: $user,
+                        registrantId: (string) $user->getKey(),
                         options: [
                             'with_pass' => true,
                             'idempotency_key' => $this->checkoutAttemptKey,
@@ -218,7 +219,8 @@ final class Checkout extends Component
 
                     $batchId = (string) str()->uuid();
 
-                    foreach ($registrations as $registration) {
+                    foreach ($result['registrations'] as $registrationResult) {
+                        $registration = Registration::query()->findOrFail($registrationResult['registration_id']);
                         $metadata = is_array($registration->metadata) ? $registration->metadata : [];
                         $registration->forceFill([
                             'metadata' => array_replace_recursive($metadata, [
@@ -230,13 +232,13 @@ final class Checkout extends Component
                         ])->save();
                     }
 
-                    $firstRegistration = $registrations->first();
+                    $firstRegistrationId = $result['primary_registration_id'];
 
-                    if ($firstRegistration === null) {
+                    if ($firstRegistrationId === null) {
                         throw new \RuntimeException('No registration was created.');
                     }
 
-                    $this->redirectRoute('checkout.free', ['registration' => $firstRegistration->getKey()]);
+                    $this->redirectRoute('checkout.free', ['registration' => $firstRegistrationId]);
 
                     return;
                 }

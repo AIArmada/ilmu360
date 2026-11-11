@@ -5,14 +5,20 @@ declare(strict_types=1);
 use AIArmada\Events\Models\EventAttendanceLog;
 use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
+use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
 use App\Features\Registration\Api\AdmissionFacts;
+use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\FeatureServiceProvider as RegistrationFeatureServiceProvider;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
+use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Platform\FeatureCatalog;
+use App\Shared\ShareTracking\ParticipationAttribution;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Support\ShareTracking\ShareTrackingParticipationAttribution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -103,9 +109,70 @@ it('discovers the registration feature manifest and provider exactly once', func
     $providers = require base_path('bootstrap/providers.php');
 
     expect($catalog['features'])->toHaveKey('Registration')
-        ->and($catalog['owners'])->not->toHaveKey('table:event_registrations')
+        ->and($catalog['owners'])->toHaveKey('table:event_registrations')
+        ->and($catalog['owners']['table:event_registrations'])->toBe('Registration')
+        ->and($catalog['owners']['table:event_registration_participants'])->toBe('Registration')
+        ->and($catalog['owners']['table:event_registration_answers'])->toBe('Registration')
+        ->and($catalog['owners']['table:event_registration_items'])->toBe('Registration')
+        ->and($catalog['owners'])->not->toHaveKey('table:event_registration_questions')
+        ->and($catalog['owners'])->not->toHaveKey('table:event_attendances')
+        ->and($catalog['owners'])->not->toHaveKey('table:event_attendance_logs')
+        ->and($catalog['writes'][RegisterFreeAdmissionAction::class])->toEqualCanonicalizing([
+            'table:event_registrations',
+            'table:event_registration_participants',
+            'table:event_registration_answers',
+            'table:event_registration_items',
+        ])
         ->and(array_keys($providers, RegistrationFeatureServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(RegistrationFeatureServiceProvider::class);
+});
+
+it('binds the admission registration boundary to the free admission action', function (): void {
+    expect(app(AdmissionRegistration::class))->toBeInstanceOf(RegisterFreeAdmissionAction::class)
+        ->and(app(ParticipationAttribution::class))->toBeInstanceOf(ShareTrackingParticipationAttribution::class);
+});
+
+it('registers free admission through the scalar boundary', function (): void {
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+    ]);
+
+    $result = app(AdmissionRegistration::class)->registerFree(
+        eventId: (string) $event->getKey(),
+        participants: [[
+            'name' => 'Seam Guest',
+            'email' => 'seam-guest@example.test',
+            'is_primary' => true,
+            'is_purchaser' => true,
+            'answers' => [[
+                'field_key' => 'diet',
+                'question' => 'Dietary requirement',
+                'answer' => 'Vegetarian',
+            ]],
+        ]],
+        registrantId: null,
+        options: ['with_pass' => true],
+    );
+
+    $registrationId = (string) $result['primary_registration_id'];
+
+    expect($registrationId)->not->toBe('')
+        ->and($result['registrations'])->toBe([
+            ['registration_id' => $registrationId, 'created' => true],
+        ]);
+
+    $registration = Registration::query()->findOrFail($registrationId);
+    $receipt = ShareSourceAttributionReceipt::query()
+        ->where('business_key', ShareOutcomeBusinessKey::eventRegistration($registrationId))
+        ->firstOrFail();
+
+    expect($registration->event_id)->toBe($event->id)
+        ->and($registration->statusValue())->toBe('confirmed')
+        ->and($registration->participants()->count())->toBe(1)
+        ->and(DB::table('event_registration_answers')->where('event_registration_id', $registrationId)->count())->toBe(1)
+        ->and($receipt->isAttributed())->toBeFalse();
 });
 
 it('binds admission facts to the registration feature query', function (): void {

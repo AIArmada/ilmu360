@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Events\Registration\RegisterEventWithShareProvenanceAction;
 use App\Data\Api\EventRegistration\EventRegistrationData;
+use App\Features\Registration\Api\AdmissionRegistration;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterEventRequest;
 use App\Models\Event;
@@ -30,7 +30,7 @@ class EventRegistrationController extends Controller
     public function store(
         RegisterEventRequest $request,
         Event $event,
-        RegisterEventWithShareProvenanceAction $registerWithProvenance,
+        AdmissionRegistration $admissions,
         EventTicketingPolicy $ticketingPolicy,
     ): JsonResponse {
         abort_unless($event->isRegistrationAvailable(), 404);
@@ -40,8 +40,8 @@ class EventRegistrationController extends Controller
 
         $user = $request->user();
 
-        $registration = $registerWithProvenance->handle(
-            target: $event,
+        $result = $admissions->registerFree(
+            eventId: (string) $event->getKey(),
             participants: [[
                 'name' => $validated['name'],
                 'email' => $validated['email'] ?? null,
@@ -49,12 +49,14 @@ class EventRegistrationController extends Controller
                 'is_primary' => true,
                 'is_purchaser' => true,
             ]],
-            registrant: $user,
+            registrantId: $user instanceof User ? (string) $user->getKey() : null,
             options: ['with_pass' => true],
             request: $request,
-        )->firstOrFail();
+        );
 
-        $registration = Registration::findOrFail($registration->getKey());
+        $registration = Registration::query()->findOrFail(
+            (string) ($result['primary_registration_id'] ?? ''),
+        );
 
         if ($user instanceof User) {
             $this->eventNotificationService->notifyRegistrationConfirmed($registration);

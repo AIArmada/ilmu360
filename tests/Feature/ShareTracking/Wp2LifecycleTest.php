@@ -32,12 +32,12 @@ use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Events\Attendance\RecordEventParticipantCheckInAction;
 use App\Actions\Events\Attendance\UpdateEventParticipantAttendanceAction;
 use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
-use App\Actions\Events\Registration\RegisterEventWithShareProvenanceAction;
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Checkout\RecordCheckoutShareProvenanceStep;
 use App\Enums\EventAttendanceStatus;
 use App\Enums\ShareEffectStatus;
 use App\Enums\ShareOutcomeType;
+use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
 use App\Livewire\Pages\Institutions\Show;
@@ -507,6 +507,33 @@ it('records and reverses web save and going flows on the event page', function (
     $goingConversion = AffiliateConversion::query()->where('conversion_type', ShareOutcomeType::EventGoing->value)->firstOrFail();
 
     expect(wp2lcConversionStatus($goingConversion))->toBe('reversed');
+});
+
+it('records going-triggered free admission provenance with via going', function (): void {
+    $actor = User::factory()->create();
+    $event = wp2lcRegistrationEvent();
+    $link = wp2lcLink($this->sharer, route('events.show', $event));
+    $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
+
+    Sanctum::actingAs($actor);
+
+    $this->withCredentials()
+        ->withCookie((string) config('share-tracking.cookie.name'), $cookie)
+        ->putJson(route('api.events.going.update', $event))
+        ->assertCreated();
+
+    $registration = Registration::query()
+        ->where('event_id', $event->getKey())
+        ->forUser($actor)
+        ->firstOrFail();
+
+    $conversion = AffiliateConversion::query()
+        ->where('idempotency_key', hash('sha256', ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey())))
+        ->firstOrFail();
+
+    expect(data_get($conversion->metadata, 'registration_id'))->toBe((string) $registration->getKey())
+        ->and(data_get($conversion->metadata, 'guest'))->toBeFalse()
+        ->and(data_get($conversion->metadata, 'via_going'))->toBeTrue();
 });
 
 it('records and reverses follows across every followable type', function (string $type, array $attributes, ShareOutcomeType $outcomeType): void {
@@ -1080,13 +1107,19 @@ it('never late-credits an idempotent registration replay through a new cookie', 
         'is_purchaser' => true,
     ]];
 
-    $action = app(RegisterEventWithShareProvenanceAction::class);
+    $admissions = app(AdmissionRegistration::class);
 
     // The original transition carries no cookie: explicitly
     // unattributed and earning nothing.
-    $first = $action->handle($event, $participants, $actor, ['idempotency_key' => 'wp2-replay-probe'], null);
-    $registration = $first->firstOrFail();
-    $businessKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
+    $first = $admissions->registerFree(
+        eventId: (string) $event->getKey(),
+        participants: $participants,
+        registrantId: (string) $actor->getKey(),
+        options: ['idempotency_key' => 'wp2-replay-probe'],
+        request: null,
+    );
+    $registrationId = (string) $first['primary_registration_id'];
+    $businessKey = ShareOutcomeBusinessKey::eventRegistration($registrationId);
 
     expect(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail()->isAttributed())->toBeFalse()
         ->and(AffiliateConversion::query()->count())->toBe(0);
@@ -1096,9 +1129,17 @@ it('never late-credits an idempotent registration replay through a new cookie', 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $second = $action->handle($event, $participants, $actor, ['idempotency_key' => 'wp2-replay-probe'], $attributedRequest);
+    $second = $admissions->registerFree(
+        eventId: (string) $event->getKey(),
+        participants: $participants,
+        registrantId: (string) $actor->getKey(),
+        options: ['idempotency_key' => 'wp2-replay-probe'],
+        request: $attributedRequest,
+    );
 
-    expect((string) $second->firstOrFail()->getKey())->toBe((string) $registration->getKey())
+    expect($second['primary_registration_id'])->toBe($registrationId)
+        ->and($second['registrations'])->toHaveCount(1)
+        ->and($second['registrations'][0]['created'])->toBeFalse()
         ->and(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail()->isAttributed())->toBeFalse()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });

@@ -1,5 +1,18 @@
 {
   "schema": 2,
   "name": "Registration",
-  "owns": {}
+  "owns": {
+    "table:event_registrations": [
+      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+    ],
+    "table:event_registration_participants": [
+      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+    ],
+    "table:event_registration_answers": [
+      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+    ],
+    "table:event_registration_items": [
+      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+    ]
+  }
 }
