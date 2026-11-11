@@ -4,23 +4,36 @@ declare(strict_types=1);
 
 namespace App\Support\Authz;
 
-use AIArmada\Organizations\Enums\OrganizationStatus;
 use AIArmada\Organizations\Models\Organization;
+use App\Features\Organizations\Api\OrganizationAccess;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
 
+/**
+ * Package-model adapter for organization event creation access.
+ *
+ * Organization access behaviour lives behind the Organizations feature's
+ * scalar OrganizationAccess API; package-aware callers keep this model
+ * signature until their own slice moves them onto the feature boundary.
+ */
 final readonly class OrganizationEventAccess
 {
+    public function __construct(
+        private OrganizationAccess $organizations,
+    ) {}
+
     public function canCreate(User $user, Organization $organization): bool
     {
-        return $organization->status === OrganizationStatus::Active
-            && $organization->members()->whereKey($user->getKey())->exists();
+        return $this->organizations->canCreateEvent(
+            (string) $user->getKey(),
+            (string) $organization->getKey(),
+        );
     }
 
     public function authorizeCreate(User $user, Organization $organization): void
     {
-        if (! $this->canCreate($user, $organization)) {
-            throw new AuthorizationException('The actor cannot create events for this organization.');
-        }
+        $this->organizations->authorizeCreateEvent(
+            (string) $user->getKey(),
+            (string) $organization->getKey(),
+        );
     }
 }

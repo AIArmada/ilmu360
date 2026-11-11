@@ -9,9 +9,9 @@ use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
+use App\Features\Organizations\Api\OrganizationAccess;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -33,6 +33,7 @@ class AdvancedEventController extends FrontendController
         Request $request,
         PrepareAdvancedParentProgramSubmissionAction $prepareAdvancedParentProgramSubmissionAction,
         CreateEventWithInitialOccurrenceAction $createEventWithInitialOccurrenceAction,
+        OrganizationAccess $organizationAccess,
     ): JsonResponse {
         $user = $this->requireUser($request);
 
@@ -57,10 +58,14 @@ class AdvancedEventController extends FrontendController
         $organization = null;
 
         if (filled($validated['organization_id'] ?? null)) {
-            $organization = Organization::query()
-                ->whereKey($validated['organization_id'])
-                ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($user->getKey()))
-                ->firstOrFail();
+            $organizationSummary = $organizationAccess->findForAccount(
+                (string) $user->getKey(),
+                (string) $validated['organization_id'],
+            );
+
+            abort_if($organizationSummary === null, 404);
+
+            $organization = Organization::query()->findOrFail($organizationSummary->id);
         }
 
         $event = $createEventWithInitialOccurrenceAction->handle(

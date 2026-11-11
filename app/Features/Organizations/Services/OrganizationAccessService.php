@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Organizations;
+namespace App\Features\Organizations\Services;
 
 use AIArmada\Organizations\Contracts\CurrentOrganizationResolver;
 use AIArmada\Organizations\Contracts\OrganizationAuthorization;
+use AIArmada\Organizations\Enums\OrganizationStatus;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
@@ -17,11 +18,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Interim organization access adapter.
+ * Organization access adapter over the canonical package aggregate.
  *
- * Package models, actions and authorization stay canonical; O1/O2 move this
- * implementation behind the Organizations feature once request-scoped
- * organization context is fixed.
+ * Package models, actions and authorization stay canonical; this service owns
+ * the feature's scalar read and authorization boundary.
  */
 final readonly class OrganizationAccessService implements OrganizationAccess
 {
@@ -104,6 +104,24 @@ final readonly class OrganizationAccessService implements OrganizationAccess
             return true;
         } catch (AuthorizationException) {
             return false;
+        }
+    }
+
+    public function canCreateEvent(string $accountId, string $organizationId): bool
+    {
+        $account = $this->account($accountId);
+        $organization = $this->organization($organizationId);
+
+        return $account instanceof Model
+            && $organization instanceof Organization
+            && $organization->status === OrganizationStatus::Active
+            && $organization->members()->whereKey($account->getKey())->exists();
+    }
+
+    public function authorizeCreateEvent(string $accountId, string $organizationId): void
+    {
+        if (! $this->canCreateEvent($accountId, $organizationId)) {
+            throw new AuthorizationException('The actor cannot create events for this organization.');
         }
     }
 

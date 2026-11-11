@@ -9,9 +9,9 @@ use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Actions\Events\Authoring\CreateEventWithRegistrationAction;
+use App\Features\Organizations\Api\OrganizationAccess;
 use App\Models\Event;
 use App\Models\User;
-use App\Support\Authz\OrganizationEventAccess;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -22,7 +22,7 @@ final class CreateOrganizationEventAction
 
     public function __construct(
         private readonly CreateEventWithRegistrationAction $createEventWithRegistration,
-        private readonly OrganizationEventAccess $organizationEventAccess,
+        private readonly OrganizationAccess $organizationAccess,
     ) {}
 
     /**
@@ -30,7 +30,10 @@ final class CreateOrganizationEventAction
      */
     public function handle(User $creator, Organization $organization, array $form): Event
     {
-        $this->organizationEventAccess->authorizeCreate($creator, $organization);
+        $this->organizationAccess->authorizeCreateEvent(
+            (string) $creator->getKey(),
+            (string) $organization->getKey(),
+        );
 
         $timezone = (string) ($form['timezone'] ?? config('app.timezone', 'UTC'));
         $startsAt = Carbon::parse((string) $form['starts_at'], $timezone)->utc();

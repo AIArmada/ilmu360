@@ -50,7 +50,6 @@ use AIArmada\Orders\Models\OrderItem;
 use AIArmada\Orders\Models\OrderNote;
 use AIArmada\Orders\Models\OrderPayment;
 use AIArmada\Orders\Models\OrderRefund;
-use AIArmada\Organizations\Contracts\CurrentOrganizationResolver;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Persons\Models\PersonName as PackagePersonName;
 use AIArmada\Persons\Models\Title;
@@ -94,7 +93,6 @@ use App\Features\Directory\Api\DirectoryAdminContract;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Events\Api\GuestSubmissionClaims;
-use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Features\Organizations\Api\OrganizationWorkspace;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
@@ -155,7 +153,7 @@ use App\Observers\ShareSourceAttributionReceiptObserver;
 use App\Observers\TitleCategoryObserver;
 use App\Observers\UserObserver;
 use App\Observers\VenueObserver;
-use App\Organizations\CurrentOrganizationResolver as AppCurrentOrganizationResolver;
+
 use App\Platform\Api\ApiErrorDetailsEnricher;
 use App\Platform\Auth\EloquentAccountAccess;
 use App\Platform\Auth\EloquentAccountDirectory;
@@ -257,7 +255,6 @@ use App\Support\Membership\EloquentMembershipApplicationReader;
 use App\Support\Membership\EloquentMembershipSubjectCatalog;
 use App\Support\Membership\MembershipAccountLifecycleContributor;
 use App\Support\Moderation\ModerationAccountLifecycleContributor;
-use App\Support\Organizations\OrganizationAccessService;
 use App\Support\Organizations\OrganizationCommandsService;
 use App\Support\Organizations\OrganizationWorkspaceService;
 use App\Support\Passport\PassportKeyProvisioner;
@@ -355,7 +352,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);
         $this->app->bind(MembershipPermissionEvaluator::class, MemberPermissionGate::class);
         $this->app->bind(MembershipApplicationReader::class, EloquentMembershipApplicationReader::class);
-        $this->app->bind(OrganizationAccess::class, OrganizationAccessService::class);
         $this->app->bind(OrganizationWorkspace::class, OrganizationWorkspaceService::class);
         $this->app->bind(OrganizationCommands::class, OrganizationCommandsService::class);
         $this->app->bind(DirectoryCatalog::class, EloquentDirectoryCatalog::class);
@@ -445,9 +441,6 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
         $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
-        $this->app->singleton(CurrentOrganizationResolver::class, AppCurrentOrganizationResolver::class);
-        config(['organizations.resolver' => AppCurrentOrganizationResolver::class]);
-
         $this->app->bind(
             function ($app): CaptchaVerifier {
                 $verifier = $app->make(TurnstileVerifier::class);

@@ -10,13 +10,13 @@ use App\Actions\Events\Scheduling\SyncEventScheduleAction;
 use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\EventFormat;
 use App\Enums\TimingMode;
+use App\Features\Organizations\Api\OrganizationAccess;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
 use App\Services\EventKeyPersonSyncService;
-use App\Support\Authz\OrganizationEventAccess;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +36,7 @@ class CreateEventWithInitialOccurrenceAction
         private readonly MediaCollectionSync $mediaSync,
         private readonly EventKeyPersonSyncService $eventKeyPersonSync,
         private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
+        private readonly OrganizationAccess $organizationAccess,
     ) {}
 
     /**
@@ -54,7 +55,10 @@ class CreateEventWithInitialOccurrenceAction
     ): Event {
         return DB::transaction(function () use ($user, $form, $startsAt, $endsAt, $timezone, $primaryOrganizer, $locationInstitutionId, $locationVenueId, $organization): Event {
             if ($organization instanceof Organization) {
-                app(OrganizationEventAccess::class)->authorizeCreate($user, $organization);
+                $this->organizationAccess->authorizeCreateEvent(
+                    (string) $user->getKey(),
+                    (string) $organization->getKey(),
+                );
             }
 
             $owner = $organization ?? $user;

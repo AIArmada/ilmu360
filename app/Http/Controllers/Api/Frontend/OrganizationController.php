@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Organizations\Actions\CreateOrganizationAction;
 use AIArmada\Organizations\Models\Organization;
+use App\Features\Organizations\Api\OrganizationAccess;
+use App\Features\Organizations\Api\OrganizationCommands;
+use App\Features\Organizations\Api\OrganizationMember;
+use App\Features\Organizations\Api\OrganizationSummary;
+use App\Features\Organizations\Api\OrganizationWorkspace;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Builder;
@@ -63,12 +66,12 @@ final class OrganizationController extends FrontendController
         title: 'Create an organization',
         description: 'Creates an organization for the authenticated user and returns its initial workspace payload.',
     )]
-    public function store(Request $request, CreateOrganizationAction $createOrganization): JsonResponse
+    public function store(Request $request, OrganizationCommands $organizationCommands): JsonResponse
     {
         $actor = Auth::user();
         abort_unless($actor instanceof Model, 403);
 
-        $organization = $createOrganization->handle($actor, $request->validate([
+        $organization = $organizationCommands->create((string) $actor->getKey(), $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
         ]));
@@ -80,40 +83,40 @@ final class OrganizationController extends FrontendController
         title: 'Get the organization workspace',
         description: 'Returns the authenticated user\'s organization workspace, including accessible organizations, the selected organization, members, and role information.',
     )]
-    public function workspace(): JsonResponse
-    {
+    public function workspace(
+        OrganizationAccess $organizationAccess,
+        OrganizationWorkspace $organizationWorkspace,
+    ): JsonResponse {
         $actor = Auth::user();
         abort_unless($actor instanceof Model, 403);
 
-        $organizations = Organization::query()
-            ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($actor->getKey()))
-            ->withCount('members')
-            ->orderBy('name')
-            ->get();
+        $accountId = (string) $actor->getKey();
+        $organizations = $organizationWorkspace->organizationsFor($accountId);
 
-        abort_unless($organizations->isNotEmpty(), 403);
+        abort_unless($organizations !== [], 403);
 
-        $selectedContext = OwnerContext::resolve();
-        abort_unless($selectedContext instanceof Organization, 403);
+        $selectedContext = $organizationAccess->current();
+        abort_unless($selectedContext instanceof OrganizationSummary, 403);
 
-        $selected = $organizations->first(fn (Organization $organization): bool => $organization->is($selectedContext));
-        abort_unless($selected instanceof Organization, 403);
+        $selected = array_find(
+            $organizations,
+            static fn (OrganizationSummary $organization): bool => $organization->id === $selectedContext->id,
+        );
+        abort_unless($selected instanceof OrganizationSummary, 403);
 
-        $membersQuery = $selected->members()->orderBy('name');
-        $membersTotal = (clone $membersQuery)->count();
-        $members = $membersQuery->take(100)->get()->map(fn (Model $member): array => [
-            'id' => $member->getKey(),
-            'name' => $member->getAttribute('name'),
-            'email' => $member->getAttribute('email'),
-            'role' => data_get($member->getRelationValue('pivot'), 'role'),
-        ])->all();
+        $members = $organizationWorkspace->membersFor($selected->id);
 
         return response()->json([
             'data' => [
-                'organizations' => $organizations->map(fn (Organization $organization): array => $this->workspacePayload($organization))->all(),
+                'organizations' => array_map($this->workspacePayload(...), $organizations),
                 'selected_organization' => $this->workspacePayload($selected),
-                'members' => $members,
-                'members_total' => $membersTotal,
+                'members' => array_map(static fn (OrganizationMember $member): array => [
+                    'id' => $member->accountId,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'role' => $member->role,
+                ], $members),
+                'members_total' => $selected->memberCount,
             ],
         ]);
     }
@@ -131,18 +134,17 @@ final class OrganizationController extends FrontendController
     }
 
     /** @return array<string, mixed> */
-    private function workspacePayload(Organization $organization): array
+    private function workspacePayload(OrganizationSummary $organization): array
     {
-        $attributes = $organization->getAttributes();
-        $memberCount = array_key_exists('members_count', $attributes)
-            ? (int) $attributes['members_count']
-            : $organization->members()->count();
-
         return [
-            ...$this->publicPayload($organization),
-            'status' => $organization->status->value,
-            'member_count' => $memberCount,
-            'created_by' => $organization->created_by,
+            'id' => $organization->id,
+            'name' => $organization->name,
+            'slug' => $organization->slug,
+            'description' => $organization->description,
+            'visibility' => $organization->visibility,
+            'status' => $organization->status,
+            'member_count' => $organization->memberCount,
+            'created_by' => $organization->createdBy,
         ];
     }
 }

@@ -4,19 +4,25 @@ declare(strict_types=1);
 
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
+use AIArmada\Organizations\Contracts\CurrentOrganizationResolver as CurrentOrganizationResolverContract;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Features\Organizations\Api\OrganizationWorkspace;
+use App\Features\Organizations\Services\CurrentOrganizationResolver;
+use App\Features\Organizations\Services\OrganizationAccessService;
 use App\Models\User;
-use App\Support\Organizations\OrganizationAccessService;
 use App\Support\Organizations\OrganizationCommandsService;
 use App\Support\Organizations\OrganizationWorkspaceService;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
 
-it('binds the organization seams to their interim support adapters', function (): void {
+it('binds the organization seams to their feature adapters', function (): void {
     expect(app(OrganizationAccess::class))->toBeInstanceOf(OrganizationAccessService::class)
         ->and(app(OrganizationWorkspace::class))->toBeInstanceOf(OrganizationWorkspaceService::class)
-        ->and(app(OrganizationCommands::class))->toBeInstanceOf(OrganizationCommandsService::class);
+        ->and(app(OrganizationCommands::class))->toBeInstanceOf(OrganizationCommandsService::class)
+        ->and(config('organizations.resolver'))->toBe(CurrentOrganizationResolver::class)
+        ->and(app(CurrentOrganizationResolverContract::class))->toBeInstanceOf(CurrentOrganizationResolver::class);
 });
 
 it('creates, reads and transitions organizations through the seam boundaries', function (): void {
@@ -45,6 +51,8 @@ it('creates, reads and transitions organizations through the seam boundaries', f
         ->and($access->can($ownerId, $summary->id, 'organization.view'))->toBeTrue()
         ->and($access->can($ownerId, $summary->id, 'organization.transfer-ownership'))->toBeTrue()
         ->and($access->can((string) $outsider->getKey(), $summary->id, 'organization.view'))->toBeFalse()
+        ->and($access->canCreateEvent($ownerId, $summary->id))->toBeTrue()
+        ->and($access->canCreateEvent((string) $outsider->getKey(), $summary->id))->toBeFalse()
         ->and($detail?->members)->toHaveCount(1)
         ->and($detail?->members[0]->accountId)->toBe($ownerId)
         ->and($detail?->members[0]->role)->toBe(MemberRole::Owner->spatieRoleName())
@@ -56,7 +64,47 @@ it('creates, reads and transitions organizations through the seam boundaries', f
 
     $private = $commands->makePrivate($summary->id, $ownerId);
 
-    expect($private->visibility)->toBe('private');
+    expect($private->visibility)->toBe('private')
+        ->and(fn () => $access->authorizeCreateEvent((string) $outsider->getKey(), $summary->id))
+        ->toThrow(AuthorizationException::class, 'The actor cannot create events for this organization.');
+
+    $commands->suspend($summary->id, $ownerId);
+
+    expect($access->canCreateEvent($ownerId, $summary->id))->toBeFalse();
+});
+
+it('resolves organization context per request without retaining the previous request', function (): void {
+    $firstUser = User::factory()->create();
+    $secondUser = User::factory()->create();
+    $commands = app(OrganizationCommands::class);
+
+    $firstOrganization = $commands->create((string) $firstUser->getKey(), ['name' => 'First Request Organization']);
+    $secondOrganization = $commands->create((string) $secondUser->getKey(), ['name' => 'Second Request Organization']);
+
+    $resolver = app(CurrentOrganizationResolverContract::class);
+
+    expect($resolver)->toBe(app(CurrentOrganizationResolverContract::class));
+
+    $this->actingAs($firstUser);
+    app()->instance('request', Request::create('/api/organization-workspace', 'GET', [
+        'organization_id' => $firstOrganization->id,
+    ]));
+
+    expect($resolver->resolve()?->getKey())->toBe($firstOrganization->id);
+
+    $this->actingAs($secondUser);
+    app()->instance('request', Request::create('/api/organization-workspace', 'GET', [
+        'organization_id' => $secondOrganization->id,
+    ]));
+
+    expect($resolver->resolve()?->getKey())->toBe($secondOrganization->id);
+
+    $this->actingAs($firstUser);
+    app()->instance('request', Request::create('/api/organization-workspace', 'GET', [
+        'organization_id' => $secondOrganization->id,
+    ]));
+
+    expect($resolver->resolve())->toBeNull();
 });
 
 it('transfers organization ownership through the command boundary', function (): void {

@@ -2,19 +2,24 @@
 
 declare(strict_types=1);
 
-namespace App\Organizations;
+namespace App\Features\Organizations\Services;
 
 use AIArmada\Organizations\Contracts\CurrentOrganizationResolver as CurrentOrganizationResolverContract;
 use AIArmada\Organizations\Models\Organization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Resolves the organization selected by the current request.
+ *
+ * This resolver is deliberately stateless: the package registers it as a
+ * singleton, so it must read the request and authenticated actor on every
+ * call. Capturing a Request in the constructor would retain the first request
+ * for the lifetime of an Octane worker.
+ */
 final readonly class CurrentOrganizationResolver implements CurrentOrganizationResolverContract
 {
-    public function __construct(private Request $request) {}
-
     public function resolve(): ?Organization
     {
         $actor = Auth::user();
@@ -23,9 +28,10 @@ final readonly class CurrentOrganizationResolver implements CurrentOrganizationR
             return null;
         }
 
-        $organizationKey = $this->request->header('X-Organization-Id')
-            ?: $this->request->query('organization_id')
-            ?: $this->request->route('organization');
+        $request = request();
+        $organizationKey = $request->header('X-Organization-Id')
+            ?: $request->query('organization_id')
+            ?: $request->route('organization');
 
         if ($organizationKey instanceof Organization) {
             $organizationKey = $organizationKey->getKey();
