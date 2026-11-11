@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LaravelAgentArchitecture;
 
 use App\Platform\FeatureCatalog;
+use DateTimeImmutable;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Contracts\Filesystem\Filesystem;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
+use JsonException;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
@@ -27,12 +29,26 @@ use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 use PHPStan\Type\ObjectType;
 use PHPStan\Type\Type;
+use RuntimeException;
 
 /** @implements Rule<Node\Expr> */
 final class OwnedWriteRule implements Rule
 {
+    private const FOREIGN_WRITE = 'architecture.foreignWrite';
+
+    private const WRITE_LOCATION = 'architecture.writeLocation';
+
+    /** @var list<string> */
+    private const EXCEPTION_RULES = ['feature-private', self::FOREIGN_WRITE, self::WRITE_LOCATION];
+
+    /** @var list<string> */
+    private const WRITE_RULES = [self::FOREIGN_WRITE, self::WRITE_LOCATION];
+
     /** @var array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>} */
     private array $catalog;
+
+    /** @var array<string, array<string, array<string, true>>> Rule, project-relative file, target. */
+    private array $writeExceptions = [];
 
     /** @var array<class-string, string|null> */
     private array $modelResources = [];
@@ -40,6 +56,7 @@ final class OwnedWriteRule implements Rule
     public function __construct(private readonly ReflectionProvider $reflectionProvider, private readonly string $projectRoot)
     {
         $this->catalog = FeatureCatalog::load($projectRoot);
+        $this->writeExceptions = $this->loadWriteExceptions($projectRoot);
     }
 
     public function getNodeType(): string
@@ -116,21 +133,98 @@ final class OwnedWriteRule implements Rule
         if ($feature === null && $owner === null) {
             return [];
         }
-        if ($owner !== null && $owner !== $feature) {
-            return [$this->error("{$resource} belongs to {$owner}; call its public API.", 'architecture.foreignWrite')];
+        if ($resource !== null && $owner !== null && $owner !== $feature) {
+            return $this->violation("{$resource} belongs to {$owner}; call its public API.", self::FOREIGN_WRITE, $relative, $resource);
         }
         if ($resource !== null && ! in_array($resource, $resources, true)) {
-            return [$this->error("{$class} is not a declared write action for {$resource}; register it under the owning feature or delegate to one.", 'architecture.writeLocation')];
+            return $this->violation("{$class} is not a declared write action for {$resource}; register it under the owning feature or delegate to one.", self::WRITE_LOCATION, $relative, $resource);
         }
         if ($resource === null) {
             $prefix = $database ? 'table:' : 'store:';
             $allowed = array_filter($resources, static fn (string $value): bool => str_starts_with($value, $prefix));
             if ($allowed === []) {
-                return [$this->error('Storage mutations belong in a named owning-feature Actions/Persistence class listed in feature.json.', 'architecture.writeLocation')];
+                // Unresolvable keys have no table/store identity; exceptions name the storage category.
+                return $this->violation('Storage mutations belong in a named owning-feature Actions/Persistence class listed in feature.json.', self::WRITE_LOCATION, $relative, $prefix.'unknown');
             }
         }
 
         return [];
+    }
+
+    /** @return array<string, array<string, array<string, true>>> */
+    private function loadWriteExceptions(string $root): array
+    {
+        $path = rtrim(str_replace('\\', '/', $root), '/').'/tools/architecture.json';
+        if (! is_file($path)) {
+            throw new RuntimeException("Owned-write exceptions require {$path}.");
+        }
+
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            throw new RuntimeException("Unreadable {$path}.");
+        }
+
+        try {
+            $config = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException("Invalid {$path}: {$exception->getMessage()}", 0, $exception);
+        }
+
+        if (! is_array($config) || ($config['schema'] ?? null) !== 2
+            || ! in_array($config['discovery'] ?? null, ['native', 'auto'], true)) {
+            throw new RuntimeException("Invalid {$path} schema.");
+        }
+
+        $declared = $config['exceptions'] ?? null;
+        if (! is_array($declared)) {
+            throw new RuntimeException("Invalid {$path} exceptions.");
+        }
+
+        $exceptions = [];
+        foreach ($declared as $exception) {
+            if (! is_array($exception)) {
+                throw new RuntimeException("Invalid {$path} exception; expected an object.");
+            }
+            $rule = $this->exceptionField($exception, 'rule', $path);
+            $file = $this->exceptionField($exception, 'file', $path);
+            $target = $this->exceptionField($exception, 'target', $path);
+            $this->exceptionField($exception, 'reason', $path);
+            $this->exceptionField($exception, 'owner', $path);
+            $expires = $this->exceptionField($exception, 'expires', $path);
+            if (! in_array($rule, self::EXCEPTION_RULES, true) || strpbrk($file.$target, '*?') !== false) {
+                throw new RuntimeException("Invalid {$path} exception: allowed rule and exact file/target (no wildcard) required.");
+            }
+            $date = DateTimeImmutable::createFromFormat('!Y-m-d', $expires);
+            if (! $date || $date->format('Y-m-d') !== $expires || $expires < gmdate('Y-m-d')) {
+                throw new RuntimeException("Invalid/expired exception: {$file} {$target}");
+            }
+            if (in_array($rule, self::WRITE_RULES, true)) {
+                $exceptions[$rule][$file][$target] = true;
+            }
+        }
+
+        return $exceptions;
+    }
+
+    /** @param array<mixed> $exception */
+    private function exceptionField(array $exception, string $field, string $path): string
+    {
+        $value = $exception[$field] ?? null;
+        if (! is_string($value) || trim($value) === '') {
+            throw new RuntimeException("Invalid {$path} exception: nonempty {$field} required.");
+        }
+
+        return $value;
+    }
+
+    /** @return list<IdentifierRuleError> */
+    private function violation(string $message, string $identifier, string $file, string $target): array
+    {
+        if (isset($this->writeExceptions[$identifier][$file][$target])) {
+            return [];
+        }
+
+        return [$this->error($message, $identifier)];
     }
 
     private function isNonRuntimePath(string $relative): bool

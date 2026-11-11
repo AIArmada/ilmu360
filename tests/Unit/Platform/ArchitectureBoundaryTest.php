@@ -143,3 +143,45 @@ it('rejects an exception after its private dependency has been removed', functio
     expect($result['exitCode'])->toBe(2)
         ->and($result['stderr'])->toContain('Remove stale exception');
 });
+
+it('accepts owned-write exceptions that only the PHPStan rule can consume', function (): void {
+    $this->project->configure([
+        [
+            'rule' => 'architecture.foreignWrite',
+            'file' => 'app/Features/Billing/Actions/Charge.php',
+            'target' => 'table:orders',
+            'reason' => 'Documented root adapter consumed by the owned-write rule.',
+            'owner' => 'Billing',
+            'expires' => '2999-12-31',
+        ],
+        [
+            'rule' => 'architecture.writeLocation',
+            'file' => 'app/Features/Billing/Actions/Charge.php',
+            'target' => 'table:orders',
+            'reason' => 'Documented root adapter consumed by the owned-write rule.',
+            'owner' => 'Billing',
+            'expires' => '2999-12-31',
+        ],
+    ]);
+
+    $result = $this->project->check();
+
+    expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
+        ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
+});
+
+it('rejects an expired owned-write exception', function (): void {
+    $this->project->configure([[
+        'rule' => 'architecture.writeLocation',
+        'file' => 'app/Features/Billing/Actions/Charge.php',
+        'target' => 'table:orders',
+        'reason' => 'Expired root adapter.',
+        'owner' => 'Billing',
+        'expires' => '2000-01-01',
+    ]]);
+
+    $result = $this->project->check();
+
+    expect($result['exitCode'])->toBe(2)
+        ->and($result['stderr'])->toContain('Invalid/expired exception');
+});

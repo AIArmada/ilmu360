@@ -152,8 +152,13 @@ try {
         }
     }
 
-    $suppressible = ['feature-private'];
+    $scannerSuppressible = ['feature-private'];
+    $writeSuppressible = ['architecture.foreignWrite', 'architecture.writeLocation'];
+    $suppressible = [...$scannerSuppressible, ...$writeSuppressible];
     foreach ($config['exceptions'] as $exception) {
+        if (! is_array($exception)) {
+            throw new RuntimeException('Exception must be an object with rule/file/target/reason/owner/expires.');
+        }
         foreach (['rule', 'file', 'target', 'reason', 'owner', 'expires'] as $field) {
             if (! is_string($exception[$field] ?? null) || trim($exception[$field]) === '') {
                 throw new RuntimeException("Exception requires nonempty {$field}");
@@ -165,6 +170,10 @@ try {
         $date = DateTimeImmutable::createFromFormat('!Y-m-d', $exception['expires']);
         if (! $date || $date->format('Y-m-d') !== $exception['expires'] || $exception['expires'] < gmdate('Y-m-d')) {
             throw new RuntimeException('Invalid/expired exception: '.$exception['file'].' '.$exception['target']);
+        }
+        if (in_array($exception['rule'], $writeSuppressible, true)) {
+            // Owned-write rules are emitted by PHPStan, not this scanner, so there is no finding to consume or declare stale.
+            continue;
         }
         $used = false;
         foreach ($findings as $key => $finding) {
