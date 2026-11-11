@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\ContributionSubjectType;
-use App\Enums\MemberSubjectType;
 use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;
@@ -38,9 +37,6 @@ use App\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Livewire\Pages\Events\Checkout as EventCheckout;
 use App\Livewire\Pages\Events\Refund as EventRefund;
-use App\Livewire\Pages\Membership\ShowInvitation as ShowMemberInvitation;
-use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
-use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
 use App\Livewire\Pages\SubmitEvent\Create;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
@@ -160,7 +156,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout/free/{registration}', [EventCheckoutResultController::class, 'free'])
         ->middleware('verified')
         ->name('checkout.free');
-    Route::livewire('/jemputan-ahli/{token}', ShowMemberInvitation::class)->name('member-invitations.show');
     Route::livewire('/sumbangan', ContributionsIndex::class)->name('contributions.index');
     Route::livewire('/sumbangan/institusi/baru', SubmitInstitution::class)->name('contributions.submit-institution');
     Route::livewire('/sumbangan/penceramah/baru', SubmitPerson::class)->name('contributions.submit-person');
@@ -172,10 +167,6 @@ Route::middleware('auth')->group(function () {
             ContributionSubjectType::Reference->publicRouteSegment(),
         ])
         ->name('contributions.submission-success');
-    Route::livewire('/permohonan-keahlian', MembershipApplicationsIndex::class)->name('membership-applications.index');
-    Route::livewire('/pohon-keahlian/{subjectType}/{subjectId}', CreateMembershipApplicationPage::class)
-        ->whereIn('subjectType', MemberSubjectType::claimableRouteSegments())
-        ->name('membership-applications.create');
     Route::livewire('/sumbangan/{subjectType}/{subjectId}/kemas-kini', SuggestContributionUpdate::class)
         ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
         ->name('contributions.suggest-update');

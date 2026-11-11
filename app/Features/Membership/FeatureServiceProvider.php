@@ -42,6 +42,13 @@ use App\Shared\Membership\MembershipDirectory;
  * RevokeInvitationAction remain canonical external writers for package-driven
  * flows and intentionally do not send the app invitation email (recorded
  * invitation-email asymmetry).
+ *
+ * M5 moved the membership web transport here: application pages and invitation
+ * acceptance now register in Routes/web.php with the same URLs, names and
+ * web/auth middleware. The Livewire page classes and the member API controller
+ * remain root adapters because they compose root models, the root
+ * MemberSubjectType UI mapping and the root membership presenter; member MCP
+ * tools stay root as well.
  */
 final class FeatureServiceProvider extends FeatureModule
 {
