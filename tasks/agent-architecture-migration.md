@@ -5,7 +5,7 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `e4abd9df` — Membership M2b applications admin (Ember AGREE). Previous: `afea071e` — M2a.
+- Latest accepted implementation checkpoint `44482a42` — Membership M3 invitations (Ember AGREE). Previous: `e4abd9df` — M2b.
 - Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Directory S0): arch 0/**9 features**; DirectorySeams 10/10 + affected batch 41/41 green; Pint clean; PHPStan 6 + ownership 0 errors; routes identical. Per-slice D1 logs in history.
