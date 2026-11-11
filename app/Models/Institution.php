@@ -12,7 +12,8 @@ use AIArmada\Events\Enums\FacilityAvailability;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Traits\HasMembers;
-use App\Actions\Institutions\DeleteInstitutionVenueLinksAction;
+use App\Features\Directory\Api\InstitutionSpaceLinks;
+use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Models\Concerns\HasDonationChannels;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
@@ -228,7 +229,10 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
             $deleted = parent::delete();
 
             if ($deleted) {
-                app(DeleteInstitutionVenueLinksAction::class)->handle((string) $this->getKey());
+                $institutionId = (string) $this->getKey();
+
+                app(InstitutionVenueLinks::class)->deleteForInstitution($institutionId);
+                app(InstitutionSpaceLinks::class)->deleteForInstitution($institutionId);
             }
 
             return $deleted;

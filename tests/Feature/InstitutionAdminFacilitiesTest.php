@@ -4,7 +4,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Institutions\SyncInstitutionVenuesAction;
+use App\Features\Directory\Actions\Institutions\SyncInstitutionVenuesAction;
 use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Models\Institution;
 use App\Models\User;

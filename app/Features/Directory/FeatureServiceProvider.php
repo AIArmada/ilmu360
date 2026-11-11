@@ -9,6 +9,8 @@ use App\Features\Directory\Actions\Persons\PersonSubmissionAccessAction;
 use App\Features\Directory\Api\DirectoryReportSubjectProvider;
 use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Features\Directory\Api\InstitutionSubmissionAccess;
+use App\Features\Directory\Api\InstitutionSpaceLinks;
+use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonSubmissionAccess;
 use App\Features\Directory\Api\PersonWorkflow;
@@ -22,6 +24,8 @@ use App\Features\Directory\Queries\ReferenceResourceSearchAdapter;
 use App\Features\Directory\Services\DirectoryReportSubjectResolver;
 use App\Features\Directory\Services\DonationChannelWorkflowService;
 use App\Features\Directory\Services\InstitutionWorkflowService;
+use App\Features\Directory\Services\InstitutionSpaceLinkService;
+use App\Features\Directory\Services\InstitutionVenueLinkService;
 use App\Features\Directory\Services\PersonWorkflowService;
 use App\Features\Directory\Services\ReferenceQueryService;
 use App\Features\Directory\Services\ReferenceWorkflowService;
@@ -47,6 +51,8 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(InstitutionWorkflow::class, InstitutionWorkflowService::class);
+        $this->app->bind(InstitutionVenueLinks::class, InstitutionVenueLinkService::class);
+        $this->app->bind(InstitutionSpaceLinks::class, InstitutionSpaceLinkService::class);
         $this->app->bind(InstitutionSubmissionAccess::class, InstitutionSubmissionAccessAction::class);
         $this->app->bind(PersonWorkflow::class, PersonWorkflowService::class);
         $this->app->bind(PersonSubmissionAccess::class, PersonSubmissionAccessAction::class);

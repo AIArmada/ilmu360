@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Delete an institution through the owning feature.
  *
- * The model keeps its cascade/cleanup hooks, so this action is the single
- * entry point callers (including Filament) must use for institution deletes.
+ * The model delete override invokes the Directory bridge actions for both
+ * institution_venue and institution_space inside its transaction, so this
+ * action is the single entry point callers (including Filament) must use for
+ * institution deletes and bridge cleanup cannot be skipped.
  */
 final readonly class DeleteInstitutionAction
 {

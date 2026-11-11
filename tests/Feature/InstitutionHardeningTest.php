@@ -4,7 +4,10 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Institutions\SyncInstitutionVenuesAction;
+use App\Features\Directory\Actions\Institutions\AddInstitutionVenueLinkAction;
+use App\Features\Directory\Actions\Institutions\RemoveInstitutionVenueLinkAction;
+use App\Features\Directory\Actions\Institutions\SetInstitutionVenuePrimaryAction;
+use App\Features\Directory\Actions\Institutions\SyncInstitutionVenuesAction;
 use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Features\Directory\Actions\Institutions\SaveInstitutionAction;
 use App\Models\DonationChannel;
@@ -389,6 +392,61 @@ it('validates institution venue links and keeps one primary per role', function 
     expect(InstitutionVenue::query()->where('institution_id', $institution->getKey())->count())->toBe(0);
 });
 
+it('manages individual institution venue links through named actions', function (): void {
+    $institution = Institution::factory()->create();
+    $venue = Venue::factory()->create();
+    $otherVenue = Venue::factory()->create();
+    $institutionId = (string) $institution->getKey();
+
+    app(AddInstitutionVenueLinkAction::class)->handle(
+        $institutionId,
+        (string) $venue->getKey(),
+        InstitutionVenueRole::Operated,
+        true,
+    );
+    app(AddInstitutionVenueLinkAction::class)->handle(
+        $institutionId,
+        (string) $otherVenue->getKey(),
+        InstitutionVenueRole::Operated,
+    );
+
+    expect(InstitutionVenue::query()->where('institution_id', $institutionId)->count())->toBe(2)
+        ->and(InstitutionVenue::query()->where('institution_id', $institutionId)->where('is_primary', true)->value('venue_id'))
+        ->toBe((string) $venue->getKey());
+
+    app(SetInstitutionVenuePrimaryAction::class)->handle($institutionId, (string) $otherVenue->getKey());
+
+    expect(InstitutionVenue::query()->where('institution_id', $institutionId)->where('is_primary', true)->pluck('venue_id')->all())
+        ->toBe([(string) $otherVenue->getKey()]);
+
+    app(RemoveInstitutionVenueLinkAction::class)->handle($institutionId, (string) $otherVenue->getKey());
+
+    expect(InstitutionVenue::query()->where('institution_id', $institutionId)->pluck('venue_id')->all())
+        ->toBe([(string) $venue->getKey()]);
+});
+
+it('demotes the previous primary when a pivot row is saved directly', function (): void {
+    $institution = Institution::factory()->create();
+    $venue = Venue::factory()->create();
+    $otherVenue = Venue::factory()->create();
+    $institutionId = (string) $institution->getKey();
+
+    SyncInstitutionVenuesAction::run($institution, [
+        ['venue_id' => (string) $venue->getKey(), 'role' => InstitutionVenueRole::Operated, 'is_primary' => true],
+        ['venue_id' => (string) $otherVenue->getKey(), 'role' => InstitutionVenueRole::Operated],
+    ]);
+
+    $pivot = InstitutionVenue::query()
+        ->where('institution_id', $institutionId)
+        ->where('venue_id', (string) $otherVenue->getKey())
+        ->firstOrFail();
+    $pivot->is_primary = true;
+    $pivot->save();
+
+    expect(InstitutionVenue::query()->where('institution_id', $institutionId)->where('is_primary', true)->pluck('venue_id')->all())
+        ->toBe([(string) $otherVenue->getKey()]);
+});
+
 it('cleans up institution venue links when either side is deleted', function (): void {
     $institution = Institution::factory()->create();
     $venue = Venue::factory()->create();
@@ -403,9 +461,13 @@ it('cleans up institution venue links when either side is deleted', function ():
 
     expect(InstitutionVenue::query()->where('institution_id', $institution->getKey())->count())->toBe(1);
 
+    $space = Space::factory()->create();
+    $institution->spaces()->attach($space);
+
     $institution->delete();
 
-    expect(InstitutionVenue::query()->where('institution_id', $institution->getKey())->count())->toBe(0);
+    expect(InstitutionVenue::query()->where('institution_id', $institution->getKey())->count())->toBe(0)
+        ->and(DB::table('institution_space')->where('institution_id', $institution->getKey())->count())->toBe(0);
 });
 
 it('cleans up venue facilities through the canonical parent hook when an app venue is deleted', function (): void {

@@ -7,7 +7,7 @@ use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
-use App\Actions\Institutions\DeleteInstitutionVenueLinksAction;
+use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Shared\Directory\Enums\VenueType;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
@@ -182,7 +182,7 @@ class Venue extends PackageVenue implements AuditableContract
             $deleted = parent::delete();
 
             if ($deleted) {
-                app(DeleteInstitutionVenueLinksAction::class)->forVenue((string) $this->getKey());
+                app(InstitutionVenueLinks::class)->deleteForVenue((string) $this->getKey());
             }
 
             return $deleted;

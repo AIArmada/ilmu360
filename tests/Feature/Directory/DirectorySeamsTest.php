@@ -6,9 +6,13 @@ use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Directory\Api\DirectoryRecordType;
 use App\Features\Directory\Api\DirectoryReportSubjectProvider;
+use App\Features\Directory\Api\InstitutionSpaceLinks;
+use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Features\Directory\Api\SpaceWorkflow;
 use App\Features\Directory\Api\VenueWorkflow;
 use App\Features\Directory\Services\DirectoryReportSubjectResolver;
+use App\Features\Directory\Services\InstitutionSpaceLinkService;
+use App\Features\Directory\Services\InstitutionVenueLinkService;
 use App\Features\Directory\Services\SpaceWorkflowService;
 use App\Features\Directory\Services\VenueWorkflowService;
 use App\Models\DonationChannel;
@@ -38,6 +42,8 @@ it('binds the directory seams to their interim adapters', function (): void {
         ->and(app(DirectoryReportSubjectProvider::class))->toBeInstanceOf(DirectoryReportSubjectResolver::class)
         ->and(app(VenueWorkflow::class))->toBeInstanceOf(VenueWorkflowService::class)
         ->and(app(SpaceWorkflow::class))->toBeInstanceOf(SpaceWorkflowService::class)
+        ->and(app(InstitutionVenueLinks::class))->toBeInstanceOf(InstitutionVenueLinkService::class)
+        ->and(app(InstitutionSpaceLinks::class))->toBeInstanceOf(InstitutionSpaceLinkService::class)
         ->and(app(ReportSubjectResolver::class))->toBeInstanceOf(CompositeReportSubjectResolver::class)
         ->and(app(SubmissionEligibilitySync::class))->toBeInstanceOf(PublicSubmissionEligibilitySync::class);
 });

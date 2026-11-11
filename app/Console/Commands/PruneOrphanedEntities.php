@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\VenueWorkflow;
 use App\Models\Institution;
@@ -62,6 +63,7 @@ class PruneOrphanedEntities extends Command
                         ->where('is_primary', true);
                 }),
             $dryRun,
+            fn (array $institutionIds): int => app(InstitutionWorkflow::class)->delete($institutionIds),
         );
 
         $totalPruned += $this->pruneModel(

@@ -10,8 +10,9 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Delete a venue through the owning feature.
  *
- * The venue model keeps its bridge-cleanup transaction, so deleting through
- * this action preserves the current lifecycle, observer and media behavior.
+ * The venue model delete override invokes the Directory venue-link removal
+ * action inside its transaction, so deleting through this action preserves
+ * the current lifecycle, observer and media behavior.
  */
 final readonly class DeleteVenueAction
 {

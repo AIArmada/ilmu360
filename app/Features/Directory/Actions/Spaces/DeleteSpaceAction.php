@@ -11,6 +11,9 @@ use Illuminate\Validation\ValidationException;
 /**
  * Delete a space through the owning feature while preserving the event-
  * location guard.
+ *
+ * The space model delete override detaches institution_space rows through
+ * the Directory link action inside its transaction.
  */
 final readonly class DeleteSpaceAction
 {

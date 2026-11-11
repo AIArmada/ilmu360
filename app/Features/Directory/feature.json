@@ -22,6 +22,19 @@
     "table:institution_import_exclusions": [
       "App\\Features\\Directory\\Actions\\Institutions\\RecordInstitutionImportExclusionAction"
     ],
+    "table:institution_venue": [
+      "App\\Features\\Directory\\Actions\\Institutions\\AddInstitutionVenueLinkAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\DeleteInstitutionVenueLinksAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\DemoteInstitutionVenuePrimaryAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\RemoveInstitutionVenueLinkAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\SetInstitutionVenuePrimaryAction",
+      "App\\Features\\Directory\\Actions\\Institutions\\SyncInstitutionVenuesAction"
+    ],
+    "table:institution_space": [
+      "App\\Features\\Directory\\Actions\\Spaces\\AttachInstitutionSpaceAction",
+      "App\\Features\\Directory\\Actions\\Spaces\\DetachInstitutionSpaceAction",
+      "App\\Features\\Directory\\Actions\\Spaces\\SyncInstitutionSpacesAction"
+    ],
     "table:donation_channels": [
       "App\\Features\\Directory\\Actions\\DonationChannels\\DemoteDefaultDonationChannelsAction",
       "App\\Features\\Directory\\Actions\\DonationChannels\\SaveDonationChannelAction",
@@ -103,6 +116,8 @@
     "institution": "table:institutions",
     "institution_name": "table:institution_names",
     "institution_import_exclusion": "table:institution_import_exclusions",
+    "institution_venue": "table:institution_venue",
+    "institution_space": "table:institution_space",
     "donation_channel": "table:donation_channels",
     "person": "table:persons",
     "person_name": "table:person_names",

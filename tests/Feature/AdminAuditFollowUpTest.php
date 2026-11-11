@@ -149,6 +149,10 @@ it('records space institution syncs performed by the filament edit page', functi
         ->where('event', 'relations_updated')
         ->latest('created_at')
         ->first();
+    $syncAudit = $space->audits()
+        ->where('event', 'sync')
+        ->latest('created_at')
+        ->first();
     $oldInstitutions = $audit?->old_values['institutions'] ?? [];
     $newInstitutions = $audit?->new_values['institutions'] ?? [];
     $presentedValues = $audit === null ? [] : AuditValuePresenter::values($audit, 'new_values');
@@ -161,7 +165,10 @@ it('records space institution syncs performed by the filament edit page', functi
         ->and($oldInstitutions[0]['name'] ?? null)->toBe($alphaInstitution->name)
         ->and($newInstitutions)->toHaveCount(2)
         ->and(collect($newInstitutions)->pluck('id')->all())->toEqual([(string) $alphaInstitution->getKey(), (string) $betaInstitution->getKey()])
-        ->and($presentedValues['Institutions'] ?? null)->toBe('Alpha Mosque, Beta Mosque');
+        ->and($presentedValues['Institutions'] ?? null)->toBe('Alpha Mosque, Beta Mosque')
+        ->and($syncAudit)->not->toBeNull()
+        ->and(collect($syncAudit?->new_values['institutions'] ?? [])->pluck('id')->all())
+        ->toBe([(string) $betaInstitution->getKey()]);
 });
 
 it('records membership sync and role change audits on auditable subjects', function () {

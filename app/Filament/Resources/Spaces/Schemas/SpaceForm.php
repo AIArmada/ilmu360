@@ -92,6 +92,8 @@ class SpaceForm
                         ->multiple()
                         ->searchable()
                         ->preload()
+                        ->saveRelationshipsUsing(null)
+                        ->dehydrated()
                         ->helperText('Optional: Link this space to one or more institutions.'),
                     Repeater::make('institution_space_overrides')
                         ->label(__('Institution capacity overrides'))

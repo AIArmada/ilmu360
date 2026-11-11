@@ -4,6 +4,7 @@ namespace App\Models;
 
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Events\Models\VenueSpace;
+use App\Features\Directory\Api\InstitutionSpaceLinks;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\SpaceFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -48,6 +49,25 @@ class Space extends VenueSpace implements AuditableContract
         });
 
         parent::booted();
+    }
+
+    /**
+     * Delete the row atomically with its institution links: ordinary
+     * Model::delete() opens no transaction of its own, and the pivot has no
+     * database-level cascade.
+     */
+    #[\Override]
+    public function delete(): ?bool
+    {
+        return $this->getConnection()->transaction(function (): ?bool {
+            $deleted = parent::delete();
+
+            if ($deleted) {
+                app(InstitutionSpaceLinks::class)->deleteForSpace((string) $this->getKey());
+            }
+
+            return $deleted;
+        });
     }
 
     /**

@@ -2,20 +2,28 @@
 
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\VenueSpaceType;
+use App\Features\Directory\Actions\Spaces\AttachInstitutionSpaceAction;
+use App\Features\Directory\Actions\Spaces\DetachInstitutionSpaceAction;
 use App\Features\Directory\Actions\Spaces\SaveSpaceAction;
 use App\Contracts\SpaceEligibilityResolver;
 use App\Data\Api\Event\EventPayloadData;
+use App\Filament\Resources\Spaces\Pages\EditSpace;
+use App\Filament\Resources\Spaces\RelationManagers\InstitutionsRelationManager;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Policies\SpacePolicy;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Database\Seeders\SpaceSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
@@ -260,6 +268,62 @@ it('preserves unlisted institution links and capacities when applying partial ov
         (string) $firstInstitution->getKey() => 90,
         (string) $secondInstitution->getKey() => 180,
     ]);
+});
+
+it('manages institution space capacity links through named actions and detaches them on delete', function (): void {
+    $institution = Institution::factory()->create();
+    $space = Space::factory()->create(['venue_id' => null]);
+    $institutionId = (string) $institution->getKey();
+    $spaceId = (string) $space->getKey();
+
+    app(AttachInstitutionSpaceAction::class)->handle($institutionId, $spaceId, 120);
+
+    expect(DB::table('institution_space')->where('space_id', $spaceId)->value('capacity'))->toBe(120);
+
+    app(AttachInstitutionSpaceAction::class)->handle($institutionId, $spaceId, 90);
+
+    expect(DB::table('institution_space')->where('space_id', $spaceId)->count())->toBe(1)
+        ->and(DB::table('institution_space')->where('space_id', $spaceId)->value('capacity'))->toBe(90);
+
+    app(DetachInstitutionSpaceAction::class)->handle($institutionId, $spaceId);
+
+    expect(DB::table('institution_space')->where('space_id', $spaceId)->count())->toBe(0);
+
+    app(AttachInstitutionSpaceAction::class)->handle($institutionId, $spaceId);
+    $space->delete();
+
+    expect(DB::table('institution_space')->where('space_id', $spaceId)->count())->toBe(0);
+});
+
+it('routes space institution relation manager attach and detach through directory actions', function (): void {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $space = Space::factory()->create(['venue_id' => null]);
+    $institution = Institution::factory()->create();
+
+    Livewire::actingAs($administrator)
+        ->test(InstitutionsRelationManager::class, [
+            'ownerRecord' => $space,
+            'pageClass' => EditSpace::class,
+        ])
+        ->callTableAction('attach', data: ['recordId' => (string) $institution->getKey()])
+        ->assertHasNoTableActionErrors();
+
+    expect($space->institutions()->whereKey($institution->getKey())->exists())->toBeTrue();
+
+    Livewire::actingAs($administrator)
+        ->test(InstitutionsRelationManager::class, [
+            'ownerRecord' => $space,
+            'pageClass' => EditSpace::class,
+        ])
+        ->callTableAction('detach', (string) $institution->getKey())
+        ->assertHasNoTableActionErrors();
+
+    expect($space->institutions()->whereKey($institution->getKey())->exists())->toBeFalse();
 });
 
 it('blocks deletion of spaces referenced by event locations', function (): void {

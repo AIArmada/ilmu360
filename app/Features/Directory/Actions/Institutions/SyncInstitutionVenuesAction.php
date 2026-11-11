@@ -1,31 +1,38 @@
 <?php
 
-namespace App\Actions\Institutions;
+declare(strict_types=1);
 
-use App\Models\Institution;
-use App\Models\InstitutionVenue;
-use App\Models\Venue;
+namespace App\Features\Directory\Actions\Institutions;
+
+use App\Features\Directory\Support\DirectoryModel;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-class SyncInstitutionVenuesAction
+/**
+ * Replace the institution's venue links with the given set.
+ *
+ * Payload booleans, roles, and target existence are validated before any
+ * write; the institution row is locked and rechecked inside the transaction
+ * so primary swaps commit atomically with no temporary one-primary-per-role
+ * violation visible.
+ */
+final class SyncInstitutionVenuesAction
 {
     use AsAction;
 
+    public function __construct(private AddInstitutionVenueLinkAction $addLink) {}
+
     /**
-     * Replace the institution's venue links with the given set.
-     *
-     * Payload booleans, roles, and target existence are validated before any
-     * write; the institution row is locked and rechecked inside the
-     * transaction so primary swaps commit atomically with no temporary
-     * one-primary-per-role violation visible.
-     *
      * @param  list<array{venue_id: string, role: InstitutionVenueRole|string, is_primary?: bool}>  $links
      */
-    public function handle(Institution $institution, array $links): void
+    public function handle(Model $institution, array $links): void
     {
+        DirectoryModel::assert($institution, 'institution');
+
         if (! $institution->exists) {
             throw ValidationException::withMessages([
                 'institution_id' => __('The selected institution is invalid.'),
@@ -33,34 +40,32 @@ class SyncInstitutionVenuesAction
         }
 
         $normalized = $this->normalizeLinks($links);
+        $institutionId = (string) $institution->getKey();
+        $venueIds = array_column($normalized, 'venue_id');
 
-        $institution->getConnection()->transaction(function () use ($institution, $normalized): void {
-            $locked = Institution::query()->whereKey($institution->getKey())->lockForUpdate()->first();
+        DB::transaction(function () use ($institution, $institutionId, $venueIds, $normalized): void {
+            $locked = DirectoryModel::query('institution')
+                ->whereKey($institutionId)
+                ->lockForUpdate()
+                ->first();
 
-            if (! $locked instanceof Institution) {
+            if (! $locked instanceof Model) {
                 throw ValidationException::withMessages([
                     'institution_id' => __('The selected institution is invalid.'),
                 ]);
             }
 
-            $institutionId = (string) $institution->getKey();
-            $venueIds = array_column($normalized, 'venue_id');
-
-            InstitutionVenue::query()
+            DB::table('institution_venue')
                 ->where('institution_id', $institutionId)
                 ->when($venueIds !== [], fn ($query) => $query->whereNotIn('venue_id', $venueIds))
                 ->delete();
 
             foreach ($normalized as $link) {
-                InstitutionVenue::query()->updateOrCreate(
-                    [
-                        'institution_id' => $institutionId,
-                        'venue_id' => $link['venue_id'],
-                    ],
-                    [
-                        'role' => $link['role']->value,
-                        'is_primary' => $link['is_primary'],
-                    ],
+                $this->addLink->handle(
+                    $institutionId,
+                    $link['venue_id'],
+                    $link['role'],
+                    $link['is_primary'],
                 );
             }
 
@@ -144,7 +149,10 @@ class SyncInstitutionVenuesAction
         }
 
         if ($seenVenues !== []) {
-            $existingIds = Venue::query()->whereKey($seenVenues)->pluck('id')->all();
+            $existingIds = DirectoryModel::query('venue')
+                ->whereKey($seenVenues)
+                ->pluck('id')
+                ->all();
 
             $missing = array_diff($seenVenues, array_map(strval(...), $existingIds));
 

@@ -3,6 +3,7 @@
 namespace Database\Seeders\Concerns;
 
 use App\Enums\EventFormat;
+use App\Features\Directory\Api\InstitutionSpaceLinks;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Space;
@@ -67,7 +68,10 @@ trait SeedsEventLocations
             ]);
         }
 
-        $institution->spaces()->syncWithoutDetaching([(string) $space->getKey()]);
+        app(InstitutionSpaceLinks::class)->attach(
+            (string) $institution->getKey(),
+            (string) $space->getKey(),
+        );
 
         return $space;
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,18 +14,20 @@ use InvalidArgumentException;
  * Institution↔venue bridge row.
  *
  * Draft integrity policy, enforced here so direct relation attach/sync,
- * updateExistingPivot, and custom pivot creation cannot bypass what
- * SyncInstitutionVenuesAction validates:
+ * updateExistingPivot, and custom pivot creation cannot bypass what the
+ * Directory bridge actions validate:
  *
  * - role is a valid InstitutionVenueRole (enum or backing string);
  * - is_primary is a real boolean (never a string like 'false');
  * - institution_id and venue_id reference existing rows;
- * - at most one primary per institution and role: saving a primary demotes
- *   the previous primary of the same role.
+ * - at most one primary per institution and role: saving a primary delegates
+ *   the demotion of the previous primary to the Directory bridge action.
  *
- * Persistence is self-contained: every save runs in its own transaction
- * under an owning-institution row lock, so a failed insert rolls the demote
- * back and concurrent swaps serialize without callers opening transactions.
+ * Canonical writes live in the Directory actions; this model remains a
+ * defensive boundary for direct Eloquent pivot saves. Every save runs in its
+ * own transaction under an owning-institution row lock, so a failed insert
+ * rolls the demote back and concurrent swaps serialize without callers
+ * opening transactions.
  */
 class InstitutionVenue extends Pivot
 {
@@ -146,12 +149,7 @@ class InstitutionVenue extends Pivot
             }
 
             if ($isPrimary) {
-                static::query()
-                    ->where('institution_id', $institutionId)
-                    ->where('role', $role->value)
-                    ->where('is_primary', true)
-                    ->when($pivot->exists, fn ($query) => $query->whereKeyNot($pivot->getKey()))
-                    ->update(['is_primary' => false]);
+                app(InstitutionVenueLinks::class)->demotePrimary((string) $institutionId, $role, (string) $venueId);
             }
         });
     }
