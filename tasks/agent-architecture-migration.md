@@ -56,7 +56,7 @@
 - [ ] AI: model pricing, usage ledger, budget policies, media extraction and tools.
 - [ ] Community releases: publishing lifecycle and eligibility; distinguish from shared projection/analytics stores.
 - [ ] Documentation/MCP/admin composition: schemas/docs/resource registry and remaining adapters, each using the actual owner's public API.
-- [ ] Final app-wide audit: every runtime resource has an owner and named write paths; old code removed, unique registration, CI active, behavior/type/cache tests pass.
+- [ ] Final app-wide audit: every runtime resource has an owner and named write paths; old code removed, unique registration, CI active, behavior/type/cache tests pass. **Audit map accepted** (12 features/58 owners/134 writers, scanner clean). Blockers/actions: (1) add exact `architecture.foreignWrite`/`writeLocation` exceptions to the tooling (no mechanism exists today) for the documented root adapters; (2) fix real defects: InstitutionSubmissionCache key mismatch, AdminEventRelationsSynchronizer seat-map write outside a named action, duplicate CurrentOrganizationResolver binding; (3) config-table models lack literal `$table`, so owned-write enforcement is blind for events/registrations/submissions/membership — decide backfill vs exceptions; (4) fix stale Events/Directory/Registration provider docblocks and document vendor Filament/registration writers; (5) do NOT exception CleanupEventAction registration deletes, Checkout registration metadata, Directory lifecycle/commands, contribution taxonomy writes or BackfillEventSlugs — fix them in their owning slices.
 
 ## Ownership decisions and enduring hazards
 
