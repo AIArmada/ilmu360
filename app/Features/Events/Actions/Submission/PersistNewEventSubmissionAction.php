@@ -2,18 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Submission;
+namespace App\Features\Events\Actions\Submission;
 
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
+use App\Features\Events\Actions\Scheduling\ResolveInstitutionalPrayerSlotGroupAction;
 use App\Features\Events\Api\EventAuthoring;
-use App\Actions\Events\Scheduling\ResolveInstitutionalPrayerSlotGroupAction;
-use App\Data\Events\ValidatedEventSubmission;
+use App\Features\Events\Support\EventModel;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Models\Event;
-use App\Models\EventSubmission;
-use App\Models\Institution;
+use App\Shared\Events\ValidatedEventSubmission;
 use Illuminate\Support\Arr;
+use RuntimeException;
 use Spatie\MediaLibrary\HasMedia;
 
 final readonly class PersistNewEventSubmissionAction
@@ -31,13 +32,13 @@ final readonly class PersistNewEventSubmissionAction
      * session action.
      *
      * @param  (callable(HasMedia): void)|null  $persistRelationships
-     * @return array{event: Event, session: null, occurrence: EventOccurrence, submission: EventSubmission, grouped: bool, parent_created: bool, occurrence_pending_review: bool}
+     * @return array{event: PackageEvent, session: null, occurrence: EventOccurrence, submission: PackageEventSubmission, grouped: bool, parent_created: bool, occurrence_pending_review: bool}
      */
     public function handle(ValidatedEventSubmission $submission, ?callable $persistRelationships = null): array
     {
         $groupIdentity = $this->groupResolver->identity($submission);
         $event = $groupIdentity === null ? null : $this->groupResolver->findExisting($groupIdentity);
-        $parentCreated = ! $event instanceof Event;
+        $parentCreated = ! $event instanceof PackageEvent;
 
         if ($parentCreated) {
             $event = $this->createParent($submission, $groupIdentity);
@@ -76,7 +77,7 @@ final readonly class PersistNewEventSubmissionAction
             $submissionData['notes'] = $submission->state['notes'];
         }
 
-        $eventSubmission = EventSubmission::query()->create([
+        $eventSubmission = EventModel::query('event_submission')->create([
             'event_id' => $event->getKey(),
             'event_occurrence_id' => $occurrence->getKey(),
             'event_session_id' => null,
@@ -86,6 +87,10 @@ final readonly class PersistNewEventSubmissionAction
             'submitter_type' => $submission->submitter?->getMorphClass(),
             'submitter_id' => $submission->submitter?->getKey(),
         ]);
+
+        if (! $eventSubmission instanceof PackageEventSubmission) {
+            throw new RuntimeException('Expected the event submission model to extend the events package model.');
+        }
 
         return [
             'event' => $event,
@@ -101,7 +106,7 @@ final readonly class PersistNewEventSubmissionAction
     /**
      * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string, slug_title: string}|null  $groupIdentity
      */
-    private function createParent(ValidatedEventSubmission $submission, ?array $groupIdentity): Event
+    private function createParent(ValidatedEventSubmission $submission, ?array $groupIdentity): PackageEvent
     {
         $state = $submission->state;
         $title = $groupIdentity['title'] ?? (string) $state['title'];
@@ -109,7 +114,7 @@ final readonly class PersistNewEventSubmissionAction
             ? null
             : ['public_submission_group' => Arr::only($groupIdentity, ['key', 'institution_id', 'category_ids', 'prayer_slot'])];
 
-        $event = Event::query()->create(array_merge([
+        $event = EventModel::query('event')->create(array_merge([
             'title' => $title,
             'slug' => $this->authoring->eventSlug(
                 $groupIdentity['slug_title'] ?? $title,
@@ -128,10 +133,20 @@ final readonly class PersistNewEventSubmissionAction
             'metadata' => $metadata,
         ], $submission->autoApproved ? ['status' => 'pending'] : []));
 
+        if (! $event instanceof PackageEvent) {
+            throw new RuntimeException('Expected the event model to extend the events package model.');
+        }
+
         $primaryOrganizer = $groupIdentity === null
             ? $submission->primaryOrganizer
-            : Institution::query()->find($groupIdentity['institution_id']) ?? $submission->primaryOrganizer;
-        $event->setPrimaryOrganizer($primaryOrganizer);
+            : EventModel::query('institution')->find($groupIdentity['institution_id']) ?? $submission->primaryOrganizer;
+
+        $this->authoring->syncPrimaryOrganizer(
+            (string) $event->getKey(),
+            $primaryOrganizer->getMorphClass(),
+            (string) $primaryOrganizer->getKey(),
+        );
+        $event->unsetRelation('primaryOrganizerInvolvement');
 
         if ($groupIdentity !== null) {
             $this->authoring->syncEventClassifications($event->getMorphClass(), (string) $event->getKey(), [
@@ -147,7 +162,7 @@ final readonly class PersistNewEventSubmissionAction
     /**
      * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string, slug_title: string}  $groupIdentity
      */
-    private function storeGroupIdentity(Event $event, array $groupIdentity): void
+    private function storeGroupIdentity(PackageEvent $event, array $groupIdentity): void
     {
         $metadata = $event->metadata ?? [];
         $metadata['public_submission_group'] = Arr::only($groupIdentity, [

@@ -34,7 +34,7 @@ use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Shared\Events\OrganizerResolver;
-use App\Support\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\EntitySubmissionAccess;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use App\Support\Submission\SubmitEventPrefill;

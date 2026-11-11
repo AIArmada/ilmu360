@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Submission;
+namespace App\Features\Events\Actions\Submission;
 
-use App\Features\Directory\Api\ReferenceQueries;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSession;
-use App\Models\Event;
-use App\Models\Language;
-use App\Models\Reference;
+use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\Events\Support\EventModel;
+use App\Shared\Submission\SubmissionValues;
 use App\Shared\Support\MorphAlias;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -30,11 +30,11 @@ final class SubmissionRelationSync
         $referenceIds = $state['references'] ?? [];
         $errors = [];
 
-        if ($languageIds !== [] && array_diff($languageIds, Language::query()->whereIn('id', $languageIds)->pluck('id')->all()) !== []) {
+        if ($languageIds !== [] && array_diff($languageIds, EventModel::query('language')->whereIn('id', $languageIds)->pluck('id')->all()) !== []) {
             $errors[SubmissionValues::prefixedKey('languages', $validationKeyPrefix)] = __('The selected language is invalid.');
         }
 
-        if ($referenceIds !== [] && array_diff($referenceIds, app(ReferenceQueries::class)->applyPublicVisibility(Reference::query())->whereIn('references.id', $referenceIds)->pluck('references.id')->all()) !== []) {
+        if ($referenceIds !== [] && array_diff($referenceIds, app(ReferenceQueries::class)->applyPublicVisibility(EventModel::query('reference'))->whereIn('references.id', $referenceIds)->pluck('references.id')->all()) !== []) {
             $errors[SubmissionValues::prefixedKey('references', $validationKeyPrefix)] = __('The selected reference is unavailable.');
         }
 
@@ -78,7 +78,7 @@ final class SubmissionRelationSync
      * Livewire media-only callback share one writer. The pivot defaults
      * (reference, book, public) apply; sort order preserves input order.
      */
-    public function syncEventReferences(Event $event, mixed $references): void
+    public function syncEventReferences(PackageEvent $event, mixed $references): void
     {
         if (! is_array($references)) {
             return;
@@ -102,7 +102,7 @@ final class SubmissionRelationSync
      * Session references mirror the event pivot defaults
      * (reference/Reference, book, public) on session-scoped rows.
      */
-    public function syncSessionReferences(Event $event, EventOccurrence $occurrence, EventSession $session, mixed $references): void
+    public function syncSessionReferences(PackageEvent $event, EventOccurrence $occurrence, EventSession $session, mixed $references): void
     {
         if (! is_array($references)) {
             return;
@@ -131,7 +131,7 @@ final class SubmissionRelationSync
      * Occurrence references mirror the existing event and session reference
      * defaults while keeping each contribution scoped to its submitted date.
      */
-    public function syncOccurrenceReferences(Event $event, EventOccurrence $occurrence, mixed $references): void
+    public function syncOccurrenceReferences(PackageEvent $event, EventOccurrence $occurrence, mixed $references): void
     {
         if (! is_array($references)) {
             return;

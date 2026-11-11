@@ -6,16 +6,19 @@ namespace App\Features\Events;
 
 use App\Features\Events\Actions\Authoring\SyncEventLocationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventProjectionsAction;
+use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventReportSubjectProvider;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Services\EventAuthoringService;
 use App\Features\Events\Services\EventCategoryCatalog;
 use App\Features\Events\Services\EventCategoryPolicy;
 use App\Features\Events\Services\EventReportSubjectResolver;
+use App\Features\Events\Services\EventSubmissionsService;
 use App\Features\Events\Services\SeriesAuthoringService;
 use App\Features\Events\Support\EventModel;
 use App\Platform\FeatureModule;
@@ -28,16 +31,23 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  * Events owns event authoring, submissions, registration, and attendance.
  *
  * Table writers (see feature.json) are the named Actions under
- * Actions/Authoring and Actions/Scheduling. The following external writers
- * remain intentional during the slice-by-slice conversion:
+ * Actions/Authoring, Actions/Scheduling and Actions/Submission. The following
+ * external writers remain intentional during the slice-by-slice conversion:
  *
  * - events package: SyncPrimaryEventOccurrenceAction (schedule_kind through
- *   the feature scheduling adapter), lifecycle state machine/transitions.
+ *   the feature scheduling adapter), CreateEventOccurrenceAction /
+ *   CreateEventSessionAction / SyncEventLanguagesAction invoked by the
+ *   submission persist actions, and lifecycle state machine/transitions.
  * - root SaveAdminEventAction: interim moderation-status adapter (E3).
- * - root event create/submission actions: `PersistOccurrenceSubmissionAction`
- *   and `PersistSessionSubmissionAction` still write scoped event_audiences
- *   rows until E2; `CreateEventWithInitialOccurrenceAction` /
- *   `CreateEventWithRegistrationAction` remain E4 create paths.
+ * - root submission orchestrators: `SubmitFrontendEventAction` (validation
+ *   and persistence through the EventSubmissions boundary, then completion
+ *   side effects) and `CompleteFrontendEventSubmissionAction` (registration
+ *   mode, access policy, moderation and share outcomes) remain documented
+ *   external writers for `events` until E2b/E3.
+ * - root `ModerateEventOccurrenceSubmissionAction` writes `event_submissions`
+ *   status until the E3 moderation slice; `event_submission_logs` and
+ *   `event_submission_attachments` stay unclaimed for the same reason (their
+ *   only app-side writer is that root action).
  * - root Event model: booted saved/deleting hooks delegate projections,
  *   audiences, languages, locations and organizer writes to feature actions.
  * - event_taxonomies/event_terms are created by the package synchronizer that
@@ -50,13 +60,11 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
-        $this->app->bind(
-            GuestSubmissionClaims::class,
-            (string) config('events.bindings.guest_submission_claims'),
-        );
+        $this->app->bind(GuestSubmissionClaims::class, ClaimGuestSubmissionsAction::class);
         $this->app->bind(EventReportSubjectProvider::class, EventReportSubjectResolver::class);
 
         $this->app->bind(EventAuthoring::class, EventAuthoringService::class);
+        $this->app->bind(EventSubmissions::class, EventSubmissionsService::class);
         $this->app->bind(EventLocations::class, SyncEventLocationsAction::class);
         $this->app->bind(EventProjections::class, SyncEventProjectionsAction::class);
         $this->app->bind(SeriesAuthoring::class, SeriesAuthoringService::class);

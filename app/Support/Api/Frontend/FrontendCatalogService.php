@@ -25,7 +25,7 @@ use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
-use App\Support\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\EntitySubmissionAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;

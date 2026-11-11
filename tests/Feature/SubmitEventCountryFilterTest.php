@@ -10,7 +10,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\EntitySubmissionAccess;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Cache;

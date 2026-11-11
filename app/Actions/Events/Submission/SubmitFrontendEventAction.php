@@ -5,10 +5,11 @@ namespace App\Actions\Events\Submission;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventSubmissions;
 use App\Contracts\CaptchaVerifier;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
-use App\Data\Events\ValidatedEventSubmission;
+use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
@@ -20,12 +21,11 @@ use App\Models\Person;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerLocation;
-use App\Support\Submission\EntitySubmissionAccess;
-use App\Support\Submission\SubmissionContextResolver;
-use App\Support\Submission\SubmissionRelationSync;
+use App\Shared\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\SubmissionContextResolver;
 use App\Shared\Submission\SubmissionTimingPolicy;
-use App\Support\Submission\SubmissionValues;
-use App\Support\Submission\SubmitterContactRules;
+use App\Shared\Submission\SubmissionValues;
+use App\Shared\Submission\SubmitterContactRules;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -46,13 +46,10 @@ class SubmitFrontendEventAction
         private readonly EntitySubmissionAccess $entitySubmissionAccess,
         private readonly CaptchaVerifier $turnstileVerifier,
         private readonly EventAuthoring $authoring,
-        private readonly PersistNewEventSubmissionAction $persistNewEvent,
-        private readonly PersistSessionSubmissionAction $persistSession,
+        private readonly EventSubmissions $submissions,
         private readonly CompleteFrontendEventSubmissionAction $completeSubmission,
         private readonly SubmissionTimingPolicy $timing,
         private readonly SubmissionContextResolver $context,
-        private readonly ValidateEventSubmissionInputAction $validateSubmissionInput,
-        private readonly SubmissionRelationSync $relationSync,
         private readonly ResolvePrayerStartClockAction $resolveStartClock,
     ) {}
 
@@ -77,7 +74,7 @@ class SubmitFrontendEventAction
         // non-UUID IDs, and bad booleans before any scoped coercion, captcha
         // spend, or write. Defaults apply only when the input key is truly
         // omitted.
-        $validated = $this->validateSubmissionInput->handle($state, $validationKeyPrefix);
+        $validated = $this->submissions->validate($state, $validationKeyPrefix);
 
         // Semantic boundary: unknown, wrong-taxonomy, or inactive category IDs
         // must fail here. Catalog normalization silently drops such IDs, so an
@@ -119,7 +116,7 @@ class SubmitFrontendEventAction
         }
 
         $this->entitySubmissionAccess->assertSubmissionEntitiesAreAccessible($validated, $submitter, $organizerKind, $validationKeyPrefix);
-        $this->relationSync->assertCatalogSelectionsAreAvailable($validated, $validationKeyPrefix);
+        $this->submissions->assertCatalogSelectionsAreAvailable($validated, $validationKeyPrefix);
         SubmitterContactRules::assertSubmitterContactsAreValid($validated, $submitter, $validationKeyPrefix);
         $this->entitySubmissionAccess->assertSubmissionEntitiesMatchCountry($validated, $organizerKind, $submissionCountryId, $scopedInstitution, $validationKeyPrefix);
 
@@ -234,11 +231,25 @@ class SubmitFrontendEventAction
 
             try {
                 $persisted = $isSessionSubmission
-                    ? $this->persistSession->handle($validatedSubmission, $persistMedia)
-                    : $this->persistNewEvent->handle($validatedSubmission, $persistMedia);
-                $event = $persisted['event'];
-                $submission = $persisted['submission'];
-                $occurrence = $persisted['occurrence'] ?? ($persisted['session'] instanceof EventSession ? $persisted['session']->occurrence : null);
+                    ? $this->submissions->persistSession($validatedSubmission, $persistMedia)
+                    : $this->submissions->persistNew($validatedSubmission, $persistMedia);
+
+                $submissionId = $persisted['submission_id'];
+
+                if (! is_string($submissionId)) {
+                    throw new \RuntimeException('The submission persistence boundary did not return a submission id.');
+                }
+
+                // The boundary returns scalar identifiers; reload the root
+                // models that completion, notifications and the caller use.
+                $event = Event::query()->findOrFail($persisted['event_id']);
+                $submission = EventSubmission::query()->findOrFail($submissionId);
+                $occurrence = is_string($persisted['occurrence_id'])
+                    ? EventOccurrence::query()->find($persisted['occurrence_id'])
+                    : null;
+                $session = is_string($persisted['session_id'])
+                    ? EventSession::query()->find($persisted['session_id'])
+                    : null;
 
                 $this->completeSubmission->handle(
                     event: $event,
@@ -249,12 +260,17 @@ class SubmitFrontendEventAction
                     autoApproved: $autoApproved,
                     request: $request,
                     occurrence: $occurrence instanceof EventOccurrence ? $occurrence : null,
-                    parentCreated: $persisted['parent_created'] ?? true,
-                    groupedSubmission: $persisted['grouped'] ?? false,
-                    occurrencePendingReview: $persisted['occurrence_pending_review'] ?? false,
+                    parentCreated: $persisted['parent_created'],
+                    groupedSubmission: $persisted['grouped'],
+                    occurrencePendingReview: $persisted['occurrence_pending_review'],
                 );
 
-                return $persisted;
+                return $persisted + [
+                    'event' => $event,
+                    'session' => $session,
+                    'occurrence' => $occurrence,
+                    'submission' => $submission,
+                ];
             } catch (Throwable $exception) {
                 if ($mediaSubject instanceof HasMedia) {
                     $this->removeFailedSubmissionMedia($mediaSubject);
@@ -267,7 +283,7 @@ class SubmitFrontendEventAction
         $event = $persisted['event'];
         $session = $persisted['session'];
         $submission = $persisted['submission'];
-        $occurrence = $persisted['occurrence'] ?? ($session instanceof EventSession ? $session->occurrence : null);
+        $occurrence = $persisted['occurrence'];
         $occurrence = $occurrence instanceof EventOccurrence ? $occurrence->fresh() ?? $occurrence : null;
 
         // Session and occurrence submissions own their visibility; the

@@ -1,7 +1,7 @@
 <?php
 
-use App\Actions\Events\Submission\PersistOccurrenceSubmissionAction;
-use App\Data\Events\ValidatedEventSubmission;
+use App\Features\Events\Actions\Submission\PersistOccurrenceSubmissionAction;
+use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;

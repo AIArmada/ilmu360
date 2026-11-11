@@ -2,27 +2,24 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Submission;
+namespace App\Features\Events\Actions\Submission;
 
 use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Actions\SyncEventLanguagesAction;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\VenueSpaceType;
 use App\Features\Events\Api\EventAuthoring;
-use App\Data\Events\ValidatedEventSubmission;
+use App\Features\Events\Support\EventModel;
+use App\Features\Events\Actions\Submission\SubmissionRelationSync;
+use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Prayer\HardcodedPrayerFallback;
-use App\Models\Event;
-use App\Models\EventSubmission;
-use App\Models\Institution;
-use App\Models\Language;
-use App\Models\Space;
-use App\Services\PrayerTimeExpressionResolver;
-use App\Support\Submission\SubmissionRelationSync;
-use App\Support\Submission\SubmissionValues;
+use App\Shared\Submission\SubmissionValues;
 use BackedEnum;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
@@ -42,7 +39,7 @@ final readonly class PersistSessionSubmissionAction
      * untouched; every relation below is scoped to the new session.
      *
      * @param  (callable(HasMedia): void)|null  $persistRelationships
-     * @return array{event: Event, session: EventSession, submission: EventSubmission}
+     * @return array{event: PackageEvent, session: EventSession, submission: PackageEventSubmission}
      */
     public function handle(ValidatedEventSubmission $submission, ?callable $persistRelationships = null): array
     {
@@ -86,7 +83,7 @@ final readonly class PersistSessionSubmissionAction
         if (! empty($state['languages']) && is_array($state['languages'])) {
             $this->syncLanguages->handle(
                 $session,
-                Language::codesForIds($state['languages']),
+                EventModel::languageCodesForIds($state['languages']),
                 metadata: ['source' => 'commerce_languages'],
             );
         }
@@ -104,7 +101,7 @@ final readonly class PersistSessionSubmissionAction
             $submissionData['notes'] = $state['notes'];
         }
 
-        $eventSubmission = EventSubmission::query()->create([
+        $eventSubmission = EventModel::query('event_submission')->create([
             'event_id' => $event->getKey(),
             'event_occurrence_id' => $occurrenceId,
             'event_session_id' => $session->getKey(),
@@ -114,6 +111,10 @@ final readonly class PersistSessionSubmissionAction
             'submitter_type' => $submission->submitter?->getMorphClass(),
             'submitter_id' => $submission->submitter?->getKey(),
         ]);
+
+        if (! $eventSubmission instanceof PackageEventSubmission) {
+            throw new \RuntimeException('Expected the event submission model to extend the events package model.');
+        }
 
         return ['event' => $event, 'session' => $session, 'submission' => $eventSubmission];
     }
@@ -150,7 +151,7 @@ final readonly class PersistSessionSubmissionAction
                 'relation' => $offset < 0 ? 'before' : 'after',
                 'offset_minutes' => abs($offset),
                 'display_label' => $submission->prayerDisplayText,
-                'resolver_class' => PrayerTimeExpressionResolver::class,
+                'resolver_class' => (string) config('events.prayer.resolver_class'),
                 'metadata' => [
                     'prayer' => array_filter([
                         'source' => $submission->prayerSource ?? HardcodedPrayerFallback::SOURCE,
@@ -173,9 +174,9 @@ final readonly class PersistSessionSubmissionAction
             return;
         }
 
-        $institution = $submission->targetInstitutionId === null ? null : Institution::query()->find($submission->targetInstitutionId);
+        $institution = $submission->targetInstitutionId === null ? null : EventModel::query('institution')->find($submission->targetInstitutionId);
         $spaceIds = $state['space_ids'] ?? [];
-        $spaces = Space::query()->whereKey($spaceIds)->get(['id', 'name', 'space_type'])->keyBy('id');
+        $spaces = EventModel::query('space')->whereKey($spaceIds)->get(['id', 'name', 'space_type'])->keyBy('id');
         $spaceTypeIds = VenueSpaceType::query()->whereIn('code', $spaces->pluck('space_type')->filter()->unique())->pluck('id', 'code');
         $locationIds = $spaceIds === [] ? [null] : $spaceIds;
 
@@ -200,15 +201,15 @@ final readonly class PersistSessionSubmissionAction
      * Re-resolve the container from storage; a deleted container fails
      * closed instead of silently becoming a new event.
      */
-    private function resolvePersistedContainer(ValidatedEventSubmission $submission): Event
+    private function resolvePersistedContainer(ValidatedEventSubmission $submission): PackageEvent
     {
         $containerId = $submission->eventContainer?->getKey();
 
         $event = is_string($containerId) && $containerId !== ''
-            ? Event::query()->find($containerId)
+            ? EventModel::query('event')->find($containerId)
             : null;
 
-        if (! $event instanceof Event) {
+        if (! $event instanceof PackageEvent) {
             throw ValidationException::withMessages([
                 SubmissionValues::prefixedKey('event_id', $submission->validationKeyPrefix) => __('Majlis yang dipilih tidak lagi tersedia.'),
             ]);
@@ -222,7 +223,7 @@ final readonly class PersistSessionSubmissionAction
      * default for single-date events. Terminal occurrences never accept
      * new sessions.
      */
-    private function resolveTargetOccurrence(Event $event, ?string $occurrenceId, string $validationKeyPrefix = ''): EventOccurrence
+    private function resolveTargetOccurrence(PackageEvent $event, ?string $occurrenceId, string $validationKeyPrefix = ''): EventOccurrence
     {
         if (is_string($occurrenceId) && $occurrenceId !== '') {
             $occurrence = EventOccurrence::query()

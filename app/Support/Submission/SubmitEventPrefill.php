@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Submission;
 
+use App\Shared\Submission\EntitySubmissionAccess;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\Enums\EventFormat;

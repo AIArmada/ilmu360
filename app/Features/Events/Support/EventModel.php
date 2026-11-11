@@ -56,6 +56,75 @@ final class EventModel
         return MorphModelResolver::resolve('registration');
     }
 
+    public static function institution(): string
+    {
+        return MorphModelResolver::resolve('institution');
+    }
+
+    public static function space(): string
+    {
+        return MorphModelResolver::resolve('space');
+    }
+
+    public static function language(): string
+    {
+        return MorphModelResolver::resolve('language');
+    }
+
+    public static function user(): string
+    {
+        return MorphModelResolver::resolve('user');
+    }
+
+    /**
+     * Resolve commerce language IDs to codes in input order.
+     *
+     * @param  list<mixed>  $ids
+     * @return list<string>
+     */
+    public static function languageCodesForIds(array $ids): array
+    {
+        $class = self::language();
+        /** @var callable(list<mixed>): list<string> $codesForIds */
+        $codesForIds = [$class, 'codesForIds'];
+
+        return $codesForIds($ids);
+    }
+
+    /**
+     * Public schedule statuses declared by the application event model.
+     *
+     * @return list<string>
+     */
+    public static function publicScheduleStatuses(): array
+    {
+        return self::eventConstant('PUBLIC_SCHEDULE_STATUSES');
+    }
+
+    /**
+     * Public schedule visibilities declared by the application event model.
+     *
+     * @return list<string>
+     */
+    public static function publicScheduleVisibilities(): array
+    {
+        return self::eventConstant('PUBLIC_SCHEDULE_VISIBILITIES');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function eventConstant(string $name): array
+    {
+        $value = constant(self::event().'::'.$name);
+
+        if (! is_array($value)) {
+            throw new RuntimeException("The event model constant [{$name}] must be an array.");
+        }
+
+        return array_values(array_map(strval(...), $value));
+    }
+
     /**
      * @return Builder<Model>
      */

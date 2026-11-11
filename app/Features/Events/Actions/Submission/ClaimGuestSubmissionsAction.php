@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Submission;
+namespace App\Features\Events\Actions\Submission;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use App\Features\Events\Api\GuestSubmissionClaims;
-use App\Models\EventSubmission;
-use App\Models\User;
+use App\Features\Events\Support\EventModel;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -24,9 +25,9 @@ final class ClaimGuestSubmissionsAction implements GuestSubmissionClaims
 
     public function claimForAccount(string $accountId): int
     {
-        $user = User::query()->find($accountId);
+        $user = EventModel::query('user')->find($accountId);
 
-        return $user instanceof User ? $this->handle($user) : 0;
+        return $user instanceof Model ? $this->handle($user) : 0;
     }
 
     /**
@@ -36,15 +37,19 @@ final class ClaimGuestSubmissionsAction implements GuestSubmissionClaims
      * contact matches the user's verified address are claimed. Returns the
      * number of submissions linked.
      */
-    public function handle(User $user): int
+    public function handle(Model $user): int
     {
-        $email = $user->email;
+        if (! $user instanceof MustVerifyEmail) {
+            return 0;
+        }
+
+        $email = $user->getAttribute('email');
 
         if (! is_string($email) || trim($email) === '' || ! $user->hasVerifiedEmail()) {
             return 0;
         }
 
-        $submissions = EventSubmission::query()
+        $submissions = EventModel::query('event_submission')
             ->whereNull('submitter_id')
             ->whereHas('contactMethods', function (Builder $query) use ($email): void {
                 $value = $query->getQuery()->getGrammar()->wrap('value');
@@ -68,7 +73,7 @@ final class ClaimGuestSubmissionsAction implements GuestSubmissionClaims
 
                 $event = $submission->event;
 
-                if ($event !== null && $event->created_by_id === null) {
+                if ($event instanceof Model && $event->getAttribute('created_by_id') === null) {
                     $event->forceFill([
                         'created_by_type' => $user->getMorphClass(),
                         'created_by_id' => $user->getKey(),

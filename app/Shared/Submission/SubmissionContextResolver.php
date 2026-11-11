@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Submission;
+namespace App\Shared\Submission;
 
 use App\Shared\Submission\SubmissionTimingPolicy;
 use AIArmada\Events\Models\EventOccurrence;

@@ -14,7 +14,7 @@ use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Events\OrganizerResolver;
-use App\Support\Submission\SubmitterContactRules;
+use App\Shared\Submission\SubmitterContactRules;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

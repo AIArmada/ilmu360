@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Scheduling;
+namespace App\Features\Events\Actions\Scheduling;
 
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
+use App\Features\Events\Support\EventModel;
 use App\Shared\Events\EventCategoryCatalog;
-use App\Data\Events\ValidatedEventSubmission;
-use App\Models\Event;
-use App\Models\Institution;
+use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerReference;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 final readonly class ResolveInstitutionalPrayerSlotGroupAction
@@ -36,9 +37,9 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
             return null;
         }
 
-        $institution = Institution::query()->find($submission->targetInstitutionId);
+        $institution = EventModel::query('institution')->find($submission->targetInstitutionId);
 
-        if (! $institution instanceof Institution) {
+        if (! $institution instanceof Model) {
             return null;
         }
 
@@ -84,22 +85,22 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
      *
      * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string, slug_title: string}  $identity
      */
-    public function findExisting(array $identity): ?Event
+    public function findExisting(array $identity): ?PackageEvent
     {
-        $institution = Institution::query()
+        $institution = EventModel::query('institution')
             ->whereKey($identity['institution_id'])
             ->lockForUpdate()
             ->first();
 
-        if (! $institution instanceof Institution) {
+        if (! $institution instanceof Model) {
             return null;
         }
 
-        $candidates = Event::query()
+        $candidates = EventModel::query('event')
             ->where('institution_id', $identity['institution_id'])
             ->whereNull('owner_type')
             ->whereNull('owner_id')
-            ->whereIn('visibility', [Event::PUBLIC, Event::UNLISTED])
+            ->whereIn('visibility', [PackageEvent::PUBLIC, PackageEvent::UNLISTED])
             ->whereIn('status', ['pending', 'approved'])
             ->whereDoesntHave('sessions')
             ->with([
@@ -107,8 +108,8 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
                 'timeExpressions',
                 'occurrences' => fn ($query) => $query
                     ->withoutGlobalScopes()
-                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
-                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                    ->whereIn('status', EventModel::publicScheduleStatuses())
+                    ->whereIn('visibility', EventModel::publicScheduleVisibilities())
                     ->with('timeExpressions'),
             ])
             ->orderBy('created_at')
@@ -149,7 +150,7 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
         return null;
     }
 
-    private function matchesPrayerSlot(Event $event, EventPrayerTime $prayerSlot): bool
+    private function matchesPrayerSlot(PackageEvent $event, EventPrayerTime $prayerSlot): bool
     {
         $candidateSlots = collect($this->prayerSlotsFromExpressions($event->timeExpressions));
 

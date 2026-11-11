@@ -6,7 +6,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
-use App\Actions\Events\Submission\ValidateEventSubmissionInputAction;
+use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

@@ -2,28 +2,25 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Submission;
+namespace App\Features\Events\Actions\Submission;
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\SyncEventLanguagesAction;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\Events\Support\Normalization\EventContentNormalizer;
 use App\Features\Events\Api\EventAuthoring;
-use App\Data\Events\ValidatedEventSubmission;
+use App\Features\Events\Support\EventModel;
+use App\Features\Events\Actions\Submission\SubmissionRelationSync;
+use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\HardcodedPrayerFallback;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Language;
-use App\Models\Space;
-use App\Services\PrayerTimeExpressionResolver;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Submission\SubmissionRelationSync;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
@@ -43,7 +40,7 @@ final readonly class PersistOccurrenceSubmissionAction
      * @param  (callable(HasMedia): void)|null  $persistRelationships
      */
     public function handle(
-        Event $event,
+        PackageEvent $event,
         ValidatedEventSubmission $submission,
         bool $pendingReview,
         ?array $groupIdentity = null,
@@ -73,7 +70,7 @@ final readonly class PersistOccurrenceSubmissionAction
                 : null,
             'timezone' => $submission->timezone,
             'status' => $pendingReview ? EventOccurrence::DRAFT : EventOccurrence::SCHEDULED,
-            'visibility' => $pendingReview ? Event::PRIVATE : $requestedVisibility,
+            'visibility' => $pendingReview ? PackageEvent::PRIVATE : $requestedVisibility,
             'delivery_mode' => $this->enumValue($state['event_format'] ?? EventFormat::Physical->value),
             'metadata' => $occurrenceMetadata,
         ]);
@@ -87,7 +84,7 @@ final readonly class PersistOccurrenceSubmissionAction
         return $occurrence;
     }
 
-    private function uniqueOccurrenceSlug(Event $event, ValidatedEventSubmission $submission): string
+    private function uniqueOccurrenceSlug(PackageEvent $event, ValidatedEventSubmission $submission): string
     {
         $state = $submission->state;
         $baseSlug = $this->authoring->eventSlug(
@@ -143,7 +140,7 @@ final readonly class PersistOccurrenceSubmissionAction
     }
 
     private function persistOccurrenceDetails(
-        Event $event,
+        PackageEvent $event,
         EventOccurrence $occurrence,
         ValidatedEventSubmission $submission,
     ): void {
@@ -207,7 +204,7 @@ final readonly class PersistOccurrenceSubmissionAction
         if (is_array($state['languages'] ?? null) && $state['languages'] !== []) {
             $this->syncLanguages->handle(
                 $occurrence,
-                Language::codesForIds($state['languages']),
+                EventModel::languageCodesForIds($state['languages']),
                 metadata: ['source' => 'commerce_languages'],
             );
         }
@@ -253,7 +250,7 @@ final readonly class PersistOccurrenceSubmissionAction
             'relation' => $offset < 0 ? 'before' : 'after',
             'offset_minutes' => abs($offset),
             'display_label' => $submission->prayerDisplayText,
-            'resolver_class' => PrayerTimeExpressionResolver::class,
+            'resolver_class' => (string) config('events.prayer.resolver_class'),
             'metadata' => $expressionMetadata,
             'resolved_starts_at' => $submission->startsAt,
             'resolved_at' => now(),
@@ -273,8 +270,8 @@ final readonly class PersistOccurrenceSubmissionAction
             : [];
         $institution = $submission->targetInstitutionId === null
             ? null
-            : Institution::query()->find($submission->targetInstitutionId);
-        $spaces = Space::query()->whereKey($spaceIds)->get(['id', 'name', 'space_type'])->keyBy('id');
+            : EventModel::query('institution')->find($submission->targetInstitutionId);
+        $spaces = EventModel::query('space')->whereKey($spaceIds)->get(['id', 'name', 'space_type'])->keyBy('id');
         $spaceTypeIds = VenueSpaceType::query()
             ->whereIn('code', $spaces->pluck('space_type')->filter()->unique())
             ->pluck('id', 'code');

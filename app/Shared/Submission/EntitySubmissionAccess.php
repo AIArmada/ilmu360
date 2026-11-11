@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Submission;
+namespace App\Shared\Submission;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;

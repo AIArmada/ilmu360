@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Submission;
+namespace App\Features\Events\Actions\Submission;
 
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;

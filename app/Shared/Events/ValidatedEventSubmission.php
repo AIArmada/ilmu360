@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Data\Events;
+namespace App\Shared\Events;
 
 use App\Models\Event;
 use App\Models\Institution;

@@ -15,7 +15,7 @@ use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Spaces\SpaceLocationPresenter;
-use App\Support\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\EntitySubmissionAccess;
 use BackedEnum;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Concerns\InteractsWithForms;

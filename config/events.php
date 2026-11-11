@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use AIArmada\Events\Models\EventRegistrationQuestion;
-use App\Actions\Events\Submission\ClaimGuestSubmissionsAction;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
@@ -17,21 +16,6 @@ return [
         'registration' => Registration::class,
         'attendance' => EventCheckin::class,
         'registration_question' => EventRegistrationQuestion::class,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Legacy adapter bindings
-    |--------------------------------------------------------------------------
-    |
-    | Conventional root actions remain the interim implementations of Events
-    | boundaries until the owning slices move them into the feature. The Events
-    | feature provider owns the interface binding; this root configuration
-    | supplies the concrete class without importing it into the feature.
-    |
-    */
-    'bindings' => [
-        'guest_submission_claims' => ClaimGuestSubmissionsAction::class,
     ],
 
     /*

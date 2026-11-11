@@ -10,7 +10,7 @@ use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Submission\SubmitterContactRules;
+use App\Shared\Submission\SubmitterContactRules;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Livewire\Livewire;
 

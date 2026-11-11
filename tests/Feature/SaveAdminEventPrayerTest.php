@@ -15,7 +15,7 @@ use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use App\Features\Events\Support\AdminEventFormStateBuilder;
-use App\Support\Submission\SubmissionContextResolver;
+use App\Shared\Submission\SubmissionContextResolver;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

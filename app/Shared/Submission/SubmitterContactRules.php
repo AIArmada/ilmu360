@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Submission;
+namespace App\Shared\Submission;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
