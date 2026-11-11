@@ -5,13 +5,15 @@ use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
 use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Authz\MemberRoleCatalog;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -28,7 +30,7 @@ it('submits a pending institution membership claim', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
     $claimant = User::factory()->create();
 
-    $claim = app(SubmitMembershipApplicationAction::class)->handle(
+    $claim = submitMembershipApplicationClaim(
         $institution,
         $claimant,
         'I help manage this institution.',
@@ -47,7 +49,7 @@ it('rejects a claim when the applicant is already a member', function () {
 
     addTestMember($person, $claimant, MemberRole::Viewer);
 
-    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
+    expect(fn () => submitMembershipApplicationClaim(
         $person,
         $claimant,
         'I manage this speaker profile.',
@@ -73,7 +75,7 @@ it('rejects a second pending claim for the same subject and applicant', function
             ]);
     });
 
-    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
+    expect(fn () => submitMembershipApplicationClaim(
         $person,
         $claimant,
         'I manage this speaker profile.',
@@ -101,7 +103,7 @@ it('rejects a claim while a matching invitation is still pending', function () {
     ]);
     $invitation->issue('pending-invitation-token', now()->addDay())->save();
 
-    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
+    expect(fn () => submitMembershipApplicationClaim(
         $institution,
         $claimant,
         'I help manage this institution.',
@@ -187,3 +189,18 @@ it('allows claimants to cancel their own pending claims', function () {
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Cancelled)
         ->and($claim->fresh()->cancelled_at)->not->toBeNull();
 });
+
+function submitMembershipApplicationClaim(
+    Institution|Person $subject,
+    User $claimant,
+    string $justification,
+): MembershipApplication {
+    $detail = app(MembershipApplications::class)->submit(new SubmitMembershipApplicationInput(
+        subjectType: MembershipSubjectType::from($subject->getMorphClass()),
+        subjectId: (string) $subject->getKey(),
+        accountId: (string) $claimant->getKey(),
+        justification: $justification,
+    ));
+
+    return MembershipApplication::query()->findOrFail($detail->application->id);
+}

@@ -4,15 +4,16 @@ namespace App\Livewire\Pages\MembershipApplications;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Membership\DiscardMembershipApplicationAction;
-use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Directory\Enums\InstitutionType;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -182,10 +183,8 @@ class Create extends Component implements HasForms
             ]);
     }
 
-    public function submit(
-        SubmitMembershipApplicationAction $submitMembershipApplicationAction,
-        DiscardMembershipApplicationAction $discardMembershipApplicationAction,
-    ): void {
+    public function submit(MembershipApplications $membershipApplications): void
+    {
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
 
@@ -258,16 +257,20 @@ class Create extends Component implements HasForms
         $claim = null;
 
         try {
-            $claim = $submitMembershipApplicationAction->handle(
-                $this->subject,
-                $user,
-                $justification,
-                $meta,
-            );
+            $detail = $membershipApplications->submit(new SubmitMembershipApplicationInput(
+                subjectType: MembershipSubjectType::from($this->subjectType),
+                subjectId: (string) $this->subject->getKey(),
+                accountId: (string) $user->getKey(),
+                justification: $justification,
+                meta: $meta,
+            ));
+
+            $claim = OwnerContext::withOwner(null, fn (): MembershipApplication => MembershipApplication::query()
+                ->findOrFail($detail->application->id));
 
             $this->claimForm()->model($claim)->saveRelationships();
         } catch (RuntimeException $exception) {
-            $this->discardFailedClaim($claim, $discardMembershipApplicationAction);
+            $this->discardFailedClaim($claim, $membershipApplications);
 
             match ($exception->getMessage()) {
                 'membership_claim_already_member' => $this->addError('data.applied_role', __('You are already a member of this record.')),
@@ -278,7 +281,7 @@ class Create extends Component implements HasForms
 
             return;
         } catch (Throwable $exception) {
-            $this->discardFailedClaim($claim, $discardMembershipApplicationAction);
+            $this->discardFailedClaim($claim, $membershipApplications);
 
             throw $exception;
         }
@@ -306,14 +309,14 @@ class Create extends Component implements HasForms
 
     private function discardFailedClaim(
         ?MembershipApplication $claim,
-        DiscardMembershipApplicationAction $discardMembershipApplicationAction,
+        MembershipApplications $membershipApplications,
     ): void {
         if (! $claim instanceof MembershipApplication) {
             return;
         }
 
         try {
-            $discardMembershipApplicationAction->handle($claim);
+            $membershipApplications->discard((string) $claim->getKey());
         } catch (Throwable $cleanupException) {
             report($cleanupException);
         }

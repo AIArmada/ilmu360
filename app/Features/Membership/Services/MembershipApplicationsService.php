@@ -4,22 +4,35 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
+use App\Features\Membership\Actions\DiscardMembershipApplicationAction;
+use App\Features\Membership\Actions\SubmitMembershipApplicationAction;
 use App\Features\Membership\Api\MembershipApplicationDetail;
 use App\Features\Membership\Api\MembershipApplicationSummary;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Membership\MembershipApplicationReader;
 use App\Shared\Membership\MembershipSubjectType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Read adapter over membership applications using the existing applicant
- * reader for account visibility.
+ * Membership application boundary: account-scoped reads plus submit, discard
+ * and cancel orchestration.
+ *
+ * The package Apply/Cancel/Approve/Reject actions remain the canonical
+ * membership_applications lifecycle writers. This service owns only the
+ * app-side guards, media cleanup and owner-context handling around them.
  */
 final readonly class MembershipApplicationsService implements MembershipApplications
 {
     public function __construct(
         private MembershipApplicationReader $reader,
+        private SubmitMembershipApplicationAction $submitApplication,
+        private DiscardMembershipApplicationAction $discardApplication,
+        private CancelMembershipApplicationAction $cancelApplication,
     ) {}
 
     public function forApplicant(string $accountId): array
@@ -72,6 +85,45 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
         return $this->find($applicationId);
     }
 
+    public function submit(SubmitMembershipApplicationInput $input): MembershipApplicationDetail
+    {
+        return MembershipValueMapper::applicationDetail($this->submitApplication->handle(
+            $input->subjectType,
+            $input->subjectId,
+            $input->accountId,
+            $input->justification,
+            $input->meta,
+        ));
+    }
+
+    public function discard(string $applicationId): void
+    {
+        $this->discardApplication->handle($applicationId);
+    }
+
+    public function cancelForApplicant(string $accountId, string $applicationId): ?MembershipApplicationDetail
+    {
+        $applicationId = $this->reader->findApplicationIdForApplicant($accountId, $applicationId);
+
+        if ($applicationId === null) {
+            return null;
+        }
+
+        $application = OwnerContext::withOwner(null, fn (): ?Model => $this->query()->find($applicationId));
+
+        if (! $application instanceof Model) {
+            return null;
+        }
+
+        OwnerContext::withOwner(null, function () use ($application): void {
+            $this->cancelApplication->handle($application);
+        });
+
+        $cancelledApplication = OwnerContext::withOwner(null, fn (): Model => $this->query()->findOrFail($applicationId));
+
+        return MembershipValueMapper::applicationDetail($cancelledApplication);
+    }
+
     /**
      * @param  list<string>  $applicationIds
      * @return list<MembershipApplicationSummary>
@@ -91,9 +143,9 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<Model>
+     * @return Builder<Model>
      */
-    private function query(): \Illuminate\Database\Eloquent\Builder
+    private function query(): Builder
     {
         $modelClass = MorphModelResolver::resolve('membership_application');
 

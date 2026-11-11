@@ -6,6 +6,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitations;
+use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Features\Membership\FeatureServiceProvider as MembershipFeatureServiceProvider;
 use App\Features\Membership\Services\MembershipApplicationsService;
 use App\Features\Membership\Services\MembershipAuthorizationService;
@@ -240,4 +241,30 @@ it('reads applications and invitations through the feature query boundaries', fu
         ->and($invitations->pendingForSubject(MembershipSubjectType::Institution, (string) $institution->getKey()))->toHaveCount(1)
         ->and($invitations->pendingExistsForEmail(MembershipSubjectType::Institution, (string) $institution->getKey(), 'INVITEE@example.com'))->toBeTrue()
         ->and($invitations->find((string) $invitation->getKey())?->id)->toBe((string) $invitation->getKey());
+});
+
+it('submits, cancels and discards applications through the feature boundary', function (): void {
+    $applicant = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    $applications = app(MembershipApplications::class);
+    $applicantId = (string) $applicant->getKey();
+
+    $submitted = $applications->submit(new SubmitMembershipApplicationInput(
+        subjectType: MembershipSubjectType::Institution,
+        subjectId: (string) $institution->getKey(),
+        accountId: $applicantId,
+        justification: 'I help manage this institution.',
+    ));
+
+    expect($submitted->application->status)->toBe('pending')
+        ->and($applications->forApplicant($applicantId))->toHaveCount(1);
+
+    $cancelled = $applications->cancelForApplicant($applicantId, $submitted->application->id);
+
+    expect($cancelled?->application->status)->toBe('cancelled');
+
+    $applications->discard($submitted->application->id);
+
+    expect($applications->find($submitted->application->id))->toBeNull();
 });

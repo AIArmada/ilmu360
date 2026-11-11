@@ -3,11 +3,11 @@
 namespace App\Livewire\Pages\MembershipApplications;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
+use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\MembershipApplicationSummary;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
-use App\Shared\Membership\MembershipApplicationReader;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -35,7 +35,10 @@ class Index extends Component
     {
         /** @var User $user */
         $user = auth()->user();
-        $applicationIds = app(MembershipApplicationReader::class)->applicationIdsForApplicant((string) $user->getKey());
+        $applicationIds = array_map(
+            static fn (MembershipApplicationSummary $summary): string => $summary->id,
+            app(MembershipApplications::class)->forApplicant((string) $user->getKey()),
+        );
 
         return OwnerContext::withOwner(null, fn (): Collection => $applicationIds === []
             ? new Collection
@@ -46,24 +49,13 @@ class Index extends Component
                 ->get());
     }
 
-    public function cancel(string $claimId, CancelMembershipApplicationAction $cancelMembershipApplicationAction): void
+    public function cancel(string $claimId, MembershipApplications $membershipApplications): void
     {
         /** @var User $user */
         $user = auth()->user();
-        $applicationId = app(MembershipApplicationReader::class)->findApplicationIdForApplicant(
-            (string) $user->getKey(),
-            $claimId,
-        );
-
-        $claim = OwnerContext::withOwner(null, fn (): ?MembershipApplication => $applicationId === null
-            ? null
-            : MembershipApplication::query()->whereKey($applicationId)->first());
-        abort_unless($claim instanceof MembershipApplication, 404);
 
         try {
-            OwnerContext::withOwner(null, function () use ($cancelMembershipApplicationAction, $claim): void {
-                $cancelMembershipApplicationAction->handle($claim);
-            });
+            $detail = $membershipApplications->cancelForApplicant((string) $user->getKey(), $claimId);
         } catch (RuntimeException $exception) {
             if ($exception->getMessage() !== 'Only pending membership applications can be cancelled.') {
                 throw $exception;
@@ -73,6 +65,8 @@ class Index extends Component
 
             return;
         }
+
+        abort_if($detail === null, 404);
 
         $this->successToast(__('Membership claim cancelled.'));
     }

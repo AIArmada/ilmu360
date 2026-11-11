@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
-use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
-use App\Models\MembershipApplication;
-use App\Shared\Membership\MembershipApplicationReader;
+use App\Features\Membership\Api\MembershipApplications;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -28,7 +26,7 @@ class MemberCancelMembershipApplicationTool extends AbstractMemberTool
     protected string $description = 'Use this when the authenticated Ahli/member needs to cancel a pending membership application they own. Do not use for cancelling applications owned by other members.';
 
     public function __construct(
-        private readonly CancelMembershipApplicationAction $cancelMembershipApplicationAction,
+        private readonly MembershipApplications $membershipApplications,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
@@ -40,27 +38,18 @@ class MemberCancelMembershipApplicationTool extends AbstractMemberTool
                 'application_id' => ['required', 'string'],
             ]);
 
-            $applicationId = app(MembershipApplicationReader::class)->findApplicationIdForApplicant(
+            $application = $this->membershipApplications->cancelForApplicant(
                 (string) $actor->getKey(),
                 (string) $validated['application_id'],
             );
 
-            abort_unless($applicationId !== null, 404);
-
-            $application = MembershipApplication::query()
-                ->whereKey($applicationId)
-                ->first();
-
-            abort_unless($application instanceof MembershipApplication, 404);
-
-            $this->cancelMembershipApplicationAction->handle($application);
-            $application->refresh();
+            abort_unless($application !== null, 404);
 
             return [
                 'data' => [
                     'application' => [
-                        'id' => $application->getKey(),
-                        'status' => $application->status->value,
+                        'id' => $application->application->id,
+                        'status' => $application->application->status,
                     ],
                 ],
             ];

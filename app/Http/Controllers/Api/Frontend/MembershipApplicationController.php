@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Actions\Membership\DiscardMembershipApplicationAction;
-use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\MembershipApplicationSummary;
+use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Membership\MembershipApplicationReader;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Membership\MembershipApplicationPresenter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -32,7 +32,10 @@ class MembershipApplicationController extends FrontendController
     public function index(Request $request): JsonResponse
     {
         $user = $this->requireUser($request);
-        $applicationIds = app(MembershipApplicationReader::class)->applicationIdsForApplicant((string) $user->getKey());
+        $applicationIds = array_map(
+            static fn (MembershipApplicationSummary $summary): string => $summary->id,
+            app(MembershipApplications::class)->forApplicant((string) $user->getKey()),
+        );
 
         $applications = $applicationIds === []
             ? MembershipApplication::query()->whereRaw('1 = 0')->with(['reviewer', 'media'])->get()
@@ -58,8 +61,7 @@ class MembershipApplicationController extends FrontendController
         string $subjectType,
         string $subject,
         Request $request,
-        SubmitMembershipApplicationAction $submitMembershipApplicationAction,
-        DiscardMembershipApplicationAction $discardMembershipApplicationAction,
+        MembershipApplications $membershipApplications,
         MediaCollectionSync $mediaCollectionSync,
     ): JsonResponse {
         $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
@@ -83,11 +85,15 @@ class MembershipApplicationController extends FrontendController
         $application = null;
 
         try {
-            $application = $submitMembershipApplicationAction->handle(
-                $claimSubject,
-                $user,
-                (string) $validated['justification'],
-            );
+            $detail = $membershipApplications->submit(new SubmitMembershipApplicationInput(
+                subjectType: MembershipSubjectType::from($resolvedSubjectType->value),
+                subjectId: (string) $claimSubject->getKey(),
+                accountId: (string) $user->getKey(),
+                justification: (string) $validated['justification'],
+            ));
+
+            $application = OwnerContext::withOwner(null, fn (): MembershipApplication => MembershipApplication::query()
+                ->findOrFail($detail->application->id));
 
             $mediaCollectionSync->syncMultiple(
                 $application,
@@ -98,7 +104,7 @@ class MembershipApplicationController extends FrontendController
         } catch (Throwable $exception) {
             if ($application instanceof MembershipApplication) {
                 try {
-                    $discardMembershipApplicationAction->handle($application);
+                    $membershipApplications->discard((string) $application->getKey());
                 } catch (Throwable $cleanupException) {
                     report($cleanupException);
                 }
@@ -132,37 +138,31 @@ class MembershipApplicationController extends FrontendController
         title: 'Cancel a membership application',
         description: 'Cancels one pending membership application owned by the current authenticated user.',
     )]
-    public function cancel(string $applicationId, Request $request, CancelMembershipApplicationAction $cancelMembershipApplicationAction): JsonResponse
+    public function cancel(string $applicationId, Request $request, MembershipApplications $membershipApplications): JsonResponse
     {
         $user = $this->requireUser($request);
-        $applicationId = app(MembershipApplicationReader::class)->findApplicationIdForApplicant(
-            (string) $user->getKey(),
-            $applicationId,
-        );
-
-        abort_unless($applicationId !== null, 404);
-
-        $application = MembershipApplication::query()
-            ->whereKey($applicationId)
-            ->with(['reviewer', 'media'])
-            ->first();
-
-        abort_unless($application instanceof MembershipApplication, 404);
 
         try {
-            $cancelMembershipApplicationAction->handle($application);
-
-            $application = OwnerContext::withOwner(null, fn (): MembershipApplication => MembershipApplication::query()
-                ->findOrFail($application->getKey()));
+            $detail = $membershipApplications->cancelForApplicant(
+                (string) $user->getKey(),
+                $applicationId,
+            );
         } catch (RuntimeException) {
             throw ValidationException::withMessages([
                 'application' => __('Only pending applications can be cancelled.'),
             ]);
         }
 
+        abort_unless($detail !== null, 404);
+
+        $application = OwnerContext::withOwner(null, fn (): MembershipApplication => MembershipApplication::query()
+            ->whereKey($detail->application->id)
+            ->with(['reviewer', 'media'])
+            ->firstOrFail());
+
         return response()->json([
             'data' => [
-                'application' => $this->applicationData($application->load(['reviewer', 'media']), $user),
+                'application' => $this->applicationData($application, $user),
             ],
             'meta' => [
                 'request_id' => $this->requestId($request),

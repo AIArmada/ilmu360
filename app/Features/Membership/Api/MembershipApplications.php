@@ -35,4 +35,24 @@ interface MembershipApplications
     public function find(string $applicationId): ?MembershipApplicationDetail;
 
     public function findForApplicant(string $accountId, string $applicationId): ?MembershipApplicationDetail;
+
+    /**
+     * Submit a pending application for one subject on behalf of an account.
+     *
+     * Delegates the application lifecycle to the canonical package action and
+     * keeps app-side duplicate and invitation guards in the feature.
+     */
+    public function submit(SubmitMembershipApplicationInput $input): MembershipApplicationDetail;
+
+    /**
+     * Remove an application that could not be completed with its evidence.
+     */
+    public function discard(string $applicationId): void;
+
+    /**
+     * Cancel one pending application owned by the account.
+     *
+     * Returns null when the application does not belong to the account.
+     */
+    public function cancelForApplicant(string $accountId, string $applicationId): ?MembershipApplicationDetail;
 }

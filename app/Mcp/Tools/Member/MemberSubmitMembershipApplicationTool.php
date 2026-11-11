@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
-use App\Actions\Membership\DiscardMembershipApplicationAction;
-use App\Actions\Membership\SubmitMembershipApplicationAction;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
+use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Api\Member\MemberResourceService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use App\Support\Mcp\McpFilePayloadNormalizer;
@@ -36,8 +38,7 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
     protected string $description = 'Use this when the authenticated Ahli/member needs to submit a new membership application with justification and supporting evidence uploads.';
 
     public function __construct(
-        private readonly SubmitMembershipApplicationAction $submitMembershipApplicationAction,
-        private readonly DiscardMembershipApplicationAction $discardMembershipApplicationAction,
+        private readonly MembershipApplications $membershipApplications,
         private readonly McpFilePayloadNormalizer $filePayloadNormalizer,
         private readonly MediaCollectionSync $mediaSyncService,
     ) {}
@@ -67,11 +68,15 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
             $application = null;
 
             try {
-                $application = $this->submitMembershipApplicationAction->handle(
-                    $subject,
-                    $actor,
-                    (string) $validated['justification'],
-                );
+                $detail = $this->membershipApplications->submit(new SubmitMembershipApplicationInput(
+                    subjectType: MembershipSubjectType::from($resolvedSubjectType->value),
+                    subjectId: (string) $subject->getKey(),
+                    accountId: (string) $actor->getKey(),
+                    justification: (string) $validated['justification'],
+                ));
+
+                $application = OwnerContext::withOwner(null, fn (): MembershipApplication => MembershipApplication::query()
+                    ->findOrFail($detail->application->id));
 
                 $this->mediaSyncService->syncMultiple(
                     $application,
@@ -85,15 +90,15 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
                 return [
                     'data' => [
                         'application' => [
-                            'id' => $application->getKey(),
-                            'status' => $application->status->value,
+                            'id' => $detail->application->id,
+                            'status' => $detail->application->status,
                         ],
                     ],
                 ];
             } catch (Throwable $exception) {
                 if ($application instanceof MembershipApplication) {
                     try {
-                        $this->discardMembershipApplicationAction->handle($application);
+                        $this->membershipApplications->discard((string) $application->getKey());
                     } catch (Throwable $cleanupException) {
                         report($cleanupException);
                     }
