@@ -8,9 +8,11 @@ use AIArmada\Events\Models\EventRegistrationItem;
 use App\Features\Registration\Actions\ConfirmOfflineAdmissionAction;
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
+use App\Features\Registration\Actions\RecordFreeCheckoutMetadataAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
 use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
 use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
+use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionFacts;
 use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\AdmissionRegistration;
@@ -143,6 +145,9 @@ it('discovers the registration feature manifest and provider exactly once', func
             'table:event_registration_answers',
             'table:event_registration_items',
         ])
+        ->and($catalog['writes'][RecordFreeCheckoutMetadataAction::class])->toEqualCanonicalizing([
+            'table:event_registrations',
+        ])
         ->and($catalog['writes'])->not->toHaveKey(ConfirmOfflineAdmissionAction::class)
         ->and($catalog['writes'][RecordSelfCheckInAction::class])->toEqualCanonicalizing([
             'table:event_attendances',
@@ -163,6 +168,10 @@ it('discovers the registration feature manifest and provider exactly once', func
 it('binds the admission registration boundary to the free admission action', function (): void {
     expect(app(AdmissionRegistration::class))->toBeInstanceOf(RegisterFreeAdmissionAction::class)
         ->and(app(ParticipationAttribution::class))->toBeInstanceOf(ShareTrackingParticipationAttribution::class);
+});
+
+it('binds the free checkout metadata boundary to its feature action', function (): void {
+    expect(app(AdmissionCheckout::class))->toBeInstanceOf(RecordFreeCheckoutMetadataAction::class);
 });
 
 it('binds the admission issuance boundary to the offline admission action', function (): void {
@@ -321,6 +330,44 @@ it('registers free admission through the scalar boundary', function (): void {
         ->and($registration->participants()->count())->toBe(1)
         ->and(DB::table('event_registration_answers')->where('event_registration_id', $registrationId)->count())->toBe(1)
         ->and($receipt->isAttributed())->toBeFalse();
+});
+
+it('records free checkout metadata through the scalar checkout boundary', function (): void {
+    $event = Event::factory()->create();
+    $registration = Registration::factory()->create([
+        'event_id' => $event->id,
+        'metadata' => [
+            'unrelated' => ['keep' => true],
+            'event_checkout' => [
+                'identity_document' => ['type' => 'ic'],
+                'agreement' => ['locale' => 'ms'],
+            ],
+        ],
+    ]);
+    $second = Registration::factory()->create(['event_id' => $event->id]);
+
+    app(AdmissionCheckout::class)->recordCheckoutMetadata(
+        registrationIds: [(string) $registration->getKey(), (string) $second->getKey()],
+        batchId: 'batch-seam',
+        agreement: [
+            'version' => 'event-participation-v1',
+            'accepted_by_id' => 'user-seam',
+        ],
+    );
+
+    foreach ([$registration, $second] as $row) {
+        $row->refresh();
+
+        expect(data_get($row->metadata, 'event_checkout.batch_id'))->toBe('batch-seam')
+            ->and(data_get($row->metadata, 'event_checkout.agreement.version'))->toBe('event-participation-v1')
+            ->and(data_get($row->metadata, 'event_checkout.agreement.accepted_by_id'))->toBe('user-seam');
+    }
+
+    $metadata = $registration->fresh()->metadata;
+
+    expect(data_get($metadata, 'unrelated.keep'))->toBeTrue()
+        ->and(data_get($metadata, 'event_checkout.identity_document.type'))->toBe('ic')
+        ->and(data_get($metadata, 'event_checkout.agreement.locale'))->toBe('ms');
 });
 
 it('binds admission facts to the registration feature query', function (): void {

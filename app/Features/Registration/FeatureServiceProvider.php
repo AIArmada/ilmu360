@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Registration;
 
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
+use App\Features\Registration\Actions\RecordFreeCheckoutMetadataAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
 use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
+use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionFacts;
 use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\AdmissionRegistration;
@@ -49,12 +51,15 @@ use App\Platform\FeatureModule;
  * registration externally). Orders, payments, passes and seating stay
  * package-canonical and unclaimed.
  *
+ * R4a1 claims free-checkout registration metadata.
+ * RecordFreeCheckoutMetadataAction is the named writer for the `event_checkout`
+ * batch/agreement metadata on event_registrations. The root checkout transport
+ * keeps batch-id generation, the direct-free redirect, idempotency and the
+ * paid checkout pipeline.
+ *
  * The following root/package writers remain and are recorded for the later
  * migration slices:
  *
- * - root Livewire\Pages\Events\Checkout writes `event_registrations.metadata`
- *   (the `event_checkout` batch/agreement data) after the free-admission
- *   registration action returns.
  * - App\Support\Events\EventsAccountLifecycleContributor rewrites
  *   event_registrations registrant links, event_attendances attendee links and
  *   event check-in verifier links during account deletion/restoration, and
@@ -76,7 +81,7 @@ use App\Platform\FeatureModule;
  *
  * The dashboard registration-questions workspace is a Registration entry
  * point that delegates question writes to the package actions; admission
- * setup remains Events-owned. Pending slices: R4 paid checkout orchestration
+ * setup remains Events-owned. Pending slices: R4b paid checkout orchestration
  * and refunds, R5 reads/exports/account lifecycle, R6 cleanup and delete-path
  * consolidation. Registration exports and the vendor Filament attendance
  * console also remain deferred to those slices.
@@ -88,6 +93,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AdmissionFacts::class, DatabaseAdmissionFacts::class);
         $this->app->bind(AdmissionIssuance::class, IssueOfflineAdmissionAction::class);
         $this->app->bind(AdmissionRegistration::class, RegisterFreeAdmissionAction::class);
+        $this->app->bind(AdmissionCheckout::class, RecordFreeCheckoutMetadataAction::class);
         $this->app->bind(AttendanceCommands::class, RecordSelfCheckInAction::class);
         $this->app->bind(AttendanceState::class, ResolveAttendanceState::class);
     }

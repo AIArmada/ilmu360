@@ -4,7 +4,8 @@
   "owns": {
     "table:event_registrations": [
       "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",
-      "App\\Features\\Registration\\Actions\\IssueOfflineAdmissionAction"
+      "App\\Features\\Registration\\Actions\\IssueOfflineAdmissionAction",
+      "App\\Features\\Registration\\Actions\\RecordFreeCheckoutMetadataAction"
     ],
     "table:event_registration_participants": [
       "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",

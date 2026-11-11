@@ -13,9 +13,9 @@ use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Events\Commerce\PrepareEventCheckoutAction;
+use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Models\Event;
-use App\Models\Registration;
 use App\Models\User;
 use App\Support\Commerce\EventCommerceModes;
 use App\Support\Events\EventTicketingPolicy;
@@ -171,6 +171,7 @@ final class Checkout extends Component
     public function submit(
         PrepareEventCheckoutAction $prepareCheckout,
         AdmissionRegistration $admissions,
+        AdmissionCheckout $checkoutMetadata,
         CheckoutServiceInterface $checkoutService,
         EventTicketingPolicy $ticketingPolicy,
     ): void {
@@ -197,6 +198,7 @@ final class Checkout extends Component
 
             Cache::lock('event-checkout:'.$this->checkoutAttemptKey, 120)->block(10, function () use (
                 $agreement,
+                $checkoutMetadata,
                 $checkoutService,
                 $event,
                 $participants,
@@ -219,18 +221,14 @@ final class Checkout extends Component
 
                     $batchId = (string) str()->uuid();
 
-                    foreach ($result['registrations'] as $registrationResult) {
-                        $registration = Registration::query()->findOrFail($registrationResult['registration_id']);
-                        $metadata = is_array($registration->metadata) ? $registration->metadata : [];
-                        $registration->forceFill([
-                            'metadata' => array_replace_recursive($metadata, [
-                                'event_checkout' => [
-                                    'batch_id' => $batchId,
-                                    'agreement' => $agreement,
-                                ],
-                            ]),
-                        ])->save();
-                    }
+                    $checkoutMetadata->recordCheckoutMetadata(
+                        registrationIds: array_map(
+                            static fn (array $registrationResult): string => $registrationResult['registration_id'],
+                            $result['registrations'],
+                        ),
+                        batchId: $batchId,
+                        agreement: $agreement,
+                    );
 
                     $firstRegistrationId = $result['primary_registration_id'];
 

@@ -80,9 +80,62 @@ it('submits a free registration with participant agreement under the purchaser a
 
     expect($registration)->not->toBeNull()
         ->and($registration?->registrant_id)->toBe((string) $user->getKey())
+        ->and(data_get($registration?->metadata, 'event_checkout.batch_id'))->toBeString()->not->toBeEmpty()
+        ->and(data_get($registration?->metadata, 'event_checkout.agreement.version'))->toBe('event-participation-v1')
+        ->and(data_get($registration?->metadata, 'event_checkout.agreement.accepted_by_id'))->toBe((string) $user->getKey())
         ->and(data_get($registration?->participants()->first()?->metadata, 'event_checkout.agreement.version'))
         ->toBe('event-participation-v1')
         ->and($registration?->participants()->first()?->is_purchaser)->toBeTrue();
+});
+
+it('writes free checkout batch and agreement metadata to every registration', function (): void {
+    $event = checkoutEvent();
+    $user = User::factory()->create(['name' => 'Batch Buyer']);
+
+    Livewire::actingAs($user)
+        ->test(Checkout::class, ['event' => $event])
+        ->set('quantity', 2)
+        ->set('participants', [
+            [
+                'name' => 'Batch Participant One',
+                'email' => 'batch-one@example.com',
+                'phone' => '',
+                'is_purchaser' => true,
+            ],
+            [
+                'name' => 'Batch Participant Two',
+                'email' => 'batch-two@example.com',
+                'phone' => '',
+                'is_purchaser' => false,
+            ],
+        ])
+        ->set('agreementAccepted', true)
+        ->call('submit')
+        ->assertRedirect();
+
+    $registrations = Registration::query()
+        ->where('event_id', $event->getKey())
+        ->orderBy('created_at')
+        ->orderBy('id')
+        ->get();
+
+    expect($registrations)->toHaveCount(2);
+
+    $batchIds = $registrations
+        ->map(fn (Registration $registration): mixed => data_get($registration->metadata, 'event_checkout.batch_id'))
+        ->all();
+
+    expect($batchIds[0])->toBeString()->not->toBeEmpty()
+        ->and(array_unique($batchIds))->toHaveCount(1);
+
+    foreach ($registrations as $registration) {
+        expect(data_get($registration->metadata, 'event_checkout.batch_id'))->toBe($batchIds[0])
+            ->and(data_get($registration->metadata, 'event_checkout.agreement.version'))->toBe('event-participation-v1')
+            ->and(data_get($registration->metadata, 'event_checkout.agreement.accepted_at'))->toBeString()
+            ->and(data_get($registration->metadata, 'event_checkout.agreement.accepted_by_type'))->toBe($user->getMorphClass())
+            ->and(data_get($registration->metadata, 'event_checkout.agreement.accepted_by_id'))->toBe((string) $user->getKey())
+            ->and($registration->participants()->count())->toBe(1);
+    }
 });
 
 it('revalidates ticket selection when an event changes after checkout opens', function (): void {
