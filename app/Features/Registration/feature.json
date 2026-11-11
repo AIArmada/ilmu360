@@ -3,16 +3,20 @@
   "name": "Registration",
   "owns": {
     "table:event_registrations": [
-      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",
+      "App\\Features\\Registration\\Actions\\IssueOfflineAdmissionAction"
     ],
     "table:event_registration_participants": [
-      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",
+      "App\\Features\\Registration\\Actions\\IssueOfflineAdmissionAction"
     ],
     "table:event_registration_answers": [
-      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",
+      "App\\Features\\Registration\\Actions\\IssueOfflineAdmissionAction"
     ],
     "table:event_registration_items": [
-      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction"
+      "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",
+      "App\\Features\\Registration\\Actions\\IssueOfflineAdmissionAction"
     ],
     "table:event_attendances": [
       "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction",

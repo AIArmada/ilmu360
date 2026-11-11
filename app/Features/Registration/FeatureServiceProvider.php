@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Registration;
 
+use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
 use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
 use App\Features\Registration\Api\AdmissionFacts;
+use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
@@ -38,6 +40,15 @@ use App\Platform\FeatureModule;
  * event_attendances and event_attendance_logs. The staff participants
  * workspace stays a root transport adapter over the AttendanceCommands API.
  *
+ * R3 claims organizer-issued offline and complimentary admissions.
+ * IssueOfflineAdmissionAction owns the aggregate issuance entry point and is
+ * the named app writer for event_registrations, participants, answers and
+ * items; it delegates the actual rows to the orders/events packages.
+ * ConfirmOfflineAdmissionAction owns pending-payment confirmation and writes
+ * no registration rows itself (package fulfillment listeners may sync the
+ * registration externally). Orders, payments, passes and seating stay
+ * package-canonical and unclaimed.
+ *
  * The following writers remain root/package-owned and are recorded for the
  * later migration slices:
  *
@@ -50,14 +61,15 @@ use App\Platform\FeatureModule;
  * - the dashboard registration-questions workspace is a Registration entry
  *   point that delegates question writes to the package actions; admission
  *   setup remains Events-owned. Paid checkout orchestration, registration
- *   exports and the vendor Filament attendance console stay in their root or
- *   vendor homes until R3-R5.
+ *   exports and the vendor Filament attendance console remain deferred to
+ *   R4-R6.
  */
 class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
         $this->app->bind(AdmissionFacts::class, DatabaseAdmissionFacts::class);
+        $this->app->bind(AdmissionIssuance::class, IssueOfflineAdmissionAction::class);
         $this->app->bind(AdmissionRegistration::class, RegisterFreeAdmissionAction::class);
         $this->app->bind(AttendanceCommands::class, RecordSelfCheckInAction::class);
         $this->app->bind(AttendanceState::class, ResolveAttendanceState::class);

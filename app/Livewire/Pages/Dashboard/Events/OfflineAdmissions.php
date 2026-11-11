@@ -12,16 +12,14 @@ use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Orders\Models\Order;
-use AIArmada\Ticketing\Models\Pass;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\Registration\ConfirmOfflineEventAdmissionAction;
-use App\Actions\Events\Registration\CreateOfflineEventAdmissionAction;
-use App\Enums\OfflineAdmissionPaymentMethod;
+use App\Features\Registration\Api\AdmissionIssuance;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Events\Enums\OfflineAdmissionPaymentMethod;
 use App\Support\Events\ParticipantIdentity;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
@@ -120,7 +118,7 @@ final class OfflineAdmissions extends Component
         }
     }
 
-    public function submit(CreateOfflineEventAdmissionAction $createAdmission): void
+    public function submit(AdmissionIssuance $admissions): void
     {
         if ($this->processing) {
             return;
@@ -144,22 +142,18 @@ final class OfflineAdmissions extends Component
                 throw new \InvalidArgumentException(__('Choose an active ticket first.'));
             }
 
-            $result = OwnerContext::withOwner(null, fn (): array => $createAdmission->handle(
-                event: $event,
-                ticketType: $ticket,
+            $result = OwnerContext::withOwner(null, fn (): array => $admissions->issue(
+                eventId: (string) $event->getKey(),
+                ticketTypeId: (string) $ticket->getKey(),
                 participant: $this->normalizedParticipant($actor),
-                actor: $actor,
+                actorId: (string) $actor->getKey(),
                 paymentState: $this->paymentState,
                 paymentMethod: $this->paymentMethod,
                 paymentReference: $this->nullableText($this->paymentReference),
                 notes: $this->nullableText($this->notes),
             ));
 
-            $this->lastAdmission = $this->admissionSummary(
-                $result['order'],
-                $result['registration'],
-                $result['passes'],
-            );
+            $this->lastAdmission = $this->admissionSummary($result);
             $wasPending = $this->paymentState === 'pending';
             $this->resetAdmissionForm();
             $this->successToast($wasPending
@@ -199,7 +193,7 @@ final class OfflineAdmissions extends Component
     }
 
     public function confirmPendingAdmission(
-        ConfirmOfflineEventAdmissionAction $confirmAdmission,
+        AdmissionIssuance $admissions,
     ): void {
         if ($this->processing || $this->confirmingOrderId === null) {
             return;
@@ -218,20 +212,16 @@ final class OfflineAdmissions extends Component
             $this->processing = true;
 
             $order = OwnerContext::withOwner(null, fn (): Order => Order::query()->findOrFail($this->confirmingOrderId));
-            $result = OwnerContext::withOwner(null, fn (): array => $confirmAdmission->handle(
-                event: $event,
-                order: $order,
-                actor: $actor,
+            $result = OwnerContext::withOwner(null, fn (): array => $admissions->confirm(
+                eventId: (string) $event->getKey(),
+                orderId: (string) $order->getKey(),
+                actorId: (string) $actor->getKey(),
                 paymentMethod: $this->confirmationPaymentMethod,
                 paymentReference: $this->nullableText($this->confirmationPaymentReference),
                 notes: $this->nullableText($this->confirmationNotes),
             ));
 
-            $this->lastAdmission = $this->admissionSummary(
-                $result['order'],
-                $result['registration'],
-                $result['passes'],
-            );
+            $this->lastAdmission = $this->admissionSummary($result);
             $this->cancelConfirmation();
             $this->successToast(__('Payment confirmed and pass issued.'));
         } catch (ValidationException $exception) {
@@ -686,11 +676,22 @@ final class OfflineAdmissions extends Component
     }
 
     /**
-     * @param  Collection<int, Pass>  $passes
+     * @param  array{
+     *     order_id: string,
+     *     registration_id: string,
+     *     pass_ids: list<string>,
+     *     amount: int,
+     *     currency: string
+     * }  $receipt
      * @return array<string, mixed>
      */
-    private function admissionSummary(Order $order, Registration $registration, Collection $passes): array
+    private function admissionSummary(array $receipt): array
     {
+        [$order, $registration] = OwnerContext::withOwner(null, fn (): array => [
+            Order::query()->findOrFail($receipt['order_id']),
+            Registration::query()->findOrFail($receipt['registration_id']),
+        ]);
+
         $participant = $registration->participants()->orderByDesc('is_primary')->orderBy('created_at')->first();
 
         return [
@@ -700,7 +701,7 @@ final class OfflineAdmissions extends Component
             'name' => $participant?->name ?: __('Unnamed participant'),
             'status' => $registration->statusValue(),
             'payment_status' => (string) $registration->payment_status,
-            'pass_count' => $passes->count(),
+            'pass_count' => count($receipt['pass_ids']),
         ];
     }
 

@@ -2,30 +2,38 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Registration;
+namespace App\Features\Registration\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Actions\IssueEventRegistrationPassesAction;
+use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\States\PendingPayment;
 use AIArmada\Ticketing\Models\Pass;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Enums\OfflineAdmissionPaymentMethod;
-use App\Models\Event;
-use App\Models\Registration;
-use App\Models\User;
+use App\Platform\Models\MorphModelResolver;
+use App\Shared\Events\Enums\OfflineAdmissionPaymentMethod;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ConfirmOfflineEventAdmissionAction
+/**
+ * Owns confirmation of provisional organizer-issued admissions.
+ *
+ * The vendor orders and events actions remain the canonical external writers
+ * for payments, registrations, and passes; this action is the app-side
+ * aggregate entry point that resolves caller identities through morph
+ * aliases, locks and revalidates the pending order, records the confirmed
+ * offline payment metadata, and issues the pass after the transaction.
+ */
+final class ConfirmOfflineAdmissionAction
 {
-    use AsAction;
-
     public function __construct(
         private readonly OrderServiceInterface $orders,
         private readonly IssueEventRegistrationPassesAction $issuePasses,
@@ -34,16 +42,32 @@ final class ConfirmOfflineEventAdmissionAction
     /**
      * Confirm a provisional organizer-issued admission and issue its pass.
      *
-     * @return array{order: Order, registration: Registration, passes: Collection<int, Pass>}
+     * @return array{
+     *     order_id: string,
+     *     registration_id: string,
+     *     pass_ids: list<string>,
+     *     amount: int,
+     *     currency: string
+     * }
      */
-    public function handle(
-        Event $event,
-        Order $order,
-        User $actor,
+    public function confirm(
+        string $eventId,
+        string $orderId,
+        string $actorId,
         string $paymentMethod = 'cash',
         ?string $paymentReference = null,
         ?string $notes = null,
     ): array {
+        $eventClass = MorphModelResolver::resolve('event');
+        $userClass = MorphModelResolver::resolve('user');
+        $registrationClass = MorphModelResolver::resolve('registration');
+
+        /** @var PackageEvent $event */
+        $event = $eventClass::query()->findOrFail($eventId);
+
+        /** @var Model&Authenticatable $actor */
+        $actor = $userClass::query()->findOrFail($actorId);
+
         Gate::forUser($actor)->authorize('manageAdmissions', $event);
 
         $method = OfflineAdmissionPaymentMethod::tryFrom($paymentMethod);
@@ -57,13 +81,14 @@ final class ConfirmOfflineEventAdmissionAction
             $event,
             $method,
             $notes,
-            $order,
+            $orderId,
             $paymentReference,
+            $registrationClass,
         ): array {
             $order = Order::query()
                 ->with(['items.purchasable', 'payments'])
                 ->lockForUpdate()
-                ->findOrFail($order->getKey());
+                ->findOrFail($orderId);
 
             $orderMetadata = is_array($order->metadata) ? $order->metadata : [];
 
@@ -72,7 +97,7 @@ final class ConfirmOfflineEventAdmissionAction
             }
 
             if ($order->isPaid()) {
-                return $this->existingResult($order);
+                return $this->existingResult($order, $registrationClass);
             }
 
             if (! $order->status instanceof PendingPayment) {
@@ -96,7 +121,7 @@ final class ConfirmOfflineEventAdmissionAction
                 throw new InvalidArgumentException('The ticket is no longer active and cannot be confirmed.');
             }
 
-            $registrations = Registration::query()
+            $registrations = $registrationClass::query()
                 ->where('external_order_id', $order->getKey())
                 ->where('external_order_type', Order::class)
                 ->lockForUpdate()
@@ -104,7 +129,7 @@ final class ConfirmOfflineEventAdmissionAction
 
             $registration = $registrations->first();
 
-            if (! $registration instanceof Registration) {
+            if (! $registration instanceof $registrationClass) {
                 throw new InvalidArgumentException('The pending order has no event registration.');
             }
 
@@ -141,11 +166,11 @@ final class ConfirmOfflineEventAdmissionAction
             ];
         }));
 
-        /** @var array{order: Order, registration: Registration, passes: Collection<int, Pass>} $result */
+        /** @var array{order: Order, registration: EventRegistration, passes: Collection<int, Pass>} $result */
         if ($result['order']->isPaid()) {
             $registration = $result['registration']->fresh(['participants', 'items', 'passes']);
 
-            if (! $registration instanceof Registration) {
+            if (! $registration instanceof $registrationClass) {
                 throw new InvalidArgumentException('The offline admission registration could not be refreshed.');
             }
 
@@ -153,21 +178,31 @@ final class ConfirmOfflineEventAdmissionAction
             $result['registration'] = $registration->fresh(['participants', 'items', 'passes']);
         }
 
-        return $result;
+        return [
+            'order_id' => (string) $result['order']->getKey(),
+            'registration_id' => (string) $result['registration']->getKey(),
+            'pass_ids' => $result['passes']
+                ->map(static fn (Pass $pass): string => (string) $pass->getKey())
+                ->values()
+                ->all(),
+            'amount' => (int) $result['order']->grand_total,
+            'currency' => (string) $result['order']->currency,
+        ];
     }
 
     /**
-     * @return array{order: Order, registration: Registration, passes: Collection<int, Pass>}
+     * @param  class-string<Model>  $registrationClass
+     * @return array{order: Order, registration: EventRegistration, passes: Collection<int, Pass>}
      */
-    private function existingResult(Order $order): array
+    private function existingResult(Order $order, string $registrationClass): array
     {
-        $registration = Registration::query()
+        $registration = $registrationClass::query()
             ->where('external_order_id', $order->getKey())
             ->where('external_order_type', Order::class)
             ->with(['participants', 'items', 'passes'])
             ->first();
 
-        if (! $registration instanceof Registration) {
+        if (! $registration instanceof $registrationClass) {
             throw new InvalidArgumentException('The paid order has no event registration.');
         }
 

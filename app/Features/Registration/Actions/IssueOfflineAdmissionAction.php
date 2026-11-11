@@ -2,33 +2,42 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Registration;
+namespace App\Features\Registration\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Actions\CreateRegistrationsFromOrderAction;
 use AIArmada\Events\Actions\IssueEventRegistrationPassesAction;
+use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Ticketing\Models\Pass;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Enums\OfflineAdmissionPaymentMethod;
-use App\Enums\ShareOutcomeType;
-use App\Models\Event;
-use App\Models\Registration;
-use App\Models\User;
-use App\Services\ShareTrackingService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
-use Carbon\Carbon;
+use App\Features\Registration\Api\AdmissionIssuance;
+use App\Platform\Models\MorphModelResolver;
+use App\Shared\Events\Enums\OfflineAdmissionPaymentMethod;
+use App\Shared\ShareTracking\ParticipationAttribution;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class CreateOfflineEventAdmissionAction
+/**
+ * Owns organizer-issued offline and complimentary admission issuance.
+ *
+ * The vendor orders and events actions remain the canonical external writers
+ * for orders, payments, registrations, participants, items, and passes; this
+ * action is the app-side aggregate entry point that resolves caller
+ * identities through morph aliases, keeps the order/registration transaction,
+ * freezes share provenance only for the registration created by this call,
+ * and confirms payment inside the same transaction when required.
+ */
+final class IssueOfflineAdmissionAction implements AdmissionIssuance
 {
     use AsAction;
 
@@ -36,7 +45,8 @@ final class CreateOfflineEventAdmissionAction
         private readonly OrderServiceInterface $orders,
         private readonly CreateRegistrationsFromOrderAction $registrations,
         private readonly IssueEventRegistrationPassesAction $issuePasses,
-        private readonly ShareTrackingService $shareTracking,
+        private readonly ParticipationAttribution $attribution,
+        private readonly ConfirmOfflineAdmissionAction $confirmAdmission,
     ) {}
 
     /**
@@ -44,18 +54,34 @@ final class CreateOfflineEventAdmissionAction
      * and event-registration pipeline.
      *
      * @param  array<string, mixed>  $participant
-     * @return array{order: Order, registration: Registration, passes: Collection<int, Pass>}
+     * @return array{
+     *     order_id: string,
+     *     registration_id: string,
+     *     pass_ids: list<string>,
+     *     amount: int,
+     *     currency: string
+     * }
      */
-    public function handle(
-        Event $event,
-        TicketType $ticketType,
+    public function issue(
+        string $eventId,
+        string $ticketTypeId,
         array $participant,
-        User $actor,
+        string $actorId,
         string $paymentState = 'confirmed',
         string $paymentMethod = 'cash',
         ?string $paymentReference = null,
         ?string $notes = null,
     ): array {
+        $eventClass = MorphModelResolver::resolve('event');
+        $userClass = MorphModelResolver::resolve('user');
+        $registrationClass = MorphModelResolver::resolve('registration');
+
+        /** @var PackageEvent $event */
+        $event = $eventClass::query()->findOrFail($eventId);
+
+        /** @var Model&Authenticatable $actor */
+        $actor = $userClass::query()->findOrFail($actorId);
+
         Gate::forUser($actor)->authorize('manageAdmissions', $event);
 
         $method = OfflineAdmissionPaymentMethod::tryFrom($paymentMethod);
@@ -72,6 +98,8 @@ final class CreateOfflineEventAdmissionAction
             throw new InvalidArgumentException('A complimentary admission is confirmed immediately.');
         }
 
+        /** @var TicketType $ticketType */
+        $ticketType = TicketType::query()->findOrFail($ticketTypeId);
         $ticketType->loadMissing('ticketable');
         $ticketEvent = EventTicketScope::event($ticketType);
 
@@ -140,11 +168,13 @@ final class CreateOfflineEventAdmissionAction
             $paymentState,
             $participant,
             $reference,
+            $registrationClass,
             $registrationPaymentStatus,
             $registrationStatus,
             $target,
             $ticketType,
             $unitPrice,
+            $userClass,
         ): array {
             $order = $this->orders->createOrder(
                 orderData: [
@@ -208,7 +238,7 @@ final class CreateOfflineEventAdmissionAction
             );
             $registration = $registrations->first();
 
-            if (! $registration instanceof Registration) {
+            if (! $registration instanceof $registrationClass) {
                 throw new InvalidArgumentException('The offline admission registration could not be created.');
             }
 
@@ -218,22 +248,20 @@ final class CreateOfflineEventAdmissionAction
             // is explicitly unattributed: a blank request is passed
             // deliberately so the staff browser cookie can never leak
             // credit into a participant fact.
-            $admissionActor = $this->resolveParticipantUser($participant);
+            $admissionActor = $this->resolveParticipantUser($participant, $userClass);
+            $admissionActorId = $admissionActor !== null ? (string) $admissionActor->getKey() : null;
 
-            $this->shareTracking->recordOutcome(
-                type: ShareOutcomeType::EventRegistration,
-                businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
-                subject: $event,
-                actor: $admissionActor,
+            $this->attribution->recordFreeRegistration(
+                registrationId: (string) $registration->getKey(),
+                eventId: (string) $event->getKey(),
+                actorId: $admissionActorId,
+                guest: $admissionActorId === null,
                 request: new Request,
-                metadata: [
-                    'registration_id' => (string) $registration->getKey(),
-                    'guest' => ! $admissionActor instanceof User,
+                businessMetadata: [
                     'staff_issued' => true,
                     'offline_admission' => true,
                     'recorded_by_user_id' => (string) $actor->getKey(),
                 ],
-                occurredAt: Carbon::instance($registration->created_at ?? now()),
             );
 
             $passes = new Collection;
@@ -259,11 +287,11 @@ final class CreateOfflineEventAdmissionAction
             ];
         }));
 
-        /** @var array{order: Order, registration: Registration, passes: Collection<int, Pass>} $result */
+        /** @var array{order: Order, registration: EventRegistration, passes: Collection<int, Pass>} $result */
         if ($paymentState === 'confirmed') {
             $registration = $result['registration']->fresh(['participants', 'items', 'passes']);
 
-            if (! $registration instanceof Registration) {
+            if (! $registration instanceof $registrationClass) {
                 throw new InvalidArgumentException('The offline admission registration could not be refreshed.');
             }
 
@@ -271,7 +299,37 @@ final class CreateOfflineEventAdmissionAction
             $result['registration'] = $registration->fresh(['participants', 'items', 'passes']);
         }
 
-        return $result;
+        return $this->receipt($result['order'], $result['registration'], $result['passes']);
+    }
+
+    /**
+     * Confirm a provisional organizer-issued admission through the same
+     * boundary so callers only depend on AdmissionIssuance.
+     *
+     * @return array{
+     *     order_id: string,
+     *     registration_id: string,
+     *     pass_ids: list<string>,
+     *     amount: int,
+     *     currency: string
+     * }
+     */
+    public function confirm(
+        string $eventId,
+        string $orderId,
+        string $actorId,
+        string $paymentMethod = 'cash',
+        ?string $paymentReference = null,
+        ?string $notes = null,
+    ): array {
+        return $this->confirmAdmission->confirm(
+            eventId: $eventId,
+            orderId: $orderId,
+            actorId: $actorId,
+            paymentMethod: $paymentMethod,
+            paymentReference: $paymentReference,
+            notes: $notes,
+        );
     }
 
     /**
@@ -325,8 +383,9 @@ final class CreateOfflineEventAdmissionAction
 
     /**
      * @param  array<string, mixed>  $participant
+     * @return (Model&Authenticatable)|null
      */
-    private function resolveParticipantUser(array $participant): ?User
+    private function resolveParticipantUser(array $participant, string $userClass): ?Model
     {
         $type = $participant['participant_type'] ?? null;
         $id = $participant['participant_id'] ?? null;
@@ -335,10 +394,34 @@ final class CreateOfflineEventAdmissionAction
             return null;
         }
 
-        if ($type !== (new User)->getMorphClass() && $type !== User::class) {
+        if ($type !== (new $userClass)->getMorphClass() && $type !== $userClass) {
             return null;
         }
 
-        return User::query()->whereKey($id)->first();
+        return $userClass::query()->whereKey($id)->first();
+    }
+
+    /**
+     * @param  Collection<int, Pass>  $passes
+     * @return array{
+     *     order_id: string,
+     *     registration_id: string,
+     *     pass_ids: list<string>,
+     *     amount: int,
+     *     currency: string
+     * }
+     */
+    private function receipt(Order $order, EventRegistration $registration, Collection $passes): array
+    {
+        return [
+            'order_id' => (string) $order->getKey(),
+            'registration_id' => (string) $registration->getKey(),
+            'pass_ids' => $passes
+                ->map(static fn (Pass $pass): string => (string) $pass->getKey())
+                ->values()
+                ->all(),
+            'amount' => (int) $order->grand_total,
+            'currency' => (string) $order->currency,
+        ];
     }
 }

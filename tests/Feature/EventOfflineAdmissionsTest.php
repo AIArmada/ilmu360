@@ -126,6 +126,17 @@ it('keeps an offline admission pending until the organizer confirms payment', fu
         ->and($registration->fresh()->payment_status)->toBe('paid')
         ->and($registration->fresh()->passes()->count())->toBe(1)
         ->and($ticket->fresh()->getTotalAvailable())->toBe(2);
+
+    $component
+        ->call('startConfirmation', (string) $order->getKey())
+        ->set('confirmationPaymentMethod', 'cash')
+        ->call('confirmPendingAdmission')
+        ->assertHasNoErrors();
+
+    expect($order->fresh()->isPaid())->toBeTrue()
+        ->and($order->fresh()->payments()->count())->toBe(1)
+        ->and($registration->fresh()->passes()->count())->toBe(1)
+        ->and($ticket->fresh()->getTotalAvailable())->toBe(2);
 });
 
 it('does not expose offline admissions to an unrelated user', function (): void {

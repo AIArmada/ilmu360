@@ -5,11 +5,14 @@ declare(strict_types=1);
 use AIArmada\Events\Models\EventAttendanceLog;
 use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
+use App\Features\Registration\Actions\ConfirmOfflineAdmissionAction;
+use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
 use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
 use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
 use App\Features\Registration\Api\AdmissionFacts;
+use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
@@ -134,6 +137,13 @@ it('discovers the registration feature manifest and provider exactly once', func
             'table:event_registration_answers',
             'table:event_registration_items',
         ])
+        ->and($catalog['writes'][IssueOfflineAdmissionAction::class])->toEqualCanonicalizing([
+            'table:event_registrations',
+            'table:event_registration_participants',
+            'table:event_registration_answers',
+            'table:event_registration_items',
+        ])
+        ->and($catalog['writes'])->not->toHaveKey(ConfirmOfflineAdmissionAction::class)
         ->and($catalog['writes'][RecordSelfCheckInAction::class])->toEqualCanonicalizing([
             'table:event_attendances',
             'table:event_attendance_logs',
@@ -153,6 +163,10 @@ it('discovers the registration feature manifest and provider exactly once', func
 it('binds the admission registration boundary to the free admission action', function (): void {
     expect(app(AdmissionRegistration::class))->toBeInstanceOf(RegisterFreeAdmissionAction::class)
         ->and(app(ParticipationAttribution::class))->toBeInstanceOf(ShareTrackingParticipationAttribution::class);
+});
+
+it('binds the admission issuance boundary to the offline admission action', function (): void {
+    expect(app(AdmissionIssuance::class))->toBeInstanceOf(IssueOfflineAdmissionAction::class);
 });
 
 it('binds the attendance boundaries to their feature implementations', function (): void {
