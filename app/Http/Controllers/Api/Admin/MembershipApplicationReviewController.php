@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Admin;
 
-use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
-use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
-use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Membership\Api\MembershipApplications;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Http\Controllers\Controller;
 use App\Models\MembershipApplication;
@@ -25,8 +23,7 @@ class MembershipApplicationReviewController extends Controller
 {
     public function __construct(
         private readonly AdminResourceRegistry $registry,
-        private readonly ApproveMembershipApplicationAction $approveAction,
-        private readonly RejectMembershipApplicationAction $rejectAction,
+        private readonly MembershipApplications $membershipApplications,
     ) {}
 
     #[PathParameter('recordKey', 'Existing membership application route key returned by the admin collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
@@ -85,22 +82,27 @@ class MembershipApplicationReviewController extends Controller
         $action = (string) $validated['action'];
         $reviewerNote = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
 
-        match ($action) {
-            'approve' => $this->approveAction->handle(
-                $application,
-                $user,
-                MemberRole::from((string) $validated['granted_role']),
+        $detail = match ($action) {
+            'approve' => $this->membershipApplications->approve(
+                (string) $application->getKey(),
+                (string) $user->getKey(),
+                (string) $validated['granted_role'],
                 $reviewerNote,
             ),
-            'reject' => $this->rejectAction->handle($application, $user, $reviewerNote),
+            'reject' => $this->membershipApplications->reject(
+                (string) $application->getKey(),
+                (string) $user->getKey(),
+                $reviewerNote,
+            ),
             default => abort(422, 'Unsupported action.'),
         };
 
-        $application->refresh();
-
         return response()->json([
             'data' => [
-                'record' => ['id' => $application->getKey(), 'status' => $application->status->value],
+                'record' => [
+                    'id' => $detail->application->id,
+                    'status' => $detail->application->status,
+                ],
             ],
         ]);
     }

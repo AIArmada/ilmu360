@@ -32,8 +32,9 @@ use App\Shared\Membership\MembershipDirectory;
  * For membership_applications the package ApplyForMembershipAction,
  * CancelMembershipApplicationAction, ApproveMembershipApplicationAction and
  * RejectMembershipApplicationAction remain canonical external lifecycle
- * writers. The feature owns only the app-side submit guards, media discard and
- * owner-context orchestration listed in feature.json.
+ * writers. The feature owns only the app-side submit guards, media discard,
+ * reviewer review orchestration and owner-context handling listed in
+ * feature.json.
  *
  * Invitation package writers remain external until their own M slices claim
  * that table.

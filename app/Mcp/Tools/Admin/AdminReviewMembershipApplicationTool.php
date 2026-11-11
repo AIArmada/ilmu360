@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
-use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
-use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Membership\Api\MembershipApplications;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Models\MembershipApplication;
 use App\Models\User;
@@ -33,8 +31,7 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
     protected string $description = 'Use this when you need to approve or reject a pending membership application. Fetch the review schema first with admin-get-membership-application-review-schema. Do not use for reading application details; use admin-get-record for that.';
 
     public function __construct(
-        private readonly ApproveMembershipApplicationAction $approveAction,
-        private readonly RejectMembershipApplicationAction $rejectAction,
+        private readonly MembershipApplications $membershipApplications,
         private readonly AdminResourceRegistry $registry,
     ) {}
 
@@ -54,22 +51,26 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
             $application = $this->registry->resolveRecord(MembershipApplicationResource::class, (string) $validated['record_key']);
             $note = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
 
-            match ((string) $validated['action']) {
-                'approve' => $this->approveAction->handle(
-                    $application,
-                    $actor,
-                    MemberRole::tryFrom((string) $validated['granted_role']) ?? MemberRole::Editor,
+            $detail = match ((string) $validated['action']) {
+                'approve' => $this->membershipApplications->approve(
+                    (string) $application->getKey(),
+                    (string) $actor->getKey(),
+                    (string) ($validated['granted_role'] ?? ''),
                     $note,
                 ),
-                'reject' => $this->rejectAction->handle($application, $actor, $note),
+                'reject' => $this->membershipApplications->reject(
+                    (string) $application->getKey(),
+                    (string) $actor->getKey(),
+                    $note,
+                ),
                 default => throw new \InvalidArgumentException('Unsupported membership-application review action.'),
             };
 
             return [
                 'data' => [
                     'record' => [
-                        'id' => $application->getKey(),
-                        'status' => $application->status->value,
+                        'id' => $detail->application->id,
+                        'status' => $detail->application->status,
                     ],
                 ],
             ];

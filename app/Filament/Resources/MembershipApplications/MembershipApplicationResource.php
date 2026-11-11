@@ -61,7 +61,7 @@ class MembershipApplicationResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         /** @var Builder<MembershipApplication> $query */
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()->withoutOwnerScope();
 
         return $query->with(['applicant', 'reviewer']);
     }

@@ -72,10 +72,10 @@ class MemberResourceService
                         'tool' => 'member-list-membership-applications',
                     ],
                     'submit_membership_claim' => [
-                        'tool' => 'member-submit-membership-claim',
+                        'tool' => 'member-submit-membership-application',
                     ],
                     'cancel_membership_claim' => [
-                        'tool' => 'member-cancel-membership-claim',
+                        'tool' => 'member-cancel-membership-application',
                     ],
                 ],
                 'rules' => [

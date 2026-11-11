@@ -6,7 +6,9 @@ namespace App\Features\Membership\Services;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
+use App\Features\Membership\Actions\ApproveMembershipApplicationAction;
 use App\Features\Membership\Actions\DiscardMembershipApplicationAction;
+use App\Features\Membership\Actions\RejectMembershipApplicationAction;
 use App\Features\Membership\Actions\SubmitMembershipApplicationAction;
 use App\Features\Membership\Api\MembershipApplicationDetail;
 use App\Features\Membership\Api\MembershipApplicationSummary;
@@ -19,8 +21,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Membership application boundary: account-scoped reads plus submit, discard
- * and cancel orchestration.
+ * Membership application boundary: account-scoped reads plus submit, discard,
+ * cancel and reviewer approve/reject orchestration.
  *
  * The package Apply/Cancel/Approve/Reject actions remain the canonical
  * membership_applications lifecycle writers. This service owns only the
@@ -33,6 +35,8 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
         private SubmitMembershipApplicationAction $submitApplication,
         private DiscardMembershipApplicationAction $discardApplication,
         private CancelMembershipApplicationAction $cancelApplication,
+        private ApproveMembershipApplicationAction $approveApplication,
+        private RejectMembershipApplicationAction $rejectApplication,
     ) {}
 
     public function forApplicant(string $accountId): array
@@ -122,6 +126,32 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
         $cancelledApplication = OwnerContext::withOwner(null, fn (): Model => $this->query()->findOrFail($applicationId));
 
         return MembershipValueMapper::applicationDetail($cancelledApplication);
+    }
+
+    public function approve(
+        string $applicationId,
+        string $reviewerAccountId,
+        string $grantedRole,
+        ?string $note = null,
+    ): MembershipApplicationDetail {
+        return MembershipValueMapper::applicationDetail($this->approveApplication->handle(
+            $applicationId,
+            $reviewerAccountId,
+            $grantedRole,
+            $note,
+        ));
+    }
+
+    public function reject(
+        string $applicationId,
+        string $reviewerAccountId,
+        ?string $note = null,
+    ): MembershipApplicationDetail {
+        return MembershipValueMapper::applicationDetail($this->rejectApplication->handle(
+            $applicationId,
+            $reviewerAccountId,
+            $note,
+        ));
     }
 
     /**

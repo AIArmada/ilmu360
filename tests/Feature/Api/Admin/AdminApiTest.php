@@ -92,8 +92,8 @@ it('lists accessible admin resources for privileged users', function () {
         ->and($response->json('data.workflow_actions.triage_report.mcp_tool'))->toBe('admin-triage-report')
         ->and($response->json('data.workflow_actions.review_contribution_request.mcp_schema_tool'))->toBe('admin-get-contribution-request-review-schema')
         ->and($response->json('data.workflow_actions.review_contribution_request.mcp_tool'))->toBe('admin-review-contribution-request')
-        ->and($response->json('data.workflow_actions.review_membership_claim.mcp_schema_tool'))->toBe('admin-get-membership-claim-review-schema')
-        ->and($response->json('data.workflow_actions.review_membership_claim.mcp_tool'))->toBe('admin-review-membership-claim')
+        ->and($response->json('data.workflow_actions.review_membership_claim.mcp_schema_tool'))->toBe('admin-get-membership-application-review-schema')
+        ->and($response->json('data.workflow_actions.review_membership_claim.mcp_tool'))->toBe('admin-review-membership-application')
         ->and($response->json('data.write_workflow.discover_resources'))->toContain('/api/v1/admin/manifest')
         ->and($response->json('data.rules'))->toContain('Use the admin record route_key returned by admin collection or detail payloads for record-specific paths.');
 

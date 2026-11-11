@@ -11,8 +11,8 @@ use App\Shared\Membership\MembershipSubjectType;
  *
  * Implementations resolve scalar identifiers to the owning models and delegate
  * role mutations to the canonical package actions. Application submission and
- * review stay in MembershipApplications until the remaining M slices move
- * their writers.
+ * review stay in MembershipApplications until the invitations and lifecycle
+ * slices move their remaining writers.
  */
 interface MembershipCommands
 {

@@ -3,10 +3,8 @@
 namespace App\Filament\Resources\MembershipApplications\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
-use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Membership\Api\MembershipApplications;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Models\MembershipApplication;
 use App\Models\User;
@@ -64,14 +62,14 @@ class ViewMembershipApplication extends ViewRecord
                     ->rows(3)
                     ->maxLength(2000),
             ])
-            ->action(function (array $data, ApproveMembershipApplicationAction $approveMembershipApplicationAction): void {
+            ->action(function (array $data, MembershipApplications $membershipApplications): void {
                 $user = auth()->user();
                 abort_unless($user instanceof User, 403);
 
-                $approveMembershipApplicationAction->handle(
-                    $this->applicationRecord(),
-                    $user,
-                    MemberRole::tryFrom((string) $data['granted_role']) ?? MemberRole::Editor,
+                $membershipApplications->approve(
+                    (string) $this->applicationRecord()->getKey(),
+                    (string) $user->getKey(),
+                    (string) $data['granted_role'],
                     filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                 );
 
@@ -99,13 +97,13 @@ class ViewMembershipApplication extends ViewRecord
                     ->rows(3)
                     ->maxLength(2000),
             ])
-            ->action(function (array $data, RejectMembershipApplicationAction $rejectMembershipApplicationAction): void {
+            ->action(function (array $data, MembershipApplications $membershipApplications): void {
                 $user = auth()->user();
                 abort_unless($user instanceof User, 403);
 
-                $rejectMembershipApplicationAction->handle(
-                    $this->applicationRecord(),
-                    $user,
+                $membershipApplications->reject(
+                    (string) $this->applicationRecord()->getKey(),
+                    (string) $user->getKey(),
                     filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                 );
 

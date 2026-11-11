@@ -55,4 +55,30 @@ interface MembershipApplications
      * Returns null when the application does not belong to the account.
      */
     public function cancelForApplicant(string $accountId, string $applicationId): ?MembershipApplicationDetail;
+
+    /**
+     * Approve a pending application on behalf of a reviewer.
+     *
+     * Delegates the transition, role grant and applicant notification to the
+     * canonical package action and returns the committed review snapshot.
+     * Unknown role names fall back to editor, matching the existing UI flows.
+     */
+    public function approve(
+        string $applicationId,
+        string $reviewerAccountId,
+        string $grantedRole,
+        ?string $note = null,
+    ): MembershipApplicationDetail;
+
+    /**
+     * Reject a pending application on behalf of a reviewer.
+     *
+     * Delegates the transition and applicant notification to the canonical
+     * package action and returns the committed review snapshot.
+     */
+    public function reject(
+        string $applicationId,
+        string $reviewerAccountId,
+        ?string $note = null,
+    ): MembershipApplicationDetail;
 }

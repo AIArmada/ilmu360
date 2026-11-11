@@ -12,7 +12,9 @@ use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 beforeEach(function (): void {
     $this->seed(RoleSeeder::class);
@@ -136,4 +138,41 @@ it('shows applicant notes on the membership application view page', function () 
         ->assertSee('Applicant Note')
         ->assertSee('Ahli Jawatan Kuasa')
         ->assertSee('Saya menguruskan aktiviti institusi ini.');
+});
+
+it('discards selected membership applications through the owned feature action', function () {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $institution = Institution::factory()->create();
+    $first = MembershipApplication::factory()->for($institution, 'subject')->create();
+    $second = MembershipApplication::factory()->for($institution, 'subject')->create();
+
+    $first->addMedia(UploadedFile::fake()->image('proof.png'))->toMediaCollection('evidence');
+    $mediaKey = (string) $first->getFirstMedia('evidence')?->getKey();
+
+    expect($mediaKey)->not->toBe('');
+
+    Livewire::actingAs($administrator)
+        ->test(ListMembershipApplications::class)
+        ->assertCanSeeTableRecords([$first, $second])
+        ->callTableBulkAction('discard', [$first->getKey(), $second->getKey()])
+        ->assertNotified();
+
+    expect(MembershipApplication::query()->whereKey([$first->getKey(), $second->getKey()])->count())->toBe(0)
+        ->and(Media::query()->whereKey($mediaKey)->exists())->toBeFalse();
+});
+
+it('denies bulk discard of membership applications to moderators', function () {
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $institution = Institution::factory()->create();
+    $claim = MembershipApplication::factory()->for($institution, 'subject')->create();
+
+    Livewire::actingAs($moderator)
+        ->test(ListMembershipApplications::class)
+        ->callTableBulkAction('discard', [$claim->getKey()]);
+
+    expect(MembershipApplication::query()->whereKey($claim->getKey())->exists())->toBeTrue();
 });

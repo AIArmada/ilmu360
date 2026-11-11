@@ -242,12 +242,33 @@ it('reviews membership applications through the admin MCP workflow tool', functi
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.record.id', $application->getKey())
+            ->where('data.record.status', 'approved')
             ->etc());
 
     expect($application->fresh()?->status->value)->toBe('approved')
         ->and($application->fresh()?->granted_role)->toBe('admin')
         ->and($application->fresh()?->reviewer_id)->toBe($admin->getKey())
         ->and($institution->fresh()->members()->whereKey($applicant->getKey())->exists())->toBeTrue();
+});
+
+it('exposes application review workflow tools for membership applications on admin record actions', function () {
+    $admin = adminMcpUser('super_admin');
+    $institution = Institution::factory()->create();
+    $application = MembershipApplication::factory()
+        ->for($institution, 'subject')
+        ->create(['status' => 'pending']);
+
+    AdminServer::actingAs($admin)
+        ->tool(AdminGetRecordActionsTool::class, [
+            'resource_key' => 'membership-applications',
+            'record_key' => $application->getKey(),
+        ])
+        ->assertOk()
+        ->assertStructuredContent(fn ($json) => $json
+            ->where('data.focus_actions.recommended_keys.0', 'get_membership_claim_review_schema')
+            ->where('data.focus_actions.actions', fn ($actions): bool => data_get(collect($actions)->firstWhere('key', 'get_membership_claim_review_schema'), 'tool') === 'admin-get-membership-application-review-schema')
+            ->where('data.focus_actions.actions', fn ($actions): bool => data_get(collect($actions)->firstWhere('key', 'review_membership_claim'), 'tool') === 'admin-review-membership-application')
+            ->etc());
 });
 
 it('triages reports through the admin MCP workflow tool', function () {

@@ -102,8 +102,8 @@ class AdminResourceService
                     'review_membership_claim' => [
                         'schema_endpoint_template' => route('api.admin.membership-applications.review-schema', ['recordKey' => 'recordKey'], false),
                         'endpoint_template' => route('api.admin.membership-applications.review', ['recordKey' => 'recordKey'], false),
-                        'mcp_schema_tool' => 'admin-get-membership-claim-review-schema',
-                        'mcp_tool' => 'admin-review-membership-claim',
+                        'mcp_schema_tool' => 'admin-get-membership-application-review-schema',
+                        'mcp_tool' => 'admin-review-membership-application',
                     ],
                 ],
                 'rules' => [

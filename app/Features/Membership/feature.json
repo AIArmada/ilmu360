@@ -22,6 +22,8 @@
     "table:membership_applications": [
       "App\\Features\\Membership\\Actions\\SubmitMembershipApplicationAction",
       "App\\Features\\Membership\\Actions\\DiscardMembershipApplicationAction",
+      "App\\Features\\Membership\\Actions\\ApproveMembershipApplicationAction",
+      "App\\Features\\Membership\\Actions\\RejectMembershipApplicationAction",
       "App\\Features\\Membership\\Actions\\MembershipAccountStateAction"
     ]
   }

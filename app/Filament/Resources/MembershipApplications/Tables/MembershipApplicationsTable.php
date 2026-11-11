@@ -2,18 +2,16 @@
 
 namespace App\Filament\Resources\MembershipApplications\Tables;
 
-use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
-use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipApplications;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -21,7 +19,9 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
+use Throwable;
 
 class MembershipApplicationsTable
 {
@@ -108,14 +108,14 @@ class MembershipApplicationsTable
                             ->rows(3)
                             ->maxLength(2000),
                     ])
-                    ->action(function (MembershipApplication $record, array $data, ApproveMembershipApplicationAction $approveMembershipApplicationAction): void {
+                    ->action(function (MembershipApplication $record, array $data, MembershipApplications $membershipApplications): void {
                         $user = auth()->user();
                         abort_unless($user instanceof User, 403);
 
-                        $approveMembershipApplicationAction->handle(
-                            $record,
-                            $user,
-                            MemberRole::tryFrom((string) $data['granted_role']) ?? MemberRole::Editor,
+                        $membershipApplications->approve(
+                            (string) $record->getKey(),
+                            (string) $user->getKey(),
+                            (string) $data['granted_role'],
                             filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                         );
                         Notification::make()
@@ -136,13 +136,13 @@ class MembershipApplicationsTable
                             ->rows(3)
                             ->maxLength(2000),
                     ])
-                    ->action(function (MembershipApplication $record, array $data, RejectMembershipApplicationAction $rejectMembershipApplicationAction): void {
+                    ->action(function (MembershipApplication $record, array $data, MembershipApplications $membershipApplications): void {
                         $user = auth()->user();
                         abort_unless($user instanceof User, 403);
 
-                        $rejectMembershipApplicationAction->handle(
-                            $record,
-                            $user,
+                        $membershipApplications->reject(
+                            (string) $record->getKey(),
+                            (string) $user->getKey(),
                             filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                         );
 
@@ -163,8 +163,47 @@ class MembershipApplicationsTable
             ->recordUrl(fn (MembershipApplication $record): string => MembershipApplicationResource::getUrl('view', ['record' => $record]))
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                    BulkAction::make('discard')
+                        ->label('Discard')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Discard Membership Applications')
+                        ->modalDescription('Remove the selected applications and their evidence files. This cannot be undone.')
+                        ->authorizeIndividualRecords('delete')
+                        ->action(function (BulkAction $action, Collection $records, MembershipApplications $membershipApplications): void {
+                            $successCount = 0;
+                            $isFirstException = true;
+
+                            foreach ($records as $record) {
+                                if (! $record instanceof MembershipApplication) {
+                                    $action->reportBulkProcessingFailure();
+
+                                    continue;
+                                }
+
+                                try {
+                                    $membershipApplications->discard((string) $record->getKey());
+                                    $successCount++;
+                                } catch (Throwable $exception) {
+                                    $action->reportBulkProcessingFailure();
+
+                                    if ($isFirstException) {
+                                        report($exception);
+                                        $isFirstException = false;
+                                    }
+                                }
+                            }
+
+                            $action->reportBulkProcessingSuccessfulRecordsCount($successCount);
+                        })
+                        ->successNotificationTitle('Membership applications discarded')
+                        ->failureNotificationTitle(fn (int $successCount): string => $successCount > 0
+                            ? 'Some membership applications could not be discarded'
+                            : 'No membership applications were discarded')
+                        ->missingBulkAuthorizationFailureNotificationMessage('You are not authorized to discard one or more selected applications.')
+                        ->missingBulkProcessingFailureNotificationMessage('One or more selected applications could not be discarded.')
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
     }
