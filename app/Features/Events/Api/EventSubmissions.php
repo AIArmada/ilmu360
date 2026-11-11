@@ -47,4 +47,24 @@ interface EventSubmissions
      * @return array{event_id: string, submission_id: string|null, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
      */
     public function persistSession(ValidatedEventSubmission $input, ?callable $persistMedia = null): array;
+
+    /**
+     * Persist the completion writes owned by Events.
+     *
+     * Stores guest submitter contacts when requested, then applies the
+     * open-door admission defaults only for a newly created parent event.
+     * Returns the moderation action the caller should apply, if any.
+     *
+     * @param  array<string, mixed>  $state
+     * @return 'approve'|'submit'|null
+     */
+    public function completeWrites(
+        string $eventId,
+        string $submissionId,
+        array $state,
+        bool $storeSubmitterContacts,
+        bool $sessionSubmission,
+        bool $parentCreated,
+        bool $autoApproved,
+    ): ?string;
 }

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Events\Submission;
 
-use AIArmada\Contacting\Enums\ContactMethodType;
-use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Contracts\ShareTrackingContract;
 use App\Enums\ShareOutcomeType;
+use App\Features\Events\Api\EventSubmissions;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
@@ -27,15 +25,17 @@ use Throwable;
 /**
  * Interim submission-completion adapter.
  *
- * Moderation still calls the root ModerationService until E2b/E3b routes this
- * completion step through Events\Api\EventModeration; registration mode,
- * access policy and share outcomes stay owned by this root orchestrator.
+ * Submission-owned writes (guest contacts, open-door admission and access
+ * policy) go through Events\Api\EventSubmissions. Moderation still calls the
+ * root ModerationService until E3b, and share outcomes stay with this root
+ * orchestrator.
  */
 final readonly class CompleteFrontendEventSubmissionAction
 {
     public function __construct(
         private ShareTrackingContract $shareTracking,
         private ModerationService $moderation,
+        private EventSubmissions $submissions,
     ) {}
 
     /**
@@ -57,9 +57,15 @@ final readonly class CompleteFrontendEventSubmissionAction
         bool $groupedSubmission = false,
         bool $occurrencePendingReview = false,
     ): void {
-        if (! $submitter instanceof User) {
-            $this->storeSubmitterContacts($submission, $state);
-        }
+        $moderationAction = $this->submissions->completeWrites(
+            eventId: (string) $event->getKey(),
+            submissionId: (string) $submission->getKey(),
+            state: $state,
+            storeSubmitterContacts: ! $submitter instanceof User,
+            sessionSubmission: $sessionSubmission,
+            parentCreated: $parentCreated,
+            autoApproved: $autoApproved,
+        );
 
         // Session submissions attach to an existing container; the parent
         // keeps its admission defaults and lifecycle state untouched.
@@ -104,15 +110,11 @@ final readonly class CompleteFrontendEventSubmissionAction
             return;
         }
 
-        $event->forceFill(['registration_mode' => RegistrationMode::None->value])->save();
-        $event->accessPolicy()->updateOrCreate(
-            ['event_id' => $event->getKey()],
-            ['registration_required' => false, 'walk_in_allowed' => true],
-        );
+        $event->refresh();
 
-        if ($autoApproved) {
+        if ($moderationAction === 'approve') {
             $this->moderation->approve($event, $submitter, 'Auto-approved from institution dashboard submission.');
-        } elseif ((string) $event->status === 'draft') {
+        } elseif ($moderationAction === 'submit') {
             $this->moderation->submitForModeration($event);
         }
 
@@ -129,28 +131,6 @@ final readonly class CompleteFrontendEventSubmissionAction
             ],
             occurredAt: Carbon::instance($submission->created_at ?? now()),
         );
-    }
-
-    /**
-     * @param  array<string, mixed>  $state
-     */
-    private function storeSubmitterContacts(EventSubmission $submission, array $state): void
-    {
-        $order = 1;
-
-        foreach (['submitter_email' => ContactMethodType::Email, 'submitter_phone' => ContactMethodType::Phone] as $key => $type) {
-            if (! filled($state[$key] ?? null)) {
-                continue;
-            }
-
-            $submission->contactMethods()->create([
-                'type' => $type->value,
-                'purpose' => ContactPurpose::General->value,
-                'value' => $state[$key],
-                'is_public' => false,
-                'sort_order' => $order++,
-            ]);
-        }
     }
 
     private function notifyOccurrenceNeedsReview(Event $event, EventOccurrence $occurrence): void

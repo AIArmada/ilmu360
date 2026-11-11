@@ -7,6 +7,7 @@ namespace App\Features\Events\Services;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
+use App\Features\Events\Actions\Submission\CompleteEventSubmissionWritesAction;
 use App\Features\Events\Actions\Submission\PersistNewEventSubmissionAction;
 use App\Features\Events\Actions\Submission\PersistSessionSubmissionAction;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
@@ -28,6 +29,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
         private ValidateEventSubmissionInputAction $validateInput,
         private PersistNewEventSubmissionAction $persistNewEvent,
         private PersistSessionSubmissionAction $persistSession,
+        private CompleteEventSubmissionWritesAction $completeWrites,
         private SubmissionRelationSync $relationSync,
     ) {}
 
@@ -69,6 +71,26 @@ final readonly class EventSubmissionsService implements EventSubmissions
             parentCreated: false,
             grouped: false,
             occurrencePendingReview: false,
+        );
+    }
+
+    public function completeWrites(
+        string $eventId,
+        string $submissionId,
+        array $state,
+        bool $storeSubmitterContacts,
+        bool $sessionSubmission,
+        bool $parentCreated,
+        bool $autoApproved,
+    ): ?string {
+        return $this->completeWrites->handle(
+            eventId: $eventId,
+            submissionId: $submissionId,
+            state: $state,
+            storeSubmitterContacts: $storeSubmitterContacts,
+            sessionSubmission: $sessionSubmission,
+            parentCreated: $parentCreated,
+            autoApproved: $autoApproved,
         );
     }
 

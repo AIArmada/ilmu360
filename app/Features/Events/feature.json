@@ -8,6 +8,7 @@
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
       "App\\Features\\Events\\Actions\\Scheduling\\SyncEventScheduleAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",
+      "App\\Features\\Events\\Actions\\Submission\\CompleteEventSubmissionWritesAction",
       "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
       "App\\Features\\Events\\Actions\\Delete\\DeleteEventAction"
     ],
@@ -53,6 +54,7 @@
     ],
     "table:event_access_policies": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
+      "App\\Features\\Events\\Actions\\Submission\\CompleteEventSubmissionWritesAction",
       "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
     ],
     "table:event_links": [

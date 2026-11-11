@@ -43,11 +43,12 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  *   submission persist actions, and lifecycle state machine/transitions.
  * - root SaveAdminEventAction: interim moderation-status adapter (E3b); E3a
  *   exposes Events\Api\EventModeration for admin/MCP/queue callers.
- * - root submission orchestrators: `SubmitFrontendEventAction` (validation
- *   and persistence through the EventSubmissions boundary, then completion
- *   side effects) and `CompleteFrontendEventSubmissionAction` (registration
- *   mode, access policy, moderation and share outcomes) remain documented
- *   external writers for `events` until E2b/E3b.
+ * - root submission orchestrators: `SubmitFrontendEventAction` validates and
+ *   persists through the EventSubmissions boundary, then delegates completion
+ *   to `CompleteFrontendEventSubmissionAction`. That adapter keeps moderation
+ *   (root ModerationService until E3b), share outcomes and occurrence-review
+ *   notifications; guest contacts, registration mode and access-policy writes
+ *   go through CompleteEventSubmissionWritesAction.
  * - root `ModerateEventOccurrenceSubmissionAction` writes `event_submissions`
  *   status until the occurrence moderation slice; `event_submission_logs` and
  *   `event_submission_attachments` stay unclaimed for the same reason (their
