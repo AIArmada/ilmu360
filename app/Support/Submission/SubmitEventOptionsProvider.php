@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Submission;
 
 use App\Shared\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\SubmissionOptionsCache;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Events\Models\EventOccurrence;
@@ -35,6 +36,8 @@ use Illuminate\Support\Str;
  */
 final class SubmitEventOptionsProvider
 {
+    public function __construct(private readonly SubmissionOptionsCache $optionsCache) {}
+
     /** @var array<string, array<string, string>> Request-only option memo, never shared across requests. */
     private array $optionMemo = [];
 
@@ -66,7 +69,7 @@ final class SubmitEventOptionsProvider
         // cross-user membership leakage.
         return $this->optionMemo[$memoKey] = $submitter instanceof User
             ? $load()
-            : Cache::remember('submit_institutions_'.($countryId ?? 'all'), 60, $load);
+            : Cache::remember($this->optionsCache->institutionOptionsKey($countryId), 60, $load);
     }
 
     /**

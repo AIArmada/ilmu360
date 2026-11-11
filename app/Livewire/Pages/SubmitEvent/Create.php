@@ -485,7 +485,7 @@ class Create extends Component implements HasActions, HasForms
             requestedOccurrenceId: $this->eventOccurrenceId,
         );
 
-        return (new EventSubmissionFormSchema($context, new SubmitEventOptionsProvider))
+        return (new EventSubmissionFormSchema($context, app(SubmitEventOptionsProvider::class)))
             ->form($schema, $this->wizardStep);
     }
 
