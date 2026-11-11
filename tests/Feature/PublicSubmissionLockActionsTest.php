@@ -10,7 +10,6 @@ use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Authz\MemberRoleScopes;
 use App\Support\Submission\PublicSubmissionUiEvents;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -76,7 +75,7 @@ it('disables turning off institution public submission when credible preconditio
 
     $institution->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->institution();
+    $scope = $institution;
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
@@ -111,7 +110,7 @@ it('refreshes institution public submission toggle eligibility without remountin
 
     $institution->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->institution();
+    $scope = $institution;
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
@@ -166,7 +165,7 @@ it('keeps institution submission public until the toggle is explicitly turned of
 
     $institution->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->institution();
+    $scope = $institution;
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);
@@ -199,7 +198,7 @@ it('locks institution submission through the toggle and stores lock metadata', f
 
     $institution->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->institution();
+    $scope = $institution;
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
@@ -256,7 +255,7 @@ it('only enables the public submission toggle for global admin, admin, and moder
 
     $institution->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->institution();
+    $scope = $institution;
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
@@ -300,7 +299,7 @@ it('auto-reopens institution submission when lock credibility drifts', function 
 
     $institution->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->institution();
+    $scope = $institution;
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
@@ -344,7 +343,7 @@ it('supports locking and unlocking person records through the toggle', function 
 
     $person->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->person();
+    $scope = $person;
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);
@@ -395,7 +394,7 @@ it('refreshes person public submission toggle eligibility without remounting the
 
     $person->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->person();
+    $scope = $person;
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);

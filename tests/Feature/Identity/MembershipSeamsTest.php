@@ -7,6 +7,7 @@ use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
+use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
 use App\Features\Membership\FeatureServiceProvider as MembershipFeatureServiceProvider;
 use App\Features\Membership\Services\MembershipApplicationsService;
 use App\Features\Membership\Services\MembershipAuthorizationService;
@@ -22,6 +23,7 @@ use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectCatalog;
@@ -131,6 +133,16 @@ it('registers the membership and organizations feature providers exactly once', 
         ->and(array_keys($providers, OrganizationsFeatureServiceProvider::class, true))->toHaveCount(1)
         ->and($loaded)->toHaveKey(MembershipFeatureServiceProvider::class)
         ->and($loaded)->toHaveKey(OrganizationsFeatureServiceProvider::class);
+});
+
+it('registers the membership account lifecycle contributor exactly once', function (): void {
+    $contributors = collect(app()->tagged(AccountLifecycleContributor::TAG))
+        ->filter(static fn (mixed $contributor): bool => $contributor instanceof MembershipAccountLifecycleContributor)
+        ->values();
+
+    expect($contributors)->toHaveCount(1)
+        ->and($contributors->first()?->key())->toBe('membership')
+        ->and($contributors->first()?->priority())->toBe(90);
 });
 
 it('resolves membership subjects through directory, organization and event boundaries', function (): void {

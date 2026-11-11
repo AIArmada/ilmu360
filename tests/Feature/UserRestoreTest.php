@@ -21,6 +21,7 @@ use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Enums\MemberRole;
+use AIArmada\Membership\Services\MembershipRoleSyncService;
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\Models\SocialAccount;
 use App\Features\Reports\Models\Report;
@@ -39,7 +40,6 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\User;
 use App\Models\Venue;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -715,7 +715,11 @@ it('restores global and membership-scoped authorization rows from their owners',
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
+    app(MembershipRoleSyncService::class)->ensureExists(
+        MemberRole::Admin,
+        (string) $institution->getKey(),
+        Institution::class,
+    );
 
     Authz::withScope(null, function () use ($user): void {
         Role::findOrCreate('restore-global-role', 'web');

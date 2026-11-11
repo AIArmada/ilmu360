@@ -12,9 +12,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Membership read adapter over the current member pivots.
  *
- * The Membership feature will own these pivots once M1 lands. Until then this
- * is the shared read surface for membership state and must not become a second
- * write path.
+ * The Membership feature owns these pivots and this adapter is their shared
+ * read surface; it must not become a second write path.
  */
 final readonly class MembershipDirectoryService implements MembershipDirectory
 {

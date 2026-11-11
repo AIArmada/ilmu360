@@ -28,7 +28,6 @@ use App\Models\User;
 use App\Features\Membership\Notifications\MemberInvitationNotification;
 use App\Support\Api\Member\MemberResourceRegistry;
 use App\Support\Authz\MemberPermissionGate;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,9 +46,6 @@ it('shows the institutions and speakers the user belongs to in the unified works
     $person = Person::factory()->create(['name' => 'Managed Speaker']);
     $outsideInstitution = Institution::factory()->create(['name' => 'Outside Institution']);
     $outsidePerson = Person::factory()->create(['name' => 'Outside Speaker']);
-
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
 
     $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Admin->value]]);
     $person->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Admin->value]]);
@@ -75,9 +71,6 @@ it('lets speaker admins manage members while keeping viewers read only', functio
         'name' => 'Speaker Workspace Profile',
         'status' => 'verified',
     ]);
-
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
 
     $person->members()->syncWithoutDetaching([
         $admin->id => ['role' => MemberRole::Admin->value],
@@ -112,8 +105,6 @@ it('shows speaker events and authorizes event editing through the speaker member
         'status' => 'verified',
     ]);
     $institution = Institution::factory()->create(['name' => 'Event Institution']);
-
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
 
     $person->members()->syncWithoutDetaching([
         $admin->id => ['role' => MemberRole::Admin->value],
@@ -201,8 +192,6 @@ it('counts a speaker event once when the speaker has multiple involvement rows',
     $admin = User::factory()->create();
     $person = Person::factory()->create(['status' => 'verified']);
 
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     $person->members()->syncWithoutDetaching([$admin->id => ['role' => MemberRole::Admin->value]]);
 
     $event = Event::factory()->create(['status' => 'approved']);
@@ -237,8 +226,6 @@ it('carries the speaker workspace context into the event submission wizard', fun
         'status' => 'verified',
     ]);
 
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     $person->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Admin->value]]);
 
     Livewire::withQueryParams(['person' => $person->id])
@@ -265,8 +252,6 @@ it('lets a speaker member create a paid managed event with a ticket quota', func
     $institution = Institution::factory()->create(['name' => 'Paid Speaker Venue', 'status' => 'verified']);
     $category = eventCategoryId('lain_lain');
 
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
     $person->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
     $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
 
@@ -305,8 +290,6 @@ it('persists the selected ticket seating mode when seating is enabled', function
         $person = Person::factory()->create(['name' => 'Seated Speaker', 'status' => 'verified']);
         $institution = Institution::factory()->create(['name' => 'Seated Venue', 'status' => 'verified']);
 
-        app(ScopedMemberRoleSeeder::class)->ensureForPerson();
-        app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
         $person->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
         $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
 
@@ -351,8 +334,6 @@ it('persists the public event profile while keeping institution context authorit
     $source = submitEventTerm('source');
     $issue = submitEventTerm('issue');
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
     $speaker->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
 
@@ -410,7 +391,6 @@ it('applies the public first-session timing rules to the advanced builder', func
     $institution = Institution::factory()->create(['status' => 'verified']);
     $domain = submitEventTerm('domain');
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
     $institution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Editor->value]]);
 
     $component = Livewire::withQueryParams(['institution' => $institution->id])
@@ -465,8 +445,6 @@ it('lets speaker admins invite, change, and remove non-owner members', function 
     $member = User::factory()->create(['email' => 'speaker-member@example.test']);
     $person = Person::factory()->create(['name' => 'Speaker Member Management']);
 
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     $roleSync = app(MembershipRoleSyncService::class);
 
     foreach (MemberRole::cases() as $role) {
@@ -499,8 +477,6 @@ it('lets a person owner remove an admin while protecting the owner from admins',
     $admin = User::factory()->create();
     $person = Person::factory()->create(['name' => 'Speaker Ownership Rules']);
 
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     addTestMember($person, $owner, MemberRole::Owner);
     addTestMember($person, $admin, MemberRole::Admin);
 
@@ -533,8 +509,6 @@ it('lets a person owner transfer ownership to an existing member', function (): 
     $newOwner = User::factory()->create();
     $person = Person::factory()->create(['name' => 'Speaker Ownership Transfer']);
 
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     addTestMember($person, $owner, MemberRole::Owner);
     addTestMember($person, $newOwner, MemberRole::Editor);
 
@@ -568,8 +542,6 @@ it('does not let a person admin transfer ownership', function (): void {
     $newOwner = User::factory()->create();
     $person = Person::factory()->create(['name' => 'Speaker Transfer Authorization']);
 
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     addTestMember($person, $owner, MemberRole::Owner);
     addTestMember($person, $admin, MemberRole::Admin);
     addTestMember($person, $newOwner, MemberRole::Editor);
@@ -588,8 +560,6 @@ it('rejects a stale resolved membership mutation after ownership changes', funct
     $newOwner = User::factory()->create();
     $person = Person::factory()->create(['name' => 'Speaker Stale Membership']);
 
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     addTestMember($person, $owner, MemberRole::Owner);
     addTestMember($person, $newOwner, MemberRole::Editor);
 
@@ -614,8 +584,6 @@ it('does not invite an existing speaker member when email casing differs', funct
     $member = User::factory()->create(['email' => 'Speaker.Member@example.test']);
     $person = Person::factory()->create();
 
-    Institution::factory()->create();
-    app(ScopedMemberRoleSeeder::class)->ensureForPerson();
     $person->members()->syncWithoutDetaching([
         $admin->id => ['role' => MemberRole::Admin->value],
         $member->id => ['role' => MemberRole::Viewer->value],
@@ -639,8 +607,6 @@ it('does not let an admin of one institution manage another institution', functi
     $candidate = User::factory()->create(['email' => 'scoped-candidate@example.test']);
     $selectedInstitution = Institution::factory()->create(['name' => 'Selected Scope']);
     $managedInstitution = Institution::factory()->create(['name' => 'Managed Scope']);
-
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
 
     $managedInstitution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Admin->value]]);
     $selectedInstitution->members()->syncWithoutDetaching([$user->id => ['role' => MemberRole::Viewer->value]]);

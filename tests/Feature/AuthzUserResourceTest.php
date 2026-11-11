@@ -3,6 +3,8 @@
 use AIArmada\Authz\Facades\Authz;
 use AIArmada\Authz\Models\Role;
 use AIArmada\Engagement\Contracts\EngagementManager;
+use AIArmada\Membership\Enums\MemberRole;
+use AIArmada\Membership\Services\MembershipRoleSyncService;
 use App\Enums\MemberSubjectType;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Filament\Resources\Authz\UserResource;
@@ -18,8 +20,6 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
-use App\Support\Authz\MemberRoleScopes;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -141,17 +141,14 @@ it('shows and applies protected scoped role overrides from the authz user edit p
     $targetUser = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Protected Role Institution']);
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
+    app(MembershipRoleSyncService::class)->ensureExists(
+        MemberRole::Editor,
+        (string) $institution->getKey(),
+        Institution::class,
+    );
     $institution->members()->syncWithoutDetaching([$targetUser->id]);
 
-    $roleOptions = app(MemberRoleCatalog::class)->roleOptionsFor(MemberSubjectType::Institution);
-    $ownerRoleId = array_search('editor', $roleOptions, true);
-    $adminRoleId = array_search('admin', $roleOptions, true);
-
-    expect($ownerRoleId)->toBeString()
-        ->and($adminRoleId)->toBeString();
-
-    Authz::withScope(app(MemberRoleScopes::class)->institution(), function () use ($targetUser, $institution): void {
+    Authz::withScope($institution, function () use ($targetUser, $institution): void {
         setPermissionsTeamId($institution->getKey());
         $targetUser->syncRoles(['editor']);
     }, $targetUser);

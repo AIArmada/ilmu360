@@ -20,8 +20,6 @@ use App\Models\Registration;
 use App\Models\Space;
 use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
-use App\Support\Authz\MemberRoleScopes;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Filament\Tables\Enums\PaginationMode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -619,10 +617,6 @@ it('shows institution profile and events for members without a separate registra
 
     $institution->members()->syncWithoutDetaching([$user->id => ['role' => 'admin']]);
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-    $institutionScope = app(MemberRoleScopes::class)->institution();
-
     $eventInInstitution = Event::factory()->for($institution)->create([
         'title' => 'Institution Dashboard Event',
         'status' => 'approved',
@@ -729,10 +723,6 @@ it('only shows duplicate event links on the institution dashboard to users who c
         $viewerUser->id => ['role' => 'viewer'],
     ]);
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-    $institutionScope = app(MemberRoleScopes::class)->institution();
-
     $event = Event::factory()->for($institution)->create([
         'title' => 'Permission Scoped Event',
         'status' => 'approved',
@@ -766,10 +756,6 @@ it('hides scoped submit and duplicate links for inactive institution dashboards'
     ]);
 
     $institution->members()->syncWithoutDetaching([$user->id => ['role' => 'admin']]);
-
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-    $institutionScope = app(MemberRoleScopes::class)->institution();
 
     $event = Event::factory()->for($institution)->create([
         'title' => 'Inactive Institution Event',
@@ -1100,9 +1086,6 @@ it('lets institution owners and admins add members and manage scoped roles from 
 
     $institution->members()->syncWithoutDetaching([$adminUser->id => ['role' => 'admin']]);
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-    $institutionScope = app(MemberRoleScopes::class)->institution();
     Livewire::withQueryParams(['institution' => $institution->id])
         ->actingAs($adminUser)
         ->test(InstitutionDashboard::class)
@@ -1166,9 +1149,6 @@ it('only lets institution owners and admins manage members and never removes own
         $viewerUser->id => ['role' => 'viewer'],
     ]);
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-    $institutionScope = app(MemberRoleScopes::class)->institution();
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($viewerUser)
         ->get(route('dashboard.institutions', ['institution' => $institution->id]));
@@ -1214,10 +1194,6 @@ it('links institution admins to the suggest update page', function () {
 
     $institution->members()->syncWithoutDetaching([$adminUser->id => ['role' => 'admin']]);
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-    $institutionScope = app(MemberRoleScopes::class)->institution();
-
     $institutionEditUrl = route('contributions.suggest-update', [
         'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
         'subjectId' => $institution->slug,
@@ -1236,10 +1212,6 @@ it('does not show the institution edit link to institution viewers', function ()
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     $institution->members()->syncWithoutDetaching([$viewerUser->id => ['role' => 'viewer']]);
-
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-    $institutionScope = app(MemberRoleScopes::class)->institution();
 
     $this->actingAs($viewerUser)
         ->get(route('dashboard.institutions', ['institution' => $institution->id]))

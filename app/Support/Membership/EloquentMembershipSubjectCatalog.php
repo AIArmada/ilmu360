@@ -16,12 +16,12 @@ use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Interim membership subject catalog.
+ * Membership subject catalog root adapter.
  *
  * Directory records resolve through the Directory public reader, organizations
  * through the Organizations access boundary and events through their registered
- * morph alias. This file intentionally imports no App\Models classes so M1 can
- * move it into the Membership feature without a rewrite.
+ * morph alias. The catalog contract stays in Shared while this implementation
+ * stays at the root adapter, so it intentionally imports no App\Models classes.
  */
 final readonly class EloquentMembershipSubjectCatalog implements MembershipSubjectCatalog
 {
