@@ -5,7 +5,7 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `6dc86a78` — Directory S3 references ownership (Ember AGREE). Previous: `afd9ba04` — S2 persons.
+- Latest accepted implementation checkpoint `0af69631` — Directory S4 venues/spaces ownership (Ember AGREE). Previous: `6dc86a78` — S3 references.
 - Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Directory S0): arch 0/**9 features**; DirectorySeams 10/10 + affected batch 41/41 green; Pint clean; PHPStan 6 + ownership 0 errors; routes identical. Per-slice D1 logs in history.
@@ -43,7 +43,7 @@
 - [x] Inspirations: app-owned table, Save action, Filament via named actions, reader/card + admin contract, public endpoint, feature routes + provider (done `8ac9d8b8`, mutually agreed; dormant `last_state_change_at` preserved).
 - [x] Identity/accounts: I0–I6 done (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes, reverse-relation migration, transport cutover); `User` conventional with auth scaffolding only.
 - [x] Platform/shared seams: D1-A/C/M/R/T/S + P1/P2/P3 landed (addressing canonicalization, cache primitives, media fold, routing registry, telemetry recorder, search dispatcher, API responses, auth placement, timezone). Remaining: Directory D1 move.
-- [ ] Directory: S0 + S0b + S1 + S2 + S3 landed. Next S4 venues/spaces → S5 bridges → S6a donation channels (if not folded) / S6b languages as shared catalog.
+- [ ] Directory: S0-S4 landed. Next S5 bridges (institution_venue, institution_space) → S6a donation channels (if not folded) / S6b languages as shared catalog.
 - [ ] Organizations: current-owner context, workspace, readiness/access contracts; package remains canonical persistence owner.
 - [ ] Membership: applications/invitations and institution/person/reference/event membership pivots, roles and atomic ownership transfer.
 - [ ] Events authoring/submission/scheduling: events, occurrences/sessions, series/items, classifications, involvements, references, lifecycle and slugs.
