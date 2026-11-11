@@ -36,8 +36,12 @@ use App\Shared\Membership\MembershipDirectory;
  * reviewer review orchestration and owner-context handling listed in
  * feature.json.
  *
- * Invitation package writers remain external until their own M slices claim
- * that table.
+ * Invitations are claimed by this feature for the app-side writer
+ * InviteSubjectMember (raw token plus the app-only invitation email) and the
+ * acceptance guards. The package InviteMemberAction, AcceptInvitationAction and
+ * RevokeInvitationAction remain canonical external writers for package-driven
+ * flows and intentionally do not send the app invitation email (recorded
+ * invitation-email asymmetry).
  */
 final class FeatureServiceProvider extends FeatureModule
 {

@@ -27,6 +27,8 @@ use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Shared\Membership\MembershipSubjectType;
 use App\Support\Membership\EloquentMembershipSubjectCatalog;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 it('binds the membership seams to feature services and the subject catalog to its root adapter', function (): void {
     expect(app(MembershipDirectory::class))->toBeInstanceOf(MembershipDirectoryService::class)
@@ -267,4 +269,52 @@ it('submits, cancels and discards applications through the feature boundary', fu
     $applications->discard($submitted->application->id);
 
     expect($applications->find($submitted->application->id))->toBeNull();
+});
+
+it('writes the invitation lifecycle through the invitation boundary', function (): void {
+    Notification::fake();
+
+    $inviter = User::factory()->create();
+    $invitee = User::factory()->create(['email' => 'boundary-invitee@example.com']);
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $invitations = app(MembershipInvitations::class);
+    $institutionId = (string) $institution->getKey();
+
+    $invited = $invitations->invite(
+        MembershipSubjectType::Institution,
+        $institutionId,
+        'Boundary-Invitee@example.com',
+        'admin',
+        (string) $inviter->getKey(),
+    );
+
+    expect($invited->email)->toBe('boundary-invitee@example.com')
+        ->and($invited->role)->toBe('admin')
+        ->and($invited->isValid)->toBeTrue()
+        ->and($invitations->pendingExistsForEmail(MembershipSubjectType::Institution, $institutionId, 'BOUNDARY-INVITEE@example.com'))->toBeTrue();
+
+    expect(fn () => $invitations->invite(
+        MembershipSubjectType::Institution,
+        $institutionId,
+        'boundary-invitee@example.com',
+        'viewer',
+        (string) $inviter->getKey(),
+    ))->toThrow(ValidationException::class);
+
+    $accepted = $invitations->accept($invited->id, (string) $invitee->getKey());
+
+    expect($accepted->status)->toBe('accepted')
+        ->and($institution->members()->whereKey($invitee->getKey())->exists())->toBeTrue();
+
+    $pending = $invitations->invite(
+        MembershipSubjectType::Institution,
+        $institutionId,
+        'revoked-invitee@example.com',
+        'viewer',
+        (string) $inviter->getKey(),
+    );
+
+    $invitations->revoke($pending->id, (string) $inviter->getKey());
+
+    expect($invitations->find($pending->id)?->status)->toBe('revoked');
 });

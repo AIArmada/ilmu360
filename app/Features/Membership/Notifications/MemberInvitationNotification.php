@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Notifications\Membership;
+namespace App\Features\Membership\Notifications;
 
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;

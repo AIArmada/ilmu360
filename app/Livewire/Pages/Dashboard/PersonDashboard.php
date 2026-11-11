@@ -6,14 +6,10 @@ namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
-use AIArmada\Membership\Actions\RevokeInvitationAction;
-use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Membership\InviteSubjectMember;
-use App\Enums\MemberSubjectType;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MembershipInvitations;
 use App\Models\Event;
-use App\Models\MemberInvitation;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
@@ -95,7 +91,7 @@ final class PersonDashboard extends Component
         $this->resetPage('person_events_page');
     }
 
-    public function invite(InviteSubjectMember $inviteSubjectMember): void
+    public function invite(MembershipInvitations $membershipInvitations): void
     {
         $person = $this->selectedPerson();
         $user = $this->currentUser();
@@ -114,25 +110,12 @@ final class PersonDashboard extends Component
             ]);
         }
 
-        $pendingInvitationExists = $this->invitationQuery($person)
-            ->where('email', $email)
-            ->where('status', InvitationStatus::Pending->value)
-            ->where(function (Builder $query): void {
-                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->exists();
-
-        if ($pendingInvitationExists) {
-            throw ValidationException::withMessages([
-                'inviteEmail' => __('There is already a pending invitation for this email address.'),
-            ]);
-        }
-
-        $inviteSubjectMember->handle(
-            $person,
+        $membershipInvitations->invite(
+            MembershipSubjectType::Person,
+            (string) $person->getKey(),
             $email,
             (string) $validated['inviteRole'],
-            $user,
+            (string) $user->getKey(),
         );
 
         $this->reset('inviteEmail');
@@ -237,14 +220,22 @@ final class PersonDashboard extends Component
         $this->successToast(__('Member removed successfully.'));
     }
 
-    public function revokeInvitation(string $invitationId, RevokeInvitationAction $revokeInvitation): void
+    public function revokeInvitation(string $invitationId, MembershipInvitations $membershipInvitations): void
     {
         $person = $this->selectedPerson();
         $user = $this->currentUser();
         $this->authorizeManageMembers($person);
 
-        $invitation = $this->invitationQuery($person)->whereKey($invitationId)->firstOrFail();
-        $revokeInvitation->handle($invitation, $user);
+        $invitation = $membershipInvitations->find($invitationId);
+
+        abort_unless(
+            $invitation !== null
+            && $invitation->subjectType === MembershipSubjectType::Person
+            && $invitation->subjectId === (string) $person->getKey(),
+            404,
+        );
+
+        $membershipInvitations->revoke($invitationId, (string) $user->getKey());
 
         $this->successToast(__('Invitation revoked.'));
     }
@@ -277,13 +268,14 @@ final class PersonDashboard extends Component
         return OwnerContext::withOwner($person, fn (): Collection => $person->members()->orderBy('name')->get());
     }
 
-    /** @return Collection<int, MemberInvitation> */
-    public function invitations(): Collection
+    /** @return list<\App\Features\Membership\Api\MembershipInvitationDetail> */
+    public function invitations(): array
     {
-        return $this->invitationQuery($this->selectedPerson())
-            ->latest()
-            ->limit(20)
-            ->get();
+        return app(MembershipInvitations::class)->recentForSubject(
+            MembershipSubjectType::Person,
+            (string) $this->selectedPerson()->getKey(),
+            20,
+        );
     }
 
     /** @return array<string, string> */
@@ -516,14 +508,6 @@ final class PersonDashboard extends Component
         abort_unless($member instanceof User, 404);
 
         return $member;
-    }
-
-    /** @return Builder<MemberInvitation> */
-    private function invitationQuery(Person $person): Builder
-    {
-        return MemberInvitation::query()
-            ->where('subject_type', MemberSubjectType::Person->value)
-            ->where('subject_id', $person->getKey());
     }
 
     private function resetMemberEditor(): void

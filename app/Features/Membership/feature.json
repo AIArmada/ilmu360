@@ -25,6 +25,10 @@
       "App\\Features\\Membership\\Actions\\ApproveMembershipApplicationAction",
       "App\\Features\\Membership\\Actions\\RejectMembershipApplicationAction",
       "App\\Features\\Membership\\Actions\\MembershipAccountStateAction"
+    ],
+    "table:membership_invitations": [
+      "App\\Features\\Membership\\Actions\\InviteSubjectMember",
+      "App\\Features\\Membership\\Actions\\AcceptSubjectMemberInvitation"
     ]
   }
 }

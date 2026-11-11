@@ -4,21 +4,35 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
+use AIArmada\Membership\Actions\RevokeInvitationAction;
 use AIArmada\Membership\Enums\InvitationStatus;
+use AIArmada\Membership\Models\MembershipInvitation;
+use App\Features\Membership\Actions\AcceptSubjectMemberInvitation;
+use App\Features\Membership\Actions\InviteSubjectMember;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use RuntimeException;
 
 /**
- * Read adapter over membership invitations, preserving lazy expiry semantics:
- * an expired pending row is still returned by pending lookups only when its
- * expires_at has not passed.
+ * Membership invitation boundary.
+ *
+ * App-side invitations delegate to the feature invite action (raw token plus
+ * app-only email). Acceptance and revocation delegate to the canonical package
+ * actions, preserving lazy expiry semantics: an expired pending row is still
+ * returned by pending lookups only when its expires_at has not passed.
  */
 final readonly class MembershipInvitationsService implements MembershipInvitations
 {
+    public function __construct(
+        private InviteSubjectMember $inviteSubjectMember,
+        private AcceptSubjectMemberInvitation $acceptSubjectMemberInvitation,
+        private RevokeInvitationAction $revokeInvitation,
+    ) {}
+
     public function find(string $invitationId): ?MembershipInvitationDetail
     {
         $invitation = $this->query()->find($invitationId);
@@ -74,6 +88,62 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
         return $this->pendingQuery($subjectType, $subjectId)
             ->where('email', mb_strtolower(mb_trim($email)))
             ->exists();
+    }
+
+    public function invite(
+        MembershipSubjectType $subjectType,
+        string $subjectId,
+        string $email,
+        string $role,
+        string $inviterId,
+    ): MembershipInvitationDetail {
+        return MembershipValueMapper::invitation($this->inviteSubjectMember->handle(
+            $this->subject($subjectType, $subjectId),
+            $email,
+            $role,
+            $this->account($inviterId),
+        ));
+    }
+
+    public function accept(string $invitationId, string $accountId): MembershipInvitationDetail
+    {
+        $invitation = $this->query()->findOrFail($invitationId);
+
+        if (! $invitation instanceof MembershipInvitation) {
+            throw new RuntimeException('The member invitation model must extend the package invitation.');
+        }
+
+        $this->acceptSubjectMemberInvitation->handle(
+            $invitation,
+            $this->account($accountId),
+        );
+
+        return MembershipValueMapper::invitation($this->query()->findOrFail($invitationId));
+    }
+
+    public function revoke(string $invitationId, string $actorId): void
+    {
+        $invitation = $this->query()->findOrFail($invitationId);
+
+        if (! $invitation instanceof MembershipInvitation) {
+            throw new RuntimeException('The member invitation model must extend the package invitation.');
+        }
+
+        $this->revokeInvitation->handle($invitation, $this->account($actorId));
+    }
+
+    private function subject(MembershipSubjectType $subjectType, string $subjectId): Model
+    {
+        $modelClass = MorphModelResolver::resolve($subjectType->value);
+
+        return $modelClass::query()->findOrFail($subjectId);
+    }
+
+    private function account(string $accountId): Model
+    {
+        $modelClass = MorphModelResolver::resolve('user');
+
+        return $modelClass::query()->findOrFail($accountId);
     }
 
     /**

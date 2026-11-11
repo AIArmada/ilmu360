@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Membership\Actions\RevokeInvitationAction;
-use App\Actions\Membership\AcceptSubjectMemberInvitation;
-use App\Actions\Membership\InviteSubjectMember;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Actions\AcceptSubjectMemberInvitation;
+use App\Features\Membership\Actions\InviteSubjectMember;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
 use App\Models\User;
@@ -215,4 +215,29 @@ it('rejects acceptance when the invited subject no longer exists', function () {
 
     expect(fn () => app(AcceptSubjectMemberInvitation::class)->handle($invitation->fresh() ?? $invitation, $invitee))
         ->toThrow(ValidationException::class);
+});
+
+it('rejects a duplicate pending invitation for the same subject and email', function () {
+    $institution = Institution::factory()->create();
+    $inviter = User::factory()->create();
+
+    app(InviteSubjectMember::class)->handle(
+        $institution,
+        'invitee@example.com',
+        'viewer',
+        $inviter,
+        now()->addWeek(),
+    );
+
+    expect(fn () => app(InviteSubjectMember::class)->handle(
+        $institution,
+        'INVITEE@example.com',
+        'admin',
+        $inviter,
+        now()->addWeek(),
+    ))->toThrow(ValidationException::class);
+
+    expect(MemberInvitation::query()
+        ->where('subject_id', $institution->getKey())
+        ->count())->toBe(1);
 });

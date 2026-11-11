@@ -2,11 +2,10 @@
 
 namespace App\Livewire\Pages\Membership;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Membership\Actions\AcceptInvitationAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipInvitations;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
@@ -15,6 +14,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -84,7 +84,7 @@ class ShowInvitation extends Component
         return $this->resolveAcceptanceError() === null;
     }
 
-    public function accept(AcceptInvitationAction $acceptInvitationAction): void
+    public function accept(MembershipInvitations $membershipInvitations): void
     {
         /** @var User $user */
         $user = auth()->user();
@@ -98,10 +98,11 @@ class ShowInvitation extends Component
         }
 
         try {
-            OwnerContext::withOwner(null, fn (): null => $acceptInvitationAction->handle(
-                $this->invitation->fresh() ?? $this->invitation,
-                $user,
-            ));
+            $membershipInvitations->accept((string) $this->invitation->getKey(), (string) $user->getKey());
+        } catch (ValidationException $exception) {
+            $this->errorToast((string) (collect($exception->errors())->flatten()->first() ?: __('This invitation is no longer valid.')));
+
+            return;
         } catch (RuntimeException) {
             $this->errorToast(__('This invitation is no longer valid.'));
 

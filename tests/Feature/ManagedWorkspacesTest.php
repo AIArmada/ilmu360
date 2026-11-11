@@ -25,7 +25,7 @@ use App\Models\MemberInvitation;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use App\Notifications\Membership\MemberInvitationNotification;
+use App\Features\Membership\Notifications\MemberInvitationNotification;
 use App\Support\Api\Member\MemberResourceRegistry;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Authz\ScopedMemberRoleSeeder;

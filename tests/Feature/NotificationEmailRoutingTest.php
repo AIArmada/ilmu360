@@ -12,7 +12,7 @@ use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Auth\WelcomeNotification;
 use App\Notifications\EventEscalationNotification;
 use App\Notifications\EventSubmittedNotification;
-use App\Notifications\Membership\MemberInvitationNotification;
+use App\Features\Membership\Notifications\MemberInvitationNotification;
 use App\Services\Notifications\NotificationSettingsManager;
 use App\Support\Communications\AccountCommunications;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -3,10 +3,10 @@
 namespace App\Filament\RelationManagers;
 
 use AIArmada\Membership\Actions\InviteMemberAction;
-use AIArmada\Membership\Actions\RevokeInvitationAction;
 use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipInvitations;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
@@ -116,7 +116,10 @@ abstract class MemberInvitationsRelationManager extends RelationManager
                         /** @var User $user */
                         $user = auth()->user();
 
-                        app(RevokeInvitationAction::class)->handle($record, $user);
+                        app(MembershipInvitations::class)->revoke(
+                            (string) $record->getKey(),
+                            (string) $user->getKey(),
+                        );
                     }),
             ]);
     }

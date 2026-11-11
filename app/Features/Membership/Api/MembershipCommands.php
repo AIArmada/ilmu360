@@ -7,12 +7,11 @@ namespace App\Features\Membership\Api;
 use App\Shared\Membership\MembershipSubjectType;
 
 /**
- * Write boundary for membership rows and invitation lifecycle.
+ * Write boundary for membership rows.
  *
  * Implementations resolve scalar identifiers to the owning models and delegate
- * role mutations to the canonical package actions. Application submission and
- * review stay in MembershipApplications until the invitations and lifecycle
- * slices move their remaining writers.
+ * role mutations to the canonical package actions. Invitation lifecycle writes
+ * belong to MembershipInvitations.
  */
 interface MembershipCommands
 {
@@ -55,16 +54,4 @@ interface MembershipCommands
         string $actorId,
         string $newOwnerId,
     ): void;
-
-    public function invite(
-        MembershipSubjectType $subjectType,
-        string $subjectId,
-        string $email,
-        string $role,
-        string $inviterId,
-    ): MembershipInvitationDetail;
-
-    public function revokeInvitation(string $invitationId, string $actorId): void;
-
-    public function acceptInvitation(string $rawToken, string $accountId): void;
 }

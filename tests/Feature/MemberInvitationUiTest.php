@@ -15,6 +15,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
@@ -59,12 +60,16 @@ it('lets institution admins create and revoke institution member invitations fro
     expect(app(MemberInvitationGate::class)->canInvite($administrator, $institution))
         ->toBeTrue();
 
+    Notification::fake();
+
     $invitation = app(InviteMemberAction::class)->handle(
         $institution,
         'invitee@example.com',
         MemberRole::Admin,
         $administrator,
     );
+
+    Notification::assertNothingSent();
 
     expect($invitation)->not->toBeNull()
         ->and($invitation?->subject_id)->toBe($institution->getKey())

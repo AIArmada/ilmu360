@@ -8,7 +8,6 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
-use App\Actions\Membership\InviteSubjectMember;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
@@ -63,7 +62,6 @@ final class Workspace extends Component
     }
 
     public function invite(
-        InviteSubjectMember $inviteSubjectMember,
         MembershipInvitations $membershipInvitations,
     ): void {
         $organization = $this->selectedOrganization();
@@ -83,25 +81,12 @@ final class Workspace extends Component
             ]);
         }
 
-        if ($membershipInvitations->pendingExistsForEmail(
+        $membershipInvitations->invite(
             MembershipSubjectType::Organization,
             (string) $organization->getKey(),
             $email,
-        )) {
-            throw ValidationException::withMessages([
-                'inviteEmail' => __('There is already a pending invitation for this email address.'),
-            ]);
-        }
-
-        // Invitation creation stays on the application inviter: it is the
-        // canonical writer for the raw token and the member invitation email.
-        // MembershipCommands::invite wraps the package writer without that
-        // notification (recorded invitation-email asymmetry for M4).
-        $inviteSubjectMember->handle(
-            $organization,
-            $email,
             (string) $validated['inviteRole'],
-            $user,
+            (string) $user->getKey(),
         );
 
         $this->reset('inviteEmail');
@@ -202,7 +187,6 @@ final class Workspace extends Component
 
     public function revokeInvitation(
         string $invitationId,
-        MembershipCommands $membershipCommands,
         MembershipInvitations $membershipInvitations,
     ): void {
         $organization = $this->selectedOrganization();
@@ -218,7 +202,7 @@ final class Workspace extends Component
             404,
         );
 
-        $membershipCommands->revokeInvitation($invitationId, (string) $user->getKey());
+        $membershipInvitations->revoke($invitationId, (string) $user->getKey());
 
         $this->successToast(__('Invitation revoked.'));
     }

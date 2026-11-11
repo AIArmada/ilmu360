@@ -2,14 +2,18 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Membership;
+namespace App\Features\Membership\Actions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\AcceptInvitationAction;
-use App\Models\MemberInvitation;
-use App\Models\User;
+use AIArmada\Membership\Models\MembershipInvitation;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
+/**
+ * App-side invitation acceptance guards around the canonical package action.
+ */
 final readonly class AcceptSubjectMemberInvitation
 {
     use AsAction;
@@ -18,7 +22,7 @@ final readonly class AcceptSubjectMemberInvitation
         private AcceptInvitationAction $acceptInvitation,
     ) {}
 
-    public function handle(MemberInvitation $invitation, User $invitee): void
+    public function handle(MembershipInvitation $invitation, Model $invitee): void
     {
         if ($invitation->isExpired()) {
             throw ValidationException::withMessages(['invitation' => 'This invitation has expired.']);
@@ -32,7 +36,11 @@ final readonly class AcceptSubjectMemberInvitation
             throw ValidationException::withMessages(['invitation' => 'This invitation has been revoked.']);
         }
 
-        if ($invitee->getEmailForVerification() === null) {
+        $inviteeEmail = method_exists($invitee, 'getEmailForVerification')
+            ? $invitee->getEmailForVerification()
+            : $invitee->getAttribute('email');
+
+        if (! is_string($inviteeEmail) || mb_trim($inviteeEmail) === '') {
             throw ValidationException::withMessages(['email' => 'User does not have an email address.']);
         }
 
@@ -46,6 +54,6 @@ final readonly class AcceptSubjectMemberInvitation
             throw ValidationException::withMessages(['role' => 'Ownership invitations cannot be accepted through the standard flow.']);
         }
 
-        $this->acceptInvitation->handle($invitation, $invitee);
+        OwnerContext::withOwner(null, fn (): mixed => $this->acceptInvitation->handle($invitation, $invitee));
     }
 }

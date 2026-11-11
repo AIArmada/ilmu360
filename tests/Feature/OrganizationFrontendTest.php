@@ -16,7 +16,7 @@ use App\Livewire\Pages\Membership\ShowInvitation;
 use App\Models\Event;
 use App\Models\MemberInvitation;
 use App\Models\User;
-use App\Notifications\Membership\MemberInvitationNotification;
+use App\Features\Membership\Notifications\MemberInvitationNotification;
 use App\Support\Api\Member\MemberResourceRegistry;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
