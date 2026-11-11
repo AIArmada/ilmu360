@@ -42,7 +42,15 @@ use App\Platform\Search\ResourceSearchAdapter;
  * Directory owns institutions, speakers, references, venues, spaces and their
  * shared contacts, addresses, names and relations.
  *
- * Write ownership is enforced through the Actions listed in feature.json.
+ * Most writes go through the Actions listed in feature.json. Root writers
+ * still remain, so write enforcement is not complete:
+ *
+ * - `EloquentDirectoryCommands::delete()` falls through to `$record->delete()`
+ *   for institution and donation-channel records; the other record types
+ *   delegate to their feature actions.
+ * - `DirectoryAccountLifecycleContributor` updates `verified_by` directly on
+ *   references and venues when detaching or restoring an account.
+ *
  * Legacy root models/readers remain in place until their consuming slices
  * (Events, Contributions, Discovery) move behind the Directory Api.
  */

@@ -55,20 +55,35 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  *   only app-side writer is that root action).
  * - root Event model: booted saved/deleting hooks delegate projections,
  *   audiences, languages, locations, organizer writes and deletion cleanup
- *   to feature actions. The `deleted` hook keeps the vendor
- *   EventDeleteCascade for the remaining event-scoped package tables.
- *   Deletion cleanup deliberately excludes share-outcome reversal,
- *   contribution mapping, registration cascade changes and engagement-counter
- *   updates; those stay with their own feature migrations.
+ *   to feature actions. CleanupEventAction deletes registrations and
+ *   check-ins itself because the vendor EventDeleteCascade cannot see them
+ *   after the event row is gone: the cascade runs from the `deleted` hook and
+ *   its owner-scoped child queries filter through `whereHas('event')`, so they
+ *   match no rows. The `deleted` hook keeps the vendor EventDeleteCascade for
+ *   the remaining event-scoped package tables. Deletion cleanup deliberately
+ *   excludes share-outcome reversal, contribution mapping, registration
+ *   cascade changes and engagement-counter updates; those stay with their own
+ *   feature migrations.
  * - event_taxonomies/event_terms are created by the package synchronizer that
- *   SyncEventClassificationsAction invokes.
+ *   SyncEventClassificationsAction invokes, and are also written by the
+ *   contribution event form (pending-tag creation in
+ *   EventContributionFormSchema) and the EventTerm domain-mapping admin
+ *   extension.
  * - admission setup (registration/pricing modes, access policy, occurrence
  *   ticket types and optional seating) is written by
- *   ConfigureEventAdmissionAction. Ticket, seating and occurrence tables stay
- *   package-canonical and unclaimed.
- * - vendor Filament event resources (until E4) and events package cascades
- *   remain external writers for series; app-owned series authoring and
- *   deletion go through the SeriesAuthoring boundary.
+ *   ConfigureEventAdmissionAction, which also writes the event/occurrence
+ *   admission flags. Ticket, seating and occurrence tables stay unclaimed in
+ *   feature.json, but they are package-written rather than app-owned:
+ *   ConfigureEventAdmissionAction writes the occurrence admission flags, and
+ *   vendor package actions, Filament pages and the schedule/submission actions
+ *   write the remaining rows.
+ * - vendor Filament event, term, registration and attendance surfaces
+ *   (resources and the check-in console) remain external writers for events,
+ *   event_taxonomies/event_terms, event_registrations and
+ *   event_attendances/event_attendance_logs until the admin composition cuts
+ *   over. Vendor Filament event resources (until E4) and events package
+ *   cascades also remain external writers for series; app-owned series
+ *   authoring and deletion go through the SeriesAuthoring boundary.
  * - the E4a schedule workspace writes occurrences/sessions through
  *   Actions/Schedule (SaveOccurrenceAction, SaveSessionAction), but
  *   `event_occurrences`/`event_sessions` stay unclaimed in feature.json: vendor

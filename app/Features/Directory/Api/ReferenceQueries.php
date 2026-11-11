@@ -14,16 +14,8 @@ namespace App\Features\Directory\Api;
  */
 interface ReferenceQueries
 {
-    /**
-     * @param  \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model>|\Illuminate\Database\Query\Builder  $query
-     * @return \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model>|\Illuminate\Database\Query\Builder
-     */
     public function applyPublicVisibility(mixed $query, ?string $table = null): mixed;
 
-    /**
-     * @param  \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model>
-     */
     public function constrainEventReferenceSubtree(mixed $query, string $referenceIdColumn = 'references.id'): mixed;
 
     /**

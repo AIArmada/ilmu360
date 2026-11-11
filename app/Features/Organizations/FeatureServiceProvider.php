@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Organizations;
 
-use AIArmada\Organizations\Contracts\CurrentOrganizationResolver as CurrentOrganizationResolverContract;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Features\Organizations\Api\OrganizationWorkspace;
@@ -36,7 +35,6 @@ final class FeatureServiceProvider extends FeatureModule
         $this->app->bind(OrganizationAccess::class, OrganizationAccessService::class);
         $this->app->bind(OrganizationWorkspace::class, OrganizationWorkspaceService::class);
         $this->app->bind(OrganizationCommands::class, OrganizationCommandsService::class);
-        $this->app->singleton(CurrentOrganizationResolverContract::class, CurrentOrganizationResolver::class);
         config(['organizations.resolver' => CurrentOrganizationResolver::class]);
     }
 }

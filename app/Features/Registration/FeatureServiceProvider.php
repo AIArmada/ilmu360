@@ -49,20 +49,37 @@ use App\Platform\FeatureModule;
  * registration externally). Orders, payments, passes and seating stay
  * package-canonical and unclaimed.
  *
- * The following writers remain root/package-owned and are recorded for the
- * later migration slices:
+ * The following root/package writers remain and are recorded for the later
+ * migration slices:
  *
+ * - root Livewire\Pages\Events\Checkout writes `event_registrations.metadata`
+ *   (the `event_checkout` batch/agreement data) after the free-admission
+ *   registration action returns.
+ * - App\Support\Events\EventsAccountLifecycleContributor rewrites
+ *   event_registrations registrant links, event_attendances attendee links and
+ *   event check-in verifier links during account deletion/restoration, and
+ *   recreates rows captured by legacy snapshots.
  * - root Registration model: booted() repeats the vendor cascade and deletes
  *   check-in rows on a direct registration delete. The vendor cascade runs
  *   from the registration `deleting` hook and does remove participants,
  *   answers, items and attendances for direct deletes, but root keeps the
  *   hook until R6 verifies every delete path and the participant-only
  *   attendance edge.
- * - the dashboard registration-questions workspace is a Registration entry
- *   point that delegates question writes to the package actions; admission
- *   setup remains Events-owned. Paid checkout orchestration, registration
- *   exports and the vendor Filament attendance console remain deferred to
- *   R4-R6.
+ * - vendor Filament registration/attendance surfaces: the registration
+ *   resource importer (EventRegistrationImporter) and the check-in console
+ *   (CheckInConsole) write registrations and attendance outside the feature
+ *   actions.
+ * - package CreateRegistrationsFromOrderAction (invoked by
+ *   IssueOfflineAdmissionAction) and IssueEventRegistrationPassesAction
+ *   (invoked by the offline issuance/confirmation actions) remain the
+ *   canonical writers for registration and pass rows created from orders.
+ *
+ * The dashboard registration-questions workspace is a Registration entry
+ * point that delegates question writes to the package actions; admission
+ * setup remains Events-owned. Pending slices: R4 paid checkout orchestration
+ * and refunds, R5 reads/exports/account lifecycle, R6 cleanup and delete-path
+ * consolidation. Registration exports and the vendor Filament attendance
+ * console also remain deferred to those slices.
  */
 class FeatureServiceProvider extends FeatureModule
 {
