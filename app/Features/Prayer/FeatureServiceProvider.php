@@ -7,6 +7,8 @@ namespace App\Features\Prayer;
 use App\Features\Prayer\EntryPoints\Commands\PrayerStatsCommand;
 use App\Features\Prayer\EntryPoints\Commands\PrefetchPrayerTimes;
 use App\Platform\FeatureModule;
+use App\Shared\Prayer\BuildPrayerPreviewAction;
+use App\Shared\Prayer\RamadanGate;
 use Illuminate\Support\Facades\Schedule;
 
 class FeatureServiceProvider extends FeatureModule
@@ -15,13 +17,14 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->mergeConfigFrom(__DIR__.'/Config/prayer.php', 'prayer');
 
-        foreach (['BuildPrayerPreviewAction', 'ResolvePrayerAnchorAction', 'ResolvePrayerStartClockAction'] as $action) {
+        $this->app->bind(BuildPrayerPreviewAction::class, __NAMESPACE__.'\\Actions\\BuildPrayerPreviewAction');
+
+        foreach (['ResolvePrayerAnchorAction', 'ResolvePrayerStartClockAction'] as $action) {
             $this->app->bind(__NAMESPACE__.'\\Api\\'.$action, __NAMESPACE__.'\\Actions\\'.$action);
         }
 
-        foreach (['PrayerProviderRegistry', 'RamadanGate'] as $service) {
-            $this->app->bind(__NAMESPACE__.'\\Api\\'.$service, __NAMESPACE__.'\\Services\\'.$service);
-        }
+        $this->app->bind(RamadanGate::class, __NAMESPACE__.'\\Services\\RamadanGate');
+        $this->app->bind(__NAMESPACE__.'\\Api\\PrayerProviderRegistry', __NAMESPACE__.'\\Services\\PrayerProviderRegistry');
     }
 
     public function boot(): void

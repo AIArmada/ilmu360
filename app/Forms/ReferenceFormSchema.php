@@ -10,7 +10,7 @@ use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Reference;
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use BackedEnum;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;

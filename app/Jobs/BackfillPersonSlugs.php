@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -18,14 +18,14 @@ class BackfillPersonSlugs implements ShouldBeUnique, ShouldQueue
     public int $uniqueFor = 3600;
 
     public function handle(
-        GenerateEventSlugAction $generateEventSlugAction,
+        EventAuthoring $eventAuthoring,
         PersonWorkflow $personWorkflow,
         PublicListingsCache $publicListingsCache,
     ): void {
         $updatedPersonIds = $personWorkflow->backfillSlugs();
 
         foreach (array_values(array_unique($updatedPersonIds)) as $personId) {
-            $generateEventSlugAction->syncEventSlugsForPersonId($personId);
+            $eventAuthoring->syncEventSlugsForPersonId($personId);
         }
 
         $publicListingsCache->bustMajlisListing();

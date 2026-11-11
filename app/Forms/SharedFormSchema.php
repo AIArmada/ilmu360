@@ -25,7 +25,7 @@ use App\Platform\Addressing\AddressAreaRoles;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\LocationLevelLabels;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Location\LocationSlugResolver;
 use Closure;
 use Filament\Forms\Components\Hidden;

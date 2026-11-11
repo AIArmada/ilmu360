@@ -12,7 +12,7 @@
     use AIArmada\Events\Models\EventTerm;
     use App\Models\Venue;
     use AIArmada\Addressing\Support\AddressCountryResolver;
-    use App\Support\Submission\SubmissionTimingPolicy;
+    use App\Shared\Submission\SubmissionTimingPolicy;
     use Illuminate\Support\Carbon;
     use Illuminate\Support\Collection;
     use Illuminate\Support\Str;

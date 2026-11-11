@@ -13,7 +13,7 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Events\OrganizerResolver;
+use App\Shared\Events\OrganizerResolver;
 use App\Support\Submission\SubmitterContactRules;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

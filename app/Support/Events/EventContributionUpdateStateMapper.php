@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Support\Events;
 
+use App\Features\Events\Api\EventAuthoring;
+use App\Shared\Events\OrganizerResolver;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Prayer\PrayerLocation;
-use App\Support\Prayer\PrayerTargetSelector;
-use App\Support\Submission\SubmissionTimingPolicy;
+use App\Shared\Prayer\PrayerLocation;
+use App\Shared\Prayer\PrayerTargetSelector;
+use App\Shared\Submission\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -46,7 +48,7 @@ class EventContributionUpdateStateMapper
      */
     public static function toHelperState(array $state): array
     {
-        $state = AdminEventTimeMapper::injectFormTimeFields($state);
+        $state = app(EventAuthoring::class)->injectFormTimeFields($state);
 
         return self::injectOrganizerLocationFields($state);
     }
@@ -66,7 +68,7 @@ class EventContributionUpdateStateMapper
             [$state, $provenance, $preservedTiming] = self::injectContributionPrayerResolution($state, $event);
         }
 
-        $state = AdminEventTimeMapper::normalizeForPersistence($state);
+        $state = app(EventAuthoring::class)->normalizeForPersistence($state);
 
         if (($state['starts_at'] ?? null) instanceof CarbonInterface) {
             $state['starts_at'] = $state['starts_at']->toDateTimeString();
@@ -157,7 +159,7 @@ class EventContributionUpdateStateMapper
         }
 
         $prayerTime = EventPrayerTime::tryFrom((string) ($state['prayer_time'] ?? ''));
-        $eventDate = AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $timezone);
+        $eventDate = app(EventAuthoring::class)->normalizeEventDateString($state['event_date'] ?? null, $timezone);
         $location = PrayerLocation::fromAddress($address, $countryIso);
 
         $resolved = $prayerTime instanceof EventPrayerTime && $eventDate !== null
@@ -243,7 +245,7 @@ class EventContributionUpdateStateMapper
             return;
         }
 
-        $eventDate = AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $timezone);
+        $eventDate = app(EventAuthoring::class)->normalizeEventDateString($state['event_date'] ?? null, $timezone);
 
         if ($eventDate === null) {
             return;
@@ -267,7 +269,7 @@ class EventContributionUpdateStateMapper
      */
     private static function contributionTimingUnchanged(array $state, Event $event, string $timezone): bool
     {
-        $record = AdminEventTimeMapper::injectFormTimeFields([
+        $record = app(EventAuthoring::class)->injectFormTimeFields([
             'starts_at' => $event->starts_at?->toISOString(),
             'ends_at' => $event->ends_at?->toISOString(),
             'timezone' => $event->timezone,
@@ -283,8 +285,8 @@ class EventContributionUpdateStateMapper
         $record['primary_organizer_id'] = $event->primaryOrganizerInvolvement?->involveable_id;
 
         if (array_key_exists('event_date', $state)) {
-            $left = AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $timezone);
-            $right = AdminEventTimeMapper::normalizeEventDateString($record['event_date'] ?? null, $timezone);
+            $left = app(EventAuthoring::class)->normalizeEventDateString($state['event_date'] ?? null, $timezone);
+            $right = app(EventAuthoring::class)->normalizeEventDateString($record['event_date'] ?? null, $timezone);
 
             if ($left !== $right) {
                 return false;

@@ -1,5 +1,52 @@
 {
   "schema": 2,
   "name": "Events",
-  "owns": {}
+  "owns": {
+    "table:events": [
+      "App\\Features\\Events\\Actions\\Authoring\\PersistEventAuthoringAction",
+      "App\\Features\\Events\\Actions\\Authoring\\GenerateEventSlugAction",
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
+      "App\\Features\\Events\\Actions\\Scheduling\\SyncEventScheduleAction"
+    ],
+    "table:event_series_items": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction"
+    ],
+    "table:event_taxonomies": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction"
+    ],
+    "table:event_terms": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction"
+    ],
+    "table:event_classifications": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction"
+    ],
+    "table:event_involvements": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventKeyPeopleAction",
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventOrganizerAction"
+    ],
+    "table:event_references": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction"
+    ],
+    "table:event_locations": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventLocationsAction"
+    ],
+    "table:event_time_expressions": [
+      "App\\Features\\Events\\Actions\\Scheduling\\SyncEventScheduleAction"
+    ],
+    "table:event_access_policies": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction"
+    ],
+    "table:event_links": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventProjectionsAction"
+    ],
+    "table:event_audiences": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventProjectionsAction"
+    ],
+    "table:event_audience_profiles": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventProjectionsAction"
+    ],
+    "table:event_languages": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventLanguagesAction"
+    ]
+  }
 }

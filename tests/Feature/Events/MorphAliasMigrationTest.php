@@ -7,7 +7,7 @@ use App\Models\Institution;
 use App\Models\ModerationReview;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Events\OrganizerResolver;
+use App\Shared\Events\OrganizerResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

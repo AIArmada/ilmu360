@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
 use App\Platform\Cache\PublicDirectoryCacheVersion;
@@ -18,7 +18,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     use SyncsCurrentAndPreviousValues;
 
     public function __construct(
-        protected GenerateEventSlugAction $generateEventSlugAction,
+        protected EventAuthoring $eventAuthoring,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache
@@ -27,7 +27,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     public function creating(Event $event): void
     {
         if (blank($event->slug)) {
-            $event->slug = $this->generateEventSlugAction->handle(
+            $event->slug = $this->eventAuthoring->eventSlug(
                 $event->title,
                 $event->starts_at,
                 is_string($event->timezone) ? $event->timezone : null,
@@ -97,7 +97,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
                 $this->syncCurrentAndPreviousString(
                     $event->title,
                     $event->getPrevious()['title'] ?? null,
-                    fn (string $title): bool => $this->generateEventSlugAction->syncEventSlugsForTitle($title),
+                    fn (string $title): bool => $this->eventAuthoring->syncEventSlugsForTitle($title),
                 );
             });
         }
@@ -133,7 +133,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     public function deleted(Event $event): void
     {
         $this->syncSlugRedirectAction->purgeForModel($event);
-        $this->generateEventSlugAction->syncEventSlugsForTitle($event->title);
+        $this->eventAuthoring->syncEventSlugsForTitle($event->title);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
         $this->publicDirectoryCacheVersion->bumpForEvent();

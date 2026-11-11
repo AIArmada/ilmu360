@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Cache;
+namespace App\Shared\Cache;
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;

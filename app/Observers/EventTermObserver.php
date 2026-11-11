@@ -6,7 +6,7 @@ namespace App\Observers;
 
 use AIArmada\Events\Models\EventTerm;
 use App\Platform\Cache\PublicListingsCache;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 final readonly class EventTermObserver implements ShouldHandleEventsAfterCommit

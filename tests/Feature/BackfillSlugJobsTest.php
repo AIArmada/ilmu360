@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Jobs\BackfillEventSlugs;
 use App\Jobs\BackfillReferenceSlugs;
 use App\Jobs\BackfillVenueSlugs;
@@ -25,7 +25,7 @@ it('backfills event slugs', function () {
     ]);
 
     app(BackfillEventSlugs::class)->handle(
-        app(GenerateEventSlugAction::class),
+        app(EventAuthoring::class),
         app(PublicListingsCache::class),
     );
 
@@ -41,7 +41,7 @@ it('updates event slug from a legacy value to the generated format', function ()
     ]);
 
     app(BackfillEventSlugs::class)->handle(
-        app(GenerateEventSlugAction::class),
+        app(EventAuthoring::class),
         app(PublicListingsCache::class),
     );
 

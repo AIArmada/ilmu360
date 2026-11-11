@@ -10,7 +10,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Institution;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
-use App\Support\Prayer\PrayerLocation;
+use App\Shared\Prayer\PrayerLocation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;

@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -21,7 +21,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Platform\Cache\PublicListingsCache;
 use App\Services\ContributionEntityMutationService;
-use App\Services\EventKeyPersonSyncService;
+use App\Features\Events\Services\EventKeyPersonSyncService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

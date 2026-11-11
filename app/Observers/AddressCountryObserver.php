@@ -9,7 +9,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Platform\Cache\PublicDirectoryCacheVersion;
 use App\Platform\Cache\PublicListingsCache;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
 

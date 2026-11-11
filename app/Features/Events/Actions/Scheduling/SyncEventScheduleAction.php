@@ -1,16 +1,15 @@
 <?php
 
-namespace App\Actions\Events\Scheduling;
+namespace App\Features\Events\Actions\Scheduling;
 
 use AIArmada\Events\Actions\SyncPrimaryEventOccurrenceAction;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Shared\Events\Enums\TimingMode;
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
-use App\Models\Event;
-use App\Services\PrayerTimeExpressionResolver;
-use App\Support\Events\AdminEventTimeMapper;
+use App\Shared\Prayer\HardcodedPrayerFallback;
+use App\Features\Events\Support\AdminEventTimeMapper;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -28,7 +27,7 @@ final readonly class SyncEventScheduleAction
     ) {}
 
     public function execute(
-        Event $event,
+        PackageEvent $event,
         ScheduleKind $scheduleKind,
         ?CarbonInterface $startsAt = null,
         ?CarbonInterface $endsAt = null,
@@ -83,7 +82,7 @@ final readonly class SyncEventScheduleAction
                         'relation' => $offsetMinutes < 0 ? 'before' : 'after',
                         'offset_minutes' => abs($offsetMinutes),
                         'display_label' => $prayerDisplayText,
-                        'resolver_class' => PrayerTimeExpressionResolver::class,
+                        'resolver_class' => (string) config('events.prayer.resolver_class'),
                     ],
                 );
 

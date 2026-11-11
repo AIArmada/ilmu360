@@ -10,7 +10,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Submission\SubmissionTimingPolicy;
+use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Support\Submission\SubmitEventPrefill;
 use Carbon\Carbon;
 use Database\Seeders\AIArmada\EventRoleSeeder;

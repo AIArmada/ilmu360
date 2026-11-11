@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Submission;
 
+use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -11,6 +12,7 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\EventSubmissionFormSchema;
+use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
@@ -18,7 +20,6 @@ use App\Models\Person;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Support\MorphAlias;
-use App\Support\Events\AdminEventTimeMapper;
 use BackedEnum;
 use Carbon\CarbonInterface;
 
@@ -281,7 +282,7 @@ final class SubmitEventPrefill
                 && $expression->event_session_id === null)
             ?->metadata['prayer']['prayer_date'] ?? null;
 
-        return AdminEventTimeMapper::normalizePrayerDateString($prayerDate);
+        return app(EventAuthoring::class)->normalizePrayerDateString($prayerDate);
     }
 
     private static function duplicatePrayerTime(Event $duplicateEvent): EventPrayerTime

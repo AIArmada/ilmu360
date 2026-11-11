@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\Persons\Models\TitleCategory;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 final readonly class TitleCategoryObserver implements ShouldHandleEventsAfterCommit

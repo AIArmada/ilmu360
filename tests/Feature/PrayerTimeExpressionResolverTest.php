@@ -15,7 +15,7 @@ use App\Services\PrayerTimeExpressionResolver;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
-use App\Support\Prayer\PrayerLocation;
+use App\Shared\Prayer\PrayerLocation;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;

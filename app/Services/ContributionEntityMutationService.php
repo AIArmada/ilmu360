@@ -19,10 +19,10 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
-use App\Actions\Events\Authoring\SyncEventClassificationsAction;
-use App\Actions\Events\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventScheduleInput;
 use App\Shared\Events\EventCategoryCatalog;
-use App\Contracts\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -54,7 +54,6 @@ use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Support\MorphAlias;
-use App\Support\Events\AdminEventTimeMapper;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -70,7 +69,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class ContributionEntityMutationService
 {
     public function __construct(
-        private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
+        private readonly EventAuthoring $authoring,
         private readonly AddressCountryResolver $addressingCountryResolver,
         private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
         private readonly EntityRelationSync $entityRelationSync,
@@ -479,7 +478,7 @@ class ContributionEntityMutationService
         $meta = $event->timeExpressions->firstWhere('anchor_type', 'prayer')?->metadata['prayer'] ?? null;
 
         return is_array($meta)
-            ? AdminEventTimeMapper::normalizePrayerDateString($meta['prayer_date'] ?? null)
+            ? $this->authoring->normalizePrayerDateString($meta['prayer_date'] ?? null)
             : null;
     }
 
@@ -590,13 +589,12 @@ class ContributionEntityMutationService
         $currentPrayerMeta = $currentExpression?->metadata['prayer'] ?? null;
         $currentPrayerMeta = is_array($currentPrayerMeta) ? $currentPrayerMeta : [];
 
-        app(SyncEventScheduleAction::class)->execute(
-            event: $event,
-            scheduleKind: $scheduleKind,
-            startsAt: $startsAt,
-            endsAt: $endsAt,
+        $this->authoring->syncEventSchedule((string) $event->getKey(), new EventScheduleInput(
+            scheduleKind: $scheduleKind->value,
+            startsAt: $startsAt?->toIso8601String(),
+            endsAt: $endsAt?->toIso8601String(),
             timezone: $scheduleTimezone,
-            timingMode: $timingMode,
+            timingMode: $timingMode?->value,
             prayerReference: $prayerReference,
             prayerOffset: $prayerOffset,
             prayerDisplayText: array_key_exists('prayer_display_text', $payload)
@@ -625,7 +623,7 @@ class ContributionEntityMutationService
             prayerCountry: array_key_exists('prayer_country', $payload)
                 ? $this->normalizeOptionalString($payload['prayer_country'])
                 : $this->normalizeMetaString($currentPrayerMeta['country'] ?? null),
-        );
+        ));
 
         if (array_key_exists('primary_organizer_id', $payload)) {
             $organizerId = $this->normalizeOptionalString($payload['primary_organizer_id']);
@@ -656,8 +654,8 @@ class ContributionEntityMutationService
             array_key_exists('person_ids', $payload)
             || array_key_exists('other_key_people', $payload)
         ) {
-            $this->eventKeyPersonSyncService->sync(
-                $event,
+            $this->authoring->syncEventKeyPeople(
+                (string) $event->getKey(),
                 $this->normalizeStringArray($payload['person_ids'] ?? []),
                 $this->normalizeKeyPeople($payload['other_key_people'] ?? []),
             );
@@ -670,7 +668,7 @@ class ContributionEntityMutationService
             || array_key_exists('source_tags', $payload)
             || array_key_exists('issue_tags', $payload)
         ) {
-            app(SyncEventClassificationsAction::class)->handle($event, [
+            $this->authoring->syncEventClassifications($event->getMorphClass(), (string) $event->getKey(), [
                 'event_category_ids' => $payload['event_category_ids'] ?? $event->event_category_ids,
                 'domain_tags' => $payload['domain_tags'] ?? [],
                 'discipline_tags' => $payload['discipline_tags'] ?? [],

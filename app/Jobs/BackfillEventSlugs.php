@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -18,15 +18,15 @@ class BackfillEventSlugs implements ShouldBeUnique, ShouldQueue
     public int $uniqueFor = 3600;
 
     public function handle(
-        GenerateEventSlugAction $generateEventSlugAction,
+        EventAuthoring $eventAuthoring,
         PublicListingsCache $publicListingsCache,
     ): void {
         Event::query()
             ->orderBy('title')
             ->orderBy('id')
-            ->chunk(100, function ($events) use ($generateEventSlugAction): void {
+            ->chunk(100, function ($events) use ($eventAuthoring): void {
                 foreach ($events as $event) {
-                    $slug = $generateEventSlugAction->forEvent($event);
+                    $slug = $eventAuthoring->eventSlugForEvent((string) $event->getKey());
 
                     if ($event->slug === $slug) {
                         continue;

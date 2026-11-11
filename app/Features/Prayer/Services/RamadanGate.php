@@ -20,7 +20,7 @@ use Carbon\CarbonInterface;
  * announce different boundaries, and countries without a declaration
  * use the estimate. Pure date math: no HTTP, safe on the submit path.
  */
-final class RamadanGate implements \App\Features\Prayer\Api\RamadanGate
+final class RamadanGate implements \App\Shared\Prayer\RamadanGate
 {
     /**
      * Days from an announced window inside which official data governs.

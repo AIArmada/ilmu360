@@ -21,7 +21,7 @@ use App\Models\Reference;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Services\ShareCards\ShareCardService;
 use App\Shared\Prayer\PrayerOffset;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
 use App\Support\Spaces\SpaceLocationPresenter;

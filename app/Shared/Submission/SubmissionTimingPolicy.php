@@ -2,18 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Submission;
+namespace App\Shared\Submission;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use App\Features\Prayer\Api\BuildPrayerPreviewAction;
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
-use App\Features\Prayer\Api\RamadanGate;
+use App\Shared\Prayer\BuildPrayerPreviewAction;
+use App\Shared\Prayer\HardcodedPrayerFallback;
+use App\Shared\Prayer\RamadanGate;
+use App\Support\Submission\SubmissionContextResolver;
+use App\Support\Submission\SubmissionValues;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Prayer\PrayerLocation;
+use App\Shared\Prayer\PrayerLocation;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Database\Eloquent\Relations\Relation;

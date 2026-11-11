@@ -14,7 +14,7 @@ use App\Services\PrayerTimeExpressionResolver;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Support\Events\AdminEventFormStateBuilder;
+use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Support\Submission\SubmissionContextResolver;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -115,7 +115,8 @@ it('resolves an online event from the organizer institution like frontend submit
 
     expect($expression?->metadata['prayer']['zone'] ?? null)->toBe('JHR02')
         ->and($expression?->metadata['prayer']['institution_id'] ?? null)->toBe((string) $organizer->getKey())
-        ->and($expression?->metadata['prayer']['country'] ?? null)->toBe('MY');
+        ->and($expression?->metadata['prayer']['country'] ?? null)->toBe('MY')
+        ->and($expression?->resolver_class)->toBe(PrayerTimeExpressionResolver::class);
 
     // Frontend submit resolves identical targets through the shared selector.
     [$frontendInstitutionId, $frontendVenueId] = app(SubmissionContextResolver::class)

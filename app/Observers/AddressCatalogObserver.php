@@ -6,7 +6,7 @@ namespace App\Observers;
 
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 final readonly class AddressCatalogObserver implements ShouldHandleEventsAfterCommit

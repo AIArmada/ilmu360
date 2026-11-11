@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Support\Events;
+namespace App\Features\Events\Support;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Enums\ScheduleKind;
 use App\Shared\Events\Enums\EventFormat;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
-use App\Models\Event;
+use AIArmada\Events\Models\Event as PackageEvent;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Prayer\PrayerLocation;
-use App\Support\Prayer\PrayerTargetSelector;
-use App\Support\Submission\SubmissionTimingPolicy;
+use App\Shared\Prayer\PrayerLocation;
+use App\Shared\Prayer\PrayerTargetSelector;
+use App\Shared\Submission\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\Carbon;
 use Illuminate\Support\Carbon as IlluminateCarbon;
@@ -36,7 +36,7 @@ final readonly class AdminEventScheduleResolver
      *     prayer_venue_id: string|null
      * }
      */
-    public function resolve(array $data, array $input, Event $event, bool $creating): array
+    public function resolve(array $data, array $input, PackageEvent $event, bool $creating): array
     {
         $state = $input['state'];
         $recordState = $input['record_state'];
@@ -210,7 +210,7 @@ final readonly class AdminEventScheduleResolver
      *
      * @return array{clock: string, date: string, starts_at: string}
      */
-    private function persistedStartClock(Event $event, string $timezone): array
+    private function persistedStartClock(PackageEvent $event, string $timezone): array
     {
         $startsAt = Carbon::parse($event->starts_at)->setTimezone($timezone);
 
@@ -318,7 +318,7 @@ final readonly class AdminEventScheduleResolver
         return false;
     }
 
-    private function pinnedPrayerCountry(Event $event): ?string
+    private function pinnedPrayerCountry(PackageEvent $event): ?string
     {
         $event->loadMissing('timeExpressions');
 

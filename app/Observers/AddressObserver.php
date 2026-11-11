@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\VenueWorkflow;
@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 class AddressObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        protected GenerateEventSlugAction $generateEventSlugAction,
+        protected EventAuthoring $eventAuthoring,
         protected InstitutionWorkflow $institutionWorkflow,
         protected PersonWorkflow $personWorkflow,
         protected VenueWorkflow $venueWorkflow,
@@ -76,7 +76,7 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
 
             if ($addressable instanceof Person) {
                 $this->personWorkflow->syncSlugsForName($addressable->name);
-                $this->generateEventSlugAction->syncEventSlugsForPersonName($addressable->name);
+                $this->eventAuthoring->syncEventSlugsForPersonName($addressable->name);
                 $this->syncSearchableModel($addressable);
                 $this->publicListingsCache->bustMajlisListing();
 

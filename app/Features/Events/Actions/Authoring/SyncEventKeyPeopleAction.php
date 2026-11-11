@@ -1,31 +1,34 @@
 <?php
 
-namespace App\Services;
+declare(strict_types=1);
+
+namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\Events\Actions\SyncEventInvolvementsAction;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use Illuminate\Database\Eloquent\Model;
 
-class EventKeyPersonSyncService
+/**
+ * Key-person vocabulary adapter over the package involvement synchronizer.
+ *
+ * Identity dedupe lives in SyncEventInvolvementsAction; this action owns the
+ * app vocabulary mapping (speaker shortcut, role filtering, visibility).
+ */
+final readonly class SyncEventKeyPeopleAction
 {
     public function __construct(
-        private readonly SyncEventInvolvementsAction $syncInvolvements,
-        private readonly GenerateEventSlugAction $generateEventSlug,
+        private SyncEventInvolvementsAction $syncInvolvements,
+        private GenerateEventSlugAction $generateEventSlug,
     ) {}
 
     /**
-     * Canonical key-person rows: role_code, involveable_type,
-     * involveable_id, display_name, visibility, notes.
-     *
      * @param  list<string>  $personIds
      * @param  list<array<string, mixed>>  $otherKeyPeople
      */
-    public function sync(Event $event, array $personIds = [], array $otherKeyPeople = []): void
+    public function syncEvent(PackageEvent $event, array $personIds = [], array $otherKeyPeople = []): void
     {
         $this->syncInvolvements->handle($event, $this->normalizeRows($personIds, $otherKeyPeople), $this->managedRoleCodes());
 
@@ -50,7 +53,7 @@ class EventKeyPersonSyncService
         $this->syncInvolvements->handle($occurrence, $this->normalizeRows($personIds, $otherKeyPeople), $this->managedRoleCodes());
     }
 
-    public function syncOccurrenceOrganizer(EventOccurrence $occurrence, Institution|Person $organizer): void
+    public function syncOccurrenceOrganizer(EventOccurrence $occurrence, Model $organizer): void
     {
         $this->syncInvolvements->handle($occurrence, [[
             'role_code' => 'organizer',
@@ -73,10 +76,6 @@ class EventKeyPersonSyncService
     }
 
     /**
-     * App owns vocabulary mapping only (speaker shortcut, role filtering,
-     * visibility normalization). Identity dedupe lives in the generic
-     * SyncEventInvolvementsAction so duplicate rows are handled once.
-     *
      * @param  list<string>  $personIds
      * @param  list<array<string, mixed>>  $otherKeyPeople
      * @return list<array{role_code: string, involveable_type: ?string, involveable_id: ?string, display_name: ?string, visibility: string, status: string, notes: ?string}>

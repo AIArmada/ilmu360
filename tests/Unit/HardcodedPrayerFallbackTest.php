@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Shared\Prayer\EventPrayerTime;
 
 it('covers every non-custom prayer timing with a valid clock', function () {

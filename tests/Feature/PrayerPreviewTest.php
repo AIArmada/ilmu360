@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Features\Prayer\Services\JakimZoneResolver;
 use Illuminate\Support\Facades\Http;

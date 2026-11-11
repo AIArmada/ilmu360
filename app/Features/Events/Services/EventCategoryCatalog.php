@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Features\Events\Services;
 
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Models\EventTerm;
 use App\Shared\Events\EventCategoryCatalog as EventCategoryCatalogContract;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 
 final readonly class EventCategoryCatalog implements EventCategoryCatalogContract
 {

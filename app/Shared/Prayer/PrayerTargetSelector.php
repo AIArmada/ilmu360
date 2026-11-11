@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Prayer;
+namespace App\Shared\Prayer;
 
 use App\Shared\Events\Enums\EventFormat;
 use App\Models\Institution;

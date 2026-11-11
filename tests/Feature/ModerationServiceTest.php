@@ -11,7 +11,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\EventSubmittedNotification;
-use App\Services\EventKeyPersonSyncService;
+use App\Features\Events\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Database\Seeders\AIArmada\EventRoleSeeder;

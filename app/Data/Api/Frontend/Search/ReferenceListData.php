@@ -4,7 +4,7 @@ namespace App\Data\Api\Frontend\Search;
 
 use App\Models\Reference;
 use App\Models\User;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Spatie\LaravelData\Data;
 
 class ReferenceListData extends Data

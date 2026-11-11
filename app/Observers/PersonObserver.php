@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Models\Person;
@@ -22,7 +22,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
     use SyncsCurrentAndPreviousValues;
 
     public function __construct(
-        protected GenerateEventSlugAction $generateEventSlugAction,
+        protected EventAuthoring $eventAuthoring,
         protected PersonWorkflow $personWorkflow,
         protected ReferenceWorkflow $referenceWorkflow,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
@@ -52,7 +52,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
                     $person->name,
                     $person->wasChanged('name') ? ($person->getPrevious()['name'] ?? null) : null,
                     fn (string $name): bool => $this->personWorkflow->syncSlugsForName($name),
-                    fn (string $name): bool => $this->generateEventSlugAction->syncEventSlugsForPersonName($name),
+                    fn (string $name): bool => $this->eventAuthoring->syncEventSlugsForPersonName($name),
                 );
             });
         } elseif ($person->wasChanged('status')) {
@@ -72,8 +72,8 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
     {
         $this->syncSlugRedirectAction->purgeForModel($person);
         $this->personWorkflow->syncSlugsForName($person->name);
-        $this->generateEventSlugAction->syncEventSlugsForPersonId((string) $person->getKey());
-        $this->generateEventSlugAction->syncEventSlugsForPersonName($person->name);
+        $this->eventAuthoring->syncEventSlugsForPersonId((string) $person->getKey());
+        $this->eventAuthoring->syncEventSlugsForPersonName($person->name);
         $this->personSearchService->purgePersonRecord($person);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();

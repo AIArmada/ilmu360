@@ -1,23 +1,23 @@
 <?php
 
-namespace App\Support\Events;
+namespace App\Features\Events\Support;
 
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use AIArmada\Events\Models\Event as PackageEvent;
+use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
-use App\Contracts\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Support\Submission\SubmissionTimingPolicy;
+use App\Shared\Events\OrganizerResolver;
+use App\Shared\Submission\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -29,7 +29,7 @@ use Illuminate\Validation\ValidationException;
  *     venue_id: string|null,
  *     space_ids: list<string>,
  *     organizer_id: string|null,
- *     primary_organizer: Institution|Person|null
+ *     primary_organizer: Model|null
  * }
  */
 final readonly class AdminEventInputPreparer
@@ -45,7 +45,7 @@ final readonly class AdminEventInputPreparer
      * @param  array<string, mixed>  $data
      * @return PreparedAdminEventInput
      */
-    public function prepare(array $data, Event $event, bool $creating): array
+    public function prepare(array $data, PackageEvent $event, bool $creating): array
     {
         $recordState = $creating ? [] : $this->formState->formStateForRecord($event);
         $state = $creating
@@ -78,7 +78,7 @@ final readonly class AdminEventInputPreparer
      * @param  PreparedAdminEventInput  $input
      * @return array<string, mixed>
      */
-    public function attributes(array $input, Event $event, bool $creating, string $timezone, ?CarbonInterface $startsAt): array
+    public function attributes(array $input, PackageEvent $event, bool $creating, string $timezone, ?CarbonInterface $startsAt): array
     {
         $state = $input['state'];
 
@@ -129,7 +129,7 @@ final readonly class AdminEventInputPreparer
     /**
      * @param  array<string, mixed>  $state
      */
-    public function requestedStatus(array $state, Event $event, bool $creating): string
+    public function requestedStatus(array $state, PackageEvent $event, bool $creating): string
     {
         return $this->normalizeEventStatus(
             $state['status'] ?? ($creating ? null : (string) $event->status),
@@ -161,7 +161,7 @@ final readonly class AdminEventInputPreparer
     /**
      * @param  array<string, mixed>  $state
      */
-    private function validateState(array $state, ?Event $event = null): void
+    private function validateState(array $state, ?PackageEvent $event = null): void
     {
         $errors = [];
         $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
@@ -173,8 +173,8 @@ final readonly class AdminEventInputPreparer
         if ($primaryOrganizerId === null) {
             $errors['primary_organizer_id'][] = __('Penganjur utama diperlukan.');
         } elseif (
-            ! Institution::query()->whereKey($primaryOrganizerId)->exists()
-            && ! Person::query()->whereKey($primaryOrganizerId)->exists()
+            ! EventModel::query('institution')->whereKey($primaryOrganizerId)->exists()
+            && ! EventModel::query('person')->whereKey($primaryOrganizerId)->exists()
         ) {
             $errors['primary_organizer_id'][] = __('Penganjur utama yang dipilih tidak sah.');
         }
@@ -230,7 +230,7 @@ final readonly class AdminEventInputPreparer
      * @param  array<string, mixed>  $state
      * @param  array<string, mixed>  $attributes
      */
-    private function generateSlug(array $attributes, array $state, Event $event, bool $creating, ?string $startsAt = null): string
+    private function generateSlug(array $attributes, array $state, PackageEvent $event, bool $creating, ?string $startsAt = null): string
     {
         $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
         $primaryOrganizer = OrganizerResolver::find($primaryOrganizerId);

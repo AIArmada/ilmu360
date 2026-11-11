@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Actions\Events\Authoring;
+namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
+use App\Features\Events\Support\AdminEventTimeMapper;
+use App\Features\Events\Support\EventModel;
 use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Shared\Events\OrganizerResolver;
+use App\Platform\Models\MorphModelResolver;
 use App\Platform\Routing\SyncSlugRedirectAction;
-use App\Support\Events\AdminEventTimeMapper;
-use App\Support\Events\OrganizerResolver;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -34,12 +34,12 @@ class GenerateEventSlugAction
             return false;
         }
 
-        $events = Event::query()
+        $events = EventModel::query('event')
             ->where('events.title', $normalizedTitle)
             ->with(['persons:id,slug'])
             ->get();
 
-        return StableModelOrder::sync($events, fn (Event $event): bool => $this->syncEventSlug($event));
+        return StableModelOrder::sync($events, fn (Model $event): bool => $this->syncEventSlug($event));
     }
 
     public function syncEventSlugsForPersonName(string $personName): bool
@@ -50,17 +50,18 @@ class GenerateEventSlugAction
             return false;
         }
 
-        $personIds = Person::query()
+        $personClass = MorphModelResolver::resolve('person');
+        $personIds = $personClass::query()
             ->where('name', $normalizedPersonName)
             ->pluck('id');
 
-        $titles = Event::query()
-            ->where(function ($query) use ($normalizedPersonName, $personIds): void {
+        $titles = EventModel::query('event')
+            ->where(function ($query) use ($normalizedPersonName, $personIds, $personClass): void {
                 $query->whereHas('persons', function ($personQuery) use ($normalizedPersonName): void {
                     $personQuery->where('persons.name', $normalizedPersonName);
-                })->orWhereHas('involvements', function ($involvementQuery) use ($personIds): void {
+                })->orWhereHas('involvements', function ($involvementQuery) use ($personIds, $personClass): void {
                     $involvementQuery
-                        ->where('involveable_type', (new Person)->getMorphClass())
+                        ->where('involveable_type', (new $personClass)->getMorphClass())
                         ->whereIn('involveable_id', $personIds)
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);
@@ -79,16 +80,18 @@ class GenerateEventSlugAction
             return false;
         }
 
-        $titles = Event::query()
-            ->where(function ($query) use ($normalizedPersonId): void {
+        $personClass = MorphModelResolver::resolve('person');
+
+        $titles = EventModel::query('event')
+            ->where(function ($query) use ($normalizedPersonId, $personClass): void {
                 $query->whereHas('keyPeople', function ($keyPeopleQuery) use ($normalizedPersonId): void {
                     $keyPeopleQuery
                         ->where('involveable_type', 'person')
                         ->where('involveable_id', $normalizedPersonId)
                         ->where('role_code', EventKeyPersonRole::Speaker->value);
-                })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedPersonId): void {
+                })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedPersonId, $personClass): void {
                     $involvementQuery
-                        ->where('involveable_type', (new Person)->getMorphClass())
+                        ->where('involveable_type', (new $personClass)->getMorphClass())
                         ->where('involveable_id', $normalizedPersonId)
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);
@@ -99,7 +102,7 @@ class GenerateEventSlugAction
         return $this->syncEventSlugsForTitles($titles);
     }
 
-    public function syncEventSlug(Event $event): bool
+    public function syncEventSlug(Model $event): bool
     {
         $slug = $this->forEvent($event);
 
@@ -108,13 +111,12 @@ class GenerateEventSlugAction
 
     /**
      * @param  string[]  $personIds
-     * @return string[]
      */
-    public function personSlugSegmentsForState(array $personIds, Institution|Person|null $primaryOrganizer): array
+    public function personSlugSegmentsForState(array $personIds, ?Model $primaryOrganizer): array
     {
         $segments = $this->personSlugSegmentsForPersonIds($personIds);
 
-        if ($segments === [] && $primaryOrganizer instanceof Person) {
+        if ($segments === [] && $primaryOrganizer !== null && $primaryOrganizer->getMorphClass() === 'person') {
             $segments = $this->personSlugSegmentsForPersonIds([
                 (string) $primaryOrganizer->getKey(),
             ]);
@@ -144,7 +146,7 @@ class GenerateEventSlugAction
         $dateSuffix = $this->dateSuffix($date, $timezone);
 
         return UniqueSlug::build(
-            Event::class,
+            EventModel::event(),
             $titleSlug,
             $normalizedPersonSlugs,
             $dateSuffix,
@@ -152,12 +154,12 @@ class GenerateEventSlugAction
         );
     }
 
-    public function forEvent(Event $event): string
+    public function forEvent(Model $event): string
     {
         return $this->handle(
-            $event->title,
+            (string) $event->getAttribute('title'),
             $this->slugDateForEvent($event),
-            is_string($event->timezone) ? $event->timezone : null,
+            is_string($event->getAttribute('timezone')) ? $event->getAttribute('timezone') : null,
             (string) $event->getKey(),
             $this->personSlugSegmentsForEvent($event),
         );
@@ -175,15 +177,17 @@ class GenerateEventSlugAction
             return [];
         }
 
-        /** @var Collection<string, Person> $personsById */
-        $personsById = Person::query()
+        $personClass = MorphModelResolver::resolve('person');
+
+        /** @var Collection<string, Model> $personsById */
+        $personsById = $personClass::query()
             ->whereIn('id', $normalizedPersonIds)
             ->get(['id', 'slug'])
-            ->keyBy(fn (Person $person): string => (string) $person->getKey());
+            ->keyBy(fn (Model $person): string => (string) $person->getKey());
 
         return collect($normalizedPersonIds)
             ->map(function (string $personId) use ($personsById): ?string {
-                $personSlug = $personsById->get($personId)?->slug;
+                $personSlug = $personsById->get($personId)?->getAttribute('slug');
 
                 return is_string($personSlug) && $personSlug !== ''
                     ? $personSlug
@@ -194,9 +198,11 @@ class GenerateEventSlugAction
             ->all();
     }
 
-    private function slugDateForEvent(Event $event): ?CarbonInterface
+    private function slugDateForEvent(Model $event): ?CarbonInterface
     {
-        return $event->starts_at;
+        $startsAt = $event->getAttribute('starts_at');
+
+        return $startsAt instanceof CarbonInterface ? $startsAt : null;
     }
 
     private function dateSuffix(CarbonInterface|string|null $date, ?string $timezone): string
@@ -253,16 +259,16 @@ class GenerateEventSlugAction
     /**
      * @return list<string>
      */
-    private function personSlugSegmentsForEvent(Event $event): array
+    private function personSlugSegmentsForEvent(Model $event): array
     {
         // Organizer rows pin FQCN involveable types (see
         // EventOrganizerInvolvementSyncTest), which enforced morph maps
         // cannot resolve via MorphTo — resolve the organizer by id instead.
         $event->loadMissing(['persons:id,slug', 'primaryOrganizerInvolvement']);
 
-        $personSlugSegments = $event->persons
-            ->map(function (Person $person): ?string {
-                $personSlug = $person->slug;
+        $personSlugSegments = $event->getRelation('persons')
+            ->map(function (Model $person): ?string {
+                $personSlug = $person->getAttribute('slug');
 
                 return is_string($personSlug) && $personSlug !== ''
                     ? $personSlug
@@ -276,11 +282,14 @@ class GenerateEventSlugAction
             return $personSlugSegments;
         }
 
-        $organizerId = $event->primaryOrganizerInvolvement?->involveable_id;
+        $organizerId = $event->getRelation('primaryOrganizerInvolvement')?->getAttribute('involveable_id');
         $organizer = $organizerId !== null ? OrganizerResolver::find((string) $organizerId) : null;
 
-        if ($organizer instanceof Person && is_string($organizer->slug) && $organizer->slug !== '') {
-            return [$organizer->slug];
+        if ($organizer instanceof Model && $organizer->getMorphClass() === 'person') {
+            $organizerSlug = $organizer->getAttribute('slug');
+            if (is_string($organizerSlug) && $organizerSlug !== '') {
+                return [$organizerSlug];
+            }
         }
 
         return [];

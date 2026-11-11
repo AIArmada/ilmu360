@@ -19,7 +19,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Actions\Events\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

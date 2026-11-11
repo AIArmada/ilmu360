@@ -7,7 +7,7 @@ namespace App\Observers;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Models\Person;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Prayer;
+namespace App\Shared\Prayer;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Prayer\Api\PrayerAreaTypes;
+use App\Shared\Prayer\PrayerAreaTypes;
 use App\Models\Institution;
 use App\Models\Venue;
 

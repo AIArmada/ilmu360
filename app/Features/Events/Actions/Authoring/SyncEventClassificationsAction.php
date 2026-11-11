@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Authoring;
+namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\Events\Actions\SyncEventClassificationsAction as PackageSyncEventClassificationsAction;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Models\Event;
 use Illuminate\Support\Collection;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -36,7 +36,7 @@ class SyncEventClassificationsAction
      *     taxonomy_term_ids?: list<mixed>
      * }  $validated
      */
-    public function handle(Event|EventOccurrence|EventSession $scope, array $validated): int
+    public function handle(PackageEvent|EventOccurrence|EventSession $scope, array $validated): int
     {
         $types = [EventTaxonomyCode::Domain, EventTaxonomyCode::Source, EventTaxonomyCode::Discipline, EventTaxonomyCode::Issue];
         $existing = $this->existingClassifications($scope);
@@ -87,9 +87,9 @@ class SyncEventClassificationsAction
     /**
      * @return Collection<int, EventClassification>
      */
-    private function existingClassifications(Event|EventOccurrence|EventSession $scope): Collection
+    private function existingClassifications(PackageEvent|EventOccurrence|EventSession $scope): Collection
     {
-        $query = EventClassification::query()->where('event_classifications.event_id', $scope instanceof Event ? $scope->getKey() : $scope->event_id);
+        $query = EventClassification::query()->where('event_classifications.event_id', $scope instanceof EventOccurrence || $scope instanceof EventSession ? $scope->event_id : $scope->getKey());
 
         if ($scope instanceof EventSession) {
             // Session occurrence is canonically nullable; a null occurrence

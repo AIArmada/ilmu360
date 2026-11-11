@@ -6,7 +6,7 @@ namespace App\Support\Location;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Shared\Location\VisitorCountryResolving;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Http\Request;
 
 /**

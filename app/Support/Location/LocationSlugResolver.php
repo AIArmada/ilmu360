@@ -7,7 +7,7 @@ namespace App\Support\Location;
 use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Support\CountryAddressProfileResolver;
 use App\Forms\SharedFormSchema;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Support\Str;
 
 /**

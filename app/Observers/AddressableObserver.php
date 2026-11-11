@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\VenueWorkflow;
@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 class AddressableObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        private readonly GenerateEventSlugAction $generateEventSlugAction,
+        private readonly EventAuthoring $eventAuthoring,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly VenueWorkflow $venueWorkflow,
@@ -80,7 +80,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
             } else {
                 $this->personWorkflow->syncSlugsForName($subject->name);
             }
-            $this->generateEventSlugAction->syncEventSlugsForPersonName($subject->name);
+            $this->eventAuthoring->syncEventSlugsForPersonName($subject->name);
             $this->syncSearchableModel($subject);
             $this->publicListingsCache->bustMajlisListing();
 

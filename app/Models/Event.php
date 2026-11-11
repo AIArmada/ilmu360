@@ -23,7 +23,6 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventMaterial;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
-use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpaceType;
@@ -39,6 +38,9 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
+use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventLocations;
+use App\Features\Events\Api\EventProjections;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Events\Enums\TimingMode;
@@ -75,7 +77,6 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
@@ -523,55 +524,15 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function syncLanguages(array|string $languages): void
     {
-        $languageIds = collect(is_array($languages) ? $languages : [$languages])
-            ->filter(fn (mixed $languageId): bool => filled($languageId))
-            ->map(fn (mixed $languageId): string => (string) $languageId)
-            ->values();
-
-        $before = $this->resolvedLanguages()
-            ->map(fn (Language $language): array => [
-                'id' => (string) $language->id,
-                'name' => (string) $language->name,
-                'code' => (string) $language->code,
-            ])
-            ->all();
-
-        $languageCodes = collect(Language::codesForIds($languageIds->all()));
-
-        OwnerContext::withOwner($this->owner, function () use ($languageCodes): void {
-            $this->languageRecords()->delete();
-
-            foreach ($languageCodes as $index => $languageCode) {
-                $this->languageRecords()->create([
-                    'event_id' => (string) $this->getKey(),
-                    'event_occurrence_id' => null,
-                    'event_session_id' => null,
-                    'language_code' => $languageCode,
-                    'usage_type' => 'primary',
-                    'is_primary' => $index === 0,
-                    'sort_order' => $index,
-                    'metadata' => [
-                        'source' => 'commerce_languages',
-                    ],
-                ]);
-            }
-        });
+        $diff = app(EventAuthoring::class)->syncEventLanguages((string) $this->getKey(), $languages);
 
         $this->unsetRelation('languages');
         $this->resolvedLanguageCache = null;
 
-        $after = $this->resolvedLanguages()
-            ->map(fn (Language $language): array => [
-                'id' => (string) $language->id,
-                'name' => (string) $language->name,
-                'code' => (string) $language->code,
-            ])
-            ->all();
-
         $this->recordCustomAuditDifferences('updated', [
-            'languages' => $before,
+            'languages' => $diff['before'],
         ], [
-            'languages' => $after,
+            'languages' => $diff['after'],
         ]);
     }
 
@@ -587,55 +548,11 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
 
     public function setPrimaryOrganizer(Institution|Person|null $organizer): static
     {
-        $involvement = $this->primaryOrganizerInvolvement;
-
-        if ($organizer === null) {
-            $involvement?->delete();
-
-            $this->unsetRelation('primaryOrganizerInvolvement');
-
-            return $this;
-        }
-
-        if ($involvement instanceof EventInvolvement) {
-            $involvement->fill([
-                'event_id' => (string) $this->getKey(),
-                'event_occurrence_id' => null,
-                'event_session_id' => null,
-                'involveable_type' => $organizer->getMorphClass(),
-                'involveable_id' => (string) $organizer->getKey(),
-                'event_role_id' => EventRole::where('code', 'organizer')->value('id'),
-                'role_code' => 'organizer',
-                'status' => 'confirmed',
-                'visibility' => 'public',
-                'prominence' => 0,
-                'is_featured' => false,
-                'is_primary' => true,
-                'sort_order' => 0,
-            ]);
-
-            if ($involvement->isDirty()) {
-                $involvement->save();
-            }
-        } else {
-            $involvement = new EventInvolvement([
-                'event_id' => (string) $this->getKey(),
-                'event_occurrence_id' => null,
-                'event_session_id' => null,
-                'involveable_type' => $organizer->getMorphClass(),
-                'involveable_id' => (string) $organizer->getKey(),
-                'event_role_id' => EventRole::where('code', 'organizer')->value('id'),
-                'role_code' => 'organizer',
-                'status' => 'confirmed',
-                'visibility' => 'public',
-                'prominence' => 0,
-                'is_featured' => false,
-                'is_primary' => true,
-                'sort_order' => 0,
-            ]);
-            $involvement->{$involvement->getKeyName()} = (string) Str::uuid();
-            $involvement->save();
-        }
+        app(EventAuthoring::class)->syncPrimaryOrganizer(
+            (string) $this->getKey(),
+            $organizer?->getMorphClass(),
+            $organizer !== null ? (string) $organizer->getKey() : null,
+        );
 
         $this->unsetRelation('primaryOrganizerInvolvement');
 
@@ -703,20 +620,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return;
         }
 
-        foreach ($this->pendingLinkWrites as $field => $value) {
-            $linkType = self::LINK_TYPE_MAP[$field];
-
-            if ($value !== null && $value !== '') {
-                $this->links()->updateOrCreate(
-                    ['event_id' => (string) $this->getKey(), 'link_type' => $linkType],
-                    ['url' => $value, 'visibility' => 'public'],
-                );
-            } else {
-                $this->links()
-                    ->where('link_type', $linkType)
-                    ->delete();
-            }
-        }
+        app(EventProjections::class)->syncLinks((string) $this->getKey(), $this->pendingLinkWrites);
 
         $this->pendingLinkWrites = [];
     }
@@ -863,23 +767,11 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return;
         }
 
-        OwnerContext::withOwner($this->owner, function (): void {
-            foreach ($this->pendingAudienceWrites as $type => $value) {
-                match ($type) {
-                    'gender' => $this->syncSingleAudience('gender', $value),
-                    'age_group' => $this->syncAgeGroupAudience($value),
-                    'is_muslim_only' => $this->syncSingleAudience('religion', $value ? 'muslim_only' : null),
-                    default => null,
-                };
-            }
-
-            if ($this->pendingAudienceProfileWrites !== []) {
-                $this->audienceProfiles()->updateOrCreate(
-                    ['event_id' => $this->id],
-                    ['is_child_friendly' => $this->pendingAudienceProfileWrites['children_allowed'] ?? null],
-                );
-            }
-        });
+        app(EventProjections::class)->syncAudiences(
+            (string) $this->getKey(),
+            $this->pendingAudienceWrites,
+            $this->pendingAudienceProfileWrites,
+        );
 
         $this->pendingAudienceWrites = [];
         $this->pendingAudienceProfileWrites = [];
@@ -908,34 +800,15 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function syncPrimaryLocationFromSelection(): void
     {
-        $venueId = $this->getAttribute('default_venue_id');
-        $venueId = is_string($venueId) && $venueId !== '' ? $venueId : null;
+        $changed = app(EventLocations::class)->syncPrimaryFromSelection(
+            (string) $this->getKey(),
+            venueChanged: $this->wasChanged('default_venue_id'),
+            institutionChanged: $this->wasChanged('institution_id'),
+        );
 
-        $primaryLocation = $this->primaryLocation()->first();
-
-        if ($venueId === null) {
-            // Only clear a stale venue-backed primary row. A null-venue row
-            // can still carry an institution/space selection and must survive.
-            if (
-                $primaryLocation instanceof EventLocation
-                && $primaryLocation->getAttribute('venue_id') !== null
-            ) {
-                $this->syncLocation(null);
-                $this->unsetRelation('primaryLocation');
-            }
-
-            return;
+        if ($changed) {
+            $this->unsetRelation('primaryLocation');
         }
-
-        if (
-            $primaryLocation instanceof EventLocation
-            && (string) $primaryLocation->getAttribute('venue_id') === $venueId
-        ) {
-            return;
-        }
-
-        $this->syncLocation($venueId);
-        $this->unsetRelation('primaryLocation');
     }
 
     /**
@@ -943,115 +816,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function syncLocation(?string $venueId = null, array $spaceIds = []): void
     {
-        $existingSnapshots = EventLocation::query()
-            ->where('event_id', $this->id)
-            ->whereNull('event_occurrence_id')
-            ->whereNull('event_session_id')
-            ->whereNotNull('venue_space_id')
-            ->pluck('space_name_snapshot', 'venue_space_id')
-            ->all();
-
-        $spaces = Space::query()
-            ->whereKey($spaceIds)
-            ->get(['id', 'name', 'space_type'])
-            ->keyBy(fn (Space $space): string => (string) $space->getKey());
-
-        $spaceTypeIds = VenueSpaceType::query()
-            ->whereIn('code', $spaces->pluck('space_type')->filter()->unique()->values())
-            ->pluck('id', 'code')
-            ->all();
-
-        EventLocation::query()
-            ->where('event_id', $this->id)
-            ->whereNull('event_occurrence_id')
-            ->whereNull('event_session_id')
-            ->delete();
-
-        if (($venueId !== null && $venueId !== '') || $spaceIds !== []) {
-            $first = true;
-
-            foreach ($spaceIds as $i => $spaceId) {
-                if (! is_string($spaceId) || $spaceId === '') {
-                    continue;
-                }
-
-                $location = EventLocation::create([
-                    'event_id' => $this->id,
-                    'event_occurrence_id' => null,
-                    'event_session_id' => null,
-                    'location_role' => $first ? 'primary' : 'additional',
-                    'venue_id' => $first ? $venueId : null,
-                    'venue_space_id' => $spaceId,
-                    'venue_space_type_id' => isset($spaces[(string) $spaceId])
-                        ? ($spaceTypeIds[(string) $spaces[(string) $spaceId]->space_type] ?? null)
-                        : null,
-                    'space_name_snapshot' => array_key_exists($spaceId, $existingSnapshots)
-                        ? $existingSnapshots[$spaceId]
-                        : ($spaces[(string) $spaceId]->name ?? null),
-                    'visibility' => 'public',
-                    'status' => 'active',
-                    'sort_order' => $i,
-                ]);
-
-                if (array_key_exists($spaceId, $existingSnapshots)) {
-                    $location->updateQuietly([
-                        'space_name_snapshot' => $existingSnapshots[$spaceId],
-                    ]);
-                }
-
-                $first = false;
-            }
-
-            if ($first && $venueId !== null && $venueId !== '') {
-                EventLocation::create([
-                    'event_id' => $this->id,
-                    'event_occurrence_id' => null,
-                    'event_session_id' => null,
-                    'location_role' => 'primary',
-                    'venue_id' => $venueId,
-                    'venue_space_id' => null,
-                    'visibility' => 'public',
-                    'status' => 'active',
-                    'sort_order' => 0,
-                ]);
-            }
-        }
-    }
-
-    private function syncSingleAudience(string $type, mixed $value): void
-    {
-        if (! in_array($value, [null, '', false], true)) {
-            $this->audiences()->updateOrCreate(
-                ['event_id' => $this->id, 'audience_type' => $type],
-                ['value' => (string) $value],
-            );
-        } else {
-            $this->audiences()
-                ->where('audience_type', $type)
-                ->delete();
-        }
-    }
-
-    private function syncAgeGroupAudience(mixed $value): void
-    {
-        $this->audiences()
-            ->where('audience_type', 'age_group')
-            ->delete();
-
-        if (in_array($value, [null, [], ''], true)) {
-            return;
-        }
-
-        $values = is_array($value) ? $value : [$value];
-
-        foreach (array_values($values) as $i => $v) {
-            $this->audiences()->create([
-                'event_id' => $this->id,
-                'audience_type' => 'age_group',
-                'value' => (string) $v,
-                'sort_order' => $i,
-            ]);
-        }
+        app(EventLocations::class)->sync((string) $this->getKey(), $venueId, $spaceIds);
     }
 
     private function primaryOccurrenceDate(string $key): mixed

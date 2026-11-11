@@ -15,8 +15,8 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Venue;
 use App\Shared\Prayer\PrayerReference;
-use App\Support\Events\AdminEventTimeMapper;
-use App\Support\Prayer\PrayerLocation;
+use App\Features\Events\Api\EventAuthoring;
+use App\Shared\Prayer\PrayerLocation;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Throwable;
@@ -80,7 +80,7 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
      */
     private function resolveFromProvenance(EventTimeExpression $expression, Event $event, array $provenance, PrayerReference $prayerReference, int $signedMinutes): ?CarbonImmutable
     {
-        $date = AdminEventTimeMapper::normalizePrayerDateString($provenance['prayer_date'] ?? null);
+        $date = app(EventAuthoring::class)->normalizePrayerDateString($provenance['prayer_date'] ?? null);
 
         if ($date === null) {
             return null;

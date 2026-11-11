@@ -11,7 +11,7 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Seating\Enums\SeatingMode;
-use App\Actions\Events\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Directory\Enums\ReferenceType;

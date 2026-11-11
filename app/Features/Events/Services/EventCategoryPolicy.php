@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Features\Events\Services;
 
 use AIArmada\Events\Models\EventTermPolicy;
 use App\Shared\Events\EventCategoryCatalog;

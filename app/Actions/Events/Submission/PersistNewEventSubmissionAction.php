@@ -6,8 +6,7 @@ namespace App\Actions\Events\Submission;
 
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Events\Authoring\SyncEventClassificationsAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Actions\Events\Scheduling\ResolveInstitutionalPrayerSlotGroupAction;
 use App\Data\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventVisibility;
@@ -20,8 +19,7 @@ use Spatie\MediaLibrary\HasMedia;
 final readonly class PersistNewEventSubmissionAction
 {
     public function __construct(
-        private GenerateEventSlugAction $generateEventSlug,
-        private SyncEventClassificationsAction $syncClassifications,
+        private EventAuthoring $authoring,
         private ResolveInstitutionalPrayerSlotGroupAction $groupResolver,
         private PersistOccurrenceSubmissionAction $persistOccurrence,
     ) {}
@@ -113,7 +111,7 @@ final readonly class PersistNewEventSubmissionAction
 
         $event = Event::query()->create(array_merge([
             'title' => $title,
-            'slug' => $this->generateEventSlug->handle(
+            'slug' => $this->authoring->eventSlug(
                 $groupIdentity['slug_title'] ?? $title,
                 null,
                 $submission->timezone,
@@ -136,11 +134,11 @@ final readonly class PersistNewEventSubmissionAction
         $event->setPrimaryOrganizer($primaryOrganizer);
 
         if ($groupIdentity !== null) {
-            $this->syncClassifications->handle($event, [
+            $this->authoring->syncEventClassifications($event->getMorphClass(), (string) $event->getKey(), [
                 'event_category_ids' => $groupIdentity['category_ids'],
             ]);
         } else {
-            $this->syncClassifications->handle($event, $submission->state);
+            $this->authoring->syncEventClassifications($event->getMorphClass(), (string) $event->getKey(), $submission->state);
         }
 
         return $event;

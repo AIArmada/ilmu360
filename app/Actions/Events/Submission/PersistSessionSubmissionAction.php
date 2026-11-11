@@ -9,21 +9,18 @@ use AIArmada\Events\Actions\SyncEventLanguagesAction;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\VenueSpaceType;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Events\Authoring\SyncEventClassificationsAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Data\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Space;
-use App\Services\EventKeyPersonSyncService;
 use App\Services\PrayerTimeExpressionResolver;
-use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Submission\SubmissionRelationSync;
 use App\Support\Submission\SubmissionValues;
 use BackedEnum;
@@ -34,9 +31,7 @@ final readonly class PersistSessionSubmissionAction
 {
     public function __construct(
         private CreateEventSessionAction $createEventSession,
-        private GenerateEventSlugAction $generateEventSlug,
-        private EventKeyPersonSyncService $eventKeyPersonSync,
-        private SyncEventClassificationsAction $syncClassifications,
+        private EventAuthoring $authoring,
         private SyncEventLanguagesAction $syncLanguages,
         private SubmissionRelationSync $relationSync,
     ) {}
@@ -63,7 +58,7 @@ final readonly class PersistSessionSubmissionAction
 
         $session = $this->createEventSession->handle($occurrence, [
             'title' => $state['title'],
-            'slug' => $this->generateEventSlug->handle(
+            'slug' => $this->authoring->eventSlug(
                 (string) $state['title'],
                 $state['event_date'] ?? null,
                 $submission->timezone,
@@ -82,8 +77,8 @@ final readonly class PersistSessionSubmissionAction
 
         $this->persistSessionDetails($session, $submission);
 
-        $this->eventKeyPersonSync->syncSession(
-            $session,
+        $this->authoring->syncSessionKeyPeople(
+            (string) $session->getKey(),
             $this->relationSync->normalizePersonIds($state['persons'] ?? []),
             $this->relationSync->canonicalKeyPeople($state['other_key_people'] ?? []),
         );
@@ -96,7 +91,7 @@ final readonly class PersistSessionSubmissionAction
             );
         }
 
-        $this->syncClassifications->handle($session, $state);
+        $this->authoring->syncEventClassifications($session->getMorphClass(), (string) $session->getKey(), $state);
         $this->relationSync->syncSessionReferences($event, $occurrence, $session, $state['references'] ?? null);
 
         if ($persistRelationships !== null) {
@@ -162,7 +157,7 @@ final readonly class PersistSessionSubmissionAction
                         'fetched_at' => $submission->prayerFetchedAt ?? now()->toIso8601String(),
                         'country' => $submission->prayerCountry,
                         'zone' => $submission->prayerZone,
-                        'prayer_date' => AdminEventTimeMapper::normalizeEventDateString($state['event_date'] ?? null, $submission->timezone),
+                        'prayer_date' => $this->authoring->normalizeEventDateString($state['event_date'] ?? null, $submission->timezone),
                         'lat' => $submission->prayerLat,
                         'lng' => $submission->prayerLng,
                         'venue_id' => $submission->targetVenueId,

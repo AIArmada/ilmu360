@@ -2,7 +2,7 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\Events\Enums\ScheduleKind;
-use App\Actions\Events\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

@@ -23,7 +23,7 @@ use App\Support\Api\SurfaceSyncPolicy;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Documentation\DocumentationLibrary;
 use App\Support\Mcp\McpTokenManager;
-use App\Support\Submission\SubmissionTimingPolicy;
+use App\Shared\Submission\SubmissionTimingPolicy;
 
 class FrontendFormContractService
 {

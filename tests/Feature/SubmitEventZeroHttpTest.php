@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
 use App\Features\Prayer\Persistence\PrayerTimesCache;

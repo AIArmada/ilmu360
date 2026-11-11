@@ -4,7 +4,7 @@ namespace App\Actions\Events\Submission;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Contracts\CaptchaVerifier;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
@@ -19,11 +19,11 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Prayer\PrayerLocation;
+use App\Shared\Prayer\PrayerLocation;
 use App\Support\Submission\EntitySubmissionAccess;
 use App\Support\Submission\SubmissionContextResolver;
 use App\Support\Submission\SubmissionRelationSync;
-use App\Support\Submission\SubmissionTimingPolicy;
+use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Support\Submission\SubmissionValues;
 use App\Support\Submission\SubmitterContactRules;
 use Carbon\CarbonInterface;
@@ -45,7 +45,7 @@ class SubmitFrontendEventAction
     public function __construct(
         private readonly EntitySubmissionAccess $entitySubmissionAccess,
         private readonly CaptchaVerifier $turnstileVerifier,
-        private readonly GenerateEventSlugAction $generateEventSlugAction,
+        private readonly EventAuthoring $authoring,
         private readonly PersistNewEventSubmissionAction $persistNewEvent,
         private readonly PersistSessionSubmissionAction $persistSession,
         private readonly CompleteFrontendEventSubmissionAction $completeSubmission,
@@ -183,9 +183,9 @@ class SubmitFrontendEventAction
         $this->assertCaptchaIsValid($request, $validated['captcha_token'] ?? null, $validationKeyPrefix);
 
         $autoApproved = $scopedInstitution instanceof Institution;
-        $personSlugSegments = $this->generateEventSlugAction->personSlugSegmentsForState(
+        $personSlugSegments = $this->authoring->personSlugSegmentsForState(
             is_array($validated['persons'] ?? null) ? $validated['persons'] : [],
-            $primaryOrganizer,
+            $primaryOrganizer !== null ? (string) $primaryOrganizer->getKey() : null,
         );
 
         $endsAt = $this->timing->resolveEndsAt($validated['end_time'] ?? null, $startsAt, $timezone, $validationKeyPrefix);

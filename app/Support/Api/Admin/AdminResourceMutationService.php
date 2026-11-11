@@ -19,6 +19,7 @@ use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\SpaceWorkflow;
 use App\Features\Directory\Api\VenueWorkflow;
 use App\Actions\Series\SaveSeriesAction;
@@ -64,7 +65,6 @@ use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Directory\InstitutionFacilities;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Events\AdminEventFormStateBuilder;
 use BackedEnum;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
@@ -85,7 +85,7 @@ class AdminResourceMutationService
         private readonly SaveAddressAreaAction $saveAddressAreaAction,
         private readonly DirectoryCommands $directoryCommands,
         private readonly SaveAdminEventAction $saveAdminEventAction,
-        private readonly AdminEventFormStateBuilder $adminEventFormStateBuilder,
+        private readonly EventAuthoring $eventAuthoring,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
@@ -540,7 +540,7 @@ class AdminResourceMutationService
                 'is_default' => false,
                 'clear_qr' => false,
             ],
-            EventResource::class => $this->adminEventFormStateBuilder->defaultsForCreate(),
+            EventResource::class => $this->eventAuthoring->adminFormDefaults(),
             InstitutionResource::class => [
                 'type' => InstitutionType::Masjid->value,
                 'status' => InstitutionStatus::Pending->value,
@@ -719,7 +719,7 @@ class AdminResourceMutationService
         }
 
         if ($record instanceof Event) {
-            $defaults = $this->adminEventFormStateBuilder->formStateForRecord($record);
+            $defaults = $this->eventAuthoring->adminFormState((string) $record->getKey());
         }
 
         if ($record instanceof Venue) {

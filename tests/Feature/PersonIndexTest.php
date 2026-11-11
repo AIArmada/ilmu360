@@ -14,7 +14,7 @@ use App\Models\Language;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Services\EventKeyPersonSyncService;
+use App\Features\Events\Services\EventKeyPersonSyncService;
 use App\Support\Search\PersonSearchService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;

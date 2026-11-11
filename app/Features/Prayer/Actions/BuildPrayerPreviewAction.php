@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Actions;
 
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Shared\Prayer\EventPrayerTime;
@@ -20,7 +20,7 @@ use InvalidArgumentException;
  * anything unresolvable degrades label-by-label to the hardcoded estimates.
  * Tarawih stays label-only, matching submit behavior.
  */
-final readonly class BuildPrayerPreviewAction implements \App\Features\Prayer\Api\BuildPrayerPreviewAction
+final readonly class BuildPrayerPreviewAction implements \App\Shared\Prayer\BuildPrayerPreviewAction
 {
     public function __construct(
         private ResolvePrayerAnchorAction $anchors,

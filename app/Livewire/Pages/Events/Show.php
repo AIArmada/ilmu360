@@ -41,7 +41,7 @@ use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Events\EventDetailPresenter;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;

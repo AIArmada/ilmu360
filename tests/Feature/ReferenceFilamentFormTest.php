@@ -8,7 +8,7 @@ use App\Filament\Resources\References\Pages\EditReference;
 use App\Forms\ReferenceFormSchema;
 use App\Models\Reference;
 use App\Models\User;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Database\Seeders\LanguageSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

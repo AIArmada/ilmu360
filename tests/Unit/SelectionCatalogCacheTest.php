@@ -3,7 +3,7 @@
 use AIArmada\Persons\Enums\TitleUsagePosition;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleCategory;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

@@ -12,7 +12,7 @@ use App\Models\Language;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\LanguageSeeder;

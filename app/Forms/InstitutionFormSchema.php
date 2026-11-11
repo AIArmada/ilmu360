@@ -10,7 +10,7 @@ use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\Institution;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\GooglePlacesConfiguration;
 use Filament\Forms\Components\Hidden;

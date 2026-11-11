@@ -6,8 +6,9 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Organizations\Models\Organization;
-use App\Actions\Events\Scheduling\SyncEventScheduleAction;
-use App\Contracts\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventScheduleInput;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\TimingMode;
 use App\Features\Organizations\Api\OrganizationAccess;
@@ -16,7 +17,6 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
-use App\Services\EventKeyPersonSyncService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +34,7 @@ class CreateEventWithInitialOccurrenceAction
 
     public function __construct(
         private readonly MediaCollectionSync $mediaSync,
-        private readonly EventKeyPersonSyncService $eventKeyPersonSync,
+        private readonly EventAuthoring $authoring,
         private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
         private readonly OrganizationAccess $organizationAccess,
     ) {}
@@ -79,7 +79,7 @@ class CreateEventWithInitialOccurrenceAction
             }
 
             $personSlugSegments = $primaryOrganizer instanceof Person
-                ? app(GenerateEventSlugAction::class)->personSlugSegmentsForPersonIds([(string) $primaryOrganizer->getKey()])
+                ? $this->authoring->personSlugSegmentsForPersonIds([(string) $primaryOrganizer->getKey()])
                 : [];
 
             $event = Event::query()->create([
@@ -88,7 +88,7 @@ class CreateEventWithInitialOccurrenceAction
                 'created_by_type' => $user->getMorphClass(),
                 'created_by_id' => $user->getKey(),
                 'title' => (string) $form['title'],
-                'slug' => app(GenerateEventSlugAction::class)->handle(
+                'slug' => $this->authoring->eventSlug(
                     (string) $form['title'],
                     $startsAt,
                     $timezone,
@@ -127,7 +127,7 @@ class CreateEventWithInitialOccurrenceAction
             ]);
 
             OwnerContext::withOwner($owner, function () use ($event, $form, $categoryIds, $venueId, $spaceIds, $startsAt, $endsAt, $timezone, $primaryOrganizer): void {
-                app(SyncEventClassificationsAction::class)->handle($event, [
+                $this->authoring->syncEventClassifications($event->getMorphClass(), (string) $event->getKey(), [
                     'event_category_ids' => $categoryIds,
                     'domain_tags' => (array) ($form['domain_tags'] ?? []),
                     'discipline_tags' => (array) ($form['discipline_tags'] ?? []),
@@ -148,14 +148,13 @@ class CreateEventWithInitialOccurrenceAction
                     )));
                 }
 
-                app(SyncEventScheduleAction::class)->execute(
-                    event: $event,
-                    scheduleKind: ScheduleKind::Single,
-                    startsAt: $startsAt,
-                    endsAt: $endsAt,
+                $this->authoring->syncEventSchedule((string) $event->getKey(), new EventScheduleInput(
+                    scheduleKind: ScheduleKind::Single->value,
+                    startsAt: $startsAt->toIso8601String(),
+                    endsAt: $endsAt->toIso8601String(),
                     timezone: $timezone,
-                    timingMode: TimingMode::Absolute,
-                );
+                    timingMode: TimingMode::Absolute->value,
+                ));
 
                 $event->accessPolicy()->create([
                     'registration_required' => (bool) $form['registration_required'],
@@ -164,8 +163,8 @@ class CreateEventWithInitialOccurrenceAction
 
                 $event->setPrimaryOrganizer($primaryOrganizer);
 
-                $this->eventKeyPersonSync->sync(
-                    $event,
+                $this->authoring->syncEventKeyPeople(
+                    (string) $event->getKey(),
                     array_values(array_filter((array) ($form['persons'] ?? []), is_string(...))),
                     $this->canonicalOtherKeyPeople($form['other_key_people'] ?? []),
                 );

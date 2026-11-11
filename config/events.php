@@ -34,6 +34,20 @@ return [
         'guest_submission_claims' => ClaimGuestSubmissionsAction::class,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Persisted prayer resolver
+    |--------------------------------------------------------------------------
+    |
+    | Event time expressions persist the resolver class so a title-only edit
+    | can re-resolve the original clock. The resolver stays conventional until
+    | the Prayer slice moves it; the feature reads only this config string.
+    |
+    */
+    'prayer' => [
+        'resolver_class' => \App\Services\PrayerTimeExpressionResolver::class,
+    ],
+
     'database' => [
         'tables' => [
             'event_organizers' => env('EVENTS_TABLE_EVENT_ORGANIZERS', 'event_organizers'),

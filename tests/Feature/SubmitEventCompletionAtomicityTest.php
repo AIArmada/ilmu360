@@ -23,7 +23,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
-use App\Services\EventKeyPersonSyncService;
+use App\Features\Events\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
 use App\Shared\Prayer\EventPrayerTime;
 use Carbon\CarbonInterface;

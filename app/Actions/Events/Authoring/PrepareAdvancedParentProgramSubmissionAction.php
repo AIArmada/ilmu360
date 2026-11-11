@@ -2,7 +2,7 @@
 
 namespace App\Actions\Events\Authoring;
 
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;

@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Actions\Events\Authoring;
+namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
-use App\Models\Event;
-use App\Services\EventKeyPersonSyncService;
+use App\Features\Events\Services\EventKeyPersonSyncService;
 use App\Shared\Support\MorphAlias;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -22,7 +22,7 @@ class SyncEventResourceRelationsAction
      * @return array{registration_mode: string, registration_mode_locked: bool}
      */
     public function handle(
-        Event $event,
+        PackageEvent $event,
         array $state,
         bool $lockRegistrationMode = true,
         bool $syncKeyPeople = true,
@@ -98,12 +98,12 @@ class SyncEventResourceRelationsAction
         ];
     }
 
-    protected function resolveRegistrationMode(Event $event): RegistrationMode
+    protected function resolveRegistrationMode(PackageEvent $event): RegistrationMode
     {
         return $event->resolvedRegistrationMode();
     }
 
-    protected function resolveRegistrationRequired(Event $event): bool
+    protected function resolveRegistrationRequired(PackageEvent $event): bool
     {
         $accessPolicy = $event->accessPolicy;
 

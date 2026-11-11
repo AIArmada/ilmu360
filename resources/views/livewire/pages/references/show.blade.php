@@ -39,7 +39,7 @@
     $metadataItems = array_filter([
         $reference->publisherValue(),
         filled($reference->isbn) ? 'ISBN '.$reference->isbn : null,
-        filled($reference->language) ? __('Bahasa').': '.(app(\App\Support\Cache\SelectionCatalogCache::class)->languageLabel($reference->language) ?? $reference->language) : null,
+        filled($reference->language) ? __('Bahasa').': '.(app(\App\Shared\Cache\SelectionCatalogCache::class)->languageLabel($reference->language) ?? $reference->language) : null,
         filled($reference->year) ? (string) $reference->year : null,
     ]);
     $upcomingEvents = $this->upcomingEvents;

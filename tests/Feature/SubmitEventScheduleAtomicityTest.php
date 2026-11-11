@@ -4,7 +4,7 @@ use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
 use App\Shared\Prayer\PrayerReference;

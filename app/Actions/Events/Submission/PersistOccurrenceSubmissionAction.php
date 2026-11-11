@@ -10,22 +10,19 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\Events\Support\Normalization\EventContentNormalizer;
-use App\Actions\Events\Authoring\GenerateEventSlugAction;
-use App\Actions\Events\Authoring\SyncEventClassificationsAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Data\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Space;
-use App\Services\EventKeyPersonSyncService;
 use App\Services\PrayerTimeExpressionResolver;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Submission\SubmissionRelationSync;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
@@ -35,9 +32,7 @@ final readonly class PersistOccurrenceSubmissionAction
 {
     public function __construct(
         private CreateEventOccurrenceAction $createOccurrence,
-        private GenerateEventSlugAction $generateEventSlug,
-        private EventKeyPersonSyncService $eventKeyPersonSync,
-        private SyncEventClassificationsAction $syncClassifications,
+        private EventAuthoring $authoring,
         private SyncEventLanguagesAction $syncLanguages,
         private EventContentNormalizer $contentNormalizer,
         private SubmissionRelationSync $relationSync,
@@ -95,7 +90,7 @@ final readonly class PersistOccurrenceSubmissionAction
     private function uniqueOccurrenceSlug(Event $event, ValidatedEventSubmission $submission): string
     {
         $state = $submission->state;
-        $baseSlug = $this->generateEventSlug->handle(
+        $baseSlug = $this->authoring->eventSlug(
             (string) $state['title'],
             $state['event_date'] ?? null,
             $submission->timezone,
@@ -199,12 +194,15 @@ final readonly class PersistOccurrenceSubmissionAction
             $this->persistOccurrenceLocations($occurrence, $scope, $submission);
         }
 
-        $this->eventKeyPersonSync->syncOccurrence(
-            $occurrence,
+        $this->authoring->syncOccurrenceKeyPeople(
+            (string) $occurrence->getKey(),
             $this->relationSync->normalizePersonIds($state['persons'] ?? []),
             $this->relationSync->canonicalKeyPeople($state['other_key_people'] ?? []),
         );
-        $this->eventKeyPersonSync->syncOccurrenceOrganizer($occurrence, $submission->primaryOrganizer);
+        $this->authoring->syncOccurrenceOrganizer(
+            (string) $occurrence->getKey(),
+            (string) $submission->primaryOrganizer->getKey(),
+        );
 
         if (is_array($state['languages'] ?? null) && $state['languages'] !== []) {
             $this->syncLanguages->handle(
@@ -214,7 +212,7 @@ final readonly class PersistOccurrenceSubmissionAction
             );
         }
 
-        $this->syncClassifications->handle($occurrence, $state);
+        $this->authoring->syncEventClassifications($occurrence->getMorphClass(), (string) $occurrence->getKey(), $state);
         $this->relationSync->syncOccurrenceReferences($event, $occurrence, $state['references'] ?? null);
     }
 
@@ -237,7 +235,7 @@ final readonly class PersistOccurrenceSubmissionAction
                 'fetched_at' => $submission->prayerFetchedAt ?? now()->toIso8601String(),
                 'country' => $submission->prayerCountry,
                 'zone' => $submission->prayerZone,
-                'prayer_date' => AdminEventTimeMapper::normalizeEventDateString(
+                'prayer_date' => $this->authoring->normalizeEventDateString(
                     $submission->state['event_date'] ?? null,
                     $submission->timezone,
                 ),

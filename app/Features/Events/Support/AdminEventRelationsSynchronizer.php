@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Support\Events;
+namespace App\Features\Events\Support;
 
 use AIArmada\Seating\Models\SeatMap;
-use App\Actions\Events\Authoring\SyncEventResourceRelationsAction;
-use App\Models\Event;
-use App\Models\Series;
+use AIArmada\Events\Models\Event as PackageEvent;
+use App\Features\Events\Actions\Authoring\SyncEventAdminRelationsAction;
+use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
 use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -14,6 +14,7 @@ final readonly class AdminEventRelationsSynchronizer
 {
     public function __construct(
         private SyncEventResourceRelationsAction $syncEventResourceRelationsAction,
+        private SyncEventAdminRelationsAction $syncAdminRelations,
         private MediaCollectionSync $mediaSyncService,
     ) {}
 
@@ -21,7 +22,7 @@ final readonly class AdminEventRelationsSynchronizer
      * @param  array<string, mixed>  $state
      * @param  array<string, mixed>  $data
      */
-    public function sync(Event $event, array $state, array $data, bool $creating): void
+    public function sync(PackageEvent $event, array $state, array $data, bool $creating): void
     {
         $this->syncReferences($event, $state);
         $this->syncSeries($event, $state);
@@ -38,7 +39,7 @@ final readonly class AdminEventRelationsSynchronizer
     /**
      * @param  array<string, mixed>  $state
      */
-    private function syncReferences(Event $event, array $state): void
+    private function syncReferences(PackageEvent $event, array $state): void
     {
         if (! array_key_exists('references', $state)) {
             return;
@@ -46,28 +47,27 @@ final readonly class AdminEventRelationsSynchronizer
 
         $referenceIds = $this->normalizeStringArray($state['references'] ?? []);
 
-        $event->auditSync('references', $referenceIds, true, ['references.id', 'references.title']);
+        $this->syncAdminRelations->syncReferences($event, $referenceIds);
     }
 
     /**
      * @param  array<string, mixed>  $state
      */
-    private function syncSeries(Event $event, array $state): void
+    private function syncSeries(PackageEvent $event, array $state): void
     {
         if (! array_key_exists('series', $state)) {
             return;
         }
 
         $seriesIds = $this->normalizeStringArray($state['series'] ?? []);
-        $series = new Series;
 
-        $event->auditSync('series', $seriesIds, true, [$series->qualifyColumn('id'), $series->qualifyColumn('title')]);
+        $this->syncAdminRelations->syncSeries($event, $seriesIds);
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncMedia(Event $event, array $data): void
+    private function syncMedia(PackageEvent $event, array $data): void
     {
         if ($this->shouldClearMediaCollection($data['clear_cover'] ?? false)) {
             $this->mediaSyncService->clearCollection($event, 'cover');
@@ -106,7 +106,7 @@ final readonly class AdminEventRelationsSynchronizer
     /**
      * @param  array<string, mixed>  $state
      */
-    private function syncSeatMaps(Event $event, array $state): void
+    private function syncSeatMaps(PackageEvent $event, array $state): void
     {
         if (! array_key_exists('seat_map_ids', $state)) {
             return;

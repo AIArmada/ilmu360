@@ -5,7 +5,7 @@ use AIArmada\Events\Models\VenueSpaceType;
 use App\Features\Directory\Actions\Spaces\AttachInstitutionSpaceAction;
 use App\Features\Directory\Actions\Spaces\DetachInstitutionSpaceAction;
 use App\Features\Directory\Actions\Spaces\SaveSpaceAction;
-use App\Contracts\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Data\Api\Event\EventPayloadData;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Filament\Resources\Spaces\RelationManagers\InstitutionsRelationManager;

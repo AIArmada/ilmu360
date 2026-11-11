@@ -87,7 +87,7 @@ use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
-use App\Contracts\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Features\Directory\Api\DirectoryAdminContract;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
@@ -178,8 +178,6 @@ use App\Policies\RewardPayoutRequestPolicy;
 use App\Policies\RewardProgramPolicy;
 use App\Policies\RewardRecoveryPolicy;
 use App\Services\Captcha\TurnstileVerifier;
-use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
-use App\Services\EventCategoryPolicy;
 use App\Services\ShareTrackingService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Shared\Auth\AccountAccess;
@@ -386,8 +384,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
-        $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);
-        $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);
         $this->app->singleton(SpaceEligibilityResolver::class, DefaultSpaceEligibilityResolver::class);
 
         $this->registerPublicSlugRegistry();

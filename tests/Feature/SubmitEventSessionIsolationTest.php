@@ -12,7 +12,7 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Events\Authoring\SyncEventClassificationsAction;
+use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;

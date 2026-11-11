@@ -14,7 +14,7 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Submission\SubmissionTimingPolicy;
+use App\Shared\Submission\SubmissionTimingPolicy;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;

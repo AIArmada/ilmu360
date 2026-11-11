@@ -12,7 +12,7 @@ use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSubmissionLog;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Events\Authoring\SyncEventClassificationsAction;
+use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Actions\Events\Submission\ModerateEventOccurrenceSubmissionAction;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Data\Api\Event\EventPayloadData;

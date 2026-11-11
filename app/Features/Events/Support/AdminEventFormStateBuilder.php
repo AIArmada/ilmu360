@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Events;
+namespace App\Features\Events\Support;
 
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
@@ -10,9 +10,9 @@ use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Models\Event;
+use AIArmada\Events\Models\Event as PackageEvent;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Submission\SubmissionTimingPolicy;
+use App\Shared\Submission\SubmissionTimingPolicy;
 use BackedEnum;
 use Illuminate\Support\Collection;
 
@@ -61,7 +61,7 @@ final readonly class AdminEventFormStateBuilder
     /**
      * @return array<string, mixed>
      */
-    public function formStateForRecord(Event $event): array
+    public function formStateForRecord(PackageEvent $event): array
     {
         $event->loadMissing([
             'references.parentReference.parentReference',

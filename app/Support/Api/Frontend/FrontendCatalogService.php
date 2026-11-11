@@ -10,7 +10,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
-use App\Contracts\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Enums\MemberSubjectType;
 use App\Forms\ReferenceAuthorFormSchema;
 use App\Forms\SharedFormSchema;

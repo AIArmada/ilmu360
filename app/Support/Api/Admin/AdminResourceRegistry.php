@@ -24,7 +24,7 @@ use App\Models\Venue;
 use App\Platform\Admin\ExcludedFromAdminApi;
 use App\Platform\Location\AddressAssignments;
 use App\Shared\Prayer\PrayerReference;
-use App\Support\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
