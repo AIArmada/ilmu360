@@ -43,7 +43,7 @@
 - [x] Inspirations: app-owned table, Save action, Filament via named actions, reader/card + admin contract, public endpoint, feature routes + provider (done `8ac9d8b8`, mutually agreed; dormant `last_state_change_at` preserved).
 - [x] Identity/accounts: I0–I6 done (seams, lifecycle, foundation, Directory/Membership cutover, Events/Moderation/Contributions cutover + fixes, reverse-relation migration, transport cutover); `User` conventional with auth scaffolding only.
 - [x] Platform/shared seams: D1-A/C/M/R/T/S + P1/P2/P3 landed (addressing canonicalization, cache primitives, media fold, routing registry, telemetry recorder, search dispatcher, API responses, auth placement, timezone). Remaining: Directory D1 move.
-- [ ] Directory: S0-S5 landed. Next S6b languages as shared catalog (donation channels folded into S1).
+- [x] Directory: S0-S5 landed (`ba653602`, `49b02796`, `e13fe91b`, `afd9ba04`, `6dc86a78`, `0af69631`, `f3d5f666`); donation channels folded into S1. **S6b languages deferred by ruling**: cross-feature catalog (Event/Series/Person/Institution all use `languages`/`languageables`); keep root/unclaimed until a shared Catalog capability exists, rather than creating foreign writes from Events.
 - [ ] Organizations: current-owner context, workspace, readiness/access contracts; package remains canonical persistence owner.
 - [ ] Membership: applications/invitations and institution/person/reference/event membership pivots, roles and atomic ownership transfer.
 - [ ] Events authoring/submission/scheduling: events, occurrences/sessions, series/items, classifications, involvements, references, lifecycle and slugs.
