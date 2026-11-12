@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Registration;
 
+use AIArmada\CommerceSupport\Events\PaymentRefunded;
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
 use App\Features\Registration\Actions\PrepareAdmissionCheckoutAction;
 use App\Features\Registration\Actions\ProcessAdmissionRefundAction;
@@ -17,9 +18,11 @@ use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
+use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
 use App\Features\Registration\Queries\ResolveAttendanceState;
 use App\Platform\FeatureModule;
+use Illuminate\Support\Facades\Event;
 
 /**
  * Registration owns event admissions, attendees and attendance from R1 onward.
@@ -82,6 +85,13 @@ use App\Platform\FeatureModule;
  * RegistrationService. The public and dashboard refund pages are root
  * transport adapters over the scalar boundary.
  *
+ * R4b1b claims asynchronous refund completion. The
+ * CompletePendingRefundOnPaymentRefunded listener translates provider refund
+ * callbacks into the shared Orders transition. It lives with the feature and
+ * is registered explicitly in this provider because Laravel event discovery
+ * only scans app/Listeners. Order refund rows and money movement remain
+ * package-canonical and unclaimed.
+ *
  * The following root/package writers remain and are recorded for the later
  * migration slices:
  *
@@ -122,5 +132,17 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AdmissionRefunds::class, ProcessAdmissionRefundAction::class);
         $this->app->bind(AttendanceCommands::class, RecordSelfCheckInAction::class);
         $this->app->bind(AttendanceState::class, ResolveAttendanceState::class);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        // Event discovery only scans app/Listeners, so the feature registers
+        // its provider-neutral refund callback listener explicitly.
+        Event::listen(
+            PaymentRefunded::class,
+            [CompletePendingRefundOnPaymentRefunded::class, 'handle'],
+        );
     }
 }

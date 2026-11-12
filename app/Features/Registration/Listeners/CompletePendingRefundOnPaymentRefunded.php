@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Listeners\Events;
+namespace App\Features\Registration\Listeners;
 
 use AIArmada\CommerceSupport\Events\PaymentRefunded;
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -20,7 +20,7 @@ use Throwable;
  * transition. That keeps event capacity, passes, and order accounting aligned
  * for CHIP today and other providers later.
  */
-final class CompletePendingEventRefundOnPaymentRefunded
+final class CompletePendingRefundOnPaymentRefunded
 {
     public function __construct(
         private readonly OrderServiceInterface $orders,

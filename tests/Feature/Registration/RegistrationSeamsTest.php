@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\CommerceSupport\Events\PaymentRefunded;
 use AIArmada\Events\Models\EventAttendanceLog;
 use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
@@ -22,6 +23,7 @@ use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\FeatureServiceProvider as RegistrationFeatureServiceProvider;
+use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
 use App\Features\Registration\Queries\ResolveAttendanceState;
 use App\Models\Event;
@@ -38,6 +40,7 @@ use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\ShareTracking\ShareTrackingParticipationAttribution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
@@ -166,6 +169,13 @@ it('discovers the registration feature manifest and provider exactly once', func
         ])
         ->and(array_keys($providers, RegistrationFeatureServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(RegistrationFeatureServiceProvider::class);
+});
+
+it('registers the pending refund completion listener exactly once', function (): void {
+    $listeners = EventFacade::getRawListeners()[PaymentRefunded::class] ?? [];
+
+    expect($listeners)->toHaveCount(1)
+        ->and($listeners[0])->toBe([CompletePendingRefundOnPaymentRefunded::class, 'handle']);
 });
 
 it('binds the admission registration boundary to the free admission action', function (): void {
