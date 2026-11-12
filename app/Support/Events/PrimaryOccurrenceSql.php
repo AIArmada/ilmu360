@@ -28,12 +28,35 @@ class PrimaryOccurrenceSql
     }
 
     /**
-     * End instant of the primary occurrence: `ends_at` falling back to
-     * `starts_at` when the occurrence has no end time.
+     * End instant of the event schedule: the effective `ends_at` falling back
+     * to `starts_at` when an occurrence has no end time.
+     *
+     * Grouped public submissions hold many occurrences, so their end instant is
+     * the latest effective end across every eligible occurrence. An ongoing
+     * grouped event therefore stays upcoming until its last eligible
+     * occurrence ends instead of falling out of both time scopes.
      */
     public static function endInstant(?string $eventsTable = null): string
     {
-        return self::expression('coalesce(#.ends_at, #.starts_at)', $eventsTable);
+        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+        $eventsTable ??= (new Event)->getTable();
+
+        /** @var PostgresConnection|SQLiteConnection|MySqlConnection $connection */
+        $connection = Event::query()->getConnection();
+
+        $groupKeyExists = self::groupKeyExists($eventsTable, $connection);
+        $upcomingStatuses = self::sqlStringList(Event::UPCOMING_SCHEDULE_STATUSES);
+        $publicVisibilities = self::sqlStringList(Event::PUBLIC_SCHEDULE_VISIBILITIES);
+        $effectiveEnd = "coalesce({$occurrencesTable}.ends_at, {$occurrencesTable}.starts_at)";
+        $primaryEffectiveEnd = "(select {$effectiveEnd} from {$occurrencesTable} where {$occurrencesTable}.event_id = {$eventsTable}.id order by {$occurrencesTable}.starts_at asc, {$occurrencesTable}.created_at asc, {$occurrencesTable}.id asc limit 1)";
+        $groupedEffectiveEnd = "(select max({$effectiveEnd}) from {$occurrencesTable} where {$occurrencesTable}.event_id = {$eventsTable}.id and {$occurrencesTable}.status in ({$upcomingStatuses}) and {$occurrencesTable}.visibility in ({$publicVisibilities}))";
+
+        // The events table has no own date columns: a managed event's date
+        // attributes project from its primary occurrence, so that projection is
+        // the fallback. Grouped parents are dateless, so they keep the null
+        // projection when no eligible occurrence exists instead of surfacing an
+        // ineligible (draft, private or terminal) occurrence date.
+        return "(case when {$groupKeyExists} then {$groupedEffectiveEnd} else {$primaryEffectiveEnd} end)";
     }
 
     private static function expression(string $selectExpression, ?string $eventsTable = null): string
@@ -44,12 +67,7 @@ class PrimaryOccurrenceSql
         /** @var PostgresConnection|SQLiteConnection|MySqlConnection $connection */
         $connection = Event::query()->getConnection();
 
-        $groupKeyExists = match ($connection->getDriverName()) {
-            'pgsql' => "{$eventsTable}.metadata->'public_submission_group'->>'key' is not null",
-            'sqlite' => "json_extract({$eventsTable}.metadata, '$.public_submission_group.key') is not null",
-            'mysql', 'mariadb' => "json_unquote(json_extract({$eventsTable}.metadata, '$.public_submission_group.key')) is not null",
-            default => throw new InvalidArgumentException(sprintf('Unsupported database driver [%s].', $connection->getDriverName())),
-        };
+        $groupKeyExists = self::groupKeyExists($eventsTable, $connection);
         $upcomingStatuses = self::sqlStringList(Event::UPCOMING_SCHEDULE_STATUSES);
         $publicVisibilities = self::sqlStringList(Event::PUBLIC_SCHEDULE_VISIBILITIES);
         $nowUtc = now()->utc()->format('Y-m-d H:i:s');
@@ -70,6 +88,19 @@ class PrimaryOccurrenceSql
         return match ($connection->getDriverName()) {
             'pgsql' => "to_char(({$startsAtSql}) + interval '{$offsetMinutes} minutes', 'HH24:MI')",
             'sqlite' => "strftime('%H:%M', datetime(({$startsAtSql}), '{$offsetMinutes} minutes'))",
+            default => throw new InvalidArgumentException(sprintf('Unsupported database driver [%s].', $connection->getDriverName())),
+        };
+    }
+
+    /**
+     * @param  PostgresConnection|SQLiteConnection|MySqlConnection  $connection
+     */
+    private static function groupKeyExists(string $eventsTable, PostgresConnection|SQLiteConnection|MySqlConnection $connection): string
+    {
+        return match ($connection->getDriverName()) {
+            'pgsql' => "{$eventsTable}.metadata->'public_submission_group'->>'key' is not null",
+            'sqlite' => "json_extract({$eventsTable}.metadata, '$.public_submission_group.key') is not null",
+            'mysql', 'mariadb' => "json_unquote(json_extract({$eventsTable}.metadata, '$.public_submission_group.key')) is not null",
             default => throw new InvalidArgumentException(sprintf('Unsupported database driver [%s].', $connection->getDriverName())),
         };
     }

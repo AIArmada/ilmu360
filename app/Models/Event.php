@@ -59,6 +59,7 @@ use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Events\PrimaryLocationSql;
 use BackedEnum;
+use Carbon\CarbonInterface;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -784,14 +785,19 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         app(EventLocations::class)->sync((string) $this->getKey(), $venueId, $spaceIds);
     }
 
+    private function isGroupedSubmission(): bool
+    {
+        return is_array($this->metadata['public_submission_group'] ?? null)
+            && is_string($this->metadata['public_submission_group']['key'] ?? null);
+    }
+
     private function primaryOccurrenceDate(string $key): mixed
     {
         if (! $this->exists) {
             return null;
         }
 
-        $groupedSubmission = is_array($this->metadata['public_submission_group'] ?? null)
-            && is_string($this->metadata['public_submission_group']['key'] ?? null);
+        $groupedSubmission = $this->isGroupedSubmission();
         $visibility = $this->visibility instanceof BackedEnum ? $this->visibility->value : (string) $this->visibility;
         $publicParent = (string) $this->status === 'approved'
             && in_array($visibility, [self::PUBLIC, self::UNLISTED], true);
@@ -1171,6 +1177,58 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     }
 
     /**
+     * End instant indexed for Typesense end-instant filters.
+     *
+     * Grouped public submissions project their dates from occurrences, so the
+     * index must carry the latest effective end across every public occurrence
+     * rather than only the next occurrence that starts after now. Managed
+     * events keep the existing primary-occurrence projection.
+     */
+    private function searchableEndInstant(): ?CarbonInterface
+    {
+        if ($this->isGroupedSubmission()) {
+            $occurrences = $this->relationLoaded('occurrences')
+                ? $this->occurrences
+                : $this->occurrences()->withoutGlobalScopes()->get();
+
+            $maxEffectiveEnd = $occurrences
+                ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)
+                    && in_array(
+                        $occurrence->visibility instanceof BackedEnum ? $occurrence->visibility->value : (string) $occurrence->visibility,
+                        self::PUBLIC_SCHEDULE_VISIBILITIES,
+                        true,
+                    ))
+                ->reduce(function (?CarbonInterface $max, EventOccurrence $occurrence): ?CarbonInterface {
+                    $effectiveEnd = $occurrence->ends_at ?? $occurrence->starts_at;
+
+                    if (! $effectiveEnd instanceof CarbonInterface) {
+                        return $max;
+                    }
+
+                    return $max === null || $effectiveEnd->greaterThan($max) ? $effectiveEnd : $max;
+                });
+
+            if ($maxEffectiveEnd instanceof CarbonInterface) {
+                return $maxEffectiveEnd;
+            }
+
+            $eventEndInstant = $this->ends_at ?? $this->starts_at;
+
+            return $eventEndInstant instanceof CarbonInterface ? $eventEndInstant : null;
+        }
+
+        $primaryOccurrence = $this->relationLoaded('primaryOccurrence')
+            ? $this->primaryOccurrence
+            : $this->primaryOccurrence()->first();
+
+        $endInstant = $primaryOccurrence instanceof EventOccurrence
+            ? ($primaryOccurrence->ends_at ?? $primaryOccurrence->starts_at)
+            : ($this->ends_at ?? $this->starts_at);
+
+        return $endInstant instanceof CarbonInterface ? $endInstant : null;
+    }
+
+    /**
      * @param  Builder<Event>  $query
      * @return Builder<Event>
      */
@@ -1189,6 +1247,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
                 'references' => fn ($referenceQuery) => $referenceQuery->active(),
                 'classifications',
                 'primaryOccurrence',
+                'occurrences',
                 'displayOccurrence.media',
                 'timeExpressions',
             ])
@@ -1230,7 +1289,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $locationAddress = $this->resolvedLocationAddress();
         $institution = $this->institution;
         $venue = $this->venue;
-        $endInstant = $this->ends_at ?? $this->starts_at;
+        $endInstant = $this->searchableEndInstant();
         $gender = $this->gender;
         $eventFormat = $this->delivery_mode;
         $visibility = $this->visibility;
@@ -1434,8 +1493,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             'imam_ids' => $imamIds,
             'khatib_ids' => $khatibIds,
             'bilal_ids' => $bilalIds,
-            'starts_at' => $this->starts_at instanceof Carbon ? $this->starts_at->timestamp : 0,
-            'ends_at' => $endInstant instanceof Carbon ? $endInstant->timestamp : null,
+            'starts_at' => $this->starts_at instanceof CarbonInterface ? $this->starts_at->timestamp : 0,
+            'ends_at' => $endInstant instanceof CarbonInterface ? $endInstant->timestamp : null,
             'saves_count' => $this->saves_count ?? 0,
             'registrations_count' => $this->registrations_count ?? 0,
         ];
@@ -2320,8 +2379,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return $this->displayOccurrence instanceof EventOccurrence ? $this->displayOccurrence : null;
         }
 
-        $groupedSubmission = is_array($this->metadata['public_submission_group'] ?? null)
-            && is_string($this->metadata['public_submission_group']['key'] ?? null);
+        $groupedSubmission = $this->isGroupedSubmission();
 
         if ($this->relationLoaded('primaryOccurrence') && $this->primaryOccurrence instanceof EventOccurrence) {
             $primaryOccurrence = $this->primaryOccurrence;
