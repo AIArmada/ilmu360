@@ -67,7 +67,7 @@ class DigestMailChannel
             return null;
         }
 
-        $operation = self::operationSnapshot($notification);
+        $operation = $this->operationSnapshot($notification);
 
         $claimed = DB::transaction(function () use ($deliveryId, $communicationId, $operation): ?array {
             $delivery = GuardedDeliverySend::claimExternal($deliveryId, $communicationId);
@@ -104,7 +104,7 @@ class DigestMailChannel
             throw $sendException;
         }
 
-        $result = self::resultFromResponse($response);
+        $result = $this->resultFromResponse($response);
 
         try {
             $recorded = DB::transaction(fn (): bool => GuardedDeliverySend::recordExternalSent(
@@ -134,7 +134,7 @@ class DigestMailChannel
     /**
      * @return array<string, mixed>
      */
-    private static function operationSnapshot(Notification $notification): array
+    private function operationSnapshot(Notification $notification): array
     {
         if (! property_exists($notification, 'summary') || ! is_array($notification->summary)) {
             return [];
@@ -145,7 +145,7 @@ class DigestMailChannel
         return [
             'plan_key' => isset($summary['plan_key']) && is_string($summary['plan_key']) ? $summary['plan_key'] : null,
             'slot_id' => isset($summary['slot_id']) && is_string($summary['slot_id']) ? $summary['slot_id'] : null,
-            'payload_hash' => hash('sha256', (string) json_encode([
+            'payload_hash' => hash('sha256', json_encode([
                 'text' => $summary['text'] ?? '',
                 'counts' => $summary['counts'] ?? [],
                 'sections' => $summary['sections'] ?? [],
@@ -157,7 +157,7 @@ class DigestMailChannel
     /**
      * @return array<string, mixed>
      */
-    private static function resultFromResponse(mixed $response): array
+    private function resultFromResponse(mixed $response): array
     {
         if (is_object($response) && method_exists($response, 'toArray')) {
             $converted = $response->toArray();

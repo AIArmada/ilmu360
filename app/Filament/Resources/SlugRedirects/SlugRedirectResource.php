@@ -25,16 +25,22 @@ use UnitEnum;
 
 class SlugRedirectResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = SlugRedirect::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[\Override]
     protected static ?string $modelLabel = 'Slug Redirect';
 
+    #[\Override]
     protected static ?string $pluralModelLabel = 'Slug Redirects';
 
+    #[\Override]
     protected static ?string $navigationLabel = 'Slug Redirects';
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'System';
 
     #[\Override]

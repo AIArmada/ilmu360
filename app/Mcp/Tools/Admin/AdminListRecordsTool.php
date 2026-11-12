@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminListRecordsTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-list-records';
 
+    #[\Override]
     protected string $description = 'Use this when you need to list, search, or filter records for one admin resource. Supports free-text search, structured filters, date-range filters, and pagination. Do not use for fetching a single record by key; use admin-get-record for that.';
 
     public function __construct(

@@ -8,6 +8,7 @@ use App\Filament\Ahli\Resources\Institutions\InstitutionResource;
 
 class EditInstitution extends \App\Filament\Resources\Institutions\Pages\EditInstitution
 {
+    #[\Override]
     protected static string $resource = InstitutionResource::class;
 
     #[\Override]

@@ -11,10 +11,10 @@ use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
 
-final class EventOccurrenceObserver implements ShouldHandleEventsAfterCommit
+final readonly class EventOccurrenceObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        private readonly PublicListingsCache $publicListingsCache,
+        private PublicListingsCache $publicListingsCache,
     ) {}
 
     public function saved(EventOccurrence $occurrence): void

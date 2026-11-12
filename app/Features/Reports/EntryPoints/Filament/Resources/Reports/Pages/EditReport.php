@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EditReport extends EditRecord
 {
+    #[\Override]
     protected static string $resource = ReportResource::class;
 
     #[\Override]

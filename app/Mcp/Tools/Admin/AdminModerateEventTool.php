@@ -23,8 +23,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class AdminModerateEventTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-moderate-event';
 
+    #[\Override]
     protected string $description = 'Use this when you need to apply a moderation action to an event: submit for review, approve, request changes, reject, cancel, reconsider, remoderate, or revert to draft. Fetch the moderation schema first with admin-get-event-moderation-schema.';
 
     public function __construct(

@@ -1844,11 +1844,11 @@ final readonly class AffiliatesShareTrackingService
             $winner = $this->findAffiliateForUser($user);
 
             if (! $winner instanceof Affiliate) {
-                throw new InvalidArgumentException('A share profile for this account conflicts with an existing profile identity.');
+                throw new InvalidArgumentException('A share profile for this account conflicts with an existing profile identity.', $exception->getCode(), $exception);
             }
 
             if (! ShareTrackingProfile::isEligibleForNewCredit($winner)) {
-                throw new InvalidArgumentException('This share profile is not eligible to create new tracked links.');
+                throw new InvalidArgumentException('This share profile is not eligible to create new tracked links.', $exception->getCode(), $exception);
             }
 
             return $winner;
@@ -2600,7 +2600,7 @@ final readonly class AffiliatesShareTrackingService
             return false;
         }
 
-        return (string) $current->origin === (string) $this->shareOriginForLink($lockedLink);
+        return (string) $current->origin === $this->shareOriginForLink($lockedLink);
     }
 
     private function createLandingAttribution(AffiliateLink $link, Request $request, string $browserKey, ?string $shareProvider): AffiliateAttribution

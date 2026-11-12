@@ -4,13 +4,13 @@ namespace App\Features\Events\Support;
 
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
-use App\Shared\Events\EventCategoryCatalog;
+use AIArmada\Events\Models\Event as PackageEvent;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
-use AIArmada\Events\Models\Event as PackageEvent;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use BackedEnum;

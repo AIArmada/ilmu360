@@ -8,6 +8,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
 use App\Models\Event;
 use App\Models\Person;
@@ -268,7 +269,7 @@ final class PersonDashboard extends Component
         return OwnerContext::withOwner($person, fn (): Collection => $person->members()->orderBy('name')->get());
     }
 
-    /** @return list<\App\Features\Membership\Api\MembershipInvitationDetail> */
+    /** @return list<MembershipInvitationDetail> */
     public function invitations(): array
     {
         return app(MembershipInvitations::class)->recentForSubject(

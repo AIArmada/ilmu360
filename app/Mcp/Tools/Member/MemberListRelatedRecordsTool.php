@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class MemberListRelatedRecordsTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'member-list-related-records';
 
+    #[\Override]
     protected string $description = 'Use this when you need to list records related to one Ahli-scoped member record (e.g. persons for an event). Supports search and pagination. Do not use for listing top-level records; use member-list-records for that.';
 
     public function __construct(

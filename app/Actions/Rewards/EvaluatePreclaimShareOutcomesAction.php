@@ -20,13 +20,13 @@ use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class EvaluatePreclaimShareOutcomesAction
+final readonly class EvaluatePreclaimShareOutcomesAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly ShareAttributionRewardSourceFactReader $sourceFactReader,
-        private readonly ActivityRewardSourceFactReader $activityFactReader,
+        private ShareAttributionRewardSourceFactReader $sourceFactReader,
+        private ActivityRewardSourceFactReader $activityFactReader,
     ) {}
 
     public function handle(RewardProgram $program, User $member, RewardProgramVersion $version): void

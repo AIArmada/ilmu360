@@ -23,14 +23,14 @@ final class TermDomainMappingExtension implements TermFormExtension
         return [
             Section::make('Domain Mapping')
                 ->description('Choose which Topik / Bidang show this term. Leave empty to show it under every topic.')
-                ->visible(fn (Get $get): bool => self::supportsDomainMapping($get('event_taxonomy_id')))
+                ->visible(fn (Get $get): bool => $this->supportsDomainMapping($get('event_taxonomy_id')))
                 ->schema([
                     Select::make('domain_ids')
                         ->label('Topik / Bidang')
                         ->multiple()
                         ->searchable()
                         ->preload()
-                        ->options(fn (): array => self::domainTermOptions())
+                        ->options(fn (): array => $this->domainTermOptions())
                         ->afterStateHydrated(function (Select $component, ?EventTerm $record): void {
                             $component->state($record?->metadata['domain_ids'] ?? []);
                         })
@@ -42,7 +42,7 @@ final class TermDomainMappingExtension implements TermFormExtension
         ];
     }
 
-    private static function supportsDomainMapping(mixed $taxonomyId): bool
+    private function supportsDomainMapping(mixed $taxonomyId): bool
     {
         if (! is_string($taxonomyId) || $taxonomyId === '') {
             return false;
@@ -56,7 +56,7 @@ final class TermDomainMappingExtension implements TermFormExtension
     /**
      * @return array<string, string>
      */
-    private static function domainTermOptions(): array
+    private function domainTermOptions(): array
     {
         $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Domain->value)->value('id');
 

@@ -17,6 +17,7 @@ class CreateSeries extends CreateRecord
 {
     use AuditsRelatedStateChanges;
 
+    #[\Override]
     protected static string $resource = SeriesResource::class;
 
     /**

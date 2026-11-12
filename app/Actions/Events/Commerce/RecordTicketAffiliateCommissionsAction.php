@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Events\Commerce;
 
 use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateConversion;
+use AIArmada\Affiliates\Data\AffiliateConversionData;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateProgram;
 use AIArmada\Affiliates\Models\AffiliateProgramMembership;
@@ -147,7 +148,7 @@ final readonly class RecordTicketAffiliateCommissionsAction
         }
 
         if ($actor['type'] === $affiliate->owner_type
-            && (string) ($actor['id'] ?? '') === (string) $affiliate->owner_id) {
+            && $actor['id'] ?? (string) $affiliate->owner_id === '') {
             return [];
         }
 
@@ -209,7 +210,7 @@ final readonly class RecordTicketAffiliateCommissionsAction
         $recorded = [];
 
         foreach ($lineRegistrationIds as $orderItemId => $lineRegistrations) {
-            $orderItem = $orderItems->get((string) $orderItemId);
+            $orderItem = $orderItems->get($orderItemId);
 
             if (! $orderItem instanceof OrderItem || count($lineRegistrations) !== (int) $orderItem->quantity) {
                 continue;
@@ -270,7 +271,7 @@ final readonly class RecordTicketAffiliateCommissionsAction
                     ],
                 );
 
-                if ($conversion !== null) {
+                if ($conversion instanceof AffiliateConversionData) {
                     $recorded[] = $registrationId;
                 }
             }

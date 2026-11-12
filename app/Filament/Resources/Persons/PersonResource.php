@@ -25,12 +25,16 @@ use Filament\Tables\Table;
 
 class PersonResource extends PackagePersonResource
 {
+    #[\Override]
     protected static ?string $model = Person::class;
 
+    #[\Override]
     protected static ?string $slug = 'persons';
 
+    #[\Override]
     protected static ?string $navigationLabel = 'Persons';
 
+    #[\Override]
     protected static ?string $pluralModelLabel = 'Persons';
 
     #[\Override]

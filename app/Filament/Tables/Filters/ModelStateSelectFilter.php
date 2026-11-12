@@ -9,6 +9,7 @@ use Spatie\ModelStates\State;
 
 class ModelStateSelectFilter extends SelectFilter
 {
+    #[\Override]
     protected string|Closure|null $attribute = null;
 
     protected function setUp(): void

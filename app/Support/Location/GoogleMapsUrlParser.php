@@ -78,9 +78,7 @@ final class GoogleMapsUrlParser
                 continue;
             }
 
-            if ($placeId === null) {
-                $placeId = $this->extractPlaceIdFromQueryValue($queryValue);
-            }
+            $placeId ??= $this->extractPlaceIdFromQueryValue($queryValue);
 
             $parsedQuery = $this->extractQueryDisplayNameAndCoordinates($queryValue);
 

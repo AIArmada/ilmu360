@@ -106,40 +106,40 @@ class Index extends Component implements HasForms
                 Section::make(__('app-feedback.form.additional_details'))
                     ->description(__('app-feedback.form.additional_details_help'))
                     ->collapsed()
-                    ->visible(fn (Get $get): bool => ! self::isCategory($get('category'), AppFeedbackCategory::Other))
+                    ->visible(fn (Get $get): bool => ! $this->isCategory($get('category'), AppFeedbackCategory::Other))
                     ->schema([
                         Textarea::make('details.steps')
                             ->label(__('app-feedback.form.details_steps'))
                             ->placeholder(__('app-feedback.form.details_steps_placeholder'))
                             ->maxLength(2000)
                             ->rows(4)
-                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug))
+                            ->visible(fn (Get $get): bool => $this->isCategory($get('category'), AppFeedbackCategory::Bug))
                             ->columnSpanFull(),
                         Textarea::make('details.expected')
                             ->label(__('app-feedback.form.details_expected'))
                             ->placeholder(__('app-feedback.form.details_expected_placeholder'))
                             ->maxLength(2000)
                             ->rows(3)
-                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug)),
+                            ->visible(fn (Get $get): bool => $this->isCategory($get('category'), AppFeedbackCategory::Bug)),
                         Textarea::make('details.actual')
                             ->label(__('app-feedback.form.details_actual'))
                             ->placeholder(__('app-feedback.form.details_actual_placeholder'))
                             ->maxLength(2000)
                             ->rows(3)
-                            ->visible(fn (Get $get): bool => self::isCategory($get('category'), AppFeedbackCategory::Bug)),
+                            ->visible(fn (Get $get): bool => $this->isCategory($get('category'), AppFeedbackCategory::Bug)),
                         Textarea::make('details.problem')
                             ->label(__('app-feedback.form.details_problem'))
                             ->placeholder(__('app-feedback.form.details_problem_placeholder'))
                             ->maxLength(2000)
                             ->rows(4)
-                            ->visible(fn (Get $get): bool => self::isAnyCategory($get('category'), [AppFeedbackCategory::FeatureRequest, AppFeedbackCategory::UiUx, AppFeedbackCategory::Performance]))
+                            ->visible(fn (Get $get): bool => $this->isAnyCategory($get('category'), [AppFeedbackCategory::FeatureRequest, AppFeedbackCategory::UiUx, AppFeedbackCategory::Performance]))
                             ->columnSpanFull(),
                         Textarea::make('details.suggestion')
                             ->label(__('app-feedback.form.details_suggestion'))
                             ->placeholder(__('app-feedback.form.details_suggestion_placeholder'))
                             ->maxLength(2000)
                             ->rows(4)
-                            ->visible(fn (Get $get): bool => self::isAnyCategory($get('category'), [AppFeedbackCategory::FeatureRequest, AppFeedbackCategory::UiUx]))
+                            ->visible(fn (Get $get): bool => $this->isAnyCategory($get('category'), [AppFeedbackCategory::FeatureRequest, AppFeedbackCategory::UiUx]))
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -305,7 +305,7 @@ class Index extends Component implements HasForms
         ];
     }
 
-    private static function isCategory(mixed $state, AppFeedbackCategory $category): bool
+    private function isCategory(mixed $state, AppFeedbackCategory $category): bool
     {
         return $state === $category || $state === $category->value;
     }
@@ -313,15 +313,9 @@ class Index extends Component implements HasForms
     /**
      * @param  list<AppFeedbackCategory>  $categories
      */
-    private static function isAnyCategory(mixed $state, array $categories): bool
+    private function isAnyCategory(mixed $state, array $categories): bool
     {
-        foreach ($categories as $category) {
-            if (self::isCategory($state, $category)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($categories, fn ($category) => $this->isCategory($state, $category));
     }
 
     private function mapValidationErrors(ValidationException $exception): void

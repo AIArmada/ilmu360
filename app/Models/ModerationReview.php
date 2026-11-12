@@ -20,6 +20,7 @@ class ModerationReview extends ModerationAction implements Auditable
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'owner_type',
         'owner_id',

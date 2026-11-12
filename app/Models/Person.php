@@ -16,7 +16,6 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Models\CredentialAssignment;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Enums\SpeakerStatus;
 use App\Models\Concerns\HasDonationChannels;
 use App\Platform\Auditing\AuditsModelChanges;
@@ -25,6 +24,7 @@ use App\Platform\Reporting\ReportModelClass;
 use App\Shared\Auditing\RecordsCustomAuditDifferences;
 use App\Shared\Auditing\RecordsCustomAuditEvents;
 use App\Shared\Directory\SyncsLanguages;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Support\RelatedModels;
 use App\Support\Search\PersonSearchService;
 use BackedEnum;
@@ -87,6 +87,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'name',
         'family_name',

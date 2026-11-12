@@ -130,7 +130,7 @@ final class InferInstitutionTypeAction
 
     private function isCompatibleNameRefinement(InstitutionType $providerType, ?InstitutionType $nameType): bool
     {
-        if ($nameType === null) {
+        if (! $nameType instanceof InstitutionType) {
             return false;
         }
 

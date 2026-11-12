@@ -27,6 +27,7 @@ class EventChangeAnnouncement extends EventUpdate
         return $this->hasMany(EventUpdateItem::class, 'event_update_id');
     }
 
+    #[\Override]
     protected $fillable = [
         'id',
         'event_id',

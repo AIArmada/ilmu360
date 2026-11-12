@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Shared\Submission;
 
-use App\Shared\Submission\SubmissionTimingPolicy;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Shared\Directory\SpaceEligibilityResolver;
-use App\Shared\Events\Enums\EventFormat;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\OrganizerResolver;
 use App\Shared\Prayer\PrayerTargetSelector;
 use Illuminate\Support\Str;

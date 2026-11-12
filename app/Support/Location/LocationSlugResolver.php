@@ -371,7 +371,7 @@ final class LocationSlugResolver
     /** @return array{?string, ?string} */
     private function slotRolesForCountry(?string $countryId): array
     {
-        self::ensureCacheScope();
+        $this->ensureCacheScope();
 
         $key = $countryId ?? 'any';
 
@@ -468,7 +468,7 @@ final class LocationSlugResolver
      */
     private function mapsFor(string $key, callable $optionsResolver, ?callable $slugResolver = null): array
     {
-        self::ensureCacheScope();
+        $this->ensureCacheScope();
 
         if (isset(self::$maps[$key])) {
             return self::$maps[$key];
@@ -520,7 +520,7 @@ final class LocationSlugResolver
      * Reset the per-request memo. Modelled on SharedFormSchema::ensureCacheScope()
      * so Octane workers do not leak one request's maps into the next.
      */
-    private static function ensureCacheScope(): void
+    private function ensureCacheScope(): void
     {
         $scope = spl_object_hash(app()).':'.(app()->bound('request') ? spl_object_hash(request()) : 'console');
 

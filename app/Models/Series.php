@@ -40,6 +40,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 class Series extends PackageEventSeries implements AuditableContract, Followable, HasMedia
 {
+    #[\Override]
     protected static string $ownerScopeConfigKey = 'series.owner';
 
     /** @use HasFactory<SeriesFactory> */
@@ -95,6 +96,7 @@ class Series extends PackageEventSeries implements AuditableContract, Followable
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'owner_type',
         'owner_id',

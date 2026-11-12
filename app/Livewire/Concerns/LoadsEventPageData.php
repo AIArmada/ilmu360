@@ -65,7 +65,7 @@ trait LoadsEventPageData
         $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
         $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate);
 
-        if ($from === null || $to === null || $from->greaterThan($to)) {
+        if (!$from instanceof \Carbon\CarbonInterface || !$to instanceof \Carbon\CarbonInterface || $from->greaterThan($to)) {
             $this->addError('customDateRange', __('Sila pilih julat tarikh yang sah.'));
 
             return;
@@ -96,7 +96,7 @@ trait LoadsEventPageData
             $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
             $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate)?->addDay();
 
-            if ($from === null || $to === null || $from->greaterThanOrEqualTo($to)) {
+            if (!$from instanceof \Carbon\CarbonInterface || $to === null || $from->greaterThanOrEqualTo($to)) {
                 return null;
             }
 

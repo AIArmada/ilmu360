@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateInstitution extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = InstitutionResource::class;
 
     public function boot(): void

@@ -7,6 +7,7 @@ namespace App\Features\Registration\Actions;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Actions\CreateRegistrationsFromOrderAction;
 use AIArmada\Events\Actions\IssueEventRegistrationPassesAction;
+use AIArmada\Events\Models\Event;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Support\EventTicketScope;
@@ -37,16 +38,16 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * freezes share provenance only for the registration created by this call,
  * and confirms payment inside the same transaction when required.
  */
-final class IssueOfflineAdmissionAction implements AdmissionIssuance
+final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
 {
     use AsAction;
 
     public function __construct(
-        private readonly OrderServiceInterface $orders,
-        private readonly CreateRegistrationsFromOrderAction $registrations,
-        private readonly IssueEventRegistrationPassesAction $issuePasses,
-        private readonly ParticipationAttribution $attribution,
-        private readonly ConfirmOfflineAdmissionAction $confirmAdmission,
+        private OrderServiceInterface $orders,
+        private CreateRegistrationsFromOrderAction $registrations,
+        private IssueEventRegistrationPassesAction $issuePasses,
+        private ParticipationAttribution $attribution,
+        private ConfirmOfflineAdmissionAction $confirmAdmission,
     ) {}
 
     /**
@@ -103,7 +104,7 @@ final class IssueOfflineAdmissionAction implements AdmissionIssuance
         $ticketType->loadMissing('ticketable');
         $ticketEvent = EventTicketScope::event($ticketType);
 
-        if ($ticketEvent === null || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
+        if (! $ticketEvent instanceof Event || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
             throw new InvalidArgumentException('The selected ticket does not belong to this event.');
         }
 
@@ -249,7 +250,7 @@ final class IssueOfflineAdmissionAction implements AdmissionIssuance
             // deliberately so the staff browser cookie can never leak
             // credit into a participant fact.
             $admissionActor = $this->resolveParticipantUser($participant, $userClass);
-            $admissionActorId = $admissionActor !== null ? (string) $admissionActor->getKey() : null;
+            $admissionActorId = $admissionActor instanceof Model ? (string) $admissionActor->getKey() : null;
 
             $this->attribution->recordFreeRegistration(
                 registrationId: (string) $registration->getKey(),
@@ -367,7 +368,7 @@ final class IssueOfflineAdmissionAction implements AdmissionIssuance
         if (is_array($participant['answers'] ?? null) && $participant['answers'] !== []) {
             $normalized['answers'] = array_values(array_filter(
                 $participant['answers'],
-                static fn (mixed $answer): bool => is_array($answer),
+                is_array(...),
             ));
         }
 

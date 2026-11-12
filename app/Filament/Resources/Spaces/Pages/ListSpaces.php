@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListSpaces extends ListRecords
 {
+    #[\Override]
     protected static string $resource = SpaceResource::class;
 
     #[\Override]

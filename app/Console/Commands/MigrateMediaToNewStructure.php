@@ -4,18 +4,18 @@ namespace App\Console\Commands;
 
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Media\MediaPathGenerator;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+#[Description('Migrate existing media files to the new organized directory structure')]
+#[Signature('media:migrate-structure
+                            {--dry-run : Preview changes without moving files}
+                            {--force : Run without confirmation}')]
 class MigrateMediaToNewStructure extends Command
 {
-    protected $signature = 'media:migrate-structure
-                            {--dry-run : Preview changes without moving files}
-                            {--force : Run without confirmation}';
-
-    protected $description = 'Migrate existing media files to the new organized directory structure';
-
     public function handle(): int
     {
         $pathGenerator = new MediaPathGenerator;

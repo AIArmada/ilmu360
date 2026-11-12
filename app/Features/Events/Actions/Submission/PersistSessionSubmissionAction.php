@@ -8,16 +8,16 @@ use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Actions\SyncEventLanguagesAction;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
 use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
 use AIArmada\Events\Models\VenueSpaceType;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Support\EventModel;
-use App\Features\Events\Actions\Submission\SubmissionRelationSync;
-use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\ValidatedEventSubmission;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Shared\Submission\SubmissionValues;
 use BackedEnum;
@@ -142,7 +142,7 @@ final readonly class PersistSessionSubmissionAction
 
         $session->audienceProfiles()->create($scope + ['is_child_friendly' => $state['children_allowed'] ?? true]);
 
-        if ($submission->prayerTime !== null && ! $submission->prayerTime->isCustomTime()) {
+        if ($submission->prayerTime instanceof EventPrayerTime && ! $submission->prayerTime->isCustomTime()) {
             $offset = $submission->prayerOffset ?? 5;
             $session->timeExpressions()->create($scope + [
                 'time_mode' => 'prayer_relative',

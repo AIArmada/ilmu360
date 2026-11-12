@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EditDonationChannel extends EditRecord
 {
+    #[\Override]
     protected static string $resource = DonationChannelResource::class;
 
     #[\Override]

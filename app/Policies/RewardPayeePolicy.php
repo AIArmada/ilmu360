@@ -36,8 +36,7 @@ class RewardPayeePolicy
         }
 
         if ($payee instanceof RewardPayee) {
-            return ! ((string) $payee->recipient_type === 'user'
-                && (string) $payee->recipient_id === (string) $user->getKey());
+            return (string) $payee->recipient_type !== 'user' || (string) $payee->recipient_id !== (string) $user->getKey();
         }
 
         return true;

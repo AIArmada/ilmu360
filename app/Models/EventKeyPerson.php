@@ -12,6 +12,7 @@ class EventKeyPerson extends EventInvolvement
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'event_id',
         'event_occurrence_id',

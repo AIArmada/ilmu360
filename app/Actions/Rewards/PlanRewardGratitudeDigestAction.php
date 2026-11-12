@@ -73,9 +73,9 @@ final readonly class PlanRewardGratitudeDigestAction
             }
         }
 
-        $decided = $decidedAt === null
-            ? CarbonImmutable::now('UTC')
-            : CarbonImmutable::parse($decidedAt)->setTimezone('UTC');
+        $decided = $decidedAt instanceof CarbonInterface
+            ? CarbonImmutable::parse($decidedAt)->setTimezone('UTC')
+            : CarbonImmutable::now('UTC');
 
         $user = User::query()->whereKey($recipientId)->first();
 
@@ -130,7 +130,7 @@ final readonly class PlanRewardGratitudeDigestAction
                     $policy->timezone, $dueAt, $decided, $windowStart,
                 ));
             } catch (QueryException $exception) {
-                if (self::isDeadlock($exception) && $attempt < 3) {
+                if ($this->isDeadlock($exception) && $attempt < 3) {
                     continue;
                 }
 
@@ -154,7 +154,7 @@ final readonly class PlanRewardGratitudeDigestAction
                 return DB::transaction(function () use ($winner, $merged, $decided): RewardDigestSlot {
                     $locked = RewardDigestSlot::query()->whereKey($winner->getKey())->lockForUpdate()->firstOrFail();
 
-                    return self::mergeInto($locked, $merged, $decided);
+                    return $this->mergeInto($locked, $merged, $decided);
                 });
             }
         }
@@ -182,7 +182,7 @@ final readonly class PlanRewardGratitudeDigestAction
             ->first();
 
         if ($existing instanceof RewardDigestSlot) {
-            return self::mergeInto($existing, $categories, $decided);
+            return $this->mergeInto($existing, $categories, $decided);
         }
 
         return RewardDigestSlot::query()->create([
@@ -207,7 +207,7 @@ final readonly class PlanRewardGratitudeDigestAction
      *
      * @param  list<string>  $categories
      */
-    private static function mergeInto(RewardDigestSlot $slot, array $categories, CarbonImmutable $decided): RewardDigestSlot
+    private function mergeInto(RewardDigestSlot $slot, array $categories, CarbonImmutable $decided): RewardDigestSlot
     {
         if ((string) $slot->status !== RewardDigestSlot::STATUS_PLANNED) {
             return $slot;
@@ -328,7 +328,7 @@ final readonly class PlanRewardGratitudeDigestAction
         ];
     }
 
-    private static function isDeadlock(QueryException $exception): bool
+    private function isDeadlock(QueryException $exception): bool
     {
         $code = (string) $exception->getCode();
 

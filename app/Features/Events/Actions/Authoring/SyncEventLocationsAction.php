@@ -60,12 +60,12 @@ final readonly class SyncEventLocationsAction implements EventLocations
                     'location_role' => $first ? 'primary' : 'additional',
                     'venue_id' => $first ? $venueId : null,
                     'venue_space_id' => $spaceId,
-                    'venue_space_type_id' => isset($spaces[(string) $spaceId])
-                        ? ($spaceTypeIds[(string) $spaces[(string) $spaceId]->getAttribute('space_type')] ?? null)
+                    'venue_space_type_id' => isset($spaces[$spaceId])
+                        ? ($spaceTypeIds[(string) $spaces[$spaceId]->getAttribute('space_type')] ?? null)
                         : null,
                     'space_name_snapshot' => array_key_exists($spaceId, $existingSnapshots)
                         ? $existingSnapshots[$spaceId]
-                        : ($spaces[(string) $spaceId]->getAttribute('name') ?? null),
+                        : ($spaces[$spaceId]->getAttribute('name') ?? null),
                     'visibility' => 'public',
                     'status' => 'active',
                     'sort_order' => $i,
@@ -123,7 +123,7 @@ final readonly class SyncEventLocationsAction implements EventLocations
                 $primaryLocation instanceof EventLocation
                 && $primaryLocation->getAttribute('venue_id') !== null
             ) {
-                $this->sync($eventId, null);
+                $this->sync($eventId);
 
                 return true;
             }

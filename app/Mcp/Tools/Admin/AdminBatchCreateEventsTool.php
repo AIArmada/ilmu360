@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Api\Admin\AdminResourceService;
 use Generator;
@@ -35,10 +35,13 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
 {
+    #[\Override]
     protected string $name = 'admin-batch-create-events';
 
+    #[\Override]
     protected string $title = 'Batch Create Events';
 
+    #[\Override]
     protected string $description = 'Use this MCP-only event wrapper to create multiple events in one request. Each item uses the same field contract as admin-create-event and resolves organizer, location, persons, and references by route keys before calling the shared admin event create path. Items are processed independently; the response contains a per-row result with status created, validation_failed, unresolved_key, or error. Set validate_only=true to preview all rows without persisting. apply_defaults is only honored together with validate_only=true for preview/autofill feedback; it is ignored for real creates, so persisted rows must explicitly include the values the caller wants to write. Include external_row_id per item for idempotency tracking and safe retries after interruption. Maximum 50 events per batch.';
 
     public function __construct(

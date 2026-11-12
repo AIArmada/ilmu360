@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminListResourcesTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-list-resources';
 
+    #[\Override]
     protected string $description = 'Use this when you need to discover which admin resources are available on this server. Returns a compact summary by default; set verbose=true for full field and filter metadata.';
 
     public function __construct(

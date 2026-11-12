@@ -9,5 +9,6 @@ use Filament\Resources\Pages\ListRecords;
 
 final class ListVenues extends ListRecords
 {
+    #[\Override]
     protected static string $resource = VenueResource::class;
 }

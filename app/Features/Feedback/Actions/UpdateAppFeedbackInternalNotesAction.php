@@ -18,7 +18,7 @@ class UpdateAppFeedbackInternalNotesAction
         Gate::forUser($actor)->authorize('updateInternalNotes', $feedback);
 
         $feedback->forceFill([
-            'internal_notes' => filled($internalNotes) ? trim((string) $internalNotes) : null,
+            'internal_notes' => filled($internalNotes) ? trim($internalNotes) : null,
         ]);
         $feedback->save();
 

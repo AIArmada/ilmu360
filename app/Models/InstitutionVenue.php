@@ -33,15 +33,19 @@ class InstitutionVenue extends Pivot
 {
     use HasUuids;
 
+    #[\Override]
     protected $table = 'institution_venue';
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'institution_id',
         'venue_id',
@@ -149,7 +153,7 @@ class InstitutionVenue extends Pivot
             }
 
             if ($isPrimary) {
-                app(InstitutionVenueLinks::class)->demotePrimary((string) $institutionId, $role, (string) $venueId);
+                app(InstitutionVenueLinks::class)->demotePrimary($institutionId, $role, $venueId);
             }
         });
     }

@@ -4,9 +4,9 @@ namespace App\Features\Events\Support;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Enums\ScheduleKind;
-use App\Shared\Events\Enums\EventFormat;
-use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use AIArmada\Events\Models\Event as PackageEvent;
+use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
+use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerLocation;
 use App\Shared\Prayer\PrayerTargetSelector;
@@ -178,14 +178,7 @@ final readonly class AdminEventScheduleResolver
         if ($left !== $right) {
             return false;
         }
-
-        foreach (['prayer_time', 'custom_time', 'end_time', 'end_date', 'timezone', 'institution_id', 'venue_id', 'event_format', 'primary_organizer_id', 'submission_country_id'] as $key) {
-            if ($this->normalizeTimingScalar($state[$key] ?? null) !== $this->normalizeTimingScalar($recordState[$key] ?? null)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all(['prayer_time', 'custom_time', 'end_time', 'end_date', 'timezone', 'institution_id', 'venue_id', 'event_format', 'primary_organizer_id', 'submission_country_id'], fn($key) => $this->normalizeTimingScalar($state[$key] ?? null) === $this->normalizeTimingScalar($recordState[$key] ?? null));
     }
 
     private function normalizeTimingScalar(mixed $value): ?string
@@ -311,13 +304,7 @@ final readonly class AdminEventScheduleResolver
      */
     private function prayerTargetsChanged(array $state, array $recordState): bool
     {
-        foreach (['event_format', 'primary_organizer_id', 'institution_id', 'venue_id'] as $key) {
-            if ($this->normalizeTimingScalar($state[$key] ?? null) !== $this->normalizeTimingScalar($recordState[$key] ?? null)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(['event_format', 'primary_organizer_id', 'institution_id', 'venue_id'], fn($key) => $this->normalizeTimingScalar($state[$key] ?? null) !== $this->normalizeTimingScalar($recordState[$key] ?? null));
     }
 
     /** @param  \App\Models\Event  $event */

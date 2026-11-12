@@ -347,7 +347,7 @@ final class RegistrationQuestions extends Component
     private function parseOptions(string $value): array
     {
         return array_values(array_unique(array_filter(
-            array_map(static fn (string $option): string => mb_trim($option), preg_split('/\R/', $value) ?: []),
+            array_map(mb_trim(...), preg_split('/\R/', $value) ?: []),
             static fn (string $option): bool => $option !== '',
         )));
     }

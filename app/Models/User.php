@@ -87,8 +87,10 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
         Notifiable::routeNotificationFor as traitRouteNotificationFor;
     }
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
@@ -96,6 +98,7 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
      *
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'name',
         'email',
@@ -112,6 +115,7 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
      *
      * @var list<string>
      */
+    #[\Override]
     protected $hidden = [
         'password',
         'remember_token',
@@ -280,7 +284,7 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
     {
         // Auth guards may hand over partially loaded instances; a missing
         // key falls back instead of fataling under strict attributes.
-        $stored = array_key_exists('timezone', $this->attributes) ? $this->attributes['timezone'] : null;
+        $stored = $this->attributes['timezone'] ?? null;
 
         return app(AccountCommunications::class)->preferredTimezone(
             (string) $this->getKey(),
@@ -342,18 +346,12 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
         $accountId = (string) $this->getKey();
         $memberships = app(MembershipDirectory::class);
 
-        foreach ([
+        return array_any([
             MembershipSubjectType::Institution,
             MembershipSubjectType::Person,
             MembershipSubjectType::Reference,
             MembershipSubjectType::Event,
-        ] as $subjectType) {
-            if ($memberships->subjectIdsFor($accountId, $subjectType) !== []) {
-                return true;
-            }
-        }
-
-        return false;
+        ], fn ($subjectType) => $memberships->subjectIdsFor($accountId, $subjectType) !== []);
     }
 
     public function hasApplicationAdminAccess(): bool

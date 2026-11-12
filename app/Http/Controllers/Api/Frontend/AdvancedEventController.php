@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Api\Frontend;
 use AIArmada\Organizations\Models\Organization;
 use App\Actions\Events\Authoring\CreateEventWithInitialOccurrenceAction;
 use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Features\Organizations\Api\OrganizationAccess;
+use App\Features\Organizations\Api\OrganizationSummary;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -63,7 +64,7 @@ class AdvancedEventController extends FrontendController
                 (string) $validated['organization_id'],
             );
 
-            abort_if($organizationSummary === null, 404);
+            abort_if(! $organizationSummary instanceof OrganizationSummary, 404);
 
             $organization = Organization::query()->findOrFail($organizationSummary->id);
         }

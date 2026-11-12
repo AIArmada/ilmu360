@@ -24,12 +24,16 @@ use UnitEnum;
 
 class ReferenceResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = Reference::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Directory';
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'title';
 
     /**

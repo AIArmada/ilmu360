@@ -2,10 +2,10 @@
 
 namespace App\Support\Location;
 
-final class GooglePlaceAddressComponents
+final readonly class GooglePlaceAddressComponents
 {
     /** @var list<array{longText: string|null, shortText: string|null, types: list<string>}> */
-    private readonly array $components;
+    private array $components;
 
     public function __construct(mixed $components)
     {

@@ -23,13 +23,16 @@ class ContributionRequest extends Model implements AuditableContract, HasMedia
     /** @use HasFactory<ContributionRequestFactory> */
     use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'type',
         'subject_type',

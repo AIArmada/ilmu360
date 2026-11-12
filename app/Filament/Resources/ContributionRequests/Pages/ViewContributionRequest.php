@@ -23,8 +23,10 @@ use Illuminate\Validation\ValidationException;
 
 class ViewContributionRequest extends ViewRecord
 {
+    #[\Override]
     protected static string $resource = ContributionRequestResource::class;
 
+    #[\Override]
     protected Width|string|null $maxContentWidth = Width::Full;
 
     #[\Override]

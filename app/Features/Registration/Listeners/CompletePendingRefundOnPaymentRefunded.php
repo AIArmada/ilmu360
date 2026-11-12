@@ -20,10 +20,10 @@ use Throwable;
  * transition. That keeps event capacity, passes, and order accounting aligned
  * for CHIP today and other providers later.
  */
-final class CompletePendingRefundOnPaymentRefunded
+final readonly class CompletePendingRefundOnPaymentRefunded
 {
     public function __construct(
-        private readonly OrderServiceInterface $orders,
+        private OrderServiceInterface $orders,
     ) {}
 
     public function handle(PaymentRefunded $event): void
@@ -141,7 +141,7 @@ final class CompletePendingRefundOnPaymentRefunded
         ?string $paymentId,
         ?string $relatedPaymentId,
     ): bool {
-        if ($paymentId === null || $paymentId === '' || $paymentId === $relatedPaymentId) {
+        if (in_array($paymentId, [null, '', $relatedPaymentId], true)) {
             return true;
         }
 

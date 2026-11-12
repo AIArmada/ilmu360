@@ -16,13 +16,13 @@ use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class CreateOrganizationEventAction
+final readonly class CreateOrganizationEventAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly CreateEventWithRegistrationAction $createEventWithRegistration,
-        private readonly OrganizationAccess $organizationAccess,
+        private CreateEventWithRegistrationAction $createEventWithRegistration,
+        private OrganizationAccess $organizationAccess,
     ) {}
 
     /**

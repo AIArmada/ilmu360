@@ -6,9 +6,9 @@ namespace App\Filament\Resources\Events;
 
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\FilamentEvents\Contracts\EventFormExtension;
+use App\Models\Reference;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Models\Reference;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;

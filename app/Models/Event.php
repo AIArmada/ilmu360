@@ -25,25 +25,14 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
-use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\Events\Support\EventDeleteCascade;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Organizations\Models\Organization;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventChangeType;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Api\EventProjections;
-use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Events\Enums\TimingMode;
 use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\HasDonationChannels;
 use App\Platform\Auditing\AuditsModelChanges;
@@ -51,10 +40,20 @@ use App\Platform\Location\AddressAssignments;
 use App\Platform\Reporting\ReportModelClass;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use App\Shared\Support\RelatedModels;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
@@ -140,6 +139,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasResponses, HasStates, KeepsDeletedModels, Searchable;
 
+    #[\Override]
     protected static string $ownerScopeConfigKey = '';
 
     protected static bool $ownerScopeEnabledByDefault = false;
@@ -210,8 +210,10 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             && $this->published_at !== null;
     }
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
@@ -271,6 +273,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'owner_type',
         'owner_id',

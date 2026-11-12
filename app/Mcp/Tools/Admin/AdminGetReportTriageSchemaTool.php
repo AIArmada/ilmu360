@@ -19,8 +19,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetReportTriageSchemaTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-get-report-triage-schema';
 
+    #[\Override]
     protected string $description = 'Use this when you need the triage schema for a report before applying a triage action. Returns available actions, required fields, and conditional rules.';
 
     public function __construct(

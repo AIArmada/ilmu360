@@ -18,10 +18,13 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetWriteSchemaTool extends AbstractAdminWriteTool
 {
+    #[\Override]
     protected string $name = 'admin-get-write-schema';
 
+    #[\Override]
     protected string $title = 'Inspect Admin Write Schema';
 
+    #[\Override]
     protected string $description = 'Use this when you need to see the full field contract for creating or updating an admin resource before composing a payload. Read-only — does not create or mutate any records.';
 
     public function __construct(

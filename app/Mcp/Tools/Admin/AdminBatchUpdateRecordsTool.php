@@ -25,8 +25,10 @@ use function data_set;
 #[IsOpenWorld(false)]
 class AdminBatchUpdateRecordsTool extends AbstractAdminWriteTool
 {
+    #[\Override]
     protected string $name = 'admin-batch-update-records';
 
+    #[\Override]
     protected string $description = 'Use this to update multiple records for a writable admin resource in a single request. Each item is processed independently; the response contains a per-row result with status updated, validation_failed, not_found, or error. Set validate_only=true to preview normalized payloads and surface all validation errors upfront without persisting any changes. Include external_row_id in each item for idempotency tracking.';
 
     public function __construct(

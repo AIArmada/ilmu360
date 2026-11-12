@@ -17,7 +17,7 @@ final class HeroBackdrop
     /**
      * @var list<string>
      */
-    private const IMAGES = [
+    private const array IMAGES = [
         'images/events/hero-backgrounds/hero-backdrop-v3-01.jpg',
         'images/events/hero-backgrounds/hero-backdrop-v3-02.jpg',
         'images/events/hero-backgrounds/hero-backdrop-v3-03.jpg',

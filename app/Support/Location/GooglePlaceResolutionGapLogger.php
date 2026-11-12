@@ -8,9 +8,9 @@ use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaName;
 
-final class GooglePlaceResolutionGapLogger
+final readonly class GooglePlaceResolutionGapLogger
 {
-    public function __construct(private readonly GooglePlaceGeographyMatcher $matcher) {}
+    public function __construct(private GooglePlaceGeographyMatcher $matcher) {}
 
     /**
      * Log attempted-but-unmatched Google names as resolution gaps.
@@ -67,7 +67,7 @@ final class GooglePlaceResolutionGapLogger
             );
         }
 
-        if ($expectsState && $stateId === null && filled($stateName) && mb_strlen((string) $stateName) <= 255) {
+        if ($expectsState && $stateId === null && filled($stateName) && mb_strlen($stateName) <= 255) {
             $logger->execute(
                 source: 'google-picker',
                 countryCode: $countryCode,

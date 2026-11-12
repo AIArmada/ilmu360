@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListAudits extends ListRecords
 {
+    #[\Override]
     protected static string $resource = AuditResource::class;
 
     #[\Override]

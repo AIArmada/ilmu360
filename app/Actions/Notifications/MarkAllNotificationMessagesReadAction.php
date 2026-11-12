@@ -34,9 +34,6 @@ final readonly class MarkAllNotificationMessagesReadAction
             $this->notificationInboxService->markAllAsRead(
                 $this->communications->inboxRelationFor($user)->whereNull('archived_at'),
             );
-        }
-
-        if ($updated > 0) {
             $this->signals->record(
                 eventName: 'notification.read_all',
                 eventCategory: 'notification',

@@ -9,6 +9,7 @@ use App\Features\Reports\Data\ReportSubmissionData;
 use App\Features\Reports\Models\Report;
 use App\Platform\Media\MediaEvidence;
 use App\Shared\Auth\AccountActor;
+use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectResolver;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -56,7 +57,7 @@ class ReportController extends Controller
 
         $subject = $reportSubjects->find($validated['entity_type'], $validated['entity_id']);
 
-        if ($subject === null) {
+        if (! $subject instanceof ReportSubject) {
             return response()->json([
                 'error' => [
                     'code' => 'not_found',

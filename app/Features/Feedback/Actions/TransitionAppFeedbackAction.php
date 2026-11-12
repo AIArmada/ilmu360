@@ -10,6 +10,7 @@ use App\Features\Feedback\Notifications\AppFeedbackClosedNotification;
 use App\Features\Feedback\Notifications\AppFeedbackTriagedNotification;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -102,7 +103,7 @@ class TransitionAppFeedbackAction
     {
         $reporter = $this->accounts->resolveNotifiable((string) $feedback->reporter_id);
 
-        if ($reporter === null) {
+        if (! $reporter instanceof Authenticatable) {
             return;
         }
 
@@ -120,7 +121,7 @@ class TransitionAppFeedbackAction
     {
         $reporter = $this->accounts->resolveNotifiable((string) $feedback->reporter_id);
 
-        if ($reporter === null) {
+        if (! $reporter instanceof Authenticatable) {
             return;
         }
 

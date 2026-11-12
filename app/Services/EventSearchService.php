@@ -3,12 +3,12 @@
 namespace App\Services;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Shared\Events\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteria;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use App\Support\EventDiscovery\FuzzyEventMatcher;
 use App\Support\Search\InstitutionSearchService;

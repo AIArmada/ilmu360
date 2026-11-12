@@ -24,22 +24,26 @@ class MembershipApplicationResource extends Resource
 
     private static ?int $pendingNavigationCount = null;
 
+    #[\Override]
     protected static ?string $model = MembershipApplication::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
 
     #[\Override]
     public static function getRecordTitle(?Model $record): string|Htmlable|null
     {
-        if ($record === null) {
+        if (! $record instanceof Model) {
             return null;
         }
 
         return $record->applicant->name ?? (string) $record->getKey();
     }
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Moderation';
 
+    #[\Override]
     protected static ?int $navigationSort = 4;
 
     #[\Override]

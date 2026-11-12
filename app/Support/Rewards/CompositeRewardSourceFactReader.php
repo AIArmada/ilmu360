@@ -8,12 +8,12 @@ use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Support\RewardSourceFact;
 
 /** Routes canonical reward source keys to their single namespace reader. */
-final class CompositeRewardSourceFactReader implements RewardSourceFactReader
+final readonly class CompositeRewardSourceFactReader implements RewardSourceFactReader
 {
     public function __construct(
-        private readonly ActivityRewardSourceFactReader $activityReader,
-        private readonly ShareAttributionRewardSourceFactReader $shareReader,
-        private readonly ReferralRewardSourceFactReader $referralReader,
+        private ActivityRewardSourceFactReader $activityReader,
+        private ShareAttributionRewardSourceFactReader $shareReader,
+        private ReferralRewardSourceFactReader $referralReader,
     ) {}
 
     public function read(string $sourceBusinessKey): ?RewardSourceFact

@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Jobs\BackfillReferenceSlugs;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
+#[Description('Queue regeneration of reference slugs using the sequential title slug format.')]
+#[Signature('references:queue-slug-backfill')]
 class QueueBackfillReferenceSlugs extends Command
 {
-    protected $signature = 'references:queue-slug-backfill';
-
-    protected $description = 'Queue regeneration of reference slugs using the sequential title slug format.';
-
     public function handle(): int
     {
         BackfillReferenceSlugs::dispatch();

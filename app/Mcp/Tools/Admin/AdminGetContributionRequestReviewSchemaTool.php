@@ -18,8 +18,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetContributionRequestReviewSchemaTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-get-contribution-request-review-schema';
 
+    #[\Override]
     protected string $description = 'Use this when you need the review schema for a contribution request before submitting an approve or reject decision. Returns available actions, required fields, and conditional rules.';
 
     public function __construct(

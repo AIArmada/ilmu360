@@ -19,7 +19,7 @@ class ShareOutcomeCorrectionObserver
         try {
             ReverseReferralRewardsForShareOutcomeJob::dispatch(
                 $businessKey,
-                'source-correction:'.(string) $correction->getAttribute('reason'),
+                'source-correction:'.$correction->getAttribute('reason'),
             )->afterCommit();
         } catch (Throwable $exception) {
             Log::warning('Referral reversal dispatch failed after recording a share correction.', [

@@ -60,9 +60,9 @@ final readonly class CancelRewardDigestAction
         }
 
         $slotId = $slot instanceof RewardDigestSlot ? (string) $slot->getKey() : $slot;
-        $decided = $decidedAt === null
-            ? CarbonImmutable::now('UTC')
-            : CarbonImmutable::parse($decidedAt)->setTimezone('UTC');
+        $decided = $decidedAt instanceof CarbonInterface
+            ? CarbonImmutable::parse($decidedAt)->setTimezone('UTC')
+            : CarbonImmutable::now('UTC');
 
         return DB::transaction(function () use ($slotId, $reason, $force, $decided): RewardDigestSlot {
             $locked = RewardDigestSlot::query()->whereKey($slotId)->lockForUpdate()->first();
@@ -86,7 +86,7 @@ final readonly class CancelRewardDigestAction
             }
 
             if ($force) {
-                self::markCancelled($locked, $reason, $decided);
+                $this->markCancelled($locked, $reason, $decided);
 
                 return $locked->refresh();
             }
@@ -104,7 +104,7 @@ final readonly class CancelRewardDigestAction
             );
 
             if (($recomputed['total'] ?? 0) <= 0) {
-                self::markCancelled($locked, $reason, $decided);
+                $this->markCancelled($locked, $reason, $decided);
 
                 return $locked->refresh();
             }
@@ -202,7 +202,7 @@ final readonly class CancelRewardDigestAction
         app(CancelCommunicationAction::class)->handle((string) $communication->getKey(), 'digest-correction');
     }
 
-    private static function markCancelled(RewardDigestSlot $slot, string $reason, CarbonImmutable $now): void
+    private function markCancelled(RewardDigestSlot $slot, string $reason, CarbonImmutable $now): void
     {
         $payload = $slot->payload ?? [];
         $payload['cancellation'] = ['at' => $now->toIso8601String(), 'reason' => $reason];

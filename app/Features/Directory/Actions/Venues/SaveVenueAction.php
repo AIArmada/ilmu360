@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\Venues;
 
-use App\Shared\Directory\Enums\VenueType;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Shared\Directory\Enums\VenueType;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
@@ -121,9 +121,7 @@ final readonly class SaveVenueAction
 
         $codes = $data['facilities'];
 
-        if ($codes === null) {
-            $codes = [];
-        }
+        $codes ??= [];
 
         if (! is_array($codes)) {
             return;

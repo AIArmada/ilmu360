@@ -8,9 +8,9 @@ use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
 use App\Features\Directory\Api\InstitutionVenueLinks;
-use App\Shared\Directory\Enums\VenueType;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
+use App\Shared\Directory\Enums\VenueType;
 use App\Shared\Support\RelatedModels;
 use Carbon\CarbonImmutable;
 use Database\Factories\VenueFactory;
@@ -51,13 +51,16 @@ class Venue extends PackageVenue implements AuditableContract
     #[\Override]
     protected $table = 'venues';
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'id',
         'parent_venue_id',

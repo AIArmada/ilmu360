@@ -9,6 +9,7 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditSlugRedirect extends EditRecord
 {
+    #[\Override]
     protected static string $resource = SlugRedirectResource::class;
 
     /**

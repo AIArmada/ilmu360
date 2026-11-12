@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Persons\RelationManagers;
 
+use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Person;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
-use App\Features\Directory\Api\InstitutionWorkflow;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
@@ -28,8 +28,10 @@ use Throwable;
 
 class InstitutionsRelationManager extends RelationManager
 {
+    #[\Override]
     protected static string $relationship = 'institutions';
 
+    #[\Override]
     protected static ?string $inverseRelationship = 'persons';
 
     #[\Override]

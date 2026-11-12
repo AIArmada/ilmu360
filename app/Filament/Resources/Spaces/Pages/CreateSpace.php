@@ -16,6 +16,7 @@ class CreateSpace extends CreateRecord
 {
     use AuditsRelatedStateChanges;
 
+    #[\Override]
     protected static string $resource = SpaceResource::class;
 
     protected function handleRecordCreation(array $data): Model

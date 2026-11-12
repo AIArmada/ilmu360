@@ -12,5 +12,6 @@ class ListPersons extends ListRecords
 {
     use ReordersFeaturedPersons;
 
+    #[\Override]
     protected static string $resource = PersonResource::class;
 }

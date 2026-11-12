@@ -13,13 +13,16 @@ class AiUsageLog extends Model
     /** @use HasFactory<Factory<self>> */
     use HasFactory, HasUuids;
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'invocation_id',
         'operation',

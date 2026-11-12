@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Pages\Institutions;
 
-use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -11,6 +10,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
 use App\Enums\ShareOutcomeType;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Livewire\Concerns\TogglesEventGoing;
@@ -112,7 +112,6 @@ class Show extends Component
                         ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, (string) $follow->getKey()),
                         'unfollowed',
                         $user,
-                        request(),
                     );
                 }
             });
@@ -121,7 +120,7 @@ class Show extends Component
             return;
         }
 
-        $follow = DB::transaction(function () use ($user): Follow {
+        DB::transaction(function () use ($user): Follow {
             $created = $user->follow($this->institution);
 
             // Reactivations reuse the follow row: only rows created by
@@ -197,9 +196,9 @@ class Show extends Component
         /** @var array<string, string|\Closure> $addressRelations */
         $addressRelations = [
             'venue.media',
-            'venue.addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
+            'venue.addresses' => $this->joinAddressStateName(...),
             'venue.addresses.city',
-            'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
+            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
         ];
 
         /** @var EventBuilder $query */
@@ -236,9 +235,9 @@ class Show extends Component
     {
         return [
             'venue.media',
-            'venue.addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
+            'venue.addresses' => $this->joinAddressStateName(...),
             'venue.addresses.city',
-            'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
+            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
             'persons.media',
             'persons.titleAssignments.title.category',
             'keyPeople.person',
@@ -275,9 +274,9 @@ class Show extends Component
         OwnerContext::withOwner(null, function (): void {
             $this->institution->loadMissing([
                 'media',
-                'addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
+                'addresses' => $this->joinAddressStateName(...),
                 'addresses.city',
-                'addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
+                'addresses.areaAssignments' => $this->joinAreaName(...),
                 'contactMethods',
                 'publicSocialProfiles',
                 'donationChannels.media',

@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListSeries extends ListRecords
 {
+    #[\Override]
     protected static string $resource = SeriesResource::class;
 
     #[\Override]

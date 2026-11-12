@@ -18,6 +18,7 @@ use Livewire\Attributes\On;
 
 class EditInstitution extends EditRecord
 {
+    #[\Override]
     protected static string $resource = InstitutionResource::class;
 
     public function boot(): void

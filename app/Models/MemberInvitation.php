@@ -27,13 +27,16 @@ class MemberInvitation extends PackageMembershipInvitation implements Auditable
 {
     use AuditsModelChanges;
 
+    #[\Override]
     protected static string $ownerScopeConfigKey = '';
 
+    #[\Override]
     protected static bool $ownerScopeEnabledByDefault = false;
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'subject_type',
         'subject_id',

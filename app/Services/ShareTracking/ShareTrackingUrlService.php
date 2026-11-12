@@ -275,13 +275,7 @@ final readonly class ShareTrackingUrlService
     {
         $normalizedPath = Str::lower('/'.ltrim($path, '/'));
 
-        foreach ($this->privateSharePathPrefixes() as $prefix) {
-            if ($normalizedPath === $prefix || str_starts_with($normalizedPath, $prefix.'/')) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($this->privateSharePathPrefixes(), fn ($prefix) => $normalizedPath === $prefix || str_starts_with($normalizedPath, $prefix.'/'));
     }
 
     /**

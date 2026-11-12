@@ -17,7 +17,6 @@ use App\Models\User;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\ShareTracking\ShareTrackingFinance;
 use Illuminate\Database\QueryException;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -35,7 +34,6 @@ final readonly class ReverseShareOutcomeAction
         string $businessKey,
         string $reason,
         ?User $actor = null,
-        ?Request $request = null,
     ): ?ShareOutcomeCorrection {
         $businessKey = trim($businessKey);
         $reason = trim($reason);

@@ -22,8 +22,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class SpaceResource extends VenueSpaceResource
 {
+    #[\Override]
     protected static ?string $model = Space::class;
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function getNavigationGroup(): string

@@ -553,8 +553,6 @@ final readonly class AffiliatesShareTrackingAnalyticsService
                 eventRegistrationsCount: 0,
                 eventCheckinsCount: 0,
                 eventSubmissionsCount: 0,
-                latestVisitAt: null,
-                latestOutcomeAt: null,
             );
         }
 

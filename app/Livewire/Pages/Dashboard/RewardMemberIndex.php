@@ -76,7 +76,7 @@ class RewardMemberIndex extends Component
         $options = RewardPayoutMethods::options();
 
         if ($options !== [] && ! array_key_exists($this->payeeMethod, $options)) {
-            $this->payeeMethod = (string) array_key_first($options);
+            $this->payeeMethod = array_key_first($options);
         }
     }
 
@@ -234,7 +234,7 @@ class RewardMemberIndex extends Component
         try {
             RedeemRewardBenefitAction::run(
                 $user->getMorphClass(), (string) $user->getKey(), (string) $program->family_key,
-                $item, 1, 'web-'.((string) Str::uuid()), 'manual',
+                $item, 1, 'web-'.(Str::uuid()), 'manual',
                 'user', (string) $user->getKey(), 'member',
             );
         } catch (InvalidArgumentException $exception) {
@@ -328,7 +328,7 @@ class RewardMemberIndex extends Component
             'payeeMethodOptions' => RewardPayoutMethods::options(),
             'impact' => $impact,
             'catalog' => $catalog,
-            'stockOf' => static fn (RewardBenefitItem $item): array => RewardBenefitStockLedger::balances($item),
+            'stockOf' => RewardBenefitStockLedger::balances(...),
             'grants' => $grants,
         ]);
     }
@@ -569,7 +569,7 @@ class RewardMemberIndex extends Component
 
         try {
             return app(ShareMetricReader::class)->summarize(
-                (string) $user->preferredTimezone(), $from, $to, $user,
+                $user->preferredTimezone(), $from, $to, $user,
             );
         } catch (InvalidArgumentException) {
             return ['status' => 'unavailable', 'totals' => []];

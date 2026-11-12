@@ -17,6 +17,7 @@ class EditSpace extends EditRecord
 {
     use AuditsRelatedStateChanges;
 
+    #[\Override]
     protected static string $resource = SpaceResource::class;
 
     protected function handleRecordUpdate(Model $record, array $data): Model

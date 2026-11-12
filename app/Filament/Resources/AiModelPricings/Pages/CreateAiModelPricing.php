@@ -9,6 +9,7 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateAiModelPricing extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = AiModelPricingResource::class;
 
     #[\Override]

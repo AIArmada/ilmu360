@@ -313,10 +313,8 @@ final class OfflineAdmissions extends Component
         $orderIds = $registrations->pluck('external_order_id')->filter()->map(static fn (mixed $id): string => (string) $id)->values();
 
         /** @var Collection<string, Order> $orders */
-        $orders = OwnerContext::withOwner(null, function () use ($orderIds): Collection {
-            return collect(Order::query()->whereIn('id', $orderIds->all())->get())
-                ->keyBy(static fn (Order $order): string => (string) $order->getKey());
-        });
+        $orders = OwnerContext::withOwner(null, fn(): Collection => collect(Order::query()->whereIn('id', $orderIds->all())->get())
+            ->keyBy(static fn (Order $order): string => (string) $order->getKey()));
 
         /** @var Collection<int, array<string, mixed>> $admissions */
         $admissions = collect();
@@ -623,7 +621,7 @@ final class OfflineAdmissions extends Component
 
         $ticketEvent = EventTicketScope::event($ticket);
 
-        if ($ticketEvent === null || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
+        if (!$ticketEvent instanceof \AIArmada\Events\Models\Event || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
             return null;
         }
 

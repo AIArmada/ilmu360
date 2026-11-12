@@ -101,7 +101,6 @@ class ModerationService
                         ShareOutcomeBusinessKey::eventSubmission((string) $submissionId),
                         'submission_rejected',
                         $moderator,
-                        request(),
                     );
                 });
         });
@@ -196,13 +195,13 @@ class ModerationService
         $this->signals->record(
             eventName: 'moderation.event.'.$action,
             eventCategory: 'moderation',
-            actorId: $moderator !== null ? (string) $moderator->getKey() : null,
+            actorId: $moderator instanceof User ? (string) $moderator->getKey() : null,
             properties: [
                 'event_id' => (string) $event->getKey(),
                 'moderation_action' => $action,
                 'previous_status' => $previousStatus,
                 'current_status' => (string) $event->status,
-                'moderator_id' => $moderator !== null ? (string) $moderator->getKey() : null,
+                'moderator_id' => $moderator instanceof User ? (string) $moderator->getKey() : null,
                 'reason_code' => $reasonCode,
                 'has_note' => filled($note),
             ],

@@ -18,14 +18,19 @@ use UnitEnum;
  */
 final class ShareAnalytics extends Page
 {
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShare;
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Insights';
 
+    #[\Override]
     protected static ?int $navigationSort = 11;
 
+    #[\Override]
     protected static ?string $title = 'Share Analytics';
 
+    #[\Override]
     protected string $view = 'filament.pages.share-analytics';
 
     /** @var ShareAnalyticsDashboard */

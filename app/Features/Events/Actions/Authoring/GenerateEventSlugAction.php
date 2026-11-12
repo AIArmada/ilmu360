@@ -7,10 +7,10 @@ use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\OrganizerResolver;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Routing\SyncSlugRedirectAction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\OrganizerResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -117,7 +117,7 @@ class GenerateEventSlugAction
     {
         $segments = $this->personSlugSegmentsForPersonIds($personIds);
 
-        if ($segments === [] && $primaryOrganizer !== null && $primaryOrganizer->getMorphClass() === 'person') {
+        if ($segments === [] && $primaryOrganizer instanceof Model && $primaryOrganizer->getMorphClass() === 'person') {
             $segments = $this->personSlugSegmentsForPersonIds([
                 (string) $primaryOrganizer->getKey(),
             ]);

@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminListRelatedRecordsTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-list-related-records';
 
+    #[\Override]
     protected string $description = 'Use this when you need to list records related to one admin record (e.g. persons for an event, events for a venue). Supports search and pagination. Do not use for listing top-level records; use admin-list-records for that.';
 
     public function __construct(

@@ -10,5 +10,6 @@ abstract class PanelDashboard extends BaseDashboard
 {
     // Filament reserves "/" for the panel home redirect, so custom dashboards need
     // a concrete page route to register a stable `pages.*-dashboard` route name.
+    #[\Override]
     protected static string $routePath = '/dashboard';
 }

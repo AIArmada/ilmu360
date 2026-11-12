@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateReport extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = ReportResource::class;
 
     #[\Override]

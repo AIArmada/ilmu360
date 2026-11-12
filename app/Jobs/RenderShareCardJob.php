@@ -10,6 +10,9 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\UniqueFor;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Throwable;
@@ -22,18 +25,15 @@ use Throwable;
  * never produces a dead image URL. Single attempt, no retries — a
  * failing render retries naturally on the next request.
  */
+#[Timeout(120)]
+#[Tries(1)]
+#[UniqueFor(3600)]
 final class RenderShareCardJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
     use SerializesModels;
-
-    public int $tries = 1;
-
-    public int $timeout = 120;
-
-    public int $uniqueFor = 3600;
 
     public function __construct(
         public readonly string $eventId,

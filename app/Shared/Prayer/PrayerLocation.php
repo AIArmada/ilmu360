@@ -7,7 +7,6 @@ namespace App\Shared\Prayer;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Shared\Prayer\PrayerAreaTypes;
 use App\Models\Institution;
 use App\Models\Venue;
 

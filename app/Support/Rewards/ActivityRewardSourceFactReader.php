@@ -93,7 +93,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             isValid: ! $invalidates['invalid'],
             fraudStatus: $this->fraudStatusFor($source, $metadata),
             correctionStatus: RewardSourceCorrectionStatus::Current,
-            correctionId: null,
         );
     }
 
@@ -131,7 +130,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             isValid: true,
             fraudStatus: RewardSourceFraudStatus::Clear,
             correctionStatus: RewardSourceCorrectionStatus::Current,
-            correctionId: null,
         );
     }
 
@@ -321,10 +319,10 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
 
         if ($outcome === ShareOutcomeType::EventCheckin
             && $source instanceof EventCheckin
-            && $this->userForMorph(
+            && ! $this->userForMorph(
                 $this->stringAttribute($source, 'attendee_type'),
                 $this->stringAttribute($source, 'attendee_id'),
-            ) === null
+            ) instanceof User
             && $this->stringAttribute($source, 'verified_by_user_id') === (string) $actor->getKey()
         ) {
             return RewardBeneficiaryRole::Staff;
@@ -402,7 +400,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
     {
         $value = $this->attribute($source, $key) ?? ($metadata[$key] ?? false);
 
-        return $value === true || $value === 1 || $value === '1';
+        return in_array($value, [true, 1, '1'], true);
     }
 
     private function stringAttribute(Model $source, string $attribute): ?string

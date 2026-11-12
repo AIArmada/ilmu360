@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Api\Admin\AdminResourceService;
 use Generator;
@@ -36,10 +36,13 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class AdminCreateEventTool extends AbstractAdminWriteTool
 {
+    #[\Override]
     protected string $name = 'admin-create-event';
 
+    #[\Override]
     protected string $title = 'Create Event';
 
+    #[\Override]
     protected string $description = 'Use this MCP-only event wrapper to create a new event, optionally with cover, poster, or gallery images in the same request. It resolves organizer, location, persons, and references by human-readable route keys before calling the shared admin event create path. person_keys/reference_keys are route-key aliases for the underlying persons/references UUID arrays. apply_defaults is only honored together with validate_only=true for preview/autofill feedback and is ignored for persisted creates. Do not use to update an existing event; use admin-update-event instead.';
 
     public function __construct(

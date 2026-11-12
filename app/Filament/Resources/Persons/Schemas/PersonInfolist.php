@@ -147,15 +147,7 @@ class PersonInfolist
 
                                                                 $text = implode("\n\n", $parts);
                                                             } else {
-                                                                $text = null;
-
-                                                                foreach ($bio as $value) {
-                                                                    if (is_string($value) && trim($value) !== '') {
-                                                                        $text = $value;
-
-                                                                        break;
-                                                                    }
-                                                                }
+                                                                $text = array_find($bio, fn ($value) => is_string($value) && trim($value) !== '');
                                                             }
                                                         }
 

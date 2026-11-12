@@ -20,12 +20,16 @@ use UnitEnum;
 
 class InspirationResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = Inspiration::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Content';
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'title';
 
     #[\Override]

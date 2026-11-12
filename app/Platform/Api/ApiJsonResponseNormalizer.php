@@ -8,10 +8,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-final class ApiJsonResponseNormalizer
+final readonly class ApiJsonResponseNormalizer
 {
     public function __construct(
-        private readonly ApiErrorDetailsEnricher $errorDetailsEnricher,
+        private ApiErrorDetailsEnricher $errorDetailsEnricher,
     ) {}
 
     public function normalize(Request $request, Response $response): Response

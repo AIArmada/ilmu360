@@ -93,7 +93,7 @@ final class ShareRedirectController extends Controller
 
         $channel = $this->shareTrackingUrlService->normalizeProvider(
             is_string($request->query((string) config('share-tracking.provider_query_parameter', 'channel')))
-                ? (string) $request->query((string) config('share-tracking.provider_query_parameter', 'channel'))
+                ? $request->query((string) config('share-tracking.provider_query_parameter', 'channel'))
                 : null
         );
 

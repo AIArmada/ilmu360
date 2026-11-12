@@ -17,6 +17,7 @@ use InvalidArgumentException;
 
 class ListCommunityReleases extends ListRecords
 {
+    #[\Override]
     protected static string $resource = CommunityReleaseResource::class;
 
     #[\Override]

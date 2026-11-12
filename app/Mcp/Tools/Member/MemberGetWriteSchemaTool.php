@@ -17,10 +17,13 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class MemberGetWriteSchemaTool extends AbstractMemberWriteTool
 {
+    #[\Override]
     protected string $name = 'member-get-write-schema';
 
+    #[\Override]
     protected string $title = 'Inspect Member Write Schema';
 
+    #[\Override]
     protected string $description = 'Use this when you need the full field contract for updating an Ahli-scoped resource record before composing a payload. Read-only — does not apply any changes.';
 
     public function __construct(

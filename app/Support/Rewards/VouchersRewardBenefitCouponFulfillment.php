@@ -59,7 +59,7 @@ final class VouchersRewardBenefitCouponFulfillment implements RewardBenefitCoupo
             'usage_limit_per_user' => 1,
             'starts_at' => $decided,
             'expires_at' => $item->expires_at,
-            'description' => 'Reward benefit grant '.(string) $grant->grant_key,
+            'description' => 'Reward benefit grant '.$grant->grant_key,
             'metadata' => [
                 'assignee' => ['type' => $holder->getMorphClass(), 'id' => (string) $holder->getKey()],
                 'grant_key' => (string) $grant->grant_key,

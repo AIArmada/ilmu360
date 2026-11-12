@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Shared\Prayer;
 
-use App\Shared\Prayer\EventPrayerTime;
-
 /**
  * Last-resort prayer clocks when no provider data is available.
  *

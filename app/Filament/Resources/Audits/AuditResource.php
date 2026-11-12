@@ -19,16 +19,22 @@ use UnitEnum;
 
 class AuditResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = Audit::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[\Override]
     protected static ?string $modelLabel = 'Audit';
 
+    #[\Override]
     protected static ?string $pluralModelLabel = 'Audits';
 
+    #[\Override]
     protected static ?string $navigationLabel = 'Audits';
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'System';
 
     #[\Override]

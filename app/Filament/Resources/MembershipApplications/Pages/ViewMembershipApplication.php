@@ -24,8 +24,10 @@ class ViewMembershipApplication extends ViewRecord
         OwnerContext::setForRequest(null);
     }
 
+    #[\Override]
     protected static string $resource = MembershipApplicationResource::class;
 
+    #[\Override]
     protected Width|string|null $maxContentWidth = Width::Full;
 
     #[\Override]

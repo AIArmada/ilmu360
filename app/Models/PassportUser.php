@@ -12,10 +12,13 @@ class PassportUser extends Authenticatable implements OAuthenticatable
 {
     use HasApiTokens;
 
+    #[\Override]
     protected $table = 'users';
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     #[\Override]

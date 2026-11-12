@@ -25,8 +25,10 @@ use function data_set;
 #[IsOpenWorld(false)]
 class AdminBatchCreateRecordsTool extends AbstractAdminWriteTool
 {
+    #[\Override]
     protected string $name = 'admin-batch-create-records';
 
+    #[\Override]
     protected string $description = 'Use this to create multiple records for a writable admin resource in a single request. Each item is processed independently; the response contains a per-row result with status created, validation_failed, or error. Set validate_only=true to preview normalized payloads and surface all validation errors upfront without persisting any records. Include external_row_id in each item for idempotency tracking and safe retries. For batch event creation use admin-batch-create-events instead, which supports human-readable organizer/person/reference/venue key resolution.';
 
     public function __construct(

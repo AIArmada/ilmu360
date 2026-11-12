@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Actions;
 
-use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;

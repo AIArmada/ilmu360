@@ -21,7 +21,7 @@ use AIArmada\Communications\Support\PayloadRedactorService;
  * array-valued shapes (HeaderBag::all(), nested transports) under a
  * sensitive name can never leak through recursion.
  */
-final class ListSafePayloadRedactor implements PayloadRedactor
+final readonly class ListSafePayloadRedactor implements PayloadRedactor
 {
     /**
      * App-level sensitive key substrings beyond the package list.
@@ -34,7 +34,7 @@ final class ListSafePayloadRedactor implements PayloadRedactor
      * such as "claim" or "capability" alone would swallow unrelated
      * diagnostics.
      */
-    private const ADDITIONAL_SENSITIVE_SUBSTRINGS = [
+    private const array ADDITIONAL_SENSITIVE_SUBSTRINGS = [
         'credential',
         'guest_claim',
         'claim_capability',
@@ -49,14 +49,14 @@ final class ListSafePayloadRedactor implements PayloadRedactor
      * behavior stays canonical; this list only closes the recurse-before-
      * check gap for package-sensitive parents at this boundary.
      */
-    private const PACKAGE_SENSITIVE_SUBSTRINGS = [
+    private const array PACKAGE_SENSITIVE_SUBSTRINGS = [
         'password', 'secret', 'token', 'authorization', 'api_key', 'api_secret',
         'access_key', 'private_key', 'credit_card', 'cvv', 'ssn', 'sin',
         'bank_account', 'routing_number', 'pin', 'passcode',
     ];
 
     public function __construct(
-        private readonly PayloadRedactorService $inner,
+        private PayloadRedactorService $inner,
     ) {}
 
     /**
@@ -141,13 +141,7 @@ final class ListSafePayloadRedactor implements PayloadRedactor
             }
         }
 
-        foreach (self::PACKAGE_SENSITIVE_SUBSTRINGS as $sensitive) {
-            if (str_contains($lower, $sensitive)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(self::PACKAGE_SENSITIVE_SUBSTRINGS, fn ($sensitive) => str_contains($lower, $sensitive));
     }
 
     /**

@@ -27,79 +27,79 @@ use Throwable;
  * strip budgets or the shaping pipeline change: the future cache key must
  * invalidate across renderer revisions.
  */
-final class PangoShareCardRenderer implements ShareCardRenderer
+final readonly class PangoShareCardRenderer implements ShareCardRenderer
 {
-    public const WIDTH = 1200;
+    public const int WIDTH = 1200;
 
-    public const HEIGHT = 630;
+    public const int HEIGHT = 630;
 
-    public const RENDERER_REVISION = 'scr-001';
+    public const string RENDERER_REVISION = 'scr-001';
 
-    private const MAX_RASTER_BYTES = 2000000;
+    private const int MAX_RASTER_BYTES = 2000000;
 
-    private const MAX_RASTER_DIMENSION = 4096;
+    private const int MAX_RASTER_DIMENSION = 4096;
 
-    private const MIN_RASTER_DIMENSION = 8;
+    private const int MIN_RASTER_DIMENSION = 8;
 
-    private const MAX_UPSCALE_PIXELS = 4000000;
+    private const int MAX_UPSCALE_PIXELS = 4000000;
 
-    private const MAX_STRIP_BYTES = 4000000;
+    private const int MAX_STRIP_BYTES = 4000000;
 
-    private const MARGIN = 64;
+    private const int MARGIN = 64;
 
-    private const COLUMN_WIDTH = 640;
+    private const int COLUMN_WIDTH = 640;
 
-    private const ART_X = 768;
+    private const int ART_X = 768;
 
-    private const ART_Y = 64;
+    private const int ART_Y = 64;
 
-    private const ART_WIDTH = 368;
+    private const int ART_WIDTH = 368;
 
-    private const ART_HEIGHT = 502;
+    private const int ART_HEIGHT = 502;
 
-    private const ART_HEIGHT_WITH_RIBBON = 466;
+    private const int ART_HEIGHT_WITH_RIBBON = 466;
 
-    private const BORDER = 3;
+    private const int BORDER = 3;
 
-    private const RIBBON_HEIGHT = 84;
+    private const int RIBBON_HEIGHT = 84;
 
-    private const RIBBON_STRIP_WIDTH = 1072;
+    private const int RIBBON_STRIP_WIDTH = 1072;
 
-    private const BRAND_SIZE = 30;
+    private const int BRAND_SIZE = 30;
 
-    private const TITLE_SIZE = 50;
+    private const int TITLE_SIZE = 50;
 
-    private const SCHEDULE_SIZE = 30;
+    private const int SCHEDULE_SIZE = 30;
 
-    private const META_SIZE = 26;
+    private const int META_SIZE = 26;
 
-    private const STATUS_SIZE = 32;
+    private const int STATUS_SIZE = 32;
 
     /** @var array{int, int, int} Deep emerald canvas (theme emerald-900 family). */
-    private const COLOR_BG = [23, 60, 52];
+    private const array COLOR_BG = [23, 60, 52];
 
     /** @var array{int, int, int} Darker emerald art panel. */
-    private const COLOR_PANEL = [14, 42, 37];
+    private const array COLOR_PANEL = [14, 42, 37];
 
     /** @var array{int, int, int} Gold brand accents (theme gold family). */
-    private const COLOR_GOLD = [242, 200, 103];
+    private const array COLOR_GOLD = [242, 200, 103];
 
     /** @var array{int, int, int} Cancellation/change ribbon. */
-    private const COLOR_RED = [127, 29, 29];
+    private const array COLOR_RED = [127, 29, 29];
 
     /** @var list<string> */
-    private const PANGO_SEARCH_PATHS = [
+    private const array PANGO_SEARCH_PATHS = [
         '/opt/homebrew/bin/pango-view',
         '/usr/local/bin/pango-view',
         '/usr/bin/pango-view',
     ];
 
     public function __construct(
-        private readonly string $fontDirectory,
-        private readonly ?string $pangoBinary = null,
-        private readonly ?string $workDirectory = null,
-        private readonly ?string $fontconfigCacheDirectory = null,
-        private readonly float $processTimeoutSeconds = 20.0,
+        private string $fontDirectory,
+        private ?string $pangoBinary = null,
+        private ?string $workDirectory = null,
+        private ?string $fontconfigCacheDirectory = null,
+        private float $processTimeoutSeconds = 20.0,
     ) {}
 
     public function readiness(): ShareCardReadiness
@@ -234,7 +234,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
         if ($input->coverImageBytes !== null) {
             $raster = $this->decodeRaster($input->coverImageBytes);
 
-            if ($raster === null) {
+            if (! $raster instanceof GdImage) {
                 return $this->failure(ShareCardError::RasterRejected, 'Cover bytes are not a bounded JPEG, PNG or WebP image.');
             }
 
@@ -382,9 +382,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
      */
     private function quickCapability(): array
     {
-        $fail = static function (ShareCardError $error, string $message): array {
-            return ['error' => $error, 'message' => $message, 'fontRevision' => 'unverified', 'binary' => '', 'fontDirectory' => '', 'fontFiles' => []];
-        };
+        $fail = (static fn (ShareCardError $error, string $message): array => ['error' => $error, 'message' => $message, 'fontRevision' => 'unverified', 'binary' => '', 'fontDirectory' => '', 'fontFiles' => []]);
 
         if (PHP_OS_FAMILY === 'Windows') {
             return $fail(ShareCardError::RenderFailed, 'Windows is not supported.');
@@ -401,7 +399,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
         }
 
         $directory = rtrim($this->fontDirectory, '/');
-        $verification = (new ShareCardFonts($directory))->verifyRenderable();
+        $verification = new ShareCardFonts($directory)->verifyRenderable();
 
         if (! $verification['ok'] || $verification['families'] === []) {
             return $fail(ShareCardError::FontsUnavailable, 'Pinned font manifest or font files are unavailable.');
@@ -703,7 +701,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
 
             $status = proc_get_status($process);
 
-            if ($status['running'] !== true) {
+            if (! $status['running']) {
                 $exitCode = (int) $status['exitcode'];
 
                 foreach ($pipes as $pipe) {
@@ -770,7 +768,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
      */
     private function decodeRaster(string $bytes): ?GdImage
     {
-        if (strlen($bytes) === 0 || strlen($bytes) > self::MAX_RASTER_BYTES) {
+        if ($bytes === '' || strlen($bytes) > self::MAX_RASTER_BYTES) {
             return null;
         }
 
@@ -780,7 +778,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
             return null;
         }
 
-        if ($info[2] !== IMAGETYPE_JPEG && $info[2] !== IMAGETYPE_PNG && $info[2] !== IMAGETYPE_WEBP) {
+        if (! in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
             return null;
         }
 
@@ -975,7 +973,7 @@ final class PangoShareCardRenderer implements ShareCardRenderer
         $innerW = self::ART_WIDTH - self::BORDER * 2;
         $innerH = $height - self::BORDER * 2;
 
-        if ($raster !== null) {
+        if ($raster instanceof GdImage) {
             $this->paintCoverFit($canvas, $raster, $innerX, $innerY, $innerW, $innerH, $panel);
         } else {
             $this->paintPlaceholder($canvas, $gold, $innerX, $innerY, $innerW, $innerH);

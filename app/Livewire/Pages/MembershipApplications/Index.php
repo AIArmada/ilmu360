@@ -66,7 +66,7 @@ class Index extends Component
             return;
         }
 
-        abort_if($detail === null, 404);
+        abort_if(!$detail instanceof \App\Features\Membership\Api\MembershipApplicationDetail, 404);
 
         $this->successToast(__('Membership claim cancelled.'));
     }

@@ -111,7 +111,7 @@ final readonly class RegisterFreeAdmissionAction implements AdmissionRegistratio
                         registrationId: (string) $registration->getKey(),
                         eventId: (string) $event->getKey(),
                         actorId: $actor?->getKey() !== null ? (string) $actor->getKey() : null,
-                        guest: $actor === null,
+                        guest: ! $actor instanceof Model,
                         request: $httpRequest,
                         businessMetadata: $attributionMetadata,
                     );

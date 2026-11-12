@@ -203,7 +203,7 @@ class NotificationBell extends Component
                     'id' => (string) $message->getKey(),
                     'title' => $message->title,
                     'body' => $message->body,
-                    'family_label' => $appFamily !== null
+                    'family_label' => $appFamily instanceof \App\Enums\NotificationFamily
                         ? NotificationCatalog::familyDefinition($appFamily)['label']
                         : $message->family->label(),
                     'icon' => NotificationCatalog::familyIcon($message->family),

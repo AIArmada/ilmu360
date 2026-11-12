@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace App\Support\Submission;
 
-use App\Shared\Submission\EntitySubmissionAccess;
-use App\Shared\Submission\SubmissionOptionsCache;
-use App\Shared\Submission\SubmissionTimingPolicy;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\EventCategoryPolicyResolver;
-use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryPolicyResolver;
+use App\Shared\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\SubmissionOptionsCache;
+use App\Shared\Submission\SubmissionTimingPolicy;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -198,7 +198,7 @@ final class SubmitEventOptionsProvider
         // that would silently strand later dates. Human labels use the viewer
         // timezone formatter; clock inputs elsewhere stay on the selected
         // submission-country business timezone by design.
-        $memoKey = 'occurrences:'.(string) $container->getKey();
+        $memoKey = 'occurrences:'.$container->getKey();
 
         if (array_key_exists($memoKey, $this->optionMemo)) {
             return $this->optionMemo[$memoKey];
@@ -241,7 +241,7 @@ final class SubmitEventOptionsProvider
             return null;
         }
 
-        return (string) array_key_first($options);
+        return array_key_first($options);
     }
 
     /**

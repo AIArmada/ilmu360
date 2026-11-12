@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Events\Api\EventAuthoring;
 use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -49,9 +49,7 @@ class InstitutionWorkspaceController extends FrontendController
 
         $institutionId = $this->normalizeInstitutionId($request->query('institution_id'));
 
-        if ($institutionId === null) {
-            $institutionId = (string) $availableInstitutions->first()->getKey();
-        }
+        $institutionId ??= (string) $availableInstitutions->first()->getKey();
 
         $institution = $availableInstitutions->first(
             fn (Institution $availableInstitution): bool => (string) $availableInstitution->getKey() === $institutionId

@@ -4,12 +4,12 @@ namespace App\View\Components;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Models\EventAccessPolicy;
-use App\Shared\Events\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventChangeType;
 use Carbon\CarbonInterface;
 use Illuminate\View\Component;
 use Illuminate\View\View;

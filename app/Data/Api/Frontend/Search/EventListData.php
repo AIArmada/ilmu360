@@ -2,12 +2,12 @@
 
 namespace App\Data\Api\Frontend\Search;
 
-use App\Shared\Events\Enums\EventFormat;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Events\Enums\EventFormat;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
 use BackedEnum;

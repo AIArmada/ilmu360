@@ -26,6 +26,7 @@ class ShareSourceAttributionReceipt extends Model
 
     public const string PROVENANCE_SYSTEM = 'system';
 
+    #[\Override]
     protected $fillable = [
         'namespace',
         'outcome_type',

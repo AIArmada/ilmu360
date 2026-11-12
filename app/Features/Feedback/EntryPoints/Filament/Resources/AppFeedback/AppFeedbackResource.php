@@ -20,20 +20,28 @@ use UnitEnum;
 
 class AppFeedbackResource extends Resource implements ExcludedFromAdminApi
 {
+    #[\Override]
     protected static ?string $model = AppFeedback::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'title';
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'System';
 
+    #[\Override]
     protected static ?string $navigationLabel = 'Maklum balas aplikasi';
 
+    #[\Override]
     protected static ?string $modelLabel = 'Maklum balas';
 
+    #[\Override]
     protected static ?string $pluralModelLabel = 'Maklum balas aplikasi';
 
+    #[\Override]
     protected static bool $isGloballySearchable = false;
 
     public static function infolist(Schema $schema): Schema

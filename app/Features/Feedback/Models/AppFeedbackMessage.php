@@ -31,8 +31,10 @@ class AppFeedbackMessage extends Model
 
     use HasUuids;
 
+    #[\Override]
     protected $table = 'app_feedback_messages';
 
+    #[\Override]
     protected $fillable = [
         'author_role',
         'visibility',

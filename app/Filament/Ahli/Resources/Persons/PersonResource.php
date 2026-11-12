@@ -18,10 +18,13 @@ use UnitEnum;
 
 class PersonResource extends AdminPersonResource
 {
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Directory';
 
+    #[\Override]
     protected static ?int $navigationSort = 30;
 
+    #[\Override]
     protected static ?string $slug = 'persons';
 
     #[\Override]

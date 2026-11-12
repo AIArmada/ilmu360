@@ -2,11 +2,11 @@
 
 namespace App\Actions\Events\Authoring;
 
-use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;

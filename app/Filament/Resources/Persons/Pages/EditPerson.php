@@ -21,6 +21,7 @@ use Illuminate\Support\Arr;
 
 class EditPerson extends EditRecord
 {
+    #[\Override]
     protected static string $resource = PersonResource::class;
 
     public function boot(): void

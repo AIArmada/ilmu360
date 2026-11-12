@@ -27,10 +27,13 @@ class MemberUploadEventPosterImageTool extends AbstractMemberTool
 {
     use UploadsEventImage;
 
+    #[\Override]
     protected string $name = 'member-upload-event-poster-image';
 
+    #[\Override]
     protected string $title = 'Upload Event Poster Image';
 
+    #[\Override]
     protected string $description = 'Upload and save a 3:4 portrait marketing poster for an accessible Ahli event. Accepts image descriptors via {content_base64} or {content_url}. Use the member-event-poster-image-prompt to get the recommended prompt and reference images before generating.';
 
     public function __construct(

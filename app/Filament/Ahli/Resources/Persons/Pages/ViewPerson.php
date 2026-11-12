@@ -10,6 +10,7 @@ use App\Filament\Ahli\Resources\Persons\PersonResource;
 
 class ViewPerson extends PackageViewPerson
 {
+    #[\Override]
     protected static string $resource = PersonResource::class;
 
     public function boot(): void

@@ -18,8 +18,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetEventModerationSchemaTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-get-event-moderation-schema';
 
+    #[\Override]
     protected string $description = 'Use this when you need the moderation schema for an event before applying a moderation action. Returns available actions, required fields, and conditional rules.';
 
     public function __construct(

@@ -27,7 +27,7 @@ class AppFeedbackPolicy
 
     public function create(?FeedbackActor $user): bool
     {
-        return $user !== null && $user->canSubmitAppFeedback();
+        return $user instanceof FeedbackActor && $user->canSubmitAppFeedback();
     }
 
     public function downloadEvidence(AccountActor $user, AppFeedback $feedback): bool

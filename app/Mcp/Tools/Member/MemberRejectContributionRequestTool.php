@@ -22,8 +22,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class MemberRejectContributionRequestTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'member-reject-contribution-request';
 
+    #[\Override]
     protected string $description = 'Use this when you need to reject a reviewable contribution request through the Ahli workflow. Do not use for admin-level review; use admin-review-contribution-request for that.';
 
     public function __construct(

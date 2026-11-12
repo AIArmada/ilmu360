@@ -18,12 +18,16 @@ use UnitEnum;
 
 class CommunityReleaseResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = CommunityRelease::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Insights';
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'release_key';
 
     #[\Override]

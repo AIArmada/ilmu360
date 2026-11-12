@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Pages\References;
 
-use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -11,6 +10,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
 use App\Enums\ShareOutcomeType;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Livewire\Concerns\TogglesEventGoing;
@@ -109,7 +109,6 @@ class Show extends Component
                         ShareOutcomeBusinessKey::follow(ShareOutcomeType::ReferenceFollow, (string) $follow->getKey()),
                         'unfollowed',
                         $user,
-                        request(),
                     );
                 }
             });
@@ -182,9 +181,9 @@ class Show extends Component
         /** @var array<string, string|\Closure> $addressRelations */
         $addressRelations = [
             'venue.media',
-            'venue.addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
+            'venue.addresses' => $this->joinAddressStateName(...),
             'venue.addresses.city',
-            'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
+            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
         ];
 
         $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
@@ -254,12 +253,10 @@ class Show extends Component
                     return $leaf;
                 }
 
-                $sessions = $leaf->sessions->filter(function ($session) use ($leaf, $referenceIds): bool {
-                    return $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
-                        && $reference->referenceable_type === $this->reference->getMorphClass()
-                        && in_array((string) $reference->referenceable_id, $referenceIds, true)
-                        && $reference->event_session_id === $session->getKey());
-                })->values();
+                $sessions = $leaf->sessions->filter(fn($session): bool => $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
+                    && $reference->referenceable_type === $this->reference->getMorphClass()
+                    && in_array((string) $reference->referenceable_id, $referenceIds, true)
+                    && $reference->event_session_id === $session->getKey()))->values();
 
                 return $sessions->isEmpty()
                     ? null
@@ -280,9 +277,9 @@ class Show extends Component
     {
         return [
             'venue.media',
-            'venue.addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
+            'venue.addresses' => $this->joinAddressStateName(...),
             'venue.addresses.city',
-            'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
+            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
             'persons.media',
             'persons.titleAssignments.title.category',
             'keyPeople.person',

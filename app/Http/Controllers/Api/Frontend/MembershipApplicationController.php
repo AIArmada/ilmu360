@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Frontend;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MembershipApplicationDetail;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSummary;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
@@ -153,7 +154,7 @@ class MembershipApplicationController extends FrontendController
             ]);
         }
 
-        abort_unless($detail !== null, 404);
+        abort_unless($detail instanceof MembershipApplicationDetail, 404);
 
         $application = OwnerContext::withOwner(null, fn (): MembershipApplication => MembershipApplication::query()
             ->whereKey($detail->application->id)

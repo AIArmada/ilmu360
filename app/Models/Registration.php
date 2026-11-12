@@ -34,13 +34,13 @@ class Registration extends PackageEventRegistration implements AuditableContract
     #[\Override]
     public function routeNotificationForMail(?Notification $notification = null): array|string|null
     {
-        if ($notification !== null) {
+        if ($notification instanceof Notification) {
             return parent::routeNotificationForMail($notification);
         }
 
         $participant = $this->resolvePrimaryParticipant();
 
-        if ($participant === null) {
+        if (! $participant instanceof EventRegistrationParticipant) {
             return null;
         }
 
@@ -58,6 +58,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'event_id',
         'event_occurrence_id',

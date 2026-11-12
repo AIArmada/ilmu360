@@ -12,8 +12,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class FollowersRelationManager extends RelationManager
 {
+    #[\Override]
     protected static string $relationship = 'follows';
 
+    #[\Override]
     protected static ?string $title = 'Followers';
 
     public function table(Table $table): Table

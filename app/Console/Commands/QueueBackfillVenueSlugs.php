@@ -6,11 +6,15 @@ use App\Jobs\BackfillVenueSlugs;
 use App\Models\Venue;
 use App\Platform\Cache\PublicListingsCache;
 use Illuminate\Bus\Batch;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
 
+#[Description('Queue regeneration of venue slugs using the geographic slug format.')]
+#[Signature('venues:queue-slug-backfill')]
 class QueueBackfillVenueSlugs extends Command
 {
     public const CHUNK_SIZE = 250;
@@ -18,10 +22,6 @@ class QueueBackfillVenueSlugs extends Command
     public const LOCK_KEY = 'venue-slug-backfill';
 
     private const int LOCK_TTL_SECONDS = 3600;
-
-    protected $signature = 'venues:queue-slug-backfill';
-
-    protected $description = 'Queue regeneration of venue slugs using the geographic slug format.';
 
     public function handle(): int
     {

@@ -19,22 +19,11 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
-use App\Features\Events\Api\EventAuthoring;
-use App\Features\Events\Api\EventScheduleInput;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Directory\SpaceEligibilityResolver;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Directory\Enums\ReferencePartType;
-use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Events\Enums\TimingMode;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventScheduleInput;
 use App\Forms\SharedFormSchema;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -50,9 +39,20 @@ use App\Platform\Media\MediaFileNamer;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Support\MorphAlias;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -515,8 +515,6 @@ class ContributionEntityMutationService
             'institution_id' => array_key_exists('institution_id', $payload) ? $this->normalizeOptionalString($payload['institution_id']) : $event->institution_id,
             'default_venue_id' => array_key_exists('venue_id', $payload) ? $this->normalizeOptionalString($payload['venue_id']) : $event->default_venue_id,
         ]);
-
-        $spaceIds = [];
         if (array_key_exists('space_ids', $payload)) {
             $spaceIds = is_array($payload['space_ids']) ? array_values(array_filter($payload['space_ids'], is_string(...))) : [];
         } else {
@@ -742,8 +740,8 @@ class ContributionEntityMutationService
             'institutions' => $person->institutions->map(fn (Institution $institution): array => [
                 'institution_id' => (string) $institution->getKey(),
                 'institution_name' => $institution->name,
-                'position' => self::institutionPivotPosition($institution),
-                'is_primary' => self::institutionPivotIsPrimary($institution),
+                'position' => $this->institutionPivotPosition($institution),
+                'is_primary' => $this->institutionPivotIsPrimary($institution),
             ])->values()->all(),
             'address' => $this->addressState($person->primaryAddress()),
             'contactMethods' => $this->contactMethodsState($person->contactMethods),
@@ -751,7 +749,7 @@ class ContributionEntityMutationService
         ];
     }
 
-    private static function institutionPivotPosition(?Institution $institution): ?string
+    private function institutionPivotPosition(?Institution $institution): ?string
     {
         if (! $institution instanceof Institution) {
             return null;
@@ -762,7 +760,7 @@ class ContributionEntityMutationService
         return is_string($position) && $position !== '' ? $position : null;
     }
 
-    private static function institutionPivotIsPrimary(Institution $institution): bool
+    private function institutionPivotIsPrimary(Institution $institution): bool
     {
         return (bool) data_get($institution->getRelations(), 'pivot.is_primary', false);
     }

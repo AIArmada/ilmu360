@@ -28,8 +28,10 @@ use Illuminate\Database\Eloquent\Model;
 
 abstract class MemberInvitationsRelationManager extends RelationManager
 {
+    #[\Override]
     protected static string $relationship = 'memberInvitations';
 
+    #[\Override]
     protected static ?string $title = 'Member Invitations';
 
     #[\Override]

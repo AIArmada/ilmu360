@@ -17,10 +17,13 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminDocumentationSearchTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'search';
 
+    #[\Override]
     protected string $title = 'Search Verified Documentation';
 
+    #[\Override]
     protected string $description = 'Use this when you need to search the verified ilmu360 admin MCP documentation exposed by this server. Do not use this for runtime event, person, institution, reference, or venue record searches.';
 
     public function __construct(

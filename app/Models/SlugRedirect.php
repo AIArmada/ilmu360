@@ -25,11 +25,14 @@ class SlugRedirect extends Model
 {
     use HasUuids;
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /** @var list<string> */
+    #[\Override]
     protected $fillable = [
         'redirectable_type',
         'redirectable_id',

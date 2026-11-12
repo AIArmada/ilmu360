@@ -79,7 +79,7 @@ class RewardPayoutRequestPolicy
             return false;
         }
 
-        return ! ((string) $recipientType === 'user' && (string) $recipientId === (string) $user->getKey());
+        return (string) $recipientType !== 'user' || (string) $recipientId !== (string) $user->getKey();
     }
 
     private function isRecipient(User $user, RewardPayoutRequest $request): bool

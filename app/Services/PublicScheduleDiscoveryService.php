@@ -21,6 +21,7 @@ use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\PrayerOffset;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\Events\PublicScheduleSlug;
 use Carbon\CarbonInterface;
@@ -33,13 +34,13 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 
-final class PublicScheduleDiscoveryService
+final readonly class PublicScheduleDiscoveryService
 {
     public function __construct(
-        private readonly PostgresEventDiscovery $eventDiscovery,
-        private readonly EventSearchRelationProvider $relationProvider,
-        private readonly ReferenceQueries $referenceQueries,
-        private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
+        private PostgresEventDiscovery $eventDiscovery,
+        private EventSearchRelationProvider $relationProvider,
+        private ReferenceQueries $referenceQueries,
+        private EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
     ) {}
 
     /**
@@ -683,15 +684,7 @@ final class PublicScheduleDiscoveryService
             static fn (mixed $prayerTime): bool => is_string($prayerTime) && trim($prayerTime) !== '',
         ));
 
-        if ($prayerTimes !== [] && ! $expressions->contains(function (mixed $expression) use ($prayerTimes): bool {
-            foreach ($prayerTimes as $prayerTime) {
-                if (is_string($prayerTime) && $this->matchesPrayerTimeExpression($expression, $prayerTime)) {
-                    return true;
-                }
-            }
-
-            return false;
-        })) {
+        if ($prayerTimes !== [] && ! $expressions->contains(fn (mixed $expression): bool => array_any($prayerTimes, fn ($prayerTime) => is_string($prayerTime) && $this->matchesPrayerTimeExpression($expression, $prayerTime)))) {
             return false;
         }
 
@@ -735,7 +728,7 @@ final class PublicScheduleDiscoveryService
         }
 
         $offset = $prayerTimeEnum->getDefaultOffset();
-        $relation = $offset !== null && $offset->minutes() < 0 ? 'before' : 'after';
+        $relation = $offset instanceof PrayerOffset && $offset->minutes() < 0 ? 'before' : 'after';
 
         if ((string) $expression->relation !== $relation) {
             return false;

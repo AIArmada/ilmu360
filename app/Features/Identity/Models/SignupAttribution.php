@@ -26,14 +26,17 @@ class SignupAttribution extends Model
 
     use HasUuids;
 
+    #[\Override]
     protected $table = 'signup_attributions';
 
+    #[\Override]
     protected $fillable = [
         'user_id', 'referrer_user_id', 'source_type', 'status',
         'affiliate_id', 'affiliate_link_id', 'affiliate_attribution_id',
         'referral_invite_id', 'invitee_contact_hash', 'signed_up_at', 'confirmed_at',
     ];
 
+    #[\Override]
     protected $hidden = ['invitee_contact_hash'];
 
     protected static function newFactory(): SignupAttributionFactory

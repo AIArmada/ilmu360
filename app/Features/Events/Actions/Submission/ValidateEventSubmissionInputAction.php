@@ -37,7 +37,7 @@ final readonly class ValidateEventSubmissionInputAction
      *
      * @var list<string>
      */
-    private const FLAT_LIST_FIELDS = [
+    private const array FLAT_LIST_FIELDS = [
         'age_group',
         'event_category_ids',
         'space_ids',

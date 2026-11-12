@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Identity\Actions;
 
 use App\Features\Identity\Api\SocialAccounts;
+use App\Features\Identity\Api\SocialAccountSnapshot;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;
@@ -30,7 +31,7 @@ final readonly class ResolveSocialiteUserAction
         $providerEmailIsVerified = $this->providerEmailIsVerified($socialUser);
         $account = $this->socialAccounts->findByProvider($provider, (string) $socialUser->getId());
 
-        if ($account !== null) {
+        if ($account instanceof SocialAccountSnapshot) {
             $this->socialAccounts->link(
                 $account->accountId,
                 $provider,

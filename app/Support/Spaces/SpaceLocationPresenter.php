@@ -11,7 +11,7 @@ final class SpaceLocationPresenter
 {
     public static function name(?EventLocation $location): ?string
     {
-        if ($location === null) {
+        if (! $location instanceof EventLocation) {
             return null;
         }
 

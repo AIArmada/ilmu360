@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Data;
 
-use App\Shared\Events\Enums\TimingMode;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Events\Enums\TimingMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Str;

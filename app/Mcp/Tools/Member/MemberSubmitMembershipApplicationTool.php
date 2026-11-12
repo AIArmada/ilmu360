@@ -33,8 +33,10 @@ use Throwable;
 #[IsOpenWorld(false)]
 class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
 {
+    #[\Override]
     protected string $name = 'member-submit-membership-application';
 
+    #[\Override]
     protected string $description = 'Use this when the authenticated Ahli/member needs to submit a new membership application with justification and supporting evidence uploads.';
 
     public function __construct(

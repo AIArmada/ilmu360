@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class MemberGetRecordActionsTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'member-get-record-actions';
 
+    #[\Override]
     protected string $description = 'Use this when you need to discover the next available workflow actions or follow-up MCP tool calls for one Ahli-scoped member record. Returns only actions valid for the record\'s current state.';
 
     public function __construct(

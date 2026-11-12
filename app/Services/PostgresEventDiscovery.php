@@ -9,19 +9,20 @@ use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
-use App\Shared\Events\EventCategoryCatalog;
 use App\Contracts\EventDiscoveryAdapter;
 use App\Data\EventDiscoveryCriteria;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\Enums\TimingMode;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Venue;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use App\Support\EventDiscovery\FuzzyEventMatcher;
@@ -435,7 +436,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
                                     if ($prayerReference instanceof PrayerReference) {
                                         $offset = $prayerTimeEnum->getDefaultOffset();
-                                        $relation = $offset !== null && $offset->minutes() < 0 ? 'before' : 'after';
+                                        $relation = $offset instanceof PrayerOffset && $offset->minutes() < 0 ? 'before' : 'after';
 
                                         $matchingPrayerQuery
                                             ->where('relation', $relation)

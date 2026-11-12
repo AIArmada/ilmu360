@@ -14,13 +14,8 @@ use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Shared\Events\EventCategoryCatalog;
 use App\Data\PublicScheduleLeaf;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Enums\ShareOutcomeType;
-use App\Shared\Events\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\TogglesEventGoing;
 use App\Models\Event;
@@ -37,6 +32,11 @@ use App\Services\ShareTrackingService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Engagement\EngagementReader;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Language\MalaysiaLanguageCatalog;
@@ -412,27 +412,27 @@ class Index extends Component implements HasForms
             filled($areaAssignments['administrative_subdivision'] ?? null),
             filled($areaAssignments['postal_locality'] ?? null),
             filled($this->institution_id),
-            count(array_filter((array) $this->language_codes)) > 0,
+            count(array_filter($this->language_codes)) > 0,
             count(array_filter((array) $this->event_category_ids)) > 0,
             count(array_filter((array) $this->event_format)) > 0,
             filled($this->gender),
-            count(array_filter((array) $this->age_group)) > 0,
+            count(array_filter($this->age_group)) > 0,
             $this->children_allowed !== null,
             $this->is_muslim_only !== null,
-            count(array_filter((array) $this->person_ids)) > 0,
-            count(array_filter((array) $this->key_person_roles)) > 0,
-            count(array_filter((array) $this->person_in_charge_ids)) > 0,
+            count(array_filter($this->person_ids)) > 0,
+            count(array_filter($this->key_person_roles)) > 0,
+            count(array_filter($this->person_in_charge_ids)) > 0,
             filled($this->person_in_charge_search),
             filled($this->person_name_search),
-            count(array_filter((array) $this->moderator_ids)) > 0,
-            count(array_filter((array) $this->imam_ids)) > 0,
-            count(array_filter((array) $this->khatib_ids)) > 0,
-            count(array_filter((array) $this->bilal_ids)) > 0,
-            count(array_filter((array) $this->discipline_tag_ids)) > 0,
-            count(array_filter((array) $this->domain_tag_ids)) > 0,
-            count(array_filter((array) $this->source_tag_ids)) > 0,
-            count(array_filter((array) $this->issue_tag_ids)) > 0,
-            count(array_filter((array) $this->reference_ids)) > 0,
+            count(array_filter($this->moderator_ids)) > 0,
+            count(array_filter($this->imam_ids)) > 0,
+            count(array_filter($this->khatib_ids)) > 0,
+            count(array_filter($this->bilal_ids)) > 0,
+            count(array_filter($this->discipline_tag_ids)) > 0,
+            count(array_filter($this->domain_tag_ids)) > 0,
+            count(array_filter($this->source_tag_ids)) > 0,
+            count(array_filter($this->issue_tag_ids)) > 0,
+            count(array_filter($this->reference_ids)) > 0,
             filled($this->starts_after),
             filled($this->starts_before),
             filled($this->prayer_time),
@@ -1026,7 +1026,6 @@ class Index extends Component implements HasForms
                         ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
                         'save_removed',
                         $user,
-                        request(),
                     );
                 }
             });
@@ -1274,8 +1273,8 @@ class Index extends Component implements HasForms
                     role: $slot1,
                     countryId: $this->normalizeNullableString($get('country_id')),
                     stateId: $this->normalizeNullableString($get('state_id')),
-                    districtId: $this->normalizeAreaAssignments($get('area_assignments'))[$slot0 ?? ''] ?? null,
                     search: $search,
+                    districtId: $this->normalizeAreaAssignments($get('area_assignments'))[$slot0 ?? ''] ?? null,
                 ))
                 ->getOptionLabelUsing(fn (?string $value): ?string => $this->areaOptionLabel($value))
                 ->extraAttributes(['data-signal-control' => "area_assignments.{$slot1}"])
@@ -2191,8 +2190,8 @@ class Index extends Component implements HasForms
     {
         if ($shortcut === 'custom') {
             return [
-                'starts_after' => filled($rawAfter) ? (string) $rawAfter : null,
-                'starts_before' => filled($rawBefore) ? (string) $rawBefore : null,
+                'starts_after' => filled($rawAfter) ? $rawAfter : null,
+                'starts_before' => filled($rawBefore) ? $rawBefore : null,
             ];
         }
 

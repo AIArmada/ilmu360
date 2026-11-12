@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateInspiration extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = InspirationResource::class;
 
     #[\Override]

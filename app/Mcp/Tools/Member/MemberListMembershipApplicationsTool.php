@@ -22,8 +22,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 #[IsIdempotent]
 class MemberListMembershipApplicationsTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'member-list-membership-applications';
 
+    #[\Override]
     protected string $description = 'Use this when you need to list the authenticated member\'s membership applications. Do not use for admin-level membership application management.';
 
     public function handle(Request $request): ResponseFactory|Response

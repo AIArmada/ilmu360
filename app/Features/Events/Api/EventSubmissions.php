@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Api;
 
 use App\Shared\Events\ValidatedEventSubmission;
+use Spatie\MediaLibrary\HasMedia;
 
 /**
  * Public event-submission boundary.
@@ -35,7 +36,7 @@ interface EventSubmissions
     /**
      * Persist an ordinary public submission as a parent event plus occurrence.
      *
-     * @param  (callable(\Spatie\MediaLibrary\HasMedia): void)|null  $persistMedia
+     * @param  (callable(HasMedia): void)|null  $persistMedia
      * @return array{event_id: string, submission_id: string|null, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
      */
     public function persistNew(ValidatedEventSubmission $input, ?callable $persistMedia = null): array;
@@ -43,7 +44,7 @@ interface EventSubmissions
     /**
      * Persist a session inside an existing event container.
      *
-     * @param  (callable(\Spatie\MediaLibrary\HasMedia): void)|null  $persistMedia
+     * @param  (callable(HasMedia): void)|null  $persistMedia
      * @return array{event_id: string, submission_id: string|null, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
      */
     public function persistSession(ValidatedEventSubmission $input, ?callable $persistMedia = null): array;

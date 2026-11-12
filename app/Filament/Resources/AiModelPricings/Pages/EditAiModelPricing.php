@@ -10,6 +10,7 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditAiModelPricing extends EditRecord
 {
+    #[\Override]
     protected static string $resource = AiModelPricingResource::class;
 
     #[\Override]

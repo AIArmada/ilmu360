@@ -12,8 +12,6 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\ShareOutcomeType;
 use App\Enums\SpeakerStatus;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
@@ -27,6 +25,8 @@ use App\Platform\Time\UserDateTimeFormatter;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\ShareTrackingService;
 use App\Shared\Auth\IntendedRedirect;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -129,7 +129,6 @@ class Show extends Component
                         ShareOutcomeBusinessKey::follow(ShareOutcomeType::PersonFollow, (string) $follow->getKey()),
                         'unfollowed',
                         $user,
-                        request(),
                     );
                 }
             });
@@ -206,7 +205,7 @@ class Show extends Component
         $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
         $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate);
 
-        if ($from === null || $to === null || $from->greaterThan($to)) {
+        if (!$from instanceof \Carbon\CarbonInterface || !$to instanceof \Carbon\CarbonInterface || $from->greaterThan($to)) {
             $this->addError('customDateRange', __('Sila pilih julat tarikh yang sah.'));
 
             return;
@@ -374,10 +373,10 @@ class Show extends Component
 
             /** @var array<string, callable(MorphToMany<Address, Model, Pivot, 'pivot'>|HasMany<AddressAreaAssignment, Address>): mixed> $addressRelations */
             $addressRelations = [
-                'institution.addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
-                'institution.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
-                'venue.addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
-                'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
+                'institution.addresses' => $this->joinAddressStateName(...),
+                'institution.addresses.areaAssignments' => $this->joinAreaName(...),
+                'venue.addresses' => $this->joinAddressStateName(...),
+                'venue.addresses.areaAssignments' => $this->joinAreaName(...),
             ];
 
             $speakerEvents->load($addressRelations);
@@ -418,8 +417,8 @@ class Show extends Component
                     $relation->where('status', AssignmentStatus::Active);
                     $relation->with('title.category');
                 },
-                'addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
-                'addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
+                'addresses' => $this->joinAddressStateName(...),
+                'addresses.areaAssignments' => $this->joinAreaName(...),
             ]);
         });
     }
@@ -476,7 +475,7 @@ class Show extends Component
             $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
             $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate)?->addDay();
 
-            if ($from === null || $to === null || $from->greaterThanOrEqualTo($to)) {
+            if (!$from instanceof \Carbon\CarbonInterface || $to === null || $from->greaterThanOrEqualTo($to)) {
                 return null;
             }
 
@@ -536,12 +535,10 @@ class Show extends Component
     {
         $eventsTable = (new Event)->getTable();
 
-        $query = $this->person->personEvents()
+        return $this->person->personEvents()
             ->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
             ->where("{$eventsTable}.visibility", EventVisibility::Public)
             ->whereNotNull("{$eventsTable}.published_at")
             ->whereHas('occurrences');
-
-        return $query;
     }
 }

@@ -98,7 +98,7 @@ final class ShareMetricReader
         $reportingStart = ShareTrackingMeasurement::reportingStart();
         $startedAt = $reportingStart === null ? null : CarbonImmutable::parse($reportingStart, 'UTC');
 
-        if ($startedAt === null) {
+        if (! $startedAt instanceof CarbonImmutable) {
             return $this->blank($definitionVersion, null, $sharer === null ? 'global' : 'member', $fromUtc, $toUtc, $tz->getName());
         }
 
@@ -333,7 +333,7 @@ final class ShareMetricReader
 
             $at = CarbonImmutable::parse($candidate, 'UTC');
 
-            if ($newest === null || $at->greaterThan($newest)) {
+            if (! $newest instanceof CarbonImmutable || $at->greaterThan($newest)) {
                 $newest = $at;
             }
         }
@@ -366,7 +366,7 @@ final class ShareMetricReader
         string $timezone,
     ): array {
         return [
-            'status' => $reportingStart === null ? ShareTrackingMeasurement::STATUS_NOT_CONFIGURED : ShareTrackingMeasurement::STATUS_ACTIVE,
+            'status' => $reportingStart instanceof CarbonImmutable ? ShareTrackingMeasurement::STATUS_ACTIVE : ShareTrackingMeasurement::STATUS_NOT_CONFIGURED,
             'definition_version' => $definitionVersion,
             'reporting_start' => $reportingStart?->toIso8601String(),
             'scope' => $scope,

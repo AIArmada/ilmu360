@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EventCheckin extends EventAttendance
 {
+    #[\Override]
     protected $fillable = [
         'event_id',
         'event_occurrence_id',

@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetRecordActionsTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-get-record-actions';
 
+    #[\Override]
     protected string $description = 'Use this when you need to discover the next available workflow actions or follow-up MCP tool calls for one admin record. Returns only actions that are currently valid given the record\'s state.';
 
     public function __construct(

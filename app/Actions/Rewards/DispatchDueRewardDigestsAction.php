@@ -62,9 +62,9 @@ final readonly class DispatchDueRewardDigestsAction
      */
     public function handle(int $batch = 50, ?CarbonInterface $now = null): array
     {
-        $at = $now === null
-            ? CarbonImmutable::now('UTC')
-            : CarbonImmutable::parse($now)->setTimezone('UTC');
+        $at = $now instanceof CarbonInterface
+            ? CarbonImmutable::parse($now)->setTimezone('UTC')
+            : CarbonImmutable::now('UTC');
 
         $outcome = ['dispatched' => 0, 'reconciled' => 0, 'cancelled' => 0, 'skipped' => 0];
 
@@ -115,7 +115,7 @@ final readonly class DispatchDueRewardDigestsAction
             $user = User::query()->whereKey((string) $slot->recipient_id)->first();
 
             if (! $user instanceof User) {
-                self::markCancelled($slot, 'recipient-unknown', $now);
+                $this->markCancelled($slot, 'recipient-unknown', $now);
 
                 return 'cancelled';
             }
@@ -124,12 +124,12 @@ final readonly class DispatchDueRewardDigestsAction
                 ->resolvePolicy($user, NotificationTrigger::ShareGratitudeDigest);
 
             if (! $policy->enabled || ! in_array($policy->cadence, [NotificationCadence::Daily, NotificationCadence::Weekly], true)) {
-                self::markCancelled($slot, 'opted-out', $now);
+                $this->markCancelled($slot, 'opted-out', $now);
 
                 return 'cancelled';
             }
 
-            if (self::inQuietHours($now, $policy->quietHoursStart, $policy->quietHoursEnd, $policy->timezone)) {
+            if ($this->inQuietHours($now, $policy->quietHoursStart, $policy->quietHoursEnd, $policy->timezone)) {
                 return 'skipped';
             }
 
@@ -146,7 +146,7 @@ final readonly class DispatchDueRewardDigestsAction
             );
 
             if (($recomputed['total'] ?? 0) <= 0) {
-                self::markCancelled($slot, 'nothing-to-thank', $now);
+                $this->markCancelled($slot, 'nothing-to-thank', $now);
 
                 return 'cancelled';
             }
@@ -164,8 +164,8 @@ final readonly class DispatchDueRewardDigestsAction
 
             $communication = $this->adoptOrCreateCommunication($slot, $user, $recomputed, $policy->timezone, $now);
 
-            if ($communication === null) {
-                self::markCancelled($slot, 'no-eligible-channel', $now);
+            if (! $communication instanceof Communication) {
+                $this->markCancelled($slot, 'no-eligible-channel', $now);
 
                 return 'cancelled';
             }
@@ -204,7 +204,7 @@ final readonly class DispatchDueRewardDigestsAction
             ->lockForUpdate()
             ->first();
 
-        if ($latest instanceof Communication && self::isSendable($latest)) {
+        if ($latest instanceof Communication && $this->isSendable($latest)) {
             $deliveries = CommunicationDelivery::query()
                 ->where('communication_id', $latest->getKey())
                 ->orderBy('id')
@@ -243,8 +243,8 @@ final readonly class DispatchDueRewardDigestsAction
             new CommunicationContextData(
                 category: CommunicationCategory::Digest,
                 priority: CommunicationPriority::Low,
-                idempotencyKey: $planKey,
                 timezone: $timezone,
+                idempotencyKey: $planKey,
                 metadata: [
                     'plan_key' => $planKey,
                     'slot_id' => (string) $slot->getKey(),
@@ -276,13 +276,13 @@ final readonly class DispatchDueRewardDigestsAction
             $byChannel[(string) $delivery->channel] = (string) $delivery->getKey();
         }
 
-        $notification = (new ShareGratitudeDigestNotification([
+        $notification = new ShareGratitudeDigestNotification([
             'text' => (string) ($payload['text'] ?? ''),
             'counts' => (array) ($payload['counts'] ?? []),
             'sections' => (array) ($payload['sections'] ?? []),
             'window' => (array) ($payload['window'] ?? []),
             'plan_key' => (string) $communication->idempotency_key,
-        ]))->withCommunicationContext((string) $communication->getKey(), $byChannel);
+        ])->withCommunicationContext((string) $communication->getKey(), $byChannel);
 
         DispatchManagedNotificationJob::dispatch(
             notifiable: $user,
@@ -334,15 +334,15 @@ final readonly class DispatchDueRewardDigestsAction
                     : (string) $delivery->status;
                 $outcomes[(string) $delivery->channel] = $status;
 
-                if (self::isDelivered($delivery->status)) {
+                if ($this->isDelivered($delivery->status)) {
                     $delivered = true;
                 }
 
-                if (self::isInFlight($delivery->status)) {
+                if ($this->isInFlight($delivery->status)) {
                     $inFlight = true;
                 }
 
-                if (self::isAmbiguous($delivery->status)) {
+                if ($this->isAmbiguous($delivery->status)) {
                     $ambiguous = true;
                 }
             }
@@ -424,7 +424,7 @@ final readonly class DispatchDueRewardDigestsAction
         });
     }
 
-    private static function markCancelled(RewardDigestSlot $slot, string $reason, CarbonImmutable $now): void
+    private function markCancelled(RewardDigestSlot $slot, string $reason, CarbonImmutable $now): void
     {
         $payload = $slot->payload ?? [];
         $payload['cancellation'] = ['at' => $now->toIso8601String(), 'reason' => $reason];
@@ -436,7 +436,7 @@ final readonly class DispatchDueRewardDigestsAction
         ])->save();
     }
 
-    private static function isSendable(Communication $communication): bool
+    private function isSendable(Communication $communication): bool
     {
         return $communication->status instanceof CommunicationStatus
             && in_array($communication->status, [
@@ -458,7 +458,7 @@ final readonly class DispatchDueRewardDigestsAction
             ], true);
     }
 
-    private static function isDelivered(mixed $status): bool
+    private function isDelivered(mixed $status): bool
     {
         return $status instanceof DeliveryStatus
             && in_array($status, [
@@ -472,7 +472,7 @@ final readonly class DispatchDueRewardDigestsAction
             ], true);
     }
 
-    private static function isInFlight(mixed $status): bool
+    private function isInFlight(mixed $status): bool
     {
         return $status instanceof DeliveryStatus
             && in_array($status, [
@@ -484,13 +484,13 @@ final readonly class DispatchDueRewardDigestsAction
             ], true);
     }
 
-    private static function isAmbiguous(mixed $status): bool
+    private function isAmbiguous(mixed $status): bool
     {
         return $status instanceof DeliveryStatus
             && in_array($status, [DeliveryStatus::Sending, DeliveryStatus::Accepted], true);
     }
 
-    private static function inQuietHours(
+    private function inQuietHours(
         CarbonImmutable $now,
         ?string $start,
         ?string $end,

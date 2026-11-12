@@ -196,7 +196,7 @@ final class Workspace extends Component
         $invitation = $membershipInvitations->find($invitationId);
 
         abort_unless(
-            $invitation !== null
+            $invitation instanceof \App\Features\Membership\Api\MembershipInvitationDetail
             && $invitation->subjectType === MembershipSubjectType::Organization
             && $invitation->subjectId === (string) $organization->getKey(),
             404,

@@ -4,21 +4,21 @@ namespace App\Actions\Events\Submission;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use App\Contracts\CaptchaVerifier;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventSubmissions;
-use App\Contracts\CaptchaVerifier;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\EventCategoryPolicyResolver;
-use App\Shared\Events\ValidatedEventSubmission;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryPolicyResolver;
+use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerLocation;
 use App\Shared\Submission\EntitySubmissionAccess;
@@ -199,12 +199,6 @@ class SubmitFrontendEventAction
             prayerReference: $prayerReference,
             prayerOffset: $prayerOffset?->minutes(),
             prayerDisplayText: $prayerDisplayText,
-            prayerSource: $resolvedStart['source'] ?? null,
-            prayerFetchedAt: $resolvedStart['fetched_at'] ?? null,
-            prayerZone: $resolvedStart['zone'] ?? null,
-            prayerLat: isset($resolvedStart['lat']) && is_numeric($resolvedStart['lat']) ? (float) $resolvedStart['lat'] : null,
-            prayerLng: isset($resolvedStart['lng']) && is_numeric($resolvedStart['lng']) ? (float) $resolvedStart['lng'] : null,
-            prayerCountry: $resolvedStart['country'] ?? $submissionCountryIso2,
             autoApproved: $autoApproved,
             sessionSubmission: $isSessionSubmission,
             submitter: $submitter,
@@ -212,6 +206,12 @@ class SubmitFrontendEventAction
             personSlugSegments: $personSlugSegments,
             occurrenceId: $occurrenceId,
             validationKeyPrefix: $validationKeyPrefix,
+            prayerSource: $resolvedStart['source'] ?? null,
+            prayerFetchedAt: $resolvedStart['fetched_at'] ?? null,
+            prayerZone: $resolvedStart['zone'] ?? null,
+            prayerLat: isset($resolvedStart['lat']) && is_numeric($resolvedStart['lat']) ? (float) $resolvedStart['lat'] : null,
+            prayerLng: isset($resolvedStart['lng']) && is_numeric($resolvedStart['lng']) ? (float) $resolvedStart['lng'] : null,
+            prayerCountry: $resolvedStart['country'] ?? $submissionCountryIso2,
         );
 
         $persisted = DB::transaction(function () use (

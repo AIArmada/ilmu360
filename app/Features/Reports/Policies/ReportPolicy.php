@@ -35,7 +35,7 @@ class ReportPolicy
      */
     public function create(?FeedbackActor $user): bool
     {
-        return $user !== null
+        return $user instanceof FeedbackActor
             && ($user->hasAnyRole(['super_admin', 'admin', 'moderator']) || $user->canSubmitDirectoryFeedback());
     }
 

@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace App\Support\Submission;
 
-use App\Shared\Submission\EntitySubmissionAccess;
-use App\Shared\Submission\SubmissionTimingPolicy;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Livewire\Pages\SubmitEvent\EventSubmissionFormSchema;
 use App\Features\Events\Api\EventAuthoring;
+use App\Livewire\Pages\SubmitEvent\EventSubmissionFormSchema;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Shared\Support\MorphAlias;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use BackedEnum;
 use Carbon\CarbonInterface;
 
@@ -405,7 +405,7 @@ final class SubmitEventPrefill
             ? $duplicateEvent->delivery_mode->value
             : (is_string($duplicateEvent->delivery_mode) ? $duplicateEvent->delivery_mode : EventFormat::Physical->value);
         $organizer = $duplicateEvent->primaryOrganizerInvolvement;
-        $organizerId = $organizer !== null ? $organizer->involveable_id : null;
+        $organizerId = $organizer?->involveable_id;
         $institutionId = is_string($duplicateEvent->institution_id) ? $duplicateEvent->institution_id : null;
 
         $organizerType = MorphAlias::of($organizer?->involveable_type);

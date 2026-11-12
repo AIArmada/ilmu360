@@ -9,5 +9,6 @@ use Filament\Resources\Pages\ViewRecord;
 
 final class ViewVenue extends ViewRecord
 {
+    #[\Override]
     protected static string $resource = VenueResource::class;
 }

@@ -32,15 +32,15 @@ use InvalidArgumentException;
  * checkout sessions and affiliate tables stay package-canonical and
  * unclaimed.
  */
-final class PrepareAdmissionCheckoutAction implements AdmissionCheckout
+final readonly class PrepareAdmissionCheckoutAction implements AdmissionCheckout
 {
     public function __construct(
-        private readonly CartManagerInterface $cartManager,
-        private readonly AddTicketTypeToCartAction $addTicketTypeToCart,
-        private readonly CheckoutServiceInterface $checkoutService,
-        private readonly ActiveAttribution $activeAttribution,
-        private readonly RecordAffiliateConversion $recordAffiliateConversion,
-        private readonly RecordFreeCheckoutMetadataAction $freeCheckoutMetadata,
+        private CartManagerInterface $cartManager,
+        private AddTicketTypeToCartAction $addTicketTypeToCart,
+        private CheckoutServiceInterface $checkoutService,
+        private ActiveAttribution $activeAttribution,
+        private RecordAffiliateConversion $recordAffiliateConversion,
+        private RecordFreeCheckoutMetadataAction $freeCheckoutMetadata,
     ) {}
 
     /**
@@ -310,7 +310,7 @@ final class PrepareAdmissionCheckoutAction implements AdmissionCheckout
 
         $ticketEvent = EventTicketScope::event($ticketType);
 
-        if ($ticketEvent === null || $ticketEvent->isNot($event)) {
+        if (!$ticketEvent instanceof \AIArmada\Events\Models\Event || $ticketEvent->isNot($event)) {
             throw new InvalidArgumentException('The selected ticket does not belong to this event.');
         }
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Support\Location;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Location\VisitorCountryResolving;
 use Illuminate\Http\Request;
 
 /**
@@ -46,7 +46,7 @@ final class VisitorCountryResolver implements VisitorCountryResolving
      * Reset the per-request memo. Modelled on SharedFormSchema::ensureCacheScope()
      * so Octane workers do not leak one visitor's country into the next request.
      */
-    private static function ensureCacheScope(): void
+    private function ensureCacheScope(): void
     {
         $scope = spl_object_hash(app()).':'.(app()->bound('request') ? spl_object_hash(request()) : 'console');
 
@@ -88,7 +88,7 @@ final class VisitorCountryResolver implements VisitorCountryResolving
      */
     public function resolveWithSource(?Request $request = null): array
     {
-        self::ensureCacheScope();
+        $this->ensureCacheScope();
 
         if (self::$memoized['source'] !== 'unresolved') {
             return self::$memoized;

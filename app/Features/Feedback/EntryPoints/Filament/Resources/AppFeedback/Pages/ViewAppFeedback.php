@@ -25,6 +25,7 @@ use Illuminate\Validation\ValidationException;
 
 class ViewAppFeedback extends ViewRecord
 {
+    #[\Override]
     protected static string $resource = AppFeedbackResource::class;
 
     #[\Override]

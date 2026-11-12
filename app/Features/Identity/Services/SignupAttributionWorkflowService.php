@@ -21,6 +21,7 @@ use App\Shared\Auth\AccountProfile;
 use App\Shared\Auth\SignupAttributionContext;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\ShareTracking\GuestClaims;
+use App\Shared\ShareTracking\GuestClaimSnapshot;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -50,7 +51,7 @@ final readonly class SignupAttributionWorkflowService implements SignupAttributi
 
             $profile = $this->accounts->profile($accountId);
 
-            if ($profile === null) {
+            if (! $profile instanceof AccountProfile) {
                 return null;
             }
 
@@ -66,18 +67,18 @@ final readonly class SignupAttributionWorkflowService implements SignupAttributi
 
             $attribution = $this->signupAttributions->record(new RecordSignupAttributionInput(
                 accountId: $accountId,
-                sourceType: $invite !== null ? SignupAttributionSourceType::ReferralInvite : $source->type,
-                status: $invite !== null ? SignupAttributionStatus::Pending : SignupAttributionStatus::Confirmed,
-                referrerAccountId: $invite !== null ? $invite->referrer_id : $source->referrerUserId,
-                affiliateId: $invite !== null ? null : $source->affiliateId,
-                affiliateLinkId: $invite !== null ? null : $source->affiliateLinkId,
-                affiliateAttributionId: $invite !== null ? null : $source->affiliateAttributionId,
+                sourceType: $invite instanceof ReferralInvite ? SignupAttributionSourceType::ReferralInvite : $source->type,
+                status: $invite instanceof ReferralInvite ? SignupAttributionStatus::Pending : SignupAttributionStatus::Confirmed,
+                referrerAccountId: $invite instanceof ReferralInvite ? $invite->referrer_id : $source->referrerUserId,
+                affiliateId: $invite instanceof ReferralInvite ? null : $source->affiliateId,
+                affiliateLinkId: $invite instanceof ReferralInvite ? null : $source->affiliateLinkId,
+                affiliateAttributionId: $invite instanceof ReferralInvite ? null : $source->affiliateAttributionId,
                 referralInviteId: $invite?->getKey(),
                 inviteeContactHash: $invite?->invitee_hash,
                 signedUpAt: CarbonImmutable::instance($profile->createdAt),
             ));
 
-            if ($invite !== null) {
+            if ($invite instanceof ReferralInvite) {
                 return $this->confirmForAccount($accountId) ?? $attribution;
             }
 
@@ -95,7 +96,7 @@ final readonly class SignupAttributionWorkflowService implements SignupAttributi
             $this->accounts->lockForUpdate($accountId);
             $profile = $this->accounts->profile($accountId);
 
-            if ($profile === null) {
+            if (! $profile instanceof AccountProfile) {
                 return null;
             }
 
@@ -137,7 +138,7 @@ final readonly class SignupAttributionWorkflowService implements SignupAttributi
         return DB::transaction(function () use ($claimId, $affiliateId, $claimantType, $claimantId): int {
             $claim = $this->guestClaims->lockClaim($claimId);
 
-            if ($claim === null
+            if (! $claim instanceof GuestClaimSnapshot
                 || ! $claim->active
                 || $claim->affiliateId !== $affiliateId
                 || $claim->claimantType !== $this->userMorphType->morphClass()

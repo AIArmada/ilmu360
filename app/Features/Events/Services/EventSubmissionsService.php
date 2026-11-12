@@ -10,10 +10,9 @@ use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
 use App\Features\Events\Actions\Submission\CompleteEventSubmissionWritesAction;
 use App\Features\Events\Actions\Submission\PersistNewEventSubmissionAction;
 use App\Features\Events\Actions\Submission\PersistSessionSubmissionAction;
+use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Events\Support\EventModel;
-use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Shared\Events\ValidatedEventSubmission;
 
 /**

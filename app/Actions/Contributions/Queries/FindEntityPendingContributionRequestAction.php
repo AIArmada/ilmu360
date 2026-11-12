@@ -7,12 +7,12 @@ use App\Models\ContributionRequest;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class FindEntityPendingContributionRequestAction
+final readonly class FindEntityPendingContributionRequestAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly ResolveContributionEntityMetadataAction $resolveContributionEntityMetadataAction,
+        private ResolveContributionEntityMetadataAction $resolveContributionEntityMetadataAction,
     ) {}
 
     public function handle(Model $entity): ?ContributionRequest

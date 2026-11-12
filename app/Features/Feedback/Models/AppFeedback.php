@@ -63,8 +63,10 @@ class AppFeedback extends Model implements HasMedia
     use InteractsWithMedia;
     use KeepsDeletedModels;
 
+    #[\Override]
     protected $table = 'app_feedback';
 
+    #[\Override]
     protected $fillable = [
         'category',
         'title',
@@ -77,6 +79,7 @@ class AppFeedback extends Model implements HasMedia
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $hidden = [
         'submission_key',
         'payload_hash',

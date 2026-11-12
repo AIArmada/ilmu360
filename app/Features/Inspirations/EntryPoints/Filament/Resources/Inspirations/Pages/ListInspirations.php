@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListInspirations extends ListRecords
 {
+    #[\Override]
     protected static string $resource = InspirationResource::class;
 
     #[\Override]

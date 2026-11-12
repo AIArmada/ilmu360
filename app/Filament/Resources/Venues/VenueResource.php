@@ -17,10 +17,13 @@ use Filament\Tables\Table;
 
 final class VenueResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = Venue::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function getNavigationGroup(): string

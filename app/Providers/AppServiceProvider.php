@@ -83,11 +83,8 @@ use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
 use App\Checkout\ShareCheckoutStepContributor;
 use App\Contracts\CaptchaVerifier;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
-use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Features\Directory\Api\DirectoryAdminContract;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
@@ -150,7 +147,6 @@ use App\Observers\ShareSourceAttributionReceiptObserver;
 use App\Observers\TitleCategoryObserver;
 use App\Observers\UserObserver;
 use App\Observers\VenueObserver;
-
 use App\Platform\Api\ApiErrorDetailsEnricher;
 use App\Platform\Auth\EloquentAccountAccess;
 use App\Platform\Auth\EloquentAccountDirectory;
@@ -195,6 +191,7 @@ use App\Shared\Contributions\ContributionRequestReader;
 use App\Shared\Directory\DirectoryCatalog;
 use App\Shared\Directory\PrayerInstitutionCatalog;
 use App\Shared\Directory\ReferenceScopedSearch;
+use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Shared\Directory\SubmissionEligibilitySync;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
@@ -206,9 +203,9 @@ use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Membership\MembershipApplicationReader;
 use App\Shared\Membership\MembershipPermissionEvaluator;
 use App\Shared\Membership\MembershipSubjectCatalog;
+use App\Shared\Registration\CheckInNotifier;
 use App\Shared\Reports\ReportEscalation;
 use App\Shared\Reports\ReportSubjectResolver;
-use App\Shared\Registration\CheckInNotifier;
 use App\Shared\ShareTracking\ActiveAttribution;
 use App\Shared\ShareTracking\GuestClaims;
 use App\Shared\ShareTracking\ParticipationAttribution;
@@ -254,9 +251,9 @@ use App\Support\Membership\EloquentMembershipApplicationReader;
 use App\Support\Membership\EloquentMembershipSubjectCatalog;
 use App\Support\Moderation\ModerationAccountLifecycleContributor;
 use App\Support\Passport\PassportKeyProvisioner;
+use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Support\Reports\CompositeReportSubjectResolver;
 use App\Support\Reports\GlobalReportEscalation;
-use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Support\Rewards\CompositeRewardSourceFactReader;
 use App\Support\Rewards\DigestRewardGratitudePlanner;
 use App\Support\Rewards\ShareCorrectionKeySource;
@@ -331,7 +328,7 @@ class AppServiceProvider extends ServiceProvider
      *
      * @var list<string>
      */
-    private const PUBLIC_SLUG_PARAMETERS = ['event', 'institution', 'person', 'venue', 'reference'];
+    private const array PUBLIC_SLUG_PARAMETERS = ['event', 'institution', 'person', 'venue', 'reference'];
 
     /**
      * Register any application services.

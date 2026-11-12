@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetRecordTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-get-record';
 
+    #[\Override]
     protected string $description = 'Use this when you need the full details of one admin record. Requires both resource_key and record_key. Do not use for listing multiple records; use admin-list-records for that.';
 
     public function __construct(

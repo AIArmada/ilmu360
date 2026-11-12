@@ -18,17 +18,17 @@ use Normalizer;
  */
 final class ShareCardText
 {
-    public const TITLE_MAX_CHARS = 280;
+    public const int TITLE_MAX_CHARS = 280;
 
-    public const LABEL_MAX_CHARS = 160;
+    public const int LABEL_MAX_CHARS = 160;
 
-    public const BRAND_MAX_CHARS = 80;
+    public const int BRAND_MAX_CHARS = 80;
 
-    public const DIRECTION_LTR = 'ltr';
+    public const string DIRECTION_LTR = 'ltr';
 
-    public const DIRECTION_RTL = 'rtl';
+    public const string DIRECTION_RTL = 'rtl';
 
-    private const ELLIPSIS = '…';
+    private const string ELLIPSIS = '…';
 
     /**
      * Direction overrides/embeddings U+202A-U+202E plus BOM U+FEFF.
@@ -36,13 +36,13 @@ final class ShareCardText
      * The recommended isolate controls (U+2066-U+2069, U+2060, U+061C) are
      * deliberately absent and therefore preserved.
      */
-    private const BIDI_OVERRIDE_PATTERN = '/[\x{202A}-\x{202E}\x{FEFF}]/u';
+    private const string BIDI_OVERRIDE_PATTERN = '/[\x{202A}-\x{202E}\x{FEFF}]/u';
 
     /**
      * Unicode non-characters (guaranteed .notdef boxes): U+FDD0-U+FDEF plus
      * U+nFFFE/U+nFFFF on planes 0-16.
      */
-    private const NON_CHARACTER_PATTERN = '/[\x{FDD0}-\x{FDEF}\x{FFFE}\x{FFFF}\x{1FFFE}\x{1FFFF}\x{2FFFE}\x{2FFFF}\x{3FFFE}\x{3FFFF}\x{4FFFE}\x{4FFFF}\x{5FFFE}\x{5FFFF}\x{6FFFE}\x{6FFFF}\x{7FFFE}\x{7FFFF}\x{8FFFE}\x{8FFFF}\x{9FFFE}\x{9FFFF}\x{AFFFE}\x{AFFFF}\x{BFFFE}\x{BFFFF}\x{CFFFE}\x{CFFFF}\x{DFFFE}\x{DFFFF}\x{EFFFE}\x{EFFFF}\x{FFFFE}\x{FFFFF}\x{10FFFE}\x{10FFFF}]/u';
+    private const string NON_CHARACTER_PATTERN = '/[\x{FDD0}-\x{FDEF}\x{FFFE}\x{FFFF}\x{1FFFE}\x{1FFFF}\x{2FFFE}\x{2FFFF}\x{3FFFE}\x{3FFFF}\x{4FFFE}\x{4FFFF}\x{5FFFE}\x{5FFFF}\x{6FFFE}\x{6FFFF}\x{7FFFE}\x{7FFFF}\x{8FFFE}\x{8FFFF}\x{9FFFE}\x{9FFFF}\x{AFFFE}\x{AFFFF}\x{BFFFE}\x{BFFFF}\x{CFFFE}\x{CFFFF}\x{DFFFE}\x{DFFFF}\x{EFFFE}\x{EFFFF}\x{FFFFE}\x{FFFFF}\x{10FFFE}\x{10FFFF}]/u';
 
     /**
      * Normalize a required strip string. Returns null when the input is

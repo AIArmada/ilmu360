@@ -18,14 +18,19 @@ use UnitEnum;
  */
 final class ProductSignals extends Page
 {
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBarSquare;
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Insights';
 
+    #[\Override]
     protected static ?int $navigationSort = 10;
 
+    #[\Override]
     protected static ?string $title = 'Product Signals';
 
+    #[\Override]
     protected string $view = 'filament.pages.product-signals';
 
     /** @var ProductSignalsDashboard */

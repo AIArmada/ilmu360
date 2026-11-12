@@ -8,11 +8,12 @@ use App\Features\Directory\Api\DirectoryDetail;
 use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Directory\Api\DirectoryRecordType;
 use App\Features\Organizations\Api\OrganizationAccess;
+use App\Features\Organizations\Api\OrganizationSummary;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubject;
 use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Shared\Membership\MembershipSubjectType;
-use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -93,7 +94,7 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
     {
         $summary = $this->organizations->find($subjectId);
 
-        if ($summary === null) {
+        if (! $summary instanceof OrganizationSummary) {
             return null;
         }
 
@@ -103,7 +104,6 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
             label: $summary->name,
             publicUrl: route('dashboard.organizations.show', ['organization' => $summary->id]),
             status: $summary->status,
-            imageUrl: null,
         );
     }
 
@@ -126,7 +126,6 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
                 ? route('events.show', ['event' => $slug])
                 : null,
             status: $this->scalarValue($event->getAttribute('status')),
-            imageUrl: null,
         );
     }
 

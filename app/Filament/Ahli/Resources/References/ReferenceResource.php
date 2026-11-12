@@ -17,10 +17,13 @@ use UnitEnum;
 
 class ReferenceResource extends AdminReferenceResource
 {
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Directory';
 
+    #[\Override]
     protected static ?int $navigationSort = 40;
 
+    #[\Override]
     protected static ?string $slug = 'references';
 
     #[\Override]

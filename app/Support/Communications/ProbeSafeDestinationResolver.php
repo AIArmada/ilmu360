@@ -21,11 +21,11 @@ use TypeError;
  * participant, so the probe call throws a TypeError. Retry those probes with
  * a blank notification instead of crashing the whole dispatch.
  */
-final class ProbeSafeDestinationResolver implements DestinationResolver
+final readonly class ProbeSafeDestinationResolver implements DestinationResolver
 {
     public function __construct(
-        private readonly CommunicationDestinationResolver $inner,
-        private readonly DestinationProtector $protector,
+        private CommunicationDestinationResolver $inner,
+        private DestinationProtector $protector,
     ) {}
 
     public function resolve(mixed $notifiable, string $channel): ?ResolvedDestinationData

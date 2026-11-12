@@ -15,6 +15,7 @@ use App\Platform\Media\MediaEvidence;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Signals\SignalRecorder;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -159,7 +160,7 @@ class SubmitAppFeedbackAction
         try {
             $recipient = $this->accounts->resolveNotifiable($reporter->actorId());
 
-            if ($recipient !== null) {
+            if ($recipient instanceof Authenticatable) {
                 Notification::send($recipient, new AppFeedbackReceivedNotification($feedback));
             }
 

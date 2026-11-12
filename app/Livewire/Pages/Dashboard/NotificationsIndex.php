@@ -119,7 +119,7 @@ class NotificationsIndex extends Component
     {
         $appFamily = EnumMapper::toAppFamily($message->family);
 
-        return $appFamily !== null
+        return $appFamily instanceof \App\Enums\NotificationFamily
             ? NotificationCatalog::familyDefinition($appFamily)['label']
             : $message->family->label();
     }

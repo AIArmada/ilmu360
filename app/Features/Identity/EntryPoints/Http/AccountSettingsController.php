@@ -6,6 +6,7 @@ use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\EntryPoints\Http\Data\AccountProfileData;
 use App\Features\Identity\Services\AccountSettingsService;
 use App\Shared\Auth\AccountDirectory;
+use App\Shared\Auth\AccountProfile;
 use App\Shared\Auth\AccountProfileUpdate;
 use App\Shared\Auth\AccountRecord;
 use App\Shared\Directory\PrayerInstitutionCatalog;
@@ -60,7 +61,7 @@ class AccountSettingsController extends Controller
         $accountId = $this->requireAccountId($request);
         $current = $this->accountSettings->read($accountId);
 
-        if ($current === null) {
+        if (! $current instanceof AccountProfile) {
             abort(401);
         }
 

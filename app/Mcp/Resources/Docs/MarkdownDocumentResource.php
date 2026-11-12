@@ -10,6 +10,7 @@ use Laravel\Mcp\Server\Resource;
 
 abstract class MarkdownDocumentResource extends Resource
 {
+    #[\Override]
     protected string $mimeType = 'text/markdown';
 
     final public function handle(Request $request): Response

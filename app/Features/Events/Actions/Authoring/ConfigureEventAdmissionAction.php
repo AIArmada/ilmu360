@@ -28,12 +28,12 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * sections, seats and general-admission seating options. Ticket, seating and
  * occurrence rows stay package-canonical; Events owns the setup workflow.
  */
-final class ConfigureEventAdmissionAction
+final readonly class ConfigureEventAdmissionAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly EnsureTicketTypeForOccurrenceAction $ensureTicketType,
+        private EnsureTicketTypeForOccurrenceAction $ensureTicketType,
     ) {}
 
     /**
@@ -140,7 +140,7 @@ final class ConfigureEventAdmissionAction
 
             $price = $pricingMode === PricingMode::Free
                 ? 0
-                : MoneyNormalizer::toCents(self::majorToMinorUnits((string) ($ticket['price'] ?? '0.00')));
+                : MoneyNormalizer::toCents($this->majorToMinorUnits((string) ($ticket['price'] ?? '0.00')));
 
             if ($pricingMode === PricingMode::Paid && $price <= 0) {
                 throw new InvalidArgumentException('Paid ticket types must have a price greater than zero.');
@@ -170,7 +170,7 @@ final class ConfigureEventAdmissionAction
      * Convert a validated major-unit decimal string to integer minor units
      * using exact string math (the form guarantees /^\d+(?:\.\d{1,2})?$/).
      */
-    private static function majorToMinorUnits(string $major): int
+    private function majorToMinorUnits(string $major): int
     {
         [$whole, $fraction] = array_pad(explode('.', $major, 2), 2, '0');
 

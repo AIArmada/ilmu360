@@ -8,13 +8,13 @@ use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\ShareOutcomeType;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
 use App\Services\ShareTrackingService;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -174,7 +174,6 @@ class EventGoingController extends Controller
                     ShareOutcomeBusinessKey::eventGoing((string) $going->getKey()),
                     'going_removed',
                     $this->currentUser($request),
-                    $request,
                 );
             }
 

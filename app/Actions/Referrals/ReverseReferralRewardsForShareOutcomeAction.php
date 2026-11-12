@@ -7,6 +7,7 @@ namespace App\Actions\Referrals;
 use AIArmada\Referrals\Actions\ReverseReferralReward;
 use AIArmada\Referrals\Enums\ReferralRewardStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
+use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Enums\ShareOutcomeType;
 use App\Support\Rewards\ReferralRewardSourceFactReader;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
@@ -43,7 +44,7 @@ final readonly class ReverseReferralRewardsForShareOutcomeAction
 
             $source = $this->sourceFactReader->read('referrals:qualified:'.$invite->getKey().':'.$reward->side->value);
 
-            if ($source !== null && $source->isValid && ! $source->isCancelled) {
+            if ($source instanceof RewardSourceFact && $source->isValid && ! $source->isCancelled) {
                 continue;
             }
 

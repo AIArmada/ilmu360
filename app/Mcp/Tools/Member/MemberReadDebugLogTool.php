@@ -19,10 +19,13 @@ class MemberReadDebugLogTool extends AbstractMemberTool
 {
     use ReadsDebugLog;
 
+    #[\Override]
     protected string $name = 'member-read-debug-log';
 
+    #[\Override]
     protected string $title = 'Read Debug Log';
 
+    #[\Override]
     protected string $description = 'Read recent filtered lines from the application debug log. Defaults to `mcp.tool_execution` so you can inspect MCP tool execution traces. Set `all=true` to return every matching line.';
 
     public function handle(Request $request): ResponseFactory|Response

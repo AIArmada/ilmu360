@@ -19,10 +19,13 @@ use Filament\Tables\Table;
 
 class DonationChannelResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = DonationChannel::class;
 
+    #[\Override]
     protected static bool $shouldRegisterNavigation = false;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     #[\Override]

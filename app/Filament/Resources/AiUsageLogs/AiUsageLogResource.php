@@ -16,14 +16,19 @@ use UnitEnum;
 
 class AiUsageLogResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = AiUsageLog::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'System';
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'invocation_id';
 
+    #[\Override]
     protected static ?int $navigationSort = 100;
 
     #[\Override]

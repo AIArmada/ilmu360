@@ -11,15 +11,19 @@ class EventKeyPersonPivot extends Pivot
 {
     use HasUuids;
 
+    #[\Override]
     protected $table = 'event_involvements';
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'id',
         'event_id',

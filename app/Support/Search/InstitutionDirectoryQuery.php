@@ -2,18 +2,18 @@
 
 namespace App\Support\Search;
 
-use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
-final class InstitutionDirectoryQuery
+final readonly class InstitutionDirectoryQuery
 {
-    public function __construct(private readonly InstitutionSearchService $searchService) {}
+    public function __construct(private InstitutionSearchService $searchService) {}
 
     /**
      * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds

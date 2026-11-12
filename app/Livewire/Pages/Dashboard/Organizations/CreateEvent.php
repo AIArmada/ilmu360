@@ -9,10 +9,10 @@ use AIArmada\Organizations\Models\Organization;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Actions\Organizations\CreateOrganizationEventAction;
-use App\Shared\Events\EventCategoryCatalog;
+use App\Models\User;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Models\User;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Support\Authz\OrganizationEventAccess;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
@@ -133,14 +133,7 @@ final class CreateEvent extends Component
         if (! $this->ticketSeatingEnabled()) {
             return false;
         }
-
-        foreach ((array) ($this->form['tickets'] ?? []) as $ticket) {
-            if (is_array($ticket) && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any((array) ($this->form['tickets'] ?? []), fn($ticket) => is_array($ticket) && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value);
     }
 
     public function submit(CreateOrganizationEventAction $createOrganizationEvent): mixed
@@ -150,7 +143,7 @@ final class CreateEvent extends Component
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
 
-        $event = $createOrganizationEvent->handle(
+        $createOrganizationEvent->handle(
             $user,
             $this->organization(),
             $validated['form'],

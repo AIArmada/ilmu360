@@ -16,7 +16,7 @@ final readonly class SyncEventOrganizerAction
 {
     public function handle(string $eventId, ?string $organizerType, ?string $organizerId): void
     {
-        $event = EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
+        EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
 
         $involvement = EventInvolvement::query()
             ->where('event_id', $eventId)

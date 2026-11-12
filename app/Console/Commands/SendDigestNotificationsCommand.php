@@ -6,14 +6,14 @@ namespace App\Console\Commands;
 
 use AIArmada\Communications\Models\CommunicationBatch;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
+#[Description('Send scheduled digest notifications')]
+#[Signature('communications:send-digests')]
 final class SendDigestNotificationsCommand extends Command
 {
-    protected $signature = 'communications:send-digests';
-
-    protected $description = 'Send scheduled digest notifications';
-
     public function handle(): int
     {
         $batches = CommunicationBatch::query()

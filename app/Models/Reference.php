@@ -12,14 +12,15 @@ use AIArmada\References\Models\Reference as PackageReference;
 use AIArmada\References\Models\ReferenceContributor;
 use App\Enums\MemberSubjectType;
 use App\Features\Directory\Api\ReferenceWorkflow;
-use App\Shared\Directory\Enums\ReferencePartType;
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Support\RelatedModels;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReferenceFactory;
+use Illuminate\Database\Eloquent\Attributes\RouteKey;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -63,6 +64,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property array<int, array{type: string, value: string|null, label: string|null}>|null $reference_parts
  * @property array<string, mixed>|null $metadata
  */
+#[RouteKey('slug')]
 class Reference extends PackageReference implements AuditableContract, Followable
 {
     use AuditsModelChanges, HasSocialProfiles, KeepsDeletedModels, Searchable;
@@ -131,6 +133,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
         parent::booted();
     }
 
+    #[\Override]
     protected $fillable = [
         'title',
         'slug',
@@ -191,12 +194,6 @@ class Reference extends PackageReference implements AuditableContract, Followabl
         }
 
         return array_values(array_unique(array_map(strval(...), $ids)));
-    }
-
-    #[\Override]
-    public function getRouteKeyName(): string
-    {
-        return 'slug';
     }
 
     /**

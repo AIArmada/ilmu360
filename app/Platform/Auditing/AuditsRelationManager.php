@@ -22,13 +22,16 @@ class AuditsRelationManager extends RelationManager
 {
     use HasExtraColumns;
 
+    #[\Override]
     protected static string $relationship = 'audits';
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'id';
 
     /**
      * @var array<string, string>
      */
+    #[\Override]
     protected $listeners = ['updateAuditsRelationManager' => '$refresh'];
 
     #[\Override]

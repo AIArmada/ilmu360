@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ViewRecord;
 
 class ViewSlugRedirect extends ViewRecord
 {
+    #[\Override]
     protected static string $resource = SlugRedirectResource::class;
 
     #[\Override]

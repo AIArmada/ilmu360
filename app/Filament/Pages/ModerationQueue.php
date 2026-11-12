@@ -42,14 +42,19 @@ class ModerationQueue extends Page implements HasTable
         OwnerContext::setForRequest(null);
     }
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
+    #[\Override]
     protected static ?string $navigationLabel = 'Moderation Queue';
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Moderation';
 
+    #[\Override]
     protected static ?int $navigationSort = 1;
 
+    #[\Override]
     protected string $view = 'filament.pages.moderation-queue';
 
     /**

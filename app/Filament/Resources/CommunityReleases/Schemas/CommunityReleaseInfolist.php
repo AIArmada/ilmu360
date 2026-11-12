@@ -58,7 +58,7 @@ class CommunityReleaseInfolist
         $parts = [];
 
         foreach ($cells as $name => $total) {
-            $parts[] = (string) $name.': '.(int) $total;
+            $parts[] = $name.': '.(int) $total;
         }
 
         return implode(' · ', $parts);

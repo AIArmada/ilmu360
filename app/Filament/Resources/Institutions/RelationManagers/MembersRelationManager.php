@@ -20,8 +20,10 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class MembersRelationManager extends RelationManager
 {
+    #[\Override]
     protected static string $relationship = 'members';
 
+    #[\Override]
     protected static ?string $title = 'Members';
 
     public function table(Table $table): Table

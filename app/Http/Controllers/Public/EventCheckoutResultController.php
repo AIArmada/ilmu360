@@ -26,9 +26,9 @@ final class EventCheckoutResultController extends Controller
             return view('checkout.result', [
                 'session' => $checkoutSession,
                 'order' => $order,
-                'registrations' => $order === null
-                    ? new EloquentCollection
-                    : $this->registrationsForOrder($order),
+                'registrations' => $order instanceof Order
+                    ? $this->registrationsForOrder($order)
+                    : new EloquentCollection,
             ]);
         });
     }

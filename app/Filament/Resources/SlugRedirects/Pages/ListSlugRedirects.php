@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListSlugRedirects extends ListRecords
 {
+    #[\Override]
     protected static string $resource = SlugRedirectResource::class;
 
     #[\Override]

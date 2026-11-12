@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ViewRecord;
 
 class ViewAudit extends ViewRecord
 {
+    #[\Override]
     protected static string $resource = AuditResource::class;
 
     #[\Override]

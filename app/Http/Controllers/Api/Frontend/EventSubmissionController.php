@@ -3,17 +3,17 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\OrganizerResolver;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Submission\SubmitterContactRules;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

@@ -16,12 +16,14 @@ class ShareBrowserSelection extends Model
 
     use HasUuids;
 
+    #[\Override]
     protected $fillable = [
         'browser_key',
         'current_attribution_id',
         'accepted_at',
     ];
 
+    #[\Override]
     protected $hidden = [
         'browser_key',
     ];

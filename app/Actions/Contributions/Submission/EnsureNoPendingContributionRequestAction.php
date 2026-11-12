@@ -1,23 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\Contributions\Submission;
 
 use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
+use App\Models\ContributionRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class EnsureNoPendingContributionRequestAction
+final readonly class EnsureNoPendingContributionRequestAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly FindEntityPendingContributionRequestAction $findEntityPendingContributionRequestAction,
+        private FindEntityPendingContributionRequestAction $findEntityPendingContributionRequestAction,
     ) {}
 
     public function handle(Model $entity): void
     {
-        if ($this->findEntityPendingContributionRequestAction->handle($entity) === null) {
+        if (! $this->findEntityPendingContributionRequestAction->handle($entity) instanceof ContributionRequest) {
             return;
         }
 

@@ -9,29 +9,19 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
 use Closure;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
+#[Description('Prune pending institutions, persons, and venues with no associated events after a threshold period')]
+#[Signature('app:prune-orphaned-entities
+                            {--hours=48 : Hours after which orphaned entities are pruned}
+                            {--dry-run : Show what would be deleted without deleting}')]
 class PruneOrphanedEntities extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'app:prune-orphaned-entities
-                            {--hours=48 : Hours after which orphaned entities are pruned}
-                            {--dry-run : Show what would be deleted without deleting}';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Prune pending institutions, persons, and venues with no associated events after a threshold period';
-
     /**
      * Execute the console command.
      */
@@ -116,7 +106,7 @@ class PruneOrphanedEntities extends Command
             return 0;
         }
 
-        if ($deleteUsing !== null) {
+        if ($deleteUsing instanceof Closure) {
             $model = $query->getModel();
             /** @var list<string> $ids */
             $ids = (clone $query)->pluck($model->getQualifiedKeyName())

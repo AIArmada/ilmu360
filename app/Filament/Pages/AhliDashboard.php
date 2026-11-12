@@ -8,10 +8,13 @@ use App\Filament\Ahli\Widgets\PendingApprovalEventsWidget;
 
 class AhliDashboard extends PanelDashboard
 {
+    #[\Override]
     protected static bool $isDiscovered = false;
 
+    #[\Override]
     protected static ?string $title = 'Dashboard';
 
+    #[\Override]
     protected static ?string $navigationLabel = 'Dashboard';
 
     /**

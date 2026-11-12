@@ -8,6 +8,7 @@ use App\Platform\Media\MediaEvidence;
 use App\Platform\Reporting\ReportLifecycle;
 use App\Shared\Auth\UserMorphType;
 use Database\Factories\ReportFactory;
+use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,11 +24,17 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 /**
  * @property string $status Current lifecycle status: open, triaged, resolved, or dismissed.
  */
+#[Appends([
+    'category',
+    'description',
+    'resolution_note',
+])]
 class Report extends BaseReport implements AuditableContract, HasMedia
 {
     /** @use HasFactory<ReportFactory> */
     use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
 
+    #[\Override]
     protected $table = 'reports';
 
     public const string STATUS_OPEN = 'open';
@@ -38,12 +45,7 @@ class Report extends BaseReport implements AuditableContract, HasMedia
 
     public const string STATUS_DISMISSED = 'dismissed';
 
-    protected $appends = [
-        'category',
-        'description',
-        'resolution_note',
-    ];
-
+    #[\Override]
     protected $fillable = [
         'reporter_id', 'reporter_type', 'reporter_fingerprint',
         'handled_by',

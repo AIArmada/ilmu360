@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\Spaces;
 
 use App\Features\Directory\Support\DirectoryModel;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 /**

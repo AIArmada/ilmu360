@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Components;
 
+use App\Livewire\Pages\Events\Index as EventsIndex;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\TimingMode;
-use App\Livewire\Pages\Events\Index as EventsIndex;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Contracts\View\View;
@@ -165,8 +165,8 @@ class EventFilters extends EventsIndex
             count(array_filter((array) $this->event_format)) > 0,
             $gender !== null && $gender !== EventGenderRestriction::All->value,
             $this->listIsActiveFilter('age_group', $this->age_group),
-            $childrenAllowed !== null && $childrenAllowed !== true,
-            $isMuslimOnly !== null && $isMuslimOnly !== false,
+            $childrenAllowed !== null && !$childrenAllowed,
+            $isMuslimOnly !== null && $isMuslimOnly,
             count(array_filter($this->person_ids)) > 0,
             count(array_filter($this->key_person_roles)) > 0,
             count(array_filter($this->person_in_charge_ids)) > 0,

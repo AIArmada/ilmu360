@@ -9,13 +9,7 @@ use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
-use App\Shared\Events\EventCategoryCatalog;
 use App\Data\Events\SubmitEventFormContext;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Forms\Components\Select as InstitutionSelect;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
@@ -27,15 +21,21 @@ use App\Models\User;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Services\Ai\EventMediaExtractionService;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\OrganizerResolver;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Signals\SignalRecorder;
+use App\Shared\Submission\EntitySubmissionAccess;
+use App\Shared\Submission\SubmissionTimingPolicy;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
-use App\Shared\Events\OrganizerResolver;
-use App\Shared\Submission\EntitySubmissionAccess;
-use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use App\Support\Submission\SubmitEventPrefill;
 use Closure;
@@ -485,7 +485,7 @@ class Create extends Component implements HasActions, HasForms
             requestedOccurrenceId: $this->eventOccurrenceId,
         );
 
-        return (new EventSubmissionFormSchema($context, app(SubmitEventOptionsProvider::class)))
+        return new EventSubmissionFormSchema($context, app(SubmitEventOptionsProvider::class))
             ->form($schema, $this->wizardStep);
     }
 
@@ -861,7 +861,7 @@ class Create extends Component implements HasActions, HasForms
                 scopedInstitution: $this->scopedInstitution(),
                 persistRelationships: function (HasMedia $model): void {
                     if (! $model instanceof Model) {
-                        throw new RuntimeException('Submit-event media persistence requires an Eloquent model, '.get_class($model).' given.');
+                        throw new RuntimeException('Submit-event media persistence requires an Eloquent model, '.$model::class.' given.');
                     }
 
                     // References are owned once in the persist action for both
@@ -927,7 +927,7 @@ class Create extends Component implements HasActions, HasForms
         $limit = $limiter instanceof Closure ? $limiter(request()) : null;
         $maxAttempts = $limit instanceof Limit ? (int) $limit->maxAttempts : 5;
         $decaySeconds = $limit instanceof Limit ? (int) $limit->decaySeconds : 3600;
-        $key = 'submit-event:'.$action.':'.(string) request()->ip();
+        $key = 'submit-event:'.$action.':'.request()->ip();
 
         if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
             throw ValidationException::withMessages([
@@ -952,7 +952,7 @@ class Create extends Component implements HasActions, HasForms
         }
 
         $user = $this->submitterUser();
-        $memoKey = ($user instanceof User ? (string) $user->getKey() : 'guest').':'.(string) $eventId;
+        $memoKey = ($user instanceof User ? (string) $user->getKey() : 'guest').':'.$eventId;
 
         if ($this->resolvedEventContainer instanceof Event
             && $this->resolvedEventContainerKey === $memoKey

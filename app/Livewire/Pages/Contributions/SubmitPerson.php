@@ -58,11 +58,11 @@ class SubmitPerson extends Component implements HasActions, HasForms
             addressStatePath: 'address',
             regionOnlyAddress: true,
             showCountryField: true,
-            requireCountryField: true,
             includeAlternativeNames: true,
             useTitleMultiSelect: true,
             useInstitutionRepeater: true,
             splitProfileSections: true,
+            requireCountryField: true,
             includeWazeUrlField: false,
         );
 

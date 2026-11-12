@@ -6,12 +6,12 @@ namespace App\Support\ShareCards;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Contracts\ShareCards\ShareCardRenderInput;
-use App\Shared\Events\Enums\EventChangeType;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Directory\Enums\InstitutionStatus;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
@@ -171,7 +171,7 @@ readonly class ShareCardEventPresenter
 
     private function brandLine(): string
     {
-        return __('Majlis Ilmu').' · '.(string) config('app.name');
+        return __('Majlis Ilmu').' · '.config('app.name');
     }
 
     private function speakerLabel(Event $event): ?string

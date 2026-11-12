@@ -23,8 +23,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class AdminReviewContributionRequestTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-review-contribution-request';
 
+    #[\Override]
     protected string $description = 'Use this when you need to approve or reject a pending contribution request. Fetch the review schema first with admin-get-contribution-request-review-schema. Do not use for reading request details; use admin-get-record for that.';
 
     public function __construct(

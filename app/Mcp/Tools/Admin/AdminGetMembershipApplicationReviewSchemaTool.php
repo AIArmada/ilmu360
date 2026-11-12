@@ -22,8 +22,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetMembershipApplicationReviewSchemaTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-get-membership-application-review-schema';
 
+    #[\Override]
     protected string $description = 'Use this when you need the review schema for a membership application before submitting an approve or reject decision. Returns available actions, required fields, and conditional rules.';
 
     public function __construct(

@@ -6,15 +6,15 @@ namespace App\Console\Commands;
 
 use App\Actions\Share\PublishCommunityReleaseAction;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use InvalidArgumentException;
 
+#[Description('Publish the immutable delayed community release for one fixed month.')]
+#[Signature('rewards:publish-community-release {month : Fixed calendar month (YYYY-MM)} {--actor= : Publishing staff/admin user id} {--as-of= : Decision timestamp (UTC, defaults to now)}')]
 final class PublishCommunityReleaseCommand extends Command
 {
-    protected $signature = 'rewards:publish-community-release {month : Fixed calendar month (YYYY-MM)} {--actor= : Publishing staff/admin user id} {--as-of= : Decision timestamp (UTC, defaults to now)}';
-
-    protected $description = 'Publish the immutable delayed community release for one fixed month.';
-
     public function handle(PublishCommunityReleaseAction $publish): int
     {
         $actor = $this->option('actor');

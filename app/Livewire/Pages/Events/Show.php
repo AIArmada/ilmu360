@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Pages\Events;
 
-use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
@@ -17,11 +16,10 @@ use App\Actions\Events\Engagement\MarkEventGoingAction;
 use App\Actions\Events\Engagement\RemoveEventGoingAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
+use App\Enums\ShareOutcomeType;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;
@@ -30,18 +28,19 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Person;
-use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Services\ShareTrackingService;
 use App\Shared\Auth\IntendedRedirect;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Shared\Engagement\EngagementReader;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
-use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Events\EventDetailPresenter;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
@@ -528,7 +527,7 @@ class Show extends Component
     {
         $session = $this->selectedSession();
 
-        if ($session !== null && in_array((string) $session->status, ['postponed', 'rescheduled'], true)) {
+        if ($session instanceof \AIArmada\Events\Models\EventSession && in_array((string) $session->status, ['postponed', 'rescheduled'], true)) {
             return true;
         }
 
@@ -659,23 +658,23 @@ class Show extends Component
         $selectedSession = $this->selectedSession();
 
         if ($selectedSession instanceof EventSession) {
-            return self::scopedEndsAt($selectedSession->starts_at, $selectedSession->ends_at);
+            return $this->scopedEndsAt($selectedSession->starts_at, $selectedSession->ends_at);
         }
 
         $selectedOccurrence = $this->selectedOccurrence();
 
         if ($selectedOccurrence instanceof EventOccurrence) {
-            return self::scopedEndsAt($selectedOccurrence->starts_at, $selectedOccurrence->ends_at);
+            return $this->scopedEndsAt($selectedOccurrence->starts_at, $selectedOccurrence->ends_at);
         }
 
-        return self::scopedEndsAt($this->event->starts_at, $this->event->ends_at);
+        return $this->scopedEndsAt($this->event->starts_at, $this->event->ends_at);
     }
 
     /**
      * Scope window end with the historical two-hour fallback, so open-ended
      * schedules read as past once the fallback window has elapsed.
      */
-    private static function scopedEndsAt(mixed $startsAt, mixed $endsAt): ?CarbonInterface
+    private function scopedEndsAt(mixed $startsAt, mixed $endsAt): ?CarbonInterface
     {
         if ($endsAt instanceof CarbonInterface) {
             return $endsAt;
@@ -950,7 +949,6 @@ class Show extends Component
                             ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
                             'save_removed',
                             $user,
-                            request(),
                         );
                     }
 
@@ -974,7 +972,6 @@ class Show extends Component
                             ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
                             'going_removed',
                             $user,
-                            request(),
                         );
                     }
 

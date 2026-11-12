@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ViewRecord;
 
 class ViewSpace extends ViewRecord
 {
+    #[\Override]
     protected static string $resource = SpaceResource::class;
 
     #[\Override]

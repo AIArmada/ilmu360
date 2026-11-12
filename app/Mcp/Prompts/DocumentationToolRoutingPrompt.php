@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Mcp\Prompts;
 
-use App\Shared\Directory\Enums\VenueType;
 use App\Shared\Directory\Enums\InstitutionType;
+use App\Shared\Directory\Enums\VenueType;
 use App\Support\Mcp\VerifiedDocumentationCatalog;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Request;

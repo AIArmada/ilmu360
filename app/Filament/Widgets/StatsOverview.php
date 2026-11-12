@@ -17,14 +17,19 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class StatsOverview extends StatsOverviewWidget
 {
+    #[\Override]
     protected static bool $isLazy = false;
 
+    #[\Override]
     protected static ?int $sort = 1;
 
+    #[\Override]
     protected ?string $pollingInterval = '60s';
 
+    #[\Override]
     protected ?string $heading = 'Needs Approval';
 
+    #[\Override]
     protected ?string $description = 'Start here. These counts lead directly to the pending review work.';
 
     #[\Override]

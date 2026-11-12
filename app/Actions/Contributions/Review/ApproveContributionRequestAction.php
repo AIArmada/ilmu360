@@ -163,15 +163,7 @@ class ApproveContributionRequestAction
         }
 
         $proposedAddress = EnsureUniqueContributionCreateAction::normalizeClaimAddress($this->addressPayload($proposed));
-        $hasProposedAddress = false;
-
-        foreach ($proposedAddress as $value) {
-            if ($value !== null && $value !== [] && $value !== '') {
-                $hasProposedAddress = true;
-
-                break;
-            }
-        }
+        $hasProposedAddress = array_any($proposedAddress, fn ($value) => ! in_array($value, [null, [], ''], true));
 
         $name = $proposed['name'] ?? null;
 

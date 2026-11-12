@@ -25,15 +25,19 @@ class Inspiration extends Model implements AuditableContract, HasMedia
     /** @use HasFactory<InspirationFactory> */
     use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
+    #[\Override]
     protected $table = 'inspirations';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'category',
         'locale',

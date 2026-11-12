@@ -6,8 +6,8 @@ namespace App\Features\Events\Services;
 
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Events\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Events\EventCategoryCatalog as EventCategoryCatalogContract;
 
 final readonly class EventCategoryCatalog implements EventCategoryCatalogContract
 {

@@ -15,15 +15,19 @@ class MediaLink extends Model implements AuditableContract
     /** @use HasFactory<MediaLinkFactory> */
     use AuditsModelChanges, HasFactory, HasUuids;
 
+    #[\Override]
     protected $table = 'media_links';
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'mediable_type',
         'mediable_id',

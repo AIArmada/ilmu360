@@ -8,10 +8,10 @@ use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Resolvers\DefaultEventSearchRelationProvider;
 use App\Models\Event;
 
-final class EventCardRelationshipProvider implements EventSearchRelationProvider
+final readonly class EventCardRelationshipProvider implements EventSearchRelationProvider
 {
     public function __construct(
-        private readonly DefaultEventSearchRelationProvider $packageProvider,
+        private DefaultEventSearchRelationProvider $packageProvider,
     ) {}
 
     /**

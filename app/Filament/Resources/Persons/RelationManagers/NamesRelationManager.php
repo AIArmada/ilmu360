@@ -28,10 +28,13 @@ final class NamesRelationManager extends RelationManager
 {
     use VerifiesRelationManagerOwnerContext;
 
+    #[\Override]
     protected static string $relationship = 'names';
 
+    #[\Override]
     protected static ?string $title = 'Names';
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'full_name';
 
     /**

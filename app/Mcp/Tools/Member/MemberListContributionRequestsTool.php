@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class MemberListContributionRequestsTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'member-list-contribution-requests';
 
+    #[\Override]
     protected string $description = 'Use this when you need to list the authenticated member\'s own contribution requests or view pending approvals available through the Ahli workflow. Do not use for admin-level contribution request management.';
 
     public function __construct(

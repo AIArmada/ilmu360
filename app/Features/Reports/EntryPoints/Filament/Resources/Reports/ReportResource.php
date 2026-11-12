@@ -22,12 +22,16 @@ class ReportResource extends Resource
 
     private static ?int $openNavigationCount = null;
 
+    #[\Override]
     protected static ?string $model = Report::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFlag;
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'id';
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Moderation';
 
     #[\Override]

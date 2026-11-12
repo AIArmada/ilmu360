@@ -13,14 +13,13 @@ use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\Events\Support\Normalization\EventContentNormalizer;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Support\EventModel;
-use App\Features\Events\Actions\Submission\SubmissionRelationSync;
-use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Prayer\HardcodedPrayerFallback;
+use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
@@ -185,7 +184,7 @@ final readonly class PersistOccurrenceSubmissionAction
             'is_child_friendly' => $state['children_allowed'] ?? true,
         ]);
 
-        $this->persistPrayerExpression($occurrence, $scope, $submission);
+        $this->persistPrayerExpression($scope, $submission);
 
         if (($state['event_format'] ?? EventFormat::Physical->value) !== EventFormat::Online->value) {
             $this->persistOccurrenceLocations($occurrence, $scope, $submission);
@@ -216,7 +215,7 @@ final readonly class PersistOccurrenceSubmissionAction
     /**
      * @param  array<string, mixed>  $scope
      */
-    private function persistPrayerExpression(EventOccurrence $occurrence, array $scope, ValidatedEventSubmission $submission): void
+    private function persistPrayerExpression(array $scope, ValidatedEventSubmission $submission): void
     {
         $prayerTime = $submission->prayerTime;
 

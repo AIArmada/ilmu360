@@ -57,7 +57,7 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
             ->filter()
             ->values();
         $prayerLabelParts = preg_split('/\s+/u', trim($prayerTime->getLabel())) ?: [];
-        $prayerSlugPart = $prayerLabelParts === [] ? '' : (string) end($prayerLabelParts);
+        $prayerSlugPart = $prayerLabelParts === [] ? '' : end($prayerLabelParts);
 
         $key = hash('sha256', implode('|', [
             $submission->targetInstitutionId,

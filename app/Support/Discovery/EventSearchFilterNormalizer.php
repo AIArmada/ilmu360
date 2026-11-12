@@ -2,13 +2,13 @@
 
 namespace App\Support\Discovery;
 
+use App\Shared\Discovery\SearchFilterKeys;
+use App\Shared\Discovery\SearchFilterNormalizer;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Discovery\SearchFilterKeys;
-use App\Shared\Discovery\SearchFilterNormalizer;
 use App\Shared\Prayer\EventPrayerTime;
 use BackedEnum;
 use Carbon\CarbonImmutable;

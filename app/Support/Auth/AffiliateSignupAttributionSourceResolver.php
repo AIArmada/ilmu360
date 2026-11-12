@@ -11,6 +11,7 @@ use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
+use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Models\ShareBrowserSelection;
 use App\Models\User;
 use App\Services\ShareTrackingService;
@@ -57,7 +58,7 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
     {
         $selection = $this->shareTrackingService->resolveActiveAttribution($request);
 
-        if ($selection === null) {
+        if (! $selection instanceof ShareTrackingAttributionData) {
             return null;
         }
 

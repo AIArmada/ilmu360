@@ -96,9 +96,9 @@ final readonly class EnsureUniqueContributionCreateAction
             return false;
         }
 
-        $countryId = $this->normalizeNullableUuid($address['country_id'] ?? null);
-        $stateId = $this->normalizeNullableUuid($address['state_id'] ?? null);
-        $cityId = $this->normalizeNullableUuid($address['city_id'] ?? null);
+        $countryId = self::normalizeNullableUuid($address['country_id'] ?? null);
+        $stateId = self::normalizeNullableUuid($address['state_id'] ?? null);
+        $cityId = self::normalizeNullableUuid($address['city_id'] ?? null);
         $assignments = AddressAssignments::normalize((array) ($address['area_assignments'] ?? []));
 
         return Institution::query()
@@ -168,9 +168,9 @@ final readonly class EnsureUniqueContributionCreateAction
 
         return $this->pendingNameClaimExists(
             $name,
-            $this->normalizeNullableUuid($address['country_id'] ?? null),
-            $this->normalizeNullableUuid($address['state_id'] ?? null),
-            $this->normalizeNullableUuid($address['city_id'] ?? null),
+            self::normalizeNullableUuid($address['country_id'] ?? null),
+            self::normalizeNullableUuid($address['state_id'] ?? null),
+            self::normalizeNullableUuid($address['city_id'] ?? null),
             AddressAssignments::normalize((array) ($address['area_assignments'] ?? [])),
             $excludeRequestId,
         );
@@ -263,7 +263,7 @@ final readonly class EnsureUniqueContributionCreateAction
             return [];
         }
 
-        return $this->normalizeClaimAddress($rawAddress);
+        return self::normalizeClaimAddress($rawAddress);
     }
 
     /**
@@ -338,7 +338,7 @@ final readonly class EnsureUniqueContributionCreateAction
         $rawAddress = $proposed['address'] ?? null;
 
         if (is_array($rawAddress) && $rawAddress !== []) {
-            $address = $this->normalizeClaimAddress($rawAddress);
+            $address = self::normalizeClaimAddress($rawAddress);
 
             return [[
                 'country_id' => $address['country_id'],
@@ -388,9 +388,9 @@ final readonly class EnsureUniqueContributionCreateAction
         foreach ($institutions as $institution) {
             foreach ($institution->addresses as $address) {
                 $localities[(string) $institution->getKey()][] = [
-                    'country_id' => $this->normalizeNullableUuid($address->getAttribute('country_id')),
-                    'state_id' => $this->normalizeNullableUuid($address->getAttribute('state_id')),
-                    'city_id' => $this->normalizeNullableUuid($address->getAttribute('city_id')),
+                    'country_id' => self::normalizeNullableUuid($address->getAttribute('country_id')),
+                    'state_id' => self::normalizeNullableUuid($address->getAttribute('state_id')),
+                    'city_id' => self::normalizeNullableUuid($address->getAttribute('city_id')),
                     'assignments' => AddressAssignments::normalize(
                         $address->areaAssignments
                             ->where('is_primary', true)
@@ -429,13 +429,7 @@ final readonly class EnsureUniqueContributionCreateAction
             }
         }
 
-        foreach ($assignments as $role => $areaId) {
-            if (($locality['assignments'][$role] ?? null) !== $areaId) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($assignments, fn ($areaId, $role) => ! (($locality['assignments'][$role] ?? null) !== $areaId));
     }
 
     private function institutionMapsDuplicateExists(?string $cid, ?string $placeId, ?string $excludeInstitutionId = null): bool
@@ -526,7 +520,7 @@ final readonly class EnsureUniqueContributionCreateAction
         $address = is_array($state['address'] ?? null)
             ? SharedFormSchema::prepareAddressPersistenceData($state['address'])
             : [];
-        $countryId = $this->normalizeNullableUuid($address['country_id'] ?? null);
+        $countryId = self::normalizeNullableUuid($address['country_id'] ?? null);
 
         if ($countryId === null) {
             return false;

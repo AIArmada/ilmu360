@@ -37,6 +37,7 @@ class ShareEffectReceipt extends Model
 
     public const string STATUS_CANCELLED = 'cancelled';
 
+    #[\Override]
     protected $fillable = [
         'effect_key',
         'source_type',

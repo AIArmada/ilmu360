@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListAiModelPricings extends ListRecords
 {
+    #[\Override]
     protected static string $resource = AiModelPricingResource::class;
 
     #[\Override]

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Api\Admin\AdminResourceService;
 use Generator;
@@ -36,10 +36,13 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class AdminUpdateEventTool extends AbstractAdminWriteTool
 {
+    #[\Override]
     protected string $name = 'admin-update-event';
 
+    #[\Override]
     protected string $title = 'Update Event';
 
+    #[\Override]
     protected string $description = 'Use this MCP-only event wrapper to update an existing event record by event_key. It resolves organizer, location, persons, and references by human-readable route keys before calling the shared admin event update path. person_keys and reference_keys are full-sync aliases for the underlying persons/references UUID arrays: omit the field or pass null to preserve existing relationships; pass [] to detach all; pass a non-empty array to replace all. apply_defaults is only honored together with validate_only=true for preview/autofill feedback and is ignored for persisted updates. Supports cover, poster, and gallery image descriptors in the same request; media clear flags are not supported, so omit fields to leave existing media unchanged. Do not use to create a new event; use admin-create-event instead.';
 
     public function __construct(

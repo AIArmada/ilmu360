@@ -1123,12 +1123,6 @@ class ContributionController extends FrontendController
     /** @param  array<int|string, mixed>  $contacts */
     private function hasContactType(array $contacts, string $type): bool
     {
-        foreach ($contacts as $contact) {
-            if (is_array($contact) && ($contact['type'] ?? null) === $type) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($contacts, fn ($contact) => is_array($contact) && ($contact['type'] ?? null) === $type);
     }
 }

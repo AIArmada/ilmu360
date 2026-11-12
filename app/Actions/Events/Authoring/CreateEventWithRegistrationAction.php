@@ -18,13 +18,13 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class CreateEventWithRegistrationAction
+final readonly class CreateEventWithRegistrationAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly CreateEventWithInitialOccurrenceAction $createEventWithInitialOccurrence,
-        private readonly EventAuthoring $eventAuthoring,
+        private CreateEventWithInitialOccurrenceAction $createEventWithInitialOccurrence,
+        private EventAuthoring $eventAuthoring,
     ) {}
 
     /**

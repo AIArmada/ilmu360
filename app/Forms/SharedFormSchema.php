@@ -1572,7 +1572,7 @@ class SharedFormSchema
                 ->native(false);
         }
 
-        $fields = array_merge($fields, [
+        return array_merge($fields, [
             Select::make('city_id')
                 ->label(__('City'))
                 ->options(fn (Get $get): array => self::cityOptionsForState(
@@ -1600,8 +1600,6 @@ class SharedFormSchema
                     isSelect: false,
                 )),
         ]);
-
-        return $fields;
     }
 
     /**

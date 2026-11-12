@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListReferences extends ListRecords
 {
+    #[\Override]
     protected static string $resource = ReferenceResource::class;
 
     #[\Override]

@@ -23,8 +23,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class AdminUpdateRecordTool extends AbstractAdminWriteTool
 {
+    #[\Override]
     protected string $name = 'admin-update-record';
 
+    #[\Override]
     protected string $description = 'Use this when you need to update an existing writable admin resource record. Fetch the write schema first with admin-get-write-schema. For event records, the payload can include cover/poster/gallery image descriptors alongside regular fields. Do not use to create new records; use admin-create-record or admin-create-event instead.';
 
     public function __construct(

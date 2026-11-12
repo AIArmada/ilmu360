@@ -14,15 +14,15 @@ use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use Illuminate\Support\Arr;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ResolveInstitutionMapsPlaceSelectionAction
+final readonly class ResolveInstitutionMapsPlaceSelectionAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
-        private readonly InferInstitutionTypeAction $inferInstitutionTypeAction,
-        private readonly ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
-        private readonly DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
+        private FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
+        private InferInstitutionTypeAction $inferInstitutionTypeAction,
+        private ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
+        private DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
     ) {}
 
     /**

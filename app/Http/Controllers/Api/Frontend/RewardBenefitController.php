@@ -26,7 +26,7 @@ class RewardBenefitController extends FrontendController
     #[Endpoint(title: 'List available reward benefits')]
     public function catalog(Request $request): JsonResponse
     {
-        $user = $this->requireUser($request);
+        $this->requireUser($request);
         $this->authorize('viewAny', RewardBenefitItem::class);
 
         $validated = $request->validate([

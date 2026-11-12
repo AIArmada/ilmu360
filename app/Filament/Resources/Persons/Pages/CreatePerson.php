@@ -13,6 +13,7 @@ use Illuminate\Support\Arr;
 
 class CreatePerson extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = PersonResource::class;
 
     #[\Override]

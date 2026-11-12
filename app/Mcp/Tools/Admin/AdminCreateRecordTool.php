@@ -23,8 +23,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class AdminCreateRecordTool extends AbstractAdminWriteTool
 {
+    #[\Override]
     protected string $name = 'admin-create-record';
 
+    #[\Override]
     protected string $description = 'Use this when you need to create a new admin resource record. Fetch the write schema first with admin-get-write-schema. For creating events, prefer admin-create-event which resolves organizer and venue by name.';
 
     public function __construct(

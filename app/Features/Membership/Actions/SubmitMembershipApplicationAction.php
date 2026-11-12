@@ -43,28 +43,26 @@ final readonly class SubmitMembershipApplicationAction
         string $justification,
         array $meta = [],
     ): Model {
-        return OwnerContext::withOwner(null, function () use ($accountId, $justification, $meta, $subjectId, $subjectType): Model {
-            return DB::transaction(function () use ($accountId, $justification, $meta, $subjectId, $subjectType): Model {
-                $subject = $this->subject($subjectType, $subjectId);
-                $account = $this->account($accountId);
+        return OwnerContext::withOwner(null, fn (): Model => DB::transaction(function () use ($accountId, $justification, $meta, $subjectId, $subjectType): Model {
+            $subject = $this->subject($subjectType, $subjectId);
+            $account = $this->account($accountId);
 
-                $subject->newQuery()
-                    ->whereKey($subject->getKey())
-                    ->lockForUpdate()
-                    ->firstOrFail();
+            $subject->newQuery()
+                ->whereKey($subject->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-                $this->assertClaimIsAvailable($subject, $account, $subjectType, $subjectId, $accountId);
+            $this->assertClaimIsAvailable($subject, $account, $subjectType, $subjectId, $accountId);
 
-                $submittedApplication = $this->applyForMembershipAction->handle(
-                    $subject,
-                    $account,
-                    $justification,
-                    $meta,
-                );
+            $submittedApplication = $this->applyForMembershipAction->handle(
+                $subject,
+                $account,
+                $justification,
+                $meta,
+            );
 
-                return $this->applicationClass()::query()->findOrFail($submittedApplication->getKey());
-            });
-        });
+            return $this->applicationClass()::query()->findOrFail($submittedApplication->getKey());
+        }));
     }
 
     private function assertClaimIsAvailable(

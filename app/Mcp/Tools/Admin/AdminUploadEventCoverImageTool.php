@@ -27,10 +27,13 @@ class AdminUploadEventCoverImageTool extends AbstractAdminTool
 {
     use UploadsEventImage;
 
+    #[\Override]
     protected string $name = 'admin-upload-event-cover-image';
 
+    #[\Override]
     protected string $title = 'Upload Event Cover Image';
 
+    #[\Override]
     protected string $description = 'Upload and save a 16:9 website/mobile-app cover image for an admin-accessible event. Accepts image descriptors via {content_base64} or {content_url}. Use the admin-event-cover-image-prompt to get the recommended prompt and reference images before generating.';
 
     public function __construct(

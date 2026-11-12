@@ -13,8 +13,10 @@ use Filament\Tables\Table;
 
 class DonationChannelsRelationManager extends RelationManager
 {
+    #[\Override]
     protected static string $relationship = 'donationChannels';
 
+    #[\Override]
     protected static ?string $title = 'Donation Channels';
 
     #[\Override]

@@ -87,15 +87,15 @@ final readonly class PublishCommunityReleaseAction
             throw new InvalidArgumentException('Release month must be a fixed calendar month (YYYY-MM).');
         }
 
-        $publisherRole = self::verifiedPublisherRole($actorType, $actorId);
+        $publisherRole = $this->verifiedPublisherRole($actorType, $actorId);
 
         $start = CarbonImmutable::parse($month.'-01')->startOfDay()->setTimezone('UTC');
         $nextMonth = $start->addMonth();
         $end = $nextMonth->subSecond();
 
-        $decided = $decidedAt === null
-            ? CarbonImmutable::now('UTC')
-            : CarbonImmutable::parse($decidedAt)->setTimezone('UTC');
+        $decided = $decidedAt instanceof CarbonInterface
+            ? CarbonImmutable::parse($decidedAt)->setTimezone('UTC')
+            : CarbonImmutable::now('UTC');
 
         if ($end->addDays(self::DELAY_DAYS)->greaterThan($decided)) {
             throw new InvalidArgumentException('Community releases publish only for months ended at least '.self::DELAY_DAYS.' days ago.');
@@ -111,10 +111,10 @@ final readonly class PublishCommunityReleaseAction
                     return $existing;
                 }
 
-                $evidence = self::evidenceQuery($start, $nextMonth);
+                $evidence = $this->evidenceQuery($start, $nextMonth);
 
-                $sharers = self::distinctSharers($evidence);
-                $participants = self::distinctParticipants($evidence);
+                $sharers = $this->distinctSharers($evidence);
+                $participants = $this->distinctParticipants($evidence);
 
                 if ($sharers < self::SHARER_THRESHOLD || $participants < self::PARTICIPANT_THRESHOLD) {
                     throw new InvalidArgumentException(
@@ -123,7 +123,7 @@ final readonly class PublishCommunityReleaseAction
                     );
                 }
 
-                $cells = self::suppressedCells($evidence);
+                $cells = $this->suppressedCells($evidence);
 
                 return CommunityRelease::query()->create([
                     'release_key' => $releaseKey,
@@ -164,7 +164,7 @@ final readonly class PublishCommunityReleaseAction
         }
     }
 
-    private static function verifiedPublisherRole(string $actorType, ?string $actorId): string
+    private function verifiedPublisherRole(string $actorType, ?string $actorId): string
     {
         if ($actorType !== 'user' || $actorId === null || $actorId === '') {
             throw new InvalidArgumentException('Community releases require a staff/admin user identity.');
@@ -189,7 +189,7 @@ final readonly class PublishCommunityReleaseAction
      * totals, and every cell derive from this same set, so unknown
      * evidence can never disclose through a broader total.
      */
-    private static function evidenceQuery(CarbonImmutable $start, CarbonImmutable $nextMonth): Builder
+    private function evidenceQuery(CarbonImmutable $start, CarbonImmutable $nextMonth): Builder
     {
         $conversions = (new AffiliateConversion)->getTable();
         $users = (new User)->getTable();
@@ -212,10 +212,10 @@ final readonly class PublishCommunityReleaseAction
                     ->whereColumn('u.id', 'c.sharer_user_id');
             })
             ->whereNotExists(function (Builder $exists): void {
-                self::conversionFraudExists($exists, 'c.id');
+                $this->conversionFraudExists($exists, 'c.id');
             });
 
-        self::whereUserFraudClean($query, 'c.sharer_user_id');
+        $this->whereUserFraudClean($query, 'c.sharer_user_id');
 
         $query->whereNotNull('c.actor_user_id')
             ->whereExists(static function (Builder $exists) use ($users): void {
@@ -224,9 +224,9 @@ final readonly class PublishCommunityReleaseAction
                     ->whereColumn('au.id', 'c.actor_user_id');
             });
 
-        self::whereNonStaff($query, 'c.actor_user_id');
-        self::whereUserFraudClean($query, 'c.actor_user_id');
-        self::whereNonPurchaser($query);
+        $this->whereNonStaff($query, 'c.actor_user_id');
+        $this->whereUserFraudClean($query, 'c.actor_user_id');
+        $this->whereNonPurchaser($query);
 
         return $query;
     }
@@ -236,7 +236,7 @@ final readonly class PublishCommunityReleaseAction
      * conversion they shared or acted on, or an outbound share
      * touchpoint attributed to their shares.
      */
-    private static function whereUserFraudClean(Builder $query, string $outerUserColumn): void
+    private function whereUserFraudClean(Builder $query, string $outerUserColumn): void
     {
         $conversions = (new AffiliateConversion)->getTable();
         $touchpoints = (new AffiliateTouchpoint)->getTable();
@@ -275,7 +275,7 @@ final readonly class PublishCommunityReleaseAction
         });
     }
 
-    private static function conversionFraudExists(Builder $exists, string $outerConversionId): void
+    private function conversionFraudExists(Builder $exists, string $outerConversionId): void
     {
         $fraud = (new AffiliateFraudSignal)->getTable();
 
@@ -285,7 +285,7 @@ final readonly class PublishCommunityReleaseAction
             ->whereColumn('f.conversion_id', $outerConversionId);
     }
 
-    private static function distinctSharers(Builder $evidence): int
+    private function distinctSharers(Builder $evidence): int
     {
         return (int) (clone $evidence)->distinct()->count('c.sharer_user_id');
     }
@@ -297,12 +297,12 @@ final readonly class PublishCommunityReleaseAction
      * eligible set and repeats never satisfy the distinct-person
      * threshold.
      */
-    private static function distinctParticipants(Builder $evidence): int
+    private function distinctParticipants(Builder $evidence): int
     {
         return (int) (clone $evidence)->distinct()->count('c.actor_user_id');
     }
 
-    private static function whereNonStaff(Builder $query, string $outerUserColumn): void
+    private function whereNonStaff(Builder $query, string $outerUserColumn): void
     {
         $userMorph = (new User)->getMorphClass();
         $pivot = config('permission.table_names.model_has_roles') ?: 'model_has_roles';
@@ -329,7 +329,7 @@ final readonly class PublishCommunityReleaseAction
      * Other share kinds are never purchasers. Linkage is the frozen
      * conversion metadata registration_id written at record time.
      */
-    private static function whereNonPurchaser(Builder $query): void
+    private function whereNonPurchaser(Builder $query): void
     {
         $registrations = (new Registration)->getTable();
 
@@ -361,10 +361,10 @@ final readonly class PublishCommunityReleaseAction
      *
      * @return array<string, mixed>
      */
-    private static function suppressedCells(Builder $evidence): array
+    private function suppressedCells(Builder $evidence): array
     {
-        $byChannel = self::dualGatedCut($evidence, self::channelExpression());
-        $byOutcome = self::dualGatedCut($evidence, 'c.conversion_type');
+        $byChannel = $this->dualGatedCut($evidence, $this->channelExpression());
+        $byOutcome = $this->dualGatedCut($evidence, 'c.conversion_type');
 
         $total = (int) (clone $evidence)->count();
 
@@ -389,7 +389,7 @@ final readonly class PublishCommunityReleaseAction
      *
      * @return array<string, int>|null
      */
-    private static function dualGatedCut(Builder $evidence, string $cellExpression): ?array
+    private function dualGatedCut(Builder $evidence, string $cellExpression): ?array
     {
         $cells = (clone $evidence)
             ->selectRaw($cellExpression.' as cell')
@@ -411,8 +411,8 @@ final readonly class PublishCommunityReleaseAction
 
             $rows = (int) (clone $scoped)->count();
 
-            if (self::distinctSharers($scoped) < self::SHARER_THRESHOLD
-                || self::distinctParticipants($scoped) < self::PARTICIPANT_THRESHOLD) {
+            if ($this->distinctSharers($scoped) < self::SHARER_THRESHOLD
+                || $this->distinctParticipants($scoped) < self::PARTICIPANT_THRESHOLD) {
                 return null;
             }
 
@@ -422,7 +422,7 @@ final readonly class PublishCommunityReleaseAction
         return $published;
     }
 
-    private static function channelExpression(): string
+    private function channelExpression(): string
     {
         return "COALESCE(NULLIF(c.channel, ''), '".self::UNKNOWN_CELL."')";
     }

@@ -21,18 +21,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class InstitutionResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = Institution::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'name';
 
+    #[\Override]
     protected static ?string $navigationLabel = 'Institutions';
 
+    #[\Override]
     protected static ?string $navigationParentItem = 'Events';
 
+    #[\Override]
     protected static ?int $navigationSort = 20;
 
+    #[\Override]
     protected static ?string $slug = 'institutions';
 
     #[\Override]

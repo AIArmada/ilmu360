@@ -16,7 +16,7 @@ final class SignalsDocsExtension extends OperationExtension
      *
      * @var array<string, array{summary: string, description: string}>
      */
-    private const OPERATIONS = [
+    private const array OPERATIONS = [
         'signals/tracker.js' => [
             'summary' => 'Serve the browser tracker script',
             'description' => 'Serves the first-party JavaScript collector that reports pageviews and browser events to the signals collectors.',

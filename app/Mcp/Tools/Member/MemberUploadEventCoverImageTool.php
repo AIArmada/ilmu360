@@ -27,10 +27,13 @@ class MemberUploadEventCoverImageTool extends AbstractMemberTool
 {
     use UploadsEventImage;
 
+    #[\Override]
     protected string $name = 'member-upload-event-cover-image';
 
+    #[\Override]
     protected string $title = 'Upload Event Cover Image';
 
+    #[\Override]
     protected string $description = 'Upload and save a 16:9 website/mobile-app cover image for an accessible Ahli event. Accepts image descriptors via {content_base64} or {content_url}. Use the member-event-cover-image-prompt to get the recommended prompt and reference images before generating.';
 
     public function __construct(

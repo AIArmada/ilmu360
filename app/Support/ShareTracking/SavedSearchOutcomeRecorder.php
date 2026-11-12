@@ -48,7 +48,6 @@ final readonly class SavedSearchOutcomeRecorder implements SavedSearchShareOutco
             ShareOutcomeBusinessKey::savedSearch($savedSearchId),
             'saved_search_deleted',
             $actor instanceof User ? $actor : null,
-            $request,
         );
     }
 }

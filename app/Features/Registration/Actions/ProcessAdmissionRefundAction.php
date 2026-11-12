@@ -26,7 +26,6 @@ use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
-use Throwable;
 
 /**
  * Owns admission refund orchestration for the Registration feature.
@@ -38,15 +37,15 @@ use Throwable;
  * packages remain the canonical external writers for refund rows, payment
  * submission and the admission refund lifecycle.
  */
-final class ProcessAdmissionRefundAction implements AdmissionRefunds
+final readonly class ProcessAdmissionRefundAction implements AdmissionRefunds
 {
     use AsAction;
 
     public function __construct(
-        private readonly EventCommercePolicy $policy,
-        private readonly OrderServiceInterface $orders,
-        private readonly PaymentGatewayResolverInterface $paymentGateways,
-        private readonly RegistrationServiceInterface $registrations,
+        private EventCommercePolicy $policy,
+        private OrderServiceInterface $orders,
+        private PaymentGatewayResolverInterface $paymentGateways,
+        private RegistrationServiceInterface $registrations,
     ) {}
 
     /**
@@ -138,7 +137,7 @@ final class ProcessAdmissionRefundAction implements AdmissionRefunds
         $this->assertOnlinePayment($payment);
         $paymentId = $this->paymentId($payment);
         $provider = $this->paymentProvider($payment);
-        $processor = $this->resolveProcessor($payment, $provider);
+        $processor = $this->resolveProcessor($payment);
         $mode = $organizerOverride ? 'organizer_approved' : 'self_service';
         $refundReason = $existing instanceof OrderRefund
             ? $existing->reason
@@ -153,7 +152,7 @@ final class ProcessAdmissionRefundAction implements AdmissionRefunds
                 $refunds = $this->orders->createPendingRefund(
                     order: $order,
                     amount: $amount,
-                    transactionId: 'event-refund-'.(string) $registration->getKey(),
+                    transactionId: 'event-refund-'.$registration->getKey(),
                     reason: $refundReason,
                     metadata: $metadata,
                     payment: $payment,
@@ -188,15 +187,7 @@ final class ProcessAdmissionRefundAction implements AdmissionRefunds
             return $refund->fresh() ?? $refund;
         }
 
-        try {
-            $result = $this->refundPayment($processor, $provider, $paymentId, $amount, $refundReason);
-        } catch (Throwable $exception) {
-            // The provider-neutral processor contract cannot distinguish a
-            // rejected request from a transport failure after submission. A
-            // pending record prevents a second money-moving request; the
-            // provider webhook or reconciliation workflow must resolve it.
-            throw $exception;
-        }
+        $result = $this->refundPayment($processor, $provider, $paymentId, $amount, $refundReason);
 
         $this->recordProviderCorrelation($refund, $result);
 
@@ -330,7 +321,7 @@ final class ProcessAdmissionRefundAction implements AdmissionRefunds
         return trim((string) $paymentId);
     }
 
-    private function resolveProcessor(OrderPayment $payment, ?string $provider): PaymentProcessorInterface
+    private function resolveProcessor(OrderPayment $payment): PaymentProcessorInterface
     {
         $identifier = trim((string) $payment->gateway);
 
@@ -398,7 +389,7 @@ final class ProcessAdmissionRefundAction implements AdmissionRefunds
         $metadata = is_array($refund->metadata) ? $refund->metadata : [];
         $originalPaymentId = data_get($metadata, 'payment_id');
 
-        if ((string) $providerRefundId === (string) $originalPaymentId) {
+        if ($providerRefundId === (string) $originalPaymentId) {
             return;
         }
 

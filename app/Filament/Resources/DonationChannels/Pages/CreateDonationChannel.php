@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateDonationChannel extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = DonationChannelResource::class;
 
     #[\Override]

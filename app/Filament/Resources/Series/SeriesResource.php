@@ -21,12 +21,16 @@ use UnitEnum;
 
 class SeriesResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = Series::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'title';
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Content';
 
     #[\Override]

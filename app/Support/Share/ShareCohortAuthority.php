@@ -86,7 +86,7 @@ final class ShareCohortAuthority
         $reportingStart = ShareTrackingMeasurement::reportingStart();
         $startedAt = $reportingStart === null ? null : CarbonImmutable::parse($reportingStart, 'UTC');
 
-        if ($startedAt === null) {
+        if (! $startedAt instanceof CarbonImmutable) {
             return [
                 'status' => ShareTrackingMeasurement::STATUS_NOT_CONFIGURED,
                 'definition_version' => $definitionVersion,

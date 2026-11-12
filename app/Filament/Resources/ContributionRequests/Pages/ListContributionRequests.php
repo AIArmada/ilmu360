@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListContributionRequests extends ListRecords
 {
+    #[\Override]
     protected static string $resource = ContributionRequestResource::class;
 
     #[\Override]

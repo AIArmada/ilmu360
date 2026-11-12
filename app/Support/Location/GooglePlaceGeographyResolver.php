@@ -11,13 +11,13 @@ use AIArmada\Addressing\Support\AddressAreaHierarchyResolver;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use AIArmada\Addressing\Support\CountryAddressProfileResolver;
 
-final class GooglePlaceGeographyResolver
+final readonly class GooglePlaceGeographyResolver
 {
     public function __construct(
-        private readonly AddressAreaHierarchyResolver $addressAreaHierarchyResolver,
-        private readonly CountryAddressProfileResolver $profiles,
-        private readonly GooglePlaceGeographyMatcher $matcher,
-        private readonly GooglePlaceResolutionGapLogger $gapLogger,
+        private AddressAreaHierarchyResolver $addressAreaHierarchyResolver,
+        private CountryAddressProfileResolver $profiles,
+        private GooglePlaceGeographyMatcher $matcher,
+        private GooglePlaceResolutionGapLogger $gapLogger,
     ) {}
 
     /**
@@ -208,7 +208,7 @@ final class GooglePlaceGeographyResolver
 
                 if (
                     ! $hasExplicitPrimaryValue
-                    && $area === null
+                    && ! $area instanceof AddressArea
                     && $parentId !== null
                 ) {
                     $inferredArea = $this->matcher->resolveAreaFromPlaceName(
@@ -356,7 +356,7 @@ final class GooglePlaceGeographyResolver
 
                 $inferredFromPlaceName = false;
 
-                if ($area === null && $names === [] && ! $structuralResolved) {
+                if (! $area instanceof AddressArea && $names === [] && ! $structuralResolved) {
                     $area = $this->matcher->resolveAreaFromPlaceName(
                         $placeName,
                         $countryId,

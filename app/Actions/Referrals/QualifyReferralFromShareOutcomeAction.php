@@ -34,7 +34,7 @@ final readonly class QualifyReferralFromShareOutcomeAction
     {
         $source = $this->readSupportedSource($businessKey);
 
-        if ($source === null
+        if (! $source instanceof RewardSourceFact
             || ! $source->isValid
             || $source->isCancelled
             || ! $source->isClaimedIdentity

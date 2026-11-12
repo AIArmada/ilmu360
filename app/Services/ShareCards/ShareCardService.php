@@ -23,6 +23,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Throwable;
 
 /**
@@ -255,13 +256,13 @@ final readonly class ShareCardService
                     ? (string) $announcement->update_type->value
                     : (string) ($announcement->update_type ?? ''))
                 : 'none',
-            $cover !== null ? (string) $cover->getKey().'/'.$this->instantKey($cover->updated_at) : 'none',
-            $poster !== null ? (string) $poster->getKey().'/'.$this->instantKey($poster->updated_at) : 'none',
+            $cover instanceof Media ? $cover->getKey().'/'.$this->instantKey($cover->updated_at) : 'none',
+            $poster instanceof Media ? $poster->getKey().'/'.$this->instantKey($poster->updated_at) : 'none',
             // Institution-logo identity through the same accessor the
             // presenter reads: id and timestamp only, never raster bytes,
             // so listing URL builds stay cheap while a logo replacement
             // still settles the revision.
-            'logo', $logo !== null ? (string) $logo->getKey().'/'.$this->instantKey($logo->updated_at) : 'none',
+            'logo', $logo !== null ? $logo->getKey().'/'.$this->instantKey($logo->updated_at) : 'none',
             // Venue, organizer, speaker, and timing-expression state feed
             // pixels (and the prewarm observer fires on them), so their
             // identity settles the revision too. Loaded state only, same
@@ -285,7 +286,7 @@ final readonly class ShareCardService
             // word in the card locale plus the configured application name.
             // Both ride the key, so a rebrand or catalog change settles the
             // revision instead of leaving stale immutable pixels.
-            'brand', (string) config('app.name').'@'.$this->runInLocale($locale, static fn (): string => (string) __('Majlis Ilmu')),
+            'brand', config('app.name').'@'.$this->runInLocale($locale, static fn (): string => (string) __('Majlis Ilmu')),
             'renderer', PangoShareCardRenderer::RENDERER_REVISION,
             'fonts', $this->fontManifestRevision(),
         ];
@@ -516,11 +517,11 @@ final readonly class ShareCardService
             (string) ($location->space_name_snapshot ?? ''),
             (string) ($location->venue_space_id ?? ''),
             $space instanceof Model
-                ? (string) $space->getKey().'@'.$this->instantKey($space->getAttribute('updated_at')).'@'.(string) ($space->getAttribute('name') ?? '')
+                ? $space->getKey().'@'.$this->instantKey($space->getAttribute('updated_at')).'@'.($space->getAttribute('name') ?? '')
                 : 'space-none',
             (string) ($location->venue_id ?? ''),
             $venue instanceof Model
-                ? (string) $venue->getKey().'@'.$this->instantKey($venue->getAttribute('updated_at')).'@'.(string) ($venue->getAttribute('name') ?? '')
+                ? $venue->getKey().'@'.$this->instantKey($venue->getAttribute('updated_at')).'@'.($venue->getAttribute('name') ?? '')
                 : 'venue-none',
         ];
 
@@ -558,7 +559,7 @@ final readonly class ShareCardService
                 continue;
             }
 
-            $parts[] = (string) $model->getKey().'@'.$this->instantKey($model->getAttribute('updated_at'));
+            $parts[] = $model->getKey().'@'.$this->instantKey($model->getAttribute('updated_at'));
         }
 
         sort($parts);

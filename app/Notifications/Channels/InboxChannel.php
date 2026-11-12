@@ -5,6 +5,7 @@ namespace App\Notifications\Channels;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Actions\DispatchInboxNotificationAction;
 use AIArmada\Communications\Contracts\CommunicationRecorder;
+use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Notifications\InAppNotification;
 use App\Support\Communications\EnumMapper;
@@ -36,7 +37,7 @@ class InboxChannel
         return DB::transaction(function () use ($notifiable, $notification, $deliveryId, $communicationId): ?NotificationInbox {
             $delivery = GuardedDeliverySend::claim($deliveryId, $communicationId);
 
-            if ($delivery === null || $communicationId === null) {
+            if (! $delivery instanceof CommunicationDelivery || $communicationId === null) {
                 GuardedDeliverySend::detach($notification, static::class);
 
                 return null;

@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetResourceMetaTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-get-resource-meta';
 
+    #[\Override]
     protected string $description = 'Use this when you need to discover field definitions, available filter options, or sort options for one admin resource. Do not use for listing records; use admin-list-records for that.';
 
     public function __construct(

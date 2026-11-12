@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Spaces;
 
-use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Models\Space;
+use App\Shared\Directory\SpaceEligibilityResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 

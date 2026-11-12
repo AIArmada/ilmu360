@@ -14,8 +14,10 @@ use Filament\Tables\Table;
 
 final class ReferencesRelationManager extends RelationManager
 {
+    #[\Override]
     protected static string $relationship = 'references';
 
+    #[\Override]
     protected static ?string $title = 'References';
 
     public function table(Table $table): Table

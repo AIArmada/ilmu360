@@ -11,6 +11,7 @@ use AIArmada\Rewards\Contracts\RewardCorrectionKeySource;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Enums\RewardAwardStatus;
 use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Models\ShareOutcomeCorrection;
 use Illuminate\Support\Facades\DB;
 
@@ -20,9 +21,9 @@ use Illuminate\Support\Facades\DB;
  * fraud signal (linked back to the business key through the
  * conversion idempotency key).
  */
-final class ShareCorrectionKeySource implements RewardCorrectionKeySource
+final readonly class ShareCorrectionKeySource implements RewardCorrectionKeySource
 {
-    public function __construct(private readonly RewardSourceFactReader $sourceFactReader) {}
+    public function __construct(private RewardSourceFactReader $sourceFactReader) {}
 
     public function taintedKeys(int $limit): array
     {
@@ -38,7 +39,7 @@ final class ShareCorrectionKeySource implements RewardCorrectionKeySource
             $key = (string) $correction->business_key;
 
             $tainted[$key] ??= [
-                'reason' => 'source-correction:'.(string) $correction->reason,
+                'reason' => 'source-correction:'.$correction->reason,
                 'evidence' => [
                     'correction_id' => (string) $correction->getKey(),
                     'business_key' => $key,
@@ -190,7 +191,7 @@ final class ShareCorrectionKeySource implements RewardCorrectionKeySource
 
         if ($correction instanceof ShareOutcomeCorrection) {
             return [
-                'reason' => 'source-correction:'.(string) $correction->reason,
+                'reason' => 'source-correction:'.$correction->reason,
                 'evidence' => [
                     'correction_id' => (string) $correction->getKey(),
                     'business_key' => $businessKey,
@@ -233,11 +234,11 @@ final class ShareCorrectionKeySource implements RewardCorrectionKeySource
 
         $fact = $this->sourceFactReader->read($businessKey);
 
-        if ($fact !== null && $fact->isValid && ! $fact->isCancelled) {
+        if ($fact instanceof RewardSourceFact && $fact->isValid && ! $fact->isCancelled) {
             return null;
         }
 
-        if ($fact === null) {
+        if (! $fact instanceof RewardSourceFact) {
             return [
                 'reason' => 'activity-source-invalidated',
                 'evidence' => [
@@ -271,18 +272,18 @@ final class ShareCorrectionKeySource implements RewardCorrectionKeySource
 
         $fact = $this->sourceFactReader->read($businessKey);
 
-        if ($fact !== null && $fact->isValid && ! $fact->isCancelled) {
+        if ($fact instanceof RewardSourceFact && $fact->isValid && ! $fact->isCancelled) {
             return null;
         }
 
-        $sourceCancelled = $fact !== null && $fact->isCancelled;
-        $sourceValid = $fact !== null && $fact->isValid;
+        $sourceCancelled = $fact instanceof RewardSourceFact && $fact->isCancelled;
+        $sourceValid = $fact instanceof RewardSourceFact && $fact->isValid;
 
         return [
             'reason' => 'referral-source-invalidated',
             'evidence' => [
                 'business_key' => $businessKey,
-                'source_missing' => $fact === null,
+                'source_missing' => ! $fact instanceof RewardSourceFact,
                 'source_cancelled' => $sourceCancelled,
                 'source_valid' => $sourceValid,
             ],

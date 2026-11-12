@@ -13,6 +13,7 @@ use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
+use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
@@ -144,11 +145,9 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
                 $correction = $this->reverseShareOutcome->handle(
                     ShareOutcomeBusinessKey::eventRegistration($registrationId),
                     'checkout_compensated',
-                    null,
-                    null,
                 );
 
-                if ($correction !== null) {
+                if ($correction instanceof ShareOutcomeCorrection) {
                     $reversed++;
                 }
             } catch (Throwable $e) {

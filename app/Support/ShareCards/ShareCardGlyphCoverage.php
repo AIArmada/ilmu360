@@ -54,16 +54,7 @@ final class ShareCardGlyphCoverage
         $missing = [];
 
         foreach ($codepoints as $codepoint) {
-            $held = false;
-
-            foreach ($tables as $table) {
-                if ($table !== null && self::tableHasGlyph($table, $codepoint)) {
-                    $held = true;
-
-                    break;
-                }
-            }
-
+            $held = array_any($tables, fn ($table) => $table !== null && self::tableHasGlyph($table, $codepoint));
             if (! $held) {
                 $missing[] = $codepoint;
             }
@@ -99,11 +90,7 @@ final class ShareCardGlyphCoverage
 
         $type = IntlChar::charType($codepoint);
 
-        return $type === IntlChar::CHAR_CATEGORY_CONTROL_CHAR
-            || $type === IntlChar::CHAR_CATEGORY_FORMAT_CHAR
-            || $type === IntlChar::CHAR_CATEGORY_LINE_SEPARATOR
-            || $type === IntlChar::CHAR_CATEGORY_PARAGRAPH_SEPARATOR
-            || $type === IntlChar::CHAR_CATEGORY_SURROGATE;
+        return in_array($type, [IntlChar::CHAR_CATEGORY_CONTROL_CHAR, IntlChar::CHAR_CATEGORY_FORMAT_CHAR, IntlChar::CHAR_CATEGORY_LINE_SEPARATOR, IntlChar::CHAR_CATEGORY_PARAGRAPH_SEPARATOR, IntlChar::CHAR_CATEGORY_SURROGATE], true);
     }
 
     /**
@@ -183,7 +170,7 @@ final class ShareCardGlyphCoverage
                     return null;
                 }
 
-                if (substr($record, 0, 4) !== 'cmap') {
+                if (! str_starts_with($record, 'cmap')) {
                     continue;
                 }
 
@@ -226,7 +213,7 @@ final class ShareCardGlyphCoverage
 
                 $format = self::u16($cmap, $offset);
 
-                if ($format === 4 || $format === 6 || $format === 12) {
+                if (in_array($format, [4, 6, 12], true)) {
                     $candidates[$format] = $offset;
                 }
             }
@@ -345,7 +332,7 @@ final class ShareCardGlyphCoverage
             return false;
         }
 
-        $segCount = (int) ($segCountX2 / 2);
+        $segCount = $segCountX2 / 2;
 
         if ($segCount <= 0 || $segCount > 10000 || $codepoint > 0xFFFF) {
             return false;

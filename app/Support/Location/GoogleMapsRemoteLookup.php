@@ -4,9 +4,9 @@ namespace App\Support\Location;
 
 use Illuminate\Support\Facades\Http;
 
-final class GoogleMapsRemoteLookup
+final readonly class GoogleMapsRemoteLookup
 {
-    public function __construct(private readonly GoogleMapsUrlParser $urls) {}
+    public function __construct(private GoogleMapsUrlParser $urls) {}
 
     public function resolveUrl(?string $url): ?string
     {

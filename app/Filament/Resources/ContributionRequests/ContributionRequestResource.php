@@ -25,10 +25,13 @@ class ContributionRequestResource extends Resource
 
     private static ?int $pendingNavigationCount = null;
 
+    #[\Override]
     protected static ?string $model = ContributionRequest::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = null;
 
     #[\Override]
@@ -41,8 +44,10 @@ class ContributionRequestResource extends Resource
         return ContributionRequestPresenter::breadcrumbTitle($record);
     }
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Moderation';
 
+    #[\Override]
     protected static ?int $navigationSort = 2;
 
     #[\Override]

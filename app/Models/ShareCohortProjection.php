@@ -27,6 +27,7 @@ class ShareCohortProjection extends Model
 
     public const string STAGE_PARTICIPATED = 'participated';
 
+    #[\Override]
     protected $fillable = [
         'business_key',
         'outcome',
@@ -54,8 +55,7 @@ class ShareCohortProjection extends Model
             }
 
             if ($projection->isDirty('stage')
-                && ! ($projection->getOriginal('stage') === self::STAGE_OBSERVED
-                    && $projection->stage === self::STAGE_PARTICIPATED)
+                && ($projection->getOriginal('stage') !== self::STAGE_OBSERVED || $projection->stage !== self::STAGE_PARTICIPATED)
             ) {
                 throw new LogicException('Share cohort projection stages move observed -> participated only.');
             }

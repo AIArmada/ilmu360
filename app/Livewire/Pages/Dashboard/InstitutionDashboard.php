@@ -4,18 +4,18 @@ namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
+use App\Shared\Submission\EntitySubmissionAccess;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Spaces\SpaceLocationPresenter;
-use App\Shared\Submission\EntitySubmissionAccess;
 use BackedEnum;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -95,11 +95,9 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $this->institutionId = $this->normalizeInstitutionId($this->institutionId);
 
-        if ($this->institutionId === null) {
-            $this->institutionId = $this->availableInstitutionsQuery($user)
-                ->orderBy('name')
-                ->value('institutions.id');
-        }
+        $this->institutionId ??= $this->availableInstitutionsQuery($user)
+            ->orderBy('name')
+            ->value('institutions.id');
 
         if ($this->institutionId !== null && ! $this->availableInstitutionsQuery($user)->whereKey($this->institutionId)->exists()) {
             abort(403);

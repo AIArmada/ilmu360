@@ -19,6 +19,7 @@ class EditSeries extends EditRecord
 {
     use AuditsRelatedStateChanges;
 
+    #[\Override]
     protected static string $resource = SeriesResource::class;
 
     public function boot(): void
@@ -61,9 +62,7 @@ class EditSeries extends EditRecord
     {
         return [
             DeleteAction::make()
-                ->using(function (Model $record): bool {
-                    return app(SeriesAuthoring::class)->delete((string) $record->getKey());
-                }),
+                ->using(fn (Model $record): bool => app(SeriesAuthoring::class)->delete((string) $record->getKey())),
         ];
     }
 

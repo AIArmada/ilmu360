@@ -19,10 +19,13 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[IsIdempotent]
 class AdminDocumentationFetchTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'fetch';
 
+    #[\Override]
     protected string $title = 'Fetch Verified Documentation Page';
 
+    #[\Override]
     protected string $description = 'Use this when you need the full text of a verified ilmu360 admin documentation page returned by the search tool. Accepts a stable documentation id only, not a url or file:// resource URI. Do not use this for runtime record fetches; use the admin record tools for those.';
 
     public function __construct(

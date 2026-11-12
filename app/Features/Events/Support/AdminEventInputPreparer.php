@@ -4,20 +4,19 @@ namespace App\Features\Events\Support;
 
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Shared\Directory\SpaceEligibilityResolver;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Shared\Events\OrganizerResolver;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -123,7 +122,7 @@ final readonly class AdminEventInputPreparer
             'published_at' => $creating ? null : $event->published_at,
         ];
 
-        $attributes['slug'] = $this->generateSlug($attributes, $state, $event, $creating, $startsAt !== null ? (string) $startsAt : null);
+        $attributes['slug'] = $this->generateSlug($attributes, $state, $event, $creating, $startsAt instanceof \Carbon\CarbonInterface ? (string) $startsAt : null);
 
         return $attributes;
     }

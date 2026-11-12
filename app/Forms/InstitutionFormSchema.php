@@ -8,9 +8,9 @@ use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
 use App\Enums\ContributionSubjectType;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\Institution;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;
-use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\GooglePlacesConfiguration;
 use Filament\Forms\Components\Hidden;
@@ -207,7 +207,7 @@ class InstitutionFormSchema
                         'name' => $data['name'] ?? null,
                         'address' => $addressData,
                     ],
-                    (string) ($schema?->getStatePath() ?? ''),
+                    $schema?->getStatePath() ?? '',
                 );
             }
 

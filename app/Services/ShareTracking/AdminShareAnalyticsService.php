@@ -250,7 +250,7 @@ final readonly class AdminShareAnalyticsService
             $channels = $channels->merge($observed);
         }
 
-        $rows = $channels
+        return $channels
             ->filter(fn (mixed $provider): bool => is_string($provider) && $provider !== '')
             ->unique()
             ->values()
@@ -314,8 +314,6 @@ final readonly class AdminShareAnalyticsService
             ])
             ->values()
             ->all();
-
-        return $rows;
     }
 
     /**
@@ -471,7 +469,7 @@ final readonly class AdminShareAnalyticsService
             return [];
         }
 
-        $linkTable = (new AffiliateLink)->getTable();
+        (new AffiliateLink)->getTable();
         $touchpointTable = (new AffiliateTouchpoint)->getTable();
         $attributionTable = (new AffiliateAttribution)->getTable();
         $conversionTable = (new AffiliateConversion)->getTable();

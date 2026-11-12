@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListAppFeedback extends ListRecords
 {
+    #[\Override]
     protected static string $resource = AppFeedbackResource::class;
 
     protected function getHeaderActions(): array

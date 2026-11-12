@@ -4,24 +4,18 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
+#[Description('Prune stale generated share-card files. Safe at any time: card URLs are revision-pinned and regenerate on demand.')]
+#[Signature('app:prune-share-cards
+                            {--days= : Days after which cached card files are pruned (defaults to share-cards.prune_after_days)}
+                            {--dry-run : Show what would be deleted without deleting}')]
 class PruneShareCards extends Command
 {
-    /**
-     * @var string
-     */
-    protected $signature = 'app:prune-share-cards
-                            {--days= : Days after which cached card files are pruned (defaults to share-cards.prune_after_days)}
-                            {--dry-run : Show what would be deleted without deleting}';
-
-    /**
-     * @var string
-     */
-    protected $description = 'Prune stale generated share-card files. Safe at any time: card URLs are revision-pinned and regenerate on demand.';
-
     public function handle(): int
     {
         $days = $this->option('days') !== null

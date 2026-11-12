@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Api\Frontend\FrontendCatalogService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

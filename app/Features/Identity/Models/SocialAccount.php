@@ -19,10 +19,13 @@ class SocialAccount extends Model
     /** @use HasFactory<SocialAccountFactory> */
     use HasFactory, HasUuids;
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
+    #[\Override]
     protected $table = 'socialite';
 
     protected static function newFactory(): SocialAccountFactory
@@ -33,6 +36,7 @@ class SocialAccount extends Model
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'user_id',
         'provider',

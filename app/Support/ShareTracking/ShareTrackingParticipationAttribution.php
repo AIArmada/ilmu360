@@ -120,7 +120,6 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
             sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
             subject: $this->findEvent($eventId),
-            actor: null,
             metadata: [
                 'registration_id' => $registrationId,
                 'staff_assisted' => true,
@@ -139,7 +138,6 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             ShareOutcomeBusinessKey::eventCheckin($checkinId),
             $reason,
             $this->findActor($actorId),
-            request(),
         );
     }
 

@@ -6,6 +6,7 @@ namespace App\Features\Registration\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Actions\IssueEventRegistrationPassesAction;
+use AIArmada\Events\Models\Event;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Support\EventTicketScope;
@@ -32,11 +33,11 @@ use InvalidArgumentException;
  * aliases, locks and revalidates the pending order, records the confirmed
  * offline payment metadata, and issues the pass after the transaction.
  */
-final class ConfirmOfflineAdmissionAction
+final readonly class ConfirmOfflineAdmissionAction
 {
     public function __construct(
-        private readonly OrderServiceInterface $orders,
-        private readonly IssueEventRegistrationPassesAction $issuePasses,
+        private OrderServiceInterface $orders,
+        private IssueEventRegistrationPassesAction $issuePasses,
     ) {}
 
     /**
@@ -113,7 +114,7 @@ final class ConfirmOfflineAdmissionAction
 
             $ticketEvent = EventTicketScope::event($ticketType);
 
-            if ($ticketEvent === null || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
+            if (! $ticketEvent instanceof Event || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
                 throw new InvalidArgumentException('The pending order ticket does not belong to this event.');
             }
 

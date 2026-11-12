@@ -15,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 class CreateReference extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = ReferenceResource::class;
 
     public function boot(): void

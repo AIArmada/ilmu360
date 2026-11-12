@@ -13,18 +13,18 @@ use InvalidArgumentException;
  * audit. Rendering checks its manifest and font files without rehashing large
  * binaries; verify() hashes fonts and license files for asset verification.
  */
-final class ShareCardFonts
+final readonly class ShareCardFonts
 {
-    public const MANIFEST_FILE = 'fonts.json';
+    public const string MANIFEST_FILE = 'fonts.json';
 
-    public const SUPPORTED_LOCALES = ['ms', 'id', 'en', 'ar', 'zh', 'ta', 'jv'];
+    public const array SUPPORTED_LOCALES = ['ms', 'id', 'en', 'ar', 'zh', 'ta', 'jv'];
 
     /**
      * Canonical fallback order. The per-locale primary family moves first;
      * every other family follows so the shaper resolves mixed-script runs
      * per character instead of assuming one script per locale.
      */
-    public const ALL_FAMILIES = [
+    public const array ALL_FAMILIES = [
         'Noto Sans',
         'Noto Sans Arabic',
         'Noto Sans SC',
@@ -32,7 +32,7 @@ final class ShareCardFonts
         'Noto Sans Javanese',
     ];
 
-    private const PRIMARY_FAMILY = [
+    private const array PRIMARY_FAMILY = [
         'ms' => 'Noto Sans',
         'id' => 'Noto Sans',
         'en' => 'Noto Sans',
@@ -42,9 +42,9 @@ final class ShareCardFonts
         'jv' => 'Noto Sans',
     ];
 
-    private const FONT_EXTENSIONS = ['ttf', 'otf', 'ttc', 'woff', 'woff2'];
+    private const array FONT_EXTENSIONS = ['ttf', 'otf', 'ttc', 'woff', 'woff2'];
 
-    public function __construct(private readonly string $fontDirectory) {}
+    public function __construct(private string $fontDirectory) {}
 
     public function fontDirectory(): string
     {
@@ -299,7 +299,6 @@ final class ShareCardFonts
             $families[$entry['family']] = $path;
         }
 
-        /** @var mixed $licenses */
         $licenses = $manifest['licenses'] ?? null;
 
         if (! is_array($licenses) || $licenses === []) {

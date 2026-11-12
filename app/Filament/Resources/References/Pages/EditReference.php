@@ -16,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class EditReference extends EditRecord
 {
+    #[\Override]
     protected static string $resource = ReferenceResource::class;
 
     public function boot(): void

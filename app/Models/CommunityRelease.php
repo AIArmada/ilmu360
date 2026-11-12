@@ -27,6 +27,7 @@ class CommunityRelease extends Model
 {
     use HasUuids;
 
+    #[\Override]
     protected $fillable = [
         'release_key',
         'period_start',

@@ -149,7 +149,7 @@ class McpDocumentationPreflight
             $path,
         )));
 
-        $lastSegment = $normalizedPath[array_key_last($normalizedPath)] ?? null;
+        $lastSegment = array_last($normalizedPath) ?? null;
 
         if (in_array($lastSegment, ['sessionid', 'mcpsessionid'], true)) {
             return true;

@@ -15,8 +15,10 @@ class SavedSearch extends BaseSavedSearch
     /** @use HasFactory<SavedSearchFactory> */
     use HasFactory, HasUuids;
 
+    #[\Override]
     protected $table = 'saved_searches';
 
+    #[\Override]
     protected $fillable = [
         'user_id', 'user_type', 'name', 'query', 'filters', 'meta',
         'radius_km', 'lat', 'lng', 'notify',

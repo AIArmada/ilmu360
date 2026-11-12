@@ -69,12 +69,12 @@ final readonly class ReferralRewardSourceFactReader implements RewardSourceFactR
         $expectedBeneficiaryId = $side === ReferralRewardSide::Referrer
             ? $beneficiaryId
             : (string) $acceptedBy->getKey();
-        $acceptedByMatchesSource = $source !== null
+        $acceptedByMatchesSource = $source instanceof RewardSourceFact
             && $source->actorId === (string) $acceptedBy->getKey()
             && $source->isClaimedIdentity;
-        $sourceTimeMatchesQualification = $source !== null
+        $sourceTimeMatchesQualification = $source instanceof RewardSourceFact
             && $source->occurredAt->equalTo($occurredAt);
-        $sourceMeetsQualification = $source !== null
+        $sourceMeetsQualification = $source instanceof RewardSourceFact
             && $source->isValid
             && ! $source->isCancelled
             && $source->isClaimedIdentity
@@ -83,13 +83,13 @@ final readonly class ReferralRewardSourceFactReader implements RewardSourceFactR
                 ShareOutcomeType::EventCheckin->value => $source->verification === RewardVerificationLevel::StaffVerified,
                 default => false,
             };
-        $sourceIsCancelled = $source === null || $source->isCancelled;
-        $sourceVerification = $source === null ? RewardVerificationLevel::Unverified : $source->verification;
-        $sourceIsAmbiguousDevice = $source !== null && $source->isAmbiguousDevice;
-        $sourceIsBot = $source !== null && $source->isBot;
-        $sourceFraudStatus = $source === null ? RewardSourceFraudStatus::Clear : $source->fraudStatus;
-        $sourceCorrectionStatus = $source === null ? RewardSourceCorrectionStatus::Current : $source->correctionStatus;
-        $sourceCorrectionId = $source === null ? null : $source->correctionId;
+        $sourceIsCancelled = ! $source instanceof RewardSourceFact || $source->isCancelled;
+        $sourceVerification = $source->verification ?? RewardVerificationLevel::Unverified;
+        $sourceIsAmbiguousDevice = $source instanceof RewardSourceFact && $source->isAmbiguousDevice;
+        $sourceIsBot = $source instanceof RewardSourceFact && $source->isBot;
+        $sourceFraudStatus = $source->fraudStatus ?? RewardSourceFraudStatus::Clear;
+        $sourceCorrectionStatus = $source->correctionStatus ?? RewardSourceCorrectionStatus::Current;
+        $sourceCorrectionId = $source?->correctionId;
         $inviteStatusValid = in_array($invite->status, [ReferralInviteStatus::Qualified, ReferralInviteStatus::Rewarded], true);
         $rewardStatusValid = $reward->status !== ReferralRewardStatus::Reversed;
         $isValid = $inviteStatusValid

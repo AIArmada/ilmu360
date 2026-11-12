@@ -431,7 +431,7 @@ final class CommittedShareSignalReader
 
     private function projectOnce(SignalEvent $event, AffiliateTouchpoint $source): void
     {
-        $key = 'committed-share:'.((string) $source->getKey());
+        $key = 'committed-share:'.($source->getKey());
 
         if (ShareCohortProjection::query()->where('business_key', $key)->exists()) {
             return;

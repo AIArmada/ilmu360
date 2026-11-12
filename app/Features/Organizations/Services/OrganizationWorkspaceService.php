@@ -39,7 +39,7 @@ final readonly class OrganizationWorkspaceService implements OrganizationWorkspa
 
         return new OrganizationDetail(
             summary: $summary,
-            members: $this->membersFor((string) $summary->id),
+            members: $this->membersFor($summary->id),
         );
     }
 

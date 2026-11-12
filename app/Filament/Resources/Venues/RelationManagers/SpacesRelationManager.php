@@ -17,6 +17,7 @@ use Filament\Tables\Table;
 
 final class SpacesRelationManager extends RelationManager
 {
+    #[\Override]
     protected static string $relationship = 'spaces';
 
     public function form(Schema $schema): Schema

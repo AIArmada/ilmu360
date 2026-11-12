@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Events;
 
-use App\Features\Directory\Api\ReferenceQueries;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\ShareTrackingService;

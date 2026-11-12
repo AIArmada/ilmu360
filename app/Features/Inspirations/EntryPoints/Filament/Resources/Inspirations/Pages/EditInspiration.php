@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EditInspiration extends EditRecord
 {
+    #[\Override]
     protected static string $resource = InspirationResource::class;
 
     #[\Override]

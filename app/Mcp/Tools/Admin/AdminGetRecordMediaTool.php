@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class AdminGetRecordMediaTool extends AbstractAdminTool
 {
+    #[\Override]
     protected string $name = 'admin-get-record-media';
 
+    #[\Override]
     protected string $description = 'Returns the media attachments for one admin record. Use this to verify uploads, check collection names, or get media URLs without fetching the full record payload. Faster and more compact than admin-get-record for media verification. For events, also returns card_image_url, poster_url, and cover_url.';
 
     public function __construct(

@@ -114,7 +114,7 @@ class EventCardEngagement extends Component
             ->exists();
         $this->isGoing = app(EngagementReader::class)->isGoingToEvent(
             (string) $user->getKey(),
-            (string) $this->eventId,
+            $this->eventId,
         );
     }
 

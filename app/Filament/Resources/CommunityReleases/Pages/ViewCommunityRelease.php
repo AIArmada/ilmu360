@@ -9,5 +9,6 @@ use Filament\Resources\Pages\ViewRecord;
 
 class ViewCommunityRelease extends ViewRecord
 {
+    #[\Override]
     protected static string $resource = CommunityReleaseResource::class;
 }

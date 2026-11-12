@@ -17,8 +17,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class MemberGetRecordTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'member-get-record';
 
+    #[\Override]
     protected string $description = 'Use this when you need the full details of one Ahli-scoped member record. Requires both resource_key and record_key. Do not use for listing multiple records; use member-list-records for that.';
 
     public function __construct(

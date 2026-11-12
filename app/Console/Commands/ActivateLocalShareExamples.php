@@ -73,8 +73,8 @@ final class ActivateLocalShareExamples extends Command
             throw new RuntimeException('The local superadmin account is required to provision the benefit item.');
         }
 
-        $sharer = $this->upsertDemoUser('sharer.demo@ilmu360.test', 'Share Demo Sharer');
-        $visitor = $this->upsertDemoUser('visitor.demo@ilmu360.test', 'Share Demo Visitor');
+        $this->upsertDemoUser('sharer.demo@ilmu360.test', 'Share Demo Sharer');
+        $this->upsertDemoUser('visitor.demo@ilmu360.test', 'Share Demo Visitor');
 
         $program = RewardProgram::query()->where('family_key', self::POINTS_FAMILY_KEY)->first();
 

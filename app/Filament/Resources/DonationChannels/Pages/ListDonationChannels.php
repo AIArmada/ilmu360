@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListDonationChannels extends ListRecords
 {
+    #[\Override]
     protected static string $resource = DonationChannelResource::class;
 
     #[\Override]

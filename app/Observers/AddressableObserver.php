@@ -4,10 +4,10 @@ namespace App\Observers;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
-use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\VenueWorkflow;
+use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

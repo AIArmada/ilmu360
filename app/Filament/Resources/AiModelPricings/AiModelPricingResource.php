@@ -20,14 +20,19 @@ use UnitEnum;
 
 class AiModelPricingResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = AiModelPricing::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'System';
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'model_pattern';
 
+    #[\Override]
     protected static ?int $navigationSort = 99;
 
     #[\Override]

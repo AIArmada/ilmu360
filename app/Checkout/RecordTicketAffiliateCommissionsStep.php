@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Checkout;
 
+use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Checkout\Data\StepResult;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
@@ -74,7 +77,7 @@ final class RecordTicketAffiliateCommissionsStep extends AbstractCheckoutStep
             }
 
             try {
-                if ($this->reverseCommissions->handle($registration, 'checkout_compensated') !== null) {
+                if ($this->reverseCommissions->handle($registration, 'checkout_compensated') instanceof AffiliateConversion) {
                     $reversed++;
                 }
             } catch (Throwable $exception) {

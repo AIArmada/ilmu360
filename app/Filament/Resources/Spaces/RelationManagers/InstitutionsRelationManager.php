@@ -18,8 +18,10 @@ use Illuminate\Support\Collection;
 
 class InstitutionsRelationManager extends RelationManager
 {
+    #[\Override]
     protected static string $relationship = 'institutions';
 
+    #[\Override]
     protected static ?string $relatedResource = InstitutionResource::class;
 
     public function table(Table $table): Table

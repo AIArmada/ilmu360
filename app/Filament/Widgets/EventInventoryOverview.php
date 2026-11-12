@@ -9,14 +9,19 @@ use Illuminate\Database\Eloquent\Builder;
 
 class EventInventoryOverview extends StatsOverviewWidget
 {
+    #[\Override]
     protected static bool $isLazy = false;
 
+    #[\Override]
     protected static ?int $sort = 2;
 
+    #[\Override]
     protected ?string $pollingInterval = '60s';
 
+    #[\Override]
     protected ?string $heading = 'Event Overview';
 
+    #[\Override]
     protected ?string $description = 'Operational counts for active public-facing events.';
 
     #[\Override]

@@ -2,10 +2,10 @@
 
 namespace App\Policies;
 
-use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventVisibility;
 use App\States\EventStatus\Draft;
 use App\Support\Authz\MemberPermissionGate;
 

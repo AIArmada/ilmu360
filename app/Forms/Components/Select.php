@@ -2,8 +2,8 @@
 
 namespace App\Forms\Components;
 
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Reference;
+use App\Shared\Directory\Enums\ReferenceType;
 use Closure;
 use Filament\Forms\Components\Select as FilamentSelect;
 use Illuminate\Contracts\Support\Arrayable;
@@ -174,7 +174,7 @@ class Select extends FilamentSelect
         $search = $this->extractQuickAddSearch($state);
         $relatedModel = $this->resolveQuickAddRelatedModel($relationship);
 
-        if (! $relatedModel || blank($titleAttribute) || blank($search)) {
+        if (! $relatedModel instanceof Model || blank($titleAttribute) || blank($search)) {
             return $state;
         }
 

@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PendingApprovalEventsWidget extends TableWidget
 {
+    #[\Override]
     protected static bool $isLazy = false;
 
     public function boot(): void
@@ -29,8 +30,10 @@ class PendingApprovalEventsWidget extends TableWidget
         OwnerContext::setForRequest(null);
     }
 
+    #[\Override]
     protected static ?int $sort = 1;
 
+    #[\Override]
     protected int|string|array $columnSpan = 'full';
 
     #[\Override]

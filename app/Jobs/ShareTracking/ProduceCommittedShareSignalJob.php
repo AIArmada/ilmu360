@@ -9,6 +9,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
@@ -20,14 +21,13 @@ use Illuminate\Queue\SerializesModels;
  * collapses duplicate dispatches; the semantic idempotency key makes
  * every retry apply once.
  */
+#[Tries(5)]
 final class ProduceCommittedShareSignalJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
     use SerializesModels;
-
-    public int $tries = 5;
 
     public function __construct(
         public readonly string $touchpointId,

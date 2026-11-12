@@ -17,10 +17,13 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class MemberDocumentationSearchTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'search';
 
+    #[\Override]
     protected string $title = 'Search Verified Documentation';
 
+    #[\Override]
     protected string $description = 'Use this when you need to search the verified ilmu360 member MCP documentation exposed by this server. Do not use this for Ahli resource, institution, person, reference, or event record searches.';
 
     public function __construct(

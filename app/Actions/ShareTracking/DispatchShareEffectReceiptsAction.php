@@ -42,21 +42,19 @@ final readonly class DispatchShareEffectReceiptsAction
         $workerId ??= 'dispatch-'.gethostname().'-'.getmypid();
         $processed = 0;
 
-        $receipts = DB::transaction(function () use ($limit) {
-            return ShareEffectReceipt::query()
-                ->whereIn('effect_type', self::OWNED_EFFECT_TYPES)
-                ->where(function ($query): void {
-                    $query->where('status', ShareEffectStatus::Pending->value)
-                        ->orWhere(function ($expired): void {
-                            $expired->where('status', ShareEffectStatus::Leased->value)
-                                ->where('lease_expires_at', '<=', now());
-                        });
-                })
-                ->orderBy('created_at')
-                ->limit($limit)
-                ->lockForUpdate()
-                ->get();
-        });
+        $receipts = DB::transaction(fn () => ShareEffectReceipt::query()
+            ->whereIn('effect_type', self::OWNED_EFFECT_TYPES)
+            ->where(function ($query): void {
+                $query->where('status', ShareEffectStatus::Pending->value)
+                    ->orWhere(function ($expired): void {
+                        $expired->where('status', ShareEffectStatus::Leased->value)
+                            ->where('lease_expires_at', '<=', now());
+                    });
+            })
+            ->orderBy('created_at')
+            ->limit($limit)
+            ->lockForUpdate()
+            ->get());
 
         foreach ($receipts as $receipt) {
             if ($this->processReceipt($receipt, $workerId)) {

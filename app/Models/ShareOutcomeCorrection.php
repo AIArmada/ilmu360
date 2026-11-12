@@ -16,6 +16,7 @@ class ShareOutcomeCorrection extends Model
 
     use HasUuids;
 
+    #[\Override]
     protected $fillable = [
         'conversion_id',
         'business_key',

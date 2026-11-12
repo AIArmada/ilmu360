@@ -3,15 +3,15 @@
 namespace App\Console\Commands;
 
 use App\Support\Search\PersonSearchService;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
+#[Description('Rebuild the person search index and searchable names for all persons.')]
+#[Signature('persons:reindex-search
+                            {--chunk=100 : Number of persons to process per chunk}')]
 class ReindexPersonSearch extends Command
 {
-    protected $signature = 'persons:reindex-search
-                            {--chunk=100 : Number of persons to process per chunk}';
-
-    protected $description = 'Rebuild the person search index and searchable names for all persons.';
-
     public function __construct(
         private readonly PersonSearchService $personSearchService,
     ) {

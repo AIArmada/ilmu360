@@ -33,12 +33,12 @@ use Illuminate\Support\Collection;
  *
  * @phpstan-type EventScope Event|EventOccurrence|EventSession
  */
-final class EventDetailPresenter
+final readonly class EventDetailPresenter
 {
     public function __construct(
-        private readonly Event $event,
-        private readonly ?EventOccurrence $selectedOccurrence = null,
-        private readonly ?EventSession $selectedSession = null,
+        private Event $event,
+        private ?EventOccurrence $selectedOccurrence = null,
+        private ?EventSession $selectedSession = null,
     ) {}
 
     /**
@@ -134,7 +134,7 @@ final class EventDetailPresenter
         }
 
         return ($occurrence->title !== null && trim((string) $occurrence->title) !== trim((string) $this->event->title))
-            || $this->primaryLocationFor($occurrence) !== null && $this->primaryLocationFor($this->event) === null
+            || $this->primaryLocationFor($occurrence) instanceof EventLocation && ! $this->primaryLocationFor($this->event) instanceof EventLocation
             || $this->timeExpressionsFor($occurrence)->isNotEmpty()
             || $this->linksFor($occurrence)->isNotEmpty()
             || $this->materialsFor($occurrence)->isNotEmpty();
@@ -354,14 +354,12 @@ final class EventDetailPresenter
      */
     public function policyEntries(): Collection
     {
-        return $this->scopes()->flatMap(function (array $scope): Collection {
-            return $this->policiesFor($scope['scope'])->map(fn (EventAccessPolicy $policy): array => [
-                'policy' => $policy,
-                'scope' => $scope['scope'],
-                'scope_type' => $scope['scope_type'],
-                'scope_label' => $scope['scope_label'],
-            ]);
-        })->values();
+        return $this->scopes()->flatMap(fn (array $scope): Collection => $this->policiesFor($scope['scope'])->map(fn (EventAccessPolicy $policy): array => [
+            'policy' => $policy,
+            'scope' => $scope['scope'],
+            'scope_type' => $scope['scope_type'],
+            'scope_label' => $scope['scope_label'],
+        ]))->values();
     }
 
     public function admissionKind(TicketType $ticket): string
@@ -448,14 +446,12 @@ final class EventDetailPresenter
      */
     public function linkEntries(): Collection
     {
-        $entries = $this->scopes()->flatMap(function (array $scope): Collection {
-            return $this->linksFor($scope['scope'])->map(fn (EventLink $link): array => [
-                'link' => $link,
-                'scope' => $scope['scope'],
-                'scope_type' => $scope['scope_type'],
-                'scope_label' => $scope['scope_label'],
-            ]);
-        });
+        $entries = $this->scopes()->flatMap(fn (array $scope): Collection => $this->linksFor($scope['scope'])->map(fn (EventLink $link): array => [
+            'link' => $link,
+            'scope' => $scope['scope'],
+            'scope_type' => $scope['scope_type'],
+            'scope_label' => $scope['scope_label'],
+        ]));
 
         return $entries
             ->unique(fn (array $entry): string => (string) $entry['link']->getKey())
@@ -467,9 +463,7 @@ final class EventDetailPresenter
      */
     public function materialEntries(): Collection
     {
-        return $this->scopes()->flatMap(function (array $scope): Collection {
-            return $this->materialsFor($scope['scope']);
-        })->unique(fn (EventMaterial $material): string => (string) $material->getKey())->values();
+        return $this->scopes()->flatMap(fn (array $scope): Collection => $this->materialsFor($scope['scope']))->unique(fn (EventMaterial $material): string => (string) $material->getKey())->values();
     }
 
     /**

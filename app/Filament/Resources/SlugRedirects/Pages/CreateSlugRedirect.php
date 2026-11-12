@@ -9,6 +9,7 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateSlugRedirect extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = SlugRedirectResource::class;
 
     /**

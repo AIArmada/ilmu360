@@ -21,8 +21,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class MemberUpdateRecordTool extends AbstractMemberWriteTool
 {
+    #[\Override]
     protected string $name = 'member-update-record';
 
+    #[\Override]
     protected string $description = 'Use this when you need to update an Ahli-scoped member resource record. For event records, the payload can include cover/poster/gallery image descriptors alongside regular fields. Do not use to create new records.';
 
     public function __construct(

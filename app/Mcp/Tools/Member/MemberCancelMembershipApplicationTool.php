@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
+use App\Features\Membership\Api\MembershipApplicationDetail;
 use App\Features\Membership\Api\MembershipApplications;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -21,8 +22,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class MemberCancelMembershipApplicationTool extends AbstractMemberTool
 {
+    #[\Override]
     protected string $name = 'member-cancel-membership-application';
 
+    #[\Override]
     protected string $description = 'Use this when the authenticated Ahli/member needs to cancel a pending membership application they own. Do not use for cancelling applications owned by other members.';
 
     public function __construct(
@@ -43,7 +46,7 @@ class MemberCancelMembershipApplicationTool extends AbstractMemberTool
                 (string) $validated['application_id'],
             );
 
-            abort_unless($application !== null, 404);
+            abort_unless($application instanceof MembershipApplicationDetail, 404);
 
             return [
                 'data' => [

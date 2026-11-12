@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Services;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Shared\Events\EventCategoryCatalog;
 use App\Contracts\EventDiscoveryAdapter;
 use App\Data\EventDiscoveryCriteria;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

@@ -10,6 +10,7 @@ use App\Features\Feedback\Models\AppFeedbackMessage;
 use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -86,7 +87,7 @@ class PostAppFeedbackMessageAction
 
         $reporter = $this->accounts->resolveNotifiable((string) $feedback->reporter_id);
 
-        if ($reporter === null || (string) $reporter->getAuthIdentifier() === $author->actorId()) {
+        if (! $reporter instanceof Authenticatable || (string) $reporter->getAuthIdentifier() === $author->actorId()) {
             return;
         }
 

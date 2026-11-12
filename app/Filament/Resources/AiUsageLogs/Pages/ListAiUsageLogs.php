@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListAiUsageLogs extends ListRecords
 {
+    #[\Override]
     protected static string $resource = AiUsageLogResource::class;
 
     #[\Override]

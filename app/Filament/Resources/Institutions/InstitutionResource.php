@@ -26,12 +26,16 @@ use UnitEnum;
 
 class InstitutionResource extends Resource
 {
+    #[\Override]
     protected static ?string $model = Institution::class;
 
+    #[\Override]
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
 
+    #[\Override]
     protected static ?string $recordTitleAttribute = 'name';
 
+    #[\Override]
     protected static string|UnitEnum|null $navigationGroup = 'Directory';
 
     #[\Override]

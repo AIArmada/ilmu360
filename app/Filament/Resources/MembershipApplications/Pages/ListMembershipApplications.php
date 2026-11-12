@@ -15,5 +15,6 @@ class ListMembershipApplications extends ListRecords
         OwnerContext::setForRequest(null);
     }
 
+    #[\Override]
     protected static string $resource = MembershipApplicationResource::class;
 }

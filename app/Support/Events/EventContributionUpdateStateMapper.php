@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Support\Events;
 
 use App\Features\Events\Api\EventAuthoring;
-use App\Shared\Events\OrganizerResolver;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Events\OrganizerResolver;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerLocation;
 use App\Shared\Prayer\PrayerTargetSelector;

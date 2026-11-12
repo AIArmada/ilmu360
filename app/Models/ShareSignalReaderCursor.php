@@ -20,6 +20,7 @@ class ShareSignalReaderCursor extends Model
 {
     use HasUuids;
 
+    #[\Override]
     protected $fillable = [
         'reader_name',
         'last_occurred_at',

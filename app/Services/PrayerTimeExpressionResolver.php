@@ -8,15 +8,15 @@ use AIArmada\Events\Contracts\ResolvesEventTimeExpression;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Prayer\Api\PrayerProviderRegistry;
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Api\ResolvePrayerAnchorAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Venue;
-use App\Shared\Prayer\PrayerReference;
-use App\Features\Events\Api\EventAuthoring;
 use App\Shared\Prayer\PrayerLocation;
+use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Throwable;
@@ -67,7 +67,7 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
         if (is_array($provenance) && config('prayer.enabled')) {
             $scoped = $this->resolveFromProvenance($expression, $event, $provenance, $prayerReference, $signedMinutes);
 
-            if ($scoped !== null) {
+            if ($scoped instanceof CarbonImmutable) {
                 return $scoped;
             }
         }

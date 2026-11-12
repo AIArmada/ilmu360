@@ -17,15 +17,19 @@ class EventReferencePivot extends MorphPivot
 {
     use HasUuids;
 
+    #[\Override]
     protected $table = 'event_references';
 
+    #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $keyType = 'string';
 
     /**
      * @var list<string>
      */
+    #[\Override]
     protected $fillable = [
         'id',
         'event_id',

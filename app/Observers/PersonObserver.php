@@ -4,9 +4,9 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Features\Events\Api\EventAuthoring;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Events\Api\EventAuthoring;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Cache\PublicDirectoryCacheVersion;

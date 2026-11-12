@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\References\Tables;
 
 use App\Features\Directory\Api\ReferenceWorkflow;
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Reference;
+use App\Shared\Directory\Enums\ReferenceType;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

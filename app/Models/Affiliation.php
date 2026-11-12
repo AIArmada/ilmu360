@@ -24,6 +24,7 @@ class Affiliation extends BaseAffiliation
     protected $table = 'affiliations';
 
     /** @var list<string> */
+    #[\Override]
     protected $fillable = [
         'affiliatable_type',
         'affiliatable_id',
