@@ -95,9 +95,24 @@ final class SubmissionRelationSync
             return;
         }
 
-        $event->references()->sync(
-            $ids->mapWithKeys(fn (string $id, int $sort): array => [$id => ['sort_order' => $sort]])->all()
-        );
+        EventReference::query()
+            ->where('event_id', $event->getKey())
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->delete();
+
+        foreach ($ids as $sort => $id) {
+            EventReference::query()->create([
+                'event_id' => $event->getKey(),
+                'event_occurrence_id' => null,
+                'event_session_id' => null,
+                'referenceable_type' => 'reference',
+                'referenceable_id' => $id,
+                'reference_type' => 'book',
+                'visibility' => 'public',
+                'sort_order' => $sort,
+            ]);
+        }
     }
 
     /**

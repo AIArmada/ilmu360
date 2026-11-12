@@ -142,10 +142,13 @@ class CreateEventWithInitialOccurrenceAction
                 }
 
                 if (array_key_exists('references', $form)) {
-                    $event->references()->sync(array_values(array_filter(
-                        (array) $form['references'],
-                        is_string(...),
-                    )));
+                    $this->authoring->syncEventReferences(
+                        (string) $event->getKey(),
+                        array_values(array_filter(
+                            (array) $form['references'],
+                            is_string(...),
+                        )),
+                    );
                 }
 
                 $this->authoring->syncEventSchedule((string) $event->getKey(), new EventScheduleInput(

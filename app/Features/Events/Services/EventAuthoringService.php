@@ -16,6 +16,7 @@ use App\Features\Events\Actions\Authoring\SyncEventLanguagesAction;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Features\Events\Actions\Authoring\SyncEventOrganizerAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Api\AdminEventSaveResult;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventScheduleInput;
@@ -47,6 +48,7 @@ final readonly class EventAuthoringService implements EventAuthoring
         private SyncEventOrganizerAction $syncOrganizer,
         private AdminEventFormStateBuilder $formState,
         private ConfigureEventAdmissionAction $configureEventAdmission,
+        private SubmissionRelationSync $submissionRelations,
     ) {}
 
     public function saveAdminEvent(array $data, ?string $eventId = null): AdminEventSaveResult
@@ -126,6 +128,13 @@ final readonly class EventAuthoringService implements EventAuthoring
         };
 
         return $this->syncClassifications->handle($scope, $state);
+    }
+
+    public function syncEventReferences(string $eventId, array $referenceIds): void
+    {
+        $event = EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
+
+        $this->submissionRelations->syncEventReferences($event, $referenceIds);
     }
 
     public function syncEventKeyPeople(string $eventId, array $personIds = [], array $otherKeyPeople = []): void

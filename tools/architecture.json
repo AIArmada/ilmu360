@@ -1,5 +1,46 @@
 {
   "schema": 2,
   "discovery": "native",
-  "exceptions": []
+  "exceptions": [
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/Support/Directory/DirectoryAccountLifecycleContributor.php",
+      "target": "table:venues",
+      "reason": "Account lifecycle detach/restore keeps verifier links until Directory exposes a lifecycle API.",
+      "owner": "Directory",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Registration/Actions/ConfirmOfflineAdmissionAction.php",
+      "target": "table:unknown",
+      "reason": "Order metadata is written through the package Order model; orders remain package-canonical.",
+      "owner": "Registration",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Registration/Actions/PrepareAdmissionCheckoutAction.php",
+      "target": "table:unknown",
+      "reason": "Checkout session payment data is written through the package CheckoutSession model.",
+      "owner": "Registration",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Registration/Actions/ProcessAdmissionRefundAction.php",
+      "target": "table:unknown",
+      "reason": "Provider refund correlation metadata is written through the package OrderRefund model.",
+      "owner": "Registration",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Registration/Listeners/CompletePendingRefundOnPaymentRefunded.php",
+      "target": "table:unknown",
+      "reason": "Provider refund completion metadata is written through the package OrderRefund model.",
+      "owner": "Registration",
+      "expires": "2027-06-30"
+    }
+  ]
 }

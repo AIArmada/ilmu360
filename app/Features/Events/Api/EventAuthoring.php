@@ -68,6 +68,13 @@ interface EventAuthoring
     public function syncEventClassifications(string $scopeAlias, string $scopeId, array $state): int;
 
     /**
+     * Replace the event-level reference selection.
+     *
+     * @param  list<string>  $referenceIds
+     */
+    public function syncEventReferences(string $eventId, array $referenceIds): void;
+
+    /**
      * @param  list<string>  $personIds
      * @param  list<array<string, mixed>>  $otherKeyPeople
      */

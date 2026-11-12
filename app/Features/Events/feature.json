@@ -82,6 +82,9 @@
       "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction",
       "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
       "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
+    ],
+    "table:media_links": [
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
     ]
   }
 }
