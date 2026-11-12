@@ -2,18 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Events;
+namespace App\Features\Registration\Contributors;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventAttendanceLog;
 use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
 use AIArmada\Events\Models\EventRegistrationParticipant;
-use App\Models\Event;
-use App\Models\EventCheckin;
-use App\Models\EventSubmission;
-use App\Models\Registration;
-use App\Models\User;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Support\MorphAlias;
 use Illuminate\Database\Eloquent\Model;
@@ -29,8 +25,14 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Legacy (pre-cutover) snapshots physically deleted registration/check-in rows;
  * their captured rows are recreated on restore under the legacy keys.
+ *
+ * The registration and attendance fact models are resolved through their morph
+ * aliases so this contributor imports no root model classes. The Events-owned
+ * event ownership and event_submissions submitter links it rewrites are
+ * account-lifecycle cross-owner writes recorded for the final architecture
+ * exceptions; they are not claimed by the Registration manifest.
  */
-final readonly class EventsAccountLifecycleContributor implements AccountLifecycleContributor
+final readonly class RegistrationAccountLifecycleContributor implements AccountLifecycleContributor
 {
     public function key(): string
     {
@@ -44,15 +46,21 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
 
     public function snapshot(string $accountId): array
     {
-        $user = User::query()->find($accountId);
+        $userClass = MorphModelResolver::resolve('user');
+        $user = $userClass::query()->find($accountId);
 
-        if (! $user instanceof User) {
+        if (! $user instanceof Model) {
             return [];
         }
 
         $userTypes = $this->userTypes($user);
 
-        $registrationIds = Registration::query()
+        $eventClass = MorphModelResolver::resolve('event');
+        $submissionClass = MorphModelResolver::resolve('event_submission');
+        $registrationClass = MorphModelResolver::resolve('registration');
+        $checkinClass = MorphModelResolver::resolve('checkin');
+
+        $registrationIds = $registrationClass::query()
             ->whereIn('registrant_type', $userTypes)
             ->where('registrant_id', $accountId)
             ->pluck('id')
@@ -60,7 +68,7 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
             ->values()
             ->all();
 
-        $checkinIds = EventCheckin::query()
+        $checkinIds = $checkinClass::query()
             ->whereIn('attendee_type', $userTypes)
             ->where('attendee_id', $accountId)
             ->pluck('id')
@@ -68,7 +76,7 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
             ->values()
             ->all();
 
-        $verifiedCheckinIds = EventCheckin::query()
+        $verifiedCheckinIds = $checkinClass::query()
             ->where('verified_by_user_id', $accountId)
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
@@ -76,14 +84,14 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
             ->all();
 
         return [
-            'owned_event_ids' => Event::query()
+            'owned_event_ids' => $eventClass::query()
                 ->whereIn('owner_type', $userTypes)
                 ->where('owner_id', $accountId)
                 ->pluck('id')
                 ->map(static fn (mixed $id): string => (string) $id)
                 ->values()
                 ->all(),
-            'submitted_event_ids' => EventSubmission::query()
+            'submitted_event_ids' => $submissionClass::query()
                 ->whereIn('submitter_type', $userTypes)
                 ->where('submitter_id', $accountId)
                 ->pluck('event_id')
@@ -92,7 +100,7 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
                 ->unique()
                 ->values()
                 ->all(),
-            'event_submission_ids' => EventSubmission::query()
+            'event_submission_ids' => $submissionClass::query()
                 ->whereIn('submitter_type', $userTypes)
                 ->where('submitter_id', $accountId)
                 ->pluck('id')
@@ -108,35 +116,40 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
 
     public function detach(string $accountId): void
     {
-        $user = User::query()->find($accountId);
+        $userClass = MorphModelResolver::resolve('user');
+        $user = $userClass::query()->find($accountId);
 
-        if (! $user instanceof User) {
+        if (! $user instanceof Model) {
             return;
         }
 
         $userTypes = $this->userTypes($user);
 
+        $submissionClass = MorphModelResolver::resolve('event_submission');
+        $registrationClass = MorphModelResolver::resolve('registration');
+        $checkinClass = MorphModelResolver::resolve('checkin');
+
         $this->clearEventOwnership($user);
 
-        EventSubmission::query()
+        $submissionClass::query()
             ->whereIn('submitter_type', $userTypes)
             ->where('submitter_id', $accountId)
             ->update(['submitter_type' => null, 'submitter_id' => null]);
 
-        EventCheckin::query()
+        $checkinClass::query()
             ->where('verified_by_user_id', $accountId)
             ->update(['verified_by_user_id' => null]);
 
         // Event facts are retained; only the personal registration link is
         // detached so the admission and purchaser history remain intact.
-        Registration::query()
+        $registrationClass::query()
             ->whereIn('registrant_type', $userTypes)
             ->where('registrant_id', $accountId)
             ->update(['registrant_type' => null, 'registrant_id' => null]);
 
         // Attendance and check-in log rows survive; only the account's
         // attendee link is detached.
-        EventCheckin::query()
+        $checkinClass::query()
             ->whereIn('attendee_type', $userTypes)
             ->where('attendee_id', $accountId)
             ->update(['attendee_type' => null, 'attendee_id' => null]);
@@ -144,9 +157,10 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
 
     public function restore(string $accountId, array $snapshot): void
     {
-        $user = User::query()->find($accountId);
+        $userClass = MorphModelResolver::resolve('user');
+        $user = $userClass::query()->find($accountId);
 
-        if (! $user instanceof User) {
+        if (! $user instanceof Model) {
             return;
         }
 
@@ -168,24 +182,28 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
      */
     private function retainedFactCounts(array $registrationIds, array $checkinIds): array
     {
+        $checkinClass = MorphModelResolver::resolve('checkin');
+
         return [
             'registrations' => count($registrationIds),
             'participants' => $registrationIds === [] ? 0 : EventRegistrationParticipant::query()->whereIn('event_registration_id', $registrationIds)->count(),
             'answers' => $registrationIds === [] ? 0 : EventRegistrationAnswer::query()->whereIn('event_registration_id', $registrationIds)->count(),
             'items' => $registrationIds === [] ? 0 : EventRegistrationItem::query()->whereIn('event_registration_id', $registrationIds)->count(),
-            'checkins' => $checkinIds === [] ? 0 : EventCheckin::query()->whereKey($checkinIds)->count(),
+            'checkins' => $checkinIds === [] ? 0 : $checkinClass::query()->whereKey($checkinIds)->count(),
             'attendance_logs' => $checkinIds === [] ? 0 : EventAttendanceLog::query()->whereIn('event_attendance_id', $checkinIds)->count(),
         ];
     }
 
-    private function clearEventOwnership(User $user): void
+    private function clearEventOwnership(Model $user): void
     {
-        OwnerContext::withOwner($user, function () use ($user): void {
-            Event::query()
+        $eventClass = MorphModelResolver::resolve('event');
+
+        OwnerContext::withOwner($user, function () use ($eventClass, $user): void {
+            $eventClass::query()
                 ->whereIn('owner_type', $this->userTypes($user))
                 ->where('owner_id', $user->getKey())
                 ->get()
-                ->each(function (Event $event): void {
+                ->each(function (Model $event): void {
                     $event->owner_type = null;
                     $event->owner_id = null;
                     $event->saveQuietly();
@@ -196,17 +214,19 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
     /**
      * @param  list<string>  $ids
      */
-    private function restoreEventOwnership(User $user, array $ids): void
+    private function restoreEventOwnership(Model $user, array $ids): void
     {
         if ($ids === []) {
             return;
         }
 
-        OwnerContext::withOwner($user, function () use ($user, $ids): void {
-            Event::query()
+        $eventClass = MorphModelResolver::resolve('event');
+
+        OwnerContext::withOwner($user, function () use ($eventClass, $ids, $user): void {
+            $eventClass::query()
                 ->whereKey($ids)
                 ->get()
-                ->each(function (Event $event) use ($user): void {
+                ->each(function (Model $event) use ($user): void {
                     if ($event->owner_id !== null) {
                         return;
                     }
@@ -221,9 +241,11 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
     /**
      * @param  array<string, mixed>  $snapshot
      */
-    private function restoreRegistrations(string $accountId, User $user, array $snapshot): void
+    private function restoreRegistrations(string $accountId, Model $user, array $snapshot): void
     {
-        $this->restoreLegacyRows(Registration::class, $snapshot['registrations'] ?? []);
+        $registrationClass = MorphModelResolver::resolve('registration');
+
+        $this->restoreLegacyRows($registrationClass, $snapshot['registrations'] ?? []);
 
         $ids = $this->stringIds($snapshot['registration_ids'] ?? []);
 
@@ -231,7 +253,7 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
             return;
         }
 
-        Registration::query()
+        $registrationClass::query()
             ->whereKey($ids)
             ->whereNull('registrant_id')
             ->update([
@@ -243,9 +265,11 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
     /**
      * @param  array<string, mixed>  $snapshot
      */
-    private function restoreCheckins(string $accountId, User $user, array $snapshot): void
+    private function restoreCheckins(string $accountId, Model $user, array $snapshot): void
     {
-        $this->restoreLegacyRows(EventCheckin::class, $snapshot['event_checkins'] ?? []);
+        $checkinClass = MorphModelResolver::resolve('checkin');
+
+        $this->restoreLegacyRows($checkinClass, $snapshot['event_checkins'] ?? []);
 
         $ids = $this->stringIds($snapshot['event_checkin_ids'] ?? []);
 
@@ -253,7 +277,7 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
             return;
         }
 
-        EventCheckin::query()
+        $checkinClass::query()
             ->whereKey($ids)
             ->whereNull('attendee_id')
             ->update([
@@ -265,13 +289,15 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
     /**
      * @param  list<string>  $ids
      */
-    private function restoreSubmissionLinks(string $accountId, User $user, array $ids): void
+    private function restoreSubmissionLinks(string $accountId, Model $user, array $ids): void
     {
         if ($ids === []) {
             return;
         }
 
-        EventSubmission::query()
+        $submissionClass = MorphModelResolver::resolve('event_submission');
+
+        $submissionClass::query()
             ->whereKey($ids)
             ->whereNull('submitter_id')
             ->update([
@@ -289,7 +315,9 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
             return;
         }
 
-        EventCheckin::query()
+        $checkinClass = MorphModelResolver::resolve('checkin');
+
+        $checkinClass::query()
             ->whereKey($ids)
             ->whereNull('verified_by_user_id')
             ->update(['verified_by_user_id' => $accountId]);
@@ -332,12 +360,14 @@ final readonly class EventsAccountLifecycleContributor implements AccountLifecyc
     /**
      * @return list<string>
      */
-    private function userTypes(User $user): array
+    private function userTypes(Model $user): array
     {
+        $userClass = MorphModelResolver::resolve('user');
+
         return array_values(array_unique([
             $user->getMorphClass(),
-            MorphAlias::of(User::class) ?? User::class,
-            User::class,
+            MorphAlias::of($userClass) ?? $userClass,
+            $userClass,
         ]));
     }
 

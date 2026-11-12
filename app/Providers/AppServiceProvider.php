@@ -246,7 +246,6 @@ use App\Support\Discovery\EventSearchFilterRules;
 use App\Support\Engagement\EloquentEngagementReader;
 use App\Support\Engagement\EngagementAccountLifecycleContributor;
 use App\Support\Events\EloquentAccountEventFacts;
-use App\Support\Events\EventsAccountLifecycleContributor;
 use App\Support\Filament\ContentVersionedJs;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Membership\AppMembershipApplicationNotifier;
@@ -366,7 +365,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(EngagementReader::class, EloquentEngagementReader::class);
         $this->app->tag([
             DirectoryAccountLifecycleContributor::class,
-            EventsAccountLifecycleContributor::class,
             ContributionsAccountLifecycleContributor::class,
             ModerationAccountLifecycleContributor::class,
             EngagementAccountLifecycleContributor::class,

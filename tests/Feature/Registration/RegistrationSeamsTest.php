@@ -22,6 +22,7 @@ use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
+use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
 use App\Features\Registration\FeatureServiceProvider as RegistrationFeatureServiceProvider;
 use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
@@ -32,6 +33,7 @@ use App\Models\Registration;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Platform\FeatureCatalog;
+use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Shared\Registration\CheckInNotifier;
 use App\Shared\ShareTracking\ParticipationAttribution;
@@ -169,6 +171,16 @@ it('discovers the registration feature manifest and provider exactly once', func
         ])
         ->and(array_keys($providers, RegistrationFeatureServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(RegistrationFeatureServiceProvider::class);
+});
+
+it('registers the events account lifecycle contributor exactly once', function (): void {
+    $contributors = collect(app()->tagged(AccountLifecycleContributor::TAG))
+        ->filter(static fn (mixed $contributor): bool => $contributor instanceof AccountLifecycleContributor && $contributor->key() === 'events')
+        ->values();
+
+    expect($contributors)->toHaveCount(1)
+        ->and($contributors->first())->toBeInstanceOf(RegistrationAccountLifecycleContributor::class)
+        ->and($contributors->first()?->priority())->toBe(70);
 });
 
 it('registers the pending refund completion listener exactly once', function (): void {

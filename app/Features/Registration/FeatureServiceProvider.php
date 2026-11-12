@@ -18,10 +18,12 @@ use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
+use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
 use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
 use App\Features\Registration\Queries\ResolveAttendanceState;
 use App\Platform\FeatureModule;
+use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Support\Facades\Event;
 
 /**
@@ -92,13 +94,23 @@ use Illuminate\Support\Facades\Event;
  * only scans app/Listeners. Order refund rows and money movement remain
  * package-canonical and unclaimed.
  *
+ * R5a claims account-lifecycle contributor ownership.
+ * RegistrationAccountLifecycleContributor rewrites event_registrations
+ * registrant links, event_attendances attendee links and event check-in
+ * verifier links during account deletion/restoration, and recreates rows
+ * captured by legacy snapshots. It is tagged once by this provider under the
+ * shared AccountLifecycleContributor tag with the unchanged `events` key and
+ * priority 70, so existing deleted-account snapshots stay readable. The
+ * contributor is intentionally not a manifest writer: contributors are not
+ * Actions/Persistence classes, and the account-lifecycle write spans tables
+ * owned by different features. Its event ownership and event_submissions
+ * submitter-link rewrites are account-lifecycle cross-owner writes recorded
+ * for the final exact exceptions, while its event_registrations and
+ * event_attendances link writes target tables owned by this feature.
+ *
  * The following root/package writers remain and are recorded for the later
  * migration slices:
  *
- * - App\Support\Events\EventsAccountLifecycleContributor rewrites
- *   event_registrations registrant links, event_attendances attendee links and
- *   event check-in verifier links during account deletion/restoration, and
- *   recreates rows captured by legacy snapshots.
  * - root Registration model: booted() repeats the vendor cascade and deletes
  *   check-in rows on a direct registration delete. The vendor cascade runs
  *   from the registration `deleting` hook and does remove participants,
@@ -116,9 +128,8 @@ use Illuminate\Support\Facades\Event;
  *
  * The dashboard registration-questions workspace is a Registration entry
  * point that delegates question writes to the package actions; admission
- * setup remains Events-owned. Pending slices: R4b paid checkout delivery and
- * pass issuance, R5 reads/exports/account lifecycle, R6 cleanup and
- * delete-path consolidation. Registration exports and the vendor Filament
+ * setup remains Events-owned. Pending slices: R5 reads/exports, R6 cleanup
+ * and delete-path consolidation. Registration exports and the vendor Filament
  * attendance console also remain deferred to those slices.
  */
 class FeatureServiceProvider extends FeatureModule
@@ -132,6 +143,10 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AdmissionRefunds::class, ProcessAdmissionRefundAction::class);
         $this->app->bind(AttendanceCommands::class, RecordSelfCheckInAction::class);
         $this->app->bind(AttendanceState::class, ResolveAttendanceState::class);
+
+        $this->app->tag([
+            RegistrationAccountLifecycleContributor::class,
+        ], AccountLifecycleContributor::TAG);
     }
 
     public function boot(): void
