@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventRegistrationItem;
 use App\Features\Registration\Actions\ConfirmOfflineAdmissionAction;
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
 use App\Features\Registration\Actions\PrepareAdmissionCheckoutAction;
+use App\Features\Registration\Actions\ProcessAdmissionRefundAction;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\RecordFreeCheckoutMetadataAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
@@ -16,6 +17,7 @@ use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionFacts;
 use App\Features\Registration\Api\AdmissionIssuance;
+use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
@@ -173,6 +175,10 @@ it('binds the admission registration boundary to the free admission action', fun
 
 it('binds the event checkout boundary to its feature action', function (): void {
     expect(app(AdmissionCheckout::class))->toBeInstanceOf(PrepareAdmissionCheckoutAction::class);
+});
+
+it('binds the admission refunds boundary to its feature action', function (): void {
+    expect(app(AdmissionRefunds::class))->toBeInstanceOf(ProcessAdmissionRefundAction::class);
 });
 
 it('binds the admission issuance boundary to the offline admission action', function (): void {

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Events;
 
-use App\Actions\Events\Commerce\ProcessEventRefundAction;
+use App\Features\Registration\Api\AdmissionRefunds;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Support\Events\EventCommercePolicy;
+use App\Shared\Commerce\EventCommercePolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -59,7 +59,7 @@ final class Refund extends Component
         $this->registrationId = (string) $registration->getKey();
     }
 
-    public function submit(ProcessEventRefundAction $processRefund): void
+    public function submit(AdmissionRefunds $refunds): void
     {
         $this->validate([
             'confirmation' => ['accepted'],
@@ -70,13 +70,13 @@ final class Refund extends Component
         $this->processing = true;
 
         try {
-            $refund = $processRefund->handle(
-                event: $this->event,
-                registration: $this->registration,
-                actor: $this->currentUserOrAbort(),
+            $result = $refunds->process(
+                eventId: (string) $this->event->getKey(),
+                registrationId: (string) $this->registration->getKey(),
+                actorId: (string) $this->currentUserOrAbort()->getKey(),
             );
 
-            $this->refundStatus = $refund->status->value;
+            $this->refundStatus = $result['status'];
             $this->submitted = true;
             $this->registration->refresh();
         } catch (ValidationException $exception) {

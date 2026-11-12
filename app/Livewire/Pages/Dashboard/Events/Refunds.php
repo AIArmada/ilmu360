@@ -7,11 +7,11 @@ namespace App\Livewire\Pages\Dashboard\Events;
 use AIArmada\Orders\Enums\PaymentStatus as OrderPaymentStatus;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderPayment;
-use App\Actions\Events\Commerce\ProcessEventRefundAction;
+use App\Features\Registration\Api\AdmissionRefunds;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use App\Support\Events\EventCommercePolicy;
+use App\Shared\Commerce\EventCommercePolicy;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -84,7 +84,7 @@ final class Refunds extends Component
         $this->resetErrorBag();
     }
 
-    public function submit(ProcessEventRefundAction $processRefund): void
+    public function submit(AdmissionRefunds $refunds): void
     {
         $this->validate([
             'selectedRegistrationId' => ['required', 'string'],
@@ -100,15 +100,15 @@ final class Refunds extends Component
         $this->processing = true;
 
         try {
-            $refund = $processRefund->handle(
-                event: $event,
-                registration: $registration,
-                actor: $actor,
+            $result = $refunds->process(
+                eventId: (string) $event->getKey(),
+                registrationId: (string) $registration->getKey(),
+                actorId: (string) $actor->getKey(),
                 organizerOverride: true,
                 reason: $this->reason,
             );
 
-            $message = $refund->isPending()
+            $message = $result['is_pending']
                 ? __('Refund started and is waiting for provider confirmation.')
                 : __('Refund completed and the admission is no longer valid.');
             $this->clearSelection();

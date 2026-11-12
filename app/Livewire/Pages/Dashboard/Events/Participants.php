@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Events\Enums\EventAttendanceStatus;
-use App\Support\Events\EventCommercePolicy;
+use App\Shared\Commerce\EventCommercePolicy;
 use App\Support\Events\ParticipantIdentity;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

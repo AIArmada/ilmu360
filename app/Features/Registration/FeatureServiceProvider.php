@@ -6,12 +6,14 @@ namespace App\Features\Registration;
 
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
 use App\Features\Registration\Actions\PrepareAdmissionCheckoutAction;
+use App\Features\Registration\Actions\ProcessAdmissionRefundAction;
 use App\Features\Registration\Actions\RecordFreeCheckoutMetadataAction;
 use App\Features\Registration\Actions\RecordSelfCheckInAction;
 use App\Features\Registration\Actions\RegisterFreeAdmissionAction;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionFacts;
 use App\Features\Registration\Api\AdmissionIssuance;
+use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
@@ -67,6 +69,19 @@ use App\Platform\FeatureModule;
  * Livewire page, provider payment handoff, redirects and results, and the
  * free-metadata path delegates unchanged to RecordFreeCheckoutMetadataAction.
  *
+ * R4b1a claims admission refund orchestration. ProcessAdmissionRefundAction
+ * implements the AdmissionRefunds boundary: it resolves event, registration
+ * and actor through morph aliases, keeps the existing purchaser/organizer
+ * authorization and refund-eligibility rules, resolves and validates the
+ * paid order, creates or claims the package pending refund, submits it to the
+ * active provider, and records the pending/completed/failed transitions with
+ * the same provider metadata. The orders and checkout packages remain the
+ * canonical writers for refund rows and money movement, so orders/refunds
+ * stay unclaimed; the action writes no event_registrations row directly and
+ * delegates the refund-pending admission transition to the package
+ * RegistrationService. The public and dashboard refund pages are root
+ * transport adapters over the scalar boundary.
+ *
  * The following root/package writers remain and are recorded for the later
  * migration slices:
  *
@@ -91,10 +106,10 @@ use App\Platform\FeatureModule;
  *
  * The dashboard registration-questions workspace is a Registration entry
  * point that delegates question writes to the package actions; admission
- * setup remains Events-owned. Pending slices: R4b paid checkout orchestration
- * and refunds, R5 reads/exports/account lifecycle, R6 cleanup and delete-path
- * consolidation. Registration exports and the vendor Filament attendance
- * console also remain deferred to those slices.
+ * setup remains Events-owned. Pending slices: R4b paid checkout delivery and
+ * pass issuance, R5 reads/exports/account lifecycle, R6 cleanup and
+ * delete-path consolidation. Registration exports and the vendor Filament
+ * attendance console also remain deferred to those slices.
  */
 class FeatureServiceProvider extends FeatureModule
 {
@@ -104,6 +119,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AdmissionIssuance::class, IssueOfflineAdmissionAction::class);
         $this->app->bind(AdmissionRegistration::class, RegisterFreeAdmissionAction::class);
         $this->app->bind(AdmissionCheckout::class, PrepareAdmissionCheckoutAction::class);
+        $this->app->bind(AdmissionRefunds::class, ProcessAdmissionRefundAction::class);
         $this->app->bind(AttendanceCommands::class, RecordSelfCheckInAction::class);
         $this->app->bind(AttendanceState::class, ResolveAttendanceState::class);
     }

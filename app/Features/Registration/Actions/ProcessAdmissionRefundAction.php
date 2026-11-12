@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Commerce;
+namespace App\Features\Registration\Actions;
 
 use AIArmada\Checkout\Contracts\PaymentGatewayResolverInterface;
 use AIArmada\Checkout\Contracts\PaymentProcessorInterface;
@@ -11,15 +11,17 @@ use AIArmada\Checkout\Data\PaymentResult;
 use AIArmada\Checkout\Enums\PaymentStatus as CheckoutPaymentStatus;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Contracts\RegistrationServiceInterface;
+use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Orders\Enums\PaymentStatus as OrderPaymentStatus;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderPayment;
 use AIArmada\Orders\Models\OrderRefund;
-use App\Models\Event;
-use App\Models\Registration;
-use App\Models\User;
-use App\Support\Events\EventCommercePolicy;
+use App\Features\Registration\Api\AdmissionRefunds;
+use App\Platform\Models\MorphModelResolver;
+use App\Shared\Commerce\EventCommercePolicy;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -27,13 +29,16 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Processes one admission refund through the shared provider-neutral stack.
+ * Owns admission refund orchestration for the Registration feature.
  *
- * The order/refund record is created before calling the provider. This keeps
- * a pending financial operation auditable and prevents capacity from being
- * released until a provider-confirmed completion is recorded.
+ * Caller identities resolve through stable morph aliases and the order/refund
+ * record is created before calling the provider. This keeps a pending
+ * financial operation auditable and prevents capacity from being released
+ * until a provider-confirmed completion is recorded. The orders and events
+ * packages remain the canonical external writers for refund rows, payment
+ * submission and the admission refund lifecycle.
  */
-final class ProcessEventRefundAction
+final class ProcessAdmissionRefundAction implements AdmissionRefunds
 {
     use AsAction;
 
@@ -44,10 +49,42 @@ final class ProcessEventRefundAction
         private readonly RegistrationServiceInterface $registrations,
     ) {}
 
+    /**
+     * @return array{refund_id: string, status: string, is_pending: bool}
+     */
+    public function process(
+        string $eventId,
+        string $registrationId,
+        string $actorId,
+        bool $organizerOverride = false,
+        ?string $reason = null,
+    ): array {
+        $eventClass = MorphModelResolver::resolve('event');
+        $registrationClass = MorphModelResolver::resolve('registration');
+        $userClass = MorphModelResolver::resolve('user');
+
+        /** @var PackageEvent $event */
+        $event = $eventClass::query()->findOrFail($eventId);
+
+        /** @var EventRegistration $registration */
+        $registration = $registrationClass::query()->findOrFail($registrationId);
+
+        /** @var Model $actor */
+        $actor = $userClass::query()->findOrFail($actorId);
+
+        $refund = $this->handle($event, $registration, $actor, $organizerOverride, $reason);
+
+        return [
+            'refund_id' => (string) $refund->getKey(),
+            'status' => $refund->status->value,
+            'is_pending' => $refund->isPending(),
+        ];
+    }
+
     public function handle(
-        Event $event,
-        Registration $registration,
-        User $actor,
+        PackageEvent $event,
+        EventRegistration $registration,
+        Model $actor,
         bool $organizerOverride = false,
         ?string $reason = null,
     ): OrderRefund {
@@ -188,9 +225,9 @@ final class ProcessEventRefundAction
     }
 
     private function authorize(
-        Event $event,
-        Registration $registration,
-        User $actor,
+        PackageEvent $event,
+        EventRegistration $registration,
+        Model $actor,
         bool $organizerOverride,
     ): void {
         if ($organizerOverride) {
@@ -203,9 +240,9 @@ final class ProcessEventRefundAction
     }
 
     private function assertRefundAllowed(
-        Event $event,
-        Registration $registration,
-        User $actor,
+        PackageEvent $event,
+        EventRegistration $registration,
+        Model $actor,
         bool $organizerOverride,
     ): void {
         if ($organizerOverride) {
@@ -230,7 +267,7 @@ final class ProcessEventRefundAction
         }
     }
 
-    private function resolveOrder(Registration $registration): ?Order
+    private function resolveOrder(EventRegistration $registration): ?Order
     {
         if ($registration->external_order_id === null
             || $registration->external_order_type !== Order::class) {
@@ -243,7 +280,7 @@ final class ProcessEventRefundAction
             ->first());
     }
 
-    private function existingRefund(Order $order, Registration $registration): ?OrderRefund
+    private function existingRefund(Order $order, EventRegistration $registration): ?OrderRefund
     {
         return $order->refunds->first(function (OrderRefund $refund) use ($registration): bool {
             $registrationId = data_get($refund->metadata ?? [], 'event_registration_id');
@@ -252,7 +289,7 @@ final class ProcessEventRefundAction
         });
     }
 
-    private function markRegistrationRefundPending(Registration $registration): void
+    private function markRegistrationRefundPending(EventRegistration $registration): void
     {
         OwnerContext::withOwner(null, function () use ($registration): void {
             $this->registrations->markRefundPending(
@@ -376,9 +413,9 @@ final class ProcessEventRefundAction
      * @return array<string, mixed>
      */
     private function refundMetadata(
-        Event $event,
-        Registration $registration,
-        User $actor,
+        PackageEvent $event,
+        EventRegistration $registration,
+        Model $actor,
         string $mode,
         int $amount,
         string $paymentId,

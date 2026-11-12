@@ -9,8 +9,9 @@ use AIArmada\Orders\Enums\PaymentStatus as OrderPaymentStatus;
 use AIArmada\Orders\Enums\RefundStatus;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderPayment;
+use AIArmada\Orders\Models\OrderRefund;
 use AIArmada\Orders\States\Processing;
-use App\Actions\Events\Commerce\ProcessEventRefundAction;
+use App\Features\Registration\Api\AdmissionRefunds;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -83,9 +84,16 @@ it('refunds one purchaser admission through the pending provider workflow', func
     $resolver->shouldReceive('resolve')->with('chip')->andReturn($processor);
     app()->instance(PaymentGatewayResolverInterface::class, $resolver);
 
-    $refund = app(ProcessEventRefundAction::class)->handle($event, $registration, $buyer);
+    $result = app(AdmissionRefunds::class)->process(
+        eventId: (string) $event->getKey(),
+        registrationId: (string) $registration->getKey(),
+        actorId: (string) $buyer->getKey(),
+    );
+    $refund = OrderRefund::query()->findOrFail($result['refund_id']);
 
     expect($refund->status)->toBe(RefundStatus::Completed)
+        ->and($result['status'])->toBe('completed')
+        ->and($result['is_pending'])->toBeFalse()
         ->and($refund->transaction_id)->toBe('chip-refund-1')
         ->and($refund->amount)->toBe(5000)
         ->and($refund->metadata['event_registration_id'])->toBe($registration->getKey())
@@ -137,9 +145,16 @@ it('keeps the admission reserved while the provider refund is processing', funct
     $resolver->shouldReceive('resolve')->with('chip')->andReturn($processor);
     app()->instance(PaymentGatewayResolverInterface::class, $resolver);
 
-    $refund = app(ProcessEventRefundAction::class)->handle($event, $registration, $buyer);
+    $result = app(AdmissionRefunds::class)->process(
+        eventId: (string) $event->getKey(),
+        registrationId: (string) $registration->getKey(),
+        actorId: (string) $buyer->getKey(),
+    );
+    $refund = OrderRefund::query()->findOrFail($result['refund_id']);
 
     expect($refund->status)->toBe(RefundStatus::Pending)
+        ->and($result['status'])->toBe('pending')
+        ->and($result['is_pending'])->toBeTrue()
         ->and($registration->fresh()->statusValue())->toBe('refund_pending')
         ->and($registration->fresh()->refund_pending_at)->not->toBeNull();
 });
@@ -161,10 +176,10 @@ it('does not allow a participant who is not the purchaser to self refund', funct
 
     expect(Gate::forUser($participant)->allows('requestRefund', $registration))->toBeFalse();
 
-    app(ProcessEventRefundAction::class)->handle(
-        event: $event,
-        registration: $registration,
-        actor: $participant,
+    app(AdmissionRefunds::class)->process(
+        eventId: (string) $event->getKey(),
+        registrationId: (string) $registration->getKey(),
+        actorId: (string) $participant->getKey(),
     );
 })->throws(AuthorizationException::class);
 
