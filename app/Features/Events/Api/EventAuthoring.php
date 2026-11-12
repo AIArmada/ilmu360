@@ -20,6 +20,18 @@ interface EventAuthoring
     public function saveAdminEvent(array $data, ?string $eventId = null): AdminEventSaveResult;
 
     /**
+     * Apply a normalized contribution payload to an existing event.
+     *
+     * The payload is the contribution persistence state (UTC schedule
+     * strings, explicit-null prayer anchor, cleared end date); it is not
+     * re-derived from the admin form contract.
+     *
+     * @param  array<string, mixed>  $state
+     * @return array<string, mixed> Changed attributes.
+     */
+    public function applyContributionUpdate(string $eventId, array $state): array;
+
+    /**
      * @return array<string, mixed>
      */
     public function adminFormDefaults(): array;
@@ -68,11 +80,24 @@ interface EventAuthoring
     public function syncEventClassifications(string $scopeAlias, string $scopeId, array $state): int;
 
     /**
+     * Resolve or create an active package taxonomy term for the contribution
+     * create-option flow.
+     */
+    public function ensureTaxonomyTerm(string $eventTaxonomyCode, string $name): string;
+
+    /**
      * Replace the event-level reference selection.
      *
      * @param  list<string>  $referenceIds
      */
     public function syncEventReferences(string $eventId, array $referenceIds): void;
+
+    /**
+     * Replace the event-level series selection.
+     *
+     * @param  list<string>  $seriesIds
+     */
+    public function syncEventSeries(string $eventId, array $seriesIds): void;
 
     /**
      * @param  list<string>  $personIds

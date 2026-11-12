@@ -11,11 +11,13 @@
       "App\\Features\\Events\\Actions\\Submission\\CompleteEventSubmissionWritesAction",
       "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
       "App\\Features\\Events\\Actions\\Delete\\DeleteEventAction",
-      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction"
+      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_series_items": [
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_series": [
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
@@ -25,33 +27,40 @@
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction"
     ],
     "table:event_taxonomies": [
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction",
+      "App\\Features\\Events\\Actions\\Authoring\\EnsureEventTaxonomyTermAction"
     ],
     "table:event_terms": [
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction",
+      "App\\Features\\Events\\Actions\\Authoring\\EnsureEventTaxonomyTermAction"
     ],
     "table:event_classifications": [
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_involvements": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventKeyPeopleAction",
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventOrganizerAction",
-      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_references": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction",
       "App\\Features\\Events\\Actions\\Submission\\SubmissionRelationSync",
-      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_locations": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventLocationsAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistOccurrenceSubmissionAction",
-      "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction"
+      "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_time_expressions": [
       "App\\Features\\Events\\Actions\\Scheduling\\SyncEventScheduleAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistOccurrenceSubmissionAction",
-      "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction"
+      "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_access_policies": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
@@ -75,7 +84,8 @@
       "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction"
     ],
     "table:event_languages": [
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventLanguagesAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventLanguagesAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_submissions": [
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",

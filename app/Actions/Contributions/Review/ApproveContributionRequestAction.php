@@ -12,6 +12,7 @@ use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -37,6 +38,7 @@ class ApproveContributionRequestAction
     public function __construct(
         private readonly ModerationService $moderationService,
         private readonly ContributionEntityMutationService $entityMutationService,
+        private readonly EventAuthoring $eventAuthoring,
         private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
         private readonly MembershipCommands $membershipCommands,
         private readonly InstitutionWorkflow $institutionWorkflow,
@@ -292,7 +294,9 @@ class ApproveContributionRequestAction
 
         /** @var array<string, mixed> $payload */
         $payload = $request->proposed_data ?? [];
-        $dirtyBeforeSave = $this->entityMutationService->apply($entity, $payload);
+        $dirtyBeforeSave = $entity instanceof Event
+            ? $this->eventAuthoring->applyContributionUpdate((string) $entity->getKey(), $payload)
+            : $this->entityMutationService->apply($entity, $payload);
 
         if ($entity instanceof Event && $dirtyBeforeSave !== []) {
             $this->moderationService->handleSensitiveChange($entity, $dirtyBeforeSave);

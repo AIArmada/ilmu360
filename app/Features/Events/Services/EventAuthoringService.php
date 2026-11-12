@@ -5,17 +5,19 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\Event;
 use AIArmada\Ticketing\Enums\PricingMode;
+use App\Features\Events\Actions\Authoring\ApplyEventContributionAction;
 use App\Features\Events\Actions\Authoring\ConfigureEventAdmissionAction;
+use App\Features\Events\Actions\Authoring\EnsureEventTaxonomyTermAction;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Features\Events\Actions\Authoring\PersistEventAuthoringAction;
+use App\Features\Events\Actions\Authoring\SyncEventAdminRelationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Features\Events\Actions\Authoring\SyncEventLanguagesAction;
 use App\Features\Events\Actions\Authoring\SyncEventOrganizerAction;
-use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Actions\Scheduling\SyncEventScheduleFromInputAction;
 use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Api\AdminEventSaveResult;
 use App\Features\Events\Api\EventAuthoring;
@@ -23,7 +25,6 @@ use App\Features\Events\Api\EventScheduleInput;
 use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Events\OrganizerResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -43,9 +44,12 @@ final readonly class EventAuthoringService implements EventAuthoring
         private GenerateEventSlugAction $generateEventSlug,
         private SyncEventClassificationsAction $syncClassifications,
         private SyncEventKeyPeopleAction $syncKeyPeople,
-        private SyncEventScheduleAction $syncSchedule,
+        private SyncEventScheduleFromInputAction $syncScheduleFromInput,
         private SyncEventLanguagesAction $syncLanguages,
         private SyncEventOrganizerAction $syncOrganizer,
+        private SyncEventAdminRelationsAction $syncAdminRelations,
+        private ApplyEventContributionAction $applyEventContribution,
+        private EnsureEventTaxonomyTermAction $ensureTaxonomyTerm,
         private AdminEventFormStateBuilder $formState,
         private ConfigureEventAdmissionAction $configureEventAdmission,
         private SubmissionRelationSync $submissionRelations,
@@ -54,6 +58,11 @@ final readonly class EventAuthoringService implements EventAuthoring
     public function saveAdminEvent(array $data, ?string $eventId = null): AdminEventSaveResult
     {
         return $this->persistEvent->handle($data, $eventId);
+    }
+
+    public function applyContributionUpdate(string $eventId, array $state): array
+    {
+        return $this->applyEventContribution->handle($eventId, $state);
     }
 
     public function adminFormDefaults(): array
@@ -130,11 +139,21 @@ final readonly class EventAuthoringService implements EventAuthoring
         return $this->syncClassifications->handle($scope, $state);
     }
 
+    public function ensureTaxonomyTerm(string $eventTaxonomyCode, string $name): string
+    {
+        return $this->ensureTaxonomyTerm->handle($eventTaxonomyCode, $name);
+    }
+
     public function syncEventReferences(string $eventId, array $referenceIds): void
     {
         $event = EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
 
         $this->submissionRelations->syncEventReferences($event, $referenceIds);
+    }
+
+    public function syncEventSeries(string $eventId, array $seriesIds): void
+    {
+        $this->syncAdminRelations->syncSeries($this->resolveEvent($eventId), $seriesIds);
     }
 
     public function syncEventKeyPeople(string $eventId, array $personIds = [], array $otherKeyPeople = []): void
@@ -170,26 +189,7 @@ final readonly class EventAuthoringService implements EventAuthoring
 
     public function syncEventSchedule(string $eventId, EventScheduleInput $schedule): void
     {
-        $this->syncSchedule->execute(
-            $this->resolveEvent($eventId),
-            ScheduleKind::tryFrom($schedule->scheduleKind) ?? ScheduleKind::Single,
-            startsAt: $this->parseDate($schedule->startsAt),
-            endsAt: $this->parseDate($schedule->endsAt),
-            timezone: $schedule->timezone,
-            timingMode: $schedule->timingMode !== null ? TimingMode::tryFrom($schedule->timingMode) : null,
-            prayerReference: $schedule->prayerReference,
-            prayerOffset: $schedule->prayerOffset,
-            prayerDisplayText: $schedule->prayerDisplayText,
-            prayerSource: $schedule->prayerSource,
-            prayerFetchedAt: $schedule->prayerFetchedAt,
-            prayerZone: $schedule->prayerZone,
-            prayerDate: $schedule->prayerDate,
-            prayerLat: $schedule->prayerLat,
-            prayerLng: $schedule->prayerLng,
-            prayerVenueId: $schedule->prayerVenueId,
-            prayerInstitutionId: $schedule->prayerInstitutionId,
-            prayerCountry: $schedule->prayerCountry,
-        );
+        $this->syncScheduleFromInput->handle($eventId, $schedule);
     }
 
     public function syncEventLanguages(string $eventId, array|string $languages): array
@@ -250,14 +250,5 @@ final readonly class EventAuthoringService implements EventAuthoring
     private function resolveEvent(string $eventId): Model
     {
         return EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
-    }
-
-    private function parseDate(?string $value): ?Carbon
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return Carbon::parse($value);
     }
 }

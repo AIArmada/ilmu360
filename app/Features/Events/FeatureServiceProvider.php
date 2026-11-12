@@ -65,10 +65,9 @@ use App\Shared\Events\EventCategoryPolicyResolver;
  *   cascade changes and engagement-counter updates; those stay with their own
  *   feature migrations.
  * - event_taxonomies/event_terms are created by the package synchronizer that
- *   SyncEventClassificationsAction invokes, and are also written by the
- *   contribution event form (pending-tag creation in
- *   EventContributionFormSchema) and the EventTerm domain-mapping admin
- *   extension.
+ *   SyncEventClassificationsAction invokes, and are also written by
+ *   EnsureEventTaxonomyTermAction for the contribution form's create-option
+ *   flow and the EventTerm domain-mapping admin extension.
  * - admission setup (registration/pricing modes, access policy, occurrence
  *   ticket types and optional seating) is written by
  *   ConfigureEventAdmissionAction, which also writes the event/occurrence

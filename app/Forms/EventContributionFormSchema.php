@@ -4,6 +4,7 @@ namespace App\Forms;
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Features\Events\Api\EventAuthoring;
 use App\Forms\Components\Select;
 use App\Models\Event;
 use App\Models\Institution;
@@ -40,7 +41,6 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 class EventContributionFormSchema
 {
@@ -693,35 +693,12 @@ class EventContributionFormSchema
     private static function createPendingTag(array $data, EventTaxonomyCode $type): string
     {
         $name = trim((string) ($data['name'] ?? ''));
-        $code = Str::slug($name);
 
-        if ($name === '' || $code === '') {
+        if ($name === '') {
             return '';
         }
 
-        $taxonomy = EventTaxonomy::query()->firstOrCreate(
-            ['code' => $type->value],
-            [
-                'name' => $type->label(),
-                'description' => $type->description(),
-                'is_hierarchical' => false,
-                'is_active' => true,
-            ],
-        );
-
-        $term = EventTerm::query()->firstOrCreate(
-            [
-                'event_taxonomy_id' => $taxonomy->getKey(),
-                'code' => $code,
-            ],
-            [
-                'name' => $name,
-                'sort_order' => 0,
-                'is_active' => true,
-            ],
-        );
-
-        return (string) $term->getKey();
+        return app(EventAuthoring::class)->ensureTaxonomyTerm($type->value, $name);
     }
 
     /**
