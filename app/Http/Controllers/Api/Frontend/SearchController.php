@@ -1602,7 +1602,7 @@ class SearchController extends FrontendController
     {
         $eventIds = Event::query()
             ->where('institution_id', $institution->id)
-            ->whereIn('status', ['verified', 'pending'])
+            ->whereIn('status', Event::PUBLIC_STATUSES)
             ->where('starts_at', '>=', now())
             ->select('id');
 
