@@ -10,10 +10,10 @@
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Contributions C4): arch 0/**13 features**; Pest 235/235 (1332 assertions); routes 738 unchanged; ownership PHPStan 0.
 
-## Next action — Contributions C6 cleanup (queued)
+## Next action — Contributions C6 cleanup (in progress)
 
 - C0 seams (`0f07d369`), C1 Events contribution writes (`0be80013`), C2 Directory contribution media (`59c983fe`), C3 request lifecycle ownership (`052aa021`) and C4 media hardening (`a896707f`) landed with Ember `AGREE`.
-- C6 is next: remove dead/redundant contribution adapters, keep the configured read-only root adapters, and run the final Contributions static/style/docs pass. C5 transport remains deferred.
+- C6 is running: consolidate the duplicated subject-metadata resolver into Shared, delete dead migration wrappers, audit old FQCNs/imports, and run the final Contributions pass. C5 transport remains deferred.
 - Full whole-app conversion remains open.
 - Full whole-app conversion remains open.
 
