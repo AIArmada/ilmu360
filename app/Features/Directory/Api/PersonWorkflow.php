@@ -64,10 +64,6 @@ interface PersonWorkflow
 
     public function syncNames(string $personId, mixed $names): void;
 
-    public function syncAffiliations(string $personId, mixed $institutions): void;
-
-    public function syncTitleAssignments(string $personId, mixed $assignments): void;
-
     /**
      * @param  array<string, mixed>  $attributes
      */

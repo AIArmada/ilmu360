@@ -3,6 +3,7 @@
 namespace App\Actions\Contributions\Queries;
 
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use App\Models\ContributionRequest;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -11,13 +12,9 @@ final readonly class FindEntityPendingContributionRequestAction
 {
     use AsAction;
 
-    public function __construct(
-        private ResolveContributionEntityMetadataAction $resolveContributionEntityMetadataAction,
-    ) {}
-
     public function handle(Model $entity): ?ContributionRequest
     {
-        $entityMetadata = $this->resolveContributionEntityMetadataAction->handle($entity);
+        $entityMetadata = ContributionEntityMetadata::for($entity);
 
         return ContributionRequest::query()
             ->where('entity_type', $entityMetadata['entity_type'])

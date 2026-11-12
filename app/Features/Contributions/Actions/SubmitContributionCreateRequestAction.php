@@ -2,11 +2,11 @@
 
 namespace App\Features\Contributions\Actions;
 
-use App\Features\Contributions\Support\ContributionEntityMetadata;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;

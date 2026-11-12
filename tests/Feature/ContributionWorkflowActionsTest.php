@@ -3,7 +3,6 @@
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
 use App\Actions\Contributions\Queries\FindUserPendingContributionRequestAction;
-use App\Actions\Contributions\Queries\ResolveContributionEntityMetadataAction;
 use App\Actions\Contributions\Queries\ResolveContributionSubjectAction;
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
@@ -19,6 +18,7 @@ use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
@@ -372,16 +372,21 @@ it('resolves contribution subjects from slug and uuid identifiers through the ac
         ->and($resolvedReference->is($reference))->toBeTrue();
 });
 
-it('resolves contribution entity metadata through the action layer', function () {
-    $event = Event::factory()->create();
+it('resolves contribution entity metadata through the shared helper', function () {
+    $subjects = [
+        ContributionSubjectType::Event->value => Event::factory()->create(),
+        ContributionSubjectType::Institution->value => Institution::factory()->create(),
+        ContributionSubjectType::Person->value => Person::factory()->create(),
+        ContributionSubjectType::Reference->value => Reference::factory()->create(),
+    ];
 
-    $metadata = app(ResolveContributionEntityMetadataAction::class)->handle($event);
-
-    expect($metadata)->toBe([
-        'subject_type' => ContributionSubjectType::Event,
-        'entity_type' => $event->getMorphClass(),
-        'entity_id' => (string) $event->getKey(),
-    ]);
+    foreach ($subjects as $subjectTypeValue => $entity) {
+        expect(ContributionEntityMetadata::for($entity))->toBe([
+            'subject_type' => ContributionSubjectType::from($subjectTypeValue),
+            'entity_type' => $entity->getMorphClass(),
+            'entity_id' => (string) $entity->getKey(),
+        ]);
+    }
 });
 
 it('keeps user pending contribution lookups separate from entity wide pending lookups', function () {

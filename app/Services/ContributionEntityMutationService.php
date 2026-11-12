@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
@@ -680,9 +679,6 @@ class ContributionEntityMutationService implements ContributionEntityState
     /**
      * @param  array<string, mixed>  $payload
      */
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     public function syncInstitutionNames(Institution $institution, array $payload): void
     {
         $names = $payload['names'] ?? null;
@@ -713,16 +709,6 @@ class ContributionEntityMutationService implements ContributionEntityState
     public function syncPersonNames(Person $person, mixed $namesPayload): void
     {
         $this->personWorkflow->syncNames((string) $person->getKey(), $namesPayload);
-    }
-
-    public function syncPersonAffiliations(Person $person, mixed $institutionsPayload): void
-    {
-        $this->personWorkflow->syncAffiliations((string) $person->getKey(), $institutionsPayload);
-    }
-
-    public function syncPersonTitleAssignments(Person $person, mixed $assignmentsPayload): void
-    {
-        $this->personWorkflow->syncTitleAssignments((string) $person->getKey(), $assignmentsPayload);
     }
 
     /**

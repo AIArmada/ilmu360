@@ -2,7 +2,6 @@
 
 namespace App\Features\Contributions\Actions;
 
-use App\Features\Contributions\Support\ContributionModel;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;

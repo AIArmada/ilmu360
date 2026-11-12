@@ -3,6 +3,7 @@
 namespace App\Actions\Contributions\Queries;
 
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use App\Models\ContributionRequest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -12,13 +13,9 @@ class FindUserPendingContributionRequestAction
 {
     use AsAction;
 
-    public function __construct(
-        private readonly ResolveContributionEntityMetadataAction $resolveContributionEntityMetadataAction,
-    ) {}
-
     public function handle(User $user, Model $entity): ?ContributionRequest
     {
-        $entityMetadata = $this->resolveContributionEntityMetadataAction->handle($entity);
+        $entityMetadata = ContributionEntityMetadata::for($entity);
 
         return ContributionRequest::query()
             ->where('proposer_id', $user->getKey())

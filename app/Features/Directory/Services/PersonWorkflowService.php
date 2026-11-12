@@ -18,7 +18,6 @@ use App\Features\Directory\Actions\Persons\SyncPersonAffiliationsAction;
 use App\Features\Directory\Actions\Persons\SyncPersonNamesAction;
 use App\Features\Directory\Actions\Persons\SyncPersonRelationsAction;
 use App\Features\Directory\Actions\Persons\SyncPersonSearchProjectionAction;
-use App\Features\Directory\Actions\Persons\SyncPersonTitleAssignmentsAction;
 use App\Features\Directory\Actions\Persons\VerifyPendingPersonsAction;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Support\DirectoryModel;
@@ -47,7 +46,6 @@ final readonly class PersonWorkflowService implements PersonWorkflow
         private ReorderFeaturedPersonsAction $reorderFeaturedPersons,
         private SyncPersonNamesAction $syncPersonNames,
         private SyncPersonAffiliationsAction $syncPersonAffiliations,
-        private SyncPersonTitleAssignmentsAction $syncPersonTitleAssignments,
         private SyncPersonRelationsAction $syncPersonRelations,
         private SyncPersonSearchProjectionAction $syncPersonSearchProjection,
     ) {}
@@ -124,16 +122,6 @@ final readonly class PersonWorkflowService implements PersonWorkflow
     public function syncNames(string $personId, mixed $names): void
     {
         $this->syncPersonNames->handle($this->person($personId), $names);
-    }
-
-    public function syncAffiliations(string $personId, mixed $institutions): void
-    {
-        $this->syncPersonAffiliations->handle($this->person($personId), $institutions);
-    }
-
-    public function syncTitleAssignments(string $personId, mixed $assignments): void
-    {
-        $this->syncPersonTitleAssignments->handle($this->person($personId), $assignments);
     }
 
     public function attachAffiliation(string $personId, string $institutionId, array $attributes): string
