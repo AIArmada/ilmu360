@@ -3,6 +3,7 @@
 namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
+use App\Features\Directory\Api\PersonSearchCacheVersion;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Platform\Search\FuzzySearchPolicy;
@@ -19,10 +20,9 @@ class PersonSearchService implements PublicDiscoveryAdapter
 {
     private const int PUBLIC_SEARCH_CACHE_TTL = 600;
 
-    private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'person_search_public_version_v2';
-
     public function __construct(
         private readonly ?PersonWorkflow $personWorkflow = null,
+        private readonly ?PersonSearchCacheVersion $personSearchCacheVersion = null,
     ) {}
 
     public function buildSearchableName(
@@ -566,11 +566,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     public function bustPublicSearchCache(): void
     {
-        Cache::put(
-            self::PUBLIC_SEARCH_CACHE_VERSION_KEY,
-            $this->publicSearchCacheVersion() + 1,
-            now()->addDays(30),
-        );
+        $this->cacheVersion()->bump();
     }
 
     public function normalizedSearch(string $search): ?string
@@ -582,7 +578,12 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     private function publicSearchCacheVersion(): int
     {
-        return (int) Cache::get(self::PUBLIC_SEARCH_CACHE_VERSION_KEY, 2);
+        return $this->cacheVersion()->version();
+    }
+
+    private function cacheVersion(): PersonSearchCacheVersion
+    {
+        return $this->personSearchCacheVersion ?? app(PersonSearchCacheVersion::class);
     }
 
     /**
