@@ -6,15 +6,16 @@
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
 - Latest accepted implementation checkpoint `0be80013` — Contributions C1 Events contribution writes. Previous: `0f07d369` — C0 seams.
-- Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary.
+- Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary + D1 packages (S0–S5; S6b languages deferred); Events E0–E5a; Registration R0–R6; Contributions C0–C1.
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
-- Latest passing evidence (Directory S0): arch 0/**9 features**; DirectorySeams 10/10 + affected batch 41/41 green; Pint clean; PHPStan 6 + ownership 0 errors; routes identical. Per-slice D1 logs in history.
+- Latest passing evidence (Contributions C1): arch 0/**13 features**; Pest 306/306 (1769 assertions); routes 738 unchanged; touched PHPStan 0.
 
-## Next action — Directory D1 packages (S0/S0b landed)
+## Next action — Contributions C2 Directory contribution media (in progress)
 
-- Identity I0–I6, Saved Searches, Feedback/Reports, Inspirations all committed per plan. Platform D1 batch landed: A, C, M, R, T, S, P1, P2, P3 (evidence in history).
-- D1 reconcile plan accepted (research-only, no edits): all Platform/Shared prerequisites satisfied; two temporary adapters remain necessary (morph-alias cross-feature model resolver; composite report-subject resolver). Slice order: S0 boundary/strangler + S0b relation adapter → packages S1→S6. Language ruling corrected: shared catalog, not Directory-owned. Donation channels pulled forward into S1 (or short-lived writer port).
-- Full whole-app conversion remains open; Identity I0–I6 is complete.
+- C0 seams (`0f07d369`) and C1 Events contribution writes (`0be80013`) landed with Ember `AGREE`.
+- C2 is the current slice: move donation-QR media operations and Directory-subject staged-media application out of the root mutation service/approval into Directory APIs, preserving exact media metadata and staging semantics. Event media stays put until C4.
+- Then C3 request lifecycle + `contribution_requests` claim → C4 media hardening → C5 transport (deferred) → C6 cleanup.
+- Full whole-app conversion remains open.
 
 ## Execution ownership and required reading
 
