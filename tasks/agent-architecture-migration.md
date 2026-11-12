@@ -10,10 +10,10 @@
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Discovery D0): arch 0/**15 features**; new characterization suites 12/12; required batch 230/232 with only two pre-existing `EventSearchTest` timing failures; routes 738; ownership PHPStan 0.
 
-## Next action — Discovery D0a cache version-key unification (queued)
+## Next action — Discovery D0a person cache key unification (in progress)
 
 - D0 `d323c068` landed with Ember `AGREE`: empty Discovery/Engagement scaffolds and 12 characterization tests; no production behavior changes.
-- D0a is next: unify the split person/institution/reference public-search version keys behind one Platform/Directory bump path, with regression tests. D0b (`institutionPersonCount` status bug) follows as its own behavior-changing commit.
+- D0a is running: unify the duplicate person public-search version bump behind a Directory Api. Audit shows institution/reference already have single owners; leave them. D0b (`institutionPersonCount` status bug) follows as its own commit.
 - Product rulings before D1/D4: visibility matrix; follow cutoff/eligibility; timezone canonical; sitemap URL; `reference_author_search` promotion.
 - Full whole-app conversion remains open (Share tracking, Rewards, Communications, AI, Community releases, Docs/MCP/admin).
 
