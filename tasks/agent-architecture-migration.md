@@ -10,10 +10,10 @@
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Contributions C3): arch 0/**13 features**; Pest 309/309 (1950 assertions); routes 738 unchanged; ownership PHPStan 0 across feature/root chunks.
 
-## Next action — Contributions C4 media hardening (queued)
+## Next action — Contributions C4 media hardening (in progress)
 
 - C0 seams (`0f07d369`), C1 Events contribution writes (`0be80013`), C2 Directory contribution media (`59c983fe`) and C3 request lifecycle ownership (`052aa021`) landed with Ember `AGREE`.
-- C4 is next: move Event staged-media application behind Events and harden the catalogued contribution-media hazards (non-atomicity, visitor holding collection, media field divergence, staged-create rollback) without changing the product decisions already flagged.
+- C4 is running: move Event staged-media application behind an Events API and centralize the exact staged-media chain in Platform. Transport staging, visitor holding, rollback and non-atomicity semantics stay unchanged and remain recorded hazards.
 - Then C5 transport (deferred) → C6 cleanup.
 - Full whole-app conversion remains open.
 
