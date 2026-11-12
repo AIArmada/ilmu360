@@ -8,11 +8,11 @@ use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Location\AddressAssignments;
-use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
@@ -35,6 +35,7 @@ class ApproveContributionRequestAction
         private readonly EventModeration $eventModeration,
         private readonly DirectoryContributionMedia $directoryContributionMedia,
         private readonly EventAuthoring $eventAuthoring,
+        private readonly EventMedia $eventMedia,
         private readonly ContributionRequestNotifier $contributionRequestNotifications,
         private readonly MembershipCommands $membershipCommands,
         private readonly InstitutionWorkflow $institutionWorkflow,
@@ -42,7 +43,6 @@ class ApproveContributionRequestAction
         private readonly ReferenceWorkflow $referenceWorkflow,
         private readonly InstitutionClaimGuard $institutionClaims,
         private readonly MapsIdentityLock $mapsIdentityLock,
-        private readonly MediaCollectionSync $mediaCollectionSync,
     ) {}
 
     /**
@@ -364,7 +364,7 @@ class ApproveContributionRequestAction
         }
 
         if (ContributionModel::isEvent($entity)) {
-            $this->applyEventStagedMedia(ContributionModel::assert($entity, 'event'), $staged);
+            $this->eventMedia->applyStagedMedia(ContributionModel::assert($entity, 'event'), $staged);
 
             return;
         }
@@ -376,38 +376,6 @@ class ApproveContributionRequestAction
         };
 
         $this->directoryContributionMedia->applyStagedMedia($directoryEntity, $staged);
-    }
-
-    /**
-     * Event media stays on the root approval until the Event media slice.
-     * The donation-QR branch still hands the operation to Directory.
-     *
-     * @param  \App\Models\Event  $entity
-     * @param  iterable<int, \Spatie\MediaLibrary\MediaCollections\Models\Media>  $staged
-     */
-    private function applyEventStagedMedia(Model $entity, iterable $staged): void
-    {
-        foreach ($staged as $media) {
-            $field = (string) $media->getCustomProperty('contribution_field', 'cover');
-
-            if ($field === 'donation_qr') {
-                $this->directoryContributionMedia->attachStagedDonationQr($entity, $media);
-
-                continue;
-            }
-
-            $isSingle = (bool) $media->getCustomProperty('is_single', true);
-
-            if ($isSingle) {
-                $entity->clearMediaCollection($field);
-            }
-
-            $entity->addMediaFromDisk($media->getPathRelativeToRoot(), $media->disk)
-                ->usingFileName($media->file_name)
-                ->toMediaCollection($field);
-
-            $this->mediaCollectionSync->deleteMedia($media);
-        }
     }
 
     /**

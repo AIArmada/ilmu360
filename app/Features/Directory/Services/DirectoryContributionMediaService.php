@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Directory\Services;
 
 use App\Features\Directory\Api\DirectoryContributionMedia;
+use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
 use App\Shared\Contributions\Support\DonationQrUploads;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 final readonly class DirectoryContributionMediaService implements DirectoryContributionMedia
 {
+    public function __construct(private MediaCollectionSync $mediaCollectionSync) {}
+
     public function donationChannelFingerprint(array $row): ?string
     {
         $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
@@ -130,32 +133,27 @@ final readonly class DirectoryContributionMediaService implements DirectoryContr
                 ->toMediaCollection('qr');
         }
 
-        $staged->delete();
+        $this->mediaCollectionSync->deleteMedia($staged);
     }
 
     public function applyStagedMedia(HasMedia $entity, iterable $stagedMedia): void
     {
-        foreach ($stagedMedia as $media) {
-            $field = (string) $media->getCustomProperty('contribution_field', 'cover');
+        $this->mediaCollectionSync->applyStagedMedia(
+            $entity,
+            $stagedMedia,
+            fn (Media $media): bool => $this->applySpecialStagedMedia($entity, $media),
+        );
+    }
 
-            if ($field === 'donation_qr') {
-                $this->attachStagedDonationQr($entity, $media);
-
-                continue;
-            }
-
-            $isSingle = (bool) $media->getCustomProperty('is_single', true);
-
-            if ($isSingle) {
-                $entity->clearMediaCollection($field);
-            }
-
-            $entity->addMediaFromDisk($media->getPathRelativeToRoot(), $media->disk)
-                ->usingFileName($media->file_name)
-                ->toMediaCollection($field);
-
-            $media->delete();
+    private function applySpecialStagedMedia(HasMedia $entity, Media $media): bool
+    {
+        if ((string) $media->getCustomProperty('contribution_field', 'cover') !== 'donation_qr') {
+            return false;
         }
+
+        $this->attachStagedDonationQr($entity, $media);
+
+        return true;
     }
 
     private function findDonationChannelByFingerprint(HasMedia $model, string $fingerprint): ?Model

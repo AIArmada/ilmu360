@@ -11,6 +11,7 @@ use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventLocations;
+use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventReportSubjectProvider;
@@ -20,6 +21,7 @@ use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Services\EventAuthoringService;
 use App\Features\Events\Services\EventCategoryCatalog;
 use App\Features\Events\Services\EventCategoryPolicy;
+use App\Features\Events\Services\EventMediaService;
 use App\Features\Events\Services\EventReportSubjectResolver;
 use App\Features\Events\Services\EventSubmissionsService;
 use App\Features\Events\Services\SeriesAuthoringService;
@@ -101,6 +103,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventDeletion::class, CleanupEventAction::class);
         $this->app->bind(EventSubmissions::class, EventSubmissionsService::class);
         $this->app->bind(EventLocations::class, SyncEventLocationsAction::class);
+        $this->app->bind(EventMedia::class, EventMediaService::class);
         $this->app->bind(EventProjections::class, SyncEventProjectionsAction::class);
         $this->app->bind(SeriesAuthoring::class, SeriesAuthoringService::class);
 

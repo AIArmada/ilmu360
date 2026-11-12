@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Media;
 
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -80,6 +81,32 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
                 ...$customProperties,
             ])
             ->toMediaCollection($collection);
+    }
+
+    /**
+     * @param  iterable<int, Media>  $stagedMedia
+     * @param  (Closure(Media): bool)|null  $specialHandler
+     */
+    public function applyStagedMedia(HasMedia $model, iterable $stagedMedia, ?Closure $specialHandler = null): void
+    {
+        foreach ($stagedMedia as $media) {
+            if ($specialHandler instanceof Closure && $specialHandler($media) === true) {
+                continue;
+            }
+
+            $field = (string) $media->getCustomProperty('contribution_field', 'cover');
+            $isSingle = (bool) $media->getCustomProperty('is_single', true);
+
+            if ($isSingle) {
+                $model->clearMediaCollection($field);
+            }
+
+            $model->addMediaFromDisk($media->getPathRelativeToRoot(), $media->disk)
+                ->usingFileName($media->file_name)
+                ->toMediaCollection($field);
+
+            $this->deleteMedia($media);
+        }
     }
 
     private function addMedia(HasMedia $model, UploadedFile $file, string $collection): void

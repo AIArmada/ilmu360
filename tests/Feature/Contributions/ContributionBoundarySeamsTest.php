@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\FeatureServiceProvider as ContributionsServiceProvider;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
@@ -80,14 +81,15 @@ it('binds the reader through the feature Api and resolves ownership', function (
         ->and((string) file_get_contents((string) $implementationFile))->not->toContain('App\\Models\\ContributionRequest');
 });
 
-it('discovers the feature manifest without claiming a table', function (): void {
+it('discovers the feature manifest with its request table claim', function (): void {
     $catalog = FeatureCatalog::load(base_path());
     $manifest = json_decode((string) file_get_contents(app_path('Features/Contributions/feature.json')), true, 512, JSON_THROW_ON_ERROR);
     $providers = require base_path('bootstrap/providers.php');
 
     expect($catalog['features'])->toHaveKey('Contributions')
-        ->and($catalog['owners'])->not->toHaveKey('table:contribution_requests')
-        ->and($manifest)->toMatchArray(['schema' => 2, 'name' => 'Contributions', 'owns' => []])
+        ->and($catalog['owners']['table:contribution_requests'] ?? null)->toBe('Contributions')
+        ->and($manifest)->toMatchArray(['schema' => 2, 'name' => 'Contributions'])
+        ->and($manifest['owns']['table:contribution_requests'] ?? [])->toContain(ApproveContributionRequestAction::class)
         ->and(array_keys($providers, ContributionsServiceProvider::class, true))->toHaveCount(1);
 });
 

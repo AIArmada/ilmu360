@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Media;
 
+use Closure;
 use Illuminate\Http\UploadedFile;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -49,4 +50,22 @@ interface MediaCollectionSync
         ?string $name = null,
         array $customProperties = [],
     ): void;
+
+    /**
+     * Apply media staged on a holding record to its final collections.
+     *
+     * Each staged file keeps its stored filename and is written to the
+     * collection named by its `contribution_field` custom property (`cover`
+     * by default). Single-file collections are cleared first unless
+     * `is_single` is false; every staged row is deleted after it is applied.
+     *
+     * A special handler may claim a staged file before the default chain
+     * runs. Return true to skip the default chain; the handler then owns the
+     * staged row (for example, the Directory QR path deletes it). Return
+     * false to apply the file normally.
+     *
+     * @param  iterable<int, Media>  $stagedMedia
+     * @param  (Closure(Media): bool)|null  $specialHandler
+     */
+    public function applyStagedMedia(HasMedia $model, iterable $stagedMedia, ?Closure $specialHandler = null): void;
 }
