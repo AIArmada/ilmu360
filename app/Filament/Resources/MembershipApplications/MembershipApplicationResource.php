@@ -60,8 +60,10 @@ class MembershipApplicationResource extends Resource
     #[\Override]
     public static function getEloquentQuery(): Builder
     {
-        /** @var Builder<MembershipApplication> $query */
-        $query = parent::getEloquentQuery()->withoutOwnerScope();
+        // The admin panel has no tenancy; querying the model directly keeps
+        // the owner-scope call statically typed. Revisit if panel tenancy is
+        // enabled, because parent::getEloquentQuery() applies tenant scoping.
+        $query = MembershipApplication::query()->withoutOwnerScope();
 
         return $query->with(['applicant', 'reviewer']);
     }

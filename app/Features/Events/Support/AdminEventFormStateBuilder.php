@@ -59,6 +59,7 @@ final readonly class AdminEventFormStateBuilder
     }
 
     /**
+     * @param  \App\Models\Event  $event
      * @return array<string, mixed>
      */
     public function formStateForRecord(PackageEvent $event): array

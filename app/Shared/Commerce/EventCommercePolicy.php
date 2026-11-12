@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Shared\Commerce;
 
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
 use AIArmada\Events\Models\EventSession;
-use App\Models\Event;
-use App\Models\Registration;
-use App\Models\User;
 use App\Shared\Events\Enums\EventAttendanceStatus;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Application policy for event-specific commerce behaviour.
@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final readonly class EventCommercePolicy
 {
-    public function refundsEnabled(Event $event): bool
+    public function refundsEnabled(PackageEvent $event): bool
     {
         $metadata = is_array($event->metadata) ? $event->metadata : [];
         $configured = data_get($metadata, 'registration.refunds_enabled');
@@ -34,18 +34,25 @@ final readonly class EventCommercePolicy
             : (bool) $configured;
     }
 
-    public function canSelfServiceRefund(User $user, Event $event, Registration $registration): bool
+    public function canSelfServiceRefund(?Model $user, PackageEvent $event, PackageEventRegistration $registration): bool
     {
         return $this->selfServiceRefundReason($user, $event, $registration) === null;
     }
 
-    public function selfServiceRefundReason(User $user, Event $event, Registration $registration): ?string
+    public function selfServiceRefundReason(?Model $user, PackageEvent $event, PackageEventRegistration $registration): ?string
     {
         if (! $this->refundsEnabled($event)) {
             return 'refunds_disabled';
         }
 
-        if (! $registration->isForUser($user)) {
+        if ($user === null) {
+            return 'purchaser_only';
+        }
+
+        $matchesPurchaser = $registration->getAttribute('registrant_type') === $user->getMorphClass()
+            && (string) $registration->getAttribute('registrant_id') === (string) $user->getKey();
+
+        if (! $matchesPurchaser) {
             return 'purchaser_only';
         }
 
@@ -53,7 +60,7 @@ final readonly class EventCommercePolicy
             return 'event_mismatch';
         }
 
-        if ($registration->statusValue() !== 'confirmed') {
+        if ($this->registrationStatus($registration) !== 'confirmed') {
             return 'admission_not_refundable';
         }
 
@@ -78,7 +85,7 @@ final readonly class EventCommercePolicy
         return null;
     }
 
-    public function canOrganizerRefund(Event $event, Registration $registration): bool
+    public function canOrganizerRefund(PackageEvent $event, PackageEventRegistration $registration): bool
     {
         if (! $this->refundsEnabled($event)) {
             return false;
@@ -92,7 +99,7 @@ final readonly class EventCommercePolicy
             return false;
         }
 
-        return in_array($registration->statusValue(), [
+        return in_array($this->registrationStatus($registration), [
             'confirmed',
             'completed',
             'checked_in',
@@ -100,7 +107,7 @@ final readonly class EventCommercePolicy
         ], true);
     }
 
-    public function selfServiceRefundDeadline(Event $event, Registration $registration): ?CarbonImmutable
+    public function selfServiceRefundDeadline(PackageEvent $event, PackageEventRegistration $registration): ?CarbonImmutable
     {
         $startsAt = $this->admissionStartsAt($event, $registration);
 
@@ -114,7 +121,7 @@ final readonly class EventCommercePolicy
         )));
     }
 
-    public function admissionStartsAt(Event $event, Registration $registration): ?CarbonImmutable
+    public function admissionStartsAt(PackageEvent $event, PackageEventRegistration $registration): ?CarbonImmutable
     {
         $registration->loadMissing(['occurrence', 'session']);
 
@@ -122,12 +129,12 @@ final readonly class EventCommercePolicy
         $occurrence = $registration->getRelationValue('occurrence');
         $startsAt = $session instanceof EventSession
             ? $session->starts_at
-            : ($occurrence instanceof EventOccurrence ? $occurrence->starts_at : $event->starts_at);
+            : ($occurrence instanceof EventOccurrence ? $occurrence->starts_at : $event->getAttribute('starts_at'));
 
         return $this->toImmutable($startsAt);
     }
 
-    public function hasAttendanceEvidence(Registration $registration): bool
+    public function hasAttendanceEvidence(PackageEventRegistration $registration): bool
     {
         if ($registration->attendances()
             ->whereNull('cancelled_at')
@@ -167,6 +174,23 @@ final readonly class EventCommercePolicy
                     });
             })
             ->exists();
+    }
+
+    private function registrationStatus(PackageEventRegistration $registration): string
+    {
+        $status = $registration->getAttribute('status');
+
+        if (is_string($status)) {
+            return $status;
+        }
+
+        if (is_object($status) && method_exists($status, 'getValue')) {
+            $value = $status->getValue();
+
+            return is_string($value) ? $value : (string) $value;
+        }
+
+        return (string) $status;
     }
 
     private function toImmutable(mixed $value): ?CarbonImmutable

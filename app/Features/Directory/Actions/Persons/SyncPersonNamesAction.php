@@ -112,7 +112,7 @@ final readonly class SyncPersonNamesAction
     }
 
     /**
-     * @param  Collection<string, Model>  $existing
+     * @param  Collection<string, \App\Models\PersonName>  $existing
      * @param  list<string>  $retainedIds
      */
     private function deleteMissing(Collection $existing, array $retainedIds): void

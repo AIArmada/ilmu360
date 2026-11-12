@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\Spaces;
 
 use App\Features\Directory\Support\DirectoryModel;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -100,11 +100,12 @@ final readonly class SyncInstitutionSpacesAction
     }
 
     /**
-     * @param  Collection<int, Model>  $before
-     * @param  Collection<int, Model>  $after
+     * @param  Collection<int, \App\Models\Institution>  $before
+     * @param  Collection<int, \App\Models\Institution>  $after
      */
     private function recordInstitutionAudit(Model $space, Collection $before, Collection $after): void
     {
+        $space = DirectoryModel::assert($space, 'space');
         $beforeIds = $before->modelKeys();
         $afterIds = $after->modelKeys();
         $removedIds = array_values(array_diff($beforeIds, $afterIds));

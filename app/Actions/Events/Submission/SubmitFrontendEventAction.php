@@ -182,7 +182,7 @@ class SubmitFrontendEventAction
         $autoApproved = $scopedInstitution instanceof Institution;
         $personSlugSegments = $this->authoring->personSlugSegmentsForState(
             is_array($validated['persons'] ?? null) ? $validated['persons'] : [],
-            $primaryOrganizer !== null ? (string) $primaryOrganizer->getKey() : null,
+            (string) $primaryOrganizer->getKey(),
         );
 
         $endsAt = $this->timing->resolveEndsAt($validated['end_time'] ?? null, $startsAt, $timezone, $validationKeyPrefix);

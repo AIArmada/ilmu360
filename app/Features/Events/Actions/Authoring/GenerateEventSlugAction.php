@@ -111,6 +111,7 @@ class GenerateEventSlugAction
 
     /**
      * @param  string[]  $personIds
+     * @return list<string>
      */
     public function personSlugSegmentsForState(array $personIds, ?Model $primaryOrganizer): array
     {

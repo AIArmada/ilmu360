@@ -191,7 +191,7 @@ final class ConfirmOfflineAdmissionAction
     }
 
     /**
-     * @param  class-string<Model>  $registrationClass
+     * @param  class-string<EventRegistration>  $registrationClass
      * @return array{order: Order, registration: EventRegistration, passes: Collection<int, Pass>}
      */
     private function existingResult(Order $order, string $registrationClass): array
@@ -206,8 +206,7 @@ final class ConfirmOfflineAdmissionAction
             throw new InvalidArgumentException('The paid order has no event registration.');
         }
 
-        /** @var Collection<int, Pass> $passes */
-        $passes = $registration->passes;
+        $passes = $registration->passes()->get();
 
         return [
             'order' => $order->fresh(['items', 'payments']),

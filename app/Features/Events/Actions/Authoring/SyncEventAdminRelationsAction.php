@@ -13,6 +13,7 @@ use App\Features\Events\Support\EventModel;
 final readonly class SyncEventAdminRelationsAction
 {
     /**
+     * @param  \App\Models\Event  $event
      * @param  list<string>  $referenceIds
      */
     public function syncReferences(PackageEvent $event, array $referenceIds): void
@@ -21,6 +22,7 @@ final readonly class SyncEventAdminRelationsAction
     }
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  list<string>  $seriesIds
      */
     public function syncSeries(PackageEvent $event, array $seriesIds): void

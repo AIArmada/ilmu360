@@ -41,7 +41,10 @@ class ReferenceResource extends Resource
     #[\Override]
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withoutOwnerScope();
+        // The admin panel has no tenancy; querying the model directly keeps
+        // the owner-scope call statically typed. Revisit if panel tenancy is
+        // enabled, because parent::getEloquentQuery() applies tenant scoping.
+        return Reference::query()->withoutOwnerScope();
     }
 
     #[\Override]

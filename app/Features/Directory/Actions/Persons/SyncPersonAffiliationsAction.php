@@ -301,7 +301,7 @@ final readonly class SyncPersonAffiliationsAction
     }
 
     /**
-     * @return Builder<Model>
+     * @return Builder<\App\Models\Affiliation>
      */
     private function affiliationsQuery(Model $person): Builder
     {

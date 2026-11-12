@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
 use App\Services\ShareTrackingService;
 use App\Shared\ShareTracking\ParticipationAttribution;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -55,6 +56,8 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             }
         }
 
+        $createdAt = $registration?->getAttribute('created_at');
+
         $this->shareTracking->recordOutcome(
             type: ShareOutcomeType::EventRegistration,
             businessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
@@ -62,7 +65,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             actor: $actor,
             request: $request instanceof Request ? $request : request(),
             metadata: $metadata,
-            occurredAt: $registration?->created_at ?? now(),
+            occurredAt: $createdAt instanceof CarbonInterface ? $createdAt : now(),
         );
     }
 

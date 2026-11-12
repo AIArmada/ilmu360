@@ -20,6 +20,7 @@ class SyncEventResourceRelationsAction
     ) {}
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  array<string, mixed>  $state
      * @return array{registration_mode: string, registration_mode_locked: bool}
      */
@@ -100,11 +101,13 @@ class SyncEventResourceRelationsAction
         ];
     }
 
+    /** @param  \App\Models\Event  $event */
     protected function resolveRegistrationMode(PackageEvent $event): RegistrationMode
     {
         return $event->resolvedRegistrationMode();
     }
 
+    /** @param  \App\Models\Event  $event */
     protected function resolveRegistrationRequired(PackageEvent $event): bool
     {
         $accessPolicy = $event->accessPolicy;

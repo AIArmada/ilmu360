@@ -75,7 +75,6 @@ final class PrepareAdmissionCheckoutAction implements AdmissionCheckout
         $eventClass = MorphModelResolver::resolve('event');
         $userClass = MorphModelResolver::resolve('user');
 
-        /** @var PackageEvent $event */
         $event = $eventClass::query()->findOrFail($eventId);
 
         /** @var Model $buyer */
@@ -104,6 +103,7 @@ final class PrepareAdmissionCheckoutAction implements AdmissionCheckout
     }
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  array<int, array<string, mixed>>  $participants
      * @param  array<string, mixed>  $agreement
      */
@@ -291,6 +291,7 @@ final class PrepareAdmissionCheckoutAction implements AdmissionCheckout
     }
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  array<int, array<string, mixed>>  $participants
      */
     private function ensureCheckoutCanStart(

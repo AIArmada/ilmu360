@@ -55,6 +55,7 @@ final readonly class SaveReferenceAction
 
         $creating = ! $reference instanceof Model || ! $reference->exists;
         $reference ??= DirectoryModel::new('reference');
+        $reference = DirectoryModel::assert($reference, 'reference');
         $status = array_key_exists('status', $data)
             ? (string) $data['status']
             : ($creating ? 'verified' : (string) $reference->getAttribute('status'));

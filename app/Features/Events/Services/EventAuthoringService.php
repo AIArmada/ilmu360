@@ -27,6 +27,7 @@ use App\Shared\Events\OrganizerResolver;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
+use InvalidArgumentException;
 
 /**
  * Default implementation of the Events authoring boundary.
@@ -117,7 +118,12 @@ final readonly class EventAuthoringService implements EventAuthoring
 
     public function syncEventClassifications(string $scopeAlias, string $scopeId, array $state): int
     {
-        $scope = EventModel::query($scopeAlias)->withoutOwnerScope()->findOrFail($scopeId);
+        $scope = match ($scopeAlias) {
+            'event' => EventModel::query('event')->withoutOwnerScope()->findOrFail($scopeId),
+            'event_occurrence' => EventModel::query('event_occurrence')->withoutOwnerScope()->findOrFail($scopeId),
+            'event_session' => EventModel::query('event_session')->withoutOwnerScope()->findOrFail($scopeId),
+            default => throw new InvalidArgumentException("Unsupported event classification scope [{$scopeAlias}]."),
+        };
 
         return $this->syncClassifications->handle($scope, $state);
     }
@@ -231,6 +237,7 @@ final readonly class EventAuthoringService implements EventAuthoring
         return AdminEventTimeMapper::normalizeForPersistence($data);
     }
 
+    /** @return \App\Models\Event */
     private function resolveEvent(string $eventId): Model
     {
         return EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);

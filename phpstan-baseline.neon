@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Property App\\Models\\Event\:\:\$schedule_kind \(string\|null\) does not accept AIArmada\\Events\\Enums\\ScheduleKind\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/Events/Scheduling/SyncEventScheduleAction.php
-
-		-
 			message: '#^Trait App\\Concerns\\ProfileValidationRules is used zero times and is not analysed\.$#'
 			identifier: trait.unused
 			count: 1

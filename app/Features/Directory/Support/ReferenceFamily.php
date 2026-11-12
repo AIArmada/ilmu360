@@ -82,7 +82,7 @@ final class ReferenceFamily
 
     /**
      * @param  list<string>  $referenceIds
-     * @param  \Illuminate\Database\Eloquent\Builder<Model>  $query
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\Reference>  $query
      * @return list<string>
      */
     private static function expand(array $referenceIds, \Illuminate\Database\Eloquent\Builder $query): array
@@ -105,7 +105,7 @@ final class ReferenceFamily
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<Model>
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\Reference>
      */
     private static function activeQuery(): \Illuminate\Database\Eloquent\Builder
     {

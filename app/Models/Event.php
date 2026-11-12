@@ -527,12 +527,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         return $this;
     }
 
-    private const array LINK_TYPE_MAP = [
-        'live_url' => 'streaming',
-        'event_url' => 'external',
-        'recording_url' => 'recording',
-    ];
-
     public function getLiveUrlAttribute(): ?string
     {
         if (array_key_exists('live_url', $this->pendingLinkWrites)) {

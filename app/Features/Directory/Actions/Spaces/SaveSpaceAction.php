@@ -25,10 +25,7 @@ final readonly class SaveSpaceAction
     {
         $creating = ! $space instanceof Model;
         $space ??= DirectoryModel::new('space');
-
-        if (! $creating) {
-            DirectoryModel::assert($space, 'space');
-        }
+        $space = DirectoryModel::assert($space, 'space');
 
         if (array_key_exists('venue_id', $data)) {
             $venueId = $this->normalizeOptionalString($data['venue_id']);

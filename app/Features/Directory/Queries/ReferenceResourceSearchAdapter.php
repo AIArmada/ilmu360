@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Model;
 
 final readonly class ReferenceResourceSearchAdapter implements ResourceSearchAdapter
 {
+    /**
+     * @param  ReferenceScopedSearch<Model>  $searchService
+     */
     public function __construct(
         private ReferenceScopedSearch $searchService,
     ) {}

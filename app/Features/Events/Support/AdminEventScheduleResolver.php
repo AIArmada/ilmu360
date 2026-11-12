@@ -29,6 +29,7 @@ final readonly class AdminEventScheduleResolver
     /**
      * @param  array<string, mixed>  $data
      * @param  PreparedAdminEventInput  $input
+     * @param  \App\Models\Event  $event
      * @return array{
      *     schedule: array<string, mixed>,
      *     schedule_kind: ScheduleKind,
@@ -208,6 +209,7 @@ final readonly class AdminEventScheduleResolver
      * inputs are unchanged. Provenance is restored from the persisted
      * expression after normalization, never from a fresh resolution.
      *
+     * @param  \App\Models\Event  $event
      * @return array{clock: string, date: string, starts_at: string}
      */
     private function persistedStartClock(PackageEvent $event, string $timezone): array
@@ -318,6 +320,7 @@ final readonly class AdminEventScheduleResolver
         return false;
     }
 
+    /** @param  \App\Models\Event  $event */
     private function pinnedPrayerCountry(PackageEvent $event): ?string
     {
         $event->loadMissing('timeExpressions');

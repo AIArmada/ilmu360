@@ -6,6 +6,7 @@ namespace App\Features\Membership\Services;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
+use AIArmada\Membership\Models\MembershipApplication as PackageMembershipApplication;
 use App\Features\Membership\Actions\ApproveMembershipApplicationAction;
 use App\Features\Membership\Actions\DiscardMembershipApplicationAction;
 use App\Features\Membership\Actions\RejectMembershipApplicationAction;
@@ -115,7 +116,7 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
 
         $application = OwnerContext::withOwner(null, fn (): ?Model => $this->query()->find($applicationId));
 
-        if (! $application instanceof Model) {
+        if (! $application instanceof PackageMembershipApplication) {
             return null;
         }
 
@@ -173,7 +174,7 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
     }
 
     /**
-     * @return Builder<Model>
+     * @return Builder<\App\Models\MembershipApplication>
      */
     private function query(): Builder
     {

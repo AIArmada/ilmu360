@@ -20,6 +20,7 @@ final readonly class AdminEventRelationsSynchronizer
     ) {}
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  array<string, mixed>  $state
      * @param  array<string, mixed>  $data
      */
@@ -38,6 +39,7 @@ final readonly class AdminEventRelationsSynchronizer
     }
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  array<string, mixed>  $state
      */
     private function syncReferences(PackageEvent $event, array $state): void
@@ -52,6 +54,7 @@ final readonly class AdminEventRelationsSynchronizer
     }
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  array<string, mixed>  $state
      */
     private function syncSeries(PackageEvent $event, array $state): void
@@ -105,6 +108,7 @@ final readonly class AdminEventRelationsSynchronizer
     }
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  array<string, mixed>  $state
      */
     private function syncSeatMaps(PackageEvent $event, array $state): void

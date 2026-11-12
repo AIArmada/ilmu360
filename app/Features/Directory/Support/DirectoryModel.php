@@ -70,7 +70,7 @@ final class DirectoryModel
      * Reference records are global; bypass the owner scope for reads that do
      * not have request context (observers, jobs, console).
      *
-     * @return Builder<Model>
+     * @return Builder<\App\Models\Reference>
      */
     public static function referenceQuery(): Builder
     {

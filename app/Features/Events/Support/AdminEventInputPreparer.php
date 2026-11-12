@@ -29,7 +29,7 @@ use Illuminate\Validation\ValidationException;
  *     venue_id: string|null,
  *     space_ids: list<string>,
  *     organizer_id: string|null,
- *     primary_organizer: Model|null
+ *     primary_organizer: \App\Models\Institution|\App\Models\Person|null
  * }
  */
 final readonly class AdminEventInputPreparer
@@ -42,6 +42,7 @@ final readonly class AdminEventInputPreparer
     ) {}
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  array<string, mixed>  $data
      * @return PreparedAdminEventInput
      */
@@ -75,6 +76,7 @@ final readonly class AdminEventInputPreparer
     }
 
     /**
+     * @param  \App\Models\Event  $event
      * @param  PreparedAdminEventInput  $input
      * @return array<string, mixed>
      */
@@ -211,7 +213,8 @@ final readonly class AdminEventInputPreparer
             }
         }
 
-        $hasOccurrenceSpeaker = $event instanceof Event
+        $hasOccurrenceSpeaker = $event instanceof PackageEvent
+            && $event->exists
             && $event->occurrences()
                 ->whereHas('involvements', static fn (Builder $query): Builder => $query
                     ->where('role_code', EventKeyPersonRole::Speaker->value))

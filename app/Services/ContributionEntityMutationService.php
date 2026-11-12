@@ -45,7 +45,6 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
-use App\Platform\Directory\EntityRelationSync;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Media\MediaFileNamer;
 use App\Rules\ValidAreaAssignmentRoles;
@@ -72,7 +71,6 @@ class ContributionEntityMutationService
         private readonly EventAuthoring $authoring,
         private readonly AddressCountryResolver $addressingCountryResolver,
         private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
-        private readonly EntityRelationSync $entityRelationSync,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
@@ -963,11 +961,6 @@ class ContributionEntityMutationService
         $this->referenceWorkflow->syncRelations((string) $reference->getKey(), $payload);
     }
 
-    private function syncAddress(Model $model, mixed $addressPayload, bool $allowCountryOnly = false): void
-    {
-        $this->entityRelationSync->syncAddress($model, $addressPayload, $allowCountryOnly);
-    }
-
     /**
      * @param  class-string<BackedEnum>  $enumClass
      * @return list<string|int>
@@ -999,16 +992,6 @@ class ContributionEntityMutationService
             'allowed_values' => $allowedValues,
             'catalog' => $catalog,
         ], static fn (mixed $value): bool => $value !== null);
-    }
-
-    private function syncContactMethods(Model $model, mixed $contactPayload): void
-    {
-        $this->entityRelationSync->syncContactMethods($model, $contactPayload);
-    }
-
-    private function syncSocialMedia(Model $model, mixed $socialMediaPayload): void
-    {
-        $this->entityRelationSync->syncSocialMedia($model, $socialMediaPayload);
     }
 
     /**

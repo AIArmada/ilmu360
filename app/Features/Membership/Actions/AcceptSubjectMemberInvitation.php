@@ -54,6 +54,8 @@ final readonly class AcceptSubjectMemberInvitation
             throw ValidationException::withMessages(['role' => 'Ownership invitations cannot be accepted through the standard flow.']);
         }
 
-        OwnerContext::withOwner(null, fn (): mixed => $this->acceptInvitation->handle($invitation, $invitee));
+        OwnerContext::withOwner(null, function () use ($invitation, $invitee): void {
+            $this->acceptInvitation->handle($invitation, $invitee);
+        });
     }
 }

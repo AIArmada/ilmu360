@@ -19,7 +19,7 @@ final readonly class DeleteSpaceAction
 {
     public function handle(Model $space): void
     {
-        DirectoryModel::assert($space, 'space');
+        $space = DirectoryModel::assert($space, 'space');
 
         if ($space->eventLocations()->exists()) {
             throw ValidationException::withMessages([

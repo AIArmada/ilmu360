@@ -33,3 +33,21 @@ parameters:
             - vendor/*
             - node_modules/*
             - tests/*
+
+services:
+    -
+        class: Tools\PhpStan\MorphModelResolverReturnTypeExtension
+        tags:
+            - phpstan.broker.dynamicStaticMethodReturnTypeExtension
+    -
+        class: Tools\PhpStan\MorphHelperReturnTypeExtension
+        arguments:
+            helperClass: App\Features\Events\Support\EventModel
+        tags:
+            - phpstan.broker.dynamicStaticMethodReturnTypeExtension
+    -
+        class: Tools\PhpStan\MorphHelperReturnTypeExtension
+        arguments:
+            helperClass: App\Features\Directory\Support\DirectoryModel
+        tags:
+            - phpstan.broker.dynamicStaticMethodReturnTypeExtension

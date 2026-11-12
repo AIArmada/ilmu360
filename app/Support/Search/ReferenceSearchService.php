@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @implements ReferenceScopedSearch<Reference>
+ */
 class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedSearch
 {
     private const int PUBLIC_SEARCH_CACHE_TTL = 600;
