@@ -13,6 +13,7 @@ use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction
 use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Directory\Api\DirectoryContributionMedia;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\EventContributionFormSchema;
@@ -31,7 +32,6 @@ use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Platform\Location\GooglePlaceIdentity;
 use App\Platform\Ui\InteractsWithToasts;
-use App\Services\ContributionEntityMutationService;
 use App\Shared\Signals\SignalRecorder;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use App\Support\Location\GooglePlacesConfiguration;
@@ -367,7 +367,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             // missing temporary files, and anything persisted first would
             // strand partial state that blocks the contributor from retrying.
             $rawDonationRows = $this->data['donation_channels'] ?? null;
-            ContributionEntityMutationService::assertDonationQrUploadsFresh($rawDonationRows);
+            app(DirectoryContributionMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
 
             $formState = $this->contributionForm()->getState();
             $donationQrUploads = SharedFormSchema::rekeyDonationRowsByRawKeys(
@@ -419,7 +419,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     }
 
                     if ($donationQrUploads !== []) {
-                        app(ContributionEntityMutationService::class)->attachDonationQrUploads(
+                        app(DirectoryContributionMedia::class)->attachDonationQrUploads(
                             $this->entity,
                             $submittedDonationRows,
                             $donationQrUploads,
@@ -1071,11 +1071,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function stageDonationQrUploads(ContributionRequest $request, array $submittedRows, array $uploads): void
     {
+        $media = app(DirectoryContributionMedia::class);
         $failed = [];
 
         foreach ($uploads as $index => $file) {
             $row = $submittedRows[$index] ?? null;
-            $fingerprint = is_array($row) ? ContributionEntityMutationService::donationChannelFingerprint($row) : null;
+            $fingerprint = is_array($row) ? $media->donationChannelFingerprint($row) : null;
 
             try {
                 $contents = $file->exists() ? $file->get() : null;
@@ -1090,7 +1091,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             }
 
             $request->addMediaFromString($contents)
-                ->usingFileName(ContributionEntityMutationService::safeDonationQrFileName($file, $request))
+                ->usingFileName($media->safeDonationQrFileName($file, $request))
                 ->withCustomProperties([
                     'contribution_field' => 'donation_qr',
                     'donation_fingerprint' => $fingerprint,

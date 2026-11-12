@@ -9,6 +9,7 @@ use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
+use App\Features\Directory\Api\DirectoryContributionMedia;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
@@ -38,6 +39,7 @@ class ApproveContributionRequestAction
     public function __construct(
         private readonly ModerationService $moderationService,
         private readonly ContributionEntityMutationService $entityMutationService,
+        private readonly DirectoryContributionMedia $directoryContributionMedia,
         private readonly EventAuthoring $eventAuthoring,
         private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
         private readonly MembershipCommands $membershipCommands,
@@ -318,11 +320,28 @@ class ApproveContributionRequestAction
             return;
         }
 
+        if ($entity instanceof Event) {
+            $this->applyEventStagedMedia($entity, $staged);
+
+            return;
+        }
+
+        $this->directoryContributionMedia->applyStagedMedia($entity, $staged);
+    }
+
+    /**
+     * Event media stays on the root approval until the Event media slice.
+     * The donation-QR branch still hands the operation to Directory.
+     *
+     * @param  iterable<int, \Spatie\MediaLibrary\MediaCollections\Models\Media>  $staged
+     */
+    private function applyEventStagedMedia(Event $entity, iterable $staged): void
+    {
         foreach ($staged as $media) {
             $field = (string) $media->getCustomProperty('contribution_field', 'cover');
 
             if ($field === 'donation_qr') {
-                $this->entityMutationService->attachStagedDonationQr($entity, $media);
+                $this->directoryContributionMedia->attachStagedDonationQr($entity, $media);
 
                 continue;
             }

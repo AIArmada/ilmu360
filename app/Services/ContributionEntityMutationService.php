@@ -32,7 +32,6 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Location\AddressAssignments;
-use App\Platform\Media\MediaFileNamer;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;
@@ -49,12 +48,8 @@ use App\Shared\Taxonomy\EventTaxonomyCode;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use RuntimeException;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ContributionEntityMutationService
 {
@@ -768,164 +763,6 @@ class ContributionEntityMutationService
             'allowed_values' => $allowedValues,
             'catalog' => $catalog,
         ], static fn (mixed $value): bool => $value !== null);
-    }
-
-    /**
-     * Stable identity for matching a submitted donation row to its persisted
-     * channel, mirroring {@see sameDonationChannelIdentity()}. The identity is
-     * hashed so staged fingerprints never embed account numbers in plaintext.
-     *
-     * @param  array<string, mixed>  $row
-     */
-    public static function donationChannelFingerprint(array $row): ?string
-    {
-        $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
-
-        if (! in_array($method, ['bank_account', 'duitnow', 'ewallet'], true)) {
-            return null;
-        }
-
-        $parts = match ($method) {
-            'bank_account' => [$row['bank_code'] ?? null, $row['bank_name'] ?? null, $row['account_number'] ?? null],
-            'duitnow' => [$row['duitnow_type'] ?? null, $row['duitnow_value'] ?? null],
-            default => [$row['ewallet_provider'] ?? null, $row['ewallet_handle'] ?? null, $row['ewallet_qr_payload'] ?? null],
-        };
-
-        $normalized = array_map(
-            static fn (mixed $value): string => is_string($value) && trim($value) !== '' ? mb_strtolower(trim($value)) : '',
-            $parts,
-        );
-
-        if (array_filter($normalized) === []) {
-            return null;
-        }
-
-        return 'sha256:'.hash('sha256', $method.'|'.implode('|', $normalized));
-    }
-
-    /**
-     * Verify every submitted donation QR upload is still readable before
-     * anything is persisted, so an expired temporary file fails cleanly
-     * instead of crashing form validation or stranding a half-built request.
-     * Keys follow the raw repeater keys so errors render on their field.
-     */
-    public static function assertDonationQrUploadsFresh(mixed $donationRows): void
-    {
-        $rows = is_array($donationRows) ? $donationRows : [];
-        $failed = [];
-
-        foreach (SharedFormSchema::collectDonationQrUploads($rows) as $index => $file) {
-            $row = $rows[$index] ?? null;
-            $fingerprint = is_array($row) ? self::donationChannelFingerprint($row) : null;
-
-            try {
-                $fresh = $file->exists();
-            } catch (\Throwable) {
-                $fresh = false;
-            }
-
-            if (! $fresh || $fingerprint === null) {
-                $failed["data.donation_channels.{$index}.qr_upload"] = __('The QR upload expired or is invalid. Please upload the QR image again.');
-            }
-        }
-
-        if ($failed !== []) {
-            throw ValidationException::withMessages($failed);
-        }
-    }
-
-    /**
-     * Build a storage filename for a donation QR upload following the
-     * application media naming policy, with the extension sniffed from the
-     * file contents instead of trusting the client-provided name.
-     */
-    public static function safeDonationQrFileName(TemporaryUploadedFile $file, ?Model $subject = null): string
-    {
-        $extension = strtolower((string) $file->guessExtension());
-
-        if (! in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-            $extension = 'png';
-        }
-
-        $base = MediaFileNamer::resolveBaseNameFromModel($subject);
-        $suffix = strtolower(substr((string) Str::ulid(), -8));
-
-        return "{$base}-{$suffix}.{$extension}";
-    }
-
-    /**
-     * Attach freshly uploaded donation QR images to their channels. Uploads
-     * are keyed by submitted row so each file follows its row's identity,
-     * even when invalid sibling rows were dropped during sync.
-     *
-     * @param  array<int|string, array<string, mixed>>  $submittedRows
-     * @param  array<int|string, TemporaryUploadedFile>  $uploads
-     */
-    public function attachDonationQrUploads(Model $model, array $submittedRows, array $uploads): void
-    {
-        if (! method_exists($model, 'donationChannels') || $uploads === []) {
-            return;
-        }
-
-        $failed = [];
-
-        foreach ($uploads as $index => $file) {
-            $row = $submittedRows[$index] ?? null;
-            $fingerprint = is_array($row) ? self::donationChannelFingerprint($row) : null;
-            $channel = $fingerprint === null ? null : $this->findDonationChannelByFingerprint($model, $fingerprint);
-
-            try {
-                $contents = $file->exists() ? $file->get() : null;
-            } catch (\Throwable) {
-                $contents = null;
-            }
-
-            if (! is_string($contents) || $contents === '' || ! $channel instanceof DonationChannel) {
-                $failed["data.donation_channels.{$index}.qr_upload"] = __('The QR upload expired or is invalid. Please upload the QR image again.');
-
-                continue;
-            }
-
-            $channel->addMediaFromString($contents)
-                ->usingFileName(self::safeDonationQrFileName($file, $channel))
-                ->usingName(MediaFileNamer::resolveDisplayNameFromModel($channel, 'qr', $file->getClientOriginalName()))
-                ->toMediaCollection('qr');
-        }
-
-        if ($failed !== []) {
-            throw ValidationException::withMessages($failed);
-        }
-    }
-
-    /**
-     * Move a staged visitor QR onto its approved channel. The staged copy is
-     * always discarded so approvals never leak pending media.
-     */
-    public function attachStagedDonationQr(Model $entity, Media $staged): void
-    {
-        $fingerprint = $staged->getCustomProperty('donation_fingerprint');
-        $channel = is_string($fingerprint) && $fingerprint !== '' && method_exists($entity, 'donationChannels')
-            ? $this->findDonationChannelByFingerprint($entity, $fingerprint)
-            : null;
-
-        if ($channel instanceof DonationChannel) {
-            $channel->addMediaFromDisk($staged->getPathRelativeToRoot(), $staged->disk)
-                ->usingFileName($staged->file_name)
-                ->toMediaCollection('qr');
-        }
-
-        $staged->delete();
-    }
-
-    private function findDonationChannelByFingerprint(Model $model, string $fingerprint): ?DonationChannel
-    {
-        if (! method_exists($model, 'donationChannels')) {
-            return null;
-        }
-
-        return $model->donationChannels()->get()->first(
-            fn (DonationChannel $channel): bool => self::donationChannelFingerprint($this->donationChannelRow($channel)) === $fingerprint
-        );
     }
 
     /**

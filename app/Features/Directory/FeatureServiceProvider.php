@@ -6,6 +6,7 @@ namespace App\Features\Directory;
 
 use App\Features\Directory\Actions\Institutions\InstitutionSubmissionAccessAction;
 use App\Features\Directory\Actions\Persons\PersonSubmissionAccessAction;
+use App\Features\Directory\Api\DirectoryContributionMedia;
 use App\Features\Directory\Api\DirectoryReportSubjectProvider;
 use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Features\Directory\Api\InstitutionSpaceLinks;
@@ -21,6 +22,7 @@ use App\Features\Directory\Api\VenueWorkflow;
 use App\Features\Directory\EntryPoints\Console\FlagStaleInactiveInstitutions;
 use App\Features\Directory\Listeners\MediaDirectoryCacheListener;
 use App\Features\Directory\Queries\ReferenceResourceSearchAdapter;
+use App\Features\Directory\Services\DirectoryContributionMediaService;
 use App\Features\Directory\Services\DirectoryReportSubjectResolver;
 use App\Features\Directory\Services\DonationChannelWorkflowService;
 use App\Features\Directory\Services\InstitutionSpaceLinkService;
@@ -69,6 +71,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(VenueWorkflow::class, VenueWorkflowService::class);
         $this->app->bind(SpaceWorkflow::class, SpaceWorkflowService::class);
         $this->app->bind(DirectoryReportSubjectProvider::class, DirectoryReportSubjectResolver::class);
+        $this->app->bind(DirectoryContributionMedia::class, DirectoryContributionMediaService::class);
         $this->app->bind(DonationChannelWorkflow::class, DonationChannelWorkflowService::class);
 
         $this->app->tag([MediaDirectoryCacheListener::class], MediaChangeListener::TAG);

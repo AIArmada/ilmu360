@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Directory\Api\DirectoryContributionMedia;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\InstitutionContributionFormSchema;
 use App\Forms\SharedFormSchema;
@@ -14,7 +15,6 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
-use App\Services\ContributionEntityMutationService;
 use App\Shared\Signals\SignalRecorder;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -253,7 +253,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
             // missing temporary files, and the create wraps persistence in a
             // transaction that would strand orphaned media files on disk.
             $rawDonationRows = $this->data['donation_channels'] ?? null;
-            ContributionEntityMutationService::assertDonationQrUploadsFresh($rawDonationRows);
+            app(DirectoryContributionMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
 
             $state = $this->contributionForm()->getState();
             $donationQrUploads = SharedFormSchema::rekeyDonationRowsByRawKeys(
@@ -297,7 +297,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                         $this->contributionForm()->model($institution)->saveRelationships();
 
                         if ($donationQrUploads !== []) {
-                            app(ContributionEntityMutationService::class)->attachDonationQrUploads(
+                            app(DirectoryContributionMedia::class)->attachDonationQrUploads(
                                 $institution,
                                 $submittedDonationRows,
                                 $donationQrUploads,

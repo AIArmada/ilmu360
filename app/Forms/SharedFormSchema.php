@@ -27,6 +27,7 @@ use App\Platform\Contributions\ContributionPayload;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\LocationLevelLabels;
 use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Contributions\Support\DonationQrUploads;
 use App\Support\Location\LocationSlugResolver;
 use Closure;
 use Filament\Forms\Components\Hidden;
@@ -41,7 +42,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
@@ -543,26 +543,7 @@ class SharedFormSchema
      */
     public static function collectDonationQrUploads(mixed $donationRows): array
     {
-        $uploads = [];
-
-        if (! is_array($donationRows)) {
-            return $uploads;
-        }
-
-        foreach ($donationRows as $index => $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            $file = $row['qr_upload'] ?? null;
-            $file = is_array($file) ? Arr::first($file) : $file;
-
-            if ($file instanceof TemporaryUploadedFile) {
-                $uploads[$index] = $file;
-            }
-        }
-
-        return $uploads;
+        return DonationQrUploads::collect($donationRows);
     }
 
     /**
