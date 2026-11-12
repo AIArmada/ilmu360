@@ -10,10 +10,10 @@
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Contributions C2): arch 0/**13 features**; Pest 291/291 (1652 assertions) + 139/139 after the typing fix; routes 738 unchanged; touched PHPStan 0.
 
-## Next action — Contributions C3 request lifecycle and claim (queued)
+## Next action — Contributions C3 request lifecycle and claim (in progress)
 
 - C0 seams (`0f07d369`), C1 Events contribution writes (`0be80013`) and C2 Directory contribution media (`59c983fe`) landed with Ember `AGREE`.
-- C3 is next: give Contributions ownership of the request lifecycle and claim `contribution_requests`, moving the eight named request writers and preserving the approval transaction, locks, duplicate re-check, staged checks and notifications.
+- C3 is running: move the request lifecycle writers into Contributions, expose a scalar lifecycle API for root callers, replace the Filament bulk delete, and claim `contribution_requests`.
 - Then C4 media hardening → C5 transport (deferred) → C6 cleanup.
 - Full whole-app conversion remains open.
 
