@@ -35,6 +35,19 @@ it('allows several named actions to own mutations of the same resource', functio
     ]]);
 });
 
+it('accepts contributor writers as named owners of their direct writes', function (): void {
+    $place = $this->project->writer('Orders', 'PlaceOrder');
+    $lifecycle = $this->project->writer('Orders', 'OrderLifecycle', 'Contributors');
+    $this->project->feature('Orders', [
+        'table:orders' => [$place],
+        'table:order_lifecycle' => [$lifecycle],
+    ]);
+
+    $catalog = FeatureCatalog::load($this->project->path);
+
+    expect($catalog['writes'][$lifecycle])->toBe(['table:order_lifecycle']);
+});
+
 it('rejects two features claiming the same resource', function (): void {
     $charge = $this->project->writer('Billing', 'ChargeOrder');
     $place = $this->project->writer('Orders', 'PlaceOrder');
@@ -64,4 +77,5 @@ it('rejects a writer outside the owning action or persistence directories', func
 })->with([
     'HTTP entrypoint' => ['Orders', 'EntryPoints'],
     'another feature action' => ['Billing', 'Actions'],
+    'another feature contributor' => ['Billing', 'Contributors'],
 ]);

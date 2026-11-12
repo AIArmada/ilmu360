@@ -101,22 +101,28 @@ use Illuminate\Support\Facades\Event;
  * captured by legacy snapshots. It is tagged once by this provider under the
  * shared AccountLifecycleContributor tag with the unchanged `events` key and
  * priority 70, so existing deleted-account snapshots stay readable. The
- * contributor is intentionally not a manifest writer: contributors are not
- * Actions/Persistence classes, and the account-lifecycle write spans tables
- * owned by different features. Its event ownership and event_submissions
- * submitter-link rewrites are account-lifecycle cross-owner writes recorded
- * for the final exact exceptions, while its event_registrations and
- * event_attendances link writes target tables owned by this feature.
+ * contributor is a declared manifest writer for event_registrations and
+ * event_attendances, the Registration-owned tables it rewrites directly. Its
+ * Events-owned event ownership and event_submissions submitter-link rewrites
+ * are account-lifecycle cross-owner writes recorded for the final exact
+ * exceptions; they are not claimed here.
  *
  * The following root/package writers remain and are recorded for the later
  * migration slices:
  *
- * - root Registration model: booted() repeats the vendor cascade and deletes
- *   check-in rows on a direct registration delete. The vendor cascade runs
- *   from the registration `deleting` hook and does remove participants,
- *   answers, items and attendances for direct deletes, but root keeps the
- *   hook until R6 verifies every delete path and the participant-only
- *   attendance edge.
+ * - root Registration model: booted() keeps only the participant-owned
+ *   cleanup that runs before the vendor registration cascade. The vendor
+ *   EventDeleteCascade::deleteForRegistration removes participants (contact
+ *   methods cascade from the participant HasContactMethods deleting hook),
+ *   registration-level answers/items/attendances with their logs, passes,
+ *   child registrations and registration-owned morph children. The root hook
+ *   deletes participant answers and participant attendances first, which
+ *   covers attendance rows with a null event_registration_id that the
+ *   registration attendance relation cannot see, then deletes the participant
+ *   row. Check-ins are event_attendances rows keyed by event_registration_id,
+ *   so the vendor registration attendance relation covers them; the root hook
+ *   no longer repeats registration-level answers, items, attendances or
+ *   check-ins.
  * - vendor Filament registration/attendance surfaces: the registration
  *   resource importer (EventRegistrationImporter) and the check-in console
  *   (CheckInConsole) write registrations and attendance outside the feature
@@ -128,9 +134,10 @@ use Illuminate\Support\Facades\Event;
  *
  * The dashboard registration-questions workspace is a Registration entry
  * point that delegates question writes to the package actions; admission
- * setup remains Events-owned. Pending slices: R5 reads/exports, R6 cleanup
- * and delete-path consolidation. Registration exports and the vendor Filament
- * attendance console also remain deferred to those slices.
+ * setup remains Events-owned. R6 consolidated the registration delete path in
+ * the root model hook. Registration exports still wait for the R5 reads/
+ * exports slice, and the vendor Filament attendance console remains deferred
+ * to the final admin composition.
  */
 class FeatureServiceProvider extends FeatureModule
 {

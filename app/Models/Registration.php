@@ -91,20 +91,21 @@ class Registration extends PackageEventRegistration implements AuditableContract
     #[\Override]
     protected static function booted(): void
     {
-        parent::booted();
-
+        // Register this participant-owned cleanup first: the vendor
+        // registration cascade deletes the participant rows, and participant
+        // answers/attendances are keyed by participant id. An attendance may
+        // also have a null event_registration_id, so the vendor registration
+        // attendance relation cannot see it. Contact methods cascade from the
+        // participant model's HasContactMethods deleting hook.
         static::deleting(function (Registration $registration): void {
-            $registration->attendances()->each(fn ($attendance): bool => (bool) $attendance->delete());
-            $registration->answers()->each(fn ($answer): bool => (bool) $answer->delete());
-            $registration->items()->each(fn ($item): bool => (bool) $item->delete());
             $registration->participants()->each(function (EventRegistrationParticipant $participant): void {
-                $participant->contactMethods()->delete();
                 $participant->answers()->each(fn ($answer): bool => (bool) $answer->delete());
                 $participant->attendances()->each(fn ($attendance): bool => (bool) $attendance->delete());
                 $participant->delete();
             });
-            $registration->checkins()->each(fn (EventCheckin $checkin): bool => (bool) $checkin->delete());
         });
+
+        parent::booted();
     }
 
     #[\Override]

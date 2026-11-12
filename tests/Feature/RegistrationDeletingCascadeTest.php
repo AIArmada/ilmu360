@@ -45,12 +45,21 @@ it('deletes the registration subtree when a registration is deleted', function (
         'source' => 'test',
         'occurred_at' => now(),
     ]);
+    $unlinkedCheckin = EventCheckin::factory()->for($event)->create([
+        'event_registration_id' => $registration->id,
+        'event_registration_participant_id' => null,
+    ]);
+    $child = Registration::factory()->for($event)->create([
+        'parent_registration_id' => $registration->id,
+    ]);
 
     $registrationId = $registration->id;
     $participantId = $participant->id;
     $answerId = $answer->id;
     $itemId = $item->id;
     $checkinId = $checkin->id;
+    $unlinkedCheckinId = $unlinkedCheckin->id;
+    $childId = $child->id;
     $logId = $log->id;
     $contactMethodIds = DB::table('contact_methods')
         ->where('contactable_type', $participant->getMorphClass())
@@ -61,10 +70,34 @@ it('deletes the registration subtree when a registration is deleted', function (
     $registration->delete();
 
     expect(DB::table('event_registrations')->where('id', $registrationId)->exists())->toBeFalse()
+        ->and(DB::table('event_registrations')->where('id', $childId)->exists())->toBeFalse()
         ->and(DB::table('event_registration_participants')->where('id', $participantId)->exists())->toBeFalse()
         ->and(DB::table('contact_methods')->whereIn('id', $contactMethodIds)->exists())->toBeFalse()
         ->and(DB::table('event_registration_answers')->where('id', $answerId)->exists())->toBeFalse()
         ->and(DB::table('event_registration_items')->where('id', $itemId)->exists())->toBeFalse()
         ->and(DB::table('event_attendances')->where('id', $checkinId)->exists())->toBeFalse()
+        ->and(DB::table('event_attendances')->where('id', $unlinkedCheckinId)->exists())->toBeFalse()
         ->and(DB::table('event_attendance_logs')->where('id', $logId)->exists())->toBeFalse();
+});
+
+it('deletes participant-owned attendance rows without a registration link', function () {
+    $event = Event::factory()->create();
+    $registration = Registration::factory()->for($event)->withPrimaryParticipant('Participant Only')->create();
+    $participant = $registration->participants()->where('is_primary', true)->sole();
+    $attendance = EventCheckin::factory()->for($event)->create([
+        'event_registration_id' => null,
+        'event_registration_participant_id' => $participant->id,
+    ]);
+    $log = EventAttendanceLog::query()->create([
+        'event_attendance_id' => $attendance->id,
+        'action' => 'check_in',
+        'source' => 'test',
+        'occurred_at' => now(),
+    ]);
+
+    $registration->delete();
+
+    expect(DB::table('event_registration_participants')->where('id', $participant->id)->exists())->toBeFalse()
+        ->and(DB::table('event_attendances')->where('id', $attendance->id)->exists())->toBeFalse()
+        ->and(DB::table('event_attendance_logs')->where('id', $log->id)->exists())->toBeFalse();
 });

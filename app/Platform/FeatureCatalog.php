@@ -42,8 +42,8 @@ final class FeatureCatalog
                 foreach ($actions as $class) {
                     $prefix = "App\\Features\\{$name}\\";
                     if (! is_string($class) || ! str_starts_with($class, $prefix)
-                        || ! preg_match('/^(Actions|Persistence)\\\\[A-Za-z_][A-Za-z0-9_\\\\]*$/D', substr($class, strlen($prefix)))) {
-                        throw new RuntimeException("{$resource}: write classes must be under {$prefix}Actions or Persistence.");
+                        || ! preg_match('/^(Actions|Persistence|Contributors)\\\\[A-Za-z_][A-Za-z0-9_\\\\]*$/D', substr($class, strlen($prefix)))) {
+                        throw new RuntimeException("{$resource}: write classes must be under {$prefix}Actions, Persistence or Contributors.");
                     }
                     $file = $root.'/app/'.str_replace('\\', '/', substr($class, 4)).'.php';
                     if (! is_file($file) || ! str_starts_with(realpath($file), realpath($folder).DIRECTORY_SEPARATOR)) {

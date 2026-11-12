@@ -144,7 +144,7 @@ final class OwnedWriteRule implements Rule
             $allowed = array_filter($resources, static fn (string $value): bool => str_starts_with($value, $prefix));
             if ($allowed === []) {
                 // Unresolvable keys have no table/store identity; exceptions name the storage category.
-                return $this->violation('Storage mutations belong in a named owning-feature Actions/Persistence class listed in feature.json.', self::WRITE_LOCATION, $relative, $prefix.'unknown');
+                return $this->violation('Storage mutations belong in a named owning-feature Actions/Persistence/Contributors class listed in feature.json.', self::WRITE_LOCATION, $relative, $prefix.'unknown');
             }
         }
 

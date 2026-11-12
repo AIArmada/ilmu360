@@ -5,7 +5,8 @@
     "table:event_registrations": [
       "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",
       "App\\Features\\Registration\\Actions\\IssueOfflineAdmissionAction",
-      "App\\Features\\Registration\\Actions\\RecordFreeCheckoutMetadataAction"
+      "App\\Features\\Registration\\Actions\\RecordFreeCheckoutMetadataAction",
+      "App\\Features\\Registration\\Contributors\\RegistrationAccountLifecycleContributor"
     ],
     "table:event_registration_participants": [
       "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",
@@ -22,7 +23,8 @@
     "table:event_attendances": [
       "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction",
       "App\\Features\\Registration\\Actions\\RecordEventParticipantCheckInAction",
-      "App\\Features\\Registration\\Actions\\UpdateEventParticipantAttendanceAction"
+      "App\\Features\\Registration\\Actions\\UpdateEventParticipantAttendanceAction",
+      "App\\Features\\Registration\\Contributors\\RegistrationAccountLifecycleContributor"
     ],
     "table:event_attendance_logs": [
       "App\\Features\\Registration\\Actions\\RecordSelfCheckInAction",

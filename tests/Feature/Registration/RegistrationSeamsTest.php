@@ -156,6 +156,10 @@ it('discovers the registration feature manifest and provider exactly once', func
         ->and($catalog['writes'][RecordFreeCheckoutMetadataAction::class])->toEqualCanonicalizing([
             'table:event_registrations',
         ])
+        ->and($catalog['writes'][RegistrationAccountLifecycleContributor::class])->toEqualCanonicalizing([
+            'table:event_registrations',
+            'table:event_attendances',
+        ])
         ->and($catalog['writes'])->not->toHaveKey(ConfirmOfflineAdmissionAction::class)
         ->and($catalog['writes'][RecordSelfCheckInAction::class])->toEqualCanonicalizing([
             'table:event_attendances',
