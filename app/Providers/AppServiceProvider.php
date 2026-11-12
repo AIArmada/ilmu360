@@ -187,7 +187,6 @@ use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Communications\AccountNotificationSettings;
-use App\Shared\Contributions\ContributionRequestReader;
 use App\Shared\Directory\DirectoryCatalog;
 use App\Shared\Directory\PrayerInstitutionCatalog;
 use App\Shared\Directory\ReferenceScopedSearch;
@@ -228,7 +227,6 @@ use App\Support\Communications\CommunicationsAccountLifecycleContributor;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
 use App\Support\Contributions\ContributionsAccountLifecycleContributor;
-use App\Support\Contributions\EloquentContributionRequestReader;
 use App\Support\Directory\DirectoryAccountLifecycleContributor;
 use App\Support\Directory\EloquentDirectoryAdmin;
 use App\Support\Directory\EloquentDirectoryCatalog;
@@ -358,7 +356,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DirectoryAdminContract::class, EloquentDirectoryAdmin::class);
         $this->app->bind(SubmissionEligibilitySync::class, PublicSubmissionEligibilitySync::class);
         $this->app->bind(AccountEventFacts::class, EloquentAccountEventFacts::class);
-        $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
         $this->app->bind(EngagementReader::class, EloquentEngagementReader::class);
         $this->app->tag([
             DirectoryAccountLifecycleContributor::class,

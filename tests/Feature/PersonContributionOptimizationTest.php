@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Persons\Models\Title;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\InstitutionFormSchema;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Models\Institution;

@@ -117,7 +117,7 @@
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
         fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );
-    $personRouteSegment = \App\Enums\ContributionSubjectType::Person->publicRouteSegment();
+    $personRouteSegment = \App\Shared\Contributions\Enums\ContributionSubjectType::Person->publicRouteSegment();
 
     $resolveEventCardLocation = static function (\App\Models\Event $event, ?\App\Data\PublicScheduleLeaf $scheduleLeaf = null): array {
         $location = $scheduleLeaf?->occurrence->locations->first()

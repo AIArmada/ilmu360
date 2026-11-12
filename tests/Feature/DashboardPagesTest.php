@@ -4,7 +4,7 @@ use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\FilamentEvents\Resources\EventResource;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Features\SavedSearches\Models\SavedSearch;

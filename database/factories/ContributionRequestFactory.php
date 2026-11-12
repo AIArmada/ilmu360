@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ContributionRequestStatus;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Models\ContributionRequest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;

@@ -15,7 +15,7 @@ use App\Models\Person;
 use App\Models\Registration;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Contributions\ContributionRequestReader;
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;

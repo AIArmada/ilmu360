@@ -4,7 +4,7 @@ use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Institution;

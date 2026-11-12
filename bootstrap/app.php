@@ -5,7 +5,7 @@ declare(strict_types=1);
 use AIArmada\CommerceSupport\Exceptions\NoCurrentOwnerException;
 use AIArmada\CommerceSupport\Middleware\SetExplicitGlobalOwnerContext;
 use AIArmada\Organizations\Http\Middleware\CurrentOrganizationMiddleware;
-use App\Exceptions\ContributionRequestNotPendingException;
+use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Http\Middleware\NormalizeApiJsonResponse;
 use App\Http\Middleware\SetFilamentTimezone;
 use App\Http\Middleware\SetLocale;

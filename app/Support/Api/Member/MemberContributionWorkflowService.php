@@ -10,7 +10,7 @@ use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Actions\Contributions\Review\RejectContributionRequestAction;
 use App\Actions\Contributions\Submission\CancelContributionRequestAction;
-use App\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -18,7 +18,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use App\Shared\Contributions\ContributionRequestReader;
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Support\Submission\ContributionSubjectPresenter;
 use BackedEnum;
 use Carbon\CarbonInterface;

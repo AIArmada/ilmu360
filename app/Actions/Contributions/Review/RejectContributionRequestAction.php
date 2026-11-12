@@ -2,8 +2,8 @@
 
 namespace App\Actions\Contributions\Review;
 
-use App\Enums\ContributionRequestType;
-use App\Exceptions\ContributionRequestNotPendingException;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;

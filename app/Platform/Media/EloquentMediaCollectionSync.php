@@ -44,6 +44,38 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $customProperties
+     */
+    public function syncFromDisk(
+        HasMedia $model,
+        string $path,
+        string $disk,
+        string $collection,
+        ?string $fileName = null,
+        ?string $name = null,
+        array $customProperties = [],
+    ): void {
+        $modelRecord = $model instanceof Model ? $model : null;
+        $fileName ??= basename($path);
+        $originalFileName = is_string($customProperties['original_file_name'] ?? null)
+            ? $customProperties['original_file_name']
+            : $fileName;
+        $name ??= MediaFileNamer::resolveDisplayNameFromModel($modelRecord, $collection, $originalFileName);
+
+        $model
+            ->addMediaFromDisk($path, $disk)
+            ->preservingOriginal()
+            ->usingFileName($fileName)
+            ->usingName($name)
+            ->withCustomProperties([
+                'collection' => $collection,
+                'original_file_name' => $originalFileName,
+                ...$customProperties,
+            ])
+            ->toMediaCollection($collection);
+    }
+
     private function addMedia(HasMedia $model, UploadedFile $file, string $collection): void
     {
         $modelRecord = $model instanceof Model ? $model : null;

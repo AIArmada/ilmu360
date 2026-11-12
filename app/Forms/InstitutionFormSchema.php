@@ -4,8 +4,8 @@ namespace App\Forms;
 
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
-use App\Enums\ContributionSubjectType;
+use App\Platform\Concurrency\MapsIdentityLock;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Models\Institution;
 use App\Shared\Cache\SelectionCatalogCache;
@@ -236,7 +236,7 @@ class InstitutionFormSchema
             return $create();
         }
 
-        return app(WithInstitutionMapsIdentityLockAction::class)->handle($data, $create);
+        return app(MapsIdentityLock::class)->handle($data, $create);
     }
 
     /**

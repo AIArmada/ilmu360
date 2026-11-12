@@ -6,7 +6,7 @@ use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Models\ContributionRequest;
 use App\Models\Event;

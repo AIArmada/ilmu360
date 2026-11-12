@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Contributions;
+namespace App\Features\Contributions\Queries;
 
-use App\Models\ContributionRequest;
-use App\Shared\Contributions\ContributionRequestReader;
+use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Features\Contributions\Support\ContributionModel;
 
 final readonly class EloquentContributionRequestReader implements ContributionRequestReader
 {
     public function requestIdsForProposer(string $accountId): array
     {
-        return ContributionRequest::query()
+        return ContributionModel::modelClass()::query()
             ->where('proposer_id', $accountId)
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
@@ -21,7 +21,7 @@ final readonly class EloquentContributionRequestReader implements ContributionRe
 
     public function requestIdsForReviewer(string $accountId): array
     {
-        return ContributionRequest::query()
+        return ContributionModel::modelClass()::query()
             ->where('reviewer_id', $accountId)
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
@@ -31,7 +31,7 @@ final readonly class EloquentContributionRequestReader implements ContributionRe
 
     public function findRequestIdForProposer(string $accountId, string $requestId): ?string
     {
-        $id = ContributionRequest::query()
+        $id = ContributionModel::modelClass()::query()
             ->where('proposer_id', $accountId)
             ->whereKey($requestId)
             ->value('id');

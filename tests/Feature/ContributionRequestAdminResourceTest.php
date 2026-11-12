@@ -1,8 +1,8 @@
 <?php
 
-use App\Enums\ContributionRequestStatus;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
 use App\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;

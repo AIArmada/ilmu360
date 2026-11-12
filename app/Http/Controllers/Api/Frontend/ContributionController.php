@@ -22,7 +22,7 @@ use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction
 use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Actions\Institutions\InferInstitutionTypeAction;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
@@ -38,7 +38,7 @@ use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use App\Platform\Media\MediaCollectionSync;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Services\ContributionEntityMutationService;
-use App\Shared\Contributions\ContributionRequestReader;
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use App\Support\Submission\ContributionSubjectPresenter;

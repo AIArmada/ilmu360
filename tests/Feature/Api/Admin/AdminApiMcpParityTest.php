@@ -2,8 +2,8 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Features\Reports\Models\Report;

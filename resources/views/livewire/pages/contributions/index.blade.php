@@ -390,7 +390,7 @@
                                         @endif
                                     </div>
 
-                                    @if($request->status === \App\Enums\ContributionRequestStatus::Pending)
+                                    @if($request->status === \App\Shared\Contributions\Enums\ContributionRequestStatus::Pending)
                                         <button type="button" wire:click="cancel('{{ $request->id }}')"
                                             class="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50">
                                             {{ __('Cancel') }}
@@ -455,7 +455,7 @@
                                         @endif
                                     </div>
 
-                                    @if($request->status === \App\Enums\ContributionRequestStatus::Pending)
+                                    @if($request->status === \App\Shared\Contributions\Enums\ContributionRequestStatus::Pending)
                                         <button type="button" wire:click="cancel('{{ $request->id }}')"
                                             class="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50">
                                             {{ __('Cancel') }}

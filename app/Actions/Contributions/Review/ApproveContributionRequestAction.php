@@ -3,12 +3,12 @@
 namespace App\Actions\Contributions\Review;
 
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
-use App\Enums\ContributionRequestStatus;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
-use App\Exceptions\ContributionRequestAlreadyReviewedException;
-use App\Exceptions\ContributionRequestNotPendingException;
+use App\Platform\Concurrency\MapsIdentityLock;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
+use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
@@ -43,7 +43,7 @@ class ApproveContributionRequestAction
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
         private readonly EnsureUniqueContributionCreateAction $ensureUniqueContributionCreateAction,
-        private readonly WithInstitutionMapsIdentityLockAction $withInstitutionMapsIdentityLockAction,
+        private readonly MapsIdentityLock $mapsIdentityLock,
     ) {}
 
     public function handle(ContributionRequest $request, User $reviewer, ?string $reviewerNote = null): ContributionRequest
@@ -95,7 +95,7 @@ class ApproveContributionRequestAction
             // backstopped by the request row lock below plus the pending-claim
             // check, since the lock key cannot cover identities the proposal
             // does not carry.
-            $this->withInstitutionMapsIdentityLockAction->handle(
+            $this->mapsIdentityLock->handle(
                 ['address' => $this->addressPayload($proposed)],
                 function () use ($approve, $request, $proposed): void {
                     $request->refresh();

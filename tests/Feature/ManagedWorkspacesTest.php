@@ -11,7 +11,7 @@ use AIArmada\Membership\Services\MembershipRoleSyncService;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Membership\Actions\TransferPersonOwnershipAction;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;

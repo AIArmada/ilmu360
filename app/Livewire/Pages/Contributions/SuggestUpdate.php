@@ -13,8 +13,8 @@ use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction
 use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
-use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
-use App\Enums\ContributionSubjectType;
+use App\Platform\Concurrency\MapsIdentityLock;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\EventContributionFormSchema;
 use App\Forms\InstitutionContributionFormSchema;
 use App\Forms\PersonContributionFormSchema;
@@ -345,7 +345,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
         SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
-        WithInstitutionMapsIdentityLockAction $mapsIdentityLockAction,
+        MapsIdentityLock $mapsIdentityLockAction,
     ): void {
         OwnerContext::withOwner(null, function () use (
             $applyDirectContributionUpdateAction,

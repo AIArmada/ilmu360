@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
-use App\Enums\ContributionRequestStatus;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\ContributionRequest;

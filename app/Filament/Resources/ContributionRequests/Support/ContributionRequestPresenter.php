@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\ContributionRequests\Support;
 
 use AIArmada\FilamentEvents\Resources\EventResource;
-use App\Enums\ContributionRequestStatus;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;

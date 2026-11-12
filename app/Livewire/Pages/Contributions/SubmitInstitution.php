@@ -6,7 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\InstitutionContributionFormSchema;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;

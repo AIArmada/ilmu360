@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Enums\ContributionRequestStatus;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Enums\MemberSubjectType;
 use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Member\MemberApproveContributionRequestTool;

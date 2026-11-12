@@ -3,7 +3,7 @@
 use AIArmada\Authz\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

@@ -2,7 +2,7 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\User;

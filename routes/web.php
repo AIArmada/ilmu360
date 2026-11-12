@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;

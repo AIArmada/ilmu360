@@ -5,7 +5,7 @@ use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Models\ContributionRequest;
 use App\Models\Event;

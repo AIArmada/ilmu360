@@ -5,7 +5,7 @@ namespace App\Livewire\Pages\Contributions;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\PersonContributionFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Person;

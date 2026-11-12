@@ -1007,7 +1007,7 @@
                     <h2 id="occurrence-feedback-title" class="font-heading text-xl font-normal leading-snug text-[#14342e]">{{ __('Bantu semak majlis ini') }}</h2>
                     <p class="mt-2 text-[13px] leading-6 text-[#4c5b56]">{{ __('Nampak maklumat yang tidak tepat? Maklumkan kepada kami.') }}</p>
                     @php
-                        $feedbackSubjectType = \App\Enums\ContributionSubjectType::Event->publicRouteSegment();
+                        $feedbackSubjectType = \App\Shared\Contributions\Enums\ContributionSubjectType::Event->publicRouteSegment();
                     @endphp
                     <div class="mt-4 grid grid-cols-2 gap-2">
                         <a href="{{ route('contributions.suggest-update', ['subjectType' => $feedbackSubjectType, 'subjectId' => $event->slug]) }}" wire:navigate class="inline-flex items-center justify-center gap-1.5 rounded-full border border-[#e6dccb] bg-white px-3 py-2 text-[12px] font-semibold text-[#14342e] transition duration-300 hover:border-[#c9962f]/50 hover:bg-[#f8f3e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">{{ __('Cadang kemaskini') }}</a>

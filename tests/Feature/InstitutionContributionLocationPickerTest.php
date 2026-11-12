@@ -10,7 +10,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Actions\Contributions\Review\RejectContributionRequestAction;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;

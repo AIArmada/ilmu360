@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Authz\Models\Role;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

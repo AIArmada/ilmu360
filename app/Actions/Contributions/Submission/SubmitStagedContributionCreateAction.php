@@ -2,8 +2,8 @@
 
 namespace App\Actions\Contributions\Submission;
 
-use App\Actions\Institutions\WithInstitutionMapsIdentityLockAction;
-use App\Enums\ContributionSubjectType;
+use App\Platform\Concurrency\MapsIdentityLock;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -23,7 +23,7 @@ class SubmitStagedContributionCreateAction
         protected EnsureUniqueContributionCreateAction $ensureUniqueContributionCreateAction,
         protected NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
         protected SubmitContributionCreateRequestAction $submitContributionCreateRequestAction,
-        protected WithInstitutionMapsIdentityLockAction $withInstitutionMapsIdentityLockAction,
+        protected MapsIdentityLock $mapsIdentityLock,
     ) {}
 
     /**
@@ -66,7 +66,7 @@ class SubmitStagedContributionCreateAction
         });
 
         return $subjectType === ContributionSubjectType::Institution
-            ? $this->withInstitutionMapsIdentityLockAction->handle($state, $create)
+            ? $this->mapsIdentityLock->handle($state, $create)
             : $create();
     }
 

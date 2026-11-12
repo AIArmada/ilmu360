@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Enums;
+declare(strict_types=1);
+
+namespace App\Shared\Contributions\Enums;
 
 use App\Models\Event;
 use App\Models\Institution;

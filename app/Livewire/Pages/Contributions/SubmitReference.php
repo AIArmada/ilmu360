@@ -4,7 +4,7 @@ namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\ReferenceContributionFormSchema;
 use App\Models\Reference;
 use App\Models\User;

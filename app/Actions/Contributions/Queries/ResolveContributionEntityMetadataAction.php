@@ -2,7 +2,7 @@
 
 namespace App\Actions\Contributions\Queries;
 
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

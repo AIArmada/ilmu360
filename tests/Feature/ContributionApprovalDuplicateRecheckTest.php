@@ -3,11 +3,11 @@
 use AIArmada\Authz\Models\Role;
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Actions\Contributions\Review\RejectContributionRequestAction;
-use App\Enums\ContributionRequestStatus;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
-use App\Exceptions\ContributionRequestAlreadyReviewedException;
-use App\Exceptions\ContributionRequestNotPendingException;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
+use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Institution;

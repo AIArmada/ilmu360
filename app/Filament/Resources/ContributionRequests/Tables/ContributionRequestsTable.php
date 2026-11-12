@@ -4,9 +4,9 @@ namespace App\Filament\Resources\ContributionRequests\Tables;
 
 use App\Actions\Contributions\Review\ApproveContributionRequestAction;
 use App\Actions\Contributions\Review\RejectContributionRequestAction;
-use App\Enums\ContributionRequestStatus;
-use App\Exceptions\ContributionRequestAlreadyReviewedException;
-use App\Exceptions\ContributionRequestNotPendingException;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
+use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;

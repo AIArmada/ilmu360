@@ -3,8 +3,8 @@
 namespace App\Services\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationManager;
-use App\Enums\ContributionRequestType;
-use App\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
 use App\Models\ContributionRequest;

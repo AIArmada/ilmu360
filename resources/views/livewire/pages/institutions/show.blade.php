@@ -48,7 +48,7 @@
         'fallbackTitle' => $institution->name,
         'payloadEndpoint' => route('share.payload'),
     ];
-    $institutionRouteSegment = \App\Enums\ContributionSubjectType::Institution->publicRouteSegment();
+    $institutionRouteSegment = \App\Shared\Contributions\Enums\ContributionSubjectType::Institution->publicRouteSegment();
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
         fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );

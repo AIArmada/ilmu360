@@ -2,7 +2,7 @@
 
 namespace App\Actions\Contributions\Queries;
 
-use App\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Models\ContributionRequest;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Institutions;
+namespace App\Platform\Concurrency;
 
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Location\GooglePlaceIdentity;
 use Closure;
 use Illuminate\Support\Facades\Cache;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-final class WithInstitutionMapsIdentityLockAction
+/**
+ * Serializes operations that resolve the same canonical Google Maps identity.
+ */
+final class MapsIdentityLock
 {
-    use AsAction;
-
     /**
-     * Serialize an institution create operation against the same canonical Maps identity.
+     * Serialize an operation against the same canonical Maps identity.
      *
      * @template TResult
      *
