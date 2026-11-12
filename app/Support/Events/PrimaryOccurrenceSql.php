@@ -24,6 +24,20 @@ class PrimaryOccurrenceSql
             throw new InvalidArgumentException("Unsupported primary occurrence column [{$column}].");
         }
 
+        return self::expression($column, $eventsTable);
+    }
+
+    /**
+     * End instant of the primary occurrence: `ends_at` falling back to
+     * `starts_at` when the occurrence has no end time.
+     */
+    public static function endInstant(?string $eventsTable = null): string
+    {
+        return self::expression('coalesce(#.ends_at, #.starts_at)', $eventsTable);
+    }
+
+    private static function expression(string $selectExpression, ?string $eventsTable = null): string
+    {
         $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
         $eventsTable ??= (new Event)->getTable();
 
@@ -39,8 +53,9 @@ class PrimaryOccurrenceSql
         $upcomingStatuses = self::sqlStringList(Event::UPCOMING_SCHEDULE_STATUSES);
         $publicVisibilities = self::sqlStringList(Event::PUBLIC_SCHEDULE_VISIBILITIES);
         $nowUtc = now()->utc()->format('Y-m-d H:i:s');
-        $groupedOccurrence = "(select {$occurrencesTable}.{$column} from {$occurrencesTable} where {$occurrencesTable}.event_id = {$eventsTable}.id and {$occurrencesTable}.status in ({$upcomingStatuses}) and {$occurrencesTable}.visibility in ({$publicVisibilities}) and {$occurrencesTable}.starts_at >= '{$nowUtc}' order by {$occurrencesTable}.starts_at asc, {$occurrencesTable}.created_at asc, {$occurrencesTable}.id asc limit 1)";
-        $managedOccurrence = "(select {$occurrencesTable}.{$column} from {$occurrencesTable} where {$occurrencesTable}.event_id = {$eventsTable}.id order by {$occurrencesTable}.starts_at asc, {$occurrencesTable}.created_at asc, {$occurrencesTable}.id asc limit 1)";
+        $selectExpression = str_replace('#', $occurrencesTable, $selectExpression);
+        $groupedOccurrence = "(select {$selectExpression} from {$occurrencesTable} where {$occurrencesTable}.event_id = {$eventsTable}.id and {$occurrencesTable}.status in ({$upcomingStatuses}) and {$occurrencesTable}.visibility in ({$publicVisibilities}) and {$occurrencesTable}.starts_at >= '{$nowUtc}' order by {$occurrencesTable}.starts_at asc, {$occurrencesTable}.created_at asc, {$occurrencesTable}.id asc limit 1)";
+        $managedOccurrence = "(select {$selectExpression} from {$occurrencesTable} where {$occurrencesTable}.event_id = {$eventsTable}.id order by {$occurrencesTable}.starts_at asc, {$occurrencesTable}.created_at asc, {$occurrencesTable}.id asc limit 1)";
 
         return "(case when {$groupKeyExists} then {$groupedOccurrence} else {$managedOccurrence} end)";
     }

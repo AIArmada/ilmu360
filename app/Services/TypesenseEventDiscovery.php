@@ -63,7 +63,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     ): LengthAwarePaginator {
         $search = Event::search($query ?? '')
             ->query(fn (Builder $builder) => $builder
-                ->where('events.status', 'approved')
+                ->whereIn('events.status', Event::PUBLIC_STATUSES)
                 ->whereHas('occurrences')
                 ->with($this->relationProvider->relations()));
 
@@ -94,7 +94,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         $search = Event::search('');
 
         $search->query(fn (Builder $builder) => $builder
-            ->where('events.status', 'approved')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->whereHas('occurrences')
             ->with($this->relationProvider->relations()));
         $search->options([
@@ -122,7 +122,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     ): LengthAwarePaginator {
         $search = Event::search($query)
             ->query(fn (Builder $builder) => $builder
-                ->where('events.status', 'approved')
+                ->whereIn('events.status', Event::PUBLIC_STATUSES)
                 ->whereHas('occurrences')
                 ->with($this->relationProvider->relations()));
 
@@ -149,14 +149,14 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         $timeScope = $this->normalizeTimeScope($filters['time_scope'] ?? null);
 
         $filterParts = [
-            'status:=approved',
+            'status:=['.implode(',', Event::PUBLIC_STATUSES).']',
             'visibility:public',
         ];
 
         $startsAfterTimestamp = $this->startsAfterTimestamp($filters, $timeScope);
 
         if ($startsAfterTimestamp !== null) {
-            $filterParts[] = '(ends_at:>='.$startsAfterTimestamp.'||starts_at:>='.$startsAfterTimestamp.')';
+            $filterParts[] = 'ends_at:>='.$startsAfterTimestamp;
         }
 
         $startsOnLocalDateRange = $this->startsOnLocalDateRange($filters);
@@ -168,10 +168,12 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
             $filterParts[] = 'starts_at:<='.$startsOnLocalDateEnd->timestamp;
         }
 
-        $startsBeforeTimestamp = $this->startsBeforeTimestamp($filters, $timeScope);
+        $startsBeforeTimestamp = $this->startsBeforeTimestamp($filters);
 
         if ($startsBeforeTimestamp !== null) {
             $filterParts[] = 'starts_at:<='.$startsBeforeTimestamp;
+        } elseif ($timeScope === 'past') {
+            $filterParts[] = 'ends_at:<'.now()->timestamp;
         }
 
         $filterParts = [
@@ -312,9 +314,9 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     /**
      * @param  array<string, mixed>  $filters
      */
-    protected function startsBeforeTimestamp(array $filters, string $timeScope = 'upcoming'): ?int
+    protected function startsBeforeTimestamp(array $filters): ?int
     {
-        $startsBefore = $this->startsBeforeDateTime($filters, $timeScope);
+        $startsBefore = $this->startsBeforeDateTime($filters);
 
         return $startsBefore?->timestamp;
     }
@@ -360,19 +362,9 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     /**
      * @param  array<string, mixed>  $filters
      */
-    protected function startsBeforeDateTime(array $filters, string $timeScope = 'upcoming'): ?CarbonInterface
+    protected function startsBeforeDateTime(array $filters): ?CarbonInterface
     {
-        $startsBefore = $this->parseDateFilter($filters['starts_before'] ?? null, true);
-
-        if ($startsBefore instanceof CarbonInterface) {
-            return $startsBefore;
-        }
-
-        if ($timeScope === 'past') {
-            return now();
-        }
-
-        return null;
+        return $this->parseDateFilter($filters['starts_before'] ?? null, true);
     }
 
     protected function normalizeTimeScope(mixed $value): string

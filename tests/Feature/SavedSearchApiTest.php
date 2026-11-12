@@ -256,6 +256,56 @@ describe('Saved Search API Endpoints', function () {
                     ]);
             });
 
+            it('accepts reference author search as a string or a list of strings', function () {
+                $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Author String Search',
+                    'filters' => [
+                        'reference_author_search' => 'Muhammad Abduh',
+                    ],
+                    'notify' => 'daily',
+                ])->assertCreated()
+                    ->assertJsonPath('data.filters.reference_author_search', 'Muhammad Abduh');
+
+                $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Author List Search',
+                    'filters' => [
+                        'reference_author_search' => ['Muhammad Abduh', 'Hamka'],
+                    ],
+                    'notify' => 'daily',
+                ])->assertCreated()
+                    ->assertJsonPath('data.filters.reference_author_search.0', 'Muhammad Abduh')
+                    ->assertJsonPath('data.filters.reference_author_search.1', 'Hamka');
+            });
+
+            it('rejects invalid reference author search payloads', function () {
+                $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Author Scalar Search',
+                    'filters' => [
+                        'reference_author_search' => 123,
+                    ],
+                    'notify' => 'daily',
+                ])->assertUnprocessable()
+                    ->assertJsonValidationErrors(['filters.reference_author_search']);
+
+                $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Author Long Search',
+                    'filters' => [
+                        'reference_author_search' => [str_repeat('a', 256)],
+                    ],
+                    'notify' => 'daily',
+                ])->assertUnprocessable()
+                    ->assertJsonValidationErrors(['filters.reference_author_search']);
+
+                $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Author Assoc Search',
+                    'filters' => [
+                        'reference_author_search' => ['author' => 'Muhammad Abduh'],
+                    ],
+                    'notify' => 'daily',
+                ])->assertUnprocessable()
+                    ->assertJsonValidationErrors(['filters.reference_author_search']);
+            });
+
             it('validates local event date filters', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Local Date Search',

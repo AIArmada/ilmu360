@@ -8,27 +8,16 @@ use App\Shared\Events\Enums\EventFormat;
 use App\Support\Location\VisitorCountryResolver;
 
 /**
- * D0 characterization: pin the visibility matrix that D1 must preserve or
- * explicitly change. These assertions describe current behaviour only; the
- * product rulings below are required before D1 touches any listing query.
+ * D0 characterization: pin the visibility matrix that D1a applies.
  *
- * Current matrix:
- * - home + /majlis: approved + public + published only.
+ * Ruled matrix:
+ * - home + /majlis: approved, pending and cancelled + public + published.
  * - REST event list: approved, pending and cancelled + public + published.
  * - REST event detail + Livewire event detail: approved, pending and cancelled
  *   + public/unlisted + published.
  * - sitemap: approved, pending and cancelled + public + published.
  * - draft and private events are absent from every public surface; unlisted
  *   events are reachable by direct link but absent from listings/sitemaps.
- *
- * Rulings needed before D1:
- * - Should pending/cancelled public events stay in the REST list and sitemap
- *   even though home and /majlis hide them?
- * - Should unlisted events remain reachable by direct detail link but excluded
- *   from sitemaps (SEO decision), and should the sitemap keep including
- *   pending/cancelled events?
- * - Should /majlis keep requiring `approved` while the REST list accepts all
- *   Public statuses?
  */
 beforeEach(function (): void {
     // PublicScheduleDiscoveryTest does the same: the visitor-country memo is a
@@ -84,8 +73,8 @@ it('pins the home visibility matrix', function (): void {
 
     $response->assertOk()
         ->assertSee($events['approved_public']->title)
-        ->assertDontSee($events['pending_public']->title)
-        ->assertDontSee($events['cancelled_public']->title)
+        ->assertSee($events['pending_public']->title)
+        ->assertSee($events['cancelled_public']->title)
         ->assertDontSee($events['draft_public']->title)
         ->assertDontSee($events['approved_unlisted']->title)
         ->assertDontSee($events['approved_private']->title)
@@ -99,8 +88,8 @@ it('pins the majlis listing visibility matrix', function (): void {
 
     $response->assertOk()
         ->assertSee($events['approved_public']->title)
-        ->assertDontSee($events['pending_public']->title)
-        ->assertDontSee($events['cancelled_public']->title)
+        ->assertSee($events['pending_public']->title)
+        ->assertSee($events['cancelled_public']->title)
         ->assertDontSee($events['draft_public']->title)
         ->assertDontSee($events['approved_unlisted']->title)
         ->assertDontSee($events['approved_private']->title)
@@ -163,4 +152,20 @@ it('pins the event sitemap visibility matrix', function (): void {
     foreach (['draft_public', 'approved_unlisted', 'approved_private', 'approved_unpublished'] as $key) {
         $response->assertDontSee(route('events.show', $events[$key]), false);
     }
+});
+
+it('lists the registered sitemap routes in the sitemap index', function (): void {
+    $response = $this->get(route('sitemap.index'));
+
+    $response->assertOk()
+        ->assertSee(route('sitemap.events'), false)
+        ->assertSee(route('sitemap.institutions'), false)
+        ->assertSee(route('sitemap.persons'), false)
+        ->assertDontSee(url('/sitemap-events.xml'), false)
+        ->assertDontSee(url('/sitemap-institutions.xml'), false)
+        ->assertDontSee(url('/sitemap-persons.xml'), false);
+
+    expect(route('sitemap.events'))->toEndWith('/peta-laman-majlis.xml')
+        ->and(route('sitemap.institutions'))->toEndWith('/peta-laman-institusi.xml')
+        ->and(route('sitemap.persons'))->toEndWith('/peta-laman-penceramah.xml');
 });

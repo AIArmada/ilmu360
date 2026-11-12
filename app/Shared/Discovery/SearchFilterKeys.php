@@ -32,6 +32,7 @@ final class SearchFilterKeys
             'source_tag_ids',
             'issue_tag_ids',
             'reference_ids',
+            'reference_author_search',
             'starts_on_local_date',
             'language_codes',
             'event_category_ids',

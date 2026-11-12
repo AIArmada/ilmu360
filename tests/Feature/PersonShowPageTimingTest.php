@@ -148,18 +148,21 @@ it('keeps hero event totals independent of the upcoming date filter', function (
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => Carbon::create(2026, 7, 30, 12, 0, 0, 'UTC'),
+        'ends_at' => Carbon::create(2026, 7, 30, 14, 0, 0, 'UTC'),
     ]);
     $nextMonth = Event::factory()->create([
         'title' => 'Majlis Bulan Depan',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => Carbon::create(2026, 8, 3, 12, 0, 0, 'UTC'),
+        'ends_at' => Carbon::create(2026, 8, 3, 14, 0, 0, 'UTC'),
     ]);
     $past = Event::factory()->create([
         'title' => 'Majlis Lepas',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => Carbon::create(2026, 7, 29, 12, 0, 0, 'UTC'),
+        'ends_at' => Carbon::create(2026, 7, 29, 14, 0, 0, 'UTC'),
     ]);
 
     linkPersonEvent($person, $today);
@@ -201,6 +204,7 @@ it('links to the filtered past events listing instead of rendering the speaker a
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->subDays(3),
+        'ends_at' => now()->subDays(3)->addHour(),
     ]);
     linkPersonEvent($person, $past);
 

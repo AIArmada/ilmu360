@@ -45,6 +45,7 @@ use App\Support\ApiDocumentation\Schemas\InstitutionDirectoryResponse;
 use App\Support\ApiDocumentation\Schemas\PersonDetailResponse;
 use App\Support\ApiDocumentation\Schemas\PersonDirectoryResponse;
 use App\Support\ApiDocumentation\Schemas\ReferenceDirectoryResponse;
+use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
@@ -484,7 +485,7 @@ class SearchController extends FrontendController
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $this->institutionEventsQuery($record)
                 ->active()
-                ->where('starts_at', '>=', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution.media',
                     'venue.addresses.country',
@@ -504,7 +505,7 @@ class SearchController extends FrontendController
         $pastEvents = $this->limitedEventPayloadWithTotal(
             $this->institutionEventsQuery($record)
                 ->active()
-                ->where('starts_at', '<', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution.media',
                     'venue.addresses.country',
@@ -578,7 +579,7 @@ class SearchController extends FrontendController
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->where('starts_at', '>=', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution',
                     'institution.media',
@@ -599,7 +600,7 @@ class SearchController extends FrontendController
         $pastEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->where('starts_at', '<', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution',
                     'institution.media',
@@ -664,7 +665,7 @@ class SearchController extends FrontendController
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->where('starts_at', '>=', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution.media',
                     'institution.addresses.country',
@@ -684,7 +685,7 @@ class SearchController extends FrontendController
         $pastEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->where('starts_at', '<', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution.media',
                     'institution.addresses.country',
@@ -808,7 +809,7 @@ class SearchController extends FrontendController
                     $this->referenceQueries->applyPublicVisibility($referenceQuery)
                         ->whereIn('references.id', $referenceEventIds);
                 })
-                ->where('starts_at', '>=', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution',
                     'institution.media',
@@ -833,7 +834,7 @@ class SearchController extends FrontendController
                     $this->referenceQueries->applyPublicVisibility($referenceQuery)
                         ->whereIn('references.id', $referenceEventIds);
                 })
-                ->where('starts_at', '<', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution',
                     'institution.media',
@@ -885,7 +886,7 @@ class SearchController extends FrontendController
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->where('starts_at', '>=', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution',
                     'institution.addresses.country',
@@ -905,7 +906,7 @@ class SearchController extends FrontendController
         $pastEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->where('starts_at', '<', $now)
+                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution',
                     'institution.addresses.country',
@@ -949,9 +950,9 @@ class SearchController extends FrontendController
                     ->whereHas('occurrences');
 
                 if ($direction === 'upcoming') {
-                    $query->where('starts_at', '>=', $now);
+                    $query->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now]);
                 } else {
-                    $query->where('starts_at', '<', $now);
+                    $query->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now]);
                 }
             });
 
@@ -1395,7 +1396,7 @@ class SearchController extends FrontendController
             ->selectSub(
                 $this->referenceQueries->constrainEventReferenceSubtree(Event::query()
                     ->whereNotNull('events.published_at')
-                    ->where('events.status', 'approved')
+                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
                     ->whereHas('occurrences'))
                     ->selectRaw('count(distinct events.id)'),
@@ -1603,7 +1604,7 @@ class SearchController extends FrontendController
         $eventIds = Event::query()
             ->where('institution_id', $institution->id)
             ->whereIn('status', Event::PUBLIC_STATUSES)
-            ->where('starts_at', '>=', now())
+            ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [now()])
             ->select('id');
 
         return (int) DB::table('event_involvements')

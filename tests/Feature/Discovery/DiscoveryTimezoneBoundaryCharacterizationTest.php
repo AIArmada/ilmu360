@@ -14,15 +14,14 @@ use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 /**
- * D0 characterization: pin the two different time models used by discovery.
+ * D0 characterization: pin the time model used by discovery after the D1a
+ * listing rulings.
  *
  * - Date-range filters (`starts_after` / `starts_before`) parse the submitted
  *   calendar date in the viewer timezone and convert it to UTC boundaries.
- * - Past/upcoming splits compare the absolute instant against the server
- *   `now()` (UTC), regardless of the viewer having crossed local midnight.
- *
- * These tests assert current behaviour only. D1 needs a product ruling on
- * which canonical model listing queries should use; D0 must not change it.
+ * - Past/upcoming splits classify the absolute end instant: an event stays
+ *   upcoming while `ends_at` (falling back to `starts_at`) has not passed,
+ *   and becomes past once that instant has passed.
  */
 beforeEach(function (): void {
     app(VisitorCountryResolver::class)->forget();
@@ -78,16 +77,16 @@ it('converts viewer-local date filters to UTC boundaries around midnight', funct
         ->not->toContain('D0 Tz Local Previous Day');
 });
 
-it('splits past and upcoming by the server clock after the viewer crosses midnight', function (): void {
+it('splits past and upcoming by the event end instant after the viewer crosses midnight', function (): void {
     $this->travelTo(Carbon::parse('2026-04-16 16:30:00', 'UTC'));
 
     $institution = Institution::factory()->create(['status' => 'verified']);
 
-    // Both starts are on 2026-04-17 in the viewer timezone. The server clock
-    // (16:30 UTC) classifies the 00:15 MYT item as past and 00:45 MYT as
-    // upcoming because the split uses the absolute instant, not the local day.
-    d0TimezoneEvent('D0 Tz Midnight Past', '2026-04-16 16:15:00', $institution->getKey());
-    d0TimezoneEvent('D0 Tz Midnight Upcoming', '2026-04-16 16:45:00', $institution->getKey());
+    // Both starts are on 2026-04-17 in the viewer timezone while the server
+    // clock is 2026-04-16 16:30 UTC. The ongoing event ends at 16:45 UTC and
+    // stays upcoming; the earlier event ended at 16:10 UTC and is past.
+    d0TimezoneEvent('D0 Tz Ongoing', '2026-04-16 16:15:00', $institution->getKey(), endsAtUtc: '2026-04-16 16:45:00');
+    d0TimezoneEvent('D0 Tz Ended', '2026-04-16 16:05:00', $institution->getKey(), endsAtUtc: '2026-04-16 16:10:00');
 
     $component = Livewire::withCookie('user_timezone', 'Asia/Kuala_Lumpur')
         ->test(Show::class, ['institution' => $institution]);
@@ -101,11 +100,11 @@ it('splits past and upcoming by the server clock after the viewer crosses midnig
         ->map(static fn ($leaf): string => $leaf->event->title)
         ->all();
 
-    expect($upcoming)->toBe(['D0 Tz Midnight Upcoming'])
-        ->and($past)->toBe(['D0 Tz Midnight Past']);
+    expect($upcoming)->toBe(['D0 Tz Ongoing'])
+        ->and($past)->toBe(['D0 Tz Ended']);
 
     // The local-date filter for "today" (2026-04-17) still includes both
-    // events; only the past/upcoming split separates them by instant.
+    // events; only the past/upcoming split separates them by end instant.
     $component->set('customStartDate', '2026-04-17')
         ->set('customEndDate', '2026-04-17')
         ->call('applyCustomDateRange');
@@ -115,7 +114,7 @@ it('splits past and upcoming by the server clock after the viewer crosses midnig
         ->map(static fn ($leaf): string => $leaf->event->title)
         ->all();
 
-    expect($upcomingAfterRange)->toBe(['D0 Tz Midnight Upcoming'])
+    expect($upcomingAfterRange)->toBe(['D0 Tz Ongoing'])
         ->and($component->instance()->getPastEventsProperty()->map(static fn ($leaf): string => $leaf->event->title)->all())
-        ->toBe(['D0 Tz Midnight Past']);
+        ->toBe(['D0 Tz Ended']);
 });

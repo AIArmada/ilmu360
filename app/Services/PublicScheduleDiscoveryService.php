@@ -196,7 +196,7 @@ final readonly class PublicScheduleDiscoveryService
         $occurrenceTable = (new EventOccurrence)->getTable();
 
         return $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
-            ->where('events.status', 'approved')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds, $occurrenceTable): void {
                 $query->whereHas(
                     'occurrences',
@@ -218,7 +218,7 @@ final readonly class PublicScheduleDiscoveryService
     private function homepageFollowedEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
     {
         $query = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
-            ->where('events.status', 'approved');
+            ->whereIn('events.status', Event::PUBLIC_STATUSES);
 
         $query->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds): void {
             $this->applyHomepageFollowConditions($query, $personIds, $institutionIds, $referenceIds);
@@ -614,17 +614,14 @@ final readonly class PublicScheduleDiscoveryService
 
         $endsAt = $leaf->endsAt();
         $now = UserDateTimeFormatter::userNow()->utc();
+        $endInstant = $endsAt ?? $startsAt;
         $timeScope = is_string($filters['time_scope'] ?? null) ? $filters['time_scope'] : 'upcoming';
 
-        if ($timeScope === 'past' && $startsAt->greaterThanOrEqualTo($now)) {
+        if ($timeScope === 'past' && $endInstant->greaterThanOrEqualTo($now)) {
             return false;
         }
 
-        if ($timeScope === 'upcoming' && (
-            $endsAt instanceof CarbonInterface
-                ? $endsAt->lessThan($now)
-                : $startsAt->lessThan($now)
-        )) {
+        if ($timeScope === 'upcoming' && $endInstant->lessThan($now)) {
             return false;
         }
 

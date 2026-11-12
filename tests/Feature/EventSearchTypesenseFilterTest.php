@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Services\TypesenseEventDiscovery;
@@ -8,7 +9,7 @@ use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use Illuminate\Support\Str;
 
 /**
- * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog, 2: EventSearchRelationProvider}
+ * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog, 2: EventSearchRelationProvider, 3: ReferenceQueries}
  */
 function typesenseDiscoveryDependencies(): array
 {
@@ -16,6 +17,7 @@ function typesenseDiscoveryDependencies(): array
         new EventDiscoveryFilterSet,
         app(EventCategoryCatalog::class),
         app(EventSearchRelationProvider::class),
+        app(ReferenceQueries::class),
     ];
 }
 
@@ -64,12 +66,12 @@ test('discovery criteria are normalized deterministically before search executio
         ->and($first->filters)->not->toHaveKey('empty');
 });
 
-test('typesense filters restrict discovery to approved events', function () {
+test('typesense filters restrict discovery to public event statuses', function () {
     $discovery = exposedTypesenseDiscovery();
 
     $filters = $discovery->exposedBuildTypesenseFilterParts([]);
 
-    expect($filters)->toContain('status:=approved');
+    expect($filters)->toContain('status:=[approved,pending,cancelled]');
 });
 
 test('typesense filters include subdistrict constraint when provided', function () {
@@ -153,10 +155,20 @@ test('typesense starts_after filter uses held-period overlap semantics', functio
         'starts_after' => '2026-03-20',
     ]);
 
-    $hasOverlapFilter = collect($filters)->contains(
-        static fn (string $filter): bool => str_contains($filter, 'ends_at:>=')
-            && str_contains($filter, '||starts_at:>=')
+    $overlapFilter = collect($filters)->first(
+        static fn (string $filter): bool => str_starts_with($filter, 'ends_at:>='),
     );
 
-    expect($hasOverlapFilter)->toBeTrue();
+    expect($overlapFilter)->not->toBeNull();
+});
+
+test('typesense past scope filters by the end instant', function () {
+    $discovery = exposedTypesenseDiscovery();
+
+    $filters = $discovery->exposedBuildTypesenseFilterParts([
+        'time_scope' => 'past',
+    ]);
+
+    expect(collect($filters)->contains(static fn (string $filter): bool => str_starts_with($filter, 'ends_at:<')))
+        ->toBeTrue();
 });

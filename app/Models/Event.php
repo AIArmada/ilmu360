@@ -145,7 +145,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     protected static bool $ownerScopeEnabledByDefault = false;
 
     /**
-     * Statuses reachable on public detail pages; discovery requires approved.
+     * Statuses reachable on public detail, listing and search surfaces.
      *
      * @var list<string>
      */
@@ -1230,6 +1230,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $locationAddress = $this->resolvedLocationAddress();
         $institution = $this->institution;
         $venue = $this->venue;
+        $endInstant = $this->ends_at ?? $this->starts_at;
         $gender = $this->gender;
         $eventFormat = $this->delivery_mode;
         $visibility = $this->visibility;
@@ -1434,7 +1435,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             'khatib_ids' => $khatibIds,
             'bilal_ids' => $bilalIds,
             'starts_at' => $this->starts_at instanceof Carbon ? $this->starts_at->timestamp : 0,
-            'ends_at' => $this->ends_at instanceof Carbon ? $this->ends_at->timestamp : null,
+            'ends_at' => $endInstant instanceof Carbon ? $endInstant->timestamp : null,
             'saves_count' => $this->saves_count ?? 0,
             'registrations_count' => $this->registrations_count ?? 0,
         ];

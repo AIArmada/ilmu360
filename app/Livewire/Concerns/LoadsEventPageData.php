@@ -164,15 +164,16 @@ trait LoadsEventPageData
         $now = now();
         $eventsTable = (new Event)->getTable();
         $primaryStartsAt = PrimaryOccurrenceSql::column('starts_at', $eventsTable);
+        $primaryEndsAt = PrimaryOccurrenceSql::endInstant($eventsTable);
         $upcomingClause = $range === null
-            ? "({$primaryStartsAt}) >= ?"
-            : "({$primaryStartsAt}) >= ? AND ({$primaryStartsAt}) < ?";
+            ? "({$primaryEndsAt}) >= ?"
+            : "({$primaryEndsAt}) >= ? AND ({$primaryStartsAt}) >= ? AND ({$primaryStartsAt}) < ?";
         $totals = (clone $this->eventPageBaseQuery())
             ->reorder()
             ->withoutEagerLoads()
             ->selectRaw(
-                "SUM(CASE WHEN {$upcomingClause} THEN 1 ELSE 0 END) as upcoming_total, SUM(CASE WHEN ({$primaryStartsAt}) < ? THEN 1 ELSE 0 END) as past_total",
-                $range === null ? [$now, $now] : [$range['from'], $range['to'], $now],
+                "SUM(CASE WHEN {$upcomingClause} THEN 1 ELSE 0 END) as upcoming_total, SUM(CASE WHEN ({$primaryEndsAt}) < ? THEN 1 ELSE 0 END) as past_total",
+                $range === null ? [$now, $now] : [$now, $range['from'], $range['to'], $now],
             )
             ->first();
 
@@ -210,9 +211,11 @@ trait LoadsEventPageData
     /** @return Builder<Event> */
     protected function eventPageQuery(CarbonInterface $now, bool $upcoming): Builder
     {
+        $endInstant = PrimaryOccurrenceSql::endInstant((new Event)->getTable());
+
         return (clone $this->eventPageBaseQuery())
             ->select('events.*')
-            ->where('starts_at', $upcoming ? '>=' : '<', $now)
+            ->whereRaw("{$endInstant} ".($upcoming ? '>=' : '<').' ?', [$now])
             ->with($this->eventPageEagerLoads());
     }
 
@@ -234,10 +237,11 @@ trait LoadsEventPageData
 
         $now = now();
         $range = $this->upcomingDateRange();
-        $upcomingOverall = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now)->values();
+        $endInstant = static fn (PublicScheduleLeaf $leaf): ?CarbonInterface => $leaf->endsAt() ?? $leaf->startsAt();
+        $upcomingOverall = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => ($endInstant($leaf)?->greaterThanOrEqualTo($now)) ?? false)->values();
         $upcoming = $upcomingOverall->filter(fn (PublicScheduleLeaf $leaf): bool => $range === null
             || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to']))->values();
-        $past = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() < $now)->reverse()->values();
+        $past = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => ($endInstant($leaf)?->lessThan($now)) ?? false)->reverse()->values();
 
         return $this->schedulePageDataCache[$cacheKey] = [
             'upcoming' => $upcoming->take($this->eventPageUpcomingLimit()),

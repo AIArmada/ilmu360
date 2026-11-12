@@ -304,10 +304,11 @@ class Show extends Component
             ->values();
         $now = now();
         $range = $this->upcomingDateRange();
-        $upcomingOverall = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() >= $now)->values();
+        $endInstant = static fn (PublicScheduleLeaf $leaf): ?CarbonInterface => $leaf->endsAt() ?? $leaf->startsAt();
+        $upcomingOverall = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => ($endInstant($leaf)?->greaterThanOrEqualTo($now)) ?? false)->values();
         $upcoming = $upcomingOverall->filter(fn (PublicScheduleLeaf $leaf): bool => $range === null
             || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to']))->values();
-        $past = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() < $now)->reverse()->values();
+        $past = $leaves->filter(fn (PublicScheduleLeaf $leaf): bool => ($endInstant($leaf)?->lessThan($now)) ?? false)->reverse()->values();
         $this->eventTotals = [
             'upcoming' => $upcoming->count(),
             'past' => $past->count(),

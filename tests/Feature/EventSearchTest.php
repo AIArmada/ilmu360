@@ -2662,7 +2662,7 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Bulugh Session');
     });
 
-    it('lists only approved public events', function (?string $query) {
+    it('lists public events by status', function (?string $query) {
         createVisibleEventForSearch([
             'title' => 'Approved Event',
             'status' => 'approved',
@@ -2675,6 +2675,7 @@ describe('Event Search Filters', function () {
             'title' => 'Pending Event',
             'status' => 'pending',
             'visibility' => 'public',
+            'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
 
@@ -2682,6 +2683,7 @@ describe('Event Search Filters', function () {
             'title' => 'Cancelled Event',
             'status' => 'cancelled',
             'visibility' => 'public',
+            'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
 
@@ -2704,13 +2706,13 @@ describe('Event Search Filters', function () {
 
         $response->assertOk()
             ->assertSee('Approved Event')
-            ->assertDontSee('Pending Event')
-            ->assertDontSee('Cancelled Event')
+            ->assertSee('Pending Event')
+            ->assertSee('Cancelled Event')
             ->assertDontSee('Draft Event')
             ->assertDontSee('Private Event');
     })->with(['browse' => null, 'text search' => 'Event']);
 
-    it('excludes unapproved events from each discovery adapter', function (string $adapter) {
+    it('includes public statuses and excludes non-public events from each discovery adapter', function (string $adapter) {
         config()->set('scout.driver', 'database');
 
         $approved = createVisibleEventForSearch([
@@ -2721,20 +2723,27 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDay(),
         ]);
 
-        foreach (['pending', 'cancelled', 'draft'] as $status) {
-            createVisibleEventForSearch([
-                'title' => ucfirst($status).' Visibility Event',
-                'status' => $status,
-                'visibility' => 'public',
-                'published_at' => now(),
-                'starts_at' => now()->addDay(),
-            ]);
-        }
+        $publicStatusEvents = collect(['pending', 'cancelled'])->map(fn (string $status): Event => createVisibleEventForSearch([
+            'title' => ucfirst($status).' Visibility Event',
+            'status' => $status,
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]));
+
+        createVisibleEventForSearch([
+            'title' => 'Draft Visibility Event',
+            'status' => 'draft',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
 
         $criteria = app(EventDiscoveryCriteriaFactory::class)->fromSearch(null, [], 20, 'time');
         $results = app($adapter)->search($criteria);
 
-        expect(collect($results->items())->pluck('id')->all())->toBe([$approved->id]);
+        expect(collect($results->items())->pluck('id')->all())
+            ->toEqualCanonicalizing([$approved->id, ...$publicStatusEvents->pluck('id')->all()]);
     })->with([PostgresEventDiscovery::class, TypesenseEventDiscovery::class]);
 
     it('paginates results', function () {
@@ -3133,6 +3142,7 @@ describe('Event Search Filters', function () {
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->subDays(2),
+            'ends_at' => now()->subDays(2)->addHour(),
         ]);
 
         createVisibleEventForSearch([
@@ -3141,6 +3151,7 @@ describe('Event Search Filters', function () {
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
+            'ends_at' => now()->addDays(2)->addHour(),
         ]);
 
         $response = $this->get(eventsIndexUrl('time_scope=past'));
@@ -3157,6 +3168,7 @@ describe('Event Search Filters', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->subDays(10),
+            'ends_at' => now()->subDays(10)->addHour(),
         ]);
 
         createVisibleEventForSearch([
@@ -3165,6 +3177,7 @@ describe('Event Search Filters', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->subDays(2),
+            'ends_at' => now()->subDays(2)->addHour(),
         ]);
 
         $leaves = collect(app(PublicScheduleDiscoveryService::class)->search(

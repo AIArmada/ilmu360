@@ -138,9 +138,10 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $table = $queryBuilder->getModel()->getTable();
         $startsAtColumn = PrimaryOccurrenceSql::column('starts_at', $table);
         $endsAtColumn = PrimaryOccurrenceSql::column('ends_at', $table);
+        $endInstantColumn = "coalesce({$endsAtColumn}, {$startsAtColumn})";
 
         $queryBuilder
-            ->where("{$table}.status", 'approved')
+            ->whereIn("{$table}.status", Event::PUBLIC_STATUSES)
             ->where("{$table}.visibility", EventVisibility::Public->value)
             ->whereNotNull("{$table}.published_at")
             ->whereHas('occurrences');
@@ -148,21 +149,15 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $startsAfter = $this->startsAfterDateTime($filters, $timeScope);
 
         if ($startsAfter instanceof CarbonInterface) {
-            $queryBuilder->where(function (Builder $heldAfterQuery) use ($startsAfter, $endsAtColumn, $startsAtColumn): void {
-                $heldAfterQuery
-                    ->whereRaw($endsAtColumn.' >= ?', [$startsAfter])
-                    ->orWhere(function (Builder $openEndedQuery) use ($startsAfter, $endsAtColumn, $startsAtColumn): void {
-                        $openEndedQuery
-                            ->whereRaw($endsAtColumn.' is null')
-                            ->whereRaw($startsAtColumn.' >= ?', [$startsAfter]);
-                    });
-            });
+            $queryBuilder->whereRaw($endInstantColumn.' >= ?', [$startsAfter]);
         }
 
-        $startsBefore = $this->startsBeforeDateTime($filters, $timeScope);
+        $startsBefore = $this->startsBeforeDateTime($filters);
 
         if ($startsBefore instanceof CarbonInterface) {
             $queryBuilder->whereRaw($startsAtColumn.' <= ?', [$startsBefore]);
+        } elseif ($timeScope === 'past') {
+            $queryBuilder->whereRaw($endInstantColumn.' < ?', [now()]);
         }
 
         $startsOnLocalDateRange = $this->startsOnLocalDateRange($filters);
@@ -839,19 +834,9 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
     /**
      * @param  array<string, mixed>  $filters
      */
-    protected function startsBeforeDateTime(array $filters, string $timeScope = 'upcoming'): ?CarbonInterface
+    protected function startsBeforeDateTime(array $filters): ?CarbonInterface
     {
-        $startsBefore = $this->parseDateFilter($filters['starts_before'] ?? null, true);
-
-        if ($startsBefore instanceof CarbonInterface) {
-            return $startsBefore;
-        }
-
-        if ($timeScope === 'past') {
-            return now();
-        }
-
-        return null;
+        return $this->parseDateFilter($filters['starts_before'] ?? null, true);
     }
 
     protected function applyLocationAddressFilter(EventBuilder $queryBuilder, AddressLocationData $location): void
@@ -953,9 +938,9 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
     /**
      * @param  array<string, mixed>  $filters
      */
-    protected function startsBeforeTimestamp(array $filters, string $timeScope = 'upcoming'): ?int
+    protected function startsBeforeTimestamp(array $filters): ?int
     {
-        $startsBefore = $this->startsBeforeDateTime($filters, $timeScope);
+        $startsBefore = $this->startsBeforeDateTime($filters);
 
         return $startsBefore?->timestamp;
     }

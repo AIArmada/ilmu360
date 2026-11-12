@@ -13,9 +13,9 @@ class SitemapController extends Controller
     {
         $content = '<?xml version="1.0" encoding="UTF-8"?>';
         $content .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-        $content .= '<sitemap><loc>'.url('/sitemap-events.xml').'</loc></sitemap>';
-        $content .= '<sitemap><loc>'.url('/sitemap-institutions.xml').'</loc></sitemap>';
-        $content .= '<sitemap><loc>'.url('/sitemap-persons.xml').'</loc></sitemap>';
+        $content .= '<sitemap><loc>'.route('sitemap.events').'</loc></sitemap>';
+        $content .= '<sitemap><loc>'.route('sitemap.institutions').'</loc></sitemap>';
+        $content .= '<sitemap><loc>'.route('sitemap.persons').'</loc></sitemap>';
         $content .= '</sitemapindex>';
 
         return response($content)

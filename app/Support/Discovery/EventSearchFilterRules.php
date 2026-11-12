@@ -80,6 +80,7 @@ final readonly class EventSearchFilterRules implements SearchFilterRules
             'filters.issue_tag_ids.*' => ['uuid', $this->taxonomyTermExistsRule(EventTaxonomyCode::Issue)],
             'filters.reference_ids' => 'nullable|array',
             'filters.reference_ids.*' => 'uuid|exists:references,id',
+            'filters.reference_author_search' => ['nullable', $this->validStringOrStringListRule()],
         ];
     }
 
@@ -121,6 +122,43 @@ final readonly class EventSearchFilterRules implements SearchFilterRules
             }
 
             $fail('The '.$attribute.' field must be boolean-like.');
+        };
+    }
+
+    private function validStringOrStringListRule(): \Closure
+    {
+        return static function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if (is_string($value)) {
+                if (mb_strlen($value) > 255) {
+                    $fail('The '.$attribute.' field must not exceed 255 characters.');
+                }
+
+                return;
+            }
+
+            if (! is_array($value) || ! array_is_list($value)) {
+                $fail('The '.$attribute.' field must be a string or a list of strings.');
+
+                return;
+            }
+
+            foreach ($value as $item) {
+                if (! is_string($item)) {
+                    $fail('The '.$attribute.' field must be a string or a list of strings.');
+
+                    return;
+                }
+
+                if (mb_strlen($item) > 255) {
+                    $fail('The '.$attribute.' field must not exceed 255 characters per value.');
+
+                    return;
+                }
+            }
         };
     }
 }
