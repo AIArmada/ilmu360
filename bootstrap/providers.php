@@ -6,6 +6,8 @@ use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
 use App\Features\Directory\FeatureServiceProvider as DirectoryServiceProvider;
 use App\Features\Contributions\FeatureServiceProvider as ContributionsServiceProvider;
+use App\Features\Discovery\FeatureServiceProvider as DiscoveryServiceProvider;
+use App\Features\Engagement\FeatureServiceProvider as EngagementServiceProvider;
 use App\Features\Events\FeatureServiceProvider as EventsServiceProvider;
 use App\Features\Feedback\FeatureServiceProvider as FeedbackServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
@@ -38,6 +40,8 @@ return [
     AppServiceProvider::class,
     ContributionsServiceProvider::class,
     DirectoryServiceProvider::class,
+    DiscoveryServiceProvider::class,
+    EngagementServiceProvider::class,
     EventsServiceProvider::class,
     FeedbackServiceProvider::class,
     GitHubIssuesServiceProvider::class,
