@@ -3,7 +3,7 @@
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Data\EventDiscoveryCriteriaFactory;

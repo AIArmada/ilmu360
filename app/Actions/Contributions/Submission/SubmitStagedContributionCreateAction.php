@@ -2,6 +2,7 @@
 
 namespace App\Actions\Contributions\Submission;
 
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Models\Institution;
@@ -22,7 +23,7 @@ class SubmitStagedContributionCreateAction
         protected ContributionEntityMutationService $contributionEntityMutationService,
         protected EnsureUniqueContributionCreateAction $ensureUniqueContributionCreateAction,
         protected NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
-        protected SubmitContributionCreateRequestAction $submitContributionCreateRequestAction,
+        protected ContributionRequestLifecycle $contributionRequests,
         protected MapsIdentityLock $mapsIdentityLock,
     ) {}
 
@@ -54,12 +55,13 @@ class SubmitStagedContributionCreateAction
                 $persistRelationships($entity);
             }
 
-            $this->submitContributionCreateRequestAction->handle(
+            $this->contributionRequests->submitCreate(
                 $subjectType,
-                $user,
+                (string) $user->getKey(),
                 Arr::except($state, $this->mediaFieldsFor($subjectType)),
                 $submissionState['proposer_note'],
-                $entity,
+                $entity->getMorphClass(),
+                (string) $entity->getKey(),
             );
 
             return $entity;

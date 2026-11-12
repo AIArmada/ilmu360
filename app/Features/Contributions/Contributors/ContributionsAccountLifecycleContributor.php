@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Contributions;
+namespace App\Features\Contributions\Contributors;
 
-use App\Models\ContributionRequest;
+use App\Features\Contributions\Support\ContributionModel;
 use App\Shared\Auth\AccountLifecycleContributor;
 
 /**
@@ -36,10 +36,10 @@ final readonly class ContributionsAccountLifecycleContributor implements Account
 
     public function detach(string $accountId): void
     {
-        ContributionRequest::query()
+        ContributionModel::query('contribution_request')
             ->where('proposer_id', $accountId)
             ->update(['proposer_id' => null]);
-        ContributionRequest::query()
+        ContributionModel::query('contribution_request')
             ->where('reviewer_id', $accountId)
             ->update(['reviewer_id' => null]);
     }
@@ -57,7 +57,7 @@ final readonly class ContributionsAccountLifecycleContributor implements Account
      */
     private function requestIds(string $column, string $accountId): array
     {
-        return ContributionRequest::query()
+        return ContributionModel::query('contribution_request')
             ->where($column, $accountId)
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
@@ -74,7 +74,7 @@ final readonly class ContributionsAccountLifecycleContributor implements Account
             return;
         }
 
-        ContributionRequest::query()
+        ContributionModel::query('contribution_request')
             ->whereKey($ids)
             ->whereNull($column)
             ->update([$column => $accountId]);

@@ -1,30 +1,25 @@
 <?php
 
-namespace App\Actions\Contributions\Review;
+namespace App\Features\Contributions\Actions;
 
-use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Platform\Concurrency\MapsIdentityLock;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
-use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
+use App\Features\Contributions\Support\ContributionModel;
 use App\Features\Directory\Api\DirectoryContributionMedia;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Membership\Api\MembershipCommands;
-use App\Models\ContributionRequest;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\User;
+use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Location\AddressAssignments;
-use App\Services\ContributionEntityMutationService;
-use App\Services\ModerationService;
-use App\Services\Notifications\ContributionRequestNotificationService;
+use App\Platform\Media\MediaCollectionSync;
+use App\Shared\Contributions\ContributionRequestNotifier;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
+use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
+use App\Shared\Contributions\InstitutionClaimGuard;
 use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -37,20 +32,24 @@ class ApproveContributionRequestAction
     use AsAction;
 
     public function __construct(
-        private readonly ModerationService $moderationService,
-        private readonly ContributionEntityMutationService $entityMutationService,
+        private readonly EventModeration $eventModeration,
         private readonly DirectoryContributionMedia $directoryContributionMedia,
         private readonly EventAuthoring $eventAuthoring,
-        private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
+        private readonly ContributionRequestNotifier $contributionRequestNotifications,
         private readonly MembershipCommands $membershipCommands,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
-        private readonly EnsureUniqueContributionCreateAction $ensureUniqueContributionCreateAction,
+        private readonly InstitutionClaimGuard $institutionClaims,
         private readonly MapsIdentityLock $mapsIdentityLock,
+        private readonly MediaCollectionSync $mediaCollectionSync,
     ) {}
 
-    public function handle(ContributionRequest $request, User $reviewer, ?string $reviewerNote = null): ContributionRequest
+    /**
+     * @param  \App\Models\ContributionRequest  $request
+     * @return \App\Models\ContributionRequest
+     */
+    public function handle(Model $request, Model $reviewer, ?string $reviewerNote = null): Model
     {
         if (! $request->isPending()) {
             throw new ContributionRequestNotPendingException('Only pending contribution requests can be approved.');
@@ -58,7 +57,7 @@ class ApproveContributionRequestAction
 
         $approve = function () use ($request, $reviewer, $reviewerNote): void {
             DB::transaction(function () use ($request, $reviewer, $reviewerNote): void {
-                ContributionRequest::query()->whereKey($request->getKey())->lockForUpdate()->firstOrFail();
+                ContributionModel::query('contribution_request')->whereKey($request->getKey())->lockForUpdate()->firstOrFail();
                 $request->refresh();
 
                 if (! $request->isPending()) {
@@ -130,7 +129,7 @@ class ApproveContributionRequestAction
 
         $freshRequest = $request->fresh(['entity', 'proposer', 'reviewer']) ?? $request;
 
-        $this->contributionRequestNotificationService->notifyCreateRequestApproved($freshRequest);
+        $this->contributionRequestNotifications->notifyCreateRequestApproved($freshRequest);
 
         return $freshRequest;
     }
@@ -146,32 +145,37 @@ class ApproveContributionRequestAction
      * must not re-run persistence normalization on them, which would throw on
      * stale geography and could trigger remote Maps lookups per check.
      *
+     * @param  \App\Models\ContributionRequest  $request
      * @param  array<string, mixed>  $proposed
      * @return list<array{name: mixed, address: array<string, mixed>}>
      */
-    private function conflictingClaimProbes(ContributionRequest $request, array $proposed): array
+    private function conflictingClaimProbes(Model $request, array $proposed): array
     {
         $entity = $request->entity;
 
-        if ($request->type === ContributionRequestType::Create && $entity instanceof Institution) {
-            $addresses = $this->entityProbeAddresses($entity);
+        if ($request->type === ContributionRequestType::Create
+            && $entity instanceof Model
+            && ContributionModel::isInstitution($entity)
+        ) {
+            $institution = ContributionModel::assert($entity, 'institution');
+            $addresses = $this->entityProbeAddresses($institution);
 
             if ($addresses === []) {
                 $addresses = [$this->addressPayload($proposed)];
             }
 
             return array_map(
-                static fn (array $address): array => ['name' => $entity->getAttribute('name'), 'address' => EnsureUniqueContributionCreateAction::normalizeClaimAddress($address)],
+                fn (array $address): array => ['name' => $institution->getAttribute('name'), 'address' => $this->institutionClaims->normalizeAddress($address)],
                 $addresses,
             );
         }
 
-        $proposedAddress = EnsureUniqueContributionCreateAction::normalizeClaimAddress($this->addressPayload($proposed));
+        $proposedAddress = $this->institutionClaims->normalizeAddress($this->addressPayload($proposed));
         $hasProposedAddress = array_any($proposedAddress, fn ($value) => ! in_array($value, [null, [], ''], true));
 
         $name = $proposed['name'] ?? null;
 
-        if ((! is_string($name) || trim($name) === '') && $hasProposedAddress && $entity instanceof Institution) {
+        if ((! is_string($name) || trim($name) === '') && $hasProposedAddress && $entity instanceof Model && ContributionModel::isInstitution($entity)) {
             // The update moves the institution without renaming it: check the
             // current name against the new locality.
             $name = $entity->getAttribute('name');
@@ -179,11 +183,12 @@ class ApproveContributionRequestAction
 
         if ($request->type === ContributionRequestType::Update
             && ! $hasProposedAddress
-            && $entity instanceof Institution
-            && ($addresses = $this->entityProbeAddresses($entity)) !== []
+            && $entity instanceof Model
+            && ContributionModel::isInstitution($entity)
+            && ($addresses = $this->entityProbeAddresses(ContributionModel::assert($entity, 'institution'))) !== []
         ) {
             return array_map(
-                static fn (array $address): array => ['name' => $name, 'address' => EnsureUniqueContributionCreateAction::normalizeClaimAddress($address)],
+                fn (array $address): array => ['name' => $name, 'address' => $this->institutionClaims->normalizeAddress($address)],
                 $addresses,
             );
         }
@@ -193,11 +198,12 @@ class ApproveContributionRequestAction
 
     /**
      * Raw stored-row address shapes; normalized by the caller with
-     * {@see EnsureUniqueContributionCreateAction::normalizeClaimAddress()}.
+     * {@see InstitutionClaimGuard::normalizeAddress()}.
      *
+     * @param  \App\Models\Institution  $entity
      * @return list<array<string, mixed>>
      */
-    private function entityProbeAddresses(Institution $entity): array
+    private function entityProbeAddresses(Model $entity): array
     {
         $addresses = [];
 
@@ -226,9 +232,10 @@ class ApproveContributionRequestAction
      * conflicting requests concurrently. The request excludes its own staged
      * or target entity and its own pending claim so clean approvals pass.
      *
+     * @param  \App\Models\ContributionRequest  $request
      * @param  array<string, mixed>  $state
      */
-    private function assertNoConflictingInstitutionClaim(ContributionRequest $request, array $state): void
+    private function assertNoConflictingInstitutionClaim(Model $request, array $state): void
     {
         $excludeInstitutionId = null;
 
@@ -237,12 +244,12 @@ class ApproveContributionRequestAction
             && $request->entity_id !== ''
         ) {
             $excludeInstitutionId = $request->entity_id;
-        } elseif ($request->entity instanceof Institution) {
+        } elseif ($request->entity instanceof Model && ContributionModel::isInstitution($request->entity)) {
             $excludeInstitutionId = (string) $request->entity->getKey();
         }
 
-        $conflict = $this->ensureUniqueContributionCreateAction->institutionDuplicateExists($state, $excludeInstitutionId, true)
-            || $this->ensureUniqueContributionCreateAction->pendingInstitutionClaimExists($state, (string) $request->getKey(), true);
+        $conflict = $this->institutionClaims->institutionDuplicateExists($state, $excludeInstitutionId, true)
+            || $this->institutionClaims->pendingInstitutionClaimExists($state, (string) $request->getKey(), true);
 
         if ($conflict) {
             throw ValidationException::withMessages([
@@ -251,28 +258,34 @@ class ApproveContributionRequestAction
         }
     }
 
-    private function approveCreateRequest(ContributionRequest $request): Institution|Person|Reference
+    /**
+     * @param  \App\Models\ContributionRequest  $request
+     */
+    private function approveCreateRequest(Model $request): Model
     {
         /** @var array<string, mixed> $payload */
         $payload = $request->proposed_data ?? [];
 
         $entity = $request->entity;
 
-        if ($entity instanceof Institution) {
+        if ($entity instanceof Model && ContributionModel::isInstitution($entity)) {
+            $entity = ContributionModel::assert($entity, 'institution');
             app(InstitutionWorkflow::class)->changeStatus((string) $entity->getKey(), 'verified');
             $this->attachAsOwnerIfSupported($request->proposer, $entity);
 
             return $entity;
         }
 
-        if ($entity instanceof Person) {
+        if ($entity instanceof Model && ContributionModel::isPerson($entity)) {
+            $entity = ContributionModel::assert($entity, 'person');
             $this->personWorkflow->changeStatus((string) $entity->getKey(), 'verified');
             $this->attachAsOwnerIfSupported($request->proposer, $entity);
 
             return $entity;
         }
 
-        if ($entity instanceof Reference) {
+        if ($entity instanceof Model && ContributionModel::isReference($entity)) {
+            $entity = ContributionModel::assert($entity, 'reference');
             $this->referenceWorkflow->changeStatus((string) $entity->getKey(), 'verified');
 
             return $entity;
@@ -286,7 +299,10 @@ class ApproveContributionRequestAction
         };
     }
 
-    private function applyApprovedUpdate(ContributionRequest $request): void
+    /**
+     * @param  \App\Models\ContributionRequest  $request
+     */
+    private function applyApprovedUpdate(Model $request): void
     {
         $entity = $request->entity;
 
@@ -296,23 +312,50 @@ class ApproveContributionRequestAction
 
         /** @var array<string, mixed> $payload */
         $payload = $request->proposed_data ?? [];
-        $dirtyBeforeSave = $entity instanceof Event
+        $dirtyBeforeSave = ContributionModel::isEvent($entity)
             ? $this->eventAuthoring->applyContributionUpdate((string) $entity->getKey(), $payload)
-            : $this->entityMutationService->apply($entity, $payload);
+            : $this->applyDirectoryUpdate($entity, $payload);
 
-        if ($entity instanceof Event && $dirtyBeforeSave !== []) {
-            $this->moderationService->handleSensitiveChange($entity, $dirtyBeforeSave);
+        if (ContributionModel::isEvent($entity) && $dirtyBeforeSave !== []) {
+            $this->eventModeration->handleSensitiveChange((string) $entity->getKey(), $dirtyBeforeSave);
         }
 
-        if ($entity instanceof Event || $entity instanceof Institution || $entity instanceof Person || $entity instanceof Reference) {
+        if (ContributionModel::isEvent($entity)
+            || ContributionModel::isInstitution($entity)
+            || ContributionModel::isPerson($entity)
+            || ContributionModel::isReference($entity)
+        ) {
             $this->applyStagedMedia($request, $entity);
         }
     }
 
     /**
-     * Apply media that a non-privileged contributor staged on the pending request.
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
      */
-    private function applyStagedMedia(ContributionRequest $request, Event|Institution|Person|Reference $entity): void
+    private function applyDirectoryUpdate(Model $entity, array $payload): array
+    {
+        if (ContributionModel::isInstitution($entity)) {
+            return $this->institutionWorkflow->applyContribution((string) $entity->getKey(), $payload);
+        }
+
+        if (ContributionModel::isPerson($entity)) {
+            return $this->personWorkflow->applyContribution((string) $entity->getKey(), $payload);
+        }
+
+        if (ContributionModel::isReference($entity)) {
+            return $this->referenceWorkflow->applyContribution((string) $entity->getKey(), $payload);
+        }
+
+        throw new RuntimeException('Unsupported contribution entity type.');
+    }
+
+    /**
+     * Apply media that a non-privileged contributor staged on the pending request.
+     *
+     * @param  \App\Models\ContributionRequest  $request
+     */
+    private function applyStagedMedia(Model $request, Model $entity): void
     {
         $staged = $request->getMedia('pending_media');
 
@@ -320,22 +363,29 @@ class ApproveContributionRequestAction
             return;
         }
 
-        if ($entity instanceof Event) {
-            $this->applyEventStagedMedia($entity, $staged);
+        if (ContributionModel::isEvent($entity)) {
+            $this->applyEventStagedMedia(ContributionModel::assert($entity, 'event'), $staged);
 
             return;
         }
 
-        $this->directoryContributionMedia->applyStagedMedia($entity, $staged);
+        $directoryEntity = match (true) {
+            ContributionModel::isInstitution($entity) => ContributionModel::assert($entity, 'institution'),
+            ContributionModel::isPerson($entity) => ContributionModel::assert($entity, 'person'),
+            default => ContributionModel::assert($entity, 'reference'),
+        };
+
+        $this->directoryContributionMedia->applyStagedMedia($directoryEntity, $staged);
     }
 
     /**
      * Event media stays on the root approval until the Event media slice.
      * The donation-QR branch still hands the operation to Directory.
      *
+     * @param  \App\Models\Event  $entity
      * @param  iterable<int, \Spatie\MediaLibrary\MediaCollections\Models\Media>  $staged
      */
-    private function applyEventStagedMedia(Event $entity, iterable $staged): void
+    private function applyEventStagedMedia(Model $entity, iterable $staged): void
     {
         foreach ($staged as $media) {
             $field = (string) $media->getCustomProperty('contribution_field', 'cover');
@@ -356,31 +406,34 @@ class ApproveContributionRequestAction
                 ->usingFileName($media->file_name)
                 ->toMediaCollection($field);
 
-            $media->delete();
+            $this->mediaCollectionSync->deleteMedia($media);
         }
     }
 
     /**
      * @param  array<string, mixed>  $payload
+     * @return \App\Models\Institution
      */
-    private function createInstitutionFromRequest(array $payload): Institution
+    private function createInstitutionFromRequest(array $payload): Model
     {
         $institutionId = $this->institutionWorkflow->createVerifiedFromContribution($payload);
 
-        return Institution::query()->findOrFail($institutionId);
+        return ContributionModel::query('institution')->findOrFail($institutionId);
     }
 
     /**
+     * @param  \App\Models\ContributionRequest  $request
      * @param  array<string, mixed>  $payload
+     * @return \App\Models\Person
      */
-    private function createPersonFromRequest(ContributionRequest $request, array $payload): Person
+    private function createPersonFromRequest(Model $request, array $payload): Model
     {
         $address = $this->addressPayload($payload);
         $personId = $this->personWorkflow->createVerifiedFromContribution([
             ...$payload,
             'address' => $address,
         ]);
-        $person = Person::query()->findOrFail($personId);
+        $person = ContributionModel::query('person')->findOrFail($personId);
         $this->attachAsOwnerIfSupported($request->proposer, $person);
 
         return $person;
@@ -388,12 +441,13 @@ class ApproveContributionRequestAction
 
     /**
      * @param  array<string, mixed>  $payload
+     * @return \App\Models\Reference
      */
-    private function createReferenceFromRequest(array $payload): Reference
+    private function createReferenceFromRequest(array $payload): Model
     {
         $referenceId = $this->referenceWorkflow->createVerifiedFromContribution($payload);
 
-        return Reference::query()->withoutOwnerScope()->findOrFail($referenceId);
+        return ContributionModel::query('reference')->withoutOwnerScope()->findOrFail($referenceId);
     }
 
     /**
@@ -435,9 +489,9 @@ class ApproveContributionRequestAction
         return $address;
     }
 
-    private function attachAsOwnerIfSupported(?User $user, Institution|Person $entity): void
+    private function attachAsOwnerIfSupported(?Model $user, Model $entity): void
     {
-        if (! $user instanceof User || $entity instanceof Institution) {
+        if (! $user instanceof Model || ContributionModel::isInstitution($entity)) {
             return;
         }
 

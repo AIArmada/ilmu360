@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
-use App\Actions\Contributions\Review\RejectContributionRequestAction;
-use App\Actions\Contributions\Submission\CancelContributionRequestAction;
+use App\Features\Contributions\Actions\ApproveContributionRequestAction;
+use App\Features\Contributions\Actions\RejectContributionRequestAction;
+use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;

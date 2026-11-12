@@ -2,8 +2,7 @@
 
 namespace App\Filament\Resources\ContributionRequests\Tables;
 
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
-use App\Actions\Contributions\Review\RejectContributionRequestAction;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
@@ -22,7 +21,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ContributionRequestsTable
 {
@@ -90,15 +91,15 @@ class ContributionRequestsTable
                             ->rows(3)
                             ->maxLength(2000),
                     ])
-                    ->action(function (ContributionRequest $record, array $data, ApproveContributionRequestAction $approveContributionRequestAction): void {
+                    ->action(function (ContributionRequest $record, array $data, ContributionRequestLifecycle $contributionRequestLifecycle): void {
                         $user = auth()->user();
 
                         abort_unless($user instanceof User, 403);
 
                         try {
-                            $approveContributionRequestAction->handle(
-                                $record,
-                                $user,
+                            $contributionRequestLifecycle->approve(
+                                (string) $record->getKey(),
+                                (string) $user->getKey(),
                                 filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                             );
                         } catch (ContributionRequestAlreadyReviewedException $exception) {
@@ -155,15 +156,15 @@ class ContributionRequestsTable
                             ->rows(3)
                             ->maxLength(2000),
                     ])
-                    ->action(function (ContributionRequest $record, array $data, RejectContributionRequestAction $rejectContributionRequestAction): void {
+                    ->action(function (ContributionRequest $record, array $data, ContributionRequestLifecycle $contributionRequestLifecycle): void {
                         $user = auth()->user();
 
                         abort_unless($user instanceof User, 403);
 
                         try {
-                            $rejectContributionRequestAction->handle(
-                                $record,
-                                $user,
+                            $contributionRequestLifecycle->reject(
+                                (string) $record->getKey(),
+                                (string) $user->getKey(),
                                 (string) $data['reason_code'],
                                 filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                             );
@@ -194,7 +195,22 @@ class ContributionRequestsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->authorizeIndividualRecords('delete'),
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (DeleteBulkAction $action, Collection $records): void {
+                            try {
+                                $deleted = app(ContributionRequestLifecycle::class)->delete(
+                                    $records->modelKeys(),
+                                );
+                            } catch (Throwable $exception) {
+                                report($exception);
+
+                                $action->reportCompleteBulkProcessingFailure();
+
+                                return;
+                            }
+
+                            $action->reportBulkProcessingSuccessfulRecordsCount($deleted);
+                        }),
                 ]),
             ]);
     }

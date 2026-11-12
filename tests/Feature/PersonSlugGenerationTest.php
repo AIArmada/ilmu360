@@ -2,7 +2,7 @@
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
+use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;

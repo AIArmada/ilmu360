@@ -7,7 +7,7 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
-use App\Actions\Contributions\Submission\CancelContributionRequestAction;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Enums\MemberSubjectType;
 use App\Features\Reports\Api\ReportPage;
@@ -407,14 +407,14 @@ class Index extends Component implements HasForms
 
     public function cancel(
         string $requestId,
-        CancelContributionRequestAction $cancelContributionRequestAction,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
         ResolveOwnContributionRequestAction $resolveOwnContributionRequestAction,
     ): void {
         /** @var User $user */
         $user = auth()->user();
         $request = $resolveOwnContributionRequestAction->handle($user, $requestId);
 
-        $cancelContributionRequestAction->handle($request, $user);
+        $contributionRequestLifecycle->cancel((string) $request->getKey(), (string) $user->getKey());
     }
 
     public function startMembershipApplication(): void

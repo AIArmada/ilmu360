@@ -12,15 +12,12 @@ use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
-use App\Actions\Contributions\Review\RejectContributionRequestAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
-use App\Actions\Contributions\Submission\CancelContributionRequestAction;
 use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
 use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
 use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
-use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Actions\Institutions\InferInstitutionTypeAction;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
@@ -479,7 +476,7 @@ class ContributionController extends FrontendController
         ResolveContributionChangedPayloadAction $resolveContributionChangedPayloadAction,
         NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
-        SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
         ContributionSubjectPresenter $contributionSubjectPresenter,
         MediaCollectionSync $mediaCollectionSync,
@@ -590,12 +587,17 @@ class ContributionController extends FrontendController
             ]);
         }
 
-        $contributionRequest = $submitContributionUpdateRequestAction->handle(
-            $entity,
-            $user,
+        $requestId = $contributionRequestLifecycle->submitUpdate(
+            $entity->getMorphClass(),
+            (string) $entity->getKey(),
+            (string) $user->getKey(),
             $changes,
             $submissionState['proposer_note'],
         );
+
+        $contributionRequest = ContributionRequest::query()
+            ->with(['entity', 'proposer', 'reviewer'])
+            ->findOrFail($requestId);
 
         return response()->json([
             'data' => [
@@ -616,13 +618,17 @@ class ContributionController extends FrontendController
         string $requestId,
         Request $request,
         ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
-        ApproveContributionRequestAction $approveContributionRequestAction,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $contributionRequest = $resolveReviewableContributionRequestAction->handle($user, $requestId);
         $reviewNote = $request->validate(['reviewer_note' => ['nullable', 'string', 'max:2000']])['reviewer_note'] ?? null;
 
-        $approvedRequest = $approveContributionRequestAction->handle($contributionRequest, $user, $reviewNote);
+        $contributionRequestLifecycle->approve((string) $contributionRequest->getKey(), (string) $user->getKey(), $reviewNote);
+
+        $approvedRequest = ContributionRequest::query()
+            ->with(['entity', 'proposer', 'reviewer'])
+            ->findOrFail($contributionRequest->getKey());
 
         return response()->json([
             'data' => [
@@ -642,7 +648,7 @@ class ContributionController extends FrontendController
         string $requestId,
         Request $request,
         ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
-        RejectContributionRequestAction $rejectContributionRequestAction,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $validated = $request->validate([
@@ -651,12 +657,16 @@ class ContributionController extends FrontendController
         ]);
 
         $contributionRequest = $resolveReviewableContributionRequestAction->handle($user, $requestId);
-        $rejectedRequest = $rejectContributionRequestAction->handle(
-            $contributionRequest,
-            $user,
+        $contributionRequestLifecycle->reject(
+            (string) $contributionRequest->getKey(),
+            (string) $user->getKey(),
             (string) $validated['reason_code'],
             $validated['reviewer_note'] ?? null,
         );
+
+        $rejectedRequest = ContributionRequest::query()
+            ->with(['entity', 'proposer', 'reviewer'])
+            ->findOrFail($contributionRequest->getKey());
 
         return response()->json([
             'data' => [
@@ -676,11 +686,15 @@ class ContributionController extends FrontendController
         string $requestId,
         Request $request,
         ResolveOwnContributionRequestAction $resolveOwnContributionRequestAction,
-        CancelContributionRequestAction $cancelContributionRequestAction,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $contributionRequest = $resolveOwnContributionRequestAction->handle($user, $requestId);
-        $cancelledRequest = $cancelContributionRequestAction->handle($contributionRequest, $user);
+        $contributionRequestLifecycle->cancel((string) $contributionRequest->getKey(), (string) $user->getKey());
+
+        $cancelledRequest = ContributionRequest::query()
+            ->with(['entity', 'proposer', 'reviewer'])
+            ->findOrFail($contributionRequest->getKey());
 
         return response()->json([
             'data' => [

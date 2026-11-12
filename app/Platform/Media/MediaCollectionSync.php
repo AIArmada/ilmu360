@@ -6,6 +6,7 @@ namespace App\Platform\Media;
 
 use Illuminate\Http\UploadedFile;
 use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Stable media collection write boundary for feature code.
@@ -16,6 +17,11 @@ use Spatie\MediaLibrary\HasMedia;
  */
 interface MediaCollectionSync
 {
+    /**
+     * Remove one media row, e.g. a staged copy after it was applied.
+     */
+    public function deleteMedia(Media $media): void;
+
     public function clearCollection(HasMedia $model, string $collection): void;
 
     public function syncSingle(HasMedia $model, ?UploadedFile $file, string $collection): void;

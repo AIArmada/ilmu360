@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Actions\Contributions\Submission;
+namespace App\Features\Contributions\Actions;
 
-use App\Actions\Contributions\Queries\ResolveContributionEntityMetadataAction;
+use App\Features\Contributions\Support\ContributionEntityMetadata;
+use App\Features\Contributions\Support\ContributionModel;
+use App\Shared\Contributions\ContributionEntityState;
+use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Models\ContributionRequest;
-use App\Models\User;
-use App\Services\ContributionEntityMutationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -17,36 +17,36 @@ class SubmitContributionUpdateRequestAction
     use AsAction;
 
     public function __construct(
-        private readonly ContributionEntityMutationService $entityMutationService,
-        private readonly ResolveContributionEntityMetadataAction $resolveContributionEntityMetadataAction,
-        private readonly EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
+        private readonly ContributionEntityState $entityState,
+        private readonly ContributionRequestGuard $pendingRequests,
     ) {}
 
     /**
      * @param  array<string, mixed>  $proposedData
+     * @return \App\Models\ContributionRequest
      */
     public function handle(
         Model $entity,
-        User $proposer,
+        Model $proposer,
         array $proposedData,
         ?string $proposerNote = null,
-    ): ContributionRequest {
-        $entityMetadata = $this->resolveContributionEntityMetadataAction->handle($entity);
+    ): Model {
+        $entityMetadata = ContributionEntityMetadata::for($entity);
 
-        return DB::transaction(function () use ($entity, $entityMetadata, $proposer, $proposedData, $proposerNote): ContributionRequest {
+        return DB::transaction(function () use ($entity, $entityMetadata, $proposer, $proposedData, $proposerNote): Model {
             $lockedEntity = $entity->newQuery()
                 ->whereKey($entity->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $this->ensureNoPendingContributionRequestAction->handle($lockedEntity);
+            $this->pendingRequests->ensureNoPending($lockedEntity);
 
             $originalData = array_intersect_key(
-                $this->entityMutationService->stateFor($lockedEntity),
+                $this->entityState->stateFor($lockedEntity),
                 $proposedData,
             );
 
-            return ContributionRequest::create([
+            return ContributionModel::query('contribution_request')->create([
                 'type' => ContributionRequestType::Update,
                 'subject_type' => $entityMetadata['subject_type'],
                 'entity_type' => $entityMetadata['entity_type'],

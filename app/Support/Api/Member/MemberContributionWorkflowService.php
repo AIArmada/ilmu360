@@ -7,9 +7,7 @@ namespace App\Support\Api\Member;
 use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
-use App\Actions\Contributions\Review\RejectContributionRequestAction;
-use App\Actions\Contributions\Submission\CancelContributionRequestAction;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
@@ -32,9 +30,7 @@ final readonly class MemberContributionWorkflowService
         private ResolveOwnContributionRequestAction $resolveOwnContributionRequestAction,
         private ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
         private ContributionSubjectPresenter $contributionSubjectPresenter,
-        private ApproveContributionRequestAction $approveContributionRequestAction,
-        private RejectContributionRequestAction $rejectContributionRequestAction,
-        private CancelContributionRequestAction $cancelContributionRequestAction,
+        private ContributionRequestLifecycle $contributionRequestLifecycle,
     ) {}
 
     /**
@@ -73,15 +69,17 @@ final readonly class MemberContributionWorkflowService
         ])->validate();
 
         $request = $this->resolveReviewableContributionRequestAction->handle($actor, $requestId);
-        $approvedRequest = $this->approveContributionRequestAction->handle(
-            $request,
-            $actor,
+        $this->contributionRequestLifecycle->approve(
+            (string) $request->getKey(),
+            (string) $actor->getKey(),
             $validated['reviewer_note'] ?? null,
         );
 
+        $request->refresh();
+
         return [
             'data' => [
-                'request' => $this->requestData($approvedRequest, $actor),
+                'request' => $this->requestData($request, $actor),
             ],
         ];
     }
@@ -98,16 +96,18 @@ final readonly class MemberContributionWorkflowService
         ])->validate();
 
         $request = $this->resolveReviewableContributionRequestAction->handle($actor, $requestId);
-        $rejectedRequest = $this->rejectContributionRequestAction->handle(
-            $request,
-            $actor,
+        $this->contributionRequestLifecycle->reject(
+            (string) $request->getKey(),
+            (string) $actor->getKey(),
             (string) $validated['reason_code'],
             $validated['reviewer_note'] ?? null,
         );
 
+        $request->refresh();
+
         return [
             'data' => [
-                'request' => $this->requestData($rejectedRequest, $actor),
+                'request' => $this->requestData($request, $actor),
             ],
         ];
     }
@@ -118,11 +118,13 @@ final readonly class MemberContributionWorkflowService
     public function cancel(string $requestId, User $actor): array
     {
         $request = $this->resolveOwnContributionRequestAction->handle($actor, $requestId);
-        $cancelledRequest = $this->cancelContributionRequestAction->handle($request, $actor);
+        $this->contributionRequestLifecycle->cancel((string) $request->getKey(), (string) $actor->getKey());
+
+        $request->refresh();
 
         return [
             'data' => [
-                'request' => $this->requestData($cancelledRequest, $actor),
+                'request' => $this->requestData($request, $actor),
             ],
         ];
     }

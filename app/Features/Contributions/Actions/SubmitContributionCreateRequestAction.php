@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Actions\Contributions\Submission;
+namespace App\Features\Contributions\Actions;
 
-use App\Actions\Contributions\Queries\ResolveContributionEntityMetadataAction;
+use App\Features\Contributions\Support\ContributionEntityMetadata;
+use App\Features\Contributions\Support\ContributionModel;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Models\ContributionRequest;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
@@ -16,20 +15,17 @@ class SubmitContributionCreateRequestAction
 {
     use AsAction;
 
-    public function __construct(
-        private readonly ResolveContributionEntityMetadataAction $resolveContributionEntityMetadataAction,
-    ) {}
-
     /**
      * @param  array<string, mixed>  $proposedData
+     * @return \App\Models\ContributionRequest
      */
     public function handle(
         ContributionSubjectType $subjectType,
-        User $proposer,
+        Model $proposer,
         array $proposedData,
         ?string $proposerNote = null,
         ?Model $entity = null,
-    ): ContributionRequest {
+    ): Model {
         if (! in_array($subjectType, [
             ContributionSubjectType::Institution,
             ContributionSubjectType::Person,
@@ -39,10 +35,10 @@ class SubmitContributionCreateRequestAction
         }
 
         $entityMetadata = $entity instanceof Model
-            ? $this->resolveContributionEntityMetadataAction->handle($entity)
+            ? ContributionEntityMetadata::for($entity)
             : null;
 
-        return ContributionRequest::create([
+        return ContributionModel::query('contribution_request')->create([
             'type' => ContributionRequestType::Create,
             'subject_type' => $entityMetadata['subject_type'] ?? $subjectType,
             'entity_type' => $entityMetadata['entity_type'] ?? null,

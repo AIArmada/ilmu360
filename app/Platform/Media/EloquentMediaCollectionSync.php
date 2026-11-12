@@ -8,9 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 final class EloquentMediaCollectionSync implements MediaCollectionSync
 {
+    public function deleteMedia(Media $media): void
+    {
+        $media->delete();
+    }
+
     public function clearCollection(HasMedia $model, string $collection): void
     {
         $model->clearMediaCollection($collection);

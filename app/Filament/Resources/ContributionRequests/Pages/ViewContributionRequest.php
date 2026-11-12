@@ -2,8 +2,7 @@
 
 namespace App\Filament\Resources\ContributionRequests\Pages;
 
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
-use App\Actions\Contributions\Review\RejectContributionRequestAction;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
@@ -59,15 +58,15 @@ class ViewContributionRequest extends ViewRecord
                     ->rows(3)
                     ->maxLength(2000),
             ])
-            ->action(function (array $data, ApproveContributionRequestAction $approveContributionRequestAction): void {
+            ->action(function (array $data, ContributionRequestLifecycle $contributionRequestLifecycle): void {
                 $user = auth()->user();
 
                 abort_unless($user instanceof User, 403);
 
                 try {
-                    $approveContributionRequestAction->handle(
-                        $this->requestRecord(),
-                        $user,
+                    $contributionRequestLifecycle->approve(
+                        (string) $this->requestRecord()->getKey(),
+                        (string) $user->getKey(),
                         filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                     );
                 } catch (ContributionRequestAlreadyReviewedException $exception) {
@@ -136,15 +135,15 @@ class ViewContributionRequest extends ViewRecord
                     ->rows(3)
                     ->maxLength(2000),
             ])
-            ->action(function (array $data, RejectContributionRequestAction $rejectContributionRequestAction): void {
+            ->action(function (array $data, ContributionRequestLifecycle $contributionRequestLifecycle): void {
                 $user = auth()->user();
 
                 abort_unless($user instanceof User, 403);
 
                 try {
-                    $rejectContributionRequestAction->handle(
-                        $this->requestRecord(),
-                        $user,
+                    $contributionRequestLifecycle->reject(
+                        (string) $this->requestRecord()->getKey(),
+                        (string) $user->getKey(),
                         (string) $data['reason_code'],
                         filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                     );

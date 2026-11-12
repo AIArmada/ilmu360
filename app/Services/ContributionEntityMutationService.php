@@ -33,6 +33,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Location\AddressAssignments;
 use App\Rules\ValidAreaAssignmentRoles;
+use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Directory\Enums\ReferencePartType;
@@ -51,7 +52,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 
-class ContributionEntityMutationService
+class ContributionEntityMutationService implements ContributionEntityState
 {
     public function __construct(
         private readonly EventAuthoring $authoring,

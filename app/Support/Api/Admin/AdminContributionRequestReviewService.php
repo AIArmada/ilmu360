@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Api\Admin;
 
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
-use App\Actions\Contributions\Review\RejectContributionRequestAction;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
@@ -22,8 +21,7 @@ final readonly class AdminContributionRequestReviewService
     public function __construct(
         private AdminResourceRegistry $registry,
         private ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
-        private ApproveContributionRequestAction $approveContributionRequestAction,
-        private RejectContributionRequestAction $rejectContributionRequestAction,
+        private ContributionRequestLifecycle $contributionRequestLifecycle,
     ) {}
 
     public function canReview(?User $actor = null): bool
@@ -111,11 +109,13 @@ final readonly class AdminContributionRequestReviewService
         $action = (string) $validated['action'];
         $reviewerNote = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
 
-        $request = match ($action) {
-            'approve' => $this->approveContributionRequestAction->handle($request, $actor, $reviewerNote),
-            'reject' => $this->rejectContributionRequestAction->handle($request, $actor, (string) $validated['reason_code'], $reviewerNote),
+        match ($action) {
+            'approve' => $this->contributionRequestLifecycle->approve((string) $request->getKey(), (string) $actor->getKey(), $reviewerNote),
+            'reject' => $this->contributionRequestLifecycle->reject((string) $request->getKey(), (string) $actor->getKey(), (string) $validated['reason_code'], $reviewerNote),
             default => throw new \InvalidArgumentException('Unsupported contribution-request review action.'),
         };
+
+        $request->refresh();
 
         return $this->workflowResponse(ContributionRequestResource::class, $request);
     }

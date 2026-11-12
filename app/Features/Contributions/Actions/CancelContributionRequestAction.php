@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Actions\Contributions\Submission;
+namespace App\Features\Contributions\Actions;
 
-use App\Models\ContributionRequest;
-use App\Models\User;
+use App\Features\Contributions\Support\ContributionModel;
+use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
 
@@ -11,7 +11,11 @@ class CancelContributionRequestAction
 {
     use AsAction;
 
-    public function handle(ContributionRequest $request, User $proposer): ContributionRequest
+    /**
+     * @param  \App\Models\ContributionRequest  $request
+     * @return \App\Models\ContributionRequest
+     */
+    public function handle(Model $request, Model $proposer): Model
     {
         if (! $request->isPending()) {
             throw new RuntimeException('Only pending contribution requests can be cancelled.');

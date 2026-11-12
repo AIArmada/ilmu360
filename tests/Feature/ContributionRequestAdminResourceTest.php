@@ -258,3 +258,20 @@ it('shows a danger notification when approving a conflicting request from the ad
 
     expect($first->fresh()->status)->toBe(ContributionRequestStatus::Pending);
 });
+
+it('bulk deletes contribution requests through the lifecycle boundary for super admins', function () {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $first = ContributionRequest::factory()->create();
+    $second = ContributionRequest::factory()->create();
+
+    Livewire::actingAs($administrator)
+        ->test(ListContributionRequests::class)
+        ->assertCanSeeTableRecords([$first, $second])
+        ->callTableBulkAction('delete', [$first->getKey(), $second->getKey()])
+        ->assertNotified();
+
+    $this->assertModelMissing($first);
+    $this->assertModelMissing($second);
+});

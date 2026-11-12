@@ -10,9 +10,9 @@ use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestActio
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
 use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
-use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Directory\Api\DirectoryContributionMedia;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
@@ -343,7 +343,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
         ResolveContributionChangedPayloadAction $resolveContributionChangedPayloadAction,
         NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
-        SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
         MapsIdentityLock $mapsIdentityLockAction,
     ): void {
@@ -351,7 +351,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $applyDirectContributionUpdateAction,
             $resolveContributionChangedPayloadAction,
             $normalizeContributionSubmissionAction,
-            $submitContributionUpdateRequestAction,
+            $contributionRequestLifecycle,
             $ensureNoPendingContributionRequestAction,
             $mapsIdentityLockAction,
         ): void {
@@ -387,7 +387,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $applyDirectContributionUpdateAction,
                 $resolveContributionChangedPayloadAction,
                 $normalizeContributionSubmissionAction,
-                $submitContributionUpdateRequestAction,
+                $contributionRequestLifecycle,
                 $ensureNoPendingContributionRequestAction,
                 $user,
             ): void {
@@ -432,12 +432,15 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     return;
                 }
 
-                $request = $submitContributionUpdateRequestAction->handle(
-                    $this->entity,
-                    $user,
+                $requestId = $contributionRequestLifecycle->submitUpdate(
+                    $this->entity->getMorphClass(),
+                    (string) $this->entity->getKey(),
+                    (string) $user->getKey(),
                     $changes,
                     $submissionState['proposer_note'],
                 );
+
+                $request = ContributionRequest::query()->findOrFail($requestId);
 
                 if ($hasNewMedia) {
                     // Non-privileged contributors cannot apply media directly. Stage the

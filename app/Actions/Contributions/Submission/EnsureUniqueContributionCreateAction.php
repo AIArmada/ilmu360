@@ -11,6 +11,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\GooglePlaceIdentity;
+use App\Shared\Contributions\InstitutionClaimGuard;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,7 +19,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class EnsureUniqueContributionCreateAction
+final readonly class EnsureUniqueContributionCreateAction implements InstitutionClaimGuard
 {
     use AsAction;
 
@@ -264,6 +265,15 @@ final readonly class EnsureUniqueContributionCreateAction
         }
 
         return self::normalizeClaimAddress($rawAddress);
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     * @return array<string, mixed>
+     */
+    public function normalizeAddress(array $state): array
+    {
+        return self::normalizeClaimAddress($state);
     }
 
     /**

@@ -1,5 +1,15 @@
 {
   "schema": 2,
   "name": "Contributions",
-  "owns": {}
+  "owns": {
+    "table:contribution_requests": [
+      "App\\Features\\Contributions\\Actions\\ApproveContributionRequestAction",
+      "App\\Features\\Contributions\\Actions\\CancelContributionRequestAction",
+      "App\\Features\\Contributions\\Actions\\DeleteContributionRequestsAction",
+      "App\\Features\\Contributions\\Actions\\RejectContributionRequestAction",
+      "App\\Features\\Contributions\\Actions\\SubmitContributionCreateRequestAction",
+      "App\\Features\\Contributions\\Actions\\SubmitContributionUpdateRequestAction",
+      "App\\Features\\Contributions\\Contributors\\ContributionsAccountLifecycleContributor"
+    ]
+  }
 }

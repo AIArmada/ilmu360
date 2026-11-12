@@ -6,11 +6,12 @@ namespace App\Actions\Contributions\Submission;
 
 use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
 use App\Models\ContributionRequest;
+use App\Shared\Contributions\ContributionRequestGuard;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class EnsureNoPendingContributionRequestAction
+final readonly class EnsureNoPendingContributionRequestAction implements ContributionRequestGuard
 {
     use AsAction;
 
@@ -19,6 +20,11 @@ final readonly class EnsureNoPendingContributionRequestAction
     ) {}
 
     public function handle(Model $entity): void
+    {
+        $this->ensureNoPending($entity);
+    }
+
+    public function ensureNoPending(Model $entity): void
     {
         if (! $this->findEntityPendingContributionRequestAction->handle($entity) instanceof ContributionRequest) {
             return;

@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationManager;
+use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Enums\NotificationPriority;
@@ -17,7 +18,7 @@ use App\Support\Notifications\NotificationCatalog;
 use App\Support\Notifications\NotificationDispatchData;
 use Illuminate\Support\Str;
 
-class ContributionRequestNotificationService
+class ContributionRequestNotificationService implements ContributionRequestNotifier
 {
     public function __construct(
         protected CommunicationManager $comms,

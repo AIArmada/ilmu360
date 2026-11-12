@@ -1,10 +1,10 @@
 <?php
 
-use App\Actions\Contributions\Review\ApproveContributionRequestAction;
-use App\Actions\Contributions\Review\RejectContributionRequestAction;
-use App\Actions\Contributions\Submission\CancelContributionRequestAction;
-use App\Actions\Contributions\Submission\SubmitContributionCreateRequestAction;
-use App\Actions\Contributions\Submission\SubmitContributionUpdateRequestAction;
+use App\Features\Contributions\Actions\ApproveContributionRequestAction;
+use App\Features\Contributions\Actions\RejectContributionRequestAction;
+use App\Features\Contributions\Actions\CancelContributionRequestAction;
+use App\Features\Contributions\Actions\SubmitContributionCreateRequestAction;
+use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;

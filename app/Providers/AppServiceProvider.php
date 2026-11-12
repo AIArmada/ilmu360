@@ -79,6 +79,8 @@ use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
 use AIArmada\Rewards\Support\RewardBenefitCatalogService;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
+use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
+use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
 use App\Checkout\ShareCheckoutStepContributor;
@@ -175,6 +177,8 @@ use App\Policies\RewardPayoutRequestPolicy;
 use App\Policies\RewardProgramPolicy;
 use App\Policies\RewardRecoveryPolicy;
 use App\Services\Captcha\TurnstileVerifier;
+use App\Services\ContributionEntityMutationService;
+use App\Services\Notifications\ContributionRequestNotificationService;
 use App\Services\ShareTrackingService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Shared\Auth\AccountAccess;
@@ -186,6 +190,10 @@ use App\Shared\Auth\ScopedMembershipRoleStore;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\Auth\UserMorphType;
+use App\Shared\Contributions\ContributionEntityState;
+use App\Shared\Contributions\ContributionRequestGuard;
+use App\Shared\Contributions\ContributionRequestNotifier;
+use App\Shared\Contributions\InstitutionClaimGuard;
 use App\Shared\Communications\AccountNotificationSettings;
 use App\Shared\Directory\DirectoryCatalog;
 use App\Shared\Directory\PrayerInstitutionCatalog;
@@ -226,7 +234,6 @@ use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Communications\CommunicationsAccountLifecycleContributor;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\ProbeSafeDestinationResolver;
-use App\Support\Contributions\ContributionsAccountLifecycleContributor;
 use App\Support\Directory\DirectoryAccountLifecycleContributor;
 use App\Support\Directory\EloquentDirectoryAdmin;
 use App\Support\Directory\EloquentDirectoryCatalog;
@@ -357,9 +364,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SubmissionEligibilitySync::class, PublicSubmissionEligibilitySync::class);
         $this->app->bind(AccountEventFacts::class, EloquentAccountEventFacts::class);
         $this->app->bind(EngagementReader::class, EloquentEngagementReader::class);
+        $this->app->bind(ContributionEntityState::class, ContributionEntityMutationService::class);
+        $this->app->bind(ContributionRequestGuard::class, EnsureNoPendingContributionRequestAction::class);
+        $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
+        $this->app->bind(InstitutionClaimGuard::class, EnsureUniqueContributionCreateAction::class);
         $this->app->tag([
             DirectoryAccountLifecycleContributor::class,
-            ContributionsAccountLifecycleContributor::class,
             ModerationAccountLifecycleContributor::class,
             EngagementAccountLifecycleContributor::class,
             AiAccountLifecycleContributor::class,
