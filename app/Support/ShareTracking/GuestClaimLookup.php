@@ -48,10 +48,50 @@ final readonly class GuestClaimLookup implements GuestClaims
             ->lockForUpdate()
             ->first();
 
-        if (! $claim instanceof AffiliateClaim) {
-            return null;
+        return $claim instanceof AffiliateClaim ? $this->snapshot($claim) : null;
+    }
+
+    public function lockClaimant(string $claimantId): bool
+    {
+        return User::query()->whereKey($claimantId)->lockForUpdate()->first() instanceof User;
+    }
+
+    public function lockMarkedGuestAffiliate(string $affiliateId): bool
+    {
+        $affiliate = Affiliate::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->whereKey($affiliateId)
+            ->lockForUpdate()
+            ->first();
+
+        return ShareTrackingProfile::isMarkedGuest($affiliate);
+    }
+
+    public function claimForAffiliate(string $affiliateId, bool $lock = false): ?GuestClaimSnapshot
+    {
+        $query = ShareProfileScope::guestClaims()
+            ->where('affiliate_id', $affiliateId);
+
+        if ($lock) {
+            $query->lockForUpdate();
         }
 
+        $claim = $query->first();
+
+        return $claim instanceof AffiliateClaim ? $this->snapshot($claim) : null;
+    }
+
+    public function findClaimByVerifier(string $verifier): ?GuestClaimSnapshot
+    {
+        $claim = ShareProfileScope::guestClaims()
+            ->where('capability_verifier_hash', $verifier)
+            ->first();
+
+        return $claim instanceof AffiliateClaim ? $this->snapshot($claim) : null;
+    }
+
+    private function snapshot(AffiliateClaim $claim): GuestClaimSnapshot
+    {
         $createdAt = $claim->getAttribute('created_at');
 
         return new GuestClaimSnapshot(

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Enums;
+namespace App\Shared\ShareTracking;
 
 /**
  * Server-side guest-claim decision.

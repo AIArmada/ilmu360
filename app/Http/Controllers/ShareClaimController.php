@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
-use App\Enums\ShareGuestClaimResult;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Shared\ShareTracking\ShareGuestClaimResult;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

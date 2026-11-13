@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking;
 
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
+use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\EffectReceipts;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
@@ -38,8 +40,11 @@ use App\Platform\FeatureModule;
  *   correction create/replay. `ReverseShareOutcomeAction` keeps the outer
  *   reversal transaction, effect-lock and conversion-reversal order, monetary
  *   guard, and the correction observer dispatch.
- * - S2b guest claims: move the remaining guest claim orchestration while
- *   preserving the two-secret lock order.
+ * - S2b guest claims (landed): `ClaimGuestProfileAction` owns the guest claim
+ *   orchestration behind `GuestShareClaims`, preserving the users → capability
+ *   → guest affiliate → existing claim → recipient member affiliate → claim
+ *   insert lock order. Shared `GuestClaims`/`ClaimRecipients` seams keep the
+ *   root support and package adapters. S3 cohorts/signals next.
  * - S3 cohorts/signals: move the committed-share reader or keep a root adapter
  *   and claim `share_cohort_projections`, `share_signal_reader_cursors` and
  *   `share_signal_reader_skips` after characterising backlog/poison SQL.
@@ -61,6 +66,7 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(BrowserSelectionWriter::class, LockBrowserSelectionAction::class);
         $this->app->bind(EffectReceipts::class, DatabaseEffectReceipts::class);
+        $this->app->bind(GuestShareClaims::class, ClaimGuestProfileAction::class);
         $this->app->bind(OutcomeCorrections::class, DatabaseOutcomeCorrections::class);
         $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
     }
