@@ -14,11 +14,12 @@ use App\Platform\FeatureModule;
  *
  * D4a added the read-side seams only: `EventEngagement`/`SubjectFollows`
  * expose immutable scalar state. D4b adds the root save writer actions
- * (`App\Actions\Engagement\SaveEventAction`/`UnsaveEventAction`) and D4c the
+ * (`App\Actions\Engagement\SaveEventAction`/`UnsaveEventAction`), D4c the
  * going writers (`MarkEventGoingAction`/`RemoveEventGoingAction`) plus the
- * shared `GoingWindow` eligibility; the package manager remains the canonical
- * writer and callers never reproduce its orchestration. Implementations are
- * root adapters bound in AppServiceProvider.
+ * shared `GoingWindow` eligibility, and D4d the follow writers
+ * (`FollowSubjectAction`/`UnfollowSubjectAction`); the package manager remains
+ * the canonical writer and callers never reproduce its orchestration.
+ * Implementations are root adapters bound in AppServiceProvider.
  *
  * Must stay root adapters, documented here so later slices do not absorb them:
  * - EngagementAccountLifecycleContributor (account deletion/restoration

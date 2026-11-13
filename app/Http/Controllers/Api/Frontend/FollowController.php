@@ -2,31 +2,28 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use AIArmada\Engagement\Models\Follow;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Actions\Engagement\FollowSubjectAction;
+use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Data\Api\Frontend\Follow\FollowStateData;
-use App\Enums\ShareOutcomeType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
 use App\Platform\Models\SlugOrUuidResolver;
-use App\Services\ShareTrackingService;
 use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 #[Group('Follow', 'Authenticated endpoints for reading and mutating follow state across public institutions, persons, references, and series.')]
 class FollowController extends FrontendController
 {
     public function __construct(
-        private readonly ShareTrackingService $shareTrackingService,
+        private readonly FollowSubjectAction $followSubject,
+        private readonly UnfollowSubjectAction $unfollowSubject,
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
     ) {}
 
@@ -61,29 +58,15 @@ class FollowController extends FrontendController
         $record = $this->resolveFollowable($type, $subject, $user);
 
         if (! $user->isFollowing($record)) {
-            $follow = DB::transaction(function () use ($user, $record, $request): Follow {
-                $created = $user->follow($record);
-
-                // Reactivations reuse the follow row: only rows created by
-                // this call freeze a decision, so earlier relationships
-                // can never earn later through a new cookie.
-                if ($created->wasRecentlyCreated) {
-                    $this->shareTrackingService->recordOutcome(
-                        type: $this->followOutcomeType($record),
-                        businessKey: ShareOutcomeBusinessKey::follow($this->followOutcomeType($record), (string) $created->getKey()),
-                        subject: $record,
-                        actor: $user,
-                        request: $request,
-                        metadata: [
-                            'subject_id' => $record->getKey(),
-                            'subject_type' => $record->getMorphClass(),
-                        ],
-                        occurredAt: $created->created_at,
-                    );
-                }
-
-                return $created;
-            });
+            $this->followSubject->handle(
+                subject: $record,
+                user: $user,
+                metadata: [
+                    'subject_id' => $record->getKey(),
+                    'subject_type' => $record->getMorphClass(),
+                ],
+                request: $request,
+            );
         }
 
         return response()->json([
@@ -105,27 +88,7 @@ class FollowController extends FrontendController
         $user = $this->requireUser($request);
         $record = $this->resolveFollowable($type, $subject, $user);
 
-        DB::transaction(function () use ($user, $record, $request): void {
-            $follow = Follow::query()
-                ->where('follower_type', $user->getMorphClass())
-                ->where('follower_id', $user->getKey())
-                ->where('followable_type', $record->getMorphClass())
-                ->where('followable_id', $record->getKey())
-                ->where('status', 'active')
-                ->lockForUpdate()
-                ->first();
-
-            $user->unfollow($record);
-
-            if ($follow instanceof Follow) {
-                app(ReverseShareOutcomeAction::class)->handle(
-                    ShareOutcomeBusinessKey::follow($this->followOutcomeType($record), (string) $follow->getKey()),
-                    'unfollowed',
-                    $user,
-                    $request,
-                );
-            }
-        });
+        $this->unfollowSubject->handle($record, $user);
 
         return response()->json([
             'data' => $this->followData($record, $user),
@@ -155,7 +118,7 @@ class FollowController extends FrontendController
             $subject,
         );
 
-        if ($record->status !== InstitutionStatus::Verified && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
+        if (! in_array($record->status, InstitutionStatus::publiclyVisible(), true) && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
             abort(404);
         }
 
@@ -171,7 +134,7 @@ class FollowController extends FrontendController
             $subject,
         );
 
-        if ($record->status !== 'verified' && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
+        if (! in_array((string) $record->status, ['verified', 'pending'], true) && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
             abort(404);
         }
 
@@ -217,15 +180,5 @@ class FollowController extends FrontendController
     private function followData(Institution|Person|Reference|Series $record, User $user): array
     {
         return FollowStateData::fromModel($record, $user)->toArray();
-    }
-
-    private function followOutcomeType(Institution|Person|Reference|Series $record): ShareOutcomeType
-    {
-        return match (true) {
-            $record instanceof Institution => ShareOutcomeType::InstitutionFollow,
-            $record instanceof Person => ShareOutcomeType::PersonFollow,
-            $record instanceof Reference => ShareOutcomeType::ReferenceFollow,
-            default => ShareOutcomeType::SeriesFollow,
-        };
     }
 }

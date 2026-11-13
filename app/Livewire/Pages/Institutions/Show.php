@@ -5,11 +5,10 @@ namespace App\Livewire\Pages\Institutions;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Actions\Engagement\FollowSubjectAction;
+use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Data\PublicScheduleLeaf;
-use App\Enums\ShareOutcomeType;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
@@ -20,10 +19,8 @@ use App\Models\Event;
 use App\Models\EventReferencePivot;
 use App\Models\Institution;
 use App\Models\Reference;
-use App\Services\ShareTrackingService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -31,7 +28,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -96,52 +92,18 @@ class Show extends Component
         }
 
         if ($this->isFollowing) {
-            $follow = Follow::query()
-                ->where('follower_type', $user->getMorphClass())
-                ->where('follower_id', $user->getKey())
-                ->where('followable_type', $this->institution->getMorphClass())
-                ->where('followable_id', $this->institution->getKey())
-                ->where('status', 'active')
-                ->first();
-
-            DB::transaction(function () use ($user, $follow): void {
-                $user->unfollow($this->institution);
-
-                if ($follow instanceof Follow) {
-                    app(ReverseShareOutcomeAction::class)->handle(
-                        ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, (string) $follow->getKey()),
-                        'unfollowed',
-                        $user,
-                    );
-                }
-            });
+            app(UnfollowSubjectAction::class)->handle($this->institution, $user);
             $this->isFollowing = false;
 
             return;
         }
 
-        DB::transaction(function () use ($user): Follow {
-            $created = $user->follow($this->institution);
-
-            // Reactivations reuse the follow row: only rows created by
-            // this call freeze a decision, so earlier relationships
-            // can never earn later through a new cookie.
-            if ($created->wasRecentlyCreated) {
-                app(ShareTrackingService::class)->recordOutcome(
-                    type: ShareOutcomeType::InstitutionFollow,
-                    businessKey: ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, (string) $created->getKey()),
-                    subject: $this->institution,
-                    actor: $user,
-                    request: request(),
-                    metadata: [
-                        'institution_id' => $this->institution->getKey(),
-                    ],
-                    occurredAt: $created->created_at,
-                );
-            }
-
-            return $created;
-        });
+        app(FollowSubjectAction::class)->handle(
+            subject: $this->institution,
+            user: $user,
+            metadata: ['institution_id' => $this->institution->getKey()],
+            request: request(),
+        );
         $this->isFollowing = true;
     }
 

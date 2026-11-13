@@ -1,15 +1,15 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-
-use App\Actions\ToggleDirectoryFollowAction;
-
+use App\Actions\Engagement\FollowSubjectAction;
+use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
+use App\Support\Engagement\DirectoryFollowSubjectResolver;
 use App\Support\Search\ReferenceSearchService;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
@@ -118,10 +118,21 @@ new
                 return;
             }
 
-            $state = app(ToggleDirectoryFollowAction::class)->handle('reference', $referenceId, $user);
+            $subject = app(DirectoryFollowSubjectResolver::class)->resolve('reference', $referenceId);
 
-            if ($state === null) {
+            if (! $subject instanceof Reference) {
                 return;
+            }
+
+            if ($user->isFollowing($subject)) {
+                app(UnfollowSubjectAction::class)->handle($subject, $user);
+            } else {
+                app(FollowSubjectAction::class)->handle(
+                    subject: $subject,
+                    user: $user,
+                    metadata: ['reference_id' => $subject->getKey()],
+                    request: request(),
+                );
             }
 
             $this->hydrate();

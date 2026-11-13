@@ -1,13 +1,15 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\ToggleDirectoryFollowAction;
+use App\Actions\Engagement\FollowSubjectAction;
+use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Location\LocationLevelLabels;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Auth\IntendedRedirect;
+use App\Support\Engagement\DirectoryFollowSubjectResolver;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Search\InstitutionDirectoryQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -660,10 +662,21 @@ class extends Component
             return;
         }
 
-        $state = app(ToggleDirectoryFollowAction::class)->handle('institution', $institutionId, $user);
+        $subject = app(DirectoryFollowSubjectResolver::class)->resolve('institution', $institutionId);
 
-        if ($state === null) {
+        if (! $subject instanceof Institution) {
             return;
+        }
+
+        if ($user->isFollowing($subject)) {
+            app(UnfollowSubjectAction::class)->handle($subject, $user);
+        } else {
+            app(FollowSubjectAction::class)->handle(
+                subject: $subject,
+                user: $user,
+                metadata: ['institution_id' => $subject->getKey()],
+                request: request(),
+            );
         }
 
         $this->refreshFollowingIds();

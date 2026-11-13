@@ -2,10 +2,10 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 
-use App\Actions\ToggleDirectoryFollowAction;
-
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
+use App\Actions\Engagement\FollowSubjectAction;
+use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
@@ -13,6 +13,7 @@ use App\Models\EventKeyPerson;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
+use App\Support\Engagement\DirectoryFollowSubjectResolver;
 use App\Support\Search\PersonSearchService;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
@@ -180,10 +181,21 @@ new
                 return;
             }
 
-            $state = app(ToggleDirectoryFollowAction::class)->handle('person', $personId, $user);
+            $subject = app(DirectoryFollowSubjectResolver::class)->resolve('person', $personId);
 
-            if ($state === null) {
+            if (! $subject instanceof Person) {
                 return;
+            }
+
+            if ($user->isFollowing($subject)) {
+                app(UnfollowSubjectAction::class)->handle($subject, $user);
+            } else {
+                app(FollowSubjectAction::class)->handle(
+                    subject: $subject,
+                    user: $user,
+                    metadata: ['person_id' => $subject->getKey()],
+                    request: request(),
+                );
             }
 
             $this->hydrate();

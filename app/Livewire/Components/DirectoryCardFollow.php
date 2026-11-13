@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Components;
 
-use App\Actions\ToggleDirectoryFollowAction;
+use App\Actions\Engagement\FollowSubjectAction;
+use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
+use App\Support\Engagement\DirectoryFollowSubjectResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -36,13 +38,24 @@ class DirectoryCardFollow extends Component
             return;
         }
 
-        $state = app(ToggleDirectoryFollowAction::class)->handle($this->subjectType, $subjectId, $user);
+        $subject = app(DirectoryFollowSubjectResolver::class)->resolve($this->subjectType, $subjectId);
 
-        if ($state === null) {
+        if ($subject === null) {
             return;
         }
 
-        $this->isFollowing = $state;
+        if ($user->isFollowing($subject)) {
+            app(UnfollowSubjectAction::class)->handle($subject, $user);
+            $this->isFollowing = false;
+        } else {
+            app(FollowSubjectAction::class)->handle(
+                subject: $subject,
+                user: $user,
+                metadata: ["{$this->subjectType}_id" => $subject->getKey()],
+                request: request(),
+            );
+            $this->isFollowing = true;
+        }
 
         if ($this->refreshListing) {
             $this->dispatch("directory-follow-updated.{$this->subjectType}");

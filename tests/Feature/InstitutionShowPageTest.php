@@ -3,6 +3,7 @@
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
+use App\Contracts\ShareTrackingContract;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
@@ -1005,4 +1006,29 @@ it('hides event card locations on the institution event list but keeps them on t
         ->assertDontSee('Kuala Lumpur, Kuala Lumpur')
         ->assertDontSee('Dewan Utama KL • Negeri: - • Daerah: Kuala Lumpur • Bandar / Mukim / Zon: -')
         ->assertDontSee('Dewan Utama KL • Negeri: Kuala Lumpur • Daerah: Kuala Lumpur');
+});
+
+it('passes the typed institution metadata shape from the show page follow', function (): void {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $received = null;
+
+    $tracking = Mockery::mock(ShareTrackingContract::class);
+    $tracking->shouldReceive('recordOutcome')
+        ->once()
+        ->withArgs(function (mixed ...$arguments) use (&$received): bool {
+            $received = $arguments[5];
+
+            return true;
+        })
+        ->andReturnNull();
+
+    $this->app->instance(ShareTrackingContract::class, $tracking);
+
+    Livewire::actingAs($user)
+        ->test('pages.institutions.show', ['institution' => $institution])
+        ->call('toggleFollow')
+        ->assertSet('isFollowing', true);
+
+    expect($received)->toBe(['institution_id' => $institution->getKey()]);
 });

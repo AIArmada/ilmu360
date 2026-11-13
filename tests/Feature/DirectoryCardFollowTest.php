@@ -1,14 +1,52 @@
 <?php
 
+use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Models\AffiliateConversion;
+use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\States\ConversionStatus;
+use AIArmada\Engagement\Enums\FollowStatus;
+use AIArmada\Engagement\Models\Follow;
+use App\Enums\ShareOutcomeType;
 use App\Livewire\Components\DirectoryCardFollow;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Models\ShareOutcomeCorrection;
+use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
+use App\Services\ShareTrackingService;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
+use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Livewire\Livewire;
+use Tests\TestCase;
+
+function d4dCardShareCookie(TestCase $testCase, string $url, User $sharer): string
+{
+    app(ShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Follow Page', 'web');
+
+    $affiliate = Affiliate::query()
+        ->where('owner_type', $sharer->getMorphClass())
+        ->where('owner_id', $sharer->getKey())
+        ->firstOrFail();
+
+    $link = AffiliateLink::query()->where('affiliate_id', $affiliate->getKey())->firstOrFail();
+
+    $response = $testCase->get($url.'?share='.$link->custom_slug);
+    $response->assertOk();
+
+    return (string) $response->getCookie((string) config('share-tracking.cookie.name'))?->getValue();
+}
+
+function d4dCardConversionStatus(AffiliateConversion $conversion): string
+{
+    $status = $conversion->status;
+
+    return $status instanceof ConversionStatus
+        ? (string) $status->getValue()
+        : (string) $status;
+}
 
 function directoryFollowSubject(string $type): Institution|Person|Reference
 {
@@ -115,4 +153,53 @@ it('refreshes institution follow ids on the directory follow event, not on every
 
     $component->dispatch('directory-follow-updated.institution')
         ->assertSet('followingInstitutionIds', []);
+});
+
+it('reverses a directory card follow outcome with the typed metadata shape', function (): void {
+    $sharer = User::factory()->create();
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $url = route('institutions.show', $institution);
+    $cookieName = (string) config('share-tracking.cookie.name');
+    $cookie = d4dCardShareCookie($this, $url, $sharer);
+
+    $card = Livewire::withCookie($cookieName, $cookie)
+        ->actingAs($visitor)
+        ->test(DirectoryCardFollow::class, [
+            'subjectType' => 'institution',
+            'subjectId' => (string) $institution->getKey(),
+            'returnUrl' => route('institutions.index'),
+        ]);
+
+    $card->call('toggleFollow', (string) $institution->getKey())
+        ->assertSet('isFollowing', true);
+
+    $conversion = AffiliateConversion::query()
+        ->where('conversion_type', ShareOutcomeType::InstitutionFollow->value)
+        ->sole();
+
+    expect($conversion->metadata)->toBe(['institution_id' => $institution->getKey()]);
+
+    $follow = Follow::query()
+        ->where('follower_type', $visitor->getMorphClass())
+        ->where('follower_id', $visitor->getKey())
+        ->where('followable_id', $institution->getKey())
+        ->firstOrFail();
+    $businessKey = ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, (string) $follow->getKey());
+
+    $card->call('toggleFollow', (string) $institution->getKey())
+        ->assertSet('isFollowing', false);
+
+    expect(d4dCardConversionStatus($conversion->fresh()))->toBe('reversed')
+        ->and(ShareOutcomeCorrection::query()->where('business_key', $businessKey)->count())->toBe(1)
+        ->and(ShareOutcomeCorrection::query()->where('business_key', $businessKey)->value('reason'))->toBe('unfollowed');
+
+    $card->call('toggleFollow', (string) $institution->getKey())
+        ->assertSet('isFollowing', true);
+
+    expect(AffiliateConversion::query()
+        ->where('conversion_type', ShareOutcomeType::InstitutionFollow->value)
+        ->count())->toBe(1)
+        ->and(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->count())->toBe(1)
+        ->and(Follow::query()->whereKey($follow->getKey())->value('status'))->toBe(FollowStatus::Active);
 });

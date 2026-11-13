@@ -13,11 +13,12 @@ use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 
 /**
- * D0 characterization: pin the current eligibility differences that D4 must
- * resolve deliberately rather than accidentally.
+ * D0 characterization: pin the engagement eligibility contracts that D4
+ * resolved deliberately rather than accidentally.
  *
- * - Directory cards follow institutions/persons with status verified OR
- *   pending; the follow API re-resolves the subject and requires verified.
+ * - Directory cards and the follow API agree: pending and verified public
+ *   institutions/persons are followable. The API deliberately does not add
+ *   the cards' speaker-status narrowing (D4d ruling).
  * - Event cards and the going API now share the inclusive effective-end
  *   window: an ongoing event (started past, ends future) stays going-eligible
  *   until `ends_at`, and a future event remains eligible.
@@ -36,7 +37,7 @@ function d0EngagementCardParameters(Event $event): array
     ];
 }
 
-it('lets directory cards follow pending subjects while the follow API requires verified', function (): void {
+it('lets directory cards and the follow API follow pending public subjects', function (): void {
     $pendingInstitution = Institution::factory()->create(['status' => 'pending']);
     $pendingPerson = Person::factory()->create(['status' => 'pending']);
     $cardUser = User::factory()->create();
@@ -65,7 +66,8 @@ it('lets directory cards follow pending subjects while the follow API requires v
         $this->postJson(route('api.client.follows.store', [
             'type' => $type,
             'subject' => $subject->slug,
-        ]))->assertNotFound();
+        ]))->assertCreated()
+            ->assertJsonPath('data.is_following', true);
     }
 });
 
