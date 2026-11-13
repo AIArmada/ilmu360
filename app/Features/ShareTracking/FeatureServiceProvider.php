@@ -56,8 +56,15 @@ use App\Platform\FeatureModule;
  *   wrapper and unused null object are deleted; every concrete caller now
  *   depends on `AffiliatesShareTrackingService` directly, while
  *   `ShareTrackingContract` stays the public seam and resolves to that service
- *   as a singleton. S4b (next) keeps the analytics readers and retention as
- *   documented root holds.
+ *   as a singleton.
+ * - S4b analytics/retention holds (landed): analytics readers stay root
+ *   adapters across `Services`, `Services/ShareTracking`, `Support/Share`
+ *   and `Support/ShareTracking`; the metric units, 90-day guest-profile
+ *   retention and frozen cohort-projection identity/stage rules are guarded
+ *   as holds, not migration candidates.
+ *
+ * ShareTracking migration is complete: all seven app tables are owned and the
+ * remaining root surfaces above are intentional adapters, not unclaimed work.
  *
  * Must stay root (documented here so later slices do not absorb them): HTTP,
  * Livewire and route entrypoints; DTOs; analytics readers; observers;
