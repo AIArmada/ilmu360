@@ -393,6 +393,22 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     }
 
     /**
+     * Occurrences used to resolve the grouped going window. Kept separate
+     * from `occurrences` so card date and image projections keep their
+     * existing relation branches.
+     *
+     * @return HasMany<EventOccurrence, $this>
+     */
+    public function goingWindowOccurrences(): HasMany
+    {
+        return $this->hasMany(EventOccurrence::class)
+            ->withoutGlobalScopes()
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
      * @return HasOne<EventOccurrence, $this>
      */
     #[\Override]
@@ -1190,9 +1206,11 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return [];
         }
 
-        $occurrences = $this->relationLoaded('occurrences')
-            ? $this->occurrences
-            : $this->occurrences()->withoutGlobalScopes()->get();
+        $occurrences = match (true) {
+            $this->relationLoaded('occurrences') => $this->occurrences,
+            $this->relationLoaded('goingWindowOccurrences') => $this->goingWindowOccurrences,
+            default => $this->occurrences()->withoutGlobalScopes()->get(),
+        };
 
         return $occurrences
             ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)

@@ -48,6 +48,7 @@ final readonly class EventCardRelationshipProvider implements EventSearchRelatio
             'primaryLocationVenue.addresses.areaAssignments.area',
             'primaryLocation.venueSpace',
             'latestPublishedChangeAnnouncement',
+            'goingWindowOccurrences',
             'primaryOccurrence' => fn ($query) => $query
                 ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
                 ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES),

@@ -1060,8 +1060,10 @@ class SearchController extends FrontendController
             ->select('institutions.*');
 
         if ($user instanceof User) {
+            $followsTable = $query->getQuery()->getGrammar()->wrapTable($this->followsTable());
+
             $query->selectRaw(
-                'exists(select 1 from engagement_follows where engagement_follows.follower_id = ? and engagement_follows.followable_id = institutions.id and engagement_follows.followable_type = ? and engagement_follows.follower_type = ? and engagement_follows.status = ?) as is_following',
+                "exists(select 1 from {$followsTable} where {$followsTable}.follower_id = ? and {$followsTable}.followable_id = institutions.id and {$followsTable}.followable_type = ? and {$followsTable}.follower_type = ? and {$followsTable}.status = ?) as is_following",
                 [$user->id, (new Institution)->getMorphClass(), (new User)->getMorphClass(), 'active'],
             );
         }
@@ -1214,15 +1216,17 @@ class SearchController extends FrontendController
             return;
         }
 
-        $query->whereExists(function ($followingQuery) use ($user): void {
+        $followsTable = $this->followsTable();
+
+        $query->whereExists(function ($followingQuery) use ($user, $followsTable): void {
             $followingQuery
                 ->selectRaw('1')
-                ->from('engagement_follows')
-                ->where('engagement_follows.follower_id', $user->id)
-                ->where('engagement_follows.followable_type', (new Institution)->getMorphClass())
-                ->whereColumn('engagement_follows.followable_id', 'institutions.id')
-                ->where('engagement_follows.follower_type', (new User)->getMorphClass())
-                ->where('engagement_follows.status', 'active');
+                ->from($followsTable)
+                ->where($followsTable.'.follower_id', $user->id)
+                ->where($followsTable.'.followable_type', (new Institution)->getMorphClass())
+                ->whereColumn($followsTable.'.followable_id', 'institutions.id')
+                ->where($followsTable.'.follower_type', (new User)->getMorphClass())
+                ->where($followsTable.'.status', 'active');
         });
     }
 
@@ -1250,9 +1254,11 @@ class SearchController extends FrontendController
         $query = Person::query();
 
         if ($user instanceof User) {
+            $followsTable = $query->getQuery()->getGrammar()->wrapTable($this->followsTable());
+
             $query->select('persons.*')
                 ->selectRaw(
-                    'exists(select 1 from engagement_follows where engagement_follows.follower_id = ? and engagement_follows.followable_id = persons.id and engagement_follows.followable_type = ? and engagement_follows.follower_type = ? and engagement_follows.status = ?) as is_following',
+                    "exists(select 1 from {$followsTable} where {$followsTable}.follower_id = ? and {$followsTable}.followable_id = persons.id and {$followsTable}.followable_type = ? and {$followsTable}.follower_type = ? and {$followsTable}.status = ?) as is_following",
                     [$user->id, (new Person)->getMorphClass(), (new User)->getMorphClass(), 'active'],
                 );
         }
@@ -1331,15 +1337,17 @@ class SearchController extends FrontendController
             return;
         }
 
-        $query->whereExists(function ($followingQuery) use ($user): void {
+        $followsTable = $this->followsTable();
+
+        $query->whereExists(function ($followingQuery) use ($user, $followsTable): void {
             $followingQuery
                 ->selectRaw('1')
-                ->from('engagement_follows')
-                ->where('engagement_follows.follower_id', $user->id)
-                ->where('engagement_follows.followable_type', (new Person)->getMorphClass())
-                ->whereColumn('engagement_follows.followable_id', 'persons.id')
-                ->where('engagement_follows.follower_type', (new User)->getMorphClass())
-                ->where('engagement_follows.status', 'active');
+                ->from($followsTable)
+                ->where($followsTable.'.follower_id', $user->id)
+                ->where($followsTable.'.followable_type', (new Person)->getMorphClass())
+                ->whereColumn($followsTable.'.followable_id', 'persons.id')
+                ->where($followsTable.'.follower_type', (new User)->getMorphClass())
+                ->where($followsTable.'.status', 'active');
         });
     }
 
@@ -1383,11 +1391,13 @@ class SearchController extends FrontendController
         $query = Reference::query()->select('references.*');
 
         if ($user instanceof User) {
-            $referenceIdColumn = $query->getQuery()->getGrammar()->wrap((new Reference)->qualifyColumn('id'));
+            $grammar = $query->getQuery()->getGrammar();
+            $followsTable = $grammar->wrapTable($this->followsTable());
+            $referenceIdColumn = $grammar->wrap((new Reference)->qualifyColumn('id'));
 
             $query->select('references.*')
                 ->selectRaw(
-                    'exists(select 1 from engagement_follows where engagement_follows.follower_id = ? and engagement_follows.followable_id = '.$referenceIdColumn.' and engagement_follows.followable_type = ? and engagement_follows.follower_type = ? and engagement_follows.status = ?) as is_following',
+                    "exists(select 1 from {$followsTable} where {$followsTable}.follower_id = ? and {$followsTable}.followable_id = {$referenceIdColumn} and {$followsTable}.followable_type = ? and {$followsTable}.follower_type = ? and {$followsTable}.status = ?) as is_following",
                     [$user->id, (new Reference)->getMorphClass(), (new User)->getMorphClass(), 'active'],
                 );
         }
@@ -1446,15 +1456,17 @@ class SearchController extends FrontendController
             return;
         }
 
-        $query->whereExists(function ($followingQuery) use ($user): void {
+        $followsTable = $this->followsTable();
+
+        $query->whereExists(function ($followingQuery) use ($user, $followsTable): void {
             $followingQuery
                 ->selectRaw('1')
-                ->from('engagement_follows')
-                ->where('engagement_follows.follower_id', $user->id)
-                ->where('engagement_follows.followable_type', (new Reference)->getMorphClass())
-                ->whereColumn('engagement_follows.followable_id', 'references.id')
-                ->where('engagement_follows.follower_type', (new User)->getMorphClass())
-                ->where('engagement_follows.status', 'active');
+                ->from($followsTable)
+                ->where($followsTable.'.follower_id', $user->id)
+                ->where($followsTable.'.followable_type', (new Reference)->getMorphClass())
+                ->whereColumn($followsTable.'.followable_id', 'references.id')
+                ->where($followsTable.'.follower_type', (new User)->getMorphClass())
+                ->where($followsTable.'.status', 'active');
         });
     }
 
@@ -1597,6 +1609,11 @@ class SearchController extends FrontendController
     private function institutionDonationChannelData(DonationChannel $channel): array
     {
         return InstitutionDonationChannelData::fromModel($channel)->toArray();
+    }
+
+    private function followsTable(): string
+    {
+        return (string) config('engagement.database.tables.follows', 'engagement_follows');
     }
 
     private function institutionPersonCount(Institution $institution): int

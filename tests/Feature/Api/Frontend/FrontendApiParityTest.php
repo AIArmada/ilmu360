@@ -41,8 +41,11 @@ use App\Support\Search\ReferenceSearchService;
 use Database\Factories\EventKeyPersonFactory;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -1537,6 +1540,70 @@ it('returns authenticated follow state in the frontend institution api', functio
     $this->getJson(route('api.client.institutions.index', ['search' => 'Masjid Follow Institution']))
         ->assertOk()
         ->assertJsonPath('data.0.is_following', true);
+});
+
+it('reads follow state from the configured engagement follows table', function () {
+    $user = User::factory()->create();
+
+    $institution = Institution::factory()->create([
+        'name' => 'Configured Follow Table Institution',
+        'status' => 'verified',
+    ]);
+    $person = Person::factory()->create([
+        'name' => 'Configured Follow Table Person',
+        'status' => 'verified',
+    ]);
+    $reference = Reference::factory()->create([
+        'title' => 'Configured Follow Table Reference',
+        'status' => 'verified',
+    ]);
+
+    $overrideTable = 'engagement_follows_config_override';
+
+    Schema::create($overrideTable, function (Blueprint $table): void {
+        $table->uuid('id')->primary();
+        $table->string('follower_type');
+        $table->uuid('follower_id');
+        $table->string('followable_type');
+        $table->uuid('followable_id');
+        $table->string('status');
+        $table->timestamps();
+    });
+
+    foreach ([$institution, $person, $reference] as $subject) {
+        DB::table($overrideTable)->insert([
+            'id' => (string) Str::uuid(),
+            'follower_type' => (new User)->getMorphClass(),
+            'follower_id' => $user->getKey(),
+            'followable_type' => $subject->getMorphClass(),
+            'followable_id' => $subject->getKey(),
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    config()->set('engagement.database.tables.follows', $overrideTable);
+
+    Sanctum::actingAs($user);
+
+    $this->getJson(route('api.client.institutions.index', ['following' => 1]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.is_following', true)
+        ->assertJsonPath('meta.following.total', 1);
+
+    $this->getJson(route('api.client.persons.index', ['following' => 1]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.is_following', true)
+        ->assertJsonPath('meta.following.total', 1);
+
+    $this->getJson(route('api.client.references.index', ['following' => 1]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.is_following', true)
+        ->assertJsonPath('meta.following.total', 1);
 });
 
 it('returns the total followed institution count for the full institution query, not just the current page', function () {

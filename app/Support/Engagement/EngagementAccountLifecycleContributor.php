@@ -207,7 +207,7 @@ final readonly class EngagementAccountLifecycleContributor implements AccountLif
         return Follow::query()
             ->where('follower_type', $this->userMorphClass())
             ->where('follower_id', $accountId)
-            ->where('followable_type', Venue::class);
+            ->where('followable_type', (new Venue)->getMorphClass());
     }
 
     /**

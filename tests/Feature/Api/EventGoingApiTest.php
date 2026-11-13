@@ -195,6 +195,7 @@ it('rejects marking going for past events', function () {
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->subDay(),
+        'ends_at' => now()->subHours(20),
     ]);
 
     $this->putJson(route('api.events.going.update', $pastEvent))

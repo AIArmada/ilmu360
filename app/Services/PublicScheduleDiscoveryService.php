@@ -503,6 +503,7 @@ final readonly class PublicScheduleDiscoveryService
                     && ($path === 'primaryOccurrence'
                         || str_starts_with($path, 'primaryOccurrence.')
                         || in_array($path, [
+                            'goingWindowOccurrences',
                             'primaryLocation.venue',
                             'occurrences.locations.venue',
                             'occurrences.sessions.locations.venue',
