@@ -1,5 +1,11 @@
 {
   "schema": 2,
   "name": "Rewards",
-  "owns": {}
+  "owns": {
+    "table:reward_digest_slots": [
+      "App\\Features\\Rewards\\Actions\\GratitudeDigests\\PlanRewardGratitudeDigestAction",
+      "App\\Features\\Rewards\\Actions\\GratitudeDigests\\DispatchDueRewardDigestsAction",
+      "App\\Features\\Rewards\\Actions\\GratitudeDigests\\CancelRewardDigestAction"
+    ]
+  }
 }

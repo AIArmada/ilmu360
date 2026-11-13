@@ -5,13 +5,12 @@ declare(strict_types=1);
 // Permanent race worker for RewardDigestRaceTest. Executed only as a standalone
 // immediately when merely included, so test runners never execute it.
 
-use App\Actions\Rewards\CancelRewardDigestAction;
-use App\Actions\Rewards\DispatchDueRewardDigestsAction;
-use App\Actions\Rewards\PlanRewardGratitudeDigestAction;
+use App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction;
+use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
+use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
-
 use Tests\Support\RealDriverFixture;
 
 if (PHP_SAPI !== 'cli' || realpath($_SERVER['SCRIPT_FILENAME'] ?? '') !== __FILE__) {
@@ -34,8 +33,6 @@ $database = (string) ($options['database'] ?? '');
 $mode = (string) ($options['mode'] ?? '');
 $readyDir = (string) ($options['ready-dir'] ?? '');
 $slot = (int) ($options['slot'] ?? -1);
-
-
 
 if (preg_match('/^share_rewards_test_rewards_finance_[a-z0-9_]{1,27}$/', $database) !== 1) {
     $fail('Refusing a database outside the isolated rewards-finance namespace.');

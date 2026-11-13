@@ -15,7 +15,7 @@ use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
-use App\Actions\Rewards\DispatchDueRewardDigestsAction;
+use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use App\Services\Notifications\NotificationSettingsManager;

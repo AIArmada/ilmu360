@@ -4,29 +4,45 @@ declare(strict_types=1);
 
 namespace App\Features\Rewards;
 
+use App\Features\Rewards\Actions\GratitudeDigests\GratitudeDigestAction;
+use App\Features\Rewards\Api\GratitudeDigest;
 use App\Platform\FeatureModule;
 
 /**
- * Rewards/digests claim-free scaffold (Rw0).
+ * Rewards owns `reward_digest_slots` (Rw1) through exactly three named writers:
+ * `PlanRewardGratitudeDigestAction`, `DispatchDueRewardDigestsAction` and
+ * `CancelRewardDigestAction` under `Actions\GratitudeDigests`.
  *
- * This feature currently owns no table or store (`owns: {}`) and has no Api.
- * The single app-owned reward table, `reward_digest_slots`, remains
- * unclaimed until Rw1 moves its three writers (`PlanRewardGratitudeDigestAction`,
- * `DispatchDueRewardDigestsAction`, `CancelRewardDigestAction`) and adds the
- * Shared digest seams. The root `App\Models\RewardDigestSlot` keeps a literal
- * `$table` so ownership survives a later move; no morph alias exists yet.
+ * The slot model stays root (`App\Models\RewardDigestSlot`) with a literal
+ * `$table`; feature code resolves it through the `reward_digest_slot` morph
+ * alias and `Support\RewardsModel`, never by importing the root model.
  *
- * The 30 package-canonical `reward_*` tables are explicitly held as
- * `owns: {}`: `AIArmada\Rewards` actions/support helpers are their canonical
- * external writers, and app code performs zero direct writes to them.
+ * Shared seams keep the feature free of root notification services and users:
+ * - `Shared\Communications\DigestPolicy` with the root
+ *   `NotificationCenterDigestPolicy` adapter over
+ *   `NotificationSettingsManager`/`ResolvedNotificationPolicy` and the global
+ *   digest config; only scalar cadence, trigger, timezone, delivery time,
+ *   weekly day and quiet hours cross.
+ * - `Shared\Communications\DigestMessages` with the root
+ *   `ShareGratitudeDigestMessages` adapter resolving recipients through
+ *   `Shared\Auth\AccountDirectory` and building the existing
+ *   `ShareGratitudeDigestNotification`.
+ * - `Api\GratitudeDigest` exposes scalar plan, cancel, cancel-pending and
+ *   dispatch entrypoints returning `Api\GratitudeDigestSnapshot`; the root
+ *   `DigestRewardGratitudePlanner` is the package-contract adapter and
+ *   `DispatchRewardDigestsCommand` calls the Api.
+ *
+ * The 30 package-canonical `reward_*` tables stay explicit `owns: {}` holds:
+ * `AIArmada\Rewards` actions/support helpers are their canonical external
+ * writers, and app code performs zero direct writes to them.
  *
  * Intentional root adapters/holds documented for later slices:
- * - Digest planner adapter: `DigestRewardGratitudePlanner` binds the package
- *   `RewardGratitudePlanner` contract to the three root digest actions above;
- *   it runs inside award/badge/milestone transactions exactly as today.
  * - Mail ambiguity: `ResolveDigestMailAmbiguityAction` and
  *   `ResolveDigestMailAmbiguityCommand` stay root; they write communications,
  *   never digest slots.
+ * - Notifications/channels/communications: `ShareGratitudeDigestNotification`,
+ *   `DigestMailChannel`, `InboxChannel` and `GuardedDeliverySend` stay root;
+ *   the `DigestMessages` adapter only builds the existing notification.
  * - Source facts: `CompositeRewardSourceFactReader` plus
  *   `ActivityRewardSourceFactReader`, `ShareAttributionRewardSourceFactReader`
  *   and `ReferralRewardSourceFactReader` stay root read adapters until the
@@ -38,16 +54,20 @@ use App\Platform\FeatureModule;
  *   and writes Vouchers package tables through Vouchers actions.
  * - Policies: the nine `App\Policies\Reward*Policy` classes stay root because
  *   they type-hint `App\Models\User`.
- * - Notifications/channels/communications: `ShareGratitudeDigestNotification`,
- *   `DigestMailChannel`, `InboxChannel` and `GuardedDeliverySend` stay root;
- *   the notification factory and mail-ambiguity boundary move only with the
- *   Communications slice.
- * - Commands/schedules/transport: `DispatchRewardDigestsCommand`,
- *   `SendDigestNotificationsCommand` (stub), the hourly schedule, API
- *   controllers, Livewire pages, observers/jobs and route registrations stay
- *   root until Rw4.
+ * - Commands/schedules/transport: `SendDigestNotificationsCommand` (stub), the
+ *   hourly schedule, API controllers, Livewire pages, observers/jobs and route
+ *   registrations stay root until Rw4.
  *
- * No behavior changes, retention/timing/merge/communications/transport
- * changes, package-table exceptions or H1–H25 fixes happen in Rw0.
+ * Lock order, H1 coupling (plan/cancel inside award transactions, including
+ * reversal with no try/catch), H2 delivery/communication inversion, status
+ * transitions, 20-hour calmness, merge/dedup, retries/escapes and payload shape
+ * are preserved. No schema, retention, timing or communications behavior
+ * changes happen in this slice.
  */
-class FeatureServiceProvider extends FeatureModule {}
+class FeatureServiceProvider extends FeatureModule
+{
+    public function register(): void
+    {
+        $this->app->bind(GratitudeDigest::class, GratitudeDigestAction::class);
+    }
+}

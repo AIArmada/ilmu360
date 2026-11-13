@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Rewards;
+namespace App\Features\Rewards\Actions\GratitudeDigests;
 
 use AIArmada\Communications\Actions\DispatchManagedNotificationAction;
 use AIArmada\Communications\Data\CommunicationContextData;
@@ -13,14 +13,14 @@ use AIArmada\Communications\Enums\DeliveryStatus;
 use AIArmada\Communications\Jobs\DispatchManagedNotificationJob;
 use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationDelivery;
-use App\Enums\NotificationCadence;
-use App\Enums\NotificationTrigger;
-use App\Models\RewardDigestSlot;
-use App\Models\User;
-use App\Notifications\ShareGratitudeDigestNotification;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Rewards\Api\GratitudeDigest;
+use App\Features\Rewards\Support\RewardsModel;
+use App\Shared\Communications\DigestMessages;
+use App\Shared\Communications\DigestPolicy;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -57,6 +57,11 @@ final readonly class DispatchDueRewardDigestsAction
 
     public const int MAX_STALLED_ESCAPES = 2;
 
+    public function __construct(
+        private DigestPolicy $policies,
+        private DigestMessages $messages,
+    ) {}
+
     /**
      * @return array{dispatched: int, reconciled: int, cancelled: int, skipped: int}
      */
@@ -68,8 +73,8 @@ final readonly class DispatchDueRewardDigestsAction
 
         $outcome = ['dispatched' => 0, 'reconciled' => 0, 'cancelled' => 0, 'skipped' => 0];
 
-        $due = RewardDigestSlot::query()
-            ->where('status', RewardDigestSlot::STATUS_PLANNED)
+        $due = RewardsModel::digestSlotQuery()
+            ->where('status', RewardsModel::SLOT_PLANNED)
             ->where('due_at', '<=', $at)
             ->orderBy('due_at')
             ->limit(max(1, $batch))
@@ -81,8 +86,8 @@ final readonly class DispatchDueRewardDigestsAction
             $outcome[$result]++;
         }
 
-        $sending = RewardDigestSlot::query()
-            ->where('status', RewardDigestSlot::STATUS_SENDING)
+        $sending = RewardsModel::digestSlotQuery()
+            ->where('status', RewardsModel::SLOT_SENDING)
             ->orderBy('updated_at')
             ->limit(max(1, $batch))
             ->pluck('id')
@@ -102,28 +107,28 @@ final readonly class DispatchDueRewardDigestsAction
     private function dispatchOne(string $slotId, CarbonImmutable $now): string
     {
         return DB::transaction(function () use ($slotId, $now): string {
-            $slot = RewardDigestSlot::query()->whereKey($slotId)->lockForUpdate()->first();
+            $slot = RewardsModel::digestSlotQuery()->whereKey($slotId)->lockForUpdate()->first();
+            $dueAt = $slot?->getAttribute('due_at');
 
-            if (! $slot instanceof RewardDigestSlot
-                || (string) $slot->status !== RewardDigestSlot::STATUS_PLANNED
-                || $slot->due_at === null
-                || $slot->due_at->greaterThan($now)
+            if (! $slot instanceof Model
+                || (string) $slot->getAttribute('status') !== RewardsModel::SLOT_PLANNED
+                || ! $dueAt instanceof CarbonInterface
+                || $dueAt->greaterThan($now)
             ) {
                 return 'skipped';
             }
 
-            $user = User::query()->whereKey((string) $slot->recipient_id)->first();
+            $recipient = $this->messages->notifiable((string) $slot->getAttribute('recipient_id'));
 
-            if (! $user instanceof User) {
+            if ($recipient === null) {
                 $this->markCancelled($slot, 'recipient-unknown', $now);
 
                 return 'cancelled';
             }
 
-            $policy = app(NotificationSettingsManager::class)
-                ->resolvePolicy($user, NotificationTrigger::ShareGratitudeDigest);
+            $policy = $this->policies->resolve($recipient, GratitudeDigest::TRIGGER);
 
-            if (! $policy->enabled || ! in_array($policy->cadence, [NotificationCadence::Daily, NotificationCadence::Weekly], true)) {
+            if (! $policy->enabled || ! in_array($policy->cadence, ['daily', 'weekly'], true)) {
                 $this->markCancelled($slot, 'opted-out', $now);
 
                 return 'cancelled';
@@ -133,16 +138,17 @@ final readonly class DispatchDueRewardDigestsAction
                 return 'skipped';
             }
 
-            $window = (array) (($slot->payload ?? [])['window'] ?? []);
+            $slotPayload = (array) ($slot->getAttribute('payload') ?? []);
+            $window = (array) ($slotPayload['window'] ?? []);
             $from = CarbonImmutable::parse($window['from'] ?? $now->toIso8601String())->setTimezone('UTC');
             $to = CarbonImmutable::parse($window['to'] ?? $now->toIso8601String())->setTimezone('UTC');
             $categories = array_values(array_intersect(
-                (array) ($slot->categories ?? []),
+                (array) ($slot->getAttribute('categories') ?? []),
                 PlanRewardGratitudeDigestAction::CATEGORIES,
             ));
 
             $recomputed = PlanRewardGratitudeDigestAction::digestPayload(
-                (string) $slot->recipient_id, $categories === [] ? ['awards'] : $categories, $from, $to,
+                (string) $slot->getAttribute('recipient_id'), $categories === [] ? ['awards'] : $categories, $from, $to,
             );
 
             if (($recomputed['total'] ?? 0) <= 0) {
@@ -154,7 +160,7 @@ final readonly class DispatchDueRewardDigestsAction
             // Delivery bookkeeping (attempts, escapes, channel
             // outcomes) survives recomputes; only the material
             // sections refresh.
-            $delivery = ($slot->payload ?? [])['delivery'] ?? null;
+            $delivery = $slotPayload['delivery'] ?? null;
 
             if ($delivery !== null) {
                 $recomputed['delivery'] = $delivery;
@@ -162,7 +168,9 @@ final readonly class DispatchDueRewardDigestsAction
 
             $slot->forceFill(['payload' => $recomputed])->save();
 
-            $communication = $this->adoptOrCreateCommunication($slot, $user, $recomputed, $policy->timezone, $now);
+            $communication = $this->adoptOrCreateCommunication(
+                $slot, $recipient, $recomputed, $policy->timezone, $policy->trigger, $now,
+            );
 
             if (! $communication instanceof Communication) {
                 $this->markCancelled($slot, 'no-eligible-channel', $now);
@@ -171,7 +179,7 @@ final readonly class DispatchDueRewardDigestsAction
             }
 
             $slot->forceFill([
-                'status' => RewardDigestSlot::STATUS_SENDING,
+                'status' => RewardsModel::SLOT_SENDING,
                 'communication_id' => (string) $communication->getKey(),
             ])->save();
 
@@ -190,13 +198,14 @@ final readonly class DispatchDueRewardDigestsAction
      * @param  array<string, mixed>  $payload
      */
     private function adoptOrCreateCommunication(
-        RewardDigestSlot $slot,
-        User $user,
+        Model $slot,
+        Authenticatable $recipient,
         array $payload,
         string $timezone,
+        string $trigger,
         CarbonImmutable $now,
     ): ?Communication {
-        $planKey = (string) $slot->plan_key;
+        $planKey = (string) $slot->getAttribute('plan_key');
 
         $latest = Communication::query()
             ->where('idempotency_key', $planKey)
@@ -221,7 +230,7 @@ final readonly class DispatchDueRewardDigestsAction
                     && $queuedAt instanceof CarbonImmutable
                     && $queuedAt->addMinutes(self::STALLED_MINUTES)->lessThan($now)
                 ) {
-                    $this->redriveJob($latest, $user, $payload, $deliveries->all());
+                    $this->redriveJob($latest, $recipient, $payload, $deliveries->all());
                 }
 
                 return $latest->refresh();
@@ -238,8 +247,8 @@ final readonly class DispatchDueRewardDigestsAction
         ];
 
         $communication = app(DispatchManagedNotificationAction::class)->handle(
-            $user,
-            new ShareGratitudeDigestNotification($summary),
+            $recipient,
+            $this->messages->digest((string) $slot->getAttribute('recipient_id'), $summary),
             new CommunicationContextData(
                 category: CommunicationCategory::Digest,
                 priority: CommunicationPriority::Low,
@@ -248,7 +257,7 @@ final readonly class DispatchDueRewardDigestsAction
                 metadata: [
                     'plan_key' => $planKey,
                     'slot_id' => (string) $slot->getKey(),
-                    'trigger' => NotificationTrigger::ShareGratitudeDigest->value,
+                    'trigger' => $trigger,
                 ],
             ),
         );
@@ -266,7 +275,7 @@ final readonly class DispatchDueRewardDigestsAction
      */
     private function redriveJob(
         Communication $communication,
-        User $user,
+        Authenticatable $recipient,
         array $payload,
         array $deliveries,
     ): void {
@@ -276,16 +285,23 @@ final readonly class DispatchDueRewardDigestsAction
             $byChannel[(string) $delivery->channel] = (string) $delivery->getKey();
         }
 
-        $notification = new ShareGratitudeDigestNotification([
+        $summary = [
             'text' => (string) ($payload['text'] ?? ''),
             'counts' => (array) ($payload['counts'] ?? []),
             'sections' => (array) ($payload['sections'] ?? []),
             'window' => (array) ($payload['window'] ?? []),
             'plan_key' => (string) $communication->idempotency_key,
-        ])->withCommunicationContext((string) $communication->getKey(), $byChannel);
+        ];
+
+        $notification = $this->messages->redrive(
+            (string) $recipient->getAuthIdentifier(),
+            (string) $communication->getKey(),
+            $summary,
+            $byChannel,
+        );
 
         DispatchManagedNotificationJob::dispatch(
-            notifiable: $user,
+            notifiable: $recipient,
             notification: $notification,
             channels: array_keys($byChannel),
         )->afterCommit();
@@ -297,22 +313,23 @@ final readonly class DispatchDueRewardDigestsAction
     private function reconcileOne(string $slotId, CarbonImmutable $now): string
     {
         return DB::transaction(function () use ($slotId, $now): string {
-            $slot = RewardDigestSlot::query()->whereKey($slotId)->lockForUpdate()->first();
+            $slot = RewardsModel::digestSlotQuery()->whereKey($slotId)->lockForUpdate()->first();
 
-            if (! $slot instanceof RewardDigestSlot
-                || (string) $slot->status !== RewardDigestSlot::STATUS_SENDING
+            if (! $slot instanceof Model
+                || (string) $slot->getAttribute('status') !== RewardsModel::SLOT_SENDING
             ) {
                 return 'skipped';
             }
 
-            $communication = $slot->communication_id === null
+            $communicationId = $slot->getAttribute('communication_id');
+            $communication = $communicationId === null
                 ? null
-                : Communication::query()->whereKey((string) $slot->communication_id)->lockForUpdate()->first();
+                : Communication::query()->whereKey((string) $communicationId)->lockForUpdate()->first();
 
             if (! $communication instanceof Communication) {
                 // Defensive: the bound aggregate vanished; requeue so the
                 // next claim adopts-or-creates afresh.
-                $slot->forceFill(['status' => RewardDigestSlot::STATUS_PLANNED])->save();
+                $slot->forceFill(['status' => RewardsModel::SLOT_PLANNED])->save();
 
                 return 'skipped';
             }
@@ -348,14 +365,14 @@ final readonly class DispatchDueRewardDigestsAction
             }
 
             if ($delivered) {
-                $payload = $slot->payload ?? [];
+                $payload = (array) ($slot->getAttribute('payload') ?? []);
                 $payload['delivery'] = array_merge($payload['delivery'] ?? [], [
                     'at' => $now->toIso8601String(),
                     'channels' => $outcomes,
                 ]);
 
                 $slot->forceFill([
-                    'status' => RewardDigestSlot::STATUS_SENT,
+                    'status' => RewardsModel::SLOT_SENT,
                     'payload' => $payload,
                     'sent_at' => $now,
                 ])->save();
@@ -373,14 +390,14 @@ final readonly class DispatchDueRewardDigestsAction
                     && $queuedAt instanceof CarbonImmutable
                     && $queuedAt->addMinutes(self::STALLED_MINUTES)->lessThan($now)
                 ) {
-                    $payload = $slot->payload ?? [];
+                    $payload = (array) ($slot->getAttribute('payload') ?? []);
                     $escapes = ((int) ($payload['delivery']['stalled_escapes'] ?? 0)) + 1;
                     $payload['delivery']['stalled_escapes'] = $escapes;
 
                     if ($escapes > self::MAX_STALLED_ESCAPES) {
                         $payload['cancellation'] = ['at' => $now->toIso8601String(), 'reason' => 'delivery-stalled'];
                         $slot->forceFill([
-                            'status' => RewardDigestSlot::STATUS_CANCELLED,
+                            'status' => RewardsModel::SLOT_CANCELLED,
                             'payload' => $payload,
                             'cancelled_at' => $now,
                         ])->save();
@@ -389,7 +406,7 @@ final readonly class DispatchDueRewardDigestsAction
                     }
 
                     $slot->forceFill([
-                        'status' => RewardDigestSlot::STATUS_PLANNED,
+                        'status' => RewardsModel::SLOT_PLANNED,
                         'payload' => $payload,
                     ])->save();
                 }
@@ -399,7 +416,7 @@ final readonly class DispatchDueRewardDigestsAction
 
             // Every delivery terminal without a single send: requeue for
             // redelivery up to three attempts, then cancel truthfully.
-            $payload = $slot->payload ?? [];
+            $payload = (array) ($slot->getAttribute('payload') ?? []);
             $attempts = ((int) ($payload['delivery']['attempts'] ?? 0)) + 1;
             $payload['delivery']['attempts'] = $attempts;
             $payload['delivery']['channels'] = $outcomes;
@@ -407,7 +424,7 @@ final readonly class DispatchDueRewardDigestsAction
             if ($attempts >= self::MAX_DELIVERY_ATTEMPTS) {
                 $payload['cancellation'] = ['at' => $now->toIso8601String(), 'reason' => 'delivery-failed'];
                 $slot->forceFill([
-                    'status' => RewardDigestSlot::STATUS_CANCELLED,
+                    'status' => RewardsModel::SLOT_CANCELLED,
                     'payload' => $payload,
                     'cancelled_at' => $now,
                 ])->save();
@@ -416,7 +433,7 @@ final readonly class DispatchDueRewardDigestsAction
             }
 
             $slot->forceFill([
-                'status' => RewardDigestSlot::STATUS_PLANNED,
+                'status' => RewardsModel::SLOT_PLANNED,
                 'payload' => $payload,
             ])->save();
 
@@ -424,13 +441,13 @@ final readonly class DispatchDueRewardDigestsAction
         });
     }
 
-    private function markCancelled(RewardDigestSlot $slot, string $reason, CarbonImmutable $now): void
+    private function markCancelled(Model $slot, string $reason, CarbonImmutable $now): void
     {
-        $payload = $slot->payload ?? [];
+        $payload = (array) ($slot->getAttribute('payload') ?? []);
         $payload['cancellation'] = ['at' => $now->toIso8601String(), 'reason' => $reason];
 
         $slot->forceFill([
-            'status' => RewardDigestSlot::STATUS_CANCELLED,
+            'status' => RewardsModel::SLOT_CANCELLED,
             'payload' => $payload,
             'cancelled_at' => $now,
         ])->save();

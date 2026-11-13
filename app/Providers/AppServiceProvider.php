@@ -117,6 +117,7 @@ use App\Models\Person;
 use App\Models\PersonName;
 use App\Models\Reference;
 use App\Models\Registration;
+use App\Models\RewardDigestSlot;
 use App\Models\Series;
 use App\Models\ShareBrowserSelection;
 use App\Models\ShareCohortProjection;
@@ -198,6 +199,8 @@ use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Communications\AccountNotificationSettings;
+use App\Shared\Communications\DigestMessages;
+use App\Shared\Communications\DigestPolicy;
 use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\ContributionRequestNotifier;
@@ -242,7 +245,9 @@ use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Communications\CommunicationsAccountLifecycleContributor;
 use App\Support\Communications\ListSafePayloadRedactor;
+use App\Support\Communications\NotificationCenterDigestPolicy;
 use App\Support\Communications\ProbeSafeDestinationResolver;
+use App\Support\Communications\ShareGratitudeDigestMessages;
 use App\Support\Directory\DirectoryAccountLifecycleContributor;
 use App\Support\Directory\EloquentDirectoryAdmin;
 use App\Support\Directory\EloquentDirectoryCatalog;
@@ -363,6 +368,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ActiveAttribution::class, ShareTrackingActiveAttribution::class);
         $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
         $this->app->bind(AccountNotificationSettings::class, AccountNotificationSettingsAdapter::class);
+        $this->app->bind(DigestPolicy::class, NotificationCenterDigestPolicy::class);
+        $this->app->bind(DigestMessages::class, ShareGratitudeDigestMessages::class);
         $this->app->bind(PrayerInstitutionCatalog::class, EloquentPrayerInstitutionCatalog::class);
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(ScopedMembershipRoleStore::class, EloquentScopedMembershipRoleStore::class);
@@ -666,6 +673,7 @@ class AppServiceProvider extends ServiceProvider
             'share_signal_reader_cursor' => ShareSignalReaderCursor::class,
             'share_signal_reader_skip' => ShareSignalReaderSkip::class,
             'share_source_attribution_receipt' => ShareSourceAttributionReceipt::class,
+            'reward_digest_slot' => RewardDigestSlot::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,
             'inventory_level' => InventoryLevel::class,

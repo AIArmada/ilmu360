@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Rewards;
+namespace App\Features\Rewards\Actions\GratitudeDigests;
 
 use AIArmada\Rewards\Actions\CreateRewardProgramAction;
 use AIArmada\Rewards\Enums\RewardAwardStatus;
@@ -11,13 +11,13 @@ use AIArmada\Rewards\Enums\RewardMilestoneStatus;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardBadgeGrant;
 use AIArmada\Rewards\Models\RewardMilestoneCycle;
-use App\Enums\NotificationCadence;
-use App\Enums\NotificationTrigger;
-use App\Models\RewardDigestSlot;
-use App\Models\User;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Rewards\Api\GratitudeDigest;
+use App\Features\Rewards\Support\RewardsModel;
+use App\Shared\Auth\AccountDirectory;
+use App\Shared\Communications\DigestPolicy;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -48,6 +48,11 @@ final readonly class PlanRewardGratitudeDigestAction
 
     public const array CATEGORIES = ['awards', 'badges', 'milestones'];
 
+    public function __construct(
+        private DigestPolicy $policies,
+        private AccountDirectory $accounts,
+    ) {}
+
     /**
      * @param  list<string>  $categories
      */
@@ -56,7 +61,7 @@ final readonly class PlanRewardGratitudeDigestAction
         string $recipientId,
         array $categories = ['awards'],
         ?CarbonInterface $decidedAt = null,
-    ): RewardDigestSlot {
+    ): Model {
         if ($recipientType !== 'user') {
             throw new InvalidArgumentException('Gratitude digests address user recipients only.');
         }
@@ -77,30 +82,30 @@ final readonly class PlanRewardGratitudeDigestAction
             ? CarbonImmutable::parse($decidedAt)->setTimezone('UTC')
             : CarbonImmutable::now('UTC');
 
-        $user = User::query()->whereKey($recipientId)->first();
+        $recipient = $this->accounts->resolveNotifiable($recipientId);
 
-        if (! $user instanceof User) {
+        if ($recipient === null) {
             throw new InvalidArgumentException('Unknown digest recipient.');
         }
 
-        $policy = app(NotificationSettingsManager::class)->resolvePolicy($user, NotificationTrigger::ShareGratitudeDigest);
+        $policy = $this->policies->resolve($recipient, GratitudeDigest::TRIGGER);
 
         if (! $policy->enabled) {
             throw new InvalidArgumentException('Gratitude digests require the recipient to keep the trigger enabled.');
         }
 
-        if (! in_array($policy->cadence, [NotificationCadence::Daily, NotificationCadence::Weekly], true)) {
+        if (! in_array($policy->cadence, ['daily', 'weekly'], true)) {
             throw new InvalidArgumentException('Gratitude digests require a daily or weekly cadence.');
         }
 
         $tz = new \DateTimeZone($policy->timezone);
-        $dueLocal = $policy->cadence === NotificationCadence::Weekly
-            ? $decided->setTimezone($tz)->next($policy->digestWeeklyDay)
+        $dueLocal = $policy->cadence === 'weekly'
+            ? $decided->setTimezone($tz)->next($policy->weeklyDay)
             : $decided->setTimezone($tz)->addDay();
 
         [$hour, $minute, $second] = array_map(
             static fn (string $part): int => (int) $part,
-            explode(':', ($policy->digestDeliveryTime ?? '08:00:00').':00:00'),
+            explode(':', ($policy->deliveryTime ?? '08:00:00').':00:00'),
         );
 
         $dueAt = $dueLocal->setTime($hour, $minute, min($second, 59))->setTimezone('UTC');
@@ -117,7 +122,7 @@ final readonly class PlanRewardGratitudeDigestAction
             throw new InvalidArgumentException('Digest plan identity exceeds 191 characters.');
         }
 
-        $windowStart = $decided->subDays($policy->cadence === NotificationCadence::Weekly ? 7 : 1);
+        $windowStart = $decided->subDays($policy->cadence === 'weekly' ? 7 : 1);
 
         $attempt = 0;
 
@@ -125,7 +130,7 @@ final readonly class PlanRewardGratitudeDigestAction
             $attempt++;
 
             try {
-                return DB::transaction(fn (): RewardDigestSlot => $this->attempt(
+                return DB::transaction(fn (): Model => $this->attempt(
                     $recipientType, $recipientId, $localDay, $planKey, $merged,
                     $policy->timezone, $dueAt, $decided, $windowStart,
                 ));
@@ -141,18 +146,21 @@ final readonly class PlanRewardGratitudeDigestAction
                     throw $exception;
                 }
 
-                $winner = RewardDigestSlot::query()
+                $winner = RewardsModel::digestSlotQuery()
                     ->where('recipient_type', $recipientType)
                     ->where('recipient_id', $recipientId)
                     ->where('local_day', $localDay)
                     ->first();
 
-                if (! $winner instanceof RewardDigestSlot) {
+                if (! $winner instanceof Model) {
                     throw $exception;
                 }
 
-                return DB::transaction(function () use ($winner, $merged, $decided): RewardDigestSlot {
-                    $locked = RewardDigestSlot::query()->whereKey($winner->getKey())->lockForUpdate()->firstOrFail();
+                return DB::transaction(function () use ($winner, $merged, $decided): Model {
+                    $locked = RewardsModel::digestSlotQuery()
+                        ->whereKey($winner->getKey())
+                        ->lockForUpdate()
+                        ->firstOrFail();
 
                     return $this->mergeInto($locked, $merged, $decided);
                 });
@@ -173,24 +181,24 @@ final readonly class PlanRewardGratitudeDigestAction
         CarbonImmutable $dueAt,
         CarbonImmutable $decided,
         CarbonImmutable $windowStart,
-    ): RewardDigestSlot {
-        $existing = RewardDigestSlot::query()
+    ): Model {
+        $existing = RewardsModel::digestSlotQuery()
             ->where('recipient_type', $recipientType)
             ->where('recipient_id', $recipientId)
             ->where('local_day', $localDay)
             ->lockForUpdate()
             ->first();
 
-        if ($existing instanceof RewardDigestSlot) {
+        if ($existing instanceof Model) {
             return $this->mergeInto($existing, $categories, $decided);
         }
 
-        return RewardDigestSlot::query()->create([
+        return RewardsModel::digestSlotQuery()->create([
             'recipient_type' => $recipientType,
             'recipient_id' => $recipientId,
             'local_day' => $localDay,
             'plan_key' => $planKey,
-            'status' => RewardDigestSlot::STATUS_PLANNED,
+            'status' => RewardsModel::SLOT_PLANNED,
             'categories' => $categories,
             'payload' => self::digestPayload($recipientId, $categories, $windowStart, $decided),
             'timezone' => $timezone,
@@ -207,15 +215,16 @@ final readonly class PlanRewardGratitudeDigestAction
      *
      * @param  list<string>  $categories
      */
-    private function mergeInto(RewardDigestSlot $slot, array $categories, CarbonImmutable $decided): RewardDigestSlot
+    private function mergeInto(Model $slot, array $categories, CarbonImmutable $decided): Model
     {
-        if ((string) $slot->status !== RewardDigestSlot::STATUS_PLANNED) {
+        if ((string) $slot->getAttribute('status') !== RewardsModel::SLOT_PLANNED) {
             return $slot;
         }
 
-        $merged = array_values(array_unique([...(array) ($slot->categories ?? []), ...$categories]));
+        $storedPayload = (array) ($slot->getAttribute('payload') ?? []);
+        $merged = array_values(array_unique([...(array) ($slot->getAttribute('categories') ?? []), ...$categories]));
 
-        $window = (array) (($slot->payload ?? [])['window'] ?? []);
+        $window = (array) ($storedPayload['window'] ?? []);
         $from = isset($window['from']) ? CarbonImmutable::parse($window['from'])->setTimezone('UTC') : $decided->subDay();
         $to = isset($window['to']) ? CarbonImmutable::parse($window['to'])->setTimezone('UTC') : $decided;
 
@@ -223,8 +232,8 @@ final readonly class PlanRewardGratitudeDigestAction
             $to = $decided;
         }
 
-        $payload = self::digestPayload((string) $slot->recipient_id, $merged, $from, $to);
-        $delivery = ($slot->payload ?? [])['delivery'] ?? null;
+        $payload = self::digestPayload((string) $slot->getAttribute('recipient_id'), $merged, $from, $to);
+        $delivery = $storedPayload['delivery'] ?? null;
 
         if ($delivery !== null) {
             $payload['delivery'] = $delivery;

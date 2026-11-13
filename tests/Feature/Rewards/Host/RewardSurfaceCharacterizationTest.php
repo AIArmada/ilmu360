@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-// Rw0 characterization: feature scaffold/registration, the API vs Livewire
-// enrollment signal difference (H17), the generic admin API write refusal
-// for every reward Filament resource (H19), and the static proof that app
-// code performs no direct writes to package reward tables or to
-// reward_digest_slots outside its three root digest actions.
+// Rw1 characterization: feature scaffold/registration, the digest-slot claim
+// with exactly three named feature writers, the API vs Livewire enrollment
+// signal difference (H17), the generic admin API write refusal for every
+// reward Filament resource (H19), and the static proof that app code performs
+// no direct writes to package reward tables or to reward_digest_slots outside
+// the three feature digest actions.
 
 use AIArmada\FilamentRewards\Resources\RewardAppealResource\RewardAppealResource;
 use AIArmada\FilamentRewards\Resources\RewardAwardResource\RewardAwardResource;
@@ -55,17 +56,27 @@ function rw0AppPhpSources(): array
     return $sources;
 }
 
-it('discovers the Rewards feature with no claims and registers its provider once', function (): void {
+it('discovers the Rewards feature with the digest-slot claim and registers its provider once', function (): void {
     $catalog = FeatureCatalog::load(base_path());
 
     expect($catalog['features'])->toHaveKey('Rewards')
-        ->and($catalog['owners'])->not->toHaveKey('table:reward_digest_slots');
+        ->and($catalog['owners']['table:reward_digest_slots'] ?? null)->toBe('Rewards');
 
     $manifest = json_decode(
         (string) file_get_contents(base_path('app/Features/Rewards/feature.json')), true, 512, JSON_THROW_ON_ERROR,
     );
 
-    expect($manifest)->toBe(['schema' => 2, 'name' => 'Rewards', 'owns' => []]);
+    expect($manifest)->toBe([
+        'schema' => 2,
+        'name' => 'Rewards',
+        'owns' => [
+            'table:reward_digest_slots' => [
+                'App\\Features\\Rewards\\Actions\\GratitudeDigests\\PlanRewardGratitudeDigestAction',
+                'App\\Features\\Rewards\\Actions\\GratitudeDigests\\DispatchDueRewardDigestsAction',
+                'App\\Features\\Rewards\\Actions\\GratitudeDigests\\CancelRewardDigestAction',
+            ],
+        ],
+    ]);
 
     $providers = require base_path('bootstrap/providers.php');
 
@@ -76,7 +87,10 @@ it('discovers the Rewards feature with no claims and registers its provider once
 it('documents the intentional root adapters and package-canonical holds', function (): void {
     $docblock = (string) (new ReflectionClass(RewardsFeatureServiceProvider::class))->getDocComment();
 
-    expect($docblock)->toContain('DigestRewardGratitudePlanner')
+    expect($docblock)->toContain('GratitudeDigest')
+        ->and($docblock)->toContain('DigestPolicy')
+        ->and($docblock)->toContain('DigestMessages')
+        ->and($docblock)->toContain('DigestRewardGratitudePlanner')
         ->and($docblock)->toContain('ResolveDigestMailAmbiguityAction')
         ->and($docblock)->toContain('ResolveDigestMailAmbiguityCommand')
         ->and($docblock)->toContain('CompositeRewardSourceFactReader')
@@ -93,8 +107,7 @@ it('documents the intentional root adapters and package-canonical holds', functi
         ->and($docblock)->toContain('GuardedDeliverySend')
         ->and($docblock)->toContain('Commands/schedules/transport')
         ->and($docblock)->toContain('package-canonical')
-        ->and($docblock)->toContain('root adapters')
-        ->and($docblock)->toContain('no Api');
+        ->and($docblock)->toContain('root adapters');
 });
 
 it('records the enrollment signal on web first enrollment but not on API enrollment', function (): void {
@@ -194,11 +207,15 @@ it('has no app writes to package reward tables', function (): void {
     expect($violations)->toBe([]);
 });
 
-it('writes reward_digest_slots only through the three root digest actions', function (): void {
+it('writes reward_digest_slots only through the three feature digest actions', function (): void {
     $writers = [];
 
     foreach (rw0AppPhpSources() as $relative => $contents) {
-        if (! str_contains($contents, 'RewardDigestSlot')) {
+        $ownsDigestSlot = str_contains($contents, 'RewardDigestSlot')
+            || str_contains($contents, 'reward_digest_slot')
+            || str_contains($contents, 'RewardsModel::digestSlotQuery');
+
+        if (! $ownsDigestSlot) {
             continue;
         }
 
@@ -210,8 +227,8 @@ it('writes reward_digest_slots only through the three root digest actions', func
     sort($writers);
 
     expect($writers)->toBe([
-        'app/Actions/Rewards/CancelRewardDigestAction.php',
-        'app/Actions/Rewards/DispatchDueRewardDigestsAction.php',
-        'app/Actions/Rewards/PlanRewardGratitudeDigestAction.php',
+        'app/Features/Rewards/Actions/GratitudeDigests/CancelRewardDigestAction.php',
+        'app/Features/Rewards/Actions/GratitudeDigests/DispatchDueRewardDigestsAction.php',
+        'app/Features/Rewards/Actions/GratitudeDigests/PlanRewardGratitudeDigestAction.php',
     ]);
 });

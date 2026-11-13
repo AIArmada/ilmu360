@@ -10,8 +10,8 @@ declare(strict_types=1);
 // record current behavior only — no behavior changes.
 
 use AIArmada\Rewards\Actions\GrantRewardBadgeAction;
-use App\Actions\Rewards\DispatchDueRewardDigestsAction;
-use App\Actions\Rewards\PlanRewardGratitudeDigestAction;
+use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
+use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;

@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Rewards;
+namespace App\Features\Rewards\Actions\GratitudeDigests;
 
 use AIArmada\Communications\Actions\CancelCommunicationAction;
 use AIArmada\Communications\Enums\DeliveryStatus;
 use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Rewards\Support\RewardLedgerEntries;
-use App\Models\RewardDigestSlot;
+use App\Features\Rewards\Support\RewardsModel;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -38,14 +39,14 @@ final readonly class CancelRewardDigestAction
     use AsAction;
 
     public function handle(
-        RewardDigestSlot|string $slot,
+        Model|string $slot,
         string $reason,
         string $actorType,
         ?string $actorId,
         string $actorRole,
         bool $force = false,
         ?CarbonInterface $decidedAt = null,
-    ): RewardDigestSlot {
+    ): Model {
         RewardLedgerEntries::assertActor($actorType, $actorId, $actorRole);
 
         $isSystem = $actorType === 'system' && $actorId === null && $actorRole === 'system';
@@ -59,29 +60,29 @@ final readonly class CancelRewardDigestAction
             throw new InvalidArgumentException('Cancellation reason must be 1..191 characters.');
         }
 
-        $slotId = $slot instanceof RewardDigestSlot ? (string) $slot->getKey() : $slot;
+        $slotId = $slot instanceof Model ? (string) $slot->getKey() : $slot;
         $decided = $decidedAt instanceof CarbonInterface
             ? CarbonImmutable::parse($decidedAt)->setTimezone('UTC')
             : CarbonImmutable::now('UTC');
 
-        return DB::transaction(function () use ($slotId, $reason, $force, $decided): RewardDigestSlot {
-            $locked = RewardDigestSlot::query()->whereKey($slotId)->lockForUpdate()->first();
+        return DB::transaction(function () use ($slotId, $reason, $force, $decided): Model {
+            $locked = RewardsModel::digestSlotQuery()->whereKey($slotId)->lockForUpdate()->first();
 
-            if (! $locked instanceof RewardDigestSlot) {
+            if (! $locked instanceof Model) {
                 throw new InvalidArgumentException('Unknown reward digest slot.');
             }
 
-            $status = (string) $locked->status;
+            $status = (string) $locked->getAttribute('status');
 
-            if ($status === RewardDigestSlot::STATUS_SENT) {
+            if ($status === RewardsModel::SLOT_SENT) {
                 throw new InvalidArgumentException('Digest already sent; cancellation is closed.');
             }
 
-            if ($status === RewardDigestSlot::STATUS_CANCELLED) {
+            if ($status === RewardsModel::SLOT_CANCELLED) {
                 throw new InvalidArgumentException('Digest already cancelled.');
             }
 
-            if ($status === RewardDigestSlot::STATUS_SENDING) {
+            if ($status === RewardsModel::SLOT_SENDING) {
                 $this->cancelSendingTransport($locked);
             }
 
@@ -91,16 +92,17 @@ final readonly class CancelRewardDigestAction
                 return $locked->refresh();
             }
 
-            $window = (array) (($locked->payload ?? [])['window'] ?? []);
+            $slotPayload = (array) ($locked->getAttribute('payload') ?? []);
+            $window = (array) ($slotPayload['window'] ?? []);
             $from = CarbonImmutable::parse($window['from'] ?? $decided->toIso8601String())->setTimezone('UTC');
             $to = CarbonImmutable::parse($window['to'] ?? $decided->toIso8601String())->setTimezone('UTC');
             $categories = array_values(array_intersect(
-                (array) ($locked->categories ?? []),
+                (array) ($locked->getAttribute('categories') ?? []),
                 PlanRewardGratitudeDigestAction::CATEGORIES,
             ));
 
             $recomputed = PlanRewardGratitudeDigestAction::digestPayload(
-                (string) $locked->recipient_id, $categories === [] ? ['awards'] : $categories, $from, $to,
+                (string) $locked->getAttribute('recipient_id'), $categories === [] ? ['awards'] : $categories, $from, $to,
             );
 
             if (($recomputed['total'] ?? 0) <= 0) {
@@ -112,14 +114,14 @@ final readonly class CancelRewardDigestAction
             // Material remains: recalculate in place (planned) or requeue
             // for redelivery with the fresh payload (sending transport
             // was cancelled above). Delivery bookkeeping survives.
-            $delivery = ($locked->payload ?? [])['delivery'] ?? null;
+            $delivery = $slotPayload['delivery'] ?? null;
 
             if ($delivery !== null) {
                 $recomputed['delivery'] = $delivery;
             }
 
             $locked->forceFill([
-                'status' => RewardDigestSlot::STATUS_PLANNED,
+                'status' => RewardsModel::SLOT_PLANNED,
                 'payload' => $recomputed,
             ])->save();
 
@@ -139,10 +141,10 @@ final readonly class CancelRewardDigestAction
         string $reason,
         CarbonImmutable $decided,
     ): int {
-        $ids = RewardDigestSlot::query()
+        $ids = RewardsModel::digestSlotQuery()
             ->where('recipient_type', $recipientType)
             ->where('recipient_id', $recipientId)
-            ->whereIn('status', [RewardDigestSlot::STATUS_PLANNED, RewardDigestSlot::STATUS_SENDING])
+            ->whereIn('status', [RewardsModel::SLOT_PLANNED, RewardsModel::SLOT_SENDING])
             ->orderBy('due_at')
             ->pluck('id')
             ->all();
@@ -162,11 +164,12 @@ final readonly class CancelRewardDigestAction
         return $count;
     }
 
-    private function cancelSendingTransport(RewardDigestSlot $slot): void
+    private function cancelSendingTransport(Model $slot): void
     {
-        $communication = $slot->communication_id === null
+        $communicationId = $slot->getAttribute('communication_id');
+        $communication = $communicationId === null
             ? null
-            : Communication::query()->whereKey((string) $slot->communication_id)->lockForUpdate()->first();
+            : Communication::query()->whereKey((string) $communicationId)->lockForUpdate()->first();
 
         if (! $communication instanceof Communication) {
             return;
@@ -202,13 +205,13 @@ final readonly class CancelRewardDigestAction
         app(CancelCommunicationAction::class)->handle((string) $communication->getKey(), 'digest-correction');
     }
 
-    private function markCancelled(RewardDigestSlot $slot, string $reason, CarbonImmutable $now): void
+    private function markCancelled(Model $slot, string $reason, CarbonImmutable $now): void
     {
-        $payload = $slot->payload ?? [];
+        $payload = (array) ($slot->getAttribute('payload') ?? []);
         $payload['cancellation'] = ['at' => $now->toIso8601String(), 'reason' => $reason];
 
         $slot->forceFill([
-            'status' => RewardDigestSlot::STATUS_CANCELLED,
+            'status' => RewardsModel::SLOT_CANCELLED,
             'payload' => $payload,
             'cancelled_at' => $now,
         ])->save();
