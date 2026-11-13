@@ -1,10 +1,5 @@
 <?php
 
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -12,6 +7,11 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
 use App\Platform\Cache\PublicListingsCache;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Cache;
@@ -34,22 +34,6 @@ function primeMajlisListingCache(): array
     $keys = [
         'default_events_search_v2',
     ];
-    $supportedLocales = array_keys(config('app.supported_locales', []));
-
-    if ($supportedLocales === []) {
-        $supportedLocales = [config('app.locale', 'ms')];
-    }
-
-    foreach ($supportedLocales as $locale) {
-        $keys[] = "events_institutions_{$locale}_v2";
-        $keys[] = "events_persons_{$locale}_v2";
-        $keys[] = "events_disciplines_{$locale}_v2";
-        $keys[] = "events_domains_{$locale}_v2";
-        $keys[] = "events_sources_{$locale}_v2";
-        $keys[] = "events_issues_{$locale}_v2";
-        $keys[] = "events_references_{$locale}_v2";
-        $keys[] = "events_venues_{$locale}_v2";
-    }
 
     foreach ($keys as $key) {
         Cache::put($key, 'primed', now()->addMinutes(10));

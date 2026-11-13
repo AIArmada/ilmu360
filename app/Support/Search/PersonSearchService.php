@@ -37,15 +37,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @return list<string>
-     */
-    public function buildSearchTerms(
-        ?string $name,
-    ): array {
-        return PersonSearchText::terms($name);
-    }
-
-    /**
      * @param  Builder<Person>  $query
      * @return Builder<Person>
      */
@@ -137,21 +128,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 $this->applyDatabaseNameSearch($unindexedQuery, $search);
             });
         });
-    }
-
-    /**
-     * @param  Builder<Person>  $query
-     * @return Builder<Person>
-     */
-    public function applyPublicCachedSearch(Builder $query, string $search): Builder
-    {
-        $ids = $this->publicSearchIds($search);
-
-        if ($ids === []) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query->whereIn($query->getModel()->qualifyColumn('id'), $ids);
     }
 
     /**
@@ -529,11 +505,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
         return (string) config('scout.driver');
     }
 
-    public function syncIndex(Person $person): void
-    {
-        $this->workflow()->syncSearchProjection((string) $person->getKey(), false);
-    }
-
     public function syncPersonRecord(Person $person): void
     {
         $this->workflow()->syncSearchProjection((string) $person->getKey());
@@ -547,11 +518,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
     public function searchIndexSchemaReady(): bool
     {
         return $this->hasSearchableNameColumn() && $this->hasPersonSearchTermsTable();
-    }
-
-    public function purgeIndex(Person $person): void
-    {
-        $this->workflow()->purgeSearchProjection((string) $person->getKey(), false);
     }
 
     public function purgePersonRecord(Person $person): void
