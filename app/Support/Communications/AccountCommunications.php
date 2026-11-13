@@ -13,54 +13,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
- * Interim account communications read/write adapter.
+ * Interim package-model adapter for destination and inbox reads used by root callers.
  *
- * Communications will own preferences, destinations and inboxes once the
- * feature is extracted. Until then this service replaces the removed User
- * reverse relations with the same recipient-scoped queries.
+ * Notification preference policy and locale/timezone reads now use the
+ * Communications feature API. Inbox and destination boundaries remain for
+ * their later migration slices.
  */
 final readonly class AccountCommunications
 {
-    public function preferredLocale(string $accountId): string
-    {
-        $locale = $this->basePreferenceQuery($accountId)->value('locale');
-
-        return is_string($locale) && $locale !== ''
-            ? $locale
-            : (string) config('app.locale');
-    }
-
-    public function preferredTimezone(string $accountId, ?string $fallback = null): string
-    {
-        $timezone = $this->basePreferenceQuery($accountId)->value('timezone');
-
-        if (is_string($timezone) && $timezone !== '') {
-            return $timezone;
-        }
-
-        return is_string($fallback) && $fallback !== ''
-            ? $fallback
-            : (string) config('app.timezone', 'UTC');
-    }
-
-    /**
-     * @return Builder<CommunicationPreference>
-     */
-    public function basePreferenceQuery(string $accountId): Builder
-    {
-        return CommunicationPreference::query()
-            ->where('recipient_type', (new User)->getMorphClass())
-            ->where('recipient_id', $accountId)
-            ->whereNull('channel')
-            ->whereNull('category')
-            ->whereNull('scope_type');
-    }
-
-    public function basePreference(string $accountId): ?CommunicationPreference
-    {
-        return $this->basePreferenceQuery($accountId)->first();
-    }
-
     public function basePreferenceForRecipient(?string $recipientType, ?string $recipientId): ?CommunicationPreference
     {
         if ($recipientType === null || $recipientId === null) {
@@ -74,14 +34,6 @@ final readonly class AccountCommunications
             ->whereNull('category')
             ->whereNull('scope_type')
             ->first();
-    }
-
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
-    public function updateBasePreference(string $accountId, array $attributes): int
-    {
-        return $this->basePreferenceQuery($accountId)->update($attributes);
     }
 
     /**

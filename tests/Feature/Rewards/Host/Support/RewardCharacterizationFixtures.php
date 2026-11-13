@@ -19,7 +19,7 @@ use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardProgram;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
@@ -58,7 +58,7 @@ final class RewardCharacterizationFixtures
 
         $triggers['share_gratitude_digest'] = array_merge(['enabled' => true], $sharing);
 
-        app(NotificationSettingsManager::class)->save($user, [
+        app(AccountNotificationPreferences::class)->save((string) $user->getKey(), [
             'settings' => $settings,
             'families' => [
                 'sharing' => [

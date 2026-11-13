@@ -23,7 +23,7 @@ use App\Platform\FeatureModule;
  * Shared seams keep the feature free of root notification services and users:
  * - `Shared\Communications\DigestPolicy` with the root
  *   `NotificationCenterDigestPolicy` adapter over
- *   `NotificationSettingsManager`/`ResolvedNotificationPolicy` and the global
+ *   AccountNotificationPreferences/ResolvedNotificationPolicy and the global
  *   digest config; only scalar cadence, trigger, timezone, delivery time,
  *   weekly day and quiet hours cross.
  * - `Shared\Communications\DigestMessages` with the root

@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Api;
 
 use AIArmada\Communications\Enums\NotificationFamily as PkgFamily;
 use AIArmada\Communications\Enums\NotificationPriority as PkgPriority;
 use AIArmada\Communications\Enums\NotificationTrigger as PkgTrigger;
-use App\Enums\NotificationFamily as AppFamily;
-use App\Enums\NotificationPriority as AppPriority;
-use App\Enums\NotificationTrigger as AppTrigger;
+use App\Features\Communications\Api\NotificationFamily as AppFamily;
+use App\Features\Communications\Api\NotificationPriority as AppPriority;
+use App\Features\Communications\Api\NotificationTrigger as AppTrigger;
 
-final class EnumMapper
+final readonly class EnumMapper
 {
     private const array FAMILY_MAP = [
         'followed_content' => 'follow_up',

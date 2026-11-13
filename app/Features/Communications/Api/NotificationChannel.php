@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enums;
+namespace App\Features\Communications\Api;
 
 enum NotificationChannel: string
 {

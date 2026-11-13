@@ -8,8 +8,8 @@ use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
 use App\Actions\Notifications\MarkNotificationMessageReadAction;
 use App\Models\User;
 use App\Support\Communications\AccountCommunications;
-use App\Support\Communications\EnumMapper;
-use App\Support\Notifications\NotificationCatalog;
+use App\Features\Communications\Api\EnumMapper;
+use App\Features\Communications\Api\NotificationCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
@@ -119,7 +119,7 @@ class NotificationsIndex extends Component
     {
         $appFamily = EnumMapper::toAppFamily($message->family);
 
-        return $appFamily instanceof \App\Enums\NotificationFamily
+        return $appFamily instanceof \App\Features\Communications\Api\NotificationFamily
             ? NotificationCatalog::familyDefinition($appFamily)['label']
             : $message->family->label();
     }

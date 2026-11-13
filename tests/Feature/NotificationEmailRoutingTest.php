@@ -13,7 +13,7 @@ use App\Notifications\Auth\WelcomeNotification;
 use App\Notifications\EventEscalationNotification;
 use App\Notifications\EventSubmittedNotification;
 use App\Features\Membership\Notifications\MemberInvitationNotification;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Support\Communications\AccountCommunications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -25,13 +25,13 @@ it('routes mail notifications through the user email address and tracks destinat
         'email_verified_at' => null,
     ]);
 
-    app(NotificationSettingsManager::class)->syncSystemDestinations($user);
+    app(AccountNotificationPreferences::class)->syncSystemEmailDestination((string) $user->getKey());
 
     expect($user->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test')
         ->and(app(AccountCommunications::class)->destinationsQuery((string) $user->getKey())->where('channel', 'email')->value('status'))->toBe('inactive');
 
     $user->forceFill(['email_verified_at' => now()])->save();
-    app(NotificationSettingsManager::class)->syncSystemDestinations($user->fresh() ?? $user);
+    app(AccountNotificationPreferences::class)->syncSystemEmailDestination((string) ($user->fresh() ?? $user)->getKey());
 
     expect(($user->fresh() ?? $user)->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test')
         ->and(app(AccountCommunications::class)->destinationsQuery((string) ($user->fresh() ?? $user)->getKey())->where('channel', 'email')->value('status'))->toBe('active');

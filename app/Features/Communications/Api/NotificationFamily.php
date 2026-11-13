@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Enums;
+namespace App\Features\Communications\Api;
 
 enum NotificationFamily: string
 {

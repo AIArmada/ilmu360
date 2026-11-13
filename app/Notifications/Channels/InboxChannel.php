@@ -8,7 +8,7 @@ use AIArmada\Communications\Contracts\CommunicationRecorder;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Notifications\InAppNotification;
-use App\Support\Communications\EnumMapper;
+use App\Features\Communications\Api\EnumMapper;
 use App\Support\Communications\GuardedDeliverySend;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;

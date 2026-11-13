@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Enums\NotificationCadence;
-use App\Enums\NotificationTrigger;
+use App\Features\Communications\Api\NotificationCadence;
+use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Event;
 use App\Models\Institution;

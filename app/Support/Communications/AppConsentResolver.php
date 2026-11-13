@@ -4,8 +4,8 @@ namespace App\Support\Communications;
 
 use AIArmada\Communications\Contracts\ConsentResolver;
 use AIArmada\Communications\Data\ConsentDecisionData;
-use App\Enums\NotificationChannel;
-use App\Enums\NotificationChannel as AppChannel;
+use App\Features\Communications\Api\NotificationChannel;
+use App\Features\Communications\Api\NotificationChannel as AppChannel;
 use App\Notifications\Channels\DigestMailChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 

@@ -20,7 +20,7 @@ use App\Models\RewardDigestSlot;
 use App\Models\User;
 use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\ShareGratitudeDigestNotification;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Console\Command;
@@ -99,7 +99,7 @@ function resolveCmdAmbiguous(string $prefix, string $source): array
 
         $user = User::factory()->create();
 
-        app(NotificationSettingsManager::class)->save($user, [
+        app(AccountNotificationPreferences::class)->save((string) $user->getKey(), [
             'settings' => [],
             'families' => ['sharing' => ['enabled' => true, 'cadence' => 'daily']],
             'triggers' => ['share_gratitude_digest' => ['enabled' => true]],

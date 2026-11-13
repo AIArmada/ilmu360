@@ -7,8 +7,8 @@ use App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard\AccountSettings;
 use App\Models\Institution;
 use App\Models\User;
 use App\Notifications\Auth\VerifyEmailNotification;
-use App\Services\Notifications\NotificationSettingsManager;
-use App\Support\Notifications\NotificationCatalog;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationCatalog;
 use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -241,7 +241,7 @@ it('updates account settings and resets verification when contact details change
     expect($newDestination)->not->toBeNull()
         ->and($newDestination->status)->toBe('inactive');
 
-    $notificationState = app(NotificationSettingsManager::class)->stateFor($user->fresh());
+    $notificationState = app(AccountNotificationPreferences::class)->stateFor((string) $user->fresh()->getKey());
 
     expect($notificationState['settings']['timezone'])->toBe('Asia/Jakarta');
 
@@ -304,7 +304,7 @@ it('saves simplified notification preferences from account settings', function (
         ->call('saveNotificationPreferences')
         ->assertHasNoErrors();
 
-    $state = app(NotificationSettingsManager::class)->stateFor($user->fresh());
+    $state = app(AccountNotificationPreferences::class)->stateFor((string) $user->fresh()->getKey());
 
     expect($state['settings']['channels'])
         ->toContain('in_app')
@@ -320,8 +320,8 @@ it('saves simplified notification preferences from account settings', function (
 it('leaves hidden notification preferences unchanged when saving', function () {
     $user = User::factory()->create();
 
-    $manager = app(NotificationSettingsManager::class);
-    $manager->save($user, [
+    $manager = app(AccountNotificationPreferences::class);
+    $manager->save((string) $user->getKey(), [
         'families' => [
             'sharing' => ['enabled' => true],
         ],
@@ -336,7 +336,7 @@ it('leaves hidden notification preferences unchanged when saving', function () {
         ->call('saveNotificationPreferences')
         ->assertHasNoErrors();
 
-    $state = $manager->stateFor($user->fresh());
+    $state = $manager->stateFor((string) $user->fresh()->getKey());
 
     expect($state['families']['sharing']['enabled'])->toBeTrue()
         ->and($state['triggers']['checkin_open']['enabled'])->toBeFalse();
@@ -349,7 +349,7 @@ it('does not persist unsaved notification changes when saving profile details', 
         'email_verified_at' => now(),
     ]);
 
-    app(NotificationSettingsManager::class)->save($user, [
+    app(AccountNotificationPreferences::class)->save((string) $user->getKey(), [
         'settings' => [
             'channels' => ['in_app', 'email'],
         ],
@@ -371,7 +371,7 @@ it('does not persist unsaved notification changes when saving profile details', 
         ->assertHasNoErrors();
 
     $user->refresh();
-    $state = app(NotificationSettingsManager::class)->stateFor($user);
+    $state = app(AccountNotificationPreferences::class)->stateFor((string) $user->getKey());
 
     expect($user->name)->toBe('Profile Saved Name')
         ->and($state['settings']['channels'])->toBe(['in_app', 'email'])

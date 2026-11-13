@@ -12,7 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
 use App\Support\Communications\AccountCommunications;
-use App\Support\Notifications\NotificationCatalog;
+use App\Features\Communications\Api\NotificationCatalog;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

@@ -2,13 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Notifications;
+namespace App\Features\Communications\Api;
 
-use App\Enums\NotificationCadence;
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationTrigger;
-
-readonly class ResolvedNotificationPolicy
+final readonly class ResolvedNotificationPolicy
 {
     /**
      * @param  list<string>  $channels

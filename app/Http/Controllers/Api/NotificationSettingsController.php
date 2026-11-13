@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationCatalog;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\Notifications\NotificationSettingsManager;
-use App\Support\Notifications\NotificationCatalog;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 class NotificationSettingsController extends Controller
 {
     public function __construct(
-        protected NotificationSettingsManager $settingsManager,
+        protected AccountNotificationPreferences $notificationPreferences,
     ) {}
 
     #[Endpoint(
@@ -25,7 +25,7 @@ class NotificationSettingsController extends Controller
     public function catalog(Request $request): JsonResponse
     {
         $user = $this->currentUser($request);
-        $state = $this->settingsManager->stateFor($user);
+        $state = $this->notificationPreferences->stateFor((string) $user->getKey());
 
         return response()->json([
             'data' => [
@@ -60,7 +60,7 @@ class NotificationSettingsController extends Controller
     public function show(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->settingsManager->stateFor($this->currentUser($request)),
+            'data' => $this->notificationPreferences->stateFor((string) $this->currentUser($request)->getKey()),
         ]);
     }
 
@@ -77,7 +77,8 @@ class NotificationSettingsController extends Controller
         ]);
 
         $user = $this->currentUser($request);
-        $currentState = $this->settingsManager->stateFor($user);
+        $accountId = (string) $user->getKey();
+        $currentState = $this->notificationPreferences->stateFor($accountId);
         $payload = array_replace_recursive(
             [
                 'settings' => $currentState['settings'],
@@ -89,7 +90,7 @@ class NotificationSettingsController extends Controller
 
         return response()->json([
             'message' => __('notifications.flash.updated'),
-            'data' => $this->settingsManager->save($user, $payload),
+            'data' => $this->notificationPreferences->save($accountId, $payload),
         ]);
     }
 

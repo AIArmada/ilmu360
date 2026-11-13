@@ -6,15 +6,15 @@ use AIArmada\Communications\Contracts\CommunicationManager;
 use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Enums\NotificationPriority;
-use App\Enums\NotificationTrigger;
+use App\Features\Communications\Api\NotificationPriority;
+use App\Features\Communications\Api\NotificationTrigger;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Notifications\InAppNotification;
-use App\Support\Notifications\NotificationCatalog;
+use App\Features\Communications\Api\NotificationCatalog;
 use App\Support\Notifications\NotificationDispatchData;
 use Illuminate\Support\Str;
 

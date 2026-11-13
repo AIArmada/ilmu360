@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Shared\Communications;
 
 /**
- * Interim account notification-settings boundary.
+ * Identity-facing notification settings contract.
  *
- * Communications will own preferences, destinations and inboxes once that
- * feature is extracted. Consumers use this contract instead of importing the
- * conventional notification settings manager or communications support.
+ * Identity uses this contract for account settings. Its root adapter delegates
+ * preference behavior to the Communications feature and retains push removal
+ * until the destination cutover is complete.
  */
 interface AccountNotificationSettings
 {

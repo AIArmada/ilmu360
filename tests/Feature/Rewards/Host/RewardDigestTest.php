@@ -36,7 +36,7 @@ use App\Models\User;
 use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
 use App\Notifications\ShareGratitudeDigestNotification;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -69,7 +69,7 @@ function digestUser(array $settings = [], array $triggers = []): User
 
     $triggers['share_gratitude_digest'] = array_merge(['enabled' => true], $sharing);
 
-    app(NotificationSettingsManager::class)->save($user, [
+    app(AccountNotificationPreferences::class)->save((string) $user->getKey(), [
         'settings' => $settings,
         'families' => [
             'sharing' => [

@@ -12,6 +12,7 @@ use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Traits\CanBookmark;
 use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\Engagement\Traits\CanRespond;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Models\Concerns\HasUserRestoration;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
@@ -277,7 +278,7 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
 
     public function preferredLocale(): string
     {
-        return app(AccountCommunications::class)->preferredLocale((string) $this->getKey());
+        return app(AccountNotificationPreferences::class)->preferredLocale((string) $this->getKey());
     }
 
     public function preferredTimezone(): string
@@ -286,7 +287,7 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
         // key falls back instead of fataling under strict attributes.
         $stored = $this->attributes['timezone'] ?? null;
 
-        return app(AccountCommunications::class)->preferredTimezone(
+        return app(AccountNotificationPreferences::class)->preferredTimezone(
             (string) $this->getKey(),
             is_string($stored) ? $stored : null,
         );

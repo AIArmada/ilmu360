@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\Notifications;
 
-use App\Enums\NotificationCadence;
-use App\Enums\NotificationPriority;
-use App\Enums\NotificationTrigger;
+use App\Features\Communications\Api\NotificationCadence;
+use App\Features\Communications\Api\NotificationPriority;
+use App\Features\Communications\Api\NotificationTrigger;
 use Carbon\CarbonInterface;
 
 readonly class NotificationDispatchData

@@ -14,6 +14,7 @@ use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\Registration;
 use App\Models\User;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Shared\Auth\AccountDirectory;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Shared\Engagement\EngagementReader;
@@ -121,10 +122,11 @@ it('reads account communication settings, destinations and inbox counts', functi
     ]);
 
     $communications = app(AccountCommunications::class);
+    $notificationPreferences = app(AccountNotificationPreferences::class);
     $profile = app(AccountDirectory::class)->profile((string) $user->getKey());
 
-    expect($communications->preferredLocale((string) $user->getKey()))->toBe('en')
-        ->and($communications->preferredTimezone((string) $user->getKey()))->toBe('Asia/Kuala_Lumpur')
+    expect($notificationPreferences->preferredLocale((string) $user->getKey()))->toBe('en')
+        ->and($notificationPreferences->preferredTimezone((string) $user->getKey()))->toBe('Asia/Kuala_Lumpur')
         ->and($communications->unreadInboxCount((string) $user->getKey()))->toBe(1)
         ->and($communications->destinationsQuery((string) $user->getKey())->count())->toBe(1)
         ->and($profile?->locale)->toBe('en')

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Support\Communications;
 
-use App\Enums\NotificationTrigger;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationTrigger;
 use App\Models\User;
-use App\Services\Notifications\NotificationSettingsManager;
 use App\Shared\Communications\DigestPolicy;
 use App\Shared\Communications\DigestPolicySnapshot;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
 
 /**
- * Root digest-policy adapter over the conventional notification settings.
+ * Root digest-policy adapter over the Communications preference API.
  *
  * Maps notification cadence/trigger enums and the global digest delivery
  * configuration into the scalar Shared snapshot; no enum or root user model
@@ -22,7 +22,7 @@ use InvalidArgumentException;
 final readonly class NotificationCenterDigestPolicy implements DigestPolicy
 {
     public function __construct(
-        private NotificationSettingsManager $settings,
+        private AccountNotificationPreferences $settings,
     ) {}
 
     public function resolve(Authenticatable $recipient, string $trigger): DigestPolicySnapshot
@@ -37,7 +37,7 @@ final readonly class NotificationCenterDigestPolicy implements DigestPolicy
             throw new InvalidArgumentException("Unknown digest trigger [{$trigger}].");
         }
 
-        $policy = $this->settings->resolvePolicy($recipient, $notificationTrigger);
+        $policy = $this->settings->resolvePolicy((string) $recipient->getKey(), $notificationTrigger);
 
         return new DigestPolicySnapshot(
             enabled: $policy->enabled,

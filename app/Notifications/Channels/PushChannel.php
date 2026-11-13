@@ -3,9 +3,10 @@
 namespace App\Notifications\Channels;
 
 use AIArmada\Communications\Models\CommunicationDestination;
-use App\Enums\NotificationChannel;
+use App\Features\Communications\Api\NotificationChannel;
 use App\Notifications\Channels\Exceptions\ChannelDeliveryException;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Support\Communications\AccountCommunications;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Http;
 class PushChannel
 {
     public function __construct(
-        protected NotificationSettingsManager $settingsManager,
+        protected AccountCommunications $communications,
     ) {}
 
     /**
@@ -40,7 +41,14 @@ class PushChannel
         $payload = $notification->toPush($notifiable);
         $destinations = method_exists($notifiable, 'routeNotificationForPush')
             ? $notifiable->routeNotificationForPush($notification)
-            : $this->settingsManager->destinationsFor($notifiable, NotificationChannel::Push);
+            : ($notifiable instanceof Authenticatable
+                ? $this->communications->destinationsQuery((string) $notifiable->getAuthIdentifier())
+                    ->where('channel', NotificationChannel::Push->value)
+                    ->where('status', 'active')
+                    ->orderByDesc('is_primary')
+                    ->orderByDesc('last_seen_at')
+                    ->get()
+                : collect());
         $provider = (string) config('notification-center.push.provider', 'fcm');
         $projectId = config('notification-center.push.project_id');
         $credentials = config('notification-center.push.credentials');

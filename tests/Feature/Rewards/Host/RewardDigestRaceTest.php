@@ -18,7 +18,7 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\ParallelTesting;
 use PHPUnit\Framework\Assert;
@@ -125,7 +125,7 @@ function digestRaceDueSlot(string $prefix, string $source): array
     $user = User::factory()->create();
     $memberId = (string) $user->getKey();
 
-    app(NotificationSettingsManager::class)->save($user, [
+    app(AccountNotificationPreferences::class)->save((string) $user->getKey(), [
         'settings' => [],
         'families' => ['sharing' => ['enabled' => true, 'cadence' => 'daily']],
         'triggers' => ['share_gratitude_digest' => ['enabled' => true]],

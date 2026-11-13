@@ -1,15 +1,9 @@
 <?php
 
-namespace App\Support\Notifications;
+namespace App\Features\Communications\Api;
 
 use AIArmada\Communications\Enums\NotificationFamily as PackageNotificationFamily;
-use App\Enums\NotificationCadence;
-use App\Enums\NotificationChannel;
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationTrigger;
-use App\Support\Communications\EnumMapper;
-
-class NotificationCatalog
+final readonly class NotificationCatalog
 {
     /**
      * @return array<string, array{

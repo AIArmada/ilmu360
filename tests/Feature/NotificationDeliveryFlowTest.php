@@ -19,7 +19,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Support\Communications\AccountCommunications;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -84,14 +84,14 @@ it('localizes followed-content inbox notifications per recipient locale', functi
     $malayUser->follow($person);
 
     app()->setLocale('en');
-    app(NotificationSettingsManager::class)->save($englishUser, [
+    app(AccountNotificationPreferences::class)->save((string) $englishUser->getKey(), [
         'settings' => [
             'timezone' => 'UTC',
         ],
     ]);
 
     app()->setLocale('ms');
-    app(NotificationSettingsManager::class)->save($malayUser, [
+    app(AccountNotificationPreferences::class)->save((string) $malayUser->getKey(), [
         'settings' => [
             'timezone' => 'Asia/Kuala_Lumpur',
         ],

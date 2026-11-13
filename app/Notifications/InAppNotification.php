@@ -2,9 +2,9 @@
 
 namespace App\Notifications;
 
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationPriority;
-use App\Enums\NotificationTrigger;
+use App\Features\Communications\Api\NotificationFamily;
+use App\Features\Communications\Api\NotificationPriority;
+use App\Features\Communications\Api\NotificationTrigger;
 use App\Notifications\Channels\InboxChannel;
 use Carbon\CarbonInterface;
 use Illuminate\Notifications\Notification;

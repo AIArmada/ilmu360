@@ -27,7 +27,7 @@ use App\Models\User;
 use App\Notifications\Channels\DigestMailChannel;
 use App\Notifications\Channels\InboxChannel;
 use App\Notifications\ShareGratitudeDigestNotification;
-use App\Services\Notifications\NotificationSettingsManager;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Support\Communications\GuardedDeliverySend;
 use Carbon\CarbonImmutable;
 use Illuminate\Mail\Events\MessageSent;
@@ -78,7 +78,7 @@ function mailAmbiguityDueSlot(string $prefix, string $source): array
     $user = User::factory()->create();
     $memberId = (string) $user->getKey();
 
-    app(NotificationSettingsManager::class)->save($user, [
+    app(AccountNotificationPreferences::class)->save((string) $user->getKey(), [
         'settings' => [],
         'families' => ['sharing' => ['enabled' => true, 'cadence' => 'daily']],
         'triggers' => ['share_gratitude_digest' => ['enabled' => true]],

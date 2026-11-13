@@ -10,8 +10,8 @@ use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Time\UserTimezoneResolver;
 use App\Support\Communications\AccountCommunications;
-use App\Support\Communications\EnumMapper;
-use App\Support\Notifications\NotificationCatalog;
+use App\Features\Communications\Api\EnumMapper;
+use App\Features\Communications\Api\NotificationCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -203,7 +203,7 @@ class NotificationBell extends Component
                     'id' => (string) $message->getKey(),
                     'title' => $message->title,
                     'body' => $message->body,
-                    'family_label' => $appFamily instanceof \App\Enums\NotificationFamily
+                    'family_label' => $appFamily instanceof \App\Features\Communications\Api\NotificationFamily
                         ? NotificationCatalog::familyDefinition($appFamily)['label']
                         : $message->family->label(),
                     'icon' => NotificationCatalog::familyIcon($message->family),

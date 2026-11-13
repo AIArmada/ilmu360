@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use AIArmada\Communications\Models\CommunicationDestination;
 use App\Data\Api\Notification\NotificationDestinationData as NotificationDestinationPayloadData;
-use App\Enums\NotificationChannel;
+use App\Features\Communications\Api\NotificationChannel;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Communications\AccountCommunications;
