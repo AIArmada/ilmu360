@@ -194,11 +194,11 @@ use App\Shared\Auth\ScopedMembershipRoleStore;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\Auth\UserMorphType;
+use App\Shared\Communications\AccountNotificationSettings;
 use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Contributions\InstitutionClaimGuard;
-use App\Shared\Communications\AccountNotificationSettings;
 use App\Shared\Directory\DirectoryCatalog;
 use App\Shared\Directory\PrayerInstitutionCatalog;
 use App\Shared\Directory\ReferenceScopedSearch;
@@ -654,6 +654,7 @@ class AppServiceProvider extends ServiceProvider
             'reference' => Reference::class,
             'share_browser_selection' => ShareBrowserSelection::class,
             'share_effect_receipt' => ShareEffectReceipt::class,
+            'share_outcome_correction' => ShareOutcomeCorrection::class,
             'share_source_attribution_receipt' => ShareSourceAttributionReceipt::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,

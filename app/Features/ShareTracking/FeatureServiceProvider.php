@@ -7,16 +7,18 @@ namespace App\Features\ShareTracking;
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\EffectReceipts;
+use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
+use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Platform\FeatureModule;
 
 /**
- * Share tracking claims the browser selection, source attribution receipt and
- * effect receipt writes named in feature.json. The remaining app tables are
- * still written by root services and actions, so they stay unclaimed until
- * their slice lands.
+ * Share tracking claims the browser selection, source attribution receipt,
+ * effect receipt and outcome correction writes named in feature.json. The
+ * remaining app tables are still written by root services and actions, so they
+ * stay unclaimed until their slice lands.
  *
  * Slice order:
  * - S1a source receipts: `DatabaseSourceAttributionReceipts` owns the
@@ -32,9 +34,12 @@ use App\Platform\FeatureModule;
  *   `DispatchShareEffectReceiptsAction`, `ReverseShareOutcomeAction` and
  *   `ReverseTicketAffiliateCommissionAction` keep their root orchestration and
  *   package writes.
- * - S2a2 corrections/claims: move remaining reversal/correction and guest claim
- *   orchestration while preserving monetary guards and duplicate tolerance;
- *   claim `share_outcome_corrections`.
+ * - S2a2 outcome corrections: `DatabaseOutcomeCorrections` owns the idempotent
+ *   correction create/replay. `ReverseShareOutcomeAction` keeps the outer
+ *   reversal transaction, effect-lock and conversion-reversal order, monetary
+ *   guard, and the correction observer dispatch.
+ * - S2b guest claims: move the remaining guest claim orchestration while
+ *   preserving the two-secret lock order.
  * - S3 cohorts/signals: move the committed-share reader or keep a root adapter
  *   and claim `share_cohort_projections`, `share_signal_reader_cursors` and
  *   `share_signal_reader_skips` after characterising backlog/poison SQL.
@@ -56,6 +61,7 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(BrowserSelectionWriter::class, LockBrowserSelectionAction::class);
         $this->app->bind(EffectReceipts::class, DatabaseEffectReceipts::class);
+        $this->app->bind(OutcomeCorrections::class, DatabaseOutcomeCorrections::class);
         $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
     }
 }

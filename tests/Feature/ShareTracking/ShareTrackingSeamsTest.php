@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\FeatureServiceProvider as ShareTrackingServiceProvider;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
+use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Models\ShareBrowserSelection;
@@ -29,7 +30,7 @@ dataset('share tracking owned tables', [
     'signal reader skips' => [ShareSignalReaderSkip::class, 'share_signal_reader_skips'],
 ]);
 
-it('claims the browser selection, effect receipt and source receipt tables with their named writers', function (): void {
+it('claims the browser selection, effect receipt, outcome correction and source receipt tables with their named writers', function (): void {
     $catalog = FeatureCatalog::load(base_path());
     $manifest = json_decode((string) file_get_contents(app_path('Features/ShareTracking/feature.json')), true, 512, JSON_THROW_ON_ERROR);
     $providers = require base_path('bootstrap/providers.php');
@@ -40,15 +41,18 @@ it('claims the browser selection, effect receipt and source receipt tables with 
         ->and($manifest['owns'] ?? null)->toBe([
             'table:share_browser_selections' => [LockBrowserSelectionAction::class],
             'table:share_effect_receipts' => [DatabaseEffectReceipts::class],
+            'table:share_outcome_corrections' => [DatabaseOutcomeCorrections::class],
             'table:share_source_attribution_receipts' => [DatabaseSourceAttributionReceipts::class],
         ])
         ->and($catalog['owners'])->toHaveKey('table:share_browser_selections')
         ->and($catalog['owners']['table:share_browser_selections'])->toBe('ShareTracking')
         ->and($catalog['owners'])->toHaveKey('table:share_effect_receipts')
         ->and($catalog['owners']['table:share_effect_receipts'])->toBe('ShareTracking')
+        ->and($catalog['owners'])->toHaveKey('table:share_outcome_corrections')
+        ->and($catalog['owners']['table:share_outcome_corrections'])->toBe('ShareTracking')
         ->and($catalog['owners'])->toHaveKey('table:share_source_attribution_receipts')
         ->and($catalog['owners']['table:share_source_attribution_receipts'])->toBe('ShareTracking')
-        ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(3)
+        ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(4)
         ->and(array_keys($providers, ShareTrackingServiceProvider::class, true))->toHaveCount(1);
 });
 

@@ -8,6 +8,9 @@
     "table:share_effect_receipts": [
       "App\\Features\\ShareTracking\\Persistence\\DatabaseEffectReceipts"
     ],
+    "table:share_outcome_corrections": [
+      "App\\Features\\ShareTracking\\Persistence\\DatabaseOutcomeCorrections"
+    ],
     "table:share_source_attribution_receipts": [
       "App\\Features\\ShareTracking\\Persistence\\DatabaseSourceAttributionReceipts"
     ]

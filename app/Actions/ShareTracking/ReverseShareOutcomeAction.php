@@ -8,14 +8,14 @@ use AIArmada\Affiliates\Actions\Conversions\ReverseAffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
 use App\Features\ShareTracking\Api\EffectReceipts;
-use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\ShareTracking\ShareTrackingFinance;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -28,6 +28,7 @@ final readonly class ReverseShareOutcomeAction
     public function __construct(
         private ReverseAffiliateConversion $reverseConversion,
         private EffectReceipts $effectReceipts,
+        private OutcomeCorrections $outcomeCorrections,
     ) {}
 
     public function handle(
@@ -109,22 +110,15 @@ final readonly class ReverseShareOutcomeAction
 
             $this->effectReceipts->cancelPendingBySource($businessKey);
 
-            try {
-                return DB::transaction(static fn (): ShareOutcomeCorrection => ShareOutcomeCorrection::query()->create([
-                    'conversion_id' => $conversion->getKey(),
-                    'business_key' => $businessKey,
-                    'reason' => $reason,
-                    'actor_type' => $actor?->getMorphClass(),
-                    'actor_id' => $actor?->getKey(),
-                    'occurred_at' => now(),
-                ]), 1);
-            } catch (QueryException $exception) {
-                if (! in_array((string) ($exception->errorInfo[0] ?? $exception->getCode()), ['23000', '23505'], true)) {
-                    throw $exception;
-                }
+            $correction = $this->outcomeCorrections->ensure(
+                businessKey: $businessKey,
+                conversionId: (string) $conversion->getKey(),
+                reason: $reason,
+                actorType: $actor?->getMorphClass(),
+                actorId: $actor === null ? null : (string) $actor->getKey(),
+            );
 
-                return ShareOutcomeCorrection::query()->where('business_key', $businessKey)->firstOrFail();
-            }
+            return ShareOutcomeCorrection::query()->findOrFail($correction->id);
         }, 3);
     }
 }
