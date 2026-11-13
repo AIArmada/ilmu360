@@ -121,6 +121,24 @@ it('lists the current users going events', function () {
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 });
 
+it('allows an authenticated user to mark an ongoing event as going through its effective end', function () {
+    $ongoingEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subHours(2),
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+    ]);
+
+    Sanctum::actingAs($this->user);
+
+    $this->putJson(route('api.events.going.update', $ongoingEvent))
+        ->assertCreated()
+        ->assertJsonPath('message', 'Going recorded successfully.')
+        ->assertJsonPath('data.is_going', true)
+        ->assertJsonPath('data.going_count', 1);
+});
+
 it('allows an authenticated user to remove a going record', function () {
     Sanctum::actingAs($this->user);
 
@@ -132,6 +150,12 @@ it('allows an authenticated user to remove a going record', function () {
         ->assertJsonPath('data.is_going', false)
         ->assertJsonPath('data.going_count', 0)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
+
+    $this->deleteJson(route('api.events.going.destroy', $this->event))
+        ->assertOk()
+        ->assertJsonPath('message', 'Event was not marked as going.')
+        ->assertJsonPath('data.is_going', false)
+        ->assertJsonPath('data.going_count', 0);
 
     $this->assertDatabaseMissing((string) config('engagement.database.tables.responses'), [
         'responder_type' => $this->user->getMorphClass(),
@@ -177,6 +201,22 @@ it('rejects marking going for past events', function () {
         ->assertForbidden()
         ->assertJsonPath('error.message', 'Cannot mark going for past events.');
 
+});
+
+it('rejects marking going once the effective end has passed', function () {
+    Sanctum::actingAs($this->user);
+
+    $endedEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subHours(4),
+        'starts_at' => now()->subHours(3),
+        'ends_at' => now()->subHour(),
+    ]);
+
+    $this->putJson(route('api.events.going.update', $endedEvent))
+        ->assertForbidden()
+        ->assertJsonPath('error.message', 'Cannot mark going for past events.');
 });
 
 it('rejects marking going for non-public events', function () {

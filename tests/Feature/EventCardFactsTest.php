@@ -114,6 +114,36 @@ it('reflects going state on upcoming cards and hides the action for past events'
         ->assertDontSee('data-going-icon="event"', false);
 });
 
+it('keeps the going action through the effective end on ongoing cards', function () {
+    $ongoing = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subHours(2),
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+    ]);
+
+    $this->blade(
+        '<x-events.card :event="$ongoing" :starts-at="$startsAt" />',
+        ['ongoing' => $ongoing, 'startsAt' => $ongoing->starts_at],
+    )
+        ->assertSee('data-going-icon="event"', false)
+        ->assertSee('data-going-state="not-going"', false);
+
+    $ended = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subHours(4),
+        'starts_at' => now()->subHours(3),
+        'ends_at' => now()->subHour(),
+    ]);
+
+    $this->blade(
+        '<x-events.card :event="$ended" :starts-at="$startsAt" />',
+        ['ended' => $ended, 'startsAt' => $ended->starts_at],
+    )->assertDontSee('data-going-icon="event"', false);
+});
+
 it('renders the going action on public event index cards', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 

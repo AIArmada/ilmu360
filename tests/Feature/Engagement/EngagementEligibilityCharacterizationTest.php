@@ -18,9 +18,9 @@ use Livewire\Livewire;
  *
  * - Directory cards follow institutions/persons with status verified OR
  *   pending; the follow API re-resolves the subject and requires verified.
- * - Event cards accept going while `ends_at` (or `starts_at`) is in the
- *   future; the going API rejects an event whose `starts_at` is already past,
- *   so an ongoing event diverges between the two surfaces.
+ * - Event cards and the going API now share the inclusive effective-end
+ *   window: an ongoing event (started past, ends future) stays going-eligible
+ *   until `ends_at`, and a future event remains eligible.
  * - Save eligibility currently agrees: pending + public + published events
  *   are saveable from cards and the API.
  */
@@ -69,7 +69,7 @@ it('lets directory cards follow pending subjects while the follow API requires v
     }
 });
 
-it('accepts ongoing events on cards but rejects them in the going API', function (): void {
+it('accepts ongoing events through the effective end on cards and in the going API', function (): void {
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
@@ -93,8 +93,9 @@ it('accepts ongoing events on cards but rejects them in the going API', function
     Sanctum::actingAs(User::factory()->create());
 
     $this->putJson(route('api.events.going.update', $event))
-        ->assertStatus(403)
-        ->assertJsonPath('error.message', 'Cannot mark going for past events.');
+        ->assertCreated()
+        ->assertJsonPath('data.is_going', true)
+        ->assertJsonPath('data.going_count', 2);
 });
 
 it('saves pending public events on both cards and the save API', function (): void {

@@ -2,25 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
-use AIArmada\Engagement\Models\Response;
-use App\Actions\Events\Engagement\MarkEventGoingAction;
-use App\Actions\Events\Engagement\RemoveEventGoingAction;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Actions\Engagement\MarkEventGoingAction;
+use App\Actions\Engagement\RemoveEventGoingAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;
-use App\Enums\ShareOutcomeType;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
-use App\Services\ShareTrackingService;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 #[Group('Event Going', 'Authenticated event-going endpoints for listing and idempotent event going state management.')]
@@ -85,7 +79,7 @@ class EventGoingController extends Controller
             ], 403);
         }
 
-        if ($event->starts_at !== null && $event->starts_at->isPast()) {
+        if ($event->goingWindow()->hasEndedAt(now())) {
             return response()->json([
                 'error' => [
                     'code' => 'forbidden',
@@ -94,52 +88,8 @@ class EventGoingController extends Controller
             ], 403);
         }
 
-        $result = DB::transaction(function () use ($event, $request, $markEventGoingAction): array {
-            $goingState = $markEventGoingAction->handle($event, $this->currentUser($request), $request);
-            $created = $goingState['status'] === 'created';
-
-            // Only rows created by this call freeze an outcome decision.
-            // Reactivations reuse the response row (status 'created' but
-            // response_created false) and must never late-credit an old
-            // transition through a new cookie.
-            if ($goingState['response_created']) {
-                $response = Response::query()
-                    ->where('respondable_type', $event->getMorphClass())
-                    ->where('respondable_id', $event->getKey())
-                    ->where('responder_type', $this->currentUser($request)->getMorphClass())
-                    ->where('responder_id', $this->currentUser($request)->getKey())
-                    ->where('response_type', 'going')
-                    ->active()
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($response instanceof Response) {
-                    app(ShareTrackingService::class)->recordOutcome(
-                        type: ShareOutcomeType::EventGoing,
-                        businessKey: ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
-                        subject: $event,
-                        actor: $this->currentUser($request),
-                        request: $request,
-                        metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
-                        occurredAt: $response->created_at,
-                    );
-                }
-            }
-
-            return ['status' => $goingState['status'], 'going_count' => $goingState['going_count'], 'created' => $created];
-        });
-
-        if ($result['status'] === 'not_found') {
-            return response()->json([
-                'error' => [
-                    'code' => 'not_found',
-                    'message' => 'Event not found.',
-                ],
-            ], 404);
-        }
-
-        $created = $result['created'];
-        $goingState = ['status' => $result['status'], 'going_count' => $result['going_count']];
+        $goingState = $markEventGoingAction->handle($event, $this->currentUser($request), $request);
+        $created = $goingState['status'] === 'created';
 
         return response()->json([
             'message' => $created ? 'Going recorded successfully.' : 'Event already marked as going.',
@@ -156,29 +106,7 @@ class EventGoingController extends Controller
     )]
     public function destroy(Request $request, Event $event, RemoveEventGoingAction $removeEventGoingAction): JsonResponse
     {
-        $result = DB::transaction(function () use ($event, $request, $removeEventGoingAction): array {
-            $going = Response::query()
-                ->where('respondable_type', $event->getMorphClass())
-                ->where('respondable_id', $event->getKey())
-                ->where('responder_type', $this->currentUser($request)->getMorphClass())
-                ->where('responder_id', $this->currentUser($request)->getKey())
-                ->where('response_type', 'going')
-                ->active()
-                ->lockForUpdate()
-                ->first();
-
-            $removed = $removeEventGoingAction->handle($event->id, $this->currentUser($request));
-
-            if ($removed['deleted'] && $going instanceof Response) {
-                app(ReverseShareOutcomeAction::class)->handle(
-                    ShareOutcomeBusinessKey::eventGoing((string) $going->getKey()),
-                    'going_removed',
-                    $this->currentUser($request),
-                );
-            }
-
-            return $removed;
-        });
+        $result = $removeEventGoingAction->handle($event, $this->currentUser($request));
 
         return response()->json([
             'message' => $result['deleted'] ? 'Going removed successfully.' : 'Event was not marked as going.',

@@ -2,19 +2,12 @@
 
 namespace App\Livewire\Concerns;
 
-use AIArmada\Engagement\Models\Response;
-use App\Actions\Events\Engagement\MarkEventGoingAction;
-use App\Actions\Events\Engagement\RemoveEventGoingAction;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\ShareOutcomeType;
+use App\Actions\Engagement\MarkEventGoingAction;
+use App\Actions\Engagement\RemoveEventGoingAction;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ShareTrackingService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Engagement\EngagementReader;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
-use Carbon\CarbonInterface;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 
 trait TogglesEventGoing
@@ -45,72 +38,21 @@ trait TogglesEventGoing
             return;
         }
 
-        $isGoing = app(EngagementReader::class)->isGoingToEvent(
+        if (app(EngagementReader::class)->isGoingToEvent(
             (string) $user->getKey(),
             (string) $event->getKey(),
-        );
-
-        if ($isGoing) {
-            DB::transaction(function () use ($user, $event): void {
-                $response = Response::query()
-                    ->where('respondable_type', $event->getMorphClass())
-                    ->where('respondable_id', $event->getKey())
-                    ->where('responder_type', $user->getMorphClass())
-                    ->where('responder_id', $user->getKey())
-                    ->where('response_type', 'going')
-                    ->active()
-                    ->lockForUpdate()
-                    ->first();
-
-                $removed = app(RemoveEventGoingAction::class)->handle((string) $event->getKey(), $user);
-
-                if ($removed['deleted'] && $response instanceof Response) {
-                    app(ReverseShareOutcomeAction::class)->handle(
-                        ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
-                        'going_removed',
-                        $user,
-                        request(),
-                    );
-                }
-            });
+        )) {
+            app(RemoveEventGoingAction::class)->handle($event, $user);
 
             return;
         }
 
-        DB::transaction(function () use ($user, $event): void {
-            $goingState = app(MarkEventGoingAction::class)->handle($event, $user, request());
-
-            if ($goingState['response_created']) {
-                $response = Response::query()
-                    ->where('respondable_type', $event->getMorphClass())
-                    ->where('respondable_id', $event->getKey())
-                    ->where('responder_type', $user->getMorphClass())
-                    ->where('responder_id', $user->getKey())
-                    ->where('response_type', 'going')
-                    ->active()
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($response instanceof Response) {
-                    app(ShareTrackingService::class)->recordOutcome(
-                        type: ShareOutcomeType::EventGoing,
-                        businessKey: ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
-                        subject: $event,
-                        actor: $user,
-                        request: request(),
-                        metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
-                        occurredAt: $response->created_at,
-                    );
-                }
-            }
-        });
+        app(MarkEventGoingAction::class)->handle($event, $user, request());
     }
 
     protected function eventAcceptsGoing(Event $event): bool
     {
-        $endsAt = $event->ends_at ?? $event->starts_at;
-
-        return ! $endsAt instanceof CarbonInterface || $endsAt->isFuture();
+        return $event->goingWindow()->isOpenAt(now());
     }
 
     /**

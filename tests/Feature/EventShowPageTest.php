@@ -233,6 +233,44 @@ describe('Event Show Page Going Feature', function () {
         expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue();
     });
 
+    it('keeps going available for an ongoing event', function () {
+        $user = User::factory()->create();
+        $event = Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($user);
+
+        OwnerContext::withOwner(null, fn () => Livewire::test('pages.events.show', ['event' => $event->fresh()]))
+            ->call('toggleGoing')
+            ->assertSet('isGoing', true);
+
+        expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue();
+    });
+
+    it('blocks marking going after the event has ended', function () {
+        $user = User::factory()->create();
+        $event = Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+            'starts_at' => now()->subHours(2),
+            'ends_at' => now()->subHour(),
+        ]);
+
+        $this->actingAs($user);
+
+        OwnerContext::withOwner(null, fn () => Livewire::test('pages.events.show', ['event' => $event->fresh()]))
+            ->call('toggleGoing')
+            ->assertSet('isGoing', false);
+
+        expect($event->goingBy()->forResponder($user)->active()->exists())->toBeFalse();
+    });
+
     it('authenticated user can toggle off going status via livewire', function () {
         $user = User::factory()->create();
         $event = Event::factory()->create([

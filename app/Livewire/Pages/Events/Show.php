@@ -10,13 +10,11 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Actions\Events\Engagement\MarkEventGoingAction;
-use App\Actions\Events\Engagement\RemoveEventGoingAction;
+use App\Actions\Engagement\MarkEventGoingAction;
+use App\Actions\Engagement\RemoveEventGoingAction;
 use App\Actions\Engagement\SaveEventAction;
 use App\Actions\Engagement\UnsaveEventAction;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
-use App\Enums\ShareOutcomeType;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
@@ -43,7 +41,6 @@ use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Events\EventDetailPresenter;
 use App\Support\Events\PublicSchedulePolicy;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -53,7 +50,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -928,7 +924,9 @@ class Show extends Component
             abort(403);
         }
 
-        if ($requiresActiveEvent && $this->eventActionsDisabled()) {
+        if ($requiresActiveEvent
+            && ($this->eventActionsDisabled()
+                || (! $this->{$stateProperty} && $this->event->goingWindow()->hasEndedAt(now())))) {
             FilamentNotification::make()
                 ->title(__('Tindakan ini ditutup kerana jadual majlis belum tersedia.'))
                 ->warning()
@@ -940,29 +938,7 @@ class Show extends Component
         if ($this->{$stateProperty}) {
             $result = match ($relation) {
                 'savedEvents' => $this->unsaveEventForUser($user),
-                'goingEvents' => DB::transaction(function () use ($user): array {
-                    $response = Response::query()
-                        ->where('respondable_type', $this->event->getMorphClass())
-                        ->where('respondable_id', $this->event->getKey())
-                        ->where('responder_type', $user->getMorphClass())
-                        ->where('responder_id', $user->getKey())
-                        ->where('response_type', 'going')
-                        ->active()
-                        ->lockForUpdate()
-                        ->first();
-
-                    $removed = app(RemoveEventGoingAction::class)->handle((string) $this->event->getKey(), $user);
-
-                    if ($removed['deleted'] && $response instanceof Response) {
-                        app(ReverseShareOutcomeAction::class)->handle(
-                            ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
-                            'going_removed',
-                            $user,
-                        );
-                    }
-
-                    return $removed;
-                }),
+                'goingEvents' => app(RemoveEventGoingAction::class)->handle($this->event, $user),
                 default => ['deleted' => false, $countColumn => max(0, (int) ($this->event->{$countColumn} ?? 0))],
             };
 
@@ -976,38 +952,7 @@ class Show extends Component
         } else {
             $result = match ($relation) {
                 'savedEvents' => $this->saveEventForUser($user),
-                'goingEvents' => DB::transaction(function () use ($user): array {
-                    $goingState = app(MarkEventGoingAction::class)->handle($this->event, $user, request());
-
-                    // Only rows created by this call freeze an outcome
-                    // decision. Reactivations reuse the response row and
-                    // must never late-credit an old transition.
-                    if ($goingState['response_created']) {
-                        $response = Response::query()
-                            ->where('respondable_type', $this->event->getMorphClass())
-                            ->where('respondable_id', $this->event->getKey())
-                            ->where('responder_type', $user->getMorphClass())
-                            ->where('responder_id', $user->getKey())
-                            ->where('response_type', 'going')
-                            ->active()
-                            ->lockForUpdate()
-                            ->first();
-
-                        if ($response instanceof Response) {
-                            app(ShareTrackingService::class)->recordOutcome(
-                                type: ShareOutcomeType::EventGoing,
-                                businessKey: ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
-                                subject: $this->event,
-                                actor: $user,
-                                request: request(),
-                                metadata: ['subject_id' => $this->event->getKey(), 'subject_type' => $this->event->getMorphClass()],
-                                occurredAt: $response->created_at,
-                            );
-                        }
-                    }
-
-                    return $goingState;
-                }),
+                'goingEvents' => app(MarkEventGoingAction::class)->handle($this->event, $user, request()),
                 default => ['status' => 'conflict', $countColumn => (int) ($this->event->{$countColumn} ?? 0)],
             };
 

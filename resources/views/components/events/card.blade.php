@@ -46,11 +46,8 @@
     $cardStartsAt = $startsAt ?? $event->starts_at;
     $cardSignalEntityType = $signalEntityType;
     $cardSignalEntityId = $signalEntityId ?? $event->getKey();
-    $cardGoingStartsAt = $cardStartsAt instanceof \Carbon\CarbonInterface
-        ? $cardStartsAt
-        : ($event->ends_at ?? $event->starts_at);
     $cardGoingAvailable = in_array((string) $event->status, \App\Models\Event::ENGAGEABLE_STATUSES, true)
-        && (! $cardGoingStartsAt instanceof \Carbon\CarbonInterface || $cardGoingStartsAt->isFuture());
+        && $event->goingWindow()->isOpenAt(now());
     $speakerAvatarsTestId = $testidPrefix !== null ? ' data-testid="'.$testidPrefix.'-speaker-avatars"' : '';
     $speakersTestId = $testidPrefix !== null ? ' data-testid="'.$testidPrefix.'-speakers"' : '';
 

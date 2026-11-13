@@ -29,6 +29,7 @@ use AIArmada\Events\Support\EventDeleteCascade;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Organizations\Models\Organization;
 use App\Enums\MemberSubjectType;
+use App\Features\Engagement\Api\GoingWindow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventLocations;
@@ -1177,6 +1178,51 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     }
 
     /**
+     * Effective end instants for a grouped public submission's eligible
+     * occurrences. Managed events project their date from the primary
+     * occurrence, so they return an empty list.
+     *
+     * @return list<CarbonInterface>
+     */
+    public function eligibleOccurrenceEnds(): array
+    {
+        if (! $this->isGroupedSubmission()) {
+            return [];
+        }
+
+        $occurrences = $this->relationLoaded('occurrences')
+            ? $this->occurrences
+            : $this->occurrences()->withoutGlobalScopes()->get();
+
+        return $occurrences
+            ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)
+                && in_array(
+                    $occurrence->visibility instanceof BackedEnum ? $occurrence->visibility->value : (string) $occurrence->visibility,
+                    self::PUBLIC_SCHEDULE_VISIBILITIES,
+                    true,
+                ))
+            ->map(fn (EventOccurrence $occurrence): CarbonInterface => $occurrence->ends_at ?? $occurrence->starts_at)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Inclusive going-eligibility window for this event.
+     *
+     * The effective end is `ends_at` when present, falling back to `starts_at`.
+     * Grouped public submissions stay eligible until the latest eligible
+     * occurrence effective end, matching the D1c schedule end-instant rule.
+     */
+    public function goingWindow(): GoingWindow
+    {
+        return GoingWindow::grouped(
+            $this->starts_at,
+            $this->ends_at,
+            $this->eligibleOccurrenceEnds(),
+        );
+    }
+
+    /**
      * End instant indexed for Typesense end-instant filters.
      *
      * Grouped public submissions project their dates from occurrences, so the
@@ -1187,26 +1233,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     private function searchableEndInstant(): ?CarbonInterface
     {
         if ($this->isGroupedSubmission()) {
-            $occurrences = $this->relationLoaded('occurrences')
-                ? $this->occurrences
-                : $this->occurrences()->withoutGlobalScopes()->get();
-
-            $maxEffectiveEnd = $occurrences
-                ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)
-                    && in_array(
-                        $occurrence->visibility instanceof BackedEnum ? $occurrence->visibility->value : (string) $occurrence->visibility,
-                        self::PUBLIC_SCHEDULE_VISIBILITIES,
-                        true,
-                    ))
-                ->reduce(function (?CarbonInterface $max, EventOccurrence $occurrence): ?CarbonInterface {
-                    $effectiveEnd = $occurrence->ends_at ?? $occurrence->starts_at;
-
-                    if (! $effectiveEnd instanceof CarbonInterface) {
-                        return $max;
-                    }
-
-                    return $max === null || $effectiveEnd->greaterThan($max) ? $effectiveEnd : $max;
-                });
+            $maxEffectiveEnd = collect($this->eligibleOccurrenceEnds())
+                ->reduce(fn (?CarbonInterface $max, CarbonInterface $effectiveEnd): CarbonInterface => $max === null || $effectiveEnd->greaterThan($max) ? $effectiveEnd : $max);
 
             if ($maxEffectiveEnd instanceof CarbonInterface) {
                 return $maxEffectiveEnd;
