@@ -10,10 +10,11 @@
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (Discovery D6): arch 0/**15 features**; focused 95/95; routes 738; ownership PHPStan 0; full-area baseline failures unchanged.
 
-## Next action — Share tracking/attribution mapping (queued)
+## Next action — Share tracking/attribution mapping (in progress)
 
 - Discovery/search/engagement is complete (D0/D0a/D0b/D1a/D1c/D4a–D4f/D5a/D6); read-only service moves are closed; D5b and bounded criteria consolidation remain deferred performance/read tickets.
-- Next area: Share tracking/attribution — map browser selections, source receipts, effect receipts, outcome corrections, cohort projections, signal cursors/skips, package guest identity and analytics before slicing. Preserve the current share-outcome contract adopted in D4e.
+- Share tracking/attribution map is running: inventory app-owned selections/receipts/effects/corrections/cohorts/signal cursors, package affiliate/guest identity, attribution and reversal flows, hazards and proposed slices.
+- Preserve the D4e `EngagementShareOutcomes` contract and all current share-outcome timing/idempotency semantics while mapping.
 - Then Rewards/digests, Communications, AI, Community releases, Docs/MCP/admin, followed by the final app-wide audit.
 - Full whole-app conversion remains open.
 
