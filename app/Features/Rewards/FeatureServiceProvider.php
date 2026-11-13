@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Rewards;
 
+use App\Features\Rewards\Actions\Enrollment\EnrollRewardProgramMemberAction;
 use App\Features\Rewards\Actions\Enrollment\EvaluatePreclaimShareOutcomesAction;
 use App\Features\Rewards\Actions\GratitudeDigests\GratitudeDigestAction;
 use App\Features\Rewards\Api\GratitudeDigest;
@@ -34,13 +35,16 @@ use App\Platform\FeatureModule;
  *   `DigestRewardGratitudePlanner` is the package-contract adapter and
  *   `DispatchRewardDigestsCommand` calls the Api.
  *
- * Rw2a adds `Api\MemberEnrollment` bound to
- * `Actions\Enrollment\EvaluatePreclaimShareOutcomesAction`: the preclaim
- * backfill now takes scalar program/member/recipient/version ids, reads
- * receipts through `ShareTracking\Api\SourceReceiptReader`, resolves facts
- * through the package `RewardSourceFactReader` composite, and still dispatches
- * `EvaluateRewardEntitlementJob` per role `->afterCommit()`. Enrollment,
- * leave and reacceptance themselves stay root in Rw2a and move in Rw2b.
+ * Rw2a adds the preclaim backfill behind `Api\MemberEnrollment`; Rw2b moves
+ * enrollment, leave and reacceptance into `Actions\Enrollment`. The Api is
+ * bound to `EnrollRewardProgramMemberAction`, which resolves the notifiable
+ * through `Shared\Auth\AccountDirectory`, authorizes with the existing
+ * policies, resolves the published version through
+ * `Shared\Rewards\PublishedProgramVersions`, and delegates the post-write
+ * preclaim to `EvaluatePreclaimShareOutcomesAction`. Preclaim reads receipts
+ * through `ShareTracking\Api\SourceReceiptReader`, resolves facts through the
+ * package `RewardSourceFactReader` composite, and still dispatches
+ * `EvaluateRewardEntitlementJob` per role `->afterCommit()`.
  *
  * The 30 package-canonical `reward_*` tables stay explicit `owns: {}` holds:
  * `AIArmada\Rewards` actions/support helpers are their canonical external
@@ -79,6 +83,6 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(GratitudeDigest::class, GratitudeDigestAction::class);
-        $this->app->bind(MemberEnrollment::class, EvaluatePreclaimShareOutcomesAction::class);
+        $this->app->bind(MemberEnrollment::class, EnrollRewardProgramMemberAction::class);
     }
 }

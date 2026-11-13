@@ -118,6 +118,8 @@ it('records the enrollment signal on web first enrollment but not on API enrollm
         ->test(RewardMemberIndex::class)
         ->call('showTab', 'programs')
         ->call('enroll', (string) $webProgram->getKey())
+        ->assertOk()
+        ->call('enroll', (string) $webProgram->getKey())
         ->assertOk();
 
     $signals = SignalEvent::query()->where('event_name', 'rewards.program_enrolled');
@@ -134,8 +136,9 @@ it('records the enrollment signal on web first enrollment but not on API enrollm
         'version_id' => (string) $apiVersion->getKey(),
     ])->assertCreated()->assertJsonPath('data.status', 'active');
 
-    // Current asymmetry (H17): the API path calls the package enrollment
-    // action directly, so it records no rewards.program_enrolled signal.
+    // H17 recorded decision: the API passes recordSignal=false through the
+    // feature Api, so API enrollment stays untracked while the first active
+    // web enrollment records exactly one signal.
     expect($signals->count())->toBe(1);
 });
 

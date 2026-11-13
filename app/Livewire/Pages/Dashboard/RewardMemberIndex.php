@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Dashboard;
 
-use AIArmada\Rewards\Actions\LeaveRewardProgramAction;
 use AIArmada\Rewards\Actions\OpenRewardAppealAction;
-use AIArmada\Rewards\Actions\ReacceptRewardTermsAction;
 use AIArmada\Rewards\Actions\RedeemRewardBenefitAction;
 use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
 use AIArmada\Rewards\Enums\RewardBenefitItemStatus;
@@ -26,7 +24,6 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardBenefitStockLedger;
 use AIArmada\Rewards\Support\RewardPointLedger;
-use App\Actions\Rewards\EnrollRewardProgramMemberAction;
 use App\Features\Rewards\Api\MemberEnrollment;
 use App\Models\User;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
@@ -89,17 +86,24 @@ class RewardMemberIndex extends Component
     public function enroll(string $programId): void
     {
         $user = $this->currentUser();
-        $program = RewardProgram::query()->whereKey($programId)->firstOrFail();
 
         try {
-            $enrollment = EnrollRewardProgramMemberAction::run($program, $user);
+            $snapshot = app(MemberEnrollment::class)->enroll(
+                $programId,
+                (string) $user->getKey(),
+                $user->getMorphClass(),
+                null,
+                'member-portal',
+                true,
+                'member-portal',
+            );
         } catch (InvalidArgumentException $exception) {
             $this->notice = $exception->getMessage();
 
             return;
         }
 
-        if ($enrollment === null) {
+        if ($snapshot === null) {
             $this->notice = 'This program has no published terms yet, so enrollment is not open.';
 
             return;
@@ -111,17 +115,14 @@ class RewardMemberIndex extends Component
     public function leave(string $programId): void
     {
         $user = $this->currentUser();
-        $program = RewardProgram::query()->whereKey($programId)->firstOrFail();
-        $this->authorize('leave', $program);
-
-        $enrollment = RewardEnrollment::query()
-            ->where('program_id', $program->getKey())
-            ->where('member_type', $user->getMorphClass())
-            ->where('member_id', $user->getKey())
-            ->firstOrFail();
 
         try {
-            LeaveRewardProgramAction::run($enrollment, $this->leaveReason !== '' ? $this->leaveReason : null);
+            app(MemberEnrollment::class)->leave(
+                $programId,
+                (string) $user->getKey(),
+                $user->getMorphClass(),
+                $this->leaveReason !== '' ? $this->leaveReason : null,
+            );
         } catch (InvalidArgumentException $exception) {
             $this->notice = $exception->getMessage();
 
@@ -135,37 +136,26 @@ class RewardMemberIndex extends Component
     public function reaccept(string $programId): void
     {
         $user = $this->currentUser();
-        $program = RewardProgram::query()->whereKey($programId)->firstOrFail();
-        $this->authorize('leave', $program);
-
-        $enrollment = RewardEnrollment::query()
-            ->where('program_id', $program->getKey())
-            ->where('member_type', $user->getMorphClass())
-            ->where('member_id', $user->getKey())
-            ->firstOrFail();
-
-        $version = $this->applicableVersion($program);
-
-        if (! $version instanceof RewardProgramVersion) {
-            $this->notice = 'This program has no published terms yet.';
-
-            return;
-        }
 
         try {
-            ReacceptRewardTermsAction::run($enrollment, $version, 'member-portal');
+            $snapshot = app(MemberEnrollment::class)->reaccept(
+                $programId,
+                (string) $user->getKey(),
+                $user->getMorphClass(),
+                null,
+                'member-portal',
+            );
         } catch (InvalidArgumentException $exception) {
             $this->notice = $exception->getMessage();
 
             return;
         }
 
-        app(MemberEnrollment::class)->preclaim(
-            (string) $program->getKey(),
-            (string) $user->getKey(),
-            $user->getMorphClass(),
-            (string) $version->getKey(),
-        );
+        if ($snapshot === null) {
+            $this->notice = 'This program has no published terms yet.';
+
+            return;
+        }
 
         $this->notice = 'Terms reaccepted. Accrued obligations keep their frozen terms.';
     }

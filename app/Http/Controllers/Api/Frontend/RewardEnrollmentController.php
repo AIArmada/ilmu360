@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
-use AIArmada\Rewards\Actions\LeaveRewardProgramAction;
-use AIArmada\Rewards\Actions\ReacceptRewardTermsAction;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
-use AIArmada\Rewards\Models\RewardProgramVersion;
 use App\Features\Rewards\Api\MemberEnrollment;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -34,36 +30,29 @@ class RewardEnrollmentController extends FrontendController
             'accepted_via' => ['nullable', 'string'],
         ]);
 
-        /** @var RewardProgramVersion $version */
-        $version = RewardProgramVersion::query()
-            ->where('program_id', $record->getKey())
-            ->whereKey($validated['version_id'])
-            ->firstOrFail();
-
         try {
-            $enrollment = EnrollRewardMemberAction::run(
-                $record,
-                'user',
+            $snapshot = app(MemberEnrollment::class)->enroll(
+                (string) $record->getKey(),
                 (string) $user->getKey(),
-                $version,
+                $user->getMorphClass(),
+                $validated['version_id'],
+                'api',
+                false,
                 $validated['accepted_via'] ?? 'api',
             );
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        app(MemberEnrollment::class)->preclaim(
-            (string) $record->getKey(),
-            (string) $user->getKey(),
-            $user->getMorphClass(),
-            (string) $version->getKey(),
-        );
+        if ($snapshot === null) {
+            return response()->json(['message' => 'This program has no published terms yet.'], 422);
+        }
 
         return response()->json([
             'data' => [
-                'id' => (string) $enrollment->getKey(),
-                'program_id' => (string) $record->getKey(),
-                'status' => $enrollment->status->value,
+                'id' => $snapshot->enrollmentId,
+                'program_id' => $snapshot->programId,
+                'status' => $snapshot->status,
             ],
         ], 201);
     }
@@ -77,27 +66,33 @@ class RewardEnrollmentController extends FrontendController
         $record = RewardProgram::query()->whereKey($program)->firstOrFail();
         $this->authorize('leave', $record);
 
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:191'],
+        ]);
+
+        try {
+            app(MemberEnrollment::class)->leave(
+                (string) $record->getKey(),
+                (string) $user->getKey(),
+                $user->getMorphClass(),
+                $validated['reason'] ?? null,
+            );
+        } catch (InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        /** @var RewardEnrollment $enrollment */
         $enrollment = RewardEnrollment::query()
             ->where('program_id', $record->getKey())
             ->where('member_type', $user->getMorphClass())
             ->where('member_id', $user->getKey())
             ->firstOrFail();
 
-        $validated = $request->validate([
-            'reason' => ['nullable', 'string', 'max:191'],
-        ]);
-
-        try {
-            $left = LeaveRewardProgramAction::run($enrollment, $validated['reason'] ?? null);
-        } catch (InvalidArgumentException $exception) {
-            return response()->json(['message' => $exception->getMessage()], 422);
-        }
-
         return response()->json([
             'data' => [
-                'id' => (string) $left->getKey(),
+                'id' => (string) $enrollment->getKey(),
                 'program_id' => (string) $record->getKey(),
-                'status' => $left->status->value,
+                'status' => $enrollment->status->value,
             ],
         ]);
     }
@@ -111,45 +106,32 @@ class RewardEnrollmentController extends FrontendController
         $record = RewardProgram::query()->whereKey($program)->firstOrFail();
         $this->authorize('leave', $record);
 
-        $enrollment = RewardEnrollment::query()
-            ->where('program_id', $record->getKey())
-            ->where('member_type', $user->getMorphClass())
-            ->where('member_id', $user->getKey())
-            ->firstOrFail();
-
         $validated = $request->validate([
             'version_id' => ['required', 'uuid'],
             'accepted_via' => ['nullable', 'string'],
         ]);
 
-        /** @var RewardProgramVersion $version */
-        $version = RewardProgramVersion::query()
-            ->where('program_id', $record->getKey())
-            ->whereKey($validated['version_id'])
-            ->firstOrFail();
-
         try {
-            $acceptance = ReacceptRewardTermsAction::run(
-                $enrollment,
-                $version,
+            $snapshot = app(MemberEnrollment::class)->reaccept(
+                (string) $record->getKey(),
+                (string) $user->getKey(),
+                $user->getMorphClass(),
+                $validated['version_id'],
                 $validated['accepted_via'] ?? 'api',
             );
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        app(MemberEnrollment::class)->preclaim(
-            (string) $record->getKey(),
-            (string) $user->getKey(),
-            $user->getMorphClass(),
-            (string) $version->getKey(),
-        );
+        if ($snapshot === null) {
+            return response()->json(['message' => 'This program has no published terms yet.'], 422);
+        }
 
         return response()->json([
             'data' => [
-                'id' => (string) $acceptance->getKey(),
-                'enrollment_id' => (string) $enrollment->getKey(),
-                'material_terms_hash' => (string) $acceptance->material_terms_hash,
+                'id' => $snapshot->acceptanceId,
+                'enrollment_id' => $snapshot->enrollmentId,
+                'material_terms_hash' => (string) $snapshot->materialTermsHash,
             ],
         ], 201);
     }

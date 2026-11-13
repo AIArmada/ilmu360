@@ -26,7 +26,7 @@ use AIArmada\Rewards\Models\RewardMilestoneCycle;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Models\RewardSourceComponentClaim;
-use App\Actions\Rewards\EnrollRewardProgramMemberAction as HostEnrollRewardProgramMemberAction;
+use App\Features\Rewards\Api\MemberEnrollment;
 use App\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Models\EventCheckin;
 use App\Models\Registration;
@@ -766,7 +766,15 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
     );
 
     Queue::fake([EvaluateRewardEntitlementJob::class]);
-    HostEnrollRewardProgramMemberAction::run($program, $sharer);
+    app(MemberEnrollment::class)->enroll(
+        (string) $program->getKey(),
+        (string) $sharer->getKey(),
+        $sharer->getMorphClass(),
+        null,
+        'member-portal',
+        true,
+        'member-portal',
+    );
 
     foreach ($inWindowKeys as $businessKey) {
         Queue::assertPushed(EvaluateRewardEntitlementJob::class, fn (EvaluateRewardEntitlementJob $job): bool => $job->businessKey === $businessKey
@@ -830,7 +838,15 @@ it('keeps enroll-first share rewards and source claims idempotent after reaccept
         ]],
     ], RewardProgramMode::Points);
 
-    HostEnrollRewardProgramMemberAction::run($program, $sharer);
+    app(MemberEnrollment::class)->enroll(
+        (string) $program->getKey(),
+        (string) $sharer->getKey(),
+        $sharer->getMorphClass(),
+        null,
+        'member-portal',
+        true,
+        'member-portal',
+    );
 
     $visitor = User::factory()->create();
     $share = activityShareRequest($sharer);

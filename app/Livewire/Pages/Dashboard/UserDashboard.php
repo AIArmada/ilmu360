@@ -7,7 +7,7 @@ use AIArmada\Engagement\Models\Response;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
-use App\Actions\Rewards\EnrollRewardProgramMemberAction;
+use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\Event;
@@ -24,9 +24,9 @@ use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Communications\AccountCommunications;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
@@ -145,7 +145,17 @@ class UserDashboard extends Component
             return;
         }
 
-        EnrollRewardProgramMemberAction::run($program, $this->user(), 'dashboard-prompt');
+        $user = $this->user();
+
+        app(MemberEnrollment::class)->enroll(
+            (string) $program->getKey(),
+            (string) $user->getKey(),
+            $user->getMorphClass(),
+            null,
+            'dashboard-prompt',
+            true,
+            'member-portal',
+        );
     }
 
     /**

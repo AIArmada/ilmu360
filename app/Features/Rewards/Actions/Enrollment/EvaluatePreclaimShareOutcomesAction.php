@@ -10,7 +10,6 @@ use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
@@ -28,8 +27,12 @@ use InvalidArgumentException;
  * actor-only `activity:` key. The receipt window comes from
  * `ShareTracking\Api\SourceReceiptReader` and every source fact comes from the
  * package reader boundary, so no root model, service or support type is used.
+ *
+ * This collaborator keeps only the backfill entrypoint; the public
+ * `Api\MemberEnrollment` boundary is implemented by
+ * `EnrollRewardProgramMemberAction`.
  */
-final readonly class EvaluatePreclaimShareOutcomesAction implements MemberEnrollment
+final readonly class EvaluatePreclaimShareOutcomesAction
 {
     public function __construct(
         private RewardSourceFactReader $sourceFactReader,
