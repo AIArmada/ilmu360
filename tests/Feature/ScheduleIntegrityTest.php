@@ -58,12 +58,15 @@ it('registers horizon snapshot every 5 minutes', function () {
         ->and($event->expression)->toBe('*/5 * * * *');
 });
 
-it('registers communications digests every minute', function () {
+it('schedules the package communications dispatcher every minute in UTC', function () {
     $event = collect(app(Schedule::class)->events())
-        ->first(fn ($event) => $event->description === 'communications-send-digests');
+        ->first(fn ($event) => $event->description === 'communications-dispatch-due');
 
     expect($event)->not->toBeNull()
-        ->and($event->expression)->toBe('* * * * *');
+        ->and($event->expression)->toBe('* * * * *')
+        ->and($event->command)->toContain('communications:dispatch-due')
+        ->and($event->timezone)->toBe('UTC')
+        ->and($event->withoutOverlapping)->toBeTrue();
 });
 
 it('registers only share effects, commission maturity and payout schedules', function () {

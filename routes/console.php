@@ -102,13 +102,6 @@ Schedule::command('horizon:snapshot')
     ->name('horizon-snapshot')
     ->withoutOverlapping();
 
-// Process scheduled digest notification batches.
-Schedule::command('communications:send-digests')
-    ->everyMinute()
-    ->timezone('UTC')
-    ->name('communications-send-digests')
-    ->withoutOverlapping();
-
 // Share effects are durable receipts and the dispatcher is idempotent.
 Schedule::command('share:dispatch-pending-effects')
     ->everyFiveMinutes()

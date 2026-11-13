@@ -71,10 +71,11 @@ use App\Platform\FeatureModule;
  *   and writes Vouchers package tables through Vouchers actions.
  * - Policies: the nine `App\Policies\Reward*Policy` classes stay root because
  *   they type-hint `App\Models\User`.
- * - Commands/schedules/transport: `SendDigestNotificationsCommand` (stub), the
- *   hourly schedule, API controllers, Livewire pages, observers/jobs, route
- *   registrations, vendor Filament admin and read-only MCP stay root as
- *   transport/composition adapters until their documented later slices.
+ * - Commands/schedules/transport: the hourly Rewards schedule, API
+ *   controllers, Livewire pages, observers/jobs, route registrations, vendor
+ *   Filament admin and read-only MCP stay root as transport/composition
+ *   adapters until their documented later slices. Communications owns its
+ *   package dispatcher schedule.
  *
  * Lock order, H1 coupling (plan/cancel inside award transactions, including
  * reversal with no try/catch), H2 delivery/communication inversion, status

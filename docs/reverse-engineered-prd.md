@@ -173,7 +173,7 @@ Exact role assignment and package permission names must be confirmed from `datab
 | USER-002 | Saved searches | Confirmed | model/page/API/tests; max 10 rule tested |
 | USER-003 | Follows | Confirmed | `FollowController`, supported subject route constraint |
 | COMM-001 | In-app notifications | Confirmed | notification centre, inbox channel, notification page/tests |
-| COMM-002 | Reminder/digest automation | Confirmed | `DispatchEventReminderNotifications`, `communications:send-digests`, console schedule |
+| COMM-002 | Reminder/digest automation | Confirmed | `DispatchEventReminderNotifications` and package `communications:dispatch-due` schedule |
 | SHARE-001 | Tracked sharing and analytics | Confirmed | `ShareController`, share routes, dashboards/API |
 | ADMIN-001 | Filament CRUD/admin resources | Confirmed | 137 files under `app/Filament` |
 | ADMIN-002 | Audit/deleted-model views | Confirmed | audit resources, `deleted_models` migration, deleted-users page |
@@ -517,7 +517,7 @@ No webhook signature/retry/delivery-log contract was established for external in
 | `media-library:clean` | Daily 02:30 Malaysia time | Orphan/deprecated media maintenance |
 | `media-library:regenerate` | Weekly Sunday 03:00 Malaysia time | Missing responsive media conversions |
 | `horizon:snapshot` | Every 5 minutes UTC | Queue throughput/wait-time dashboard data |
-| `communications:send-digests` | Every minute UTC | Scheduled digest batches |
+| `communications:dispatch-due` | Every minute UTC | Queue due package Communication aggregates |
 | Slug backfill jobs | Triggered by commands/actions | Backfill event/institution/speaker/reference/venue slugs |
 | Responsive image job | Media event/queue | Generate conversions |
 

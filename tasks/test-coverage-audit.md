@@ -284,7 +284,7 @@ AdminShareAnalyticsService, AffiliatesShareTrackingService, AffiliatesShareTrack
 | `QueueBackfillSpeakerSlugs` | Indirect | `SpeakerSlugGenerationTest` — `$this->artisan(...)` |
 | `QueueBackfillReferenceSlugs` | **COVERED** | `BackfillSlugJobsTest` — `$this->artisan()` + `Queue::assertPushed` |
 | `QueueBackfillVenueSlugs` | **COVERED** | `BackfillSlugJobsTest` — `$this->artisan()` + `Bus::assertBatched` |
-| `SendDigestNotificationsCommand` | **UNCOVERED** | |
+| `DispatchDueCommunicationsCommand` (package) | **COVERED** | `Communications/DispatchDueCommunicationsCommandTest` — due aggregate is queued |
 | `SyncPublicSubmissionLocks` | **UNCOVERED** | |
 
 ### Scheduled Task Scheduling (8 tasks)
@@ -298,7 +298,7 @@ AdminShareAnalyticsService, AffiliatesShareTrackingService, AffiliatesShareTrack
 | `media-library-clean` (daily 02:30) | **COVERED** | 30 2 * * * verified |
 | `media-library-regenerate-missing` (weekly Sun 03:00) | **COVERED** | 0 3 * * 0 verified |
 | `horizon-snapshot` (every 5 min) | **COVERED** | %s/5 * * * * verified |
-| `communications-send-digests` (every 1 min) | **COVERED** | * * * * * verified |
+| `communications-dispatch-due` (every 1 min UTC) | **COVERED** | `ScheduleIntegrityTest` verifies command, cadence, UTC and non-overlap |
 
 ---
 

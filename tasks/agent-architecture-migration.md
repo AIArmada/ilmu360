@@ -10,10 +10,12 @@
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest Rw3 evidence: focused hold characterization 7/7, 75 assertions; `git diff --check` clean. Broader Rw2b evidence remains: arch 0/**17 features**; Rewards+seams 250/248 with 2 baseline RewardDelivery errors; real-driver 47/47; routes 738; ownership PHPStan 0.
 
-## Next action — Communications ownership map
+## Next action — Communications C2 preference and destination writes
 
 - Rewards Rw0–Rw2b remain as recorded below. Rw3 `69979ba4` closes the read/transport hold: keep `RewardMemberPresenter`, `RewardPayoutMethods`, read controllers/Livewire/dashboard/MCP adapters, and vendor Filament admin at root; no `Api\MemberRewards` without a real cross-feature consumer and immutable snapshot/query-count evidence. No reward cache, read projection, package claim, or behavior change was added.
-- Communications is next. First map preferences, channels, reminders, digest matching, delivery, schedules, and after-commit behavior, including existing Shared `DigestPolicy`/`DigestMessages` contracts and Rewards' `ResolveDigestMailAmbiguityAction` coupling. Identify app/package tables, concrete writers, and all callers before proposing the first slice.
+- Communications ownership map is complete and self-reviewed in [communications-map.md](communications-map.md). It records all 17 package tables, app direct writers/readers, policy defaults, routes, schedules, lifecycle, and Rewards delivery coupling.
+- C1 is complete: Communications now owns `owns: {}` and schedules package `communications:dispatch-due` every minute in UTC with non-overlap protection. The misleading app batch stub and its schedule were removed; package batch tables/admin pages remain canonical. Focused schedule/dispatch Pest passed 2/2 (8 assertions); architecture scanner reported 0 violations across 18 features.
+- C2: move account policy and preference/destination mutations behind Communications-owned named actions and a scalar/snapshot API. Cut over `NotificationSettingsManager`, `NotificationDestinationController`, `LocaleController`, Identity account settings, `User` preference/destination reads, and `CommunicationsAccountLifecycleContributor` together. Preserve API shapes, email verification sync, encrypted installation matching, and lifecycle snapshot behavior.
 - After Communications: AI, Community releases, Docs/MCP/admin, then the final audit.
 - Full whole-app conversion remains open.
 

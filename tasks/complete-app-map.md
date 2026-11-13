@@ -321,7 +321,7 @@ Also: `oauth/mcp` — MCP OAuth routes (auto-registered via `Mcp::oauthRoutes()`
 | 5 | Daily 02:30 | `media-library:clean --delete-orphaned --force` | Clean orphaned media |
 | 6 | Weekly Sun 03:00 | `media-library:regenerate --only-missing --with-responsive-images --force` | Regenerate missing conversions |
 | 7 | Every 5 min | `horizon:snapshot` | Horizon metrics |
-| 8 | Every 1 min | `communications:send-digests` | Digest notifications |
+| 8 | Every 1 min UTC | `communications:dispatch-due` | Queue due package Communications |
 
 ---
 
@@ -1075,7 +1075,6 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `QueueBackfillReferenceSlugs` | `references:queue-slug-backfill` | Queue slug backfill |
 | `QueueBackfillPersonSlugs` | `persons:queue-slug-backfill` | Queue slug backfill |
 | `QueueBackfillVenueSlugs` | `venues:queue-slug-backfill` | Queue slug backfill |
-| `SendDigestNotificationsCommand` | `communications:send-digests` | Send digest emails |
 | `SyncPublicSubmissionLocks` | `app:sync-public-submission-locks` | Sync submission lock state |
 
 ---
