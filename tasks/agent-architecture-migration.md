@@ -6,16 +6,17 @@
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
 - Latest accepted implementation checkpoint `b1bdd48f` — ShareTracking S4b analytics/retention holds (area complete). Previous: `07c8c37f` — S4a wrapper removal.
-- Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary + D1 packages (S0–S5; S6b languages deferred); Events E0–E5a; Registration R0–R6; Contributions C0–C6; Discovery D0; ShareTracking S0–S4b complete.
+- Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary + D1 packages (S0–S5; S6b languages deferred); Events E0–E5a; Registration R0–R6; Contributions C0–C6; Discovery D0; ShareTracking S0–S4b complete; Rewards map accepted (`tasks/rewards-map.md`).
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
 - Latest passing evidence (ShareTracking S4b): arch 0/**16 features**; hold+prune 15/15; routes 738; ownership PHPStan 0.
 
-## Next action — Rewards/digests inventory and map
+## Next action — Rewards Rw0 claim-free seams + characterization
 
-- ShareTracking S4b `b1bdd48f` landed with Ember `AGREE`; the area is complete and all holds are guarded. Its provider docblock and hold test are the reference for documenting intentional root adapters.
-- Next area is Rewards/digests: map before moving anything. Inventory the host integration under `app/Features/Rewards` (if present), package `aiarmada/rewards` tables/models/actions, app-owned tables and writers, Filament/admin/MCP surfaces, commands/schedules, `reward_digest_slots`, gratitude scheduling, enrollment/source facts/awards/payees/payouts/reconciliations, and reward-source fact readers in other features.
-- Decide package-canonical vs app-claimed tables, name the feature writer classes, catalogue hazards (transactions, after-commit delivery, uniqueness/races, owner scoping, monetary values, time/timezone, cache/projection reads), and propose bounded slices. Keep current holds and do not create claims before characterization.
-- Then Communications, AI, Community releases, Docs/MCP/admin, and the final app-wide audit.
+- The Rewards map is accepted (Ember `AGREE`; full map `tasks/rewards-map.md`). One app table (`reward_digest_slots`) with three writers; 30 package-canonical reward tables and zero app direct writes.
+- Rw0 is the claim-free scaffold: create `app/Features/Rewards` with `owns: {}` + provider registered once and a docblock naming the intentional root adapters. Add a literal `$table = 'reward_digest_slots'` to the root model (it stays root; no move, no claim yet).
+- Add characterization tests only (no behavior change): model frozen fields/transition matrix/delete refusal; daily/weekly cadence, global delivery time/day, calmness floor, timezone `local_day`; cross-category merge across programs; digest failure isolation inside award transitions (current behavior); API vs Livewire enrollment signal difference; admin/MCP reward mutation support false; zero app writes to package reward tables.
+- Do not claim `reward_digest_slots` until Rw1 moves the three writers and adds the Shared digest seams. Preserve all H1–H25 behaviors as holds; no schema/timing/retention/communications changes.
+- Then Rw1 slot ownership, Rw2 enrollment/preclaim, Rw3 member reads, Rw4 transport/admin/MCP/docs; then Communications, AI, Community releases and the final audit.
 - Full whole-app conversion remains open.
 
 ## Execution ownership and required reading
