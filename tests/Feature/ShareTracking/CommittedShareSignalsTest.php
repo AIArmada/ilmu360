@@ -20,7 +20,7 @@ use App\Models\ShareCohortProjection;
 use App\Models\ShareEffectReceipt;
 use App\Models\ShareSignalReaderCursor;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
@@ -226,7 +226,7 @@ it('projects signals into cohort stages and resumes after partial drains', funct
     $actor = User::factory()->create();
     $request = Request::create('/noop', 'GET');
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventCheckin,
         ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
         null,
@@ -338,7 +338,7 @@ it('keeps the generic dispatcher away from committed-share work, both directions
     $actor = User::factory()->create();
     $request = Request::create('/noop', 'GET');
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventCheckin,
         ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
         null,

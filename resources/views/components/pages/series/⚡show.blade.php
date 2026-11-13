@@ -163,7 +163,7 @@ new
         'fallbackTitle' => $series->title,
         'payloadEndpoint' => route('share.payload'),
     ];
-    $seriesShareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
+    $seriesShareLinks = app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks(
         $seriesUrl,
         $seriesShareText,
         $series->title,

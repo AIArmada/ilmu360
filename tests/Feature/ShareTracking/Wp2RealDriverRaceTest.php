@@ -28,9 +28,6 @@ use AIArmada\Events\Actions\SyncPrimaryEventOccurrenceAction;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Seating\Enums\SeatingMode;
-use AIArmada\Ticketing\Models\TicketType;
-use App\Shared\ShareTracking\ShareEffectStatus;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Models\Event;
 use App\Models\ShareBrowserSelection;
@@ -38,8 +35,10 @@ use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
@@ -76,7 +75,7 @@ function wp2RaceTeardown(string $database, string $previous): void
 
 function wp2RaceLink(User $sharer, string $url): AffiliateLink
 {
-    app(ShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Majlis', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Majlis', 'web');
 
     $affiliate = Affiliate::query()
         ->where('owner_type', $sharer->getMorphClass())
@@ -88,7 +87,7 @@ function wp2RaceLink(User $sharer, string $url): AffiliateLink
 
 function wp2RaceLanding(string $url, ?string $cookie = null): ?string
 {
-    return app(ShareTrackingService::class)->captureRequest(
+    return app(AffiliatesShareTrackingService::class)->captureRequest(
         Wp2RealDriverHarness::landingRequest($url, $cookie)
     );
 }
@@ -353,7 +352,7 @@ function wp2DispatchFencingRaceCase(TestCase $testCase): void
         $request = Request::create((string) config('app.url'), 'GET');
         $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), (string) $cookie);
 
-        app(ShareTrackingService::class)->recordOutcome(
+        app(AffiliatesShareTrackingService::class)->recordOutcome(
             ShareOutcomeType::EventSave,
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
@@ -491,7 +490,7 @@ function wp2InheritCorrectionRaceCase(TestCase $testCase): void
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
         $childKey = ShareOutcomeBusinessKey::eventCheckin((string) Str::uuid());
 
-        expect(app(ShareTrackingService::class)->recordOutcome(
+        expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
             ShareOutcomeType::EventRegistration,
             $sourceKey,
             null,
@@ -601,7 +600,7 @@ function wp2PrepareRaceCase(TestCase $testCase): void
         $buyer = User::factory()->create(['email' => 'wp2-buyer@example.test']);
         $pageUrl = route('events.show', $event);
 
-        app(ShareTrackingService::class)->createOrReuseLink($sharer, $pageUrl, 'Majlis', 'web');
+        app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $pageUrl, 'Majlis', 'web');
         $affiliate = Affiliate::query()
             ->where('owner_type', $sharer->getMorphClass())
             ->where('owner_id', $sharer->getKey())

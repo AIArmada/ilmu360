@@ -310,7 +310,7 @@
                                                 'fallbackTitle' => $link->titleSnapshot,
                                                 'payloadEndpoint' => route('share.payload'),
                                             ]"
-                                            :share-links="app(\App\Services\ShareTrackingService::class)->redirectLinks($link->destinationUrl, $link->titleSnapshot, $link->titleSnapshot)"
+                                            :share-links="app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks($link->destinationUrl, $link->titleSnapshot, $link->titleSnapshot)"
                                         />
                                     </div>
                                 </details>

@@ -11,7 +11,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingFinance;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonInterface;
@@ -51,7 +51,7 @@ trait HasUserRestoration
                 // deliberately never snapshotted here: a later restore
                 // reactivates no claim, restores no secret, and replays no
                 // historical award or notification.
-                app(ShareTrackingService::class)->deleteUserTracking($user);
+                app(AffiliatesShareTrackingService::class)->deleteUserTracking($user);
             });
         });
     }

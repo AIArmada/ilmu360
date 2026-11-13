@@ -12,14 +12,14 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Models\Event;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -158,7 +158,7 @@ try {
             $cookies = is_array($payload['cookies'] ?? null) ? $payload['cookies'] : [];
             $cookie = $cookies[$slot] ?? null;
 
-            $outcome = app(ShareTrackingService::class)->recordOutcome(
+            $outcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
                 type: $type,
                 businessKey: (string) $payload['business_key'],
                 subject: null,
@@ -206,7 +206,7 @@ try {
                 $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
             }
 
-            $encoded = app(ShareTrackingService::class)->captureRequest($request);
+            $encoded = app(AffiliatesShareTrackingService::class)->captureRequest($request);
 
             if ($mode === 'landing_ordered') {
                 file_put_contents($readyDir.'/done-'.$slot, (string) getmypid());
@@ -247,7 +247,7 @@ try {
 
             $actor = User::query()->whereKey((string) ($payload['actor_id'] ?? ''))->firstOrFail();
 
-            $outcome = app(ShareTrackingService::class)->recordInheritedOutcome(
+            $outcome = app(AffiliatesShareTrackingService::class)->recordInheritedOutcome(
                 type: ShareOutcomeType::EventCheckin,
                 businessKey: (string) $payload['child_key'],
                 sourceBusinessKey: (string) $payload['source_key'],

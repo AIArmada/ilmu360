@@ -9,7 +9,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Services\PublicScheduleDiscoveryService;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\Events\PublicScheduleSlug;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -117,7 +117,7 @@ class Occurrence extends Show
     {
         $title = trim((string) ($this->occurrence->title ?: $this->event->title));
 
-        return app(ShareTrackingService::class)->redirectLinks(
+        return app(AffiliatesShareTrackingService::class)->redirectLinks(
             $this->event->occurrences->count() === 1 ? route('events.show', $this->event) : $this->occurrenceUrl(),
             trim($title.' - '.config('app.name')),
             $title,

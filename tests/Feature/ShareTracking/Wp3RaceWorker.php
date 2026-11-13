@@ -12,7 +12,6 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Services\ShareTrackingService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -172,7 +171,7 @@ try {
             // Current source, current migrations: concurrent creation for
             // the same owner and destination must converge on one link
             // and one managed short URL, never a duplicate row.
-            $link = app(ShareTrackingService::class)->createOrReuseLink(
+            $link = app(AffiliatesShareTrackingService::class)->createOrReuseLink(
                 $sharer,
                 (string) ($payload['url'] ?? ''),
                 'Majlis',
@@ -200,7 +199,7 @@ try {
 
             $attemptedAt = microtime(true);
 
-            $link = app(ShareTrackingService::class)->createOrReuseLink(
+            $link = app(AffiliatesShareTrackingService::class)->createOrReuseLink(
                 $sharer,
                 (string) ($payload['url'] ?? ''),
                 'Majlis',
@@ -228,7 +227,7 @@ try {
 
             $attemptedAt = microtime(true);
 
-            $result = app(ShareTrackingService::class)->sharePayload(
+            $result = app(AffiliatesShareTrackingService::class)->sharePayload(
                 null,
                 (string) ($payload['url'] ?? ''),
                 'Majlis',

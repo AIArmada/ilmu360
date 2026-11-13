@@ -30,8 +30,6 @@ use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Shared\ShareTracking\ShareEffectStatus;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\ShareBrowserSelection;
@@ -39,8 +37,10 @@ use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
@@ -101,7 +101,7 @@ function wp2OutcomeTeardown(string $database, string $previous): void
 
 function wp2OutcomeLink(User $sharer, string $url): AffiliateLink
 {
-    app(ShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Majlis', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Majlis', 'web');
 
     $affiliate = Affiliate::query()
         ->where('owner_type', $sharer->getMorphClass())
@@ -113,7 +113,7 @@ function wp2OutcomeLink(User $sharer, string $url): AffiliateLink
 
 function wp2OutcomeLanding(string $url, ?string $cookie = null): ?string
 {
-    return app(ShareTrackingService::class)->captureRequest(
+    return app(AffiliatesShareTrackingService::class)->captureRequest(
         Wp2RealDriverHarness::landingRequest($url, $cookie)
     );
 }
@@ -142,7 +142,7 @@ function wp2OutcomeCase(TestCase $testCase): void
 
         expect($cookie)->toBeString()->not->toBe('');
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         $occurredAt = CarbonImmutable::now()->subMinutes(7)->startOfSecond();
 
@@ -203,7 +203,7 @@ function wp2UnattributedCase(TestCase $testCase): void
         $link = wp2OutcomeLink($sharer, $pageUrl);
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
         // No cookie at the original transition: the freeze is explicitly
@@ -254,7 +254,7 @@ function wp2FraudRejectionCase(TestCase $testCase): void
             'affiliates.fraud.blocking_threshold' => 30,
         ]);
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
         expect($service->recordOutcome(
@@ -305,7 +305,7 @@ function wp2RollbackCase(TestCase $testCase): void
         app()->tag([Wp2ThrowingFraudRule::class], 'affiliates.fraud_rule');
         app()->forgetInstance(FraudDetectionService::class);
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         $failure = null;
 
@@ -365,7 +365,7 @@ function wp2AccountingFaultCase(TestCase $testCase): void
         $link = wp2OutcomeLink($sharer, $pageUrl);
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         $failure = null;
 
@@ -425,7 +425,7 @@ function wp2DispatchRecoveryCase(TestCase $testCase): void
         $link = wp2OutcomeLink($sharer, $pageUrl);
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $service->recordOutcome(
             ShareOutcomeType::EventSave,
@@ -486,7 +486,7 @@ function wp2TtlDedupeCase(TestCase $testCase): void
         $link = wp2OutcomeLink($sharer, $pageUrl);
         $landingUrl = $pageUrl.'?share='.$link->custom_slug;
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $cookie = wp2OutcomeLanding($landingUrl);
 
@@ -561,7 +561,7 @@ function wp2InheritanceCase(TestCase $testCase): void
         $link = wp2OutcomeLink($sharer, $pageUrl);
         $cookie = wp2OutcomeLanding($landingUrl = $pageUrl.'?share='.$link->custom_slug);
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
 
         expect($service->recordOutcome(
@@ -616,7 +616,7 @@ function wp2CorrectionCase(TestCase $testCase): void
         $link = wp2OutcomeLink($sharer, $pageUrl);
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
 
         expect($service->recordOutcome(
@@ -681,7 +681,7 @@ function wp2MalformedKeyCase(TestCase $testCase): void
 
     try {
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $malformed = [
             'legacy:signup:user:'.((string) Str::uuid()),
@@ -814,7 +814,7 @@ function wp2BrowserReversedArrivalCase(TestCase $testCase): void
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
         $linkA = wp2OutcomeLink($sharerA, $pageUrl);
         $linkB = wp2OutcomeLink($sharerB, $pageUrl);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $cookieA = wp2OutcomeLanding($pageUrl.'?share='.$linkA->custom_slug);
         expect($cookieA)->toBeString()->not->toBe('');
@@ -855,7 +855,7 @@ function wp2BrowserInvalidTokenCase(TestCase $testCase): void
         $sharer = User::factory()->create(['email' => 'wp2-sharer@example.test']);
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
         $link = wp2OutcomeLink($sharer, $pageUrl);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         expect($cookie)->toBeString()->not->toBe('');
@@ -918,7 +918,7 @@ function wp2BrowserSameLinkTtlCase(TestCase $testCase): void
         expect(wp2SameInstant($latest->expires_at, $expectedExpiry))->toBeTrue();
         expect((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $latest->getKey());
 
-        $passive = app(ShareTrackingService::class)->captureRequest(wp2OutcomeRequest($cookie2));
+        $passive = app(AffiliatesShareTrackingService::class)->captureRequest(wp2OutcomeRequest($cookie2));
         expect($passive)->toBeString()->not->toBe('');
         expect(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3);
         expect((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $latest->getKey());
@@ -936,7 +936,7 @@ function wp2CancelledSourceInheritanceCase(TestCase $testCase): void
         $sharer = User::factory()->create(['email' => 'wp2-sharer@example.test']);
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
         $link = wp2OutcomeLink($sharer, $pageUrl);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
@@ -969,7 +969,7 @@ function wp2FraudConfirmedInheritanceCase(TestCase $testCase): void
         $sharer = User::factory()->create(['email' => 'wp2-sharer@example.test']);
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
         $link = wp2OutcomeLink($sharer, $pageUrl);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
@@ -1006,7 +1006,7 @@ function wp2CorrectionDispatchCase(TestCase $testCase): void
         $sharer = User::factory()->create(['email' => 'wp2-sharer@example.test']);
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
         $link = wp2OutcomeLink($sharer, $pageUrl);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $revokedKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
@@ -1035,7 +1035,7 @@ function wp2LeaseFencingCase(TestCase $testCase): void
         $sharer = User::factory()->create(['email' => 'wp2-sharer@example.test']);
         $actor = User::factory()->create(['email' => 'wp2-actor@example.test']);
         $link = wp2OutcomeLink($sharer, $pageUrl);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
@@ -1073,7 +1073,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase): void
         $actor = User::factory()->create(['email' => 'wp2-aba-actor@example.test']);
         $linkA = wp2OutcomeLink($sharerA, $pageUrl);
         $linkB = wp2OutcomeLink($sharerB, $pageUrl);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         expect((string) $linkA->getKey())->not->toBe((string) $linkB->getKey())
             ->and((string) $linkA->affiliate_id)->not->toBe((string) $linkB->affiliate_id);
@@ -1235,7 +1235,7 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase): void
         $pageUrl = route('events.index');
         $sharer = User::factory()->create(['email' => 'wp2-aba-same@example.test']);
         $actor = User::factory()->create(['email' => 'wp2-aba-same-actor@example.test']);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $linkDataA = $service->createOrReuseLink($sharer, $pageUrl, 'Majlis', 'web');
         $linkA = AffiliateLink::query()->whereKey($linkDataA->id)->firstOrFail();
@@ -1349,7 +1349,7 @@ function wp2BrowserChannelChangeCase(TestCase $testCase): void
         $sharer = User::factory()->create(['email' => 'wp2-chan@example.test']);
         $actor = User::factory()->create(['email' => 'wp2-chan-actor@example.test']);
         $link = wp2OutcomeLink($sharer, $pageUrl);
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
 
         $cookieNull = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
 

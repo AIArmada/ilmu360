@@ -29,7 +29,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Cache\SelectionCatalogCache;
 use App\Shared\Engagement\EngagementReader;
@@ -523,7 +523,7 @@ class Show extends Component
     {
         $session = $this->selectedSession();
 
-        if ($session instanceof \AIArmada\Events\Models\EventSession && in_array((string) $session->status, ['postponed', 'rescheduled'], true)) {
+        if ($session instanceof EventSession && in_array((string) $session->status, ['postponed', 'rescheduled'], true)) {
             return true;
         }
 
@@ -789,7 +789,7 @@ class Show extends Component
     public function shareLinks(): array
     {
         /** @var array<string, string> $platformLinks */
-        $platformLinks = app(ShareTrackingService::class)->redirectLinks(
+        $platformLinks = app(AffiliatesShareTrackingService::class)->redirectLinks(
             route('events.show', $this->event),
             trim($this->event->title.' - '.config('app.name')),
             $this->event->title,

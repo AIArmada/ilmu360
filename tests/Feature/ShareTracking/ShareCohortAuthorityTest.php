@@ -15,12 +15,12 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ShareTrackingService;
-use App\Support\Share\ShareCohortAuthority;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Support\Share\ShareCohortAuthority;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -76,7 +76,7 @@ function scoSignup(TestCase $testCase, User $sharer, string $name, string $email
     $request = Request::create('/register', 'POST');
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $outcome = app(ShareTrackingService::class)->recordSignup($user, $request);
+    $outcome = app(AffiliatesShareTrackingService::class)->recordSignup($user, $request);
 
     Carbon::setTestNow();
 
@@ -118,7 +118,7 @@ function scoParticipation(TestCase $testCase, User $sharer, CarbonImmutable $at)
     $request = Request::create('/noop', 'GET');
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         $key,
         null,

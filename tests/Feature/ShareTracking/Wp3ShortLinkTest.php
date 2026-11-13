@@ -14,7 +14,7 @@ use AIArmada\Links\Models\Link;
 use AIArmada\Links\Models\LinkClick;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -30,7 +30,7 @@ beforeEach(function (): void {
 
 function wp3slLink(User $sharer, string $url): AffiliateLink
 {
-    app(ShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Majlis', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Majlis', 'web');
 
     $affiliate = Affiliate::query()
         ->where('owner_type', $sharer->getMorphClass())
@@ -311,7 +311,7 @@ it('falls back to a safe direct attributed URL when the managed row is missing',
 
 it('never mints a second tracked row on reuse', function (): void {
     $url = route('events.index');
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
 
     $first = $service->createOrReuseLink($this->sharer, $url, 'Majlis', 'web');
     $second = $service->createOrReuseLink($this->sharer, $url, 'Majlis', 'web');
@@ -328,7 +328,7 @@ it('refuses share targets carrying the claim capability', function (): void {
         route('events.index').'?Guest_Claim_Capability='.$secret,
     ] as $url) {
         try {
-            app(ShareTrackingService::class)->createOrReuseLink($this->sharer, $url, 'Majlis', 'web');
+            app(AffiliatesShareTrackingService::class)->createOrReuseLink($this->sharer, $url, 'Majlis', 'web');
 
             $this->fail('A claim-capability-bearing URL must never become a tracked destination.');
         } catch (InvalidArgumentException $exception) {

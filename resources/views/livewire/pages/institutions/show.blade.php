@@ -34,7 +34,7 @@
     $persons = $institution->persons;
     $institutionUrl = route('institutions.show', $institution);
     $shareText = trim($institution->name . ' - ' . config('app.name'));
-    $shareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
+    $shareLinks = app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks(
         $institutionUrl,
         $shareText,
         $institution->name,

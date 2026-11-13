@@ -32,8 +32,6 @@ use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Checkout\RecordCheckoutShareProvenanceStep;
-use App\Shared\ShareTracking\ShareEffectStatus;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
 use App\Features\Registration\Api\AdmissionCheckout;
@@ -54,9 +52,11 @@ use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ModerationService;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Events\Enums\EventAttendanceStatus;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -77,7 +77,7 @@ beforeEach(function (): void {
 
 function wp2lcLink(User $sharer, string $url): AffiliateLink
 {
-    app(ShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Majlis', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Majlis', 'web');
 
     $affiliate = Affiliate::query()
         ->where('owner_type', $sharer->getMorphClass())
@@ -415,7 +415,7 @@ it('reverses event-scope submissions on reject without cascading into session su
         'event_session_id' => (string) Str::uuid(),
     ]);
 
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $eventKey = ShareOutcomeBusinessKey::eventSubmission((string) $eventSubmission->getKey());
     $sessionKey = ShareOutcomeBusinessKey::eventSubmission((string) $sessionSubmission->getKey());
 
@@ -458,7 +458,7 @@ it('reverses registration outcomes on cancel and reject through the lifecycle li
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set($cookieName, $cookie);
 
-    expect(app(ShareTrackingService::class)->recordOutcome(
+    expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) $rejected->getKey()),
         $event,
@@ -934,7 +934,7 @@ it('fails checkout inheritance closed on unknown refs and self-credit', function
     $actor = User::factory()->create();
 
     // An unknown persisted ref can never confer provenance.
-    expect(app(ShareTrackingService::class)->recordCheckoutInheritedOutcome(
+    expect(app(AffiliatesShareTrackingService::class)->recordCheckoutInheritedOutcome(
         ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()),
         (string) Str::uuid(),
@@ -945,7 +945,7 @@ it('fails checkout inheritance closed on unknown refs and self-credit', function
     ))->toBeNull();
 
     // Neither can an explicitly unattributed intent.
-    expect(app(ShareTrackingService::class)->recordCheckoutInheritedOutcome(
+    expect(app(AffiliatesShareTrackingService::class)->recordCheckoutInheritedOutcome(
         ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()),
         null,
@@ -963,11 +963,11 @@ it('fails checkout inheritance closed on unknown refs and self-credit', function
     $selfRequest = Request::create($pageUrl, 'GET');
     $selfRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $attributionId = (string) app(ShareTrackingService::class)->resolveActiveAttribution($selfRequest)?->id;
+    $attributionId = (string) app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($selfRequest)?->id;
 
     expect($attributionId)->not->toBe('');
 
-    expect(app(ShareTrackingService::class)->recordCheckoutInheritedOutcome(
+    expect(app(AffiliatesShareTrackingService::class)->recordCheckoutInheritedOutcome(
         ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()),
         $attributionId,
@@ -1013,7 +1013,7 @@ it('reverses participation outcomes on event cancel while preserving contributio
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    expect(app(ShareTrackingService::class)->recordOutcome(
+    expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSubmission,
         ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
         $event,
@@ -1081,7 +1081,7 @@ it('scopes occurrence and session cancellations to their actual registrations', 
     $attributedRequest = Request::create(route('events.show', $event), 'GET');
     $attributedRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $registrations = app(RegistrationServiceInterface::class);
 
     $makeRegistration = function (?string $occurrenceId, ?string $sessionId, string $name) use ($event, $registrations): Registration {

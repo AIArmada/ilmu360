@@ -10,13 +10,13 @@ use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +26,7 @@ use Throwable;
 final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
 {
     public function __construct(
-        private readonly ShareTrackingService $shareTracking,
+        private readonly AffiliatesShareTrackingService $shareTracking,
         private readonly ReverseShareOutcomeAction $reverseShareOutcome,
     ) {}
 

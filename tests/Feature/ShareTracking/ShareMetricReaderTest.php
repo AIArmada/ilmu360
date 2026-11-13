@@ -15,15 +15,15 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Services\ShareTrackingService;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -93,7 +93,7 @@ function smrOutcomeRequest(string $cookieValue): Request
 
 function smrRecordOutcome(ShareOutcomeType $type, string $businessKey, ?User $actor, ?string $cookieValue, ?CarbonImmutable $at = null): void
 {
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         $type,
         $businessKey,
         null,

@@ -19,10 +19,9 @@ use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Platform\FeatureModule;
 
 /**
- * Share tracking claims the browser selection, source attribution receipt,
- * effect receipt, outcome correction and cohort/signal writes named in
- * feature.json. The remaining app tables are still written by root services
- * and actions, so they stay unclaimed until their slice lands.
+ * Share tracking claims all seven app tables named in feature.json: browser
+ * selections, source attribution receipts, effect receipts, outcome
+ * corrections and the cohort/signal reader tables.
  *
  * Slice order:
  * - S1a source receipts: `DatabaseSourceAttributionReceipts` owns the
@@ -52,10 +51,13 @@ use App\Platform\FeatureModule;
  *   `CommittedShareSignals`, preserving the fenced cursor transaction,
  *   occurrence-ordered backlog sweep, per-event poison memory, idempotent
  *   projection and forward-only cursor. `DrainCommittedShareSignalsCommand`
- *   stays root. S4 analytics/cleanup next.
- * - S4 analytics/cleanup: rewire analytics readers or keep root adapters and
- *   delete the `ShareTrackingContract`/`ShareTrackingService` wrapper once
- *   callers migrate.
+ *   stays root.
+ * - S4a analytics/cleanup (landed): the pass-through `ShareTrackingService`
+ *   wrapper and unused null object are deleted; every concrete caller now
+ *   depends on `AffiliatesShareTrackingService` directly, while
+ *   `ShareTrackingContract` stays the public seam and resolves to that service
+ *   as a singleton. S4b (next) keeps the analytics readers and retention as
+ *   documented root holds.
  *
  * Must stay root (documented here so later slices do not absorb them): HTTP,
  * Livewire and route entrypoints; DTOs; analytics readers; observers;

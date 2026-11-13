@@ -20,13 +20,13 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -119,7 +119,7 @@ function smrIngestionRaceCase(TestCase $testCase): void
             (string) config('share-tracking.guest_credential.input', 'guest_credential'),
             (string) $guest['guest_credential']
         );
-        app(ShareTrackingService::class)->recordShareAction(
+        app(AffiliatesShareTrackingService::class)->recordShareAction(
             'copy_link', null, (string) $guest['tracking_token'], $guestRequest,
         );
         app(ClaimGuestShareProfileAction::class)->handle(
@@ -203,7 +203,7 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
         $signupCookie = ShareMetricRaceHarness::landing($pageUrl.'?share='.$founderLink->custom_slug);
         $signupRequest = Request::create($pageUrl, 'GET');
         $signupRequest->cookies->set((string) config('share-tracking.cookie.name'), (string) $signupCookie);
-        app(ShareTrackingService::class)->recordSignup($member, $signupRequest);
+        app(AffiliatesShareTrackingService::class)->recordSignup($member, $signupRequest);
 
         $link = ShareMetricRaceHarness::link($member, $pageUrl);
         $landingCookie = ShareMetricRaceHarness::landing($pageUrl.'?share='.$link->custom_slug);
@@ -267,7 +267,7 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
         $fraudRequest->cookies->set((string) config('share-tracking.cookie.name'), (string) $fraudCookie);
         $fraudActor = User::factory()->create(['email' => 'smr-fraud-actor@example.test']);
         $fraudKey = ShareOutcomeBusinessKey::signup((string) $fraudActor->getKey());
-        app(ShareTrackingService::class)->recordOutcome(
+        app(AffiliatesShareTrackingService::class)->recordOutcome(
             ShareOutcomeType::Signup,
             $fraudKey,
             null,

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Support\ShareTracking\ShareProfileNotEligibleException;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -27,7 +27,7 @@ class ShareController extends Controller
     #[QueryParameter('text', 'Required share text used for social intents and native-share payloads.', required: true, type: 'string', infer: false, example: 'Join this majlis')]
     #[QueryParameter('title', 'Optional fallback title for the shared subject.', required: false, type: 'string', infer: false, example: 'Weekly Kuliah')]
     #[QueryParameter('origin', 'Optional share origin identifier. Defaults to web. Example values: web, iosapp, android, macapp, ipadOs. Future client identifiers are accepted and normalized to lowercase.', required: false, type: 'string', infer: false, default: 'web', example: 'iosapp')]
-    public function payload(Request $request, ShareTrackingService $shareTrackingService): JsonResponse
+    public function payload(Request $request, AffiliatesShareTrackingService $shareTrackingService): JsonResponse
     {
         $data = $this->validatedData($request);
 
@@ -40,7 +40,7 @@ class ShareController extends Controller
             ->header('Pragma', 'no-cache');
     }
 
-    public function redirect(string $provider, Request $request, ShareTrackingService $shareTrackingService): RedirectResponse
+    public function redirect(string $provider, Request $request, AffiliatesShareTrackingService $shareTrackingService): RedirectResponse
     {
         $data = $this->validatedData($request);
 
@@ -67,7 +67,7 @@ class ShareController extends Controller
     )]
     #[BodyParameter('provider', 'Share channel that the client actually used. Supported values include social providers plus `copy_link` and `native_share`.', type: 'string', infer: false, example: 'copy_link')]
     #[BodyParameter('tracking_token', 'Tracking token returned by `GET /share/payload` for authenticated or anonymous shares.', type: 'string', infer: false, example: 'abcd1234wxyz6789')]
-    public function track(Request $request, ShareTrackingService $shareTrackingService): Response
+    public function track(Request $request, AffiliatesShareTrackingService $shareTrackingService): Response
     {
         $data = $this->validatedTrackedData($request, $shareTrackingService);
 
@@ -106,7 +106,7 @@ class ShareController extends Controller
     /**
      * @return array{provider:string,tracking_token:string}
      */
-    protected function validatedTrackedData(Request $request, ShareTrackingService $shareTrackingService): array
+    protected function validatedTrackedData(Request $request, AffiliatesShareTrackingService $shareTrackingService): array
     {
         $providers = $shareTrackingService->supportedChannels();
 
@@ -134,7 +134,7 @@ class ShareController extends Controller
      * @param  array{url: string, text: string, title?: string, origin?: string}  $data
      * @return array<string, mixed>
      */
-    protected function buildPayload(Request $request, ShareTrackingService $shareTrackingService, array $data): array
+    protected function buildPayload(Request $request, AffiliatesShareTrackingService $shareTrackingService, array $data): array
     {
         try {
             return $shareTrackingService->sharePayload(

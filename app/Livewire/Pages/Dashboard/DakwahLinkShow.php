@@ -7,8 +7,8 @@ use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Data\ShareTracking\ShareTrackingVisitData;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
@@ -166,9 +166,9 @@ class DakwahLinkShow extends Component
         return app(ShareTrackingAnalyticsService::class);
     }
 
-    protected function shareService(): ShareTrackingService
+    protected function shareService(): AffiliatesShareTrackingService
     {
-        return app(ShareTrackingService::class);
+        return app(AffiliatesShareTrackingService::class);
     }
 
     protected function currentUser(): User

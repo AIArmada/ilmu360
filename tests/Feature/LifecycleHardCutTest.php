@@ -2,15 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Features\Contributions\Actions\ApproveContributionRequestAction;
-use App\Features\Contributions\Actions\RejectContributionRequestAction;
-use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Contributions\Actions\ApproveContributionRequestAction;
+use App\Features\Contributions\Actions\CancelContributionRequestAction;
+use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\GitHubIssues\Services\NullGitHubIssueReporter;
 use App\Features\Inspirations\Models\Inspiration;
@@ -20,7 +16,11 @@ use App\Models\Event;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Events\Enums\EventVisibility;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\Pending;
@@ -195,7 +195,7 @@ it('binds optional integration contracts without conditional call-site checks', 
 
     expect($captcha)->toBeInstanceOf(CaptchaVerifier::class)
         ->and($github)->toBeInstanceOf(GitHubIssueReporterContract::class)
-        ->and($shareTracking)->toBeInstanceOf(ShareTrackingService::class)
+        ->and($shareTracking)->toBeInstanceOf(AffiliatesShareTrackingService::class)
         ->and($github->isConfigured())->toBeFalse()
         ->and($github)->toBeInstanceOf(NullGitHubIssueReporter::class)
         ->and($captcha->verify('token'))->toBeBool();

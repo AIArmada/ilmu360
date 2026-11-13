@@ -11,7 +11,7 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -132,7 +132,7 @@ it('removes only the marked share profile and its scoped facts on tracking clean
     $otherAffiliate = wp1MarkedShareAffiliate($otherUser, 'scoped-share-002');
     [$otherLink] = wp1ShareFactRows($otherAffiliate, 'scoped-other');
 
-    app(ShareTrackingService::class)->deleteUserTracking($user);
+    app(AffiliatesShareTrackingService::class)->deleteUserTracking($user);
 
     expect(Affiliate::query()->whereKey($affiliate->id)->exists())->toBeFalse()
         ->and(AffiliateLink::query()->whereKey($link->id)->exists())->toBeFalse()
@@ -150,7 +150,7 @@ it('never deletes an unmarked commercial profile through tracking cleanup', func
     $commercial = wp1CommercialAffiliate($user, 'commercial-keep-001');
     [$commercialLink] = wp1ShareFactRows($commercial, 'commercial-keep');
 
-    app(ShareTrackingService::class)->deleteUserTracking($user);
+    app(AffiliatesShareTrackingService::class)->deleteUserTracking($user);
 
     expect(Affiliate::query()->whereKey($commercial->id)->exists())->toBeTrue()
         ->and(AffiliateLink::query()->whereKey($commercialLink->id)->exists())->toBeTrue()

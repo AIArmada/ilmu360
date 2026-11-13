@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 
 beforeEach(function (): void {
     config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
@@ -9,7 +9,7 @@ beforeEach(function (): void {
 
 test('dakwah connects sharing invitations and rewards and offers tracked resharing', function (): void {
     $user = User::factory()->create();
-    app(ShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Useful events');
+    app(AffiliatesShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Useful events');
 
     $this->actingAs($user)->get(route('dakwah'))
         ->assertSuccessful()
@@ -27,7 +27,7 @@ test('dakwah connects sharing invitations and rewards and offers tracked reshari
 
 test('unconfigured reporting keeps sharing available and withholds measurements on both dakwah pages', function (): void {
     $user = User::factory()->create();
-    $link = app(ShareTrackingService::class)->createOrReuseLink($user, route('events.index'), 'Useful events');
+    $link = app(AffiliatesShareTrackingService::class)->createOrReuseLink($user, route('events.index'), 'Useful events');
     config(['share-tracking.reporting.reporting_start' => null]);
 
     foreach ([route('dakwah'), route('dakwah.links.show', ['link' => $link->id])] as $url) {

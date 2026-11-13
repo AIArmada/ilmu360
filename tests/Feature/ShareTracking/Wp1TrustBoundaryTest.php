@@ -16,14 +16,13 @@ use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\Disabled;
 use AIArmada\Affiliates\States\PaidConversion;
 use AIArmada\Affiliates\Support\IpHasher;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Services\ShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -227,9 +226,9 @@ it('invalidates a stale cookie once its link is deactivated', function (): void 
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $request->setUserResolver(fn (): User => $visitor);
 
-    expect(app(ShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull();
+    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull();
 
-    $outcome = app(ShareTrackingService::class)->recordOutcome(
+    $outcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
         $this->event,
@@ -257,7 +256,7 @@ it('clears an unrelated stale selection when an explicit token is invalid', func
     $request = Request::create(route('events.show', $this->event), 'GET');
     $request->cookies->set((string) config('share-tracking.cookie.name'), (string) $cleared?->getValue());
 
-    expect(app(ShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull()
+    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull()
         ->and(AffiliateAttribution::query()->count())->toBe(1);
 });
 
@@ -285,7 +284,7 @@ it('excludes proven self-referral credit without inventing identities', function
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $request->setUserResolver(fn (): User => $this->sharer);
 
-    $outcome = app(ShareTrackingService::class)->recordOutcome(
+    $outcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
         $this->event,
@@ -301,7 +300,7 @@ it('excludes proven self-referral credit without inventing identities', function
     $visitorRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $visitorRequest->setUserResolver(fn (): User => $visitor);
 
-    $credited = app(ShareTrackingService::class)->recordOutcome(
+    $credited = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
         $this->event,
@@ -642,7 +641,7 @@ it('shows honest measurement labels with consistent ms and en resources', functi
 });
 
 it('retains share profiles with financial obligations during tracking cleanup', function (): void {
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $service->createOrReuseLink($this->sharer, route('events.show', $this->event), $this->event->title);
 
     $affiliate = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($this->sharer);
@@ -675,7 +674,7 @@ it('retains share profiles with financial obligations during tracking cleanup', 
 });
 
 it('restores only canonical owned share records and skips foreign snapshots', function (): void {
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $service->createOrReuseLink($this->sharer, route('events.show', $this->event), $this->event->title);
 
     $affiliate = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($this->sharer);
@@ -938,11 +937,11 @@ it('excludes new credit for marked profiles whose member owner is missing', func
         'attribution_cookie' => 'cookie-wp1-orphan',
     ], JSON_THROW_ON_ERROR)));
 
-    expect(app(ShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull();
+    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull();
 
     $visitor = User::factory()->create(['email' => 'wp1-orphan-visitor@example.test']);
 
-    expect(app(ShareTrackingService::class)->recordOutcome(
+    expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
         $this->event,
@@ -977,7 +976,7 @@ it('survives a canonical member code collision inside a caller transaction', fun
 
     DB::transaction(function () use ($victim, $code, &$failure, &$outerSurvived): void {
         try {
-            app(ShareTrackingService::class)->createOrReuseLink($victim, route('events.show', $this->event), $this->event->title);
+            app(AffiliatesShareTrackingService::class)->createOrReuseLink($victim, route('events.show', $this->event), $this->event->title);
         } catch (InvalidArgumentException $exception) {
             $failure = $exception->getMessage();
         }
@@ -996,7 +995,7 @@ it('survives a canonical member code collision inside a caller transaction', fun
 });
 
 it('preserves paid monetary conversions with payout and balance across deletion and restore', function (): void {
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $service->createOrReuseLink($this->sharer, route('events.show', $this->event), $this->event->title);
 
     $affiliate = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($this->sharer);
@@ -1180,7 +1179,7 @@ it('preserves paid monetary conversions with payout and balance across deletion 
 });
 
 it('never overwrites retained financial profile state from a stale snapshot', function (): void {
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $service->createOrReuseLink($this->sharer, route('events.show', $this->event), $this->event->title);
 
     $affiliate = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($this->sharer);
@@ -1237,7 +1236,7 @@ it('never overwrites retained financial profile state from a stale snapshot', fu
 });
 
 it('rejects forged child snapshot ids that point at foreign rows', function (): void {
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $service->createOrReuseLink($this->sharer, route('events.show', $this->event), $this->event->title);
 
     $affiliate = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($this->sharer);

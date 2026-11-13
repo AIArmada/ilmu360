@@ -12,7 +12,6 @@ use App\Models\Event;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingFinance;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -34,7 +33,7 @@ beforeEach(function (): void {
 
 function wp1FinanceLinkAndAttribution(TestCase $testCase): array
 {
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $service->createOrReuseLink($testCase->sharer, route('events.show', $testCase->event), $testCase->event->title);
 
     $affiliate = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($testCase->sharer);
@@ -213,7 +212,7 @@ it('preserves paid and monetary reversed conversions while deleting zero-value r
         'status' => ApprovedConversion::class,
     ]);
 
-    app(ShareTrackingService::class)->deleteUserTracking($this->sharer);
+    app(AffiliatesShareTrackingService::class)->deleteUserTracking($this->sharer);
 
     $paidAfter = AffiliateConversion::query()->whereKey($paid->id)->firstOrFail();
     $reversedMoneyAfter = AffiliateConversion::query()->whereKey($reversedMoney->id)->firstOrFail();

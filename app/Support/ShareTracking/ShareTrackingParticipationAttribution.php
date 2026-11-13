@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Support\ShareTracking;
 
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\EventCheckin;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ParticipationAttribution;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -27,7 +27,7 @@ use Illuminate\Http\Request;
 final readonly class ShareTrackingParticipationAttribution implements ParticipationAttribution
 {
     public function __construct(
-        private ShareTrackingService $shareTracking,
+        private AffiliatesShareTrackingService $shareTracking,
         private ReverseShareOutcomeAction $reverseShareOutcome,
     ) {}
 

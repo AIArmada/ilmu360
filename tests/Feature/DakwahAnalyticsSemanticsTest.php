@@ -4,8 +4,8 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Models\User;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Services\ShareTrackingService;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
@@ -15,7 +15,7 @@ beforeEach(function (): void {
 test('prepared links have no last share or recent activity until an outbound share is recorded', function (): void {
     $this->travelTo(now()->setDate(2026, 11, 5)->startOfDay());
     $user = User::factory()->create();
-    app(ShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
+    app(AffiliatesShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
     $link = AffiliateLink::query()->firstOrFail();
     $analytics = app(ShareTrackingAnalyticsService::class);
 
@@ -39,7 +39,7 @@ test('prepared links have no last share or recent activity until an outbound sha
 
 test('channel breakdown includes unattributed channels so visits reconcile with the total', function (): void {
     $user = User::factory()->create();
-    app(ShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
+    app(AffiliatesShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
     $link = AffiliateLink::query()->firstOrFail();
 
     $attribution = AffiliateAttribution::query()->create([
@@ -77,7 +77,7 @@ test('channel breakdown includes unattributed channels so visits reconcile with 
 
 test('loading a library uses bounded measurement queries as the number of links grows', function (): void {
     $user = User::factory()->create();
-    $share = app(ShareTrackingService::class);
+    $share = app(AffiliatesShareTrackingService::class);
     $share->attributedUrl($user, route('events.index'), 'Events');
     $analytics = app(ShareTrackingAnalyticsService::class);
 

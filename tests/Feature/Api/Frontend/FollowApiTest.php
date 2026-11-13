@@ -6,15 +6,15 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Models\Follow;
 use App\Contracts\ShareTrackingContract;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -23,7 +23,7 @@ uses(RefreshDatabase::class);
 
 function d4dApiFollowShareCookie(TestCase $testCase, string $url, User $sharer): string
 {
-    app(ShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Follow Page', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Follow Page', 'web');
 
     $affiliate = Affiliate::query()
         ->where('owner_type', $sharer->getMorphClass())

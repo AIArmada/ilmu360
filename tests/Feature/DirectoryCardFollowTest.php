@@ -6,7 +6,6 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Enums\FollowStatus;
 use AIArmada\Engagement\Models\Follow;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Livewire\Components\DirectoryCardFollow;
 use App\Models\Institution;
 use App\Models\Person;
@@ -14,17 +13,18 @@ use App\Models\Reference;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 function d4dCardShareCookie(TestCase $testCase, string $url, User $sharer): string
 {
-    app(ShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Follow Page', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Follow Page', 'web');
 
     $affiliate = Affiliate::query()
         ->where('owner_type', $sharer->getMorphClass())

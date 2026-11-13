@@ -5,7 +5,7 @@ declare(strict_types=1);
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Communications\Contracts\PayloadRedactor;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Support\Communications\ListSafePayloadRedactor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -28,7 +28,7 @@ beforeEach(function (): void {
  */
 function wp3crGuestShare(): array
 {
-    $payload = app(ShareTrackingService::class)->sharePayload(
+    $payload = app(AffiliatesShareTrackingService::class)->sharePayload(
         null,
         route('events.index'),
         'Share this page',

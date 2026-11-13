@@ -6,11 +6,11 @@ use AIArmada\Signals\Models\SignalIdentity;
 use AIArmada\Signals\Models\SignalSession;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Signals\SignalsServiceProvider;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -119,7 +119,7 @@ it('records authoritative share outcomes without writing unread share-fact telem
         'status' => 'approved',
         'visibility' => 'public',
     ]);
-    $shareService = app(ShareTrackingService::class);
+    $shareService = app(AffiliatesShareTrackingService::class);
     $sharedUrl = $shareService->attributedUrl($sharer, route('events.show', $event), $event->title);
 
     $landingResponse = $this->get($sharedUrl);
@@ -164,7 +164,7 @@ it('records authoritative share outcomes when signals delivery is unavailable', 
         'status' => 'approved',
         'visibility' => 'public',
     ]);
-    $shareService = app(ShareTrackingService::class);
+    $shareService = app(AffiliatesShareTrackingService::class);
     $sharedUrl = $shareService->attributedUrl($sharer, route('events.show', $event), $event->title);
 
     $landingResponse = $this->get($sharedUrl);

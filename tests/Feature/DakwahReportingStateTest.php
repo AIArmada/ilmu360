@@ -1,11 +1,11 @@
 <?php
 
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 
 test('unconfigured reporting ignores measurement filters supplied in the URL', function (): void {
     $user = User::factory()->create();
-    app(ShareTrackingService::class)->createOrReuseLink($user, route('events.index'), 'Prepared useful page');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($user, route('events.index'), 'Prepared useful page');
     config(['share-tracking.reporting.reporting_start' => null]);
 
     $this->actingAs($user)->get(route('dakwah', ['status' => 'active', 'outcome' => 'signup']))
@@ -18,7 +18,7 @@ test('daily breakdown labels retain the viewer local date west of UTC', function
     $this->travelTo(now()->setDate(2026, 11, 5)->setTime(16, 0));
     config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
     $user = User::factory()->create(['timezone' => 'America/Los_Angeles']);
-    $link = app(ShareTrackingService::class)->createOrReuseLink($user, route('events.index'), 'Useful page');
+    $link = app(AffiliatesShareTrackingService::class)->createOrReuseLink($user, route('events.index'), 'Useful page');
 
     $response = $this->actingAs($user)->get(route('dakwah.links.show', ['link' => $link->id]))->assertSuccessful();
     $document = new DOMDocument;

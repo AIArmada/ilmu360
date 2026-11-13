@@ -19,7 +19,6 @@ use App\Features\Identity\Models\SignupAttribution;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Services\ShareTrackingService;
 use App\Shared\Auth\SignupAttributionContext;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use App\Support\Share\ShareProfileScope;
@@ -59,7 +58,7 @@ it('excludes unrelated package claims from share history and cleanup', function 
         ->and($analytics->linksForUser($user))->toBeEmpty()
         ->and($analytics->findLinkForUser($user, (string) $link->getKey()))->toBeNull();
 
-    app(ShareTrackingService::class)->deleteUserTracking($user);
+    app(AffiliatesShareTrackingService::class)->deleteUserTracking($user);
 
     expect($claim->fresh()->isActive())->toBeTrue()
         ->and($link->fresh()->deactivated_at)->toBeNull()
@@ -81,7 +80,7 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
     $claimant = User::factory()->create();
     $unrelated = User::factory()->create();
     $signupBefore = User::factory()->create();
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $identityService = app(AffiliatesShareTrackingService::class);
     $payload = $service->sharePayload(null, route('events.index'), 'Share', 'Page', 'web', Request::create(route('events.index')));
     $link = AffiliateLink::query()->withoutGlobalScope(OwnerScope::class)->where('custom_slug', $payload['tracking_token'])->firstOrFail();

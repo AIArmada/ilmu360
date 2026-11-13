@@ -10,19 +10,19 @@ use AIArmada\Engagement\Models\Follow;
 use App\Actions\Engagement\FollowSubjectAction;
 use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Contracts\ShareTrackingContract;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\ShareSourceAttributionReceipt;
 use App\Models\ShareOutcomeCorrection;
+use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -31,7 +31,7 @@ use Tests\TestCase;
 
 function d4dActionShareCookie(TestCase $testCase, string $url, User $sharer): string
 {
-    app(ShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Follow Page', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Follow Page', 'web');
 
     $affiliate = Affiliate::query()
         ->where('owner_type', $sharer->getMorphClass())

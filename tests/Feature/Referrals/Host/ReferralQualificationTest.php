@@ -24,14 +24,14 @@ use AIArmada\Vouchers\States\Expired;
 use App\Actions\Referrals\QualifyReferralFromShareOutcomeAction;
 use App\Actions\Referrals\ReverseReferralRewardsForShareOutcomeAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
 use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -52,7 +52,7 @@ it('has no referral effect for a qualifying outcome without an accepted invite o
     ]);
     $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
 
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         $sourceKey,
         actor: $invitee,
@@ -120,7 +120,7 @@ it('qualifies the first accepted registration and fulfils points plus the single
     ]);
     $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
 
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         $sourceKey,
         actor: $invitee,
@@ -160,7 +160,7 @@ it('qualifies the first accepted registration and fulfils points plus the single
         'attendance_type' => 'check_in',
     ]);
     $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventCheckin,
         $checkinKey,
         actor: $invitee,
@@ -189,7 +189,7 @@ it('qualifies a staff-verified check-in when no registration was recorded first'
     ]);
     $sourceKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
 
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventCheckin,
         $sourceKey,
         actor: $invitee,
@@ -216,7 +216,7 @@ it('preserves both rewards when a reversal job arrives before the source is inva
         'registered_at' => CarbonImmutable::now('UTC')->subSecond(),
     ]);
     $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         $sourceKey,
         actor: $invitee,
@@ -253,7 +253,7 @@ it('reverses fulfilled points and voucher sides when the qualifying source is ca
         'registered_at' => $registeredAt,
     ]);
     $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
-    app(ShareTrackingService::class)->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, actor: $invitee, occurredAt: $registeredAt);
+    app(AffiliatesShareTrackingService::class)->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, actor: $invitee, occurredAt: $registeredAt);
     (new QualifyReferralFromShareOutcomeJob($sourceKey))->handle(app(QualifyReferralFromShareOutcomeAction::class));
 
     $registration->forceFill(['status' => 'cancelled'])->save();

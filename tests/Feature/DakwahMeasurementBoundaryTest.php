@@ -6,8 +6,8 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use App\Models\User;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Services\ShareTrackingService;
 use App\Support\Share\ShareMetricReader;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 test('invalid reporting starts withhold measurements consistently across readers', function (mixed $reportingStart): void {
     config(['share-tracking.reporting.reporting_start' => $reportingStart]);
     $user = User::factory()->create();
-    app(ShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
+    app(AffiliatesShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
     $analytics = app(ShareTrackingAnalyticsService::class);
 
     $canonical = app(ShareMetricReader::class)->summarize(
@@ -59,7 +59,7 @@ test('landing browser history remains visible in channel breakdowns without visi
     config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
     $this->travelTo(CarbonImmutable::parse('2026-11-05T12:00:00Z'));
     $user = User::factory()->create();
-    app(ShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
+    app(AffiliatesShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
     $link = AffiliateLink::query()->firstOrFail();
 
     AffiliateAttribution::query()->create([
@@ -150,7 +150,7 @@ test('future facts are excluded from user and link measurements even later on th
     config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
     $this->travelTo(CarbonImmutable::parse('2026-11-05T12:00:00Z'));
     $user = User::factory()->create();
-    app(ShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
+    app(AffiliatesShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Events');
     $link = AffiliateLink::query()->firstOrFail();
     dakwahBoundaryFacts($link, $link, now()->subMinute());
     dakwahBoundaryFacts($link, $link, now()->addHours($futureHours));
@@ -194,7 +194,7 @@ test('link detail excludes foreign affiliate facts incorrectly pointing at an ow
     $this->travelTo(CarbonImmutable::parse('2026-11-05T12:00:00Z'));
     $user = User::factory()->create();
     $other = User::factory()->create();
-    $shares = app(ShareTrackingService::class);
+    $shares = app(AffiliatesShareTrackingService::class);
     $shares->attributedUrl($user, route('events.index'), 'Events');
     $link = AffiliateLink::query()->firstOrFail();
     $shares->attributedUrl($other, route('events.index'), 'Events');
@@ -227,7 +227,7 @@ test('deactivated links keep their historical detail report readable without cre
     config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
     $this->travelTo(CarbonImmutable::parse('2026-11-05T12:00:00Z'));
     $user = User::factory()->create();
-    app(ShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Historical events');
+    app(AffiliatesShareTrackingService::class)->attributedUrl($user, route('events.index'), 'Historical events');
     $link = AffiliateLink::query()->firstOrFail();
     dakwahBoundaryFacts($link, $link, now()->subMinute());
     $link->update(['deactivated_at' => now()]);

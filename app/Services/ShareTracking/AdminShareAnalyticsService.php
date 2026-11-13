@@ -11,7 +11,6 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Models\User;
-use App\Services\ShareTrackingService;
 use App\Support\Share\ShareMetricReader;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use App\Support\ShareTracking\ShareTrackingProfile;
@@ -95,7 +94,7 @@ use Illuminate\Support\Facades\DB;
 final readonly class AdminShareAnalyticsService
 {
     public function __construct(
-        private ShareTrackingService $shareTrackingService,
+        private AffiliatesShareTrackingService $shareTrackingService,
         private ShareMetricReader $metricReader,
     ) {}
 

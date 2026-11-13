@@ -10,7 +10,7 @@ use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Models\Language;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -33,7 +33,7 @@ class FrontendFormContractService
         private readonly DocumentationLibrary $documentationLibrary,
         private readonly McpTokenManager $mcpTokenManager,
         private readonly GitHubIssueReporterContract $gitHubIssueReporter,
-        private readonly ShareTrackingService $shareTrackingService,
+        private readonly AffiliatesShareTrackingService $shareTrackingService,
     ) {}
 
     /**

@@ -17,7 +17,7 @@ use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\ShareCohortProjection;
 use App\Models\ShareSignalReaderCursor;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Support\Share\CommittedShareSignalProducer;
 use Illuminate\Http\Request;
@@ -37,7 +37,7 @@ function cssDrainRaceCase(TestCase $testCase): void
         // Four committed shares through REAL ingestion; the observer
         // produces four real trusted signals inline (sync queue).
         foreach (['copy_link', 'whatsapp', 'telegram', 'threads'] as $provider) {
-            app(ShareTrackingService::class)->recordShareAction(
+            app(AffiliatesShareTrackingService::class)->recordShareAction(
                 $provider,
                 $member,
                 (string) $link->custom_slug,

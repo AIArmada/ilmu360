@@ -28,7 +28,6 @@ use AIArmada\Links\Models\Link;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Services\ShareTrackingService;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Http\Request;
@@ -88,7 +87,7 @@ function wp3ClaimRaceCase(TestCase $testCase): void
 
         // Real guest issuance through current source: one guest identity
         // with one single-purpose claim capability.
-        $payload = app(ShareTrackingService::class)->sharePayload(
+        $payload = app(AffiliatesShareTrackingService::class)->sharePayload(
             null,
             route('events.index'),
             'Majlis',
@@ -191,7 +190,7 @@ function wp3SlugRaceCase(TestCase $testCase): void
             ->and(Link::query()->withoutOwnerScope()->value('slug'))->not->toBeNull();
 
         // A second destination mints a distinct token and slug.
-        $other = app(ShareTrackingService::class)->createOrReuseLink(
+        $other = app(AffiliatesShareTrackingService::class)->createOrReuseLink(
             $sharer,
             route('events.index', ['category' => 'fiqh']),
             'Majlis',
@@ -220,7 +219,7 @@ function wp3SlugForcedRaceCase(TestCase $testCase): void
 
         // Mint the member affiliate on an unrelated destination; the
         // raced destination starts with a genuinely empty lookup.
-        app(ShareTrackingService::class)->createOrReuseLink($sharer, $pageUrl, 'Majlis', 'web');
+        app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $pageUrl, 'Majlis', 'web');
 
         $affiliate = Affiliate::query()
             ->where('owner_type', $sharer->getMorphClass())
@@ -245,7 +244,7 @@ function wp3SlugForcedRaceCase(TestCase $testCase): void
                     'url' => $raceUrl,
                 ],
             ], static function () use ($sharer, $raceUrl): array {
-                $link = app(ShareTrackingService::class)->createOrReuseLink($sharer, $raceUrl, 'Majlis', 'web');
+                $link = app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $raceUrl, 'Majlis', 'web');
 
                 $commitStartedAt = microtime(true);
 
@@ -292,7 +291,7 @@ function wp3SlugForcedRaceCase(TestCase $testCase): void
         $managedBefore = Link::query()->withoutOwnerScope()->count();
         $converged->deactivate();
 
-        expect(fn () => app(ShareTrackingService::class)->createOrReuseLink($sharer, $raceUrl, 'Majlis', 'web'))
+        expect(fn () => app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $raceUrl, 'Majlis', 'web'))
             ->toThrow(InvalidArgumentException::class);
 
         expect(AffiliateLink::query()->where('affiliate_id', $affiliate->getKey())->count())->toBe(2)
@@ -311,7 +310,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
         $raceUrl = route('events.index', ['category' => 'fiqh']);
 
         // Mint the guest identity; the raced destination starts empty.
-        $issued = app(ShareTrackingService::class)->sharePayload(
+        $issued = app(AffiliatesShareTrackingService::class)->sharePayload(
             null,
             $pageUrl,
             'Majlis',
@@ -348,7 +347,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
                     'url' => $raceUrl,
                 ],
             ], static function () use ($raceUrl, $requestForRace): array {
-                $result = app(ShareTrackingService::class)->sharePayload(
+                $result = app(AffiliatesShareTrackingService::class)->sharePayload(
                     null,
                     $raceUrl,
                     'Majlis',
@@ -401,7 +400,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
         $managedBefore = Link::query()->withoutOwnerScope()->count();
         $converged->deactivate();
 
-        expect(fn () => app(ShareTrackingService::class)->sharePayload(
+        expect(fn () => app(AffiliatesShareTrackingService::class)->sharePayload(
             null,
             $raceUrl,
             'Majlis',
@@ -477,7 +476,7 @@ function wp3DeleteBeforeClaimRaceCase(TestCase $testCase): void
     try {
         $claimant = User::factory()->create(['email' => 'wp3-victim@example.test']);
 
-        $payload = app(ShareTrackingService::class)->sharePayload(
+        $payload = app(AffiliatesShareTrackingService::class)->sharePayload(
             null,
             route('events.index'),
             'Majlis',
@@ -555,7 +554,7 @@ function wp3ClaimBeforeDeleteRaceCase(TestCase $testCase): void
     try {
         $claimant = User::factory()->create(['email' => 'wp3-victim-claimer@example.test']);
 
-        $payload = app(ShareTrackingService::class)->sharePayload(
+        $payload = app(AffiliatesShareTrackingService::class)->sharePayload(
             null,
             route('events.index'),
             'Majlis',
@@ -656,7 +655,7 @@ function wp3DeletePreservesObligationsCase(TestCase $testCase): void
     try {
         $claimant = User::factory()->create(['email' => 'wp3-victim-owes@example.test']);
 
-        $payload = app(ShareTrackingService::class)->sharePayload(
+        $payload = app(AffiliatesShareTrackingService::class)->sharePayload(
             null,
             route('events.index'),
             'Majlis',
@@ -737,7 +736,7 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
         $raceUrl = route('events.index', ['category' => 'fiqh']);
 
         // One guest identity with one link; the raced destination is empty.
-        $issued = app(ShareTrackingService::class)->sharePayload(
+        $issued = app(AffiliatesShareTrackingService::class)->sharePayload(
             null,
             $pageUrl,
             'Majlis',
@@ -840,7 +839,7 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
 
         // Legitimate new traffic on the existing claimed public link still
         // records against its original guest source.
-        $cookie = app(ShareTrackingService::class)->captureRequest(
+        $cookie = app(AffiliatesShareTrackingService::class)->captureRequest(
             Wp2RealDriverHarness::landingRequest($pageUrl.'?share='.$originalToken)
         );
 
@@ -861,7 +860,7 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase): void
         $pageUrl = route('events.index');
         $raceUrl = route('events.index', ['category' => 'fiqh']);
 
-        $issued = app(ShareTrackingService::class)->sharePayload(
+        $issued = app(AffiliatesShareTrackingService::class)->sharePayload(
             null,
             $pageUrl,
             'Majlis',
@@ -898,7 +897,7 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase): void
                 $request = Request::create($raceUrl, 'GET');
                 $request->headers->set('X-Guest-Credential', $credential);
 
-                $result = app(ShareTrackingService::class)->sharePayload(
+                $result = app(AffiliatesShareTrackingService::class)->sharePayload(
                     null,
                     $raceUrl,
                     'Majlis',

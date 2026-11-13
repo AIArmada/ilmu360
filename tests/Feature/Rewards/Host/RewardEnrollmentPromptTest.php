@@ -10,12 +10,12 @@ use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Models\EventCheckin;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
@@ -46,7 +46,7 @@ function makePromptActivityReceipt(User $user): EventCheckin
         'attendance_type' => 'check_in',
     ]);
 
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventCheckin,
         ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey()),
         actor: $user,

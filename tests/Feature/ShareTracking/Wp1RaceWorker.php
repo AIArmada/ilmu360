@@ -8,7 +8,7 @@ declare(strict_types=1);
 // execute it.
 
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\RealDriverFixture;
@@ -40,7 +40,6 @@ $title = (string) ($options['title'] ?? '');
 $readyDir = (string) ($options['ready-dir'] ?? '');
 $slot = (int) ($options['slot'] ?? 0);
 
-
 if (preg_match('/^share_rewards_test_[a-z0-9_]{1,43}$/', $database) !== 1) {
     $fail('Refusing a database outside the isolated worker namespace.');
 }
@@ -61,7 +60,6 @@ $app = require $basePath.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
 $workerConfig = RealDriverFixture::connectionConfig($database);
-
 
 config(['database.connections.wp1_race_worker' => $workerConfig]);
 config(['database.default' => 'wp1_race_worker']);
@@ -103,7 +101,7 @@ while (! is_file($readyDir.'/ready-'.$peer)) {
 }
 
 try {
-    $link = app(ShareTrackingService::class)->createOrReuseLink($user, $url, $title, 'web');
+    $link = app(AffiliatesShareTrackingService::class)->createOrReuseLink($user, $url, $title, 'web');
 } catch (Throwable $exception) {
     $fail(get_class($exception).': '.$exception->getMessage());
 }

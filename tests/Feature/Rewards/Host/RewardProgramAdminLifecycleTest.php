@@ -18,13 +18,13 @@ use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardFundingEntry;
 use AIArmada\Rewards\Models\RewardFundingSource;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\EventCheckin;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
-use App\Support\ShareTracking\ActivityRewardBusinessKey;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Support\ShareTracking\ActivityRewardBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -122,7 +122,7 @@ it('runs a staff-managed funded programme through explicit enrolment and a direc
         'checkin:'.(string) $checkin->getKey(),
     );
 
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventCheckin,
         $shareOutcomeKey,
         actor: $member,

@@ -14,7 +14,7 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Models\ShareBrowserSelection;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Auth\SignupAttributionSource;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Support\Share\ShareProfileScope;
@@ -27,7 +27,7 @@ use InvalidArgumentException;
 final readonly class AffiliateSignupAttributionSourceResolver implements SignupAttributionSourceResolver
 {
     public function __construct(
-        private ShareTrackingService $shareTrackingService,
+        private AffiliatesShareTrackingService $shareTrackingService,
         private AffiliateLookup $affiliateLookup,
     ) {}
 

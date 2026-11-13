@@ -12,11 +12,6 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentAffiliates\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
 use App\Actions\Fortify\CreateNewUser;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Livewire\Pages\Dashboard\DakwahIndex;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
@@ -29,10 +24,15 @@ use App\Models\Registration;
 use App\Models\Series;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Services\ShareTrackingService;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
@@ -233,7 +233,7 @@ test('a deactivated share link records no later visits or attributed signup cred
     $signupRequest = Request::create($destination, 'POST');
     $signupRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $signupKey = ShareOutcomeBusinessKey::signup((string) $visitor->getKey());
-    app(ShareTrackingService::class)->recordSignup($visitor, $signupRequest);
+    app(AffiliatesShareTrackingService::class)->recordSignup($visitor, $signupRequest);
 
     $receipt = ShareSourceAttributionReceipt::query()
         ->where('business_key', $signupKey)
@@ -319,7 +319,7 @@ test('disabled share profile fallback still validates public destinations', func
 });
 
 test('deleting share tracking detaches links-managed rows only for that sharer', function (): void {
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $deletedData = $service->createOrReuseLink($this->sharer, route('events.index'));
     $otherUser = User::factory()->create();
     $keptData = $service->createOrReuseLink($otherUser, route('events.index'));
@@ -1069,7 +1069,7 @@ test('registration refunds reverse attributed registration and check-in outcomes
     ]);
     $cookie = shareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
     $request = Request::create('/', 'GET', [], [config('share-tracking.cookie.name') => $cookie]);
-    $trackingService = app(ShareTrackingService::class);
+    $trackingService = app(AffiliatesShareTrackingService::class);
 
     $registrationKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
     $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
@@ -1470,7 +1470,7 @@ test('resolved active attribution prefers canonical affiliate subject fields', f
     $request = Request::create(route('events.show', $event));
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $resolved = app(ShareTrackingService::class)->resolveActiveAttribution($request);
+    $resolved = app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($request);
 
     expect($resolved)->not->toBeNull()
         ->and($resolved?->subjectType)->toBe('event')
@@ -1869,7 +1869,7 @@ test('impact dashboard pages are only available to the owning sharer', function 
         ->assertOk()
         ->assertSee('My shared links');
 
-    $trackedUrl = app(ShareTrackingService::class)->attributedUrl(
+    $trackedUrl = app(AffiliatesShareTrackingService::class)->attributedUrl(
         $this->sharer,
         $link->destination_url,
         $link->subject_title_snapshot,
@@ -1895,7 +1895,7 @@ test('admin can view and deactivate a share affiliate link while a member has no
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $member = User::factory()->create();
-    $linkData = app(ShareTrackingService::class)->createOrReuseLink($this->sharer, route('events.index'));
+    $linkData = app(AffiliatesShareTrackingService::class)->createOrReuseLink($this->sharer, route('events.index'));
     $link = AffiliateLink::query()->findOrFail($linkData->id);
 
     $this->actingAs($admin)

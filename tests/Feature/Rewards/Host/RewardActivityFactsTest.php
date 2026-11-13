@@ -27,16 +27,16 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Models\RewardSourceComponentClaim;
 use App\Actions\Rewards\EnrollRewardProgramMemberAction as HostEnrollRewardProgramMemberAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Rewards\ActivityRewardSourceFactReader;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -109,7 +109,7 @@ function seedActivityRewardProgramWithRules(
  */
 function activityShareRequest(User $sharer): array
 {
-    $tracking = app(ShareTrackingService::class);
+    $tracking = app(AffiliatesShareTrackingService::class);
     $pageUrl = route('events.index');
     $tracking->createOrReuseLink($sharer, $pageUrl, 'Activity rewards', 'web');
 
@@ -243,7 +243,7 @@ it('awards direct registrations and check-ins once to the participant', function
         'registration:'.(string) $registration->getKey(),
     );
 
-    app(ShareTrackingService::class)->recordOutcome(
+    app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         $registrationKey,
         actor: $actor,
@@ -265,7 +265,7 @@ it('awards direct registrations and check-ins once to the participant', function
         'checkin:'.(string) $checkin->getKey(),
     );
 
-    app(ShareTrackingService::class)->recordInheritedOutcome(
+    app(AffiliatesShareTrackingService::class)->recordInheritedOutcome(
         ShareOutcomeType::EventCheckin,
         $checkinKey,
         $registrationKey,
@@ -328,7 +328,7 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
         ],
     ], RewardProgramMode::Points, $actor);
 
-    $shareTracking = app(ShareTrackingService::class);
+    $shareTracking = app(AffiliatesShareTrackingService::class);
     $shareTracking->recordSignup($actor);
     $signupKey = ActivityRewardBusinessKey::for(ShareOutcomeType::Signup, 'user:'.(string) $actor->getKey());
     evaluateHostRewardFact($program, $signupKey, (string) $actor->getKey(), RewardBeneficiaryRole::Participant);
@@ -397,7 +397,7 @@ it('awards the participant and sharer once each for attributed registration and 
         'payment_status' => 'unpaid',
     ]);
     $registrationShareKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
-    $registrationOutcome = app(ShareTrackingService::class)->recordOutcome(
+    $registrationOutcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         $registrationShareKey,
         actor: $actor,
@@ -417,7 +417,7 @@ it('awards the participant and sharer once each for attributed registration and 
         'attendance_type' => 'check_in',
     ]);
     $checkinShareKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
-    $checkinOutcome = app(ShareTrackingService::class)->recordInheritedOutcome(
+    $checkinOutcome = app(AffiliatesShareTrackingService::class)->recordInheritedOutcome(
         ShareOutcomeType::EventCheckin,
         $checkinShareKey,
         $registrationShareKey,
@@ -450,7 +450,7 @@ it('awards the participant and sharer once each for attributed registration and 
 it('rejects cancelled registrations and reverses an award when a source is cancelled later', function (): void {
     $actor = User::factory()->create();
     [$program] = seedActivityRewardProgram('activity-corrections', $actor);
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
 
     $cancelled = Registration::factory()->forRegistrant($actor)->create([
         'status' => 'cancelled',
@@ -583,7 +583,7 @@ it('dispatches signup activity evaluation after recording the user', function ()
         'user:'.(string) $user->getKey(),
     );
 
-    app(ShareTrackingService::class)->recordSignup($user);
+    app(AffiliatesShareTrackingService::class)->recordSignup($user);
 
     Queue::assertPushed(EvaluateRewardEntitlementJob::class, fn (EvaluateRewardEntitlementJob $job): bool => $job->businessKey === $activityKey);
     Queue::assertPushedTimes(EvaluateRewardEntitlementJob::class, 2);
@@ -630,7 +630,7 @@ it('backfills eligible preclaim signup facts for both the sharer and participant
         ]],
     ], RewardProgramMode::Points);
 
-    $tracking = app(ShareTrackingService::class);
+    $tracking = app(AffiliatesShareTrackingService::class);
     $tracking->recordSignup($member);
     $share = activityShareRequest($member);
     $tracking->recordSignup($visitor, $share['request']);
@@ -726,7 +726,7 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
     ]);
 
     $share = activityShareRequest($sharer);
-    $tracking = app(ShareTrackingService::class);
+    $tracking = app(AffiliatesShareTrackingService::class);
     $inWindowKeys = [];
 
     foreach (range(1, 3) as $number) {
@@ -836,7 +836,7 @@ it('keeps enroll-first share rewards and source claims idempotent after reaccept
     $share = activityShareRequest($sharer);
     $shareKey = ShareOutcomeBusinessKey::signup((string) $visitor->getKey());
     Queue::fake([EvaluateRewardEntitlementJob::class]);
-    app(ShareTrackingService::class)->recordSignup($visitor, $share['request']);
+    app(AffiliatesShareTrackingService::class)->recordSignup($visitor, $share['request']);
 
     evaluateScopedRewardJob($shareKey);
 

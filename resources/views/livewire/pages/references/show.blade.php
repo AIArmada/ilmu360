@@ -20,7 +20,7 @@
         })
         ->values();
     $shareText = trim($referenceTitle . ' - ' . config('app.name'));
-    $shareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
+    $shareLinks = app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks(
         $referenceUrl,
         $shareText,
         $referenceTitle,

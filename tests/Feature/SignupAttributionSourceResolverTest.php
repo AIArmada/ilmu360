@@ -15,7 +15,7 @@ use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Models\ShareBrowserSelection;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Auth\SignupAttributionSource;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
@@ -41,7 +41,7 @@ beforeEach(function (): void {
  */
 function signupResolverShareFixture(?User $sharer = null): array
 {
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
     $pageUrl = route('events.index');
     $payload = $service->sharePayload(
         $sharer,

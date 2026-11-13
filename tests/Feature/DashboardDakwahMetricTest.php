@@ -4,7 +4,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 
 beforeEach(function (): void {
     config(['share-tracking.reporting.reporting_start' => '2026-10-01']);
@@ -12,7 +12,7 @@ beforeEach(function (): void {
 
 test('dashboard presents an attributed follow as a recorded response rather than a supported session', function (): void {
     $user = User::factory()->create();
-    $linkData = app(ShareTrackingService::class)->createOrReuseLink($user, route('institutions.index'), 'Institutions');
+    $linkData = app(AffiliatesShareTrackingService::class)->createOrReuseLink($user, route('institutions.index'), 'Institutions');
     $link = AffiliateLink::query()->findOrFail($linkData->id);
     AffiliateConversion::query()->create([
         'affiliate_id' => $link->affiliate_id,

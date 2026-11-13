@@ -10,15 +10,15 @@ use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Models\Response;
 use App\Actions\Engagement\MarkEventGoingAction;
 use App\Actions\Engagement\RemoveEventGoingAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -28,7 +28,7 @@ use Tests\TestCase;
 
 function d4cGoingShareCookie(TestCase $testCase, Event $event, User $sharer): string
 {
-    app(ShareTrackingService::class)->createOrReuseLink($sharer, route('events.show', $event), 'Majlis', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, route('events.show', $event), 'Majlis', 'web');
 
     $affiliate = Affiliate::query()
         ->where('owner_type', $sharer->getMorphClass())

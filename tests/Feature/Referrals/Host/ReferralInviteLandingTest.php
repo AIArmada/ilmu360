@@ -13,7 +13,7 @@ use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -38,7 +38,7 @@ function createLandingInvite(User $referrer, ?string $contact = null): array
 it('stashes a guest invite token for sign-in and keeps share capture active on the landing route', function (): void {
     $referrer = User::factory()->create();
     [$invite, $token] = createLandingInvite($referrer);
-    app(ShareTrackingService::class)->createOrReuseLink($referrer, route('home'), 'Referral landing', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($referrer, route('home'), 'Referral landing', 'web');
     $affiliate = Affiliate::query()
         ->where('owner_type', $referrer->getMorphClass())
         ->where('owner_id', $referrer->getKey())

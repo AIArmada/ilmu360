@@ -5,7 +5,7 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Support\Facades\DB;
@@ -59,7 +59,7 @@ class CreateNewUser implements CreatesNewUsers
                 app(SignupAttributionContextResolver::class)->resolve(request()),
                 true,
             );
-            app(ShareTrackingService::class)->recordSignup($user, request());
+            app(AffiliatesShareTrackingService::class)->recordSignup($user, request());
             app(SignalRecorder::class)->record(
                 eventName: 'auth.signup.completed',
                 eventCategory: 'auth',

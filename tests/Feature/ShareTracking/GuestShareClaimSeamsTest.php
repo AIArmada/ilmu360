@@ -6,7 +6,7 @@ use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ClaimRecipients;
 use App\Shared\ShareTracking\GuestClaims;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
@@ -92,7 +92,7 @@ it('keeps the guest claim result in the shared contract layer', function (): voi
 
 it('claims and replays a guest history through the feature api', function (): void {
     $claimant = User::factory()->create();
-    $payload = app(ShareTrackingService::class)->sharePayload(
+    $payload = app(AffiliatesShareTrackingService::class)->sharePayload(
         null,
         route('events.index'),
         'Share this page',

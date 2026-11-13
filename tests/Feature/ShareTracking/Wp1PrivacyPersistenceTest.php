@@ -8,7 +8,7 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\Support\IpHasher;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -150,7 +150,7 @@ it('ignores tracking writes for private paths presented with share tokens', func
     $payload = wp1PrivacySharePayload($this, $this->sharer, route('events.show', $this->event));
     $token = (string) $payload['tracking_token'];
 
-    $service = app(ShareTrackingService::class);
+    $service = app(AffiliatesShareTrackingService::class);
 
     foreach ([
         '/account/profile',

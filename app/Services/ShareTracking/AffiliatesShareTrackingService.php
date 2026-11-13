@@ -32,14 +32,14 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use App\Contracts\ShareTrackingContract;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
-use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
 use App\Features\ShareTracking\Api\EffectReceipts;
+use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
 use App\Models\Event;
 use App\Models\Institution;
@@ -50,10 +50,11 @@ use App\Models\ShareBrowserSelection;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
 use App\Support\ShareTracking\SealedGuestIdentityException;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\ShareTracking\ShareProfileNotEligibleException;
 use App\Support\ShareTracking\ShareTrackingFinance;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
@@ -72,7 +73,7 @@ use InvalidArgumentException;
 use LogicException;
 use Throwable;
 
-final readonly class AffiliatesShareTrackingService
+final readonly class AffiliatesShareTrackingService implements ShareTrackingContract
 {
     private const int SHARE_TOKEN_LENGTH = 16;
 

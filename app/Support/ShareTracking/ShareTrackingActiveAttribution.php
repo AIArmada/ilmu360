@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ActiveAttribution;
 use Illuminate\Http\Request;
 
@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
  */
 final readonly class ShareTrackingActiveAttribution implements ActiveAttribution
 {
-    public function __construct(private ShareTrackingService $shareTracking) {}
+    public function __construct(private AffiliatesShareTrackingService $shareTracking) {}
 
     public function resolveId(?object $request = null): ?string
     {

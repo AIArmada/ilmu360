@@ -21,7 +21,7 @@ use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\ShareCohortProjection;
 use App\Models\ShareSignalReaderCursor;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Support\Share\CommittedShareSignalProducer;
 use Carbon\CarbonImmutable;
@@ -187,7 +187,7 @@ function cslaLateArrivalCase(TestCase $testCase): void
         $testCase->travelTo(CarbonImmutable::parse('2026-05-10T08:00:00Z'));
 
         try {
-            app(ShareTrackingService::class)->recordShareAction(
+            app(AffiliatesShareTrackingService::class)->recordShareAction(
                 'copy_link',
                 $member,
                 (string) $link->custom_slug,
@@ -210,7 +210,7 @@ function cslaLateArrivalCase(TestCase $testCase): void
         $testCase->travelTo(CarbonImmutable::parse('2026-05-11T08:00:00Z'));
 
         try {
-            app(ShareTrackingService::class)->recordShareAction(
+            app(AffiliatesShareTrackingService::class)->recordShareAction(
                 'whatsapp',
                 $member,
                 (string) $link->custom_slug,

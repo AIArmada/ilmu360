@@ -10,7 +10,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Contracts\Console\Kernel;
@@ -144,7 +144,7 @@ try {
 
             $provider = $payload['slots'][$slot]['provider'] ?? $payload['provider'] ?? 'copy_link';
 
-            app(ShareTrackingService::class)->recordShareAction(
+            app(AffiliatesShareTrackingService::class)->recordShareAction(
                 (string) $provider,
                 $user,
                 (string) ($payload['tracking_token'] ?? ''),
@@ -167,7 +167,7 @@ try {
                 $request->cookies->set($cookieName, $cookie);
             }
 
-            $data = app(ShareTrackingService::class)->recordOutcome(
+            $data = app(AffiliatesShareTrackingService::class)->recordOutcome(
                 $type,
                 $businessKey,
                 null,
@@ -196,7 +196,7 @@ try {
                 $request->cookies->set($cookieName, $cookie);
             }
 
-            return ['encoded' => app(ShareTrackingService::class)->captureRequest($request)];
+            return ['encoded' => app(AffiliatesShareTrackingService::class)->captureRequest($request)];
         })(),
         'drain' => (static function () use ($payload): array {
             $report = app(CommittedShareSignals::class)->drain((int) ($payload['batch'] ?? 25));

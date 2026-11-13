@@ -17,7 +17,6 @@ use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Services\ShareTrackingService;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -401,7 +400,7 @@ it('re-evaluates self credit after the claim without rewriting frozen attributio
 
     // The claimant acting through their own claimed history earns
     // nothing: self credit with an honest unattributed receipt.
-    $outcome = app(ShareTrackingService::class)->recordSignup($this->claimant, $signupRequest);
+    $outcome = app(AffiliatesShareTrackingService::class)->recordSignup($this->claimant, $signupRequest);
 
     expect($outcome)->toBeNull();
 
@@ -482,7 +481,7 @@ it('never auto-claims through signup or login', function (): void {
 });
 
 it('fails honestly when the member recipient cannot receive', function (): void {
-    app(ShareTrackingService::class)->createOrReuseLink($this->claimant, route('events.index'), 'Majlis', 'web');
+    app(AffiliatesShareTrackingService::class)->createOrReuseLink($this->claimant, route('events.index'), 'Majlis', 'web');
 
     $member = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($this->claimant);
 
@@ -749,8 +748,8 @@ it('attributes later anonymous history to its own claimant, never the first', fu
         return $request;
     };
 
-    expect(app(ShareTrackingService::class)->recordSignup($this->claimant, $requestFor($cookie)))->not->toBeNull()
-        ->and(app(ShareTrackingService::class)->recordSignup($this->rival, $requestFor($cookie)))->toBeNull();
+    expect(app(AffiliatesShareTrackingService::class)->recordSignup($this->claimant, $requestFor($cookie)))->not->toBeNull()
+        ->and(app(AffiliatesShareTrackingService::class)->recordSignup($this->rival, $requestFor($cookie)))->toBeNull();
 
     // The claimant keeps recording on their owned tokens after the seal;
     // strangers and the other claimant are refused on each history.
@@ -887,7 +886,7 @@ it('revokes claims and disarms sources when the member profile is already gone',
 
     expect($service->findAffiliateForUser($this->claimant))->toBeNull();
 
-    app(ShareTrackingService::class)->deleteUserTracking($this->claimant);
+    app(AffiliatesShareTrackingService::class)->deleteUserTracking($this->claimant);
 
     expect(AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->value('status'))
         ->toBe('revoked');
@@ -904,7 +903,7 @@ it('revokes claims and disarms sources when the member profile is already gone',
     $response->assertRedirect();
     expect((string) $response->headers->get('Location'))->not->toContain('share=');
 
-    app(ShareTrackingService::class)->deleteUserTracking($this->claimant);
+    app(AffiliatesShareTrackingService::class)->deleteUserTracking($this->claimant);
 
     expect(AffiliateClaim::query()->count())->toBe(1)
         ->and(AffiliateClaim::query()->value('status'))->toBe('revoked');
@@ -926,7 +925,7 @@ it('preserves settlement and the public redirect when a claimant is deleted', fu
     $request = Request::create(route('events.show', $event), 'GET');
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    expect(app(ShareTrackingService::class)->recordSignup($stranger, $request))->not->toBeNull();
+    expect(app(AffiliatesShareTrackingService::class)->recordSignup($stranger, $request))->not->toBeNull();
 
     $conversionId = (string) AffiliateConversion::query()->value('id');
 

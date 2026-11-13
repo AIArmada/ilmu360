@@ -34,7 +34,7 @@
     $otherRoleParticipations = $this->otherRoleParticipations;
     $personUrl = route('persons.show', $person);
     $shareText = trim($person->formatted_name . ' - ' . config('app.name'));
-    $shareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
+    $shareLinks = app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks(
         $personUrl,
         $shareText,
         $person->formatted_name,

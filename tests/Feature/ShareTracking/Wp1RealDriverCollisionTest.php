@@ -8,7 +8,7 @@ declare(strict_types=1);
 // insert in a nested DB::transaction (savepoint) so a unique violation rolls
 // back to the savepoint only and the caller's outer transaction stays usable
 // for the winner requery. These tests prove that construct through the
-// actual public workflow - ShareTrackingService::createOrReuseLink with
+// actual public workflow - AffiliatesShareTrackingService::createOrReuseLink with
 // persisted User fixtures - on worker-namespaced databases built from the
 // 11.4 fixtures. If the application creation fix were deleted, the
 // collision case would poison the PostgreSQL outer transaction (25P02)
@@ -24,7 +24,6 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\Active;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Services\ShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingProfile;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
@@ -39,7 +38,7 @@ function wp1RealCollisionCase(TestCase $testCase): void
     try {
         Wp1RealDriverHarness::migrateWorkerDatabase();
 
-        $service = app(ShareTrackingService::class);
+        $service = app(AffiliatesShareTrackingService::class);
         $pageUrl = route('events.index');
 
         $victim = User::factory()->create(['email' => 'wp1-race-victim@example.test']);

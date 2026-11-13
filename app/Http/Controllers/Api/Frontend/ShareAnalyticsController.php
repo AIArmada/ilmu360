@@ -7,11 +7,11 @@ namespace App\Http\Controllers\Api\Frontend;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Data\ShareTracking\ShareTrackingVisitData;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Enums\ShareSubjectType;
 use App\Platform\Api\ApiPagination;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Services\ShareTrackingService;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -30,7 +30,7 @@ class ShareAnalyticsController extends FrontendController
 {
     public function __construct(
         private readonly ShareTrackingAnalyticsService $analytics,
-        private readonly ShareTrackingService $shareTrackingService,
+        private readonly AffiliatesShareTrackingService $shareTrackingService,
     ) {}
 
     #[Endpoint(

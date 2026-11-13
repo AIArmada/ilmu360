@@ -186,7 +186,7 @@ use App\Policies\RewardRecoveryPolicy;
 use App\Services\Captcha\TurnstileVerifier;
 use App\Services\ContributionEntityMutationService;
 use App\Services\Notifications\ContributionRequestNotificationService;
-use App\Services\ShareTrackingService;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
@@ -466,9 +466,10 @@ class AppServiceProvider extends ServiceProvider
             },
         );
 
-        // Prefer concrete facade for constructor injection of ShareTrackingService;
-        // also bind the contract so optional integrations can type-hint ShareTrackingContract.
-        $this->app->singleton(ShareTrackingContract::class, ShareTrackingService::class);
+        // ShareTrackingContract stays the public seam for test doubles and
+        // optional integrations; contract resolution is a singleton of the
+        // concrete affiliates service. Direct concrete injection stays transient.
+        $this->app->singleton(ShareTrackingContract::class, AffiliatesShareTrackingService::class);
         $this->app->bind(SignupAttributionSourceResolver::class, class_exists(Affiliate::class)
             ? AffiliateSignupAttributionSourceResolver::class
             : NullSignupAttributionSourceResolver::class);

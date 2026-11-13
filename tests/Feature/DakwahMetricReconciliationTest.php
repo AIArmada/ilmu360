@@ -8,12 +8,12 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Services\ShareTrackingService;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Share\ShareMetricReader;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingProfile;
@@ -26,7 +26,7 @@ beforeEach(function (): void {
 
 function dakwahReconciliationLink(User $user, string $url, string $title = 'Shared page'): AffiliateLink
 {
-    $data = app(ShareTrackingService::class)->createOrReuseLink($user, $url, $title);
+    $data = app(AffiliatesShareTrackingService::class)->createOrReuseLink($user, $url, $title);
 
     return AffiliateLink::query()->withoutGlobalScope('affiliate_owner')->findOrFail($data->id);
 }
