@@ -13,12 +13,13 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Models\SignalEvent;
+use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\ShareCohortProjection;
 use App\Models\ShareSignalReaderCursor;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Support\Share\CommittedShareSignalProducer;
-use App\Support\Share\CommittedShareSignalReader;
 use Illuminate\Http\Request;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
 use Tests\TestCase;
@@ -61,7 +62,7 @@ function cssDrainRaceCase(TestCase $testCase): void
             ->and(ShareCohortProjection::query()->distinct()->count('business_key'))->toBe(4);
 
         $cursor = ShareSignalReaderCursor::query()
-            ->where('reader_name', CommittedShareSignalReader::READER_NAME)
+            ->where('reader_name', CommittedShareSignal::READER_NAME)
             ->firstOrFail();
 
         // Every signal applied exactly once; the cursor sits at the end.
@@ -69,7 +70,7 @@ function cssDrainRaceCase(TestCase $testCase): void
             ->and($cursor->last_signal_event_id)->not->toBeNull();
 
         // A quiet drain afterwards is a verified no-op: no ghost backlog.
-        expect(app(CommittedShareSignalReader::class)->drain(25))
+        expect(app(CommittedShareSignals::class)->drain(25))
             ->toBe(['processed' => 0, 'projected' => 0, 'failed' => 0]);
     } finally {
         ShareMetricRaceHarness::teardown($database, $previous);

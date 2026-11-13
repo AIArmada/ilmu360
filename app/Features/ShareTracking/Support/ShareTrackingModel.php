@@ -48,6 +48,30 @@ final class ShareTrackingModel
     }
 
     /**
+     * @return class-string<Model>
+     */
+    public static function cohortProjection(): string
+    {
+        return MorphModelResolver::resolve('share_cohort_projection');
+    }
+
+    /**
+     * @return class-string<Model>
+     */
+    public static function signalReaderCursor(): string
+    {
+        return MorphModelResolver::resolve('share_signal_reader_cursor');
+    }
+
+    /**
+     * @return class-string<Model>
+     */
+    public static function signalReaderSkip(): string
+    {
+        return MorphModelResolver::resolve('share_signal_reader_skip');
+    }
+
+    /**
      * @return Builder<Model>
      */
     public static function browserSelectionQuery(): Builder
@@ -77,5 +101,29 @@ final class ShareTrackingModel
     public static function outcomeCorrectionQuery(): Builder
     {
         return self::outcomeCorrection()::query();
+    }
+
+    /**
+     * @return Builder<Model>
+     */
+    public static function cohortProjectionQuery(): Builder
+    {
+        return self::cohortProjection()::query();
+    }
+
+    /**
+     * @return Builder<Model>
+     */
+    public static function signalReaderCursorQuery(): Builder
+    {
+        return self::signalReaderCursor()::query();
+    }
+
+    /**
+     * @return Builder<Model>
+     */
+    public static function signalReaderSkipQuery(): Builder
+    {
+        return self::signalReaderSkip()::query();
     }
 }

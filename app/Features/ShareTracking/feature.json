@@ -5,11 +5,20 @@
     "table:share_browser_selections": [
       "App\\Features\\ShareTracking\\Actions\\BrowserSelection\\LockBrowserSelectionAction"
     ],
+    "table:share_cohort_projections": [
+      "App\\Features\\ShareTracking\\Actions\\CommittedSignals\\DrainCommittedShareSignalsAction"
+    ],
     "table:share_effect_receipts": [
       "App\\Features\\ShareTracking\\Persistence\\DatabaseEffectReceipts"
     ],
     "table:share_outcome_corrections": [
       "App\\Features\\ShareTracking\\Persistence\\DatabaseOutcomeCorrections"
+    ],
+    "table:share_signal_reader_cursors": [
+      "App\\Features\\ShareTracking\\Actions\\CommittedSignals\\DrainCommittedShareSignalsAction"
+    ],
+    "table:share_signal_reader_skips": [
+      "App\\Features\\ShareTracking\\Actions\\CommittedSignals\\DrainCommittedShareSignalsAction"
     ],
     "table:share_source_attribution_receipts": [
       "App\\Features\\ShareTracking\\Persistence\\DatabaseSourceAttributionReceipts"

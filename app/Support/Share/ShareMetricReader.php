@@ -10,6 +10,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
+use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +50,7 @@ final class ShareMetricReader
      *
      * @var list<string>
      */
-    public const array VALID_STATUSES = ['qualified', 'approved', 'paid'];
+    public const array VALID_STATUSES = CommittedShareSignal::VALID_CONVERSION_STATUSES;
 
     /**
      * @param  array<int, string>  $outcomes  Optional conversion_type filter; scopes by_outcome/by_category only.

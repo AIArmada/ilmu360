@@ -119,8 +119,11 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
 use App\Models\ShareBrowserSelection;
+use App\Models\ShareCohortProjection;
 use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
+use App\Models\ShareSignalReaderCursor;
+use App\Models\ShareSignalReaderSkip;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\Space;
 use App\Models\User;
@@ -656,8 +659,11 @@ class AppServiceProvider extends ServiceProvider
             'language' => Language::class,
             'reference' => Reference::class,
             'share_browser_selection' => ShareBrowserSelection::class,
+            'share_cohort_projection' => ShareCohortProjection::class,
             'share_effect_receipt' => ShareEffectReceipt::class,
             'share_outcome_correction' => ShareOutcomeCorrection::class,
+            'share_signal_reader_cursor' => ShareSignalReaderCursor::class,
+            'share_signal_reader_skip' => ShareSignalReaderSkip::class,
             'share_source_attribution_receipt' => ShareSourceAttributionReceipt::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,

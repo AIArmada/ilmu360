@@ -7,12 +7,12 @@ declare(strict_types=1);
 // autoloaders never execute it.
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingService;
-use App\Support\Share\CommittedShareSignalReader;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -199,7 +199,7 @@ try {
             return ['encoded' => app(ShareTrackingService::class)->captureRequest($request)];
         })(),
         'drain' => (static function () use ($payload): array {
-            $report = app(CommittedShareSignalReader::class)->drain((int) ($payload['batch'] ?? 25));
+            $report = app(CommittedShareSignals::class)->drain((int) ($payload['batch'] ?? 25));
 
             return [
                 'processed' => $report['processed'],

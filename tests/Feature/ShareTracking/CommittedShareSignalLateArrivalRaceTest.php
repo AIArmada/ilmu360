@@ -17,12 +17,13 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\ShareCohortProjection;
 use App\Models\ShareSignalReaderCursor;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Support\Share\CommittedShareSignalProducer;
-use App\Support\Share\CommittedShareSignalReader;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
@@ -224,7 +225,7 @@ function cslaLateArrivalCase(TestCase $testCase): void
         expect(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(1);
 
         // Newer event drains first from this process, advancing the cursor.
-        $reader = app(CommittedShareSignalReader::class);
+        $reader = app(CommittedShareSignals::class);
 
         expect($reader->drain(25))->toBe(['processed' => 1, 'projected' => 1, 'failed' => 0])
             ->and(ShareCohortProjection::query()->count())->toBe(1);
@@ -256,26 +257,26 @@ function cslaLateArrivalCase(TestCase $testCase): void
             ->and(ShareCohortProjection::query()->where('business_key', 'committed-share:'.$old->getKey())->count())->toBe(1);
 
         $cursor = ShareSignalReaderCursor::query()
-            ->where('reader_name', CommittedShareSignalReader::READER_NAME)
+            ->where('reader_name', CommittedShareSignal::READER_NAME)
             ->firstOrFail();
 
         expect((int) $cursor->processed_total)->toBe(2);
 
         // Quiet drain is a verified no-op; duplicate recovery never duplicates.
-        expect(app(CommittedShareSignalReader::class)->drain(25))
+        expect(app(CommittedShareSignals::class)->drain(25))
             ->toBe(['processed' => 0, 'projected' => 0, 'failed' => 0]);
 
         $duplicate = app(CommittedShareSignalProducer::class)->produce((string) $old->getKey());
 
         expect($duplicate->getKey())->toBe($report['signal_event_id'])
-            ->and(app(CommittedShareSignalReader::class)->drain(25))
+            ->and(app(CommittedShareSignals::class)->drain(25))
             ->toBe(['processed' => 0, 'projected' => 0, 'failed' => 0])
             ->and(ShareCohortProjection::query()->count())->toBe(2);
 
         // Operator replay re-reads the retained log without duplicating.
-        app(CommittedShareSignalReader::class)->resetCursor();
+        app(CommittedShareSignals::class)->resetCursor();
 
-        expect(app(CommittedShareSignalReader::class)->drain(25))
+        expect(app(CommittedShareSignals::class)->drain(25))
             ->toBe(['processed' => 2, 'projected' => 2, 'failed' => 0])
             ->and(ShareCohortProjection::query()->count())->toBe(2);
     } finally {

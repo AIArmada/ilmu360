@@ -14,17 +14,18 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
-use App\Shared\ShareTracking\ShareEffectStatus;
-use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\Event;
 use App\Models\ShareCohortProjection;
 use App\Models\ShareEffectReceipt;
 use App\Models\ShareSignalReaderCursor;
 use App\Models\User;
 use App\Services\ShareTrackingService;
-use App\Support\Share\CommittedShareSignalProducer;
-use App\Support\Share\CommittedShareSignalReader;
+use App\Shared\ShareTracking\CommittedShareSignal;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Support\Share\CommittedShareSignalProducer;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -236,7 +237,7 @@ it('projects signals into cohort stages and resumes after partial drains', funct
     );
     Carbon::setTestNow();
 
-    $reader = new CommittedShareSignalReader;
+    $reader = app(CommittedShareSignals::class);
 
     // Partial drain, as if the process crashed after one event.
     $partial = $reader->drain(1);
@@ -257,7 +258,7 @@ it('projects signals into cohort stages and resumes after partial drains', funct
         ->and(collect($stages)->contains(ShareCohortProjection::STAGE_PARTICIPATED))->toBeTrue()
         ->and(collect($stages)->contains(ShareCohortProjection::STAGE_OBSERVED))->toBeTrue();
 
-    $cursor = ShareSignalReaderCursor::query()->where('reader_name', CommittedShareSignalReader::READER_NAME)->firstOrFail();
+    $cursor = ShareSignalReaderCursor::query()->where('reader_name', CommittedShareSignal::READER_NAME)->firstOrFail();
 
     expect((int) $cursor->processed_total)->toBe(2);
 
@@ -294,14 +295,14 @@ it('skips poison signals loudly without stalling the pipeline', function (): voi
         'properties' => [],
     ], true);
 
-    $result = (new CommittedShareSignalReader)->drain(25);
+    $result = app(CommittedShareSignals::class)->drain(25);
 
     expect($result)->toBe(['processed' => 3, 'projected' => 1, 'failed' => 2])
         ->and(ShareCohortProjection::query()->where('business_key', 'committed-share:'.$touchpoint->getKey())->count())->toBe(1);
 
     // The cursor advanced past the poison: the pipeline is not wedged,
     // and the retained log still holds the evidence for replay.
-    expect((new CommittedShareSignalReader)->drain(25))->toBe(['processed' => 0, 'projected' => 0, 'failed' => 0])
+    expect(app(CommittedShareSignals::class)->drain(25))->toBe(['processed' => 0, 'projected' => 0, 'failed' => 0])
         ->and(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(3);
 });
 

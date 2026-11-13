@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Share;
+namespace App\Features\ShareTracking\Actions\CommittedSignals;
 
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Models\ShareCohortProjection;
-use App\Models\ShareSignalReaderCursor;
-use App\Models\ShareSignalReaderSkip;
+use App\Features\ShareTracking\Api\CommittedShareSignals;
+use App\Features\ShareTracking\Support\ShareTrackingModel;
+use App\Shared\ShareTracking\CommittedShareSignal;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -18,8 +19,8 @@ use RuntimeException;
 use Throwable;
 
 /**
- * The committed-share Signals reader: the actual reader of the package's
- * durable `share.committed_share` signal log.
+ * The actual reader of the package's durable `share.committed_share`
+ * signal log.
  *
  * Reads trusted committed-share events strictly after its own durable
  * cursor and applies the final effect — an idempotent cohort-projection
@@ -46,13 +47,11 @@ use Throwable;
  * for operator replay via resetCursor(), and one bad event never
  * wedges the pipeline.
  *
- * This reader owns ONLY its event name and its cursor row. It never
+ * This action owns ONLY its event name and its cursor row. It never
  * touches share effect receipts (the generic dispatcher's domain).
  */
-final class CommittedShareSignalReader
+final class DrainCommittedShareSignalsAction implements CommittedShareSignals
 {
-    public const string READER_NAME = 'committed-share-cohort';
-
     /**
      * @return array{processed: int, projected: int, failed: int}
      */
@@ -95,20 +94,22 @@ final class CommittedShareSignalReader
      */
     public function resetCursor(): void
     {
-        $this->fenced(function (ShareSignalReaderCursor $cursor): void {
+        $this->fenced(function (Model $cursor): void {
             $cursor->forceFill([
                 'last_occurred_at' => null,
                 'last_signal_event_id' => null,
                 'processed_total' => 0,
             ])->save();
 
-            ShareSignalReaderSkip::query()->where('reader_name', self::READER_NAME)->delete();
+            ShareTrackingModel::signalReaderSkipQuery()
+                ->where('reader_name', CommittedShareSignal::READER_NAME)
+                ->delete();
         });
     }
 
     private function nextEvent(): ?SignalEvent
     {
-        return $this->fenced(function (ShareSignalReaderCursor $cursor): ?SignalEvent {
+        return $this->fenced(function (Model $cursor): ?SignalEvent {
             $backlog = $this->nextBacklogEvent($cursor);
 
             if ($backlog instanceof SignalEvent) {
@@ -119,15 +120,15 @@ final class CommittedShareSignalReader
         });
     }
 
-    private function nextForwardEvent(ShareSignalReaderCursor $cursor): ?SignalEvent
+    private function nextForwardEvent(Model $cursor): ?SignalEvent
     {
         $query = SignalEvent::query()
             ->withoutOwnerScope()
-            ->where('event_name', CommittedShareSignalProducer::EVENT_NAME)
+            ->where('event_name', CommittedShareSignal::EVENT_NAME)
             ->where('ingestion_source', SignalEvent::INGESTION_SOURCE_TRUSTED);
 
-        $at = $cursor->last_occurred_at;
-        $id = $cursor->last_signal_event_id;
+        $at = $cursor->getAttribute('last_occurred_at');
+        $id = $cursor->getAttribute('last_signal_event_id');
 
         if ($at !== null && $id !== null) {
             $query->where(function ($position) use ($at, $id): void {
@@ -150,18 +151,21 @@ final class CommittedShareSignalReader
      * so out-of-order commits and backdated recovery can never hide
      * behind the cursor.
      */
-    private function nextBacklogEvent(ShareSignalReaderCursor $cursor): ?SignalEvent
+    private function nextBacklogEvent(Model $cursor): ?SignalEvent
     {
-        $at = $cursor->last_occurred_at;
-        $id = $cursor->last_signal_event_id;
+        $at = $cursor->getAttribute('last_occurred_at');
+        $id = $cursor->getAttribute('last_signal_event_id');
 
         if ($at === null || $id === null) {
             return null;
         }
 
+        $projectionModel = ShareTrackingModel::cohortProjection();
+        $skipModel = ShareTrackingModel::signalReaderSkip();
+
         $events = (new SignalEvent)->getTable();
-        $projections = (new ShareCohortProjection)->getTable();
-        $skips = (new ShareSignalReaderSkip)->getTable();
+        $projections = (new $projectionModel)->getTable();
+        $skips = (new $skipModel)->getTable();
         $grammar = DB::getQueryGrammar();
         $projectionKey = $grammar->wrap($projections.'.business_key');
         $idempotencyKey = $grammar->wrap($events.'.idempotency_key');
@@ -169,7 +173,7 @@ final class CommittedShareSignalReader
 
         return SignalEvent::query()
             ->withoutOwnerScope()
-            ->where('event_name', CommittedShareSignalProducer::EVENT_NAME)
+            ->where('event_name', CommittedShareSignal::EVENT_NAME)
             ->where('ingestion_source', SignalEvent::INGESTION_SOURCE_TRUSTED)
             ->where(function ($position) use ($at, $id): void {
                 $position->where('occurred_at', '<', $at)
@@ -186,7 +190,7 @@ final class CommittedShareSignalReader
             ->whereNotExists(function ($exists) use ($skips, $events): void {
                 $exists->select(DB::raw('1'))
                     ->from($skips)
-                    ->where($skips.'.reader_name', self::READER_NAME)
+                    ->where($skips.'.reader_name', CommittedShareSignal::READER_NAME)
                     ->whereColumn($skips.'.signal_event_id', $events.'.id');
             })
             ->orderBy('occurred_at')->orderBy('id')->first();
@@ -198,7 +202,7 @@ final class CommittedShareSignalReader
      */
     private function apply(SignalEvent $event): bool
     {
-        return $this->fenced(function (ShareSignalReaderCursor $cursor) use ($event): bool {
+        return $this->fenced(function (Model $cursor) use ($event): bool {
             if ($this->isAfterCursor($cursor, $event)) {
                 $touchpointId = $this->touchpointIdFor($event);
 
@@ -208,7 +212,7 @@ final class CommittedShareSignalReader
                 $source = AffiliateTouchpoint::query()->whereKey($touchpointId)->first();
 
                 if (! $source instanceof AffiliateTouchpoint
-                    || (string) $source->touchpoint_type !== CommittedShareSignalProducer::TOUCHPOINT_TYPE
+                    || (string) $source->touchpoint_type !== CommittedShareSignal::TOUCHPOINT_TYPE
                 ) {
                     throw new InvalidArgumentException("Committed-share source [{$touchpointId}] is missing.");
                 }
@@ -229,7 +233,7 @@ final class CommittedShareSignalReader
 
             $key = $this->semanticKeyFor($event);
 
-            if ($key !== null && ShareCohortProjection::query()->where('business_key', $key)->exists()) {
+            if ($key !== null && ShareTrackingModel::cohortProjectionQuery()->where('business_key', $key)->exists()) {
                 return false;
             }
 
@@ -238,7 +242,7 @@ final class CommittedShareSignalReader
             $source = AffiliateTouchpoint::query()->whereKey($touchpointId)->first();
 
             if (! $source instanceof AffiliateTouchpoint
-                || (string) $source->touchpoint_type !== CommittedShareSignalProducer::TOUCHPOINT_TYPE
+                || (string) $source->touchpoint_type !== CommittedShareSignal::TOUCHPOINT_TYPE
             ) {
                 throw new InvalidArgumentException("Committed-share source [{$touchpointId}] is missing.");
             }
@@ -252,7 +256,7 @@ final class CommittedShareSignalReader
 
     private function skipPast(SignalEvent $event): void
     {
-        $this->fenced(function (ShareSignalReaderCursor $cursor) use ($event): void {
+        $this->fenced(function (Model $cursor) use ($event): void {
             if ($this->isAfterCursor($cursor, $event)) {
                 // Forward poison: remember the skip so a later backlog
                 // sweep never resurrects it, then advance past it.
@@ -277,6 +281,8 @@ final class CommittedShareSignalReader
      * PostgreSQL and desynchronize it in the database, so two concurrent
      * drains racing first initialization must never take that path.
      * The loser of the insert race simply locks the winner's row.
+     *
+     * @param  callable(Model): mixed  $work
      */
     private function fenced(callable $work): mixed
     {
@@ -285,12 +291,12 @@ final class CommittedShareSignalReader
 
             try {
                 return DB::transaction(function () use ($work): mixed {
-                    $cursor = ShareSignalReaderCursor::query()
-                        ->where('reader_name', self::READER_NAME)
+                    $cursor = ShareTrackingModel::signalReaderCursorQuery()
+                        ->where('reader_name', CommittedShareSignal::READER_NAME)
                         ->lockForUpdate()
                         ->first();
 
-                    if (! $cursor instanceof ShareSignalReaderCursor) {
+                    if (! $cursor instanceof Model) {
                         throw new CommittedShareCursorRowMissingException;
                     }
 
@@ -310,20 +316,20 @@ final class CommittedShareSignalReader
     {
         $now = CarbonImmutable::now('UTC');
 
-        ShareSignalReaderCursor::query()->insertOrIgnore([
+        ShareTrackingModel::signalReaderCursorQuery()->insertOrIgnore([
             'id' => (string) Str::uuid(),
-            'reader_name' => self::READER_NAME,
+            'reader_name' => CommittedShareSignal::READER_NAME,
             'processed_total' => 0,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
     }
 
-    private function isAfterCursor(ShareSignalReaderCursor $cursor, SignalEvent $event): bool
+    private function isAfterCursor(Model $cursor, SignalEvent $event): bool
     {
-        $at = $cursor->last_occurred_at;
+        $at = $cursor->getAttribute('last_occurred_at');
 
-        if ($at === null || $cursor->last_signal_event_id === null) {
+        if ($at === null || $cursor->getAttribute('last_signal_event_id') === null) {
             return true;
         }
 
@@ -338,14 +344,14 @@ final class CommittedShareSignalReader
             return false;
         }
 
-        return strcmp((string) $event->getKey(), (string) $cursor->last_signal_event_id) > 0;
+        return strcmp((string) $event->getKey(), (string) $cursor->getAttribute('last_signal_event_id')) > 0;
     }
 
     /**
      * The cursor only ever advances forward: a stale reader holding an
      * older event can never drag the position backwards.
      */
-    private function advanceCursor(ShareSignalReaderCursor $cursor, SignalEvent $event): void
+    private function advanceCursor(Model $cursor, SignalEvent $event): void
     {
         if (! $this->isAfterCursor($cursor, $event)) {
             return;
@@ -354,21 +360,21 @@ final class CommittedShareSignalReader
         $cursor->forceFill([
             'last_occurred_at' => CarbonImmutable::parse($event->occurred_at)->setTimezone('UTC'),
             'last_signal_event_id' => (string) $event->getKey(),
-            'processed_total' => ((int) $cursor->processed_total) + 1,
+            'processed_total' => ((int) $cursor->getAttribute('processed_total')) + 1,
         ])->save();
     }
 
-    private function incrementProcessedTotal(ShareSignalReaderCursor $cursor): void
+    private function incrementProcessedTotal(Model $cursor): void
     {
         $cursor->forceFill([
-            'processed_total' => ((int) $cursor->processed_total) + 1,
+            'processed_total' => ((int) $cursor->getAttribute('processed_total')) + 1,
         ])->save();
     }
 
     private function isSkipped(SignalEvent $event): bool
     {
-        return ShareSignalReaderSkip::query()
-            ->where('reader_name', self::READER_NAME)
+        return ShareTrackingModel::signalReaderSkipQuery()
+            ->where('reader_name', CommittedShareSignal::READER_NAME)
             ->where('signal_event_id', (string) $event->getKey())
             ->exists();
     }
@@ -382,9 +388,9 @@ final class CommittedShareSignalReader
     {
         $now = CarbonImmutable::now('UTC');
 
-        return ShareSignalReaderSkip::query()->insertOrIgnore([
+        return ShareTrackingModel::signalReaderSkipQuery()->insertOrIgnore([
             'id' => (string) Str::uuid(),
-            'reader_name' => self::READER_NAME,
+            'reader_name' => CommittedShareSignal::READER_NAME,
             'signal_event_id' => (string) $event->getKey(),
             'created_at' => $now,
             'updated_at' => $now,
@@ -433,7 +439,7 @@ final class CommittedShareSignalReader
     {
         $key = 'committed-share:'.($source->getKey());
 
-        if (ShareCohortProjection::query()->where('business_key', $key)->exists()) {
+        if (ShareTrackingModel::cohortProjectionQuery()->where('business_key', $key)->exists()) {
             return;
         }
 
@@ -443,7 +449,7 @@ final class CommittedShareSignalReader
 
         $participated = AffiliateConversion::query()
             ->where('affiliate_link_id', (string) $source->affiliate_link_id)
-            ->whereIn('status', ShareMetricReader::VALID_STATUSES)
+            ->whereIn('status', CommittedShareSignal::VALID_CONVERSION_STATUSES)
             ->exists();
 
         // Insert-or-ignore, never catch-and-continue: a duplicate-key
@@ -451,14 +457,14 @@ final class CommittedShareSignalReader
         // PostgreSQL. The cursor fence above already serializes readers,
         // so a loser here means an operator replayed the log while a
         // drain ran — the winner's row IS the projection either way.
-        ShareCohortProjection::query()->insertOrIgnore([
+        ShareTrackingModel::cohortProjectionQuery()->insertOrIgnore([
             'id' => (string) Str::uuid(),
             'business_key' => $key,
             'outcome' => 'committed_share',
             'cohort_week' => (string) ($properties['cohort_week'] ?? $occurred->startOfWeek()->toDateString()),
             'stage' => $participated
-                ? ShareCohortProjection::STAGE_PARTICIPATED
-                : ShareCohortProjection::STAGE_OBSERVED,
+                ? CommittedShareSignal::STAGE_PARTICIPATED
+                : CommittedShareSignal::STAGE_OBSERVED,
             'occurred_at' => $occurred,
             'projected_at' => CarbonImmutable::now('UTC'),
             'created_at' => CarbonImmutable::now('UTC'),
@@ -466,11 +472,3 @@ final class CommittedShareSignalReader
         ]);
     }
 }
-
-/**
- * Internal control signal: the cursor row vanished mid-transaction.
- * Never escapes the reader; the fenced attempt re-ensures and retries.
- *
- * @internal
- */
-final class CommittedShareCursorRowMissingException extends RuntimeException {}

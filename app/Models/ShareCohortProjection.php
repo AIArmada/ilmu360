@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Shared\ShareTracking\CommittedShareSignal;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use LogicException;
@@ -26,9 +27,9 @@ class ShareCohortProjection extends Model
     #[\Override]
     protected $table = 'share_cohort_projections';
 
-    public const string STAGE_OBSERVED = 'observed';
+    public const string STAGE_OBSERVED = CommittedShareSignal::STAGE_OBSERVED;
 
-    public const string STAGE_PARTICIPATED = 'participated';
+    public const string STAGE_PARTICIPATED = CommittedShareSignal::STAGE_PARTICIPATED;
 
     #[\Override]
     protected $fillable = [

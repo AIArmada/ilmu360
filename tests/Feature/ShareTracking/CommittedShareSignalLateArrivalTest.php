@@ -11,11 +11,11 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\Event;
 use App\Models\ShareCohortProjection;
 use App\Models\User;
 use App\Support\Share\CommittedShareSignalProducer;
-use App\Support\Share\CommittedShareSignalReader;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -118,7 +118,7 @@ it('projects a late older signal after a newer event drained, without reset', fu
 
     // Newer event drains first and advances the cursor past the old
     // occurrence time.
-    $reader = new CommittedShareSignalReader;
+    $reader = app(CommittedShareSignals::class);
 
     expect($reader->drain(25))->toBe(['processed' => 1, 'projected' => 1, 'failed' => 0])
         ->and(ShareCohortProjection::query()->count())->toBe(1)

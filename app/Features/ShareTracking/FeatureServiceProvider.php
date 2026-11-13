@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking;
 
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
+use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
+use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
@@ -18,9 +20,9 @@ use App\Platform\FeatureModule;
 
 /**
  * Share tracking claims the browser selection, source attribution receipt,
- * effect receipt and outcome correction writes named in feature.json. The
- * remaining app tables are still written by root services and actions, so they
- * stay unclaimed until their slice lands.
+ * effect receipt, outcome correction and cohort/signal writes named in
+ * feature.json. The remaining app tables are still written by root services
+ * and actions, so they stay unclaimed until their slice lands.
  *
  * Slice order:
  * - S1a source receipts: `DatabaseSourceAttributionReceipts` owns the
@@ -44,10 +46,13 @@ use App\Platform\FeatureModule;
  *   orchestration behind `GuestShareClaims`, preserving the users → capability
  *   → guest affiliate → existing claim → recipient member affiliate → claim
  *   insert lock order. Shared `GuestClaims`/`ClaimRecipients` seams keep the
- *   root support and package adapters. S3 cohorts/signals next.
- * - S3 cohorts/signals: move the committed-share reader or keep a root adapter
- *   and claim `share_cohort_projections`, `share_signal_reader_cursors` and
- *   `share_signal_reader_skips` after characterising backlog/poison SQL.
+ *   root support and package adapters.
+ * - S3 cohorts/signals (landed): `DrainCommittedShareSignalsAction` owns the
+ *   committed-share Signals drain and the cohort/signal-reader tables behind
+ *   `CommittedShareSignals`, preserving the fenced cursor transaction,
+ *   occurrence-ordered backlog sweep, per-event poison memory, idempotent
+ *   projection and forward-only cursor. `DrainCommittedShareSignalsCommand`
+ *   stays root. S4 analytics/cleanup next.
  * - S4 analytics/cleanup: rewire analytics readers or keep root adapters and
  *   delete the `ShareTrackingContract`/`ShareTrackingService` wrapper once
  *   callers migrate.
@@ -65,6 +70,7 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(BrowserSelectionWriter::class, LockBrowserSelectionAction::class);
+        $this->app->bind(CommittedShareSignals::class, DrainCommittedShareSignalsAction::class);
         $this->app->bind(EffectReceipts::class, DatabaseEffectReceipts::class);
         $this->app->bind(GuestShareClaims::class, ClaimGuestProfileAction::class);
         $this->app->bind(OutcomeCorrections::class, DatabaseOutcomeCorrections::class);

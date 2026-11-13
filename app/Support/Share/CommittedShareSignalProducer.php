@@ -8,6 +8,7 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
@@ -38,11 +39,11 @@ use RuntimeException;
  */
 final readonly class CommittedShareSignalProducer
 {
-    public const string EVENT_NAME = 'share.committed_share';
+    public const string EVENT_NAME = CommittedShareSignal::EVENT_NAME;
 
     public const string EVENT_CATEGORY = 'shares';
 
-    public const string TOUCHPOINT_TYPE = 'outbound_share';
+    public const string TOUCHPOINT_TYPE = CommittedShareSignal::TOUCHPOINT_TYPE;
 
     public function __construct(
         private SignalEventIngestor $ingestor,
