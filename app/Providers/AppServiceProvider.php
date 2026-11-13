@@ -118,6 +118,7 @@ use App\Models\PersonName;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
+use App\Models\ShareBrowserSelection;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\Space;
@@ -650,6 +651,8 @@ class AppServiceProvider extends ServiceProvider
             'venue' => Venue::class,
             'language' => Language::class,
             'reference' => Reference::class,
+            'share_browser_selection' => ShareBrowserSelection::class,
+            'share_source_attribution_receipt' => ShareSourceAttributionReceipt::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,
             'inventory_level' => InventoryLevel::class,

@@ -36,6 +36,8 @@ use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Enums\ShareEffectStatus;
+use App\Features\ShareTracking\Api\BrowserSelectionWriter;
+use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
 use App\Models\Event;
@@ -84,6 +86,8 @@ final readonly class AffiliatesShareTrackingService
         private ShareTrackingUrlService $shareTrackingUrlService,
         private CreateTrackingLink $createTrackingLink,
         private RecordAffiliateOutcome $recordAffiliateOutcome,
+        private BrowserSelectionWriter $browserSelections,
+        private SourceAttributionReceipts $sourceReceipts,
     ) {}
 
     /**
@@ -303,10 +307,10 @@ final readonly class AffiliatesShareTrackingService
 
             if (! $link instanceof AffiliateLink) {
                 return DB::transaction(function () use ($browserKey): string {
-                    $selection = $this->lockedExistingBrowserSelection($browserKey);
+                    $selectionId = $this->browserSelections->lockExisting($browserKey);
 
-                    if ($selection instanceof ShareBrowserSelection) {
-                        $this->clearBrowserSelection($browserKey, $selection);
+                    if ($selectionId !== null) {
+                        $this->browserSelections->clear($selectionId, $browserKey);
                     }
 
                     return $this->encodeCookieState($browserKey, '');
@@ -314,16 +318,16 @@ final readonly class AffiliatesShareTrackingService
             }
 
             return DB::transaction(fn (): string => OwnerContext::withOwner($this->ownerForAffiliateLink($link), function () use ($link, $request, $browserKey, $shareProvider): string {
-                $selection = $this->lockedBrowserSelection($browserKey);
+                $selectionId = $this->browserSelections->lockOrCreate($browserKey);
                 $lockedLink = $this->lockedEligibleShareLink($link);
 
                 if (! $lockedLink instanceof AffiliateLink) {
-                    $this->clearBrowserSelection($browserKey, $selection);
+                    $this->browserSelections->clear($selectionId, $browserKey);
 
                     return $this->encodeCookieState($browserKey, '');
                 }
 
-                $current = $this->lockedBrowserWinner($selection, $browserKey);
+                $current = $this->lockedBrowserWinner($selectionId, $browserKey);
                 $safeUrl = $this->minimalPersistedUrl($request->fullUrl());
                 $deduped = $this->dedupeVisitExists($browserKey, (string) $lockedLink->getKey(), $safeUrl);
 
@@ -335,20 +339,14 @@ final readonly class AffiliatesShareTrackingService
 
                     $attribution = $this->createLandingAttribution($lockedLink, $request, $browserKey, $shareProvider);
 
-                    $selection->forceFill([
-                        'current_attribution_id' => $attribution->getKey(),
-                        'accepted_at' => now(),
-                    ])->save();
+                    $this->browserSelections->accept($selectionId, (string) $attribution->getKey());
 
                     return $this->encodeCookieState($browserKey, (string) $attribution->cookie_value);
                 }
 
                 $attribution = $this->createLandingAttribution($lockedLink, $request, $browserKey, $shareProvider);
 
-                $selection->forceFill([
-                    'current_attribution_id' => $attribution->getKey(),
-                    'accepted_at' => now(),
-                ])->save();
+                $this->browserSelections->accept($selectionId, (string) $attribution->getKey());
 
                 $this->recordVisitTouchpoint($attribution, $request, 'landing', $safeUrl);
 
@@ -363,16 +361,16 @@ final readonly class AffiliatesShareTrackingService
         }
 
         return DB::transaction(function () use ($request, $navigationBrowserKey): string {
-            $selection = $this->lockedExistingBrowserSelection($navigationBrowserKey);
+            $selectionId = $this->browserSelections->lockExisting($navigationBrowserKey);
 
-            if (! $selection instanceof ShareBrowserSelection) {
+            if ($selectionId === null) {
                 return $this->encodeCookieState($navigationBrowserKey, '');
             }
 
-            $winner = $this->lockedBrowserWinner($selection, $navigationBrowserKey);
+            $winner = $this->lockedBrowserWinner($selectionId, $navigationBrowserKey);
 
             if (! $winner instanceof AffiliateAttribution) {
-                $this->clearBrowserSelection($navigationBrowserKey, $selection);
+                $this->browserSelections->clear($selectionId, $navigationBrowserKey);
 
                 return $this->encodeCookieState($navigationBrowserKey, '');
             }
@@ -448,13 +446,13 @@ final readonly class AffiliatesShareTrackingService
         $browserKey = $this->browserKeyFromRequest($request);
 
         $outcome = DB::transaction(function () use ($browserKey, $type, $businessKey, $sourceTransitionId, $subject, $metadata, $actor, $occurredAt): ?ShareTrackingOutcomeData {
-            $selection = is_string($browserKey) ? $this->lockedExistingBrowserSelection($browserKey) : null;
-            $winner = $selection instanceof ShareBrowserSelection && is_string($browserKey)
-                ? $this->lockedBrowserWinner($selection, $browserKey)
+            $selectionId = is_string($browserKey) ? $this->browserSelections->lockExisting($browserKey) : null;
+            $winner = $selectionId !== null && is_string($browserKey)
+                ? $this->lockedBrowserWinner($selectionId, $browserKey)
                 : null;
 
-            if ($selection instanceof ShareBrowserSelection && is_string($browserKey) && ! $winner instanceof AffiliateAttribution && $selection->current_attribution_id !== null) {
-                $this->clearBrowserSelection($browserKey, $selection);
+            if ($selectionId !== null && is_string($browserKey) && ! $winner instanceof AffiliateAttribution && $this->browserSelections->currentAttributionId($selectionId) !== null) {
+                $this->browserSelections->clear($selectionId, $browserKey);
             }
 
             $owner = $winner instanceof AffiliateAttribution
@@ -479,9 +477,24 @@ final readonly class AffiliatesShareTrackingService
                         : null;
 
                     if ($storedAttribution instanceof AffiliateAttribution) {
-                        $this->freezeAttributedReceipt($type, $businessKey, $sourceTransitionId, $storedAttribution, ShareSourceAttributionReceipt::PROVENANCE_SYSTEM, $occurredAt);
+                        $this->sourceReceipts->freezeAttributed(
+                            type: $type,
+                            businessKey: $businessKey,
+                            sourceTransitionId: $sourceTransitionId,
+                            attributionId: (string) $storedAttribution->getKey(),
+                            provenance: ShareSourceAttributionReceipt::PROVENANCE_SYSTEM,
+                            definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                            occurredAt: $occurredAt,
+                        );
                     } else {
-                        $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_SYSTEM, $occurredAt);
+                        $this->sourceReceipts->freezeUnattributed(
+                            type: $type,
+                            businessKey: $businessKey,
+                            sourceTransitionId: $sourceTransitionId,
+                            provenance: ShareSourceAttributionReceipt::PROVENANCE_SYSTEM,
+                            definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                            occurredAt: $occurredAt,
+                        );
                     }
 
                     if ($this->isInvalidConversion($existingConversion)) {
@@ -492,7 +505,14 @@ final readonly class AffiliatesShareTrackingService
                 }
 
                 if (! $winner instanceof AffiliateAttribution) {
-                    $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_COOKIE, $occurredAt);
+                    $this->sourceReceipts->freezeUnattributed(
+                        type: $type,
+                        businessKey: $businessKey,
+                        sourceTransitionId: $sourceTransitionId,
+                        provenance: ShareSourceAttributionReceipt::PROVENANCE_COOKIE,
+                        definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                        occurredAt: $occurredAt,
+                    );
 
                     return null;
                 }
@@ -501,7 +521,14 @@ final readonly class AffiliatesShareTrackingService
 
                 if (! $lockedLink instanceof AffiliateLink
                     || (string) $winner->affiliate_id !== (string) $lockedLink->affiliate_id) {
-                    $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_COOKIE, $occurredAt);
+                    $this->sourceReceipts->freezeUnattributed(
+                        type: $type,
+                        businessKey: $businessKey,
+                        sourceTransitionId: $sourceTransitionId,
+                        provenance: ShareSourceAttributionReceipt::PROVENANCE_COOKIE,
+                        definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                        occurredAt: $occurredAt,
+                    );
 
                     return null;
                 }
@@ -510,15 +537,30 @@ final readonly class AffiliatesShareTrackingService
                 $lockedAffiliate = $lockedLink->affiliate;
 
                 if ($this->isProvenSelfCredit($lockedAffiliate, $winner, $actor)) {
-                    $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_COOKIE, $occurredAt);
+                    $this->sourceReceipts->freezeUnattributed(
+                        type: $type,
+                        businessKey: $businessKey,
+                        sourceTransitionId: $sourceTransitionId,
+                        provenance: ShareSourceAttributionReceipt::PROVENANCE_COOKIE,
+                        definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                        occurredAt: $occurredAt,
+                    );
 
                     return null;
                 }
 
-                $frozen = $this->freezeAttributedReceipt($type, $businessKey, $sourceTransitionId, $winner, ShareSourceAttributionReceipt::PROVENANCE_COOKIE, $occurredAt);
+                $frozen = $this->sourceReceipts->freezeAttributed(
+                    type: $type,
+                    businessKey: $businessKey,
+                    sourceTransitionId: $sourceTransitionId,
+                    attributionId: (string) $winner->getKey(),
+                    provenance: ShareSourceAttributionReceipt::PROVENANCE_COOKIE,
+                    definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                    occurredAt: $occurredAt,
+                );
 
-                if (! $frozen->isAttributed() || (string) $frozen->attribution_id !== (string) $winner->getKey()) {
-                    return $this->mapReceiptReplay($frozen, $businessKey);
+                if (! $frozen->isAttributed() || $frozen->attributionId !== (string) $winner->getKey()) {
+                    return $this->mapReceiptReplayAttribution($frozen->attributionId, $businessKey);
                 }
 
                 $linkId = $this->nullableString($winner->affiliate_link_id) ?? '';
@@ -624,7 +666,12 @@ final readonly class AffiliatesShareTrackingService
 
     private function mapReceiptReplay(ShareSourceAttributionReceipt $receipt, string $businessKey): ?ShareTrackingOutcomeData
     {
-        if (! $receipt->isAttributed() || $receipt->attribution_id === null) {
+        return $this->mapReceiptReplayAttribution($receipt->attribution_id, $businessKey);
+    }
+
+    private function mapReceiptReplayAttribution(?string $attributionId, string $businessKey): ?ShareTrackingOutcomeData
+    {
+        if ($attributionId === null) {
             return null;
         }
 
@@ -646,61 +693,6 @@ final readonly class AffiliatesShareTrackingService
             : (string) $status;
 
         return in_array($value, ['rejected', 'reversed'], true);
-    }
-
-    private function freezeUnattributedReceipt(
-        ShareOutcomeType $type,
-        string $businessKey,
-        string $sourceTransitionId,
-        string $provenance,
-        CarbonInterface $occurredAt,
-    ): ShareSourceAttributionReceipt {
-        try {
-            return DB::transaction(static fn (): ShareSourceAttributionReceipt => ShareSourceAttributionReceipt::query()->create([
-                'namespace' => ShareOutcomeBusinessKey::NAMESPACE,
-                'outcome_type' => $type->value,
-                'source_transition_id' => $sourceTransitionId,
-                'business_key' => $businessKey,
-                'attribution_id' => null,
-                'provenance' => $provenance,
-                'definition_version' => ShareTrackingMeasurement::definitionVersion(),
-                'occurred_at' => $occurredAt,
-            ]), 1);
-        } catch (QueryException $exception) {
-            if (! $this->isUniqueViolation($exception)) {
-                throw $exception;
-            }
-
-            return ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail();
-        }
-    }
-
-    private function freezeAttributedReceipt(
-        ShareOutcomeType $type,
-        string $businessKey,
-        string $sourceTransitionId,
-        AffiliateAttribution $attribution,
-        string $provenance,
-        CarbonInterface $occurredAt,
-    ): ShareSourceAttributionReceipt {
-        try {
-            return DB::transaction(static fn (): ShareSourceAttributionReceipt => ShareSourceAttributionReceipt::query()->create([
-                'namespace' => ShareOutcomeBusinessKey::NAMESPACE,
-                'outcome_type' => $type->value,
-                'source_transition_id' => $sourceTransitionId,
-                'business_key' => $businessKey,
-                'attribution_id' => $attribution->getKey(),
-                'provenance' => $provenance,
-                'definition_version' => ShareTrackingMeasurement::definitionVersion(),
-                'occurred_at' => $occurredAt,
-            ]), 1);
-        } catch (QueryException $exception) {
-            if (! $this->isUniqueViolation($exception)) {
-                throw $exception;
-            }
-
-            return ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail();
-        }
     }
 
     private function freezeEffectReceipt(string $businessKey, AffiliateConversion $conversion, string $linkId): ShareEffectReceipt
@@ -800,9 +792,24 @@ final readonly class AffiliatesShareTrackingService
                         : null;
 
                     if ($storedAttribution instanceof AffiliateAttribution) {
-                        $this->freezeAttributedReceipt($type, $businessKey, $sourceTransitionId, $storedAttribution, ShareSourceAttributionReceipt::PROVENANCE_SYSTEM, $occurredAt);
+                        $this->sourceReceipts->freezeAttributed(
+                            type: $type,
+                            businessKey: $businessKey,
+                            sourceTransitionId: $sourceTransitionId,
+                            attributionId: (string) $storedAttribution->getKey(),
+                            provenance: ShareSourceAttributionReceipt::PROVENANCE_SYSTEM,
+                            definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                            occurredAt: $occurredAt,
+                        );
                     } else {
-                        $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_SYSTEM, $occurredAt);
+                        $this->sourceReceipts->freezeUnattributed(
+                            type: $type,
+                            businessKey: $businessKey,
+                            sourceTransitionId: $sourceTransitionId,
+                            provenance: ShareSourceAttributionReceipt::PROVENANCE_SYSTEM,
+                            definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                            occurredAt: $occurredAt,
+                        );
                     }
 
                     if ($this->isInvalidConversion($existingConversion)) {
@@ -813,7 +820,14 @@ final readonly class AffiliatesShareTrackingService
                 }
 
                 if (! $sourceAttribution instanceof AffiliateAttribution) {
-                    $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_REGISTRATION, $occurredAt);
+                    $this->sourceReceipts->freezeUnattributed(
+                        type: $type,
+                        businessKey: $businessKey,
+                        sourceTransitionId: $sourceTransitionId,
+                        provenance: ShareSourceAttributionReceipt::PROVENANCE_REGISTRATION,
+                        definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                        occurredAt: $occurredAt,
+                    );
 
                     return null;
                 }
@@ -825,15 +839,30 @@ final readonly class AffiliatesShareTrackingService
                     : $attribution->affiliate()->first();
 
                 if ($affiliate instanceof Affiliate && $this->isProvenSelfCredit($affiliate, $attribution, $actor)) {
-                    $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_REGISTRATION, $occurredAt);
+                    $this->sourceReceipts->freezeUnattributed(
+                        type: $type,
+                        businessKey: $businessKey,
+                        sourceTransitionId: $sourceTransitionId,
+                        provenance: ShareSourceAttributionReceipt::PROVENANCE_REGISTRATION,
+                        definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                        occurredAt: $occurredAt,
+                    );
 
                     return null;
                 }
 
-                $frozen = $this->freezeAttributedReceipt($type, $businessKey, $sourceTransitionId, $attribution, ShareSourceAttributionReceipt::PROVENANCE_REGISTRATION, $occurredAt);
+                $frozen = $this->sourceReceipts->freezeAttributed(
+                    type: $type,
+                    businessKey: $businessKey,
+                    sourceTransitionId: $sourceTransitionId,
+                    attributionId: (string) $attribution->getKey(),
+                    provenance: ShareSourceAttributionReceipt::PROVENANCE_REGISTRATION,
+                    definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                    occurredAt: $occurredAt,
+                );
 
-                if (! $frozen->isAttributed() || (string) $frozen->attribution_id !== (string) $attribution->getKey()) {
-                    return $this->mapReceiptReplay($frozen, $businessKey);
+                if (! $frozen->isAttributed() || $frozen->attributionId !== (string) $attribution->getKey()) {
+                    return $this->mapReceiptReplayAttribution($frozen->attributionId, $businessKey);
                 }
 
                 $linkId = $this->nullableString($attribution->affiliate_link_id) ?? '';
@@ -971,9 +1000,24 @@ final readonly class AffiliatesShareTrackingService
                         : null;
 
                     if ($storedAttribution instanceof AffiliateAttribution) {
-                        $this->freezeAttributedReceipt($type, $businessKey, $sourceTransitionId, $storedAttribution, ShareSourceAttributionReceipt::PROVENANCE_SYSTEM, $occurredAt);
+                        $this->sourceReceipts->freezeAttributed(
+                            type: $type,
+                            businessKey: $businessKey,
+                            sourceTransitionId: $sourceTransitionId,
+                            attributionId: (string) $storedAttribution->getKey(),
+                            provenance: ShareSourceAttributionReceipt::PROVENANCE_SYSTEM,
+                            definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                            occurredAt: $occurredAt,
+                        );
                     } else {
-                        $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_SYSTEM, $occurredAt);
+                        $this->sourceReceipts->freezeUnattributed(
+                            type: $type,
+                            businessKey: $businessKey,
+                            sourceTransitionId: $sourceTransitionId,
+                            provenance: ShareSourceAttributionReceipt::PROVENANCE_SYSTEM,
+                            definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                            occurredAt: $occurredAt,
+                        );
                     }
 
                     if ($this->isInvalidConversion($existingConversion)) {
@@ -984,7 +1028,14 @@ final readonly class AffiliatesShareTrackingService
                 }
 
                 if (! $attribution instanceof AffiliateAttribution) {
-                    $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_CHECKOUT, $occurredAt);
+                    $this->sourceReceipts->freezeUnattributed(
+                        type: $type,
+                        businessKey: $businessKey,
+                        sourceTransitionId: $sourceTransitionId,
+                        provenance: ShareSourceAttributionReceipt::PROVENANCE_CHECKOUT,
+                        definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                        occurredAt: $occurredAt,
+                    );
 
                     return null;
                 }
@@ -994,15 +1045,30 @@ final readonly class AffiliatesShareTrackingService
                     : $attribution->affiliate()->first();
 
                 if ($affiliate instanceof Affiliate && $this->isProvenSelfCredit($affiliate, $attribution, $actor)) {
-                    $this->freezeUnattributedReceipt($type, $businessKey, $sourceTransitionId, ShareSourceAttributionReceipt::PROVENANCE_CHECKOUT, $occurredAt);
+                    $this->sourceReceipts->freezeUnattributed(
+                        type: $type,
+                        businessKey: $businessKey,
+                        sourceTransitionId: $sourceTransitionId,
+                        provenance: ShareSourceAttributionReceipt::PROVENANCE_CHECKOUT,
+                        definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                        occurredAt: $occurredAt,
+                    );
 
                     return null;
                 }
 
-                $frozen = $this->freezeAttributedReceipt($type, $businessKey, $sourceTransitionId, $attribution, ShareSourceAttributionReceipt::PROVENANCE_CHECKOUT, $occurredAt);
+                $frozen = $this->sourceReceipts->freezeAttributed(
+                    type: $type,
+                    businessKey: $businessKey,
+                    sourceTransitionId: $sourceTransitionId,
+                    attributionId: (string) $attribution->getKey(),
+                    provenance: ShareSourceAttributionReceipt::PROVENANCE_CHECKOUT,
+                    definitionVersion: ShareTrackingMeasurement::definitionVersion(),
+                    occurredAt: $occurredAt,
+                );
 
-                if (! $frozen->isAttributed() || (string) $frozen->attribution_id !== (string) $attribution->getKey()) {
-                    return $this->mapReceiptReplay($frozen, $businessKey);
+                if (! $frozen->isAttributed() || $frozen->attributionId !== (string) $attribution->getKey()) {
+                    return $this->mapReceiptReplayAttribution($frozen->attributionId, $businessKey);
                 }
 
                 $linkId = $this->nullableString($attribution->affiliate_link_id) ?? '';
@@ -1844,11 +1910,11 @@ final readonly class AffiliatesShareTrackingService
             $winner = $this->findAffiliateForUser($user);
 
             if (! $winner instanceof Affiliate) {
-                throw new InvalidArgumentException('A share profile for this account conflicts with an existing profile identity.', $exception->getCode(), $exception);
+                throw new InvalidArgumentException('A share profile for this account conflicts with an existing profile identity.', (int) $exception->getCode(), $exception);
             }
 
             if (! ShareTrackingProfile::isEligibleForNewCredit($winner)) {
-                throw new InvalidArgumentException('This share profile is not eligible to create new tracked links.', $exception->getCode(), $exception);
+                throw new InvalidArgumentException('This share profile is not eligible to create new tracked links.', (int) $exception->getCode(), $exception);
             }
 
             return $winner;
@@ -2359,43 +2425,6 @@ final readonly class AffiliatesShareTrackingService
             : null;
     }
 
-    private function lockedBrowserSelection(string $browserKey): ShareBrowserSelection
-    {
-        $selection = ShareBrowserSelection::query()
-            ->where('browser_key', $browserKey)
-            ->lockForUpdate()
-            ->first();
-
-        if ($selection instanceof ShareBrowserSelection) {
-            return $selection;
-        }
-
-        try {
-            return DB::transaction(static fn (): ShareBrowserSelection => ShareBrowserSelection::query()->create([
-                'browser_key' => $browserKey,
-                'current_attribution_id' => null,
-                'accepted_at' => null,
-            ]), 1);
-        } catch (QueryException $exception) {
-            if (! $this->isUniqueViolation($exception)) {
-                throw $exception;
-            }
-
-            return ShareBrowserSelection::query()
-                ->where('browser_key', $browserKey)
-                ->lockForUpdate()
-                ->firstOrFail();
-        }
-    }
-
-    private function lockedExistingBrowserSelection(string $browserKey): ?ShareBrowserSelection
-    {
-        return ShareBrowserSelection::query()
-            ->where('browser_key', $browserKey)
-            ->lockForUpdate()
-            ->first();
-    }
-
     /**
      * Locked browser winner: the persisted selection is attribution
      * authority, never the transported cookie value. Assumes the
@@ -2404,9 +2433,9 @@ final readonly class AffiliatesShareTrackingService
      * affiliate). Returns null for missing, mismatched, expired, or
      * ineligible winners; the caller clears the selection.
      */
-    private function lockedBrowserWinner(ShareBrowserSelection $selection, string $browserKey): ?AffiliateAttribution
+    private function lockedBrowserWinner(string $selectionId, string $browserKey): ?AffiliateAttribution
     {
-        $attributionId = $selection->current_attribution_id;
+        $attributionId = $this->browserSelections->currentAttributionId($selectionId);
 
         if (! is_string($attributionId) || $attributionId === '') {
             return null;
@@ -2445,18 +2474,6 @@ final readonly class AffiliatesShareTrackingService
         }
 
         return $locked;
-    }
-
-    private function clearBrowserSelection(string $browserKey, ?ShareBrowserSelection $selection = null): void
-    {
-        $selection ??= ShareBrowserSelection::query()->where('browser_key', $browserKey)->first();
-
-        if ($selection instanceof ShareBrowserSelection) {
-            $selection->forceFill([
-                'current_attribution_id' => null,
-                'accepted_at' => null,
-            ])->save();
-        }
     }
 
     private function browserKeyFromRequest(?Request $request): ?string

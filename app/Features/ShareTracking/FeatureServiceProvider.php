@@ -4,18 +4,25 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking;
 
+use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
+use App\Features\ShareTracking\Api\BrowserSelectionWriter;
+use App\Features\ShareTracking\Api\SourceAttributionReceipts;
+use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Platform\FeatureModule;
 
 /**
- * Share tracking is claim-free in S0 because FeatureCatalog requires every
- * claimed table to name feature-local writers. The seven app tables are still
- * written by root services and actions, so this manifest declares `owns: {}`.
+ * Share tracking claims the browser selection and source attribution receipt
+ * writes named in feature.json. The remaining app tables are still written by
+ * root services and actions, so they stay unclaimed until their slice lands.
  *
  * Slice order:
- * - S1 selections/source receipts: extract the selection capture, active
- *   attribution resolution, outcome recording and source-receipt freeze use
- *   cases, rewire middleware/controller/signup/checkout/recorder callers, then
- *   claim `share_browser_selections` and `share_source_attribution_receipts`.
+ * - S1a source receipts: `DatabaseSourceAttributionReceipts` owns the
+ *   freeze-once receipt write; `AffiliatesShareTrackingService` keeps outcome
+ *   recording orchestration and reads direct receipt rows for replay.
+ * - S1b browser selections/capture: `LockBrowserSelectionAction` owns the
+ *   selection lock/create/accept/clear writes while the service keeps
+ *   `captureRequest`/`resolveActiveAttribution` orchestration and the unlocked
+ *   read used for active-attribution resolution.
  * - S2 effects/corrections/claims: move reversal, effect dispatch, participation
  *   reversal and guest claim orchestration while preserving monetary guards,
  *   lease fencing and duplicate-dispatch tolerance; claim `share_effect_receipts`
@@ -35,4 +42,11 @@ use App\Platform\FeatureModule;
  * `ShareTrackingUrlService`/destination policy; and the narrow package gateway
  * left behind when `AffiliatesShareTrackingService` is peeled apart.
  */
-class FeatureServiceProvider extends FeatureModule {}
+class FeatureServiceProvider extends FeatureModule
+{
+    public function register(): void
+    {
+        $this->app->bind(BrowserSelectionWriter::class, LockBrowserSelectionAction::class);
+        $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
+    }
+}
