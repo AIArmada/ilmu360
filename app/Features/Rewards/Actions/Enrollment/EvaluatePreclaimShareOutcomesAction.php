@@ -2,35 +2,49 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Rewards;
+namespace App\Features\Rewards\Actions\Enrollment;
 
+use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
-use App\Support\Rewards\ActivityRewardSourceFactReader;
-use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
-use App\Support\ShareTracking\ActivityRewardBusinessKey;
+use App\Features\Rewards\Api\MemberEnrollment;
+use App\Features\ShareTracking\Api\SourceReceiptReader;
+use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class EvaluatePreclaimShareOutcomesAction
+/**
+ * Preclaim backfill after enrollment or reacceptance.
+ *
+ * Reads the published version's `windows.preclaim_lookback_days` guard, walks
+ * the committed share-outcome receipts inside the inclusive lookback in
+ * `occurred_at,id` order, and dispatches one entitlement evaluation per
+ * applicable role after commit. Attributed receipts also mirror the
+ * actor-only `activity:` key. The receipt window comes from
+ * `ShareTracking\Api\SourceReceiptReader` and every source fact comes from the
+ * package reader boundary, so no root model, service or support type is used.
+ */
+final readonly class EvaluatePreclaimShareOutcomesAction implements MemberEnrollment
 {
-    use AsAction;
-
     public function __construct(
-        private ShareAttributionRewardSourceFactReader $sourceFactReader,
-        private ActivityRewardSourceFactReader $activityFactReader,
+        private RewardSourceFactReader $sourceFactReader,
+        private SourceReceiptReader $receiptReader,
     ) {}
 
-    public function handle(RewardProgram $program, User $member, RewardProgramVersion $version): void
-    {
+    public function preclaim(
+        string $programId,
+        string $memberId,
+        string $recipientType,
+        string $versionId,
+    ): void {
+        $program = RewardProgram::query()->findOrFail($programId);
+        $version = RewardProgramVersion::query()->findOrFail($versionId);
+
         $rules = $version->rules;
         $windows = is_array($rules) && is_array($rules['windows'] ?? null)
             ? $rules['windows']
@@ -44,23 +58,8 @@ final readonly class EvaluatePreclaimShareOutcomesAction
 
         $decisionTime = CarbonImmutable::now('UTC');
         $lookbackStart = $decisionTime->subDays($lookbackDays);
-        $memberId = (string) $member->getKey();
-        $recipientType = $member->getMorphClass();
 
-        $receipts = ShareSourceAttributionReceipt::query()
-            ->where('namespace', ShareOutcomeBusinessKey::NAMESPACE)
-            ->whereBetween('occurred_at', [$lookbackStart, $decisionTime])
-            ->orderBy('occurred_at')
-            ->orderBy('id')
-            ->cursor();
-
-        foreach ($receipts as $receipt) {
-            $businessKey = $receipt->business_key;
-
-            if (! is_string($businessKey) || $businessKey === '') {
-                continue;
-            }
-
+        foreach ($this->receiptReader->keysBetween($lookbackStart, $decisionTime) as $businessKey) {
             $fact = $this->sourceFactReader->read($businessKey);
 
             if (! $fact instanceof RewardSourceFact
@@ -98,7 +97,7 @@ final readonly class EvaluatePreclaimShareOutcomesAction
                 continue;
             }
 
-            $activityFact = $this->activityFactReader->read($activityBusinessKey);
+            $activityFact = $this->sourceFactReader->read($activityBusinessKey);
 
             if (! $activityFact instanceof RewardSourceFact
                 || ! $activityFact->isValid

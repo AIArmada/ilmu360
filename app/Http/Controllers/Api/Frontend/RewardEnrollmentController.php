@@ -10,7 +10,7 @@ use AIArmada\Rewards\Actions\ReacceptRewardTermsAction;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
-use App\Actions\Rewards\EvaluatePreclaimShareOutcomesAction;
+use App\Features\Rewards\Api\MemberEnrollment;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -52,7 +52,12 @@ class RewardEnrollmentController extends FrontendController
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        EvaluatePreclaimShareOutcomesAction::run($record, $user, $version);
+        app(MemberEnrollment::class)->preclaim(
+            (string) $record->getKey(),
+            (string) $user->getKey(),
+            $user->getMorphClass(),
+            (string) $version->getKey(),
+        );
 
         return response()->json([
             'data' => [
@@ -133,7 +138,12 @@ class RewardEnrollmentController extends FrontendController
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        EvaluatePreclaimShareOutcomesAction::run($record, $user, $version);
+        app(MemberEnrollment::class)->preclaim(
+            (string) $record->getKey(),
+            (string) $user->getKey(),
+            $user->getMorphClass(),
+            (string) $version->getKey(),
+        );
 
         return response()->json([
             'data' => [

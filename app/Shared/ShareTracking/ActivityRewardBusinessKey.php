@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Support\ShareTracking;
+namespace App\Shared\ShareTracking;
 
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use InvalidArgumentException;
 
 /**

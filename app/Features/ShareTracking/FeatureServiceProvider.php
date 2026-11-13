@@ -13,9 +13,11 @@ use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
+use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
+use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
 use App\Platform\FeatureModule;
 
 /**
@@ -66,6 +68,11 @@ use App\Platform\FeatureModule;
  * ShareTracking migration is complete: all seven app tables are owned and the
  * remaining root surfaces above are intentional adapters, not unclaimed work.
  *
+ * Rw2a adds one read seam: `Api\SourceReceiptReader` bound to
+ * `Persistence\DatabaseSourceReceiptReader` exposes the ordered share-outcome
+ * business keys in an inclusive receipt window for the Rewards preclaim
+ * backfill, so that feature no longer imports the receipt model or table.
+ *
  * Must stay root (documented here so later slices do not absorb them): HTTP,
  * Livewire and route entrypoints; DTOs; analytics readers; observers;
  * `ProduceCommittedShareSignalJob`; commands and schedules; account
@@ -84,5 +91,6 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(GuestShareClaims::class, ClaimGuestProfileAction::class);
         $this->app->bind(OutcomeCorrections::class, DatabaseOutcomeCorrections::class);
         $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
+        $this->app->bind(SourceReceiptReader::class, DatabaseSourceReceiptReader::class);
     }
 }

@@ -7,6 +7,7 @@ namespace App\Actions\Rewards;
 use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
+use App\Features\Rewards\Api\MemberEnrollment;
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
@@ -44,7 +45,12 @@ final class EnrollRewardProgramMemberAction
             'member-portal',
         );
 
-        EvaluatePreclaimShareOutcomesAction::run($program, $user, $version);
+        app(MemberEnrollment::class)->preclaim(
+            (string) $program->getKey(),
+            $memberId,
+            $memberType,
+            (string) $version->getKey(),
+        );
 
         if (! $wasEnrolled) {
             app(SignalRecorder::class)->record(

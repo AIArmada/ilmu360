@@ -27,7 +27,7 @@ use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardBenefitStockLedger;
 use AIArmada\Rewards\Support\RewardPointLedger;
 use App\Actions\Rewards\EnrollRewardProgramMemberAction;
-use App\Actions\Rewards\EvaluatePreclaimShareOutcomesAction;
+use App\Features\Rewards\Api\MemberEnrollment;
 use App\Models\User;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
 use App\Support\Rewards\RewardMemberPresenter;
@@ -160,7 +160,12 @@ class RewardMemberIndex extends Component
             return;
         }
 
-        EvaluatePreclaimShareOutcomesAction::run($program, $user, $version);
+        app(MemberEnrollment::class)->preclaim(
+            (string) $program->getKey(),
+            (string) $user->getKey(),
+            $user->getMorphClass(),
+            (string) $version->getKey(),
+        );
 
         $this->notice = 'Terms reaccepted. Accrued obligations keep their frozen terms.';
     }
