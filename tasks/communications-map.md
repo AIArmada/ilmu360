@@ -1,10 +1,10 @@
 # Communications ownership map
 
-> **Status: C1–C5 implemented; C6 remains.** This map records the current app/package boundary and implementation sequence. C1 removed the fake batch-completion stub and scheduled the package dispatcher. C2a moved app notification policy and preference writes into Communications. C2b moved push destination operations and account lifecycle handling. C3 moved inbox queries, snapshots, and read actions. C4 moved channel adapters, message rendering, delivery fencing, and transport registration into Communications. C5 moved Rewards transport operations behind the Communications API; package tables remain unclaimed.
+> **Status: C1–C6 implemented.** This map records the current app/package boundary and implementation sequence. C1 removed the fake batch-completion stub and scheduled the package dispatcher. C2a moved app notification policy and preference writes into Communications. C2b moved push destination operations and account lifecycle handling. C3 moved inbox queries, snapshots, and read actions. C4 moved channel adapters, message rendering, delivery fencing, and transport registration into Communications. C5 moved Rewards transport operations behind the Communications API. C6 moved the remaining app-owned HTTP, Livewire, route, view, and notification dispatch surfaces into Communications and closed the generic admin read exposure. Package tables remain unclaimed.
 
 ## 1. Ownership boundary
 
-`aiarmada/communications` is the canonical persistence and delivery package. The app `Features/Communications` module exists with `owns: {}`. It owns ilmu360° notification policy, preference actions, push destination operations, account lifecycle handling, inbox queries/read actions, app schedules, channel adapters, rendering, delivery fencing, and transport registration. It does not claim package tables in `feature.json`; those remain package-owned resources. Business notification producers remain with their domain feature and call the Communications API.
+`aiarmada/communications` is the canonical persistence and delivery package. The app `Features/Communications` module exists with `owns: {}`. It owns ilmu360° notification policy, preference actions, push destination operations, account lifecycle handling, inbox queries/read actions, app schedules, channel adapters, rendering, delivery fencing, transport registration, HTTP/Livewire entrypoints, and route/view composition. It does not claim package tables in `feature.json`; those remain package-owned resources. Business notification producers remain with their domain feature and call the Communications API.
 
 `aiarmada/filament-communications` provides the vendor admin UI. `AdminPanelProvider` registers `FilamentCommunicationsPlugin`; Communications migration must preserve this registration and must not add a second app resource for the same package models.
 
@@ -85,7 +85,7 @@ Some app producers call `CommunicationManager::notify`; others call Laravel `Not
 | Rewards digest | `rewards:dispatch-gratitude-digests` hourly in UTC, without overlap; Rewards owns planning/slot locks and its slot schedule. |
 | Generic scheduled communications | The Communications feature schedules package command `communications:dispatch-due` every minute in UTC with non-overlap protection. It scans due `Communication` records, queues eligible deliveries, and dispatches delivery jobs after commit. |
 | Retired digest stub | C1 removed app command `communications:send-digests`, which only marked due `CommunicationBatch` rows started and completed. It never dispatched deliveries and was not the package dispatch path. |
-| Admin / MCP | `FilamentCommunicationsPlugin` remains vendor-registered in `AdminPanelProvider` and registers vendor Communication, Delivery, Thread, Template, Preference, Suppression, and Batch resources. The app `AdminResourceMutationService` allowlist does not include these vendor resources. No dedicated app Communications MCP tool was found; verify generic read exposure during C6. |
+| Admin / MCP | `FilamentCommunicationsPlugin` remains vendor-registered in `AdminPanelProvider` and registers vendor Communication, Delivery, Thread, Template, Preference, Suppression, and Batch resources. The app `AdminResourceMutationService` allowlist does not include these vendor resources. Generic Admin API serialization removes private Communications attributes from direct and related records and uses static model titles. No dedicated app Communications MCP tool exists; generic MCP reads use the same serializer. |
 | Account lifecycle | The Communications provider registers `CommunicationsAccountLifecycleContributor` through Identity's `AccountLifecycleContributor` composition. It retains scoped preference rules while detaching base settings, destinations, and inbox rows. Preserve snapshot keys, ordering, and quiet restore behavior. |
 
 Read marking records `notification.read` only on an unread-to-read transition and `notification.read_all` only when the action updates at least one row. Inbox queries exclude archived messages; unread counts also exclude archived rows by default. Keep these semantics and the existing Signal payloads.
@@ -134,9 +134,15 @@ The lock order is Rewards slot → deliveries sorted by ID → communication →
 
 Added deterministic isolated PostgreSQL barriers for sender-vs-cancel, late-send-after-cancel, sender-vs-reconcile, and operator-resolution-vs-reconcile. Focused Pest passed 49 tests / 995 assertions, including the race suite; the architecture scanner reported 0 violations across 18 features and `git diff --check` passed. Muse Ember remained unavailable; Codex self-review and two independent read-only reviews completed, with their retry-semantics and stale-documentation findings fixed and verified. No unavailable-model agreement is claimed.
 
-### C6 — final transport/admin/MCP and boundary audit
+### C6 — final transport/admin/MCP and boundary audit (complete)
 
-Move remaining owned routes/schedules/commands and any app-owned MCP/admin composition, remove stale root wrappers, scan direct package model writes/callers, compare route and listener registration, and run the final verification gate.
+Moved notification HTTP controllers, request/response data, Livewire bell and inbox page, their Blade views, mail view, API and web route registrations, and the app `InAppNotification` transport into Communications. Removed the old root controllers, DTOs, Livewire classes, notification class, views, and route declarations with no compatibility aliases. Added `NotificationDispatch` so domain producers submit immutable payloads and only the Communications implementation resolves accounts and calls the package `CommunicationManager`.
+
+Moved package enum normalization and inbox-only family/priority presentation out of the public API namespace. Enum mappings are exhaustive; sharing notifications now store and read back as `DigestWeekly`.
+
+Closed generic admin/MCP read exposure centrally: private content, identity, destination, provider, failure, metadata, and storage attributes are removed from Communications resources and nested related records; their generic title is a static model label. Vendor Filament resources stay registered, and no Communications write resource was added to the generic mutation allowlist.
+
+No schema change, backfill, compatibility alias, legacy path, or superseded root implementation remains. Muse Ember was unavailable through both configured review paths; Codex self-review proceeded at the user's direction, and no unavailable-model agreement is claimed. Focused serial Pest passed 103 tests / 577 assertions; the architecture scan reported 0 violations across 18 features; API/web routes and middleware, scheduler registration, and package listener registration were checked; `git diff --check` passed.
 
 ## 9. Verification and migration constraints
 
