@@ -12,13 +12,12 @@ use AIArmada\Engagement\Traits\CanBookmark;
 use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\Engagement\Traits\CanRespond;
 use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Api\PushDestinationManagement;
 use App\Features\Communications\Api\PushDestinationSnapshot;
 use App\Models\Concerns\HasUserRestoration;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
-use App\Notifications\Channels\DigestMailChannel;
-use App\Notifications\Channels\InboxChannel;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\IntegrationFeedbackIdentity;
@@ -41,7 +40,6 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
@@ -265,12 +263,16 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
      */
     public function routeNotificationFor($driver, $notification = null)
     {
-        if ($driver === InboxChannel::class) {
+        if ($driver === NotificationTransport::Inbox->value) {
             return (string) $this->getKey();
         }
 
-        if ($driver === DigestMailChannel::class) {
+        if ($driver === NotificationTransport::DigestMail->value) {
             return $this->routeNotificationForMail($notification instanceof Notification ? $notification : null);
+        }
+
+        if ($driver === NotificationTransport::Push->value) {
+            return (string) $this->getKey();
         }
 
         return $this->traitRouteNotificationFor($driver, $notification);

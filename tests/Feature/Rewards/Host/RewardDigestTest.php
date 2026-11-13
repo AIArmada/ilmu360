@@ -28,15 +28,14 @@ use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardAward;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction;
+use App\Features\Rewards\Notifications\ShareGratitudeDigestNotification;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
-use App\Notifications\Channels\DigestMailChannel;
-use App\Notifications\Channels\InboxChannel;
-use App\Notifications\ShareGratitudeDigestNotification;
-use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -345,7 +344,7 @@ it('sends once across mail and inbox and reconciles to sent with channel outcome
         ->orderBy('id')
         ->get();
 
-    expect($deliveries->pluck('channel')->all())->toBe([DigestMailChannel::class, InboxChannel::class])
+    expect($deliveries->pluck('channel')->all())->toBe([NotificationTransport::DigestMail->value, NotificationTransport::Inbox->value])
         ->and($deliveries->pluck('status')->all())->toBe([DeliveryStatus::Queued, DeliveryStatus::Queued]);
 
     // A second dispatch before delivery neither duplicates nor releases.
@@ -367,8 +366,8 @@ it('sends once across mail and inbox and reconciles to sent with channel outcome
     expect($reconciled['reconciled'])->toBe(1)
         ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENT)
         ->and($slot->sent_at)->not->toBeNull()
-        ->and($slot->payload['delivery']['channels'][DigestMailChannel::class])->toBe(DeliveryStatus::Sent->value)
-        ->and($slot->payload['delivery']['channels'][InboxChannel::class])->toBe(DeliveryStatus::Sent->value);
+        ->and($slot->payload['delivery']['channels'][NotificationTransport::DigestMail->value])->toBe(DeliveryStatus::Sent->value)
+        ->and($slot->payload['delivery']['channels'][NotificationTransport::Inbox->value])->toBe(DeliveryStatus::Sent->value);
 
     // Settled slots never resend.
     $settled = DispatchDueRewardDigestsAction::run(50, $slot->due_at->addMinutes(4));
@@ -579,7 +578,7 @@ it('refuses cancellation after delivery and during ambiguous flight', function (
         ->get();
 
     app(CommunicationRecorderService::class)->markSending(
-        (string) $slot->communication_id, (string) $deliveries->firstWhere('channel', DigestMailChannel::class)->getKey(),
+        (string) $slot->communication_id, (string) $deliveries->firstWhere('channel', NotificationTransport::DigestMail->value)->getKey(),
     );
 
     expect(fn () => CancelRewardDigestAction::run(
@@ -591,8 +590,8 @@ it('refuses cancellation after delivery and during ambiguous flight', function (
     // Late completion resolves the ambiguity: the slot sends.
     app(CommunicationRecorderService::class)->markSent(
         (string) $slot->communication_id,
-        (string) $deliveries->firstWhere('channel', DigestMailChannel::class)->getKey(),
-        ['channel' => DigestMailChannel::class],
+        (string) $deliveries->firstWhere('channel', NotificationTransport::DigestMail->value)->getKey(),
+        ['channel' => NotificationTransport::DigestMail->value],
     );
 
     DispatchDueRewardDigestsAction::run(50, $slot->due_at->addMinutes(5));

@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Rewards;
+namespace App\Features\Rewards\Actions\GratitudeDigests;
 
 use AIArmada\Communications\Enums\DeliveryStatus;
 use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Rewards\Support\RewardLedgerEntries;
-use App\Support\Communications\GuardedDeliverySend;
+use App\Features\Communications\Api\DeliveryFencing;
+use App\Features\Rewards\Api\DigestMailResolutionSnapshot;
+use App\Features\Rewards\Api\ResolveDigestMailAmbiguity;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -36,7 +38,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * rewards:resolve-digest-mail-ambiguity, which verifies the caller's
  * real staff/admin identity before delegating here.
  */
-final readonly class ResolveDigestMailAmbiguityAction
+final readonly class ResolveDigestMailAmbiguityAction implements ResolveDigestMailAmbiguity
 {
     use AsAction;
 
@@ -48,7 +50,7 @@ final readonly class ResolveDigestMailAmbiguityAction
         string $actorRole,
         ?string $providerMessageId = null,
         ?string $reason = null,
-    ): CommunicationDelivery {
+    ): DigestMailResolutionSnapshot {
         RewardLedgerEntries::assertActor($actorType, $actorId, $actorRole);
 
         $isSystem = $actorType === 'system' && $actorId === null && $actorRole === 'system';
@@ -74,7 +76,7 @@ final readonly class ResolveDigestMailAmbiguityAction
 
         return DB::transaction(function () use (
             $deliveryId, $decision, $actorType, $actorId, $actorRole, $providerMessageId, $reason
-        ): CommunicationDelivery {
+        ): DigestMailResolutionSnapshot {
             $delivery = CommunicationDelivery::query()->whereKey($deliveryId)->lockForUpdate()->first();
 
             if (! $delivery instanceof CommunicationDelivery) {
@@ -104,10 +106,10 @@ final readonly class ResolveDigestMailAmbiguityAction
             $attemptId = (string) $attempt->getKey();
 
             $applied = $decision === 'sent'
-                ? GuardedDeliverySend::recordExternalSent($communicationId, $deliveryId, $attemptId, [
+                ? app(DeliveryFencing::class)->recordExternalSent($communicationId, $deliveryId, $attemptId, [
                     'provider_message_id' => (string) $providerMessageId,
                 ])
-                : GuardedDeliverySend::recordExternalFailure(
+                : app(DeliveryFencing::class)->recordExternalFailure(
                     $communicationId, $deliveryId, $attemptId,
                     (string) $reason, 'operator-resolved',
                 );
@@ -133,7 +135,12 @@ final readonly class ResolveDigestMailAmbiguityAction
                 $resolved->save();
             }
 
-            return $delivery->refresh();
+            $resolvedDelivery = $delivery->refresh();
+
+            return new DigestMailResolutionSnapshot(
+                deliveryId: (string) $resolvedDelivery->getKey(),
+                status: $resolvedDelivery->status->value,
+            );
         });
     }
 }

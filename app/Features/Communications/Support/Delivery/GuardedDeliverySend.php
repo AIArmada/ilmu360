@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Support\Delivery;
 
 use AIArmada\Communications\Actions\CompleteDeliveryAttemptAction;
 use AIArmada\Communications\Actions\StartDeliveryAttemptAction;
@@ -326,6 +326,10 @@ final class GuardedDeliverySend
             return false;
         }
 
+        if (! self::frozenMatches($delivery, $attempt)) {
+            return false;
+        }
+
         if ($attempt->responded_at !== null || $attempt->failed_at !== null) {
             return false;
         }
@@ -373,8 +377,21 @@ final class GuardedDeliverySend
         $metadata = is_array($attempt->metadata) ? $attempt->metadata : [];
         $fence = $metadata['digest_mail_fence'] ?? null;
 
-        if (! is_array($fence)) {
-            return true;
+        if (! is_array($fence) || ! is_array($fence['operation'] ?? null)) {
+            return false;
+        }
+
+        foreach ([
+            'delivery_id',
+            'communication_id',
+            'channel',
+            'provider',
+            'destination_hash',
+            'content_id',
+        ] as $key) {
+            if (! array_key_exists($key, $fence)) {
+                return false;
+            }
         }
 
         return ($fence['delivery_id'] ?? null) === (string) $delivery->getKey()

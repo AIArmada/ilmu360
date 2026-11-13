@@ -1,10 +1,10 @@
 <?php
 
+use App\Notifications\InAppNotification;
 use App\Features\Communications\Api\NotificationFamily;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Models\User;
-use App\Notifications\InAppNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;

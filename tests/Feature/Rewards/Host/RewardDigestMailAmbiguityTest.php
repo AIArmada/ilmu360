@@ -19,16 +19,15 @@ use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
-use App\Actions\Rewards\ResolveDigestMailAmbiguityAction;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\DeliveryFencing;
+use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
+use App\Features\Rewards\Actions\GratitudeDigests\ResolveDigestMailAmbiguityAction;
+use App\Features\Rewards\Notifications\ShareGratitudeDigestNotification;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
-use App\Notifications\Channels\DigestMailChannel;
-use App\Notifications\Channels\InboxChannel;
-use App\Notifications\ShareGratitudeDigestNotification;
-use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Support\Communications\GuardedDeliverySend;
 use Carbon\CarbonImmutable;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Mail\Transport\ArrayTransport;
@@ -178,7 +177,7 @@ it("never resends mail after acceptance plus recording crash on {$mailLabel}", f
         $communicationId = (string) $slot->communication_id;
         $mailDeliveryId = (string) CommunicationDelivery::query()
             ->where('communication_id', $communicationId)
-            ->where('channel', DigestMailChannel::class)
+            ->where('channel', NotificationTransport::DigestMail->value)
             ->value('id');
 
         app()->bind(CommunicationRecorder::class, fn (): DigestMailThrowOnceRecorder => new DigestMailThrowOnceRecorder(
@@ -215,7 +214,7 @@ it("never resends mail after acceptance plus recording crash on {$mailLabel}", f
             $mailDeliveryId, 'sent', 'user', RewardLedgerFixtures::staffId(), 'staff', 'test-observed-1',
         );
 
-        expect($resolved->status)->toBe(DeliveryStatus::Sent)
+        expect($resolved->status)->toBe(DeliveryStatus::Sent->value)
             ->and(mailAmbiguityMailCount())->toBe(1)
             ->and(mailAmbiguityFileCount($observer))->toBe(1);
 
@@ -231,8 +230,8 @@ it("never resends mail after acceptance plus recording crash on {$mailLabel}", f
             ->pluck('status', 'channel')
             ->all();
 
-        expect($deliveries[DigestMailChannel::class])->toBe(DeliveryStatus::Sent)
-            ->and($deliveries[InboxChannel::class])->toBe(DeliveryStatus::Sent);
+        expect($deliveries[NotificationTransport::DigestMail->value])->toBe(DeliveryStatus::Sent)
+            ->and($deliveries[NotificationTransport::Inbox->value])->toBe(DeliveryStatus::Sent);
 
         $reconciled = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T09:00:00Z'));
 
@@ -285,7 +284,7 @@ it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$m
         $communicationId = (string) $slot->communication_id;
         $mailDeliveryId = (string) CommunicationDelivery::query()
             ->where('communication_id', $communicationId)
-            ->where('channel', DigestMailChannel::class)
+            ->where('channel', NotificationTransport::DigestMail->value)
             ->value('id');
 
         $mailer->setSymfonyTransport(new DigestMailAcceptThenThrowTransport($observer, $arrayInner));
@@ -308,7 +307,7 @@ it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$m
             ->and(CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->count())->toBe(1)
             ->and($attempt->responded_at)->toBeNull()
             ->and($attempt->failed_at)->toBeNull()
-            ->and(GuardedDeliverySend::isAmbiguousExternal($mailDeliveryId))->toBeTrue()
+            ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
 
@@ -330,7 +329,7 @@ it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$m
             $mailDeliveryId, 'sent', 'user', $actorId, 'staff', 'observed-transport-1',
         );
 
-        expect($resolved->status)->toBe(DeliveryStatus::Sent)
+        expect($resolved->status)->toBe(DeliveryStatus::Sent->value)
             ->and(mailAmbiguityFileCount($observer))->toBe(1);
 
         $resolution = CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->firstOrFail()->metadata['digest_mail_resolution'] ?? null;
@@ -352,8 +351,8 @@ it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$m
             ->pluck('status', 'channel')
             ->all();
 
-        expect($deliveries[DigestMailChannel::class])->toBe(DeliveryStatus::Sent)
-            ->and($deliveries[InboxChannel::class])->toBe(DeliveryStatus::Sent);
+        expect($deliveries[NotificationTransport::DigestMail->value])->toBe(DeliveryStatus::Sent)
+            ->and($deliveries[NotificationTransport::Inbox->value])->toBe(DeliveryStatus::Sent);
 
         $reconciled = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T09:00:00Z'));
 
@@ -406,7 +405,7 @@ it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLab
         $communicationId = (string) $slot->communication_id;
         $mailDeliveryId = (string) CommunicationDelivery::query()
             ->where('communication_id', $communicationId)
-            ->where('channel', DigestMailChannel::class)
+            ->where('channel', NotificationTransport::DigestMail->value)
             ->value('id');
 
         $mailer->setSymfonyTransport(new DigestMailLogicThrowTransport($arrayInner));
@@ -431,7 +430,7 @@ it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLab
             ->and($mailDelivery->failed_at)->toBeNull()
             ->and($attempt->responded_at)->toBeNull()
             ->and($attempt->failed_at)->toBeNull()
-            ->and(GuardedDeliverySend::isAmbiguousExternal($mailDeliveryId))->toBeTrue()
+            ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
 
@@ -454,7 +453,7 @@ it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLab
             $mailDeliveryId, 'failed', 'user', $actorId, 'staff', null, 'transport rejected before acceptance; logs show no DATA',
         );
 
-        expect($resolved->status)->toBe(DeliveryStatus::Failed)
+        expect($resolved->status)->toBe(DeliveryStatus::Failed->value)
             ->and(mailAmbiguityMailCount())->toBe(0)
             ->and(mailAmbiguityFileCount($observer))->toBe(0);
 
@@ -483,8 +482,8 @@ it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLab
             ->pluck('status', 'channel')
             ->all();
 
-        expect($deliveries[DigestMailChannel::class])->toBe(DeliveryStatus::Failed)
-            ->and($deliveries[InboxChannel::class])->toBe(DeliveryStatus::Sending)
+        expect($deliveries[NotificationTransport::DigestMail->value])->toBe(DeliveryStatus::Failed)
+            ->and($deliveries[NotificationTransport::Inbox->value])->toBe(DeliveryStatus::Sending)
             ->and(Communication::query()->whereKey($communicationId)->firstOrFail()->status)->toBe(CommunicationStatus::Failed);
 
         $heldAgain = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T09:00:00Z'));
@@ -537,7 +536,7 @@ it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailL
         $communicationId = (string) $slot->communication_id;
         $mailDeliveryId = (string) CommunicationDelivery::query()
             ->where('communication_id', $communicationId)
-            ->where('channel', DigestMailChannel::class)
+            ->where('channel', NotificationTransport::DigestMail->value)
             ->value('id');
 
         $mailer->setSymfonyTransport(new DigestMailAcceptThenThrowLogicTransport($observer, $arrayInner));
@@ -560,7 +559,7 @@ it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailL
             ->and(CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->count())->toBe(1)
             ->and($attempt->responded_at)->toBeNull()
             ->and($attempt->failed_at)->toBeNull()
-            ->and(GuardedDeliverySend::isAmbiguousExternal($mailDeliveryId))->toBeTrue()
+            ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
 
@@ -582,7 +581,7 @@ it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailL
             $mailDeliveryId, 'sent', 'user', $actorId, 'staff', 'observed-logic-1',
         );
 
-        expect($resolved->status)->toBe(DeliveryStatus::Sent)
+        expect($resolved->status)->toBe(DeliveryStatus::Sent->value)
             ->and(mailAmbiguityFileCount($observer))->toBe(1);
 
         $resolution = CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->firstOrFail()->metadata['digest_mail_resolution'] ?? null;
@@ -604,8 +603,8 @@ it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailL
             ->pluck('status', 'channel')
             ->all();
 
-        expect($deliveries[DigestMailChannel::class])->toBe(DeliveryStatus::Sent)
-            ->and($deliveries[InboxChannel::class])->toBe(DeliveryStatus::Sent);
+        expect($deliveries[NotificationTransport::DigestMail->value])->toBe(DeliveryStatus::Sent)
+            ->and($deliveries[NotificationTransport::Inbox->value])->toBe(DeliveryStatus::Sent);
 
         $reconciled = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T09:00:00Z'));
 
@@ -667,7 +666,7 @@ it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}"
         $communicationId = (string) $slot->communication_id;
         $mailDeliveryId = (string) CommunicationDelivery::query()
             ->where('communication_id', $communicationId)
-            ->where('channel', DigestMailChannel::class)
+            ->where('channel', NotificationTransport::DigestMail->value)
             ->value('id');
 
         try {
@@ -691,7 +690,7 @@ it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}"
             ->and(CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->count())->toBe(1)
             ->and($attempt->responded_at)->toBeNull()
             ->and($attempt->failed_at)->toBeNull()
-            ->and(GuardedDeliverySend::isAmbiguousExternal($mailDeliveryId))->toBeTrue()
+            ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
 
@@ -714,7 +713,7 @@ it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}"
             $mailDeliveryId, 'sent', 'user', $actorId, 'staff', 'observed-postsend-1',
         );
 
-        expect($resolved->status)->toBe(DeliveryStatus::Sent)
+        expect($resolved->status)->toBe(DeliveryStatus::Sent->value)
             ->and(mailAmbiguityMailCount())->toBe(1)
             ->and(mailAmbiguityFileCount($observer))->toBe(1);
 
@@ -733,8 +732,8 @@ it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}"
             ->pluck('status', 'channel')
             ->all();
 
-        expect($deliveries[DigestMailChannel::class])->toBe(DeliveryStatus::Sent)
-            ->and($deliveries[InboxChannel::class])->toBe(DeliveryStatus::Sent);
+        expect($deliveries[NotificationTransport::DigestMail->value])->toBe(DeliveryStatus::Sent)
+            ->and($deliveries[NotificationTransport::Inbox->value])->toBe(DeliveryStatus::Sent);
 
         $reconciled = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T09:00:00Z'));
 

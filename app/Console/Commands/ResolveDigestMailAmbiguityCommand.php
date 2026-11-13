@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Actions\Rewards\ResolveDigestMailAmbiguityAction;
+use App\Features\Rewards\Api\ResolveDigestMailAmbiguity;
 use App\Models\User;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Help;
@@ -17,7 +17,7 @@ use InvalidArgumentException;
 #[Signature('rewards:resolve-digest-mail-ambiguity {delivery : Ambiguous mail delivery id (UUID, Sending with an unresolved attempt)} {decision : Resolution decision: sent|failed} {--actor= : Resolving operator user id (must exist and hold super_admin/admin; verified, never self-claimed)} {--provider-message-id= : Provider message id observed in mail logs (required when decision=sent, 1..191 chars)} {--reason= : Verified non-delivery evidence/reason (required when decision=failed, 1..191 chars, provider confirmed never accepted)}')]
 final class ResolveDigestMailAmbiguityCommand extends Command
 {
-    public function handle(ResolveDigestMailAmbiguityAction $resolve): int
+    public function handle(ResolveDigestMailAmbiguity $resolve): int
     {
         $deliveryId = (string) $this->argument('delivery');
         $decision = (string) $this->argument('decision');
@@ -64,7 +64,7 @@ final class ResolveDigestMailAmbiguityCommand extends Command
         }
 
         try {
-            $delivery = $resolve->handle(
+            $resolution = $resolve->handle(
                 $deliveryId,
                 $decision,
                 'user',
@@ -83,7 +83,7 @@ final class ResolveDigestMailAmbiguityCommand extends Command
             ? 'provider_message_id='.($providerMessageId)
             : 'reason='.($reason);
 
-        $this->info("Resolved mail delivery {$delivery->getKey()} as {$decision} ({$delivery->status->value}; {$evidence}; actor=user:{$operator->getKey()}:admin). No mail sent.");
+        $this->info("Resolved mail delivery {$resolution->deliveryId} as {$decision} ({$resolution->status}; {$evidence}; actor=user:{$operator->getKey()}:admin). No mail sent.");
 
         return self::SUCCESS;
     }

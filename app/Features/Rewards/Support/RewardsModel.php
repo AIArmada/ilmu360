@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Runtime model access for Rewards while its single app table model stays in the
- * legacy root namespace. Resolution goes through the registered morph alias so
+ * application root namespace. Resolution goes through the registered morph alias so
  * the feature never imports the root model class directly.
  */
 final class RewardsModel

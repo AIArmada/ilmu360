@@ -3,9 +3,9 @@
 namespace App\Services\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationManager;
-use App\Shared\Contributions\ContributionRequestNotifier;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Communications\Api\NotificationMessageRendering;
+use App\Notifications\InAppNotification;
+use App\Features\Communications\Api\NotificationCatalog;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Models\ContributionRequest;
@@ -13,8 +13,9 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use App\Notifications\InAppNotification;
-use App\Features\Communications\Api\NotificationCatalog;
+use App\Shared\Contributions\ContributionRequestNotifier;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Support\Notifications\NotificationDispatchData;
 use Illuminate\Support\Str;
 
@@ -22,7 +23,7 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
 {
     public function __construct(
         protected CommunicationManager $comms,
-        protected NotificationMessageRenderer $messageRenderer,
+        protected NotificationMessageRendering $messageRenderer,
     ) {}
 
     public function notifyCreateRequestApproved(ContributionRequest $request): void
@@ -129,11 +130,14 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
             ];
 
             $entity = $request->entity;
+            $timezone = array_key_exists('timing', $titleParams) || array_key_exists('timing', $bodyParams)
+                ? $user->preferredTimezone()
+                : null;
 
             return new NotificationDispatchData(
                 trigger: $trigger,
-                title: $this->messageRenderer->renderDefinition($render['title'], $user),
-                body: $this->messageRenderer->renderDefinition($render['body'], $user),
+                title: $this->messageRenderer->renderDefinition($render['title'], $timezone),
+                body: $this->messageRenderer->renderDefinition($render['body'], $timezone),
                 actionUrl: $actionUrl,
                 entityType: $entity?->getMorphClass(),
                 entityId: $entity?->getKey(),

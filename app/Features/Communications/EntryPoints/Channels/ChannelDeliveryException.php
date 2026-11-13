@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Notifications\Channels\Exceptions;
+namespace App\Features\Communications\EntryPoints\Channels;
 
 use RuntimeException;
 

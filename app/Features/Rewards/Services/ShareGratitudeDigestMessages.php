@@ -2,22 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Communications;
+namespace App\Features\Rewards\Services;
 
-use App\Notifications\ShareGratitudeDigestNotification;
+use App\Features\Rewards\Notifications\ShareGratitudeDigestNotification;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Communications\DigestMessages;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Notifications\Notification;
 
 /**
- * Root gratitude digest message adapter.
+ * Rewards gratitude digest message builder.
  *
- * Builds the existing notification (mail/inbox channels, `failed()` handling
- * and transport stay root) and resolves recipients through the account
+ * Builds the Rewards notification and resolves recipients through the account
  * directory. Consumers pass scalar identity and payload only.
  */
-final readonly class ShareGratitudeDigestMessages implements DigestMessages
+final readonly class ShareGratitudeDigestMessages
 {
     public function __construct(
         private AccountDirectory $accounts,
@@ -28,13 +26,12 @@ final readonly class ShareGratitudeDigestMessages implements DigestMessages
         return $this->accounts->resolveNotifiable($recipientId);
     }
 
-    public function digest(string $recipientId, array $summary): Notification
+    public function digest(array $summary): Notification
     {
         return new ShareGratitudeDigestNotification($summary);
     }
 
     public function redrive(
-        string $recipientId,
         string $communicationId,
         array $summary,
         array $deliveryIdsByChannel,

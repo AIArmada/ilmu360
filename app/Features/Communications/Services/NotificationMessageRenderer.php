@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Services\Notifications;
+namespace App\Features\Communications\Services;
 
-use App\Models\Event;
+use App\Features\Communications\Api\NotificationMessageRendering;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use UnitEnum;
 
-class NotificationMessageRenderer
+final class NotificationMessageRenderer implements NotificationMessageRendering
 {
     /**
      * @param  array{key?: mixed, params?: mixed}|null  $definition
      */
-    public function renderDefinition(?array $definition, ?object $notifiable = null, string $fallback = ''): string
+    public function renderDefinition(?array $definition, ?string $timezone = null, string $fallback = ''): string
     {
         if (! is_array($definition)) {
             return $fallback;
@@ -26,19 +26,19 @@ class NotificationMessageRenderer
 
         $params = $definition['params'] ?? [];
 
-        return __($key, $this->resolveParameters(is_array($params) ? $params : [], $notifiable));
+        return __($key, $this->resolveParameters(is_array($params) ? $params : [], $timezone));
     }
 
     /**
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    public function resolveParameters(array $params, ?object $notifiable = null): array
+    public function resolveParameters(array $params, ?string $timezone = null): array
     {
         $resolved = [];
 
         foreach ($params as $key => $value) {
-            $resolved[$key] = $this->resolveValue($value, $notifiable);
+            $resolved[$key] = $this->resolveValue($value, $timezone);
         }
 
         return $resolved;
@@ -47,25 +47,25 @@ class NotificationMessageRenderer
     /**
      * @return array{type: string, starts_at: string|null, timezone: string|null}
      */
-    public function eventTimingToken(Event $event): array
+    public function eventTimingToken(?string $startsAt, ?string $eventTimezone): array
     {
         return [
             'type' => 'event_timing',
-            'starts_at' => $event->starts_at?->toIso8601String(),
-            'timezone' => is_string($event->timezone) && $event->timezone !== ''
-                ? $event->timezone
+            'starts_at' => $startsAt,
+            'timezone' => is_string($eventTimezone) && $eventTimezone !== ''
+                ? $eventTimezone
                 : null,
         ];
     }
 
-    protected function resolveValue(mixed $value, ?object $notifiable = null): mixed
+    protected function resolveValue(mixed $value, ?string $timezone = null): mixed
     {
         if (is_array($value)) {
             if (($value['type'] ?? null) === 'event_timing') {
-                return $this->formatEventTiming($value, $notifiable);
+                return $this->formatEventTiming($value, $timezone);
             }
 
-            return array_map(fn (mixed $item): mixed => $this->resolveValue($item, $notifiable), $value);
+            return array_map(fn (mixed $item): mixed => $this->resolveValue($item, $timezone), $value);
         }
 
         if ($value instanceof BackedEnum) {
@@ -82,22 +82,12 @@ class NotificationMessageRenderer
     /**
      * @param  array{starts_at?: mixed, timezone?: mixed}  $token
      */
-    protected function formatEventTiming(array $token, ?object $notifiable = null): string
+    protected function formatEventTiming(array $token, ?string $timezone = null): string
     {
         $startsAt = $token['starts_at'] ?? null;
 
         if (! is_string($startsAt) || $startsAt === '') {
             return __('notifications.messages.timing.to_be_confirmed');
-        }
-
-        $timezone = null;
-
-        if ($notifiable !== null && method_exists($notifiable, 'preferredTimezone')) {
-            $resolvedTimezone = $notifiable->preferredTimezone();
-
-            if (is_string($resolvedTimezone) && $resolvedTimezone !== '') {
-                $timezone = $resolvedTimezone;
-            }
         }
 
         if ($timezone === null) {

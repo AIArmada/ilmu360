@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Notifications\Channels;
+namespace App\Features\Communications\EntryPoints\Channels;
 
 use AIArmada\Communications\Models\CommunicationDelivery;
-use App\Support\Communications\GuardedDeliverySend;
+use App\Features\Communications\Api\NotificationTransport;
+use App\Features\Communications\Support\Delivery\GuardedDeliverySend;
 use Illuminate\Contracts\Mail\Factory as MailFactory;
 use Illuminate\Mail\Markdown;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -53,7 +54,7 @@ class DigestMailChannel
 
     public function send(object $notifiable, Notification $notification): mixed
     {
-        $deliveryId = GuardedDeliverySend::deliveryIdFor($notification, static::class);
+        $deliveryId = GuardedDeliverySend::deliveryIdFor($notification, NotificationTransport::DigestMail->value);
 
         if ($deliveryId === null) {
             return $this->native()->send($notifiable, $notification);
@@ -62,7 +63,7 @@ class DigestMailChannel
         $communicationId = GuardedDeliverySend::communicationIdOf($notification);
 
         if ($communicationId === null) {
-            GuardedDeliverySend::detach($notification, static::class);
+            GuardedDeliverySend::detach($notification, NotificationTransport::DigestMail->value);
 
             return null;
         }
@@ -82,7 +83,7 @@ class DigestMailChannel
         });
 
         if (! is_array($claimed)) {
-            GuardedDeliverySend::detach($notification, static::class);
+            GuardedDeliverySend::detach($notification, NotificationTransport::DigestMail->value);
 
             return null;
         }
@@ -99,7 +100,7 @@ class DigestMailChannel
             // never an automatic Failed, resend, or release. The rethrow
             // fails the job loudly while the failure handler preserves
             // the ambiguous hold for authoritative or operator resolution.
-            GuardedDeliverySend::detach($notification, static::class);
+            GuardedDeliverySend::detach($notification, NotificationTransport::DigestMail->value);
 
             throw $sendException;
         }
@@ -117,13 +118,13 @@ class DigestMailChannel
             // the channel throws so the job fails loudly while the
             // failure handler leaves the ambiguous delivery untouched
             // for authoritative or operator resolution.
-            GuardedDeliverySend::detach($notification, static::class);
+            GuardedDeliverySend::detach($notification, NotificationTransport::DigestMail->value);
 
             throw $recordingException;
         }
 
         if (! $recorded) {
-            GuardedDeliverySend::detach($notification, static::class);
+            GuardedDeliverySend::detach($notification, NotificationTransport::DigestMail->value);
 
             return $response;
         }

@@ -7,8 +7,10 @@ namespace App\Features\Rewards;
 use App\Features\Rewards\Actions\Enrollment\EnrollRewardProgramMemberAction;
 use App\Features\Rewards\Actions\Enrollment\EvaluatePreclaimShareOutcomesAction;
 use App\Features\Rewards\Actions\GratitudeDigests\GratitudeDigestAction;
+use App\Features\Rewards\Actions\GratitudeDigests\ResolveDigestMailAmbiguityAction;
 use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Api\MemberEnrollment;
+use App\Features\Rewards\Api\ResolveDigestMailAmbiguity;
 use App\Platform\FeatureModule;
 
 /**
@@ -20,15 +22,14 @@ use App\Platform\FeatureModule;
  * `$table`; feature code resolves it through the `reward_digest_slot` morph
  * alias and `Support\RewardsModel`, never by importing the root model.
  *
- * Shared seams keep the feature free of root notification services and users:
- * - `Shared\Communications\DigestPolicy` with the root
- *   `NotificationCenterDigestPolicy` adapter over
+ * Shared seams keep the feature free of Communications internals and app users:
+ * - `Shared\Communications\DigestPolicy`, implemented by Communications'
+ *   `NotificationCenterDigestPolicy` over
  *   AccountNotificationPreferences/ResolvedNotificationPolicy and the global
  *   digest config; only scalar cadence, trigger, timezone, delivery time,
  *   weekly day and quiet hours cross.
- * - `Shared\Communications\DigestMessages` with the root
- *   `ShareGratitudeDigestMessages` adapter resolving recipients through
- *   `Shared\Auth\AccountDirectory` and building the existing
+ * - `Services\ShareGratitudeDigestMessages` resolves recipients through
+ *   `Shared\Auth\AccountDirectory` and builds the existing
  *   `ShareGratitudeDigestNotification`.
  * - `Api\GratitudeDigest` exposes scalar plan, cancel, cancel-pending and
  *   dispatch entrypoints returning `Api\GratitudeDigestSnapshot`; the root
@@ -51,12 +52,13 @@ use App\Platform\FeatureModule;
  * writers, and app code performs zero direct writes to them.
  *
  * Intentional root adapters/holds documented for later slices:
- * - Mail ambiguity: `ResolveDigestMailAmbiguityAction` and
- *   `ResolveDigestMailAmbiguityCommand` stay root; they write communications,
- *   never digest slots.
- * - Notifications/channels/communications: `ShareGratitudeDigestNotification`,
- *   `DigestMailChannel`, `InboxChannel` and `GuardedDeliverySend` stay root;
- *   the `DigestMessages` adapter only builds the existing notification.
+ * - Mail ambiguity: `ResolveDigestMailAmbiguityCommand` stays a root transport
+ *   adapter; `Api\ResolveDigestMailAmbiguity` exposes its scalar result and the
+ *   `Actions\GratitudeDigests\ResolveDigestMailAmbiguityAction` records operator
+ *   decisions through the Communications delivery-fencing API.
+ * - Digest notification intent lives in `Notifications\ShareGratitudeDigestNotification`;
+ *   its in-app payload uses the Communications API contract; Communications owns
+ *   channel adapters and the delivery fence.
  * - Source facts: `CompositeRewardSourceFactReader` plus
  *   `ActivityRewardSourceFactReader`, `ShareAttributionRewardSourceFactReader`
  *   and `ReferralRewardSourceFactReader` stay root read adapters until the
@@ -89,5 +91,6 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(GratitudeDigest::class, GratitudeDigestAction::class);
         $this->app->bind(MemberEnrollment::class, EnrollRewardProgramMemberAction::class);
+        $this->app->bind(ResolveDigestMailAmbiguity::class, ResolveDigestMailAmbiguityAction::class);
     }
 }

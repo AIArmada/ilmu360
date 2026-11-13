@@ -1,17 +1,17 @@
 <?php
 
 use App\Shared\Events\Enums\EventVisibility;
-use App\Models\Event;
-use App\Services\Notifications\NotificationMessageRenderer;
+use App\Features\Communications\Api\NotificationMessageRendering;
+use App\Features\Communications\Services\NotificationMessageRenderer;
 
 it('returns fallback when definition is null', function () {
-    $result = app(NotificationMessageRenderer::class)->renderDefinition(null, fallback: 'default message');
+    $result = app(NotificationMessageRendering::class)->renderDefinition(null, fallback: 'default message');
 
     expect($result)->toBe('default message');
 });
 
 it('returns fallback when key is missing', function () {
-    $result = app(NotificationMessageRenderer::class)->renderDefinition([], fallback: 'fallback');
+    $result = app(NotificationMessageRendering::class)->renderDefinition([], fallback: 'fallback');
 
     expect($result)->toBe('fallback');
 });
@@ -63,17 +63,17 @@ it('resolves nested arrays recursively', function () {
     ]);
 });
 
-it('formats event timing with user preferred timezone', function () {
+it('formats event timing with the supplied timezone', function () {
     $renderer = app(NotificationMessageRenderer::class);
-
-    $event = Event::factory()->create([
-        'timezone' => 'Asia/Kuala_Lumpur',
-    ]);
-
-    $token = $renderer->eventTimingToken($event);
+    $token = app(NotificationMessageRendering::class)->eventTimingToken(
+        '2026-11-13T08:00:00+00:00',
+        'Asia/Kuala_Lumpur',
+    );
+    $parameters = $renderer->resolveParameters(['timing' => $token], 'Asia/Kuala_Lumpur');
 
     expect($token['type'])->toBe('event_timing')
-        ->and($token['timezone'])->toBe('Asia/Kuala_Lumpur');
+        ->and($token['timezone'])->toBe('Asia/Kuala_Lumpur')
+        ->and($parameters['timing'])->toContain('04:00 PM');
 });
 
 it('returns to_be_confirmed when timing token has no starts_at', function () {

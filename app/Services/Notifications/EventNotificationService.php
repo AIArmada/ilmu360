@@ -5,7 +5,10 @@ namespace App\Services\Notifications;
 use AIArmada\Communications\Contracts\CommunicationManager;
 use AIArmada\Events\Models\EventSubmission;
 use App\Enums\EventChangeSeverity;
+use App\Features\Communications\Api\NotificationMessageRendering;
+use App\Notifications\InAppNotification;
 use App\Features\Communications\Api\NotificationCadence;
+use App\Features\Communications\Api\NotificationCatalog;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -19,14 +22,12 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
 use App\Models\User;
-use App\Notifications\InAppNotification;
 use App\Services\EventSearchService;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Support\Authz\MemberPermissionGate;
-use App\Features\Communications\Api\NotificationCatalog;
 use App\Support\Notifications\NotificationDispatchData;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -39,7 +40,7 @@ class EventNotificationService
         protected CommunicationManager $comms,
         protected EventSearchService $eventSearchService,
         protected MemberPermissionGate $memberPermissionGate,
-        protected NotificationMessageRenderer $messageRenderer,
+        protected NotificationMessageRendering $messageRenderer,
         protected SavedSearchReader $savedSearchReader,
     ) {}
 
@@ -83,7 +84,7 @@ class EventNotificationService
             titleKey: 'notifications.messages.submission_approved.title',
             titleParams: ['title' => $event->title],
             bodyKey: 'notifications.messages.submission_approved.body',
-            bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event)],
+            bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
             actionUrl: route('events.show', $event),
             entityType: Event::class,
             entityId: $event->id,
@@ -235,7 +236,7 @@ class EventNotificationService
             ? 'notifications.messages.event_cancelled.body_with_note'
             : 'notifications.messages.event_cancelled.body';
 
-        $bodyParams = ['timing' => $this->messageRenderer->eventTimingToken($event)];
+        $bodyParams = ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)];
 
         if (filled($note)) {
             $bodyParams['note'] = $note;
@@ -353,7 +354,7 @@ class EventNotificationService
                 titleKey: 'notifications.messages.registration_event_changed.title',
                 titleParams: ['title' => $event->title],
                 bodyKey: 'notifications.messages.registration_event_changed.body',
-                bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event)],
+                bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
                 actionUrl: route('events.show', $event),
                 entityType: Event::class,
                 entityId: $event->id,
@@ -379,7 +380,7 @@ class EventNotificationService
             titleKey: 'notifications.messages.registration_confirmed.title',
             titleParams: ['title' => $event->title],
             bodyKey: 'notifications.messages.registration_confirmed.body',
-            bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event)],
+            bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
             actionUrl: route('events.show', $event),
             entityType: Event::class,
             entityId: $event->id,
@@ -543,7 +544,7 @@ class EventNotificationService
             titleKey: 'notifications.messages.event_approved.title',
             titleParams: ['title' => $event->title],
             bodyKey: 'notifications.messages.event_approved.body',
-            bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event)],
+            bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
             actionUrl: route('events.show', $event),
             entityType: Event::class,
             entityId: $event->id,
@@ -713,7 +714,7 @@ class EventNotificationService
                 bodyKey: 'notifications.messages.followed_content.body',
                 bodyParams: [
                     'matches' => implode(', ', array_slice($labels, 0, 3)),
-                    'timing' => $this->messageRenderer->eventTimingToken($event),
+                    'timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone),
                 ],
                 actionUrl: route('events.show', $event),
                 entityType: Event::class,
@@ -798,11 +799,11 @@ class EventNotificationService
         return match ($trigger) {
             NotificationTrigger::EventVenueChanged => [
                 'notifications.messages.event_venue_changed.body',
-                ['timing' => $this->messageRenderer->eventTimingToken($event)],
+                ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
             ],
             default => [
                 'notifications.messages.event_schedule_changed.body',
-                ['timing' => $this->messageRenderer->eventTimingToken($event)],
+                ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
             ],
         };
     }
@@ -896,7 +897,7 @@ class EventNotificationService
                 titleKey: $titleKey,
                 titleParams: ['title' => $event->title],
                 bodyKey: $bodyKey,
-                bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event)],
+            bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
                 actionUrl: route('events.show', $event),
                 entityType: Event::class,
                 entityId: $event->id,
@@ -1007,11 +1008,14 @@ class EventNotificationService
                 'params' => $bodyParams,
             ],
         ];
+        $timezone = array_key_exists('timing', $titleParams) || array_key_exists('timing', $bodyParams)
+            ? $user->preferredTimezone()
+            : null;
 
         return new NotificationDispatchData(
             trigger: $trigger,
-            title: $this->messageRenderer->renderDefinition($render['title'], $user),
-            body: $this->messageRenderer->renderDefinition($render['body'], $user),
+            title: $this->messageRenderer->renderDefinition($render['title'], $timezone),
+            body: $this->messageRenderer->renderDefinition($render['body'], $timezone),
             actionUrl: $actionUrl,
             entityType: $entityType,
             entityId: $entityId,

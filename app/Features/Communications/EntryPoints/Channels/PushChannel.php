@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Notifications\Channels;
+namespace App\Features\Communications\EntryPoints\Channels;
 
 use App\Features\Communications\Api\PushDestinationManagement;
 use App\Features\Communications\Api\PushDestinationSnapshot;
-use App\Notifications\Channels\Exceptions\ChannelDeliveryException;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Http;

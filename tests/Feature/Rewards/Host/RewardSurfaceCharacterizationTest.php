@@ -91,7 +91,7 @@ it('documents the intentional root adapters and package-canonical holds', functi
 
     expect($docblock)->toContain('GratitudeDigest')
         ->and($docblock)->toContain('DigestPolicy')
-        ->and($docblock)->toContain('DigestMessages')
+        ->and($docblock)->toContain('ShareGratitudeDigestMessages')
         ->and($docblock)->toContain('DigestRewardGratitudePlanner')
         ->and($docblock)->toContain('ResolveDigestMailAmbiguityAction')
         ->and($docblock)->toContain('ResolveDigestMailAmbiguityCommand')
@@ -103,10 +103,9 @@ it('documents the intentional root adapters and package-canonical holds', functi
         ->and($docblock)->toContain('RewardPayoutMethods')
         ->and($docblock)->toContain('VouchersRewardBenefitCouponFulfillment')
         ->and($docblock)->toContain('Reward*Policy')
-        ->and($docblock)->toContain('ShareGratitudeDigestNotification')
-        ->and($docblock)->toContain('DigestMailChannel')
-        ->and($docblock)->toContain('InboxChannel')
-        ->and($docblock)->toContain('GuardedDeliverySend')
+        ->and($docblock)->toContain('Notifications\\ShareGratitudeDigestNotification')
+        ->and($docblock)->toContain('delivery-fencing API')
+        ->and($docblock)->toContain('channel adapters and the delivery fence')
         ->and($docblock)->toContain('Commands/schedules/transport')
         ->and($docblock)->toContain('package-canonical')
         ->and($docblock)->toContain('root adapters');

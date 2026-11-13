@@ -1,14 +1,15 @@
 <?php
 
 use AIArmada\Communications\Models\CommunicationDestination;
+use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Api\PushDestinationManagement;
 use App\Features\Communications\Api\PushDestinationSnapshot;
 use App\Models\User;
-use App\Notifications\Channels\PushChannel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 uses(RefreshDatabase::class);
 
@@ -62,6 +63,8 @@ it('routes only active account push installations as ordered immutable snapshots
         ->and($destinations[1]->id)->toBe((string) $secondary->getKey());
 
     expect($destinations[0])->not->toBeInstanceOf(CommunicationDestination::class);
+    expect($user->routeNotificationFor(NotificationTransport::Push->value))
+        ->toBe((string) $user->getKey());
 });
 
 it('sends push notifications using tokens from destination snapshots', function (): void {
@@ -104,7 +107,7 @@ it('sends push notifications using tokens from destination snapshots', function 
         }
     };
 
-    $result = app(PushChannel::class)->send($user, $notification);
+    $result = NotificationFacade::channel(NotificationTransport::Push->value)->send($user, $notification);
 
     Http::assertSentCount(1);
     Http::assertSent(fn (Request $request): bool => data_get($request->data(), 'message.token') === 'push-token');

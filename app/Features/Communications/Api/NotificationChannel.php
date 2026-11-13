@@ -46,9 +46,9 @@ enum NotificationChannel: string
     public static function fromPackagePreferenceChannel(string $channel): ?self
     {
         return match ($channel) {
-            'mail', 'App\\Notifications\\Channels\\DigestMailChannel' => self::Email,
-            'database', 'App\\Notifications\\Channels\\InboxChannel' => self::InApp,
-            'App\\Notifications\\Channels\\PushChannel' => self::Push,
+            'mail', NotificationTransport::DigestMail->value => self::Email,
+            'database', NotificationTransport::Inbox->value => self::InApp,
+            'push', NotificationTransport::Push->value => self::Push,
             default => self::tryFrom($channel),
         };
     }
@@ -56,9 +56,9 @@ enum NotificationChannel: string
     public static function fromPackageConsentChannel(string $channel): ?self
     {
         return match ($channel) {
-            'mail', 'App\\Notifications\\Channels\\DigestMailChannel' => self::Email,
+            'mail', NotificationTransport::DigestMail->value => self::Email,
             'database', 'in_app' => self::InApp,
-            'push', 'fcm' => self::Push,
+            'push', 'fcm', NotificationTransport::Push->value => self::Push,
             default => self::tryFrom($channel),
         };
     }

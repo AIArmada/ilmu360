@@ -1,7 +1,7 @@
 # Rewards / digests — ownership and migration map
 
-**Status:** research-only map. No production edits, no feature claims, no schema change, no commit.
-**Base:** `refactor` @ `45c5c119` (clean tree).
+**Status:** accepted ownership and hazard map. Rewards Rw0–Rw3 are implemented; the Communications migration is completing C4 and still needs C5.
+**Inventory base:** `refactor` @ `45c5c119` (the source inventory predates the current implementation).
 **Prepared:** 2026-11-13.
 **Precedence:** `AGENTS.md`, `.ai/rules`, `tasks/lessons.md`, `tasks/agent-architecture-migration.md` (next action), and the S-map entries in `tasks/agent-architecture-migration-history.md`.
 
@@ -36,11 +36,12 @@ Package topology: `RewardProgram` is the tenant/owner boundary (`HasOwner` + `Ha
 
 | Area | Files |
 |---|---|
-| Actions | `app/Actions/Rewards/{PlanRewardGratitudeDigest, DispatchDueRewardDigests, CancelRewardDigest, ResolveDigestMailAmbiguity, EnrollRewardProgramMember, EvaluatePreclaimShareOutcomes}Action.php` (6) |
+| Feature actions | `app/Features/Rewards/Actions/{Enrollment,GratitudeDigests}/*Action.php` |
 | Support | `app/Support/Rewards/*` (10): composite/activity/share-attribution/referral fact readers, planner adapter, version resolver, correction-key source, member presenter, payout-method catalog, voucher coupon fulfillment |
 | Model | `app/Models/RewardDigestSlot.php` (only app-owned reward model) |
-| Notifications | `app/Notifications/ShareGratitudeDigestNotification.php`, `app/Notifications/Channels/DigestMailChannel.php` |
-| Delivery fence | `app/Support/Communications/GuardedDeliverySend.php` |
+| Rewards notification | `app/Features/Rewards/Notifications/ShareGratitudeDigestNotification.php` |
+| Communications delivery adapters | `app/Features/Communications/EntryPoints/Channels/*Channel.php` |
+| Delivery fence | `app/Features/Communications/Support/Delivery/GuardedDeliverySend.php` |
 | Policies | 9 `app/Policies/Reward*Policy.php` |
 | API | 9 controllers, 25 routes (`routes/api.php:270-295`) |
 | Web/Livewire | `app/Livewire/Pages/Dashboard/RewardMemberIndex.php`, enrollment prompt in `UserDashboard.php:94-149`; route `routes/web.php:131` |
@@ -86,7 +87,7 @@ Search `database/migrations` for `reward_` returns exactly one app-created table
 
 | Table | Current writers (production) | Proposed writer classes | Conditions |
 |---|---|---|---|
-| `reward_digest_slots` | Plan `:188-198` create, `:233-236` update; Dispatch `:163`, `:173-176`, `:315`, `:357-361`, `:383-386`, `:391-394`, `:410-413`, `:418-421`, `:432-436`; Cancel `:121-124`, `:210-214` | The three actions above, moved into `Features\Rewards\Actions\GratitudeDigests` | Keep the model in `app/Models` with a literal `$table = 'reward_digest_slots'` and resolve it from the feature through a `reward_digest_slot` morph alias + `Support\RewardsModel` helper (the accepted ShareTracking S1–S3 convention); feature code never imports `App\Models\*`. Moving the model is optional and not required for the claim. `ResolveDigestMailAmbiguityAction` does **not** write slots (communications only) and stays root. |
+| `reward_digest_slots` | Plan `:188-198` create, `:233-236` update; Dispatch `:163`, `:173-176`, `:315`, `:357-361`, `:383-386`, `:391-394`, `:410-413`, `:418-421`, `:432-436`; Cancel `:121-124`, `:210-214` | `PlanRewardGratitudeDigestAction`, `DispatchDueRewardDigestsAction`, and `CancelRewardDigestAction` in `Features\Rewards\Actions\GratitudeDigests` | Keep the model in `app/Models` with a literal `$table = 'reward_digest_slots'` and resolve it from the feature through a `reward_digest_slot` morph alias + `Support\RewardsModel` helper; feature code never imports `App\Models\*`. `ResolveDigestMailAmbiguityAction` does **not** write slots; it now lives in Rewards and uses the Communications delivery-fencing API. |
 
 `RewardDigestSlot` invariants to preserve: frozen `recipient_type/recipient_id/local_day/plan_key/timezone/due_at`; immutable `sent_at/cancelled_at`; transitions `planned→sending|cancelled`, `sending→sent|cancelled|planned`; delete refused (`app/Models/RewardDigestSlot.php:74-106`).
 
@@ -146,9 +147,9 @@ Important package-side unique keys (race contract): awards canonical unique `(re
 
 ### C. Send, observe, reconcile
 
-1. `ShareGratitudeDigestNotification` sends through `DigestMailChannel` + Inbox; `via()` at `:66-69`.
-2. `DigestMailChannel:54-132`: claim delivery + communication, commit a durable attempt boundary **before** SMTP, send outside any transaction, record Sent fenced against the attempt; any send/record exception leaves the delivery `Sending` with an unresolved attempt (UNKNOWN) and rethrows. `GuardedDeliverySend:80-128` owns the claim; `:212-283` the fenced Sent; `:284-349` the fenced failure.
-3. `ShareGratitudeDigestNotification::failed()` (`:89-143`) marks only non-ambiguous deliveries failed; ambiguous mail is held.
+1. `Features\Rewards\Notifications\ShareGratitudeDigestNotification` sends through the Communications digest-mail and inbox drivers.
+2. `Features\Communications\EntryPoints\Channels\DigestMailChannel` claims delivery + communication, commits a durable attempt boundary **before** SMTP, sends outside any transaction, and records Sent fenced against the attempt; any send/record exception leaves the delivery `Sending` with an unresolved attempt (UNKNOWN) and rethrows. `Features\Communications\Support\Delivery\GuardedDeliverySend` owns the claim and fenced recording.
+3. `ShareGratitudeDigestNotification::failed()` calls the scalar `DeliveryFencing` API. The API locks each delivery, verifies it belongs to the supplied communication, and preserves accepted, delivered, terminal, and ambiguous states.
 4. `reconcileOne` (`:297-425`) locks slot → communication → deliveries. Any delivered channel → `sent` + per-channel outcomes + `sent_at`. In-flight → wait; pre-send stalled past 120 min escapes to `planned` (max 2 escapes), ambiguous in-flight never escapes; all-terminal failure requeues up to 3 attempts then cancels `delivery-failed`.
 5. `DispatchDueRewardDigestsAction` has **no deadlock/retry wrapper around `reconcileOne` or `dispatchOne`**.
 
@@ -159,7 +160,7 @@ Important package-side unique keys (race contract): awards canonical unique `(re
 
 ### E. Mail ambiguity resolution (operator)
 
-`ResolveDigestMailAmbiguityAction:43-138`: staff/admin/system only; `sent` requires observed provider message id, `failed` requires reason; one transaction, delivery lock, latest started-unresolved attempt must match `delivery.attempt_count`; delegates to `GuardedDeliverySend::recordExternalSent|recordExternalFailure` (fenced); stamps `metadata.digest_mail_resolution`; never sends mail.
+`Features\Rewards\Actions\GratitudeDigests\ResolveDigestMailAmbiguityAction`: staff/admin/system only; `sent` requires observed provider message id, `failed` requires reason; one transaction, delivery lock, latest started-unresolved attempt must match `delivery.attempt_count`; delegates to the scalar Communications `DeliveryFencing` API; stamps `metadata.digest_mail_resolution`; never sends mail. The root command verifies the real operator and calls the Rewards API.
 `ResolveDigestMailAmbiguityCommand:25-124` verifies the real operator exists and holds `super_admin|admin` (never a self-claimed role), validates evidence, delegates. The slot is not touched directly; the next reconcile run settles it.
 
 ### F. Enrollment / acceptance / preclaim
@@ -205,8 +206,8 @@ Severity reflects migration risk, not a request to change behavior.
 | # | Severity | Hazard | Evidence |
 |---|---|---|---|
 | H1 | High | Digest bookkeeping runs **inside** award/badge/milestone transactions. A digest-side failure (notification-preference creation/read failure, DB error, lock timeout) can abort an approval/reversal; the reverse path calls `cancelPendingFor` with no `try/catch`. | `TransitionRewardAwardAction:346-364`; `EvaluateRewardEntitlementAction:1042-1050`; `GrantRewardBadgeAction:156-162`; `RecordRewardMilestoneContributionAction:560-570,625-637`; Plan throws refusal-style `InvalidArgumentException` at `:60-94`; package callers catch only that class. |
-| H2 | High | **Lock-order inversion**: the send job locks delivery → communication (`GuardedDeliverySend:82-90`), while cancel locks communication → deliveries (`CancelRewardDigestAction:167-179`) and reconcile locks slot → communication → deliveries (`Dispatch:299-324`). A send vs cancel/reconcile race can deadlock on (communication, delivery). Dispatch/reconcile have no deadlock retry or per-slot catch, so one abort can end the hourly run mid-batch. | cited lines; `DispatchDueRewardDigestsAction::handle:79-94` loops without `try`. |
-| H3 | High | **Claim blocker**: all three `reward_digest_slots` writers are root `App\Actions\Rewards` classes and depend on root `App\Models\User`, `App\Services\Notifications\...`, `App\Notifications\...`. `FeatureCatalog` requires feature-local writers, and feature code may not import root `App\*` types. A claim without moving the three actions and adding the Shared seams + root-model resolver is invalid. | `tools/architecture-check.php` `feature-external`; `tests/Unit/Platform/FeatureCatalogTest.php`; model/actions imports. |
+| H2 | High | **Lock-order inversion**: the send job locks delivery → communication (`Features\Communications\Support\Delivery\GuardedDeliverySend`), while cancel locks communication → deliveries (`CancelRewardDigestAction`) and reconcile locks slot → communication → deliveries (`DispatchDueRewardDigestsAction`). A send vs cancel/reconcile race can deadlock on (communication, delivery). Dispatch/reconcile have no deadlock retry or per-slot catch, so one abort can end the hourly run mid-batch. | Current code paths; `DispatchDueRewardDigestsAction::handle()` loops without `try`. |
+| H3 | Resolved in Rw2b | The three `reward_digest_slots` writers were root `App\Actions\Rewards` classes. They now live in `Features\Rewards\Actions\GratitudeDigests`, use `Support\RewardsModel`, and expose scalar feature APIs; the architecture scan passes. | `tools/architecture-check.php`; `tests/Unit/Platform/FeatureCatalogTest.php`. |
 | H4 | High | `EvaluatePreclaimShareOutcomesAction` scans an unbounded receipt lookback and dispatches one job per role per receipt **synchronously on the enrollment HTTP/page path**, with no chunk/limit. Large windows can enqueue thousands of jobs inside a request. | `:50-121`. |
 | H5 | Medium-High | `withoutOverlapping()` uses the default 1440-minute lock. A crashed/killed digest run can suppress the next 24 hourly runs. | `routes/console.php:28-32`. |
 | H6 | Medium-High | Referral points fulfillment runs reward evaluation **synchronously inside a transaction** and requires exactly one live award; any digest/bookkeeping failure inside that unit can fail referral fulfillment (reward marked Failed). | `RewardsPointsFulfillment.php:84-112`. |
@@ -248,7 +249,7 @@ Order: characteristics first; no table claim until all writers are feature-local
   - plan/cancel failure isolation from award transitions (H1 characterization, expected current behavior);
   - API vs Livewire enrollment signal parity (H17, expected current difference);
   - admin/MCP: `AdminResourceMutationService::supports()` is false for every reward resource (H19).
-- Document in the feature provider docblock which root adapters are intentional and why: `DigestRewardGratitudePlanner`, `ResolveDigestMailAmbiguityAction` + command, `RewardSourceFactReader` composite + three readers, `RewardMemberPresenter`, `RewardPayoutMethods`, Vouchers fulfillment, policies, transport.
+- Document in the feature provider docblock which root adapters are intentional and why: `DigestRewardGratitudePlanner` and `ResolveDigestMailAmbiguityCommand`, `RewardSourceFactReader` composite + three readers, `RewardMemberPresenter`, `RewardPayoutMethods`, Vouchers fulfillment, policies, and transport.
 
 **Stays root/package:** everything; no claims; package actions unchanged.
 **Evidence:** existing 234 reward cases + new focused cases; `php tools/architecture-check.php` 0/17; routes identical (738); no schema/migration change.
@@ -258,15 +259,15 @@ Order: characteristics first; no table claim until all writers are feature-local
 
 **Scope**
 - Introduce the minimum host seam needed to keep writers feature-local (narrower than a transport port; package communications classes remain directly usable from feature code):
-  - `Shared\Communications\DigestPolicy` with a root `App\Support\Communications\...` implementation over `NotificationSettingsManager`: enabled, scalar cadence, timezone, delivery time, weekly day, quiet hours, and the trigger key. No root `NotificationCadence`/`NotificationTrigger` enum crosses into the feature. This contract is reusable by the later Communications slice.
-  - `Shared\Communications\DigestMessages` with a root `App\Notifications\...` factory: builds the existing `ShareGratitudeDigestNotification` as an `Illuminate\Notifications\Notification` from the summary payload (mail/inbox channels and `failed()` stay inside the root notification + `DigestMailChannel` + `GuardedDeliverySend`).
+  - `Shared\Communications\DigestPolicy` is implemented by Communications' `NotificationCenterDigestPolicy` over the `AccountNotificationPreferences` API: enabled, scalar cadence, timezone, delivery time, weekly day, quiet hours, and the trigger key. No Communications enum crosses into Rewards.
+  - At Rw1, `Shared\Communications\DigestMessages` built the notification through a root factory. C4 removed that single-consumer Shared contract; Rewards now injects its feature-local `ShareGratitudeDigestMessages` service directly.
   - Recipient resolution uses `Shared\Auth\AccountDirectory::resolveNotifiable()` / `AccountActor`, not `App\Models\User`.
 - Keep `RewardDigestSlot` in `app/Models` with literal `$table`, register `reward_digest_slot` morph alias + feature `Support\RewardsModel` resolver, and move only the three actions → `Features\Rewards\Actions\GratitudeDigests`. Preserve exact statuses, transactions, locks, retry bounds, payload shape, plan key, calmness floor, merge semantics. The feature calls package `DispatchManagedNotificationAction`, `CancelCommunicationAction`, `DispatchManagedNotificationJob`, `Communication`, and `CommunicationDelivery` directly (package imports are allowed).
 - Add `Features\Rewards\Api\GratitudeDigest` (interface) with plan/cancel/dispatch entrypoints returning scalars/void only (no model crosses); feature provider binds it; root `DigestRewardGratitudePlanner` becomes a thin package-contract adapter calling the Api (root→feature Api is allowed; root→feature private is not). `DispatchRewardDigestsCommand` calls the Api.
-- Claim `table:reward_digest_slots` with exactly the three feature writer classes. Keep `ResolveDigestMailAmbiguityAction`/command root (they write communications only).
+- Claim `table:reward_digest_slots` with exactly the three feature writer classes. Keep `ResolveDigestMailAmbiguityCommand` at root as a CLI adapter; the action stays in Rewards and delegates Communications mutations to `DeliveryFencing`.
 - Do not change the lock order in this slice. Record H2 as a preserved hazard; if the deadlock is observed in the race suite, fix it in a separate, characterized change (delivery-first ordering everywhere) rather than silently reordering.
 
-**Stays root/package:** communications tables/models/actions, notification classes/channels, settings service, ambiguity command/action, scheduler.
+**Stays package-canonical:** Communications tables/models/actions. App channels and delivery fencing now live in Communications; digest notification intent and ambiguity action live in Rewards; only the ambiguity command remains root as a CLI adapter.
 **Evidence:** `RewardDigestTest` 18, `RewardDigestRaceTest` 5 (real drivers), `RewardDigestMailAmbiguityTest` 5 (mail path unchanged), `RewardDigestMailResolveCommandTest` 5, digest case in `RewardDeliveryTest`; plan/merge/cancel/status assertions; architecture 0/17; feature manifest validation; routes identical; final-pass ownership PHPStan 0.
 **Holds:** no schema change, no timing/retention change, no communications behavior change, no deadlock fix without separate characterization.
 

@@ -14,8 +14,8 @@ use AIArmada\Communications\Jobs\DispatchManagedNotificationJob;
 use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use App\Features\Rewards\Api\GratitudeDigest;
+use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Features\Rewards\Support\RewardsModel;
-use App\Shared\Communications\DigestMessages;
 use App\Shared\Communications\DigestPolicy;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -59,7 +59,7 @@ final readonly class DispatchDueRewardDigestsAction
 
     public function __construct(
         private DigestPolicy $policies,
-        private DigestMessages $messages,
+        private ShareGratitudeDigestMessages $messages,
     ) {}
 
     /**
@@ -248,7 +248,7 @@ final readonly class DispatchDueRewardDigestsAction
 
         $communication = app(DispatchManagedNotificationAction::class)->handle(
             $recipient,
-            $this->messages->digest((string) $slot->getAttribute('recipient_id'), $summary),
+            $this->messages->digest($summary),
             new CommunicationContextData(
                 category: CommunicationCategory::Digest,
                 priority: CommunicationPriority::Low,
@@ -294,7 +294,6 @@ final readonly class DispatchDueRewardDigestsAction
         ];
 
         $notification = $this->messages->redrive(
-            (string) $recipient->getAuthIdentifier(),
             (string) $communication->getKey(),
             $summary,
             $byChannel,

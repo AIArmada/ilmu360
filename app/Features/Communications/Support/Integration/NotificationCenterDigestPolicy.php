@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
- * Root digest-policy adapter over the Communications preference API.
+ * Communications implementation of the shared digest-policy contract.
  *
  * Maps notification cadence/trigger enums and the global digest delivery
  * configuration into the scalar Shared snapshot; no enum or root user model

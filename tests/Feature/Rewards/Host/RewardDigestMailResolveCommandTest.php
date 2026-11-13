@@ -15,12 +15,12 @@ use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
+use App\Features\Rewards\Notifications\ShareGratitudeDigestNotification;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
-use App\Notifications\Channels\DigestMailChannel;
-use App\Notifications\ShareGratitudeDigestNotification;
-use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Console\Command;
@@ -136,7 +136,7 @@ function resolveCmdAmbiguous(string $prefix, string $source): array
         $communicationId = (string) $slot->communication_id;
         $mailDeliveryId = (string) CommunicationDelivery::query()
             ->where('communication_id', $communicationId)
-            ->where('channel', DigestMailChannel::class)
+            ->where('channel', NotificationTransport::DigestMail->value)
             ->value('id');
 
         // Nothing transmitted while the dispatch job stayed queued.

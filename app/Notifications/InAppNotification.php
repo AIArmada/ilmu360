@@ -2,14 +2,16 @@
 
 namespace App\Notifications;
 
+use App\Features\Communications\Api\InAppNotificationMessage;
+use App\Features\Communications\Api\InAppNotificationPayload;
 use App\Features\Communications\Api\NotificationFamily;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
-use App\Notifications\Channels\InboxChannel;
+use App\Features\Communications\Api\NotificationTransport;
 use Carbon\CarbonInterface;
 use Illuminate\Notifications\Notification;
 
-class InAppNotification extends Notification
+class InAppNotification extends Notification implements InAppNotificationMessage
 {
     /**
      * @param  array<string, mixed>  $meta
@@ -29,32 +31,33 @@ class InAppNotification extends Notification
     ) {}
 
     /**
-     * @param  mixed  $notifiable
-     * @return list<class-string>
+     * @return list<string>
      */
-    public function via($notifiable): array
+    public function via(mixed $notifiable): array
     {
-        return [InboxChannel::class];
+        return [NotificationTransport::Inbox->value];
     }
 
-    /**
-     * @param  mixed  $notifiable
-     * @return array<string, mixed>
-     */
-    public function toArray($notifiable): array
+    public function inAppPayload(): InAppNotificationPayload
     {
-        return [
-            'family' => $this->family->value,
-            'trigger' => $this->trigger->value,
-            'priority' => $this->priority->value,
-            'title' => $this->title,
-            'body' => $this->body,
-            'action_url' => $this->actionUrl,
-            'entity_type' => $this->entityType,
-            'entity_id' => $this->entityId,
-            'occurred_at' => $this->occurredAt?->toIso8601String(),
-            'meta' => $this->meta,
-            'pending_notification_id' => $this->pendingNotificationId,
-        ];
+        return new InAppNotificationPayload(
+            pendingNotificationId: $this->pendingNotificationId,
+            family: $this->family,
+            trigger: $this->trigger,
+            priority: $this->priority,
+            title: $this->title,
+            body: $this->body,
+            actionUrl: $this->actionUrl,
+            entityType: $this->entityType,
+            entityId: $this->entityId,
+            occurredAt: $this->occurredAt?->toIso8601String(),
+            meta: $this->meta,
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function toArray(mixed $notifiable): array
+    {
+        return $this->inAppPayload()->toArray();
     }
 }
