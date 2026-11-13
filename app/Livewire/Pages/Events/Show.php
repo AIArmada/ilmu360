@@ -4,8 +4,6 @@ namespace App\Livewire\Pages\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
-use AIArmada\Engagement\Contracts\EngagementManager;
-use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\EventOccurrence;
@@ -14,6 +12,8 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Actions\Events\Engagement\MarkEventGoingAction;
 use App\Actions\Events\Engagement\RemoveEventGoingAction;
+use App\Actions\Engagement\SaveEventAction;
+use App\Actions\Engagement\UnsaveEventAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Data\PublicScheduleLeaf;
 use App\Enums\ShareOutcomeType;
@@ -939,21 +939,7 @@ class Show extends Component
 
         if ($this->{$stateProperty}) {
             $result = match ($relation) {
-                'savedEvents' => DB::transaction(function () use ($user): array {
-                    $bookmark = Bookmark::forBookmarker($user)->forBookmarkable($this->event)->active()->lockForUpdate()->first();
-
-                    app(EngagementManager::class)->removeBookmark($user, $this->event);
-
-                    if ($bookmark instanceof Bookmark) {
-                        app(ReverseShareOutcomeAction::class)->handle(
-                            ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
-                            'save_removed',
-                            $user,
-                        );
-                    }
-
-                    return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
-                }),
+                'savedEvents' => $this->unsaveEventForUser($user),
                 'goingEvents' => DB::transaction(function () use ($user): array {
                     $response = Response::query()
                         ->where('respondable_type', $this->event->getMorphClass())
@@ -989,23 +975,7 @@ class Show extends Component
             $this->{$stateProperty} = false;
         } else {
             $result = match ($relation) {
-                'savedEvents' => DB::transaction(function () use ($user): array {
-                    $bookmark = app(EngagementManager::class)->bookmark($user, $this->event);
-
-                    if ($bookmark instanceof Bookmark && $bookmark->wasRecentlyCreated) {
-                        app(ShareTrackingService::class)->recordOutcome(
-                            type: ShareOutcomeType::EventSave,
-                            businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
-                            subject: $this->event,
-                            actor: $user,
-                            request: request(),
-                            metadata: ['subject_id' => $this->event->getKey(), 'subject_type' => $this->event->getMorphClass()],
-                            occurredAt: $bookmark->created_at,
-                        );
-                    }
-
-                    return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
-                }),
+                'savedEvents' => $this->saveEventForUser($user),
                 'goingEvents' => DB::transaction(function () use ($user): array {
                     $goingState = app(MarkEventGoingAction::class)->handle($this->event, $user, request());
 
@@ -1051,6 +1021,26 @@ class Show extends Component
         }
     }
 
+    /**
+     * @return array{saves_count: int}
+     */
+    protected function saveEventForUser(User $user): array
+    {
+        app(SaveEventAction::class)->handle($this->event, $user, request());
+
+        return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
+    }
+
+    /**
+     * @return array{saves_count: int}
+     */
+    protected function unsaveEventForUser(User $user): array
+    {
+        app(UnsaveEventAction::class)->handle($this->event, $user);
+
+        return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
+    }
+
     protected function syncEngagementStates(): void
     {
         $this->goingCount = Response::query()
@@ -1070,7 +1060,10 @@ class Show extends Component
             return;
         }
 
-        $this->isSaved = Bookmark::forBookmarker($user)->forBookmarkable($this->event)->active()->exists();
+        $this->isSaved = app(EngagementReader::class)->hasSavedEvent(
+            (string) $user->getKey(),
+            (string) $this->event->getKey(),
+        );
         $this->isGoing = app(EngagementReader::class)->isGoingToEvent(
             (string) $user->getKey(),
             (string) $this->event->getKey(),

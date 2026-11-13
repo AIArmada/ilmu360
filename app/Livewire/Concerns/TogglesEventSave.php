@@ -2,17 +2,12 @@
 
 namespace App\Livewire\Concerns;
 
-use AIArmada\Engagement\Contracts\EngagementManager;
-use AIArmada\Engagement\Models\Bookmark;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\ShareOutcomeType;
+use App\Actions\Engagement\SaveEventAction;
+use App\Actions\Engagement\UnsaveEventAction;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ShareTrackingService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Engagement\EngagementReader;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 
 trait TogglesEventSave
@@ -41,45 +36,13 @@ trait TogglesEventSave
             return;
         }
 
-        $isSaved = Bookmark::forBookmarker($user)
-            ->forBookmarkable($event)
-            ->active()
-            ->exists();
-
-        if ($isSaved) {
-            DB::transaction(function () use ($user, $event): void {
-                $bookmark = Bookmark::forBookmarker($user)->forBookmarkable($event)->active()->lockForUpdate()->first();
-
-                app(EngagementManager::class)->removeBookmark($user, $event);
-
-                if ($bookmark instanceof Bookmark) {
-                    app(ReverseShareOutcomeAction::class)->handle(
-                        ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
-                        'save_removed',
-                        $user,
-                        request(),
-                    );
-                }
-            });
+        if (app(EngagementReader::class)->hasSavedEvent((string) $user->getKey(), (string) $event->getKey())) {
+            app(UnsaveEventAction::class)->handle($event, $user);
 
             return;
         }
 
-        DB::transaction(function () use ($user, $event): void {
-            $bookmark = app(EngagementManager::class)->bookmark($user, $event);
-
-            if ($bookmark instanceof Bookmark && $bookmark->wasRecentlyCreated) {
-                app(ShareTrackingService::class)->recordOutcome(
-                    type: ShareOutcomeType::EventSave,
-                    businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
-                    subject: $event,
-                    actor: $user,
-                    request: request(),
-                    metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
-                    occurredAt: $bookmark->created_at,
-                );
-            }
-        });
+        app(SaveEventAction::class)->handle($event, $user, request());
     }
 
     /**

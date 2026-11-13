@@ -12,16 +12,18 @@ use App\Platform\FeatureModule;
  * DefaultEngagementManager are package-canonical, so this manifest claims
  * nothing (`owns: {}`) and adds no columns or parallel stores.
  *
- * D4a adds the read-side seams only: `EventEngagement`/`SubjectFollows` expose
- * immutable scalar state while the package writer actions stay in
- * `app/Actions/Engagement`. Implementations are root adapters bound in
- * AppServiceProvider; no writer is moved by this slice.
+ * D4a added the read-side seams only: `EventEngagement`/`SubjectFollows`
+ * expose immutable scalar state. D4b adds the root save writer actions
+ * (`App\Actions\Engagement\SaveEventAction`/`UnsaveEventAction`); the package
+ * manager remains the canonical writer and callers never reproduce its
+ * orchestration. Implementations are root adapters bound in
+ * AppServiceProvider.
  *
  * Must stay root adapters, documented here so later slices do not absorb them:
  * - EngagementAccountLifecycleContributor (account deletion/restoration
  *   snapshots and restores, registered in AppServiceProvider).
  * - HTTP/Livewire entrypoints (the API controllers, card components and page
- *   traits that currently call the package manager and share-outcome writer).
+ *   traits that call the named engagement actions).
  * Share outcome reversal remains ShareTracking's contract; D4 composes it from
  * the engagement actions rather than moving it in.
  */

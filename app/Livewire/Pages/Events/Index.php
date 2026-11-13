@@ -9,13 +9,11 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Engagement\Contracts\EngagementManager;
-use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Actions\Engagement\SaveEventAction;
+use App\Actions\Engagement\UnsaveEventAction;
 use App\Data\PublicScheduleLeaf;
-use App\Enums\ShareOutcomeType;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\TogglesEventGoing;
 use App\Models\Event;
@@ -28,7 +26,6 @@ use App\Platform\Location\LocationLevelLabels;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Services\EventSearchService;
 use App\Services\PublicScheduleDiscoveryService;
-use App\Services\ShareTrackingService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Engagement\EngagementReader;
@@ -42,7 +39,6 @@ use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Location\PublicGeolocationPermission;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonInterface;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -59,7 +55,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -1010,44 +1005,13 @@ class Index extends Component implements HasForms
             return;
         }
 
-        $isSaved = Bookmark::forBookmarker($user)
-            ->forBookmarkable($event)
-            ->active()
-            ->exists();
-
-        if ($isSaved) {
-            DB::transaction(function () use ($user, $event): void {
-                $bookmark = Bookmark::forBookmarker($user)->forBookmarkable($event)->active()->lockForUpdate()->first();
-
-                app(EngagementManager::class)->removeBookmark($user, $event);
-
-                if ($bookmark instanceof Bookmark) {
-                    app(ReverseShareOutcomeAction::class)->handle(
-                        ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
-                        'save_removed',
-                        $user,
-                    );
-                }
-            });
+        if (app(EngagementReader::class)->hasSavedEvent((string) $user->getKey(), (string) $event->getKey())) {
+            app(UnsaveEventAction::class)->handle($event, $user);
 
             return;
         }
 
-        DB::transaction(function () use ($user, $event): void {
-            $bookmark = app(EngagementManager::class)->bookmark($user, $event);
-
-            if ($bookmark instanceof Bookmark && $bookmark->wasRecentlyCreated) {
-                app(ShareTrackingService::class)->recordOutcome(
-                    type: ShareOutcomeType::EventSave,
-                    businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
-                    subject: $event,
-                    actor: $user,
-                    request: request(),
-                    metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
-                    occurredAt: $bookmark->created_at,
-                );
-            }
-        });
+        app(SaveEventAction::class)->handle($event, $user, request());
     }
 
     /**
@@ -1074,13 +1038,10 @@ class Index extends Component implements HasForms
             return [];
         }
 
-        return Bookmark::forBookmarker($user)
-            ->whereIn('bookmarkable_id', $eventIds)
-            ->active()
-            ->pluck('bookmarkable_id')
-            ->map(fn (mixed $eventId): string => (string) $eventId)
-            ->values()
-            ->all();
+        return array_values(array_intersect(
+            app(EngagementReader::class)->savedEventIds((string) $user->getKey()),
+            $eventIds,
+        ));
     }
 
     /**
