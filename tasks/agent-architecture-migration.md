@@ -5,10 +5,10 @@
 ## Resume here
 
 - Current checkpoint: the whole **ilmu360°** application conversion remains incomplete. Branch `refactor`.
-- Latest accepted implementation checkpoint `69979ba4` — Rewards Rw3 read/transport holds. Previous: `d7f3437c` — Rw2b enrollment API.
+- Latest accepted implementation checkpoint `63354059` — Communications C1 scheduled dispatcher. Previous: `69979ba4` — Rewards Rw3 read/transport holds; before that `d7f3437c` — Rw2b enrollment API.
 - Done: GitHubIssues; Prayer; Saved Searches (persistence, core, query/execution, attribution, identity/helpers, atomic transport/page cutover); Feedback/Reports (seams, both features, admin/MCP composition); Inspirations; Identity I0–I6 (seams, lifecycle, foundation, Directory/Membership + Events/Moderation/Contributions cutovers, reverse-relation migration, transport cutover); Platform D1 seams (A/C/M/R/T/S/P1/P2/P3); Directory S0 boundary + D1 packages (S0–S5; S6b languages deferred); Events E0–E5a; Registration R0–R6; Contributions C0–C6; Discovery D0; ShareTracking S0–S4b complete; Rewards Rw0–Rw3 (`tasks/rewards-map.md` remains the accepted map).
 - Do not reintroduce `User::savedSearches()`, a mutable Event paginator across the execution boundary, duplicate key lists, or obsolete taxonomy/addressing aliases.
-- Latest Rw3 evidence: focused hold characterization 7/7, 75 assertions; `git diff --check` clean. Broader Rw2b evidence remains: arch 0/**17 features**; Rewards+seams 250/248 with 2 baseline RewardDelivery errors; real-driver 47/47; routes 738; ownership PHPStan 0.
+- Latest C1 evidence: focused schedule/dispatch Pest 2/2 (8 assertions); architecture scanner 0 violations across 18 features; `git diff --check` clean. Rw3 evidence remains: focused hold characterization 7/7, 75 assertions. Broader Rw2b evidence remains: Rewards+seams 250/248 with 2 baseline RewardDelivery errors; real-driver 47/47; routes 738; ownership PHPStan 0.
 
 ## Next action — Communications C2 preference and destination writes
 
