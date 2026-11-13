@@ -13,6 +13,7 @@ use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\ResourceOwner;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
+use App\Shared\Discovery\SearchFilterRules;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Time\UserDateTimeFormatting;
 use Carbon\Carbon;
@@ -84,17 +85,21 @@ class Index extends Component
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:100'],
             'query' => ['nullable', 'string', 'max:255'],
-            'notify' => ['required', Rule::in(array_keys($this->notifyOptions()))],
+            ...app(SearchFilterRules::class)->rules($this->filters),
             'radius_km' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'lat' => ['nullable', 'required_with:radius_km', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'required_with:radius_km', 'numeric', 'between:-180,180'],
+            'notify' => ['required', Rule::in(array_keys($this->notifyOptions()))],
         ]);
+
+        /** @var array<string, mixed> $filters */
+        $filters = $validated['filters'] ?? [];
 
         try {
             app(CreateSavedSearchWithAttribution::class)->handle($user, [
                 'name' => $validated['name'],
                 'query' => $validated['query'] ?? null,
-                'filters' => $this->filters,
+                'filters' => $filters,
                 'radius_km' => $validated['radius_km'] ?? null,
                 'lat' => $validated['lat'] ?? null,
                 'lng' => $validated['lng'] ?? null,

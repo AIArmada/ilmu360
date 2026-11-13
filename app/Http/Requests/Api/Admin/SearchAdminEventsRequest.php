@@ -10,29 +10,6 @@ use Illuminate\Foundation\Http\FormRequest;
 class SearchAdminEventsRequest extends FormRequest
 {
     /**
-     * @var list<string>
-     */
-    private const array ARRAY_FILTER_KEYS = [
-        'language_codes',
-        'event_category_ids',
-        'age_group',
-        'event_format',
-        'person_ids',
-        'key_person_roles',
-        'person_in_charge_ids',
-        'moderator_ids',
-        'imam_ids',
-        'khatib_ids',
-        'bilal_ids',
-        'discipline_tag_ids',
-        'domain_tag_ids',
-        'source_tag_ids',
-        'issue_tag_ids',
-        'reference_ids',
-        'reference_author_search',
-    ];
-
-    /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
@@ -55,7 +32,7 @@ class SearchAdminEventsRequest extends FormRequest
     {
         $normalized = [];
 
-        foreach (self::ARRAY_FILTER_KEYS as $key) {
+        foreach (McpEventSearchService::arrayFilterKeys() as $key) {
             $normalized[$key] = $this->normalizeArrayLike($this->query($key));
         }
 

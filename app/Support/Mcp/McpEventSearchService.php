@@ -7,6 +7,7 @@ namespace App\Support\Mcp;
 use App\Data\Api\Frontend\Search\EventListData;
 use App\Models\Event;
 use App\Services\EventSearchService;
+use App\Shared\Discovery\SearchFilterKeys;
 use App\Shared\Events\Enums\TimingMode;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -41,51 +42,31 @@ class McpEventSearchService
     ];
 
     /**
+     * MCP-only scope toggles that are not part of the shared discovery vocabulary.
+     *
      * @var list<string>
      */
-    private const array FILTER_KEYS = [
-        'country_id',
-        'state_id',
-        'city_id',
-        'area_assignments',
-        'language_codes',
-        'event_category_ids',
-        'gender',
-        'age_group',
-        'children_allowed',
-        'is_muslim_only',
-        'institution_id',
-        'venue_id',
-        'person_ids',
-        'key_person_roles',
-        'person_in_charge_ids',
-        'person_in_charge_search',
-        'person_name_search',
-        'moderator_ids',
-        'imam_ids',
-        'khatib_ids',
-        'bilal_ids',
-        'discipline_tag_ids',
-        'domain_tag_ids',
-        'source_tag_ids',
-        'issue_tag_ids',
-        'reference_ids',
-        'starts_after',
-        'starts_before',
-        'time_scope',
-        'prayer_time',
-        'timing_mode',
-        'starts_time_from',
-        'starts_time_until',
-        'event_format',
-        'has_event_url',
-        'has_live_url',
-        'has_end_time',
+    private const array SEARCH_SCOPE_KEYS = [
         'search_include_institutions',
         'search_include_persons',
         'search_include_references',
-        'reference_author_search',
     ];
+
+    /**
+     * @return list<string>
+     */
+    public static function arrayFilterKeys(): array
+    {
+        return self::ARRAY_FILTER_KEYS;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function filterKeys(): array
+    {
+        return [...SearchFilterKeys::all(), ...self::SEARCH_SCOPE_KEYS];
+    }
 
     public function __construct(
         private readonly EventSearchService $eventSearchService,
@@ -236,8 +217,25 @@ class McpEventSearchService
             'reference_ids.*' => ['string'],
             'starts_after' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'starts_before' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'starts_on_local_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'time_scope' => ['sometimes', 'nullable', 'string', 'in:upcoming,past,all'],
-            'prayer_time' => ['sometimes', 'nullable', 'string'],
+            'prayer_time' => ['sometimes', 'nullable', function (string $attribute, mixed $value, \Closure $fail): void {
+                $values = is_array($value) ? $value : [$value];
+
+                if (! array_is_list($values)) {
+                    $fail('The '.$attribute.' must be a string or a list of strings.');
+
+                    return;
+                }
+
+                foreach ($values as $prayerTime) {
+                    if (! is_string($prayerTime)) {
+                        $fail('The '.$attribute.' must be a string or a list of strings.');
+
+                        return;
+                    }
+                }
+            }],
             'timing_mode' => ['sometimes', 'nullable', 'string', 'in:'.TimingMode::Absolute->value.','.TimingMode::PrayerRelative->value],
             'starts_time_from' => ['sometimes', 'nullable', 'date_format:H:i'],
             'starts_time_until' => ['sometimes', 'nullable', 'date_format:H:i'],
@@ -356,11 +354,17 @@ class McpEventSearchService
             'starts_before' => $schema->string()->nullable()->description(
                 'Return events that start on or before this date. Format: Y-m-d (e.g. 2025-12-31). Interpreted in the viewer\'s local timezone.'
             ),
+            'starts_on_local_date' => $schema->string()->nullable()->description(
+                'Return events occurring on this local date. Format: Y-m-d (e.g. 2025-06-01). Interpreted in the viewer\'s local timezone.'
+            ),
             'time_scope' => $schema->string()->default('upcoming')->enum(['upcoming', 'past', 'all'])->description(
                 'Temporal scope. "upcoming" (default) = future events. "past" = already-ended events. "all" = no time restriction.'
             ),
-            'prayer_time' => $schema->string()->nullable()->description(
-                'Filter by prayer-relative timing label when timing_mode=prayer_relative. Valid values: fajr, dhuhr, asr, maghrib, isha, friday_prayer. Also accepts free-text labels like "Selepas Maghrib" for display-text matching.'
+            'prayer_time' => $schema->anyOf([
+                $schema->string(),
+                $schema->array()->items($schema->string()),
+            ])->nullable()->description(
+                'Filter by prayer-relative timing label when timing_mode=prayer_relative. Valid values: fajr, dhuhr, asr, maghrib, isha, friday_prayer. Also accepts free-text labels like "Selepas Maghrib" for display-text matching; scalar or list.'
             ),
             'timing_mode' => $schema->string()->nullable()->enum([
                 TimingMode::Absolute->value,
@@ -407,7 +411,7 @@ class McpEventSearchService
      */
     private function normalizeFilters(array $arguments): array
     {
-        $filters = Arr::only($arguments, self::FILTER_KEYS);
+        $filters = Arr::only($arguments, $this->filterKeys());
 
         foreach (self::ARRAY_FILTER_KEYS as $key) {
             $filters[$key] = $this->normalizeStringArray($filters[$key] ?? []);

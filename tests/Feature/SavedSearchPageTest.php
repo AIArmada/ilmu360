@@ -10,6 +10,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Location\VisitorCountryResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -104,7 +105,7 @@ it('allows authenticated users to create and delete saved searches', function ()
     expect(SavedSearch::where('id', $savedSearch->id)->exists())->toBeFalse();
 });
 
-it('drops unsupported person-only key person roles before saving searches from the page', function () {
+it('rejects unsupported speaker key person roles before saving searches from the page', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -115,29 +116,41 @@ it('drops unsupported person-only key person roles before saving searches from t
         ->set('name', 'Person Role Search')
         ->set('notify', 'daily')
         ->call('save')
-        ->assertHasNoErrors();
+        ->assertHasErrors(['filters.key_person_roles.0']);
 
-    $savedSearch = SavedSearch::query()
-        ->where('user_id', $user->id)
-        ->where('name', 'Person Role Search')
-        ->first();
-
-    expect($savedSearch)->not->toBeNull()
-        ->and(data_get($savedSearch?->filters, 'key_person_roles'))->toBeNull();
+    expect(SavedSearch::query()->where('user_id', $user->id)->count())->toBe(0);
 });
 
-it('normalizes tampered saved search scalar filters before storing them from the page', function () {
+it('accepts supported key person roles before saving searches from the page', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
 
     Livewire::withQueryParams([
-        'country_id' => '0132',
-        'institution_id' => 'not-a-uuid',
+        'key_person_roles' => [EventKeyPersonRole::Imam->value],
+    ])->test(SavedSearchesIndex::class)
+        ->set('name', 'Supported Role Search')
+        ->set('notify', 'daily')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $savedSearch = SavedSearch::query()
+        ->where('user_id', $user->id)
+        ->where('name', 'Supported Role Search')
+        ->first();
+
+    expect($savedSearch)->not->toBeNull()
+        ->and(data_get($savedSearch?->filters, 'key_person_roles'))->toBe([EventKeyPersonRole::Imam->value]);
+});
+
+it('normalizes valid saved search scalar filters before storing them from the page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    Livewire::withQueryParams([
         'starts_after' => '2026-04-23',
-        'starts_before' => '23-04-2026',
         'starts_time_from' => '8:05',
-        'starts_time_until' => '25:99',
         'children_allowed' => 'yes',
         'has_event_url' => '0',
         'person_in_charge_search' => '  Penyelaras Saf  ',
@@ -161,11 +174,104 @@ it('normalizes tampered saved search scalar filters before storing them from the
             'has_event_url' => false,
             'person_in_charge_search' => 'Penyelaras Saf',
             'time_scope' => 'all',
+        ]);
+});
+
+it('rejects unknown filter keys and invalid filter values before storing searches from the page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    Livewire::test(SavedSearchesIndex::class)
+        ->set('name', 'Invalid Filter Search')
+        ->set('notify', 'daily')
+        ->set('filters', [
+            'not_a_filter' => 'value',
+            'starts_after' => '23-04-2026',
+            'country_id' => '0132',
+            'starts_time_from' => '25:99',
         ])
-        ->and(data_get($savedSearch?->filters, 'country_id'))->toBeNull()
-        ->and(data_get($savedSearch?->filters, 'institution_id'))->toBeNull()
-        ->and(data_get($savedSearch?->filters, 'starts_before'))->toBeNull()
-        ->and(data_get($savedSearch?->filters, 'starts_time_until'))->toBeNull();
+        ->call('save')
+        ->assertHasErrors([
+            'filters',
+            'filters.starts_after',
+            'filters.country_id',
+            'filters.starts_time_from',
+        ]);
+
+    expect(SavedSearch::query()->where('user_id', $user->id)->count())->toBe(0);
+});
+
+it('accepts a valid canonical filter set when saving from the page', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create();
+    $categoryId = eventCategoryId('kuliah_ceramah');
+
+    $this->actingAs($user);
+
+    Livewire::withQueryParams([
+        'institution_id' => (string) $institution->getKey(),
+        'event_category_ids' => [$categoryId],
+        'event_format' => ['online'],
+        'age_group' => ['adults'],
+        'gender' => 'all',
+        'language_codes' => ['ms'],
+        'starts_after' => '2026-04-23',
+        'time_scope' => 'all',
+        'children_allowed' => '1',
+    ])->test(SavedSearchesIndex::class)
+        ->set('name', 'Canonical Filter Search')
+        ->set('notify', 'weekly')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $savedSearch = SavedSearch::query()
+        ->where('user_id', $user->id)
+        ->where('name', 'Canonical Filter Search')
+        ->first();
+
+    expect($savedSearch)->not->toBeNull()
+        ->and($savedSearch?->filters)->toMatchArray([
+            'institution_id' => (string) $institution->getKey(),
+            'event_category_ids' => [$categoryId],
+            'event_format' => ['online'],
+            'age_group' => ['adults'],
+            'gender' => 'all',
+            'language_codes' => ['ms'],
+            'starts_after' => '2026-04-23',
+            'time_scope' => 'all',
+            'children_allowed' => true,
+        ]);
+});
+
+it('accepts multiple prayer time filters when saving from the page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    Livewire::withQueryParams([
+        'prayer_time' => [
+            EventPrayerTime::SelepasMaghrib->value,
+            EventPrayerTime::SelepasIsyak->value,
+        ],
+        'timing_mode' => 'prayer_relative',
+    ])->test(SavedSearchesIndex::class)
+        ->set('name', 'Prayer Time Search')
+        ->set('notify', 'daily')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $savedSearch = SavedSearch::query()
+        ->where('user_id', $user->id)
+        ->where('name', 'Prayer Time Search')
+        ->first();
+
+    expect($savedSearch)->not->toBeNull()
+        ->and(data_get($savedSearch?->filters, 'prayer_time'))->toBe([
+            EventPrayerTime::SelepasMaghrib->value,
+            EventPrayerTime::SelepasIsyak->value,
+        ])
+        ->and(data_get($savedSearch?->filters, 'timing_mode'))->toBe('prayer_relative');
 });
 
 it('enforces the max 10 saved searches rule on the page', function () {

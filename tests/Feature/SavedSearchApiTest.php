@@ -306,6 +306,38 @@ describe('Saved Search API Endpoints', function () {
                     ->assertJsonValidationErrors(['filters.reference_author_search']);
             });
 
+            it('accepts prayer time lists as saved search filters', function () {
+                $response = $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Prayer Time List Search',
+                    'filters' => [
+                        'prayer_time' => [
+                            EventPrayerTime::SelepasMaghrib->value,
+                            EventPrayerTime::SelepasIsyak->value,
+                        ],
+                        'timing_mode' => TimingMode::PrayerRelative->value,
+                    ],
+                    'notify' => 'daily',
+                ]);
+
+                $response->assertCreated()
+                    ->assertJsonPath('data.filters.prayer_time.0', EventPrayerTime::SelepasMaghrib->value)
+                    ->assertJsonPath('data.filters.prayer_time.1', EventPrayerTime::SelepasIsyak->value)
+                    ->assertJsonPath('data.filters.timing_mode', TimingMode::PrayerRelative->value);
+            });
+
+            it('rejects invalid prayer time lists without creating a search', function () {
+                $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Invalid Prayer Time Search',
+                    'filters' => [
+                        'prayer_time' => [EventPrayerTime::SelepasMaghrib->value, 'Selepas Maghrib'],
+                    ],
+                    'notify' => 'daily',
+                ])->assertUnprocessable()
+                    ->assertJsonValidationErrors(['filters.prayer_time']);
+
+                expect(SavedSearch::query()->where('user_id', $this->user->id)->count())->toBe(0);
+            });
+
             it('validates local event date filters', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Local Date Search',

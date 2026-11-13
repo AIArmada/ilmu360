@@ -63,7 +63,7 @@ final class EventSearchFilterNormalizer implements SearchFilterNormalizer
         $this->normalizeEnumArrayFilter($normalizedFilters, 'age_group', EventAgeGroup::class);
         $this->normalizeKeyPersonRoles($normalizedFilters);
         $this->normalizeEnumScalarFilter($normalizedFilters, 'gender', EventGenderRestriction::class);
-        $this->normalizeEnumScalarFilter($normalizedFilters, 'prayer_time', EventPrayerTime::class);
+        $this->normalizeEnumScalarOrListFilter($normalizedFilters, 'prayer_time', EventPrayerTime::class);
         $this->normalizeEnumScalarFilter($normalizedFilters, 'timing_mode', TimingMode::class);
         $this->normalizeTrimmedStringFilter($normalizedFilters, 'person_in_charge_search');
         $this->normalizeTrimmedStringFilter($normalizedFilters, 'person_name_search');
@@ -240,6 +240,32 @@ final class EventSearchFilterNormalizer implements SearchFilterNormalizer
         }
 
         $filters[$key] = $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @param  class-string<BackedEnum>  $enumClass
+     */
+    private function normalizeEnumScalarOrListFilter(array &$filters, string $key, string $enumClass): void
+    {
+        if (! array_key_exists($key, $filters)) {
+            return;
+        }
+
+        $isList = is_array($filters[$key]);
+
+        $values = array_values(array_unique(array_filter(array_map(
+            fn (mixed $value): ?string => $this->enumBackingValue($value, $enumClass),
+            $isList ? $filters[$key] : [$filters[$key]],
+        ), static fn (?string $value): bool => $value !== null)));
+
+        if ($values === []) {
+            unset($filters[$key]);
+
+            return;
+        }
+
+        $filters[$key] = $isList ? $values : $values[0];
     }
 
     /**

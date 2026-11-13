@@ -45,7 +45,7 @@ final readonly class EventSearchFilterRules implements SearchFilterRules
             'filters.starts_before' => 'nullable|date_format:Y-m-d',
             'filters.starts_on_local_date' => 'nullable|date_format:Y-m-d',
             'filters.time_scope' => ['nullable', 'string', Rule::in($this->catalog->allowedValues('time_scope'))],
-            'filters.prayer_time' => ['nullable', 'string', Rule::in($this->catalog->allowedValues('prayer_time'))],
+            'filters.prayer_time' => ['nullable', $this->validPrayerTimeFilterRule()],
             'filters.timing_mode' => ['nullable', 'string', Rule::in($this->catalog->allowedValues('timing_mode'))],
             'filters.starts_time_from' => ['nullable', 'string', 'max:32', $this->validTimeFilterRule()],
             'filters.starts_time_until' => ['nullable', 'string', 'max:32', $this->validTimeFilterRule()],
@@ -106,6 +106,33 @@ final readonly class EventSearchFilterRules implements SearchFilterRules
                 now()->setTimeFromTimeString(trim($value));
             } catch (\Throwable) {
                 $fail('The '.$attribute.' must be a valid time.');
+            }
+        };
+    }
+
+    private function validPrayerTimeFilterRule(): \Closure
+    {
+        $allowedValues = $this->catalog->allowedValues('prayer_time');
+
+        return static function (string $attribute, mixed $value, \Closure $fail) use ($allowedValues): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            $values = is_array($value) ? $value : [$value];
+
+            if (! array_is_list($values)) {
+                $fail('The selected '.$attribute.' is invalid.');
+
+                return;
+            }
+
+            foreach ($values as $prayerTime) {
+                if (! is_string($prayerTime) || ! in_array($prayerTime, $allowedValues, true)) {
+                    $fail('The selected '.$attribute.' is invalid.');
+
+                    return;
+                }
             }
         };
     }

@@ -65,6 +65,17 @@ describe('Event Search API', function () {
             ->and(data_get($response->json(), 'meta.search.filters.has_live_url'))->toBe('1');
     });
 
+    it('accepts local event date filters matching the shared discovery vocabulary', function () {
+        $admin = eventSearchAdminUser();
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/v1/admin/events/search?starts_on_local_date=2026-04-23&time_scope=all')
+            ->assertOk();
+
+        expect(data_get($response->json(), 'meta.search.filters.starts_on_local_date'))->toBe('2026-04-23');
+    });
+
     it('validates query parameters and returns 422 on invalid values', function () {
         $admin = eventSearchAdminUser();
 
