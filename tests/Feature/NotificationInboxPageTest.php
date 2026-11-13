@@ -4,7 +4,7 @@ use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\NotificationInbox;
-use App\Livewire\Pages\Dashboard\NotificationsIndex;
+use App\Features\Communications\EntryPoints\Livewire\NotificationsIndex;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;

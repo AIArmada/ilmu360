@@ -10,7 +10,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Livewire\Pages\Dashboard\NotificationsIndex;
+use App\Features\Communications\EntryPoints\Livewire\NotificationsIndex;
 use App\Models\Event;
 use App\Models\User;
 use App\Platform\Telemetry\ProductSignalSchemaRegistry;

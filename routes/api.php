@@ -39,9 +39,6 @@ use App\Http\Controllers\Api\Frontend\RewardPayoutController;
 use App\Http\Controllers\Api\Frontend\RewardProgramController;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Http\Controllers\Api\Frontend\ShareAnalyticsController;
-use App\Http\Controllers\Api\NotificationDestinationController;
-use App\Http\Controllers\Api\NotificationMessageController;
-use App\Http\Controllers\Api\NotificationSettingsController;
 use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\Api\UserRegistrationController;
 use App\Http\Controllers\ShareClaimController;
@@ -245,26 +242,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Registration Exports (per documentation B9d)
     Route::get('/events/{event}/registrations/export', [RegistrationExportController::class, 'export'])
         ->name('api.registrations.export');
-
-    // Notification center
-    Route::get('/notifications', [NotificationMessageController::class, 'index'])
-        ->name('api.notifications.index');
-    Route::post('/notifications/{message}/read', [NotificationMessageController::class, 'read'])
-        ->name('api.notifications.read');
-    Route::post('/notifications/read-all', [NotificationMessageController::class, 'readAll'])
-        ->name('api.notifications.read-all');
-    Route::get('/notification-settings/catalog', [NotificationSettingsController::class, 'catalog'])
-        ->name('api.notification-settings.catalog');
-    Route::get('/notification-settings', [NotificationSettingsController::class, 'show'])
-        ->name('api.notification-settings.show');
-    Route::put('/notification-settings', [NotificationSettingsController::class, 'update'])
-        ->name('api.notification-settings.update');
-    Route::post('/notification-destinations/push', [NotificationDestinationController::class, 'storePush'])
-        ->name('api.notification-destinations.push.store');
-    Route::put('/notification-destinations/push/{installation}', [NotificationDestinationController::class, 'updatePush'])
-        ->name('api.notification-destinations.push.update');
-    Route::delete('/notification-destinations/push/{installation}', [NotificationDestinationController::class, 'destroyPush'])
-        ->name('api.notification-destinations.push.destroy');
 
     // Member rewards: catalog, enrollment, awards, balances, appeals
     Route::prefix('rewards')->name('api.rewards.')->group(function (): void {

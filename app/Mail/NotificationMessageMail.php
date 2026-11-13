@@ -32,7 +32,7 @@ class NotificationMessageMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.notification-message',
+            markdown: 'communications::mail.notification-message',
         );
     }
 }

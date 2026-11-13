@@ -325,7 +325,7 @@
 
                         @auth
                             <div class="order-2 lg:order-none">
-                                <livewire:components.notification-bell :variant="$useHomeHeader ? 'glass' : 'light'" />
+                                @livewire(\App\Features\Communications\EntryPoints\Livewire\NotificationBell::class, ['variant' => $useHomeHeader ? 'glass' : 'light'])
                             </div>
 
                             <!-- User Menu -->

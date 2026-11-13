@@ -144,9 +144,7 @@
                 <div class="space-y-3">
                     @foreach ($this->notifications as $message)
                         @php
-                            $appFamily = \App\Features\Communications\Api\EnumMapper::toAppFamily(
-                                \AIArmada\Communications\Enums\NotificationFamily::from($message->family)
-                            );
+                            $appFamily = \App\Features\Communications\Support\Normalization\NotificationInboxPresentation::appFamily($message->family);
                             $notificationDate = $this->notificationDate($message);
 
                             $familyTone = match ($appFamily) {

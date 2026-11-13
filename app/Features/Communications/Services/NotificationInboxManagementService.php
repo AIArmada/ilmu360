@@ -8,10 +8,10 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Features\Communications\Actions\Inbox\MarkAllNotificationInboxMessagesReadAction;
 use App\Features\Communications\Actions\Inbox\MarkNotificationInboxMessageReadAction;
-use App\Features\Communications\Api\NotificationCatalog;
 use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Features\Communications\Api\NotificationInboxMessageSnapshot;
 use App\Features\Communications\Api\NotificationInboxPageSnapshot;
+use App\Features\Communications\Support\Normalization\NotificationInboxPresentation;
 use App\Features\Communications\Support\NotificationInbox\NotificationInboxMessageSnapshotFactory;
 use App\Shared\Auth\UserMorphType;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,7 +36,7 @@ final readonly class NotificationInboxManagementService implements NotificationI
         OwnerContext::setForRequest(null);
 
         $storedFamily = $familyValue !== null
-            ? NotificationCatalog::inboxFamilyValue($familyValue)
+            ? NotificationInboxPresentation::storedFamilyValue($familyValue)
             : null;
         $query = $this->visibleInboxQuery($accountId)
             ->when($storedFamily !== null, fn (Builder $builder) => $builder->where('family', $storedFamily))

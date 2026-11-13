@@ -59,6 +59,60 @@ use UnitEnum;
  */
 class AdminResourceRegistry
 {
+    private const array COMMUNICATIONS_PRIVATE_ATTRIBUTES = [
+        'action_url',
+        'address',
+        'attachable_id',
+        'attachable_type',
+        'body',
+        'checksum',
+        'communication_id',
+        'content_html',
+        'content_text',
+        'content_id',
+        'data',
+        'destination_ciphertext',
+        'destination_hash',
+        'destination_hint',
+        'device_label',
+        'display_name',
+        'entity_id',
+        'entity_type',
+        'external_id',
+        'external_key',
+        'external_thread_id',
+        'failure_code',
+        'failure_message',
+        'filename',
+        'idempotency_key',
+        'metadata',
+        'owner_id',
+        'owner_type',
+        'payload',
+        'provider_account_key',
+        'provider_message_id',
+        'recipient_id',
+        'recipient_type',
+        'reason',
+        'request_payload',
+        'response_payload',
+        'sender_id',
+        'sender_type',
+        'snapshot',
+        'storage_disk',
+        'storage_path',
+        'subject',
+        'subject_id',
+        'subject_type',
+        'template_id',
+        'template_version_id',
+        'target_url_ciphertext',
+        'thread_id',
+        'title',
+        'token_hash',
+        'variables_schema',
+    ];
+
     /** @var list<class-string<resource>>|null */
     private ?array $resourcesCache = null;
 
@@ -569,7 +623,7 @@ class AdminResourceRegistry
         return [
             'id' => (string) $record->getKey(),
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->htmlableToString(
+            'title' => $this->communicationsRecordTitle($record) ?? $this->htmlableToString(
                 $record instanceof Event
                     ? ($record->title ?? $resourceClass::getRecordTitle($record))
                     : $resourceClass::getRecordTitle($record)
@@ -606,7 +660,7 @@ class AdminResourceRegistry
 
         return [
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->htmlableToString(
+            'title' => $this->communicationsRecordTitle($record) ?? $this->htmlableToString(
                 $record instanceof Event
                     ? ($record->title ?? $resourceClass::getRecordTitle($record))
                     : $resourceClass::getRecordTitle($record)
@@ -618,6 +672,21 @@ class AdminResourceRegistry
                 'edit' => array_key_exists('edit', $pages) ? $this->resourcePanelUrl($resourceClass, 'edit', $record) : null,
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function serializeGenericAttributes(Model $record): array
+    {
+        return $this->sanitizeCommunicationsAttributes($record, $this->baseAttributes($record));
+    }
+
+    public function communicationsRecordTitle(Model $record): ?string
+    {
+        return $this->isCommunicationsModel($record)
+            ? Str::headline(class_basename($record))
+            : null;
     }
 
     /**
@@ -776,23 +845,12 @@ class AdminResourceRegistry
     /**
      * @return array<string, mixed>
      */
-    private function serializeAttributes(Model $record): array
+    public function serializeAttributes(Model $record): array
     {
-        $attributes = OwnerContext::withOwner(null, fn (): array => $record->toArray());
+        $attributes = $this->baseAttributes($record);
 
         if ($record instanceof TrackedProperty) {
             $attributes['write_key'] = filled($record->write_key) ? 'present' : null;
-        }
-
-        if ($record instanceof User) {
-            $attributes = Arr::except($attributes, [
-                'email',
-                'email_verified_at',
-                'phone',
-                'phone_verified_at',
-                'daily_prayer_institutions',
-                'friday_prayer_institutions',
-            ]);
         }
 
         if (method_exists($record, 'primaryAddress')) {
@@ -841,6 +899,64 @@ class AdminResourceRegistry
         }
 
         unset($attributes['addresses']);
+
+        return $this->sanitizeCommunicationsAttributes($record, $attributes);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function baseAttributes(Model $record): array
+    {
+        $attributes = OwnerContext::withOwner(null, fn (): array => $record->toArray());
+
+        if ($record instanceof User) {
+            return Arr::except($attributes, [
+                'email',
+                'email_verified_at',
+                'phone',
+                'phone_verified_at',
+                'daily_prayer_institutions',
+                'friday_prayer_institutions',
+            ]);
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function sanitizeCommunicationsAttributes(Model $record, array $attributes): array
+    {
+        return $this->isCommunicationsModel($record)
+            ? $this->removeCommunicationsPrivateAttributes($attributes)
+            : $attributes;
+    }
+
+    private function isCommunicationsModel(Model $record): bool
+    {
+        return str_starts_with($record::class, 'AIArmada\\Communications\\Models\\');
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $attributes
+     * @return array<int|string, mixed>
+     */
+    private function removeCommunicationsPrivateAttributes(array $attributes): array
+    {
+        foreach ($attributes as $key => $value) {
+            if (is_string($key) && in_array($key, self::COMMUNICATIONS_PRIVATE_ATTRIBUTES, true)) {
+                unset($attributes[$key]);
+
+                continue;
+            }
+
+            if (is_array($value)) {
+                $attributes[$key] = $this->removeCommunicationsPrivateAttributes($value);
+            }
+        }
 
         return $attributes;
     }

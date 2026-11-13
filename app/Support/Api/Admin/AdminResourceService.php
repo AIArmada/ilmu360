@@ -27,7 +27,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -764,8 +763,8 @@ class AdminResourceService
         return [
             'id' => (string) $record->getKey(),
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->genericRecordTitle($record),
-            'attributes' => $this->serializeGenericAttributes($record),
+            'title' => $this->registry->communicationsRecordTitle($record) ?? $this->genericRecordTitle($record),
+            'attributes' => $this->registry->serializeGenericAttributes($record),
         ];
     }
 
@@ -800,27 +799,6 @@ class AdminResourceService
         }
 
         return (string) $record->getRouteKey();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializeGenericAttributes(Model $record): array
-    {
-        $attributes = OwnerContext::withOwner(null, fn (): array => $record->toArray());
-
-        if ($record instanceof User) {
-            return Arr::except($attributes, [
-                'email',
-                'email_verified_at',
-                'phone',
-                'phone_verified_at',
-                'daily_prayer_institutions',
-                'friday_prayer_institutions',
-            ]);
-        }
-
-        return $attributes;
     }
 
     /**

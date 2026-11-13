@@ -14,6 +14,7 @@ use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Api\ManagedNotificationDelivery;
 use App\Features\Communications\Api\NotificationInboxManagement;
+use App\Features\Communications\Api\NotificationDispatch;
 use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Api\PushDestinationManagement;
@@ -24,6 +25,7 @@ use App\Features\Communications\EntryPoints\Channels\PushChannel;
 use App\Features\Communications\Services\DeliveryFencingService;
 use App\Features\Communications\Services\ManagedNotificationDeliveryService;
 use App\Features\Communications\Services\NotificationInboxManagementService;
+use App\Features\Communications\Services\NotificationDispatchService;
 use App\Features\Communications\Services\NotificationMessageRenderer;
 use App\Features\Communications\Services\NotificationSettingsService;
 use App\Features\Communications\Services\PushDestinationService;
@@ -45,6 +47,7 @@ final class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(AccountNotificationPreferences::class, NotificationSettingsService::class);
         $this->app->bind(NotificationInboxManagement::class, NotificationInboxManagementService::class);
+        $this->app->bind(NotificationDispatch::class, NotificationDispatchService::class);
         $this->app->bind(NotificationMessageRendering::class, NotificationMessageRenderer::class);
         $this->app->bind(PushDestinationManagement::class, PushDestinationService::class);
         $this->app->bind(DeliveryFencing::class, DeliveryFencingService::class);

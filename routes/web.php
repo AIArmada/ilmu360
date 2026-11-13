@@ -28,7 +28,6 @@ use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions as EventOfflineAdmissi
 use App\Livewire\Pages\Dashboard\Events\Participants as EventParticipants;
 use App\Livewire\Pages\Dashboard\Events\Refunds as EventRefunds;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
-use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Livewire\Pages\Dashboard\PersonDashboard;
 use App\Livewire\Pages\Dashboard\ReferralMemberIndex;
 use App\Livewire\Pages\Dashboard\RewardMemberIndex;
@@ -127,7 +126,6 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dakwah', DakwahIndex::class)->name('dakwah');
     Route::livewire('/dakwah/links', DakwahIndex::class)->name('dakwah.links');
     Route::livewire('/dakwah/links/{link}', DakwahLinkShow::class)->name('dakwah.links.show');
-    Route::livewire('/notifications', NotificationsIndex::class)->name('notifications');
     Route::livewire('/dashboard/rewards', RewardMemberIndex::class)->name('dashboard.rewards');
     Route::livewire('/dashboard/ajak-kawan', ReferralMemberIndex::class)->name('dashboard.referrals');
     Route::livewire('/dashboard/institusi', InstitutionDashboard::class)->name('dashboard.institutions');

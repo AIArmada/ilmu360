@@ -2,10 +2,10 @@
 
 namespace App\Services\Notifications;
 
-use AIArmada\Communications\Contracts\CommunicationManager;
 use App\Features\Communications\Api\NotificationMessageRendering;
-use App\Notifications\InAppNotification;
+use App\Features\Communications\Api\InAppNotificationPayload;
 use App\Features\Communications\Api\NotificationCatalog;
+use App\Features\Communications\Api\NotificationDispatch;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Models\ContributionRequest;
@@ -22,7 +22,7 @@ use Illuminate\Support\Str;
 class ContributionRequestNotificationService implements ContributionRequestNotifier
 {
     public function __construct(
-        protected CommunicationManager $comms,
+        protected NotificationDispatch $notificationDispatch,
         protected NotificationMessageRendering $messageRenderer,
     ) {}
 
@@ -154,7 +154,7 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
 
         $family = NotificationCatalog::triggerDefinition($trigger)['family'];
 
-        $notification = new InAppNotification(
+        $payload = new InAppNotificationPayload(
             pendingNotificationId: (string) Str::uuid(),
             family: $family,
             trigger: $trigger,
@@ -164,11 +164,11 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
             actionUrl: $actionUrl,
             entityType: $data->entityType,
             entityId: $data->entityId,
-            occurredAt: $data->occurredAt,
+            occurredAt: $data->occurredAt?->toIso8601String(),
             meta: $data->meta,
         );
 
-        $this->comms->notify($user, $notification);
+        $this->notificationDispatch->sendInAppToAccount((string) $user->getKey(), $payload);
     }
 
     private function supportsCreateSubmissionNotifications(ContributionRequest $request): bool

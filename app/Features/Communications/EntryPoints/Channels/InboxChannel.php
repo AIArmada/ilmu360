@@ -7,7 +7,7 @@ use AIArmada\Communications\Actions\DispatchInboxNotificationAction;
 use AIArmada\Communications\Contracts\CommunicationRecorder;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Communications\Models\NotificationInbox;
-use App\Features\Communications\Api\EnumMapper;
+use App\Features\Communications\Support\Normalization\EnumMapper;
 use App\Features\Communications\Api\InAppNotificationMessage;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Support\Delivery\GuardedDeliverySend;

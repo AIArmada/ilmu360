@@ -5,7 +5,7 @@ namespace App\Features\Communications\Support\Integration;
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\CommunicationPreference;
-use App\Features\Communications\Api\EnumMapper;
+use App\Features\Communications\Support\Normalization\EnumMapper;
 use App\Features\Communications\Api\NotificationChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 

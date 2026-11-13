@@ -27,7 +27,7 @@ class EventEscalationNotification extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         // Laravel notifications table was cut over to package notification_inboxes.
-        // Escalation alerts stay mail-only; submitter in-app alerts use InAppNotification.
+        // Escalation alerts stay mail-only; submitter in-app alerts use Communications transport.
         return ['mail'];
     }
 
