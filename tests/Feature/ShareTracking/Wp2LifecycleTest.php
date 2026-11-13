@@ -32,7 +32,7 @@ use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Checkout\RecordCheckoutShareProvenanceStep;
-use App\Enums\ShareEffectStatus;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;

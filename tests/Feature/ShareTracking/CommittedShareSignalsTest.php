@@ -14,7 +14,7 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
-use App\Enums\ShareEffectStatus;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\ShareCohortProjection;

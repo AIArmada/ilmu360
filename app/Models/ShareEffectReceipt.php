@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\ShareEffectStatus;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\ShareEffectReceiptFactory;

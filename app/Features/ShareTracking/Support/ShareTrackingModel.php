@@ -32,6 +32,14 @@ final class ShareTrackingModel
     }
 
     /**
+     * @return class-string<Model>
+     */
+    public static function effectReceipt(): string
+    {
+        return MorphModelResolver::resolve('share_effect_receipt');
+    }
+
+    /**
      * @return Builder<Model>
      */
     public static function browserSelectionQuery(): Builder
@@ -45,5 +53,13 @@ final class ShareTrackingModel
     public static function sourceReceiptQuery(): Builder
     {
         return self::sourceReceipt()::query();
+    }
+
+    /**
+     * @return Builder<Model>
+     */
+    public static function effectReceiptQuery(): Builder
+    {
+        return self::effectReceipt()::query();
     }
 }

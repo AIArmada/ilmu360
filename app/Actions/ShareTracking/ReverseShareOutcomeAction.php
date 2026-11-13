@@ -7,10 +7,9 @@ namespace App\Actions\ShareTracking;
 use AIArmada\Affiliates\Actions\Conversions\ReverseAffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
-use App\Enums\ShareEffectStatus;
+use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
-use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
@@ -28,6 +27,7 @@ final readonly class ReverseShareOutcomeAction
 
     public function __construct(
         private ReverseAffiliateConversion $reverseConversion,
+        private EffectReceipts $effectReceipts,
     ) {}
 
     public function handle(
@@ -81,11 +81,9 @@ final readonly class ReverseShareOutcomeAction
                 return $existing;
             }
 
-            $effects = ShareEffectReceipt::query()
-                ->where('source_id', $businessKey)
-                ->whereIn('status', [ShareEffectStatus::Pending->value, ShareEffectStatus::Leased->value])
-                ->lockForUpdate()
-                ->get();
+            // Preserve the dispatcher's receipt-then-conversion lock order:
+            // effects are locked before the conversion row is read.
+            $this->effectReceipts->lockCancelableBySource($businessKey);
 
             $conversion = AffiliateConversion::query()
                 ->where('idempotency_key', hash('sha256', $businessKey))
@@ -109,19 +107,7 @@ final readonly class ReverseShareOutcomeAction
                 $this->reverseConversion->handle($conversion, $reason);
             }
 
-            $effects->each(function (ShareEffectReceipt $effect): void {
-                if ($effect->isTerminal()) {
-                    return;
-                }
-
-                $effect->forceFill([
-                    'status' => ShareEffectStatus::Cancelled,
-                    'lease_token' => null,
-                    'leased_by' => null,
-                    'lease_expires_at' => null,
-                    'cancelled_at' => now(),
-                ])->save();
-            });
+            $this->effectReceipts->cancelPendingBySource($businessKey);
 
             try {
                 return DB::transaction(static fn (): ShareOutcomeCorrection => ShareOutcomeCorrection::query()->create([

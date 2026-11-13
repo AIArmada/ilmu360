@@ -6,14 +6,17 @@ namespace App\Features\ShareTracking;
 
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
+use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
+use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Platform\FeatureModule;
 
 /**
- * Share tracking claims the browser selection and source attribution receipt
- * writes named in feature.json. The remaining app tables are still written by
- * root services and actions, so they stay unclaimed until their slice lands.
+ * Share tracking claims the browser selection, source attribution receipt and
+ * effect receipt writes named in feature.json. The remaining app tables are
+ * still written by root services and actions, so they stay unclaimed until
+ * their slice lands.
  *
  * Slice order:
  * - S1a source receipts: `DatabaseSourceAttributionReceipts` owns the
@@ -23,10 +26,15 @@ use App\Platform\FeatureModule;
  *   selection lock/create/accept/clear writes while the service keeps
  *   `captureRequest`/`resolveActiveAttribution` orchestration and the unlocked
  *   read used for active-attribution resolution.
- * - S2 effects/corrections/claims: move reversal, effect dispatch, participation
- *   reversal and guest claim orchestration while preserving monetary guards,
- *   lease fencing and duplicate-dispatch tolerance; claim `share_effect_receipts`
- *   and `share_outcome_corrections`.
+ * - S2a1 effect receipts: `DatabaseEffectReceipts` owns freeze-once projection
+ *   and ticket-reversal creation, the five-minute worker lease with fencing and
+ *   terminal settlement, and cancellation by source. `AffiliatesShareTrackingService`,
+ *   `DispatchShareEffectReceiptsAction`, `ReverseShareOutcomeAction` and
+ *   `ReverseTicketAffiliateCommissionAction` keep their root orchestration and
+ *   package writes.
+ * - S2a2 corrections/claims: move remaining reversal/correction and guest claim
+ *   orchestration while preserving monetary guards and duplicate tolerance;
+ *   claim `share_outcome_corrections`.
  * - S3 cohorts/signals: move the committed-share reader or keep a root adapter
  *   and claim `share_cohort_projections`, `share_signal_reader_cursors` and
  *   `share_signal_reader_skips` after characterising backlog/poison SQL.
@@ -47,6 +55,7 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(BrowserSelectionWriter::class, LockBrowserSelectionAction::class);
+        $this->app->bind(EffectReceipts::class, DatabaseEffectReceipts::class);
         $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
     }
 }

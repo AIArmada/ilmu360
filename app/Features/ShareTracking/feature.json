@@ -5,6 +5,9 @@
     "table:share_browser_selections": [
       "App\\Features\\ShareTracking\\Actions\\BrowserSelection\\LockBrowserSelectionAction"
     ],
+    "table:share_effect_receipts": [
+      "App\\Features\\ShareTracking\\Persistence\\DatabaseEffectReceipts"
+    ],
     "table:share_source_attribution_receipts": [
       "App\\Features\\ShareTracking\\Persistence\\DatabaseSourceAttributionReceipts"
     ]

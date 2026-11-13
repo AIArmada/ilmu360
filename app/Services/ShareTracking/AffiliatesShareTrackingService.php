@@ -35,8 +35,9 @@ use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
-use App\Enums\ShareEffectStatus;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
+use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
+use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
@@ -46,7 +47,6 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\ShareBrowserSelection;
-use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
@@ -87,6 +87,7 @@ final readonly class AffiliatesShareTrackingService
         private CreateTrackingLink $createTrackingLink,
         private RecordAffiliateOutcome $recordAffiliateOutcome,
         private BrowserSelectionWriter $browserSelections,
+        private EffectReceipts $effectReceipts,
         private SourceAttributionReceipts $sourceReceipts,
     ) {}
 
@@ -695,37 +696,14 @@ final readonly class AffiliatesShareTrackingService
         return in_array($value, ['rejected', 'reversed'], true);
     }
 
-    private function freezeEffectReceipt(string $businessKey, AffiliateConversion $conversion, string $linkId): ShareEffectReceipt
+    private function freezeEffectReceipt(string $businessKey, AffiliateConversion $conversion, string $linkId): EffectReceiptSnapshot
     {
-        $effectKey = $businessKey.':projection';
-
-        try {
-            return DB::transaction(static fn (): ShareEffectReceipt => ShareEffectReceipt::query()->create([
-                'effect_key' => $effectKey,
-                'source_type' => ShareOutcomeBusinessKey::NAMESPACE,
-                'source_id' => $businessKey,
-                'effect_type' => 'projection',
-                'status' => ShareEffectStatus::Pending,
-                'payload' => [
-                    'conversion_id' => (string) $conversion->getKey(),
-                    'affiliate_id' => (string) $conversion->affiliate_id,
-                    'link_id' => $linkId,
-                ],
-                'attempts' => 0,
-                'lease_token' => null,
-                'leased_by' => null,
-                'lease_expires_at' => null,
-                'succeeded_at' => null,
-                'failed_at' => null,
-                'cancelled_at' => null,
-            ]), 1);
-        } catch (QueryException $exception) {
-            if (! $this->isUniqueViolation($exception)) {
-                throw $exception;
-            }
-
-            return ShareEffectReceipt::query()->where('effect_key', $effectKey)->firstOrFail();
-        }
+        return $this->effectReceipts->ensureProjection(
+            businessKey: $businessKey,
+            conversionId: (string) $conversion->getKey(),
+            affiliateId: (string) $conversion->affiliate_id,
+            linkId: $linkId,
+        );
     }
 
     /**

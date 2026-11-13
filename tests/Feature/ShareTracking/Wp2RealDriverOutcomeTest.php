@@ -30,7 +30,7 @@ use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
-use App\Enums\ShareEffectStatus;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Registration;

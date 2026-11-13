@@ -11,8 +11,8 @@ use AIArmada\Affiliates\States\ReversedConversion;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Events\Models\EventRegistration;
 use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
-use App\Enums\ShareEffectStatus;
-use App\Models\ShareEffectReceipt;
+use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
+use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Models\ShareOutcomeCorrection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -34,6 +34,7 @@ final readonly class DispatchShareEffectReceiptsAction
 
     public function __construct(
         private ReverseTicketAffiliateCommissionAction $reverseTicketAffiliateCommission,
+        private EffectReceipts $effectReceipts,
     ) {}
 
     public function handle(int $limit = 50, ?string $workerId = null): int
@@ -42,22 +43,13 @@ final readonly class DispatchShareEffectReceiptsAction
         $workerId ??= 'dispatch-'.gethostname().'-'.getmypid();
         $processed = 0;
 
-        $receipts = DB::transaction(fn () => ShareEffectReceipt::query()
-            ->whereIn('effect_type', self::OWNED_EFFECT_TYPES)
-            ->where(function ($query): void {
-                $query->where('status', ShareEffectStatus::Pending->value)
-                    ->orWhere(function ($expired): void {
-                        $expired->where('status', ShareEffectStatus::Leased->value)
-                            ->where('lease_expires_at', '<=', now());
-                    });
-            })
-            ->orderBy('created_at')
-            ->limit($limit)
-            ->lockForUpdate()
-            ->get());
+        $receipts = $this->effectReceipts->claimableBatch(
+            ownedEffectTypes: self::OWNED_EFFECT_TYPES,
+            limit: $limit,
+        );
 
         foreach ($receipts as $receipt) {
-            if ($this->processReceipt($receipt, $workerId)) {
+            if ($this->processReceipt($receipt->id, $workerId)) {
                 $processed++;
             }
         }
@@ -65,83 +57,45 @@ final readonly class DispatchShareEffectReceiptsAction
         return $processed;
     }
 
-    private function processReceipt(ShareEffectReceipt $receipt, string $workerId): bool
+    private function processReceipt(string $receiptId, string $workerId): bool
     {
         $leaseToken = (string) Str::uuid();
 
-        $claimed = DB::transaction(function () use ($receipt, $workerId, $leaseToken): bool {
-            $locked = ShareEffectReceipt::query()->whereKey($receipt->getKey())->lockForUpdate()->first();
+        $claimed = $this->effectReceipts->claim(
+            receiptId: $receiptId,
+            ownedEffectTypes: self::OWNED_EFFECT_TYPES,
+            workerId: $workerId,
+            leaseToken: $leaseToken,
+        );
 
-            if (! $locked instanceof ShareEffectReceipt) {
-                return false;
-            }
-
-            $status = $locked->status instanceof ShareEffectStatus
-                ? $locked->status
-                : ShareEffectStatus::tryFrom((string) $locked->status);
-
-            if (! in_array((string) $locked->effect_type, self::OWNED_EFFECT_TYPES, true)) {
-                return false;
-            }
-
-            $reclaimable = $status === ShareEffectStatus::Pending
-                || ($status === ShareEffectStatus::Leased && $locked->isLeaseExpired());
-
-            if (! $reclaimable || $locked->isTerminal()) {
-                return false;
-            }
-
-            $locked->forceFill([
-                'status' => ShareEffectStatus::Leased,
-                'lease_token' => $leaseToken,
-                'leased_by' => mb_substr($workerId, 0, 64),
-                'lease_expires_at' => now()->addMinutes(5),
-                'attempts' => $locked->attempts + 1,
-            ])->save();
-
-            return true;
-        });
-
-        if (! $claimed) {
+        if (! $claimed instanceof EffectReceiptSnapshot) {
             return false;
         }
 
-        return DB::transaction(function () use ($receipt, $workerId, $leaseToken): bool {
-            $locked = ShareEffectReceipt::query()->whereKey($receipt->getKey())->lockForUpdate()->first();
+        return DB::transaction(function () use ($receiptId, $workerId, $leaseToken): bool {
+            $locked = $this->effectReceipts->lockLease(
+                receiptId: $receiptId,
+                workerId: $workerId,
+                leaseToken: $leaseToken,
+            );
 
-            if (! $locked instanceof ShareEffectReceipt) {
+            if (! $locked instanceof EffectReceiptSnapshot) {
                 return false;
             }
 
-            if ($locked->lease_token !== $leaseToken || $locked->leased_by !== mb_substr($workerId, 0, 64)) {
-                return false;
+            if ($locked->effectType === 'ticket_affiliate_reversal') {
+                return $this->processDeferredTicketReversal($locked, $workerId, $leaseToken);
             }
 
-            if ($locked->isLeaseExpired()) {
-                return false;
-            }
-
-            $payload = is_array($locked->payload) ? $locked->payload : [];
-
-            if ((string) $locked->effect_type === 'ticket_affiliate_reversal') {
-                return $this->processDeferredTicketReversal($locked, $payload);
-            }
-
-            $conversionId = $payload['conversion_id'] ?? null;
-            $linkId = $payload['link_id'] ?? null;
+            $conversionId = $locked->payload['conversion_id'] ?? null;
+            $linkId = $locked->payload['link_id'] ?? null;
 
             $conversion = is_string($conversionId) && $conversionId !== ''
                 ? AffiliateConversion::query()->whereKey($conversionId)->lockForUpdate()->first()
                 : null;
 
             if (! $conversion instanceof AffiliateConversion) {
-                $locked->forceFill([
-                    'status' => ShareEffectStatus::Failed,
-                    'lease_token' => null,
-                    'leased_by' => null,
-                    'lease_expires_at' => null,
-                    'failed_at' => now(),
-                ])->save();
+                $this->effectReceipts->markFailed($receiptId, $workerId, $leaseToken);
 
                 return true;
             }
@@ -152,30 +106,18 @@ final readonly class DispatchShareEffectReceiptsAction
                 : (string) $status;
 
             $correctionExists = ShareOutcomeCorrection::query()
-                ->where('business_key', (string) $locked->source_id)
+                ->where('business_key', $locked->sourceId)
                 ->lockForUpdate()
                 ->exists();
 
             if (in_array($value, ['rejected', 'reversed'], true) || $correctionExists) {
-                $locked->forceFill([
-                    'status' => ShareEffectStatus::Cancelled,
-                    'lease_token' => null,
-                    'leased_by' => null,
-                    'lease_expires_at' => null,
-                    'cancelled_at' => now(),
-                ])->save();
+                $this->effectReceipts->markCancelled($receiptId, $workerId, $leaseToken);
 
                 return true;
             }
 
             if (! is_string($linkId) || $linkId === '') {
-                $locked->forceFill([
-                    'status' => ShareEffectStatus::Cancelled,
-                    'lease_token' => null,
-                    'leased_by' => null,
-                    'lease_expires_at' => null,
-                    'cancelled_at' => now(),
-                ])->save();
+                $this->effectReceipts->markCancelled($receiptId, $workerId, $leaseToken);
 
                 return true;
             }
@@ -183,52 +125,34 @@ final readonly class DispatchShareEffectReceiptsAction
             $link = AffiliateLink::query()->whereKey($linkId)->lockForUpdate()->first();
 
             if (! $link instanceof AffiliateLink) {
-                $locked->forceFill([
-                    'status' => ShareEffectStatus::Cancelled,
-                    'lease_token' => null,
-                    'leased_by' => null,
-                    'lease_expires_at' => null,
-                    'cancelled_at' => now(),
-                ])->save();
+                $this->effectReceipts->markCancelled($receiptId, $workerId, $leaseToken);
 
                 return true;
             }
 
             $link->incrementConversions();
 
-            $locked->forceFill([
-                'status' => ShareEffectStatus::Succeeded,
-                'lease_token' => null,
-                'leased_by' => null,
-                'lease_expires_at' => null,
-                'succeeded_at' => now(),
-            ])->save();
+            $this->effectReceipts->markSucceeded($receiptId, $workerId, $leaseToken);
 
             return true;
         });
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function processDeferredTicketReversal(ShareEffectReceipt $receipt, array $payload): bool
-    {
-        $registrationId = $payload['registration_id'] ?? null;
-        $conversionId = $payload['conversion_id'] ?? null;
-        $reason = $payload['reason'] ?? null;
+    private function processDeferredTicketReversal(
+        EffectReceiptSnapshot $receipt,
+        string $workerId,
+        string $leaseToken,
+    ): bool {
+        $registrationId = $receipt->payload['registration_id'] ?? null;
+        $conversionId = $receipt->payload['conversion_id'] ?? null;
+        $reason = $receipt->payload['reason'] ?? null;
 
         $registration = is_string($registrationId) && $registrationId !== ''
             ? EventRegistration::query()->whereKey($registrationId)->first()
             : null;
 
         if (! $registration instanceof EventRegistration || ! is_string($reason) || $reason === '') {
-            $receipt->forceFill([
-                'status' => ShareEffectStatus::Failed,
-                'lease_token' => null,
-                'leased_by' => null,
-                'lease_expires_at' => null,
-                'failed_at' => now(),
-            ])->save();
+            $this->effectReceipts->markFailed($receipt->id, $workerId, $leaseToken);
 
             return true;
         }
@@ -243,36 +167,19 @@ final readonly class DispatchShareEffectReceiptsAction
             && ($conversion->status instanceof ConversionStatus
                 ? $conversion->status->equals(ReversedConversion::class)
                 : (string) $conversion->status === 'reversed')) {
-            $receipt->forceFill([
-                'status' => ShareEffectStatus::Succeeded,
-                'lease_token' => null,
-                'leased_by' => null,
-                'lease_expires_at' => null,
-                'succeeded_at' => now(),
-            ])->save();
+            $this->effectReceipts->markSucceeded($receipt->id, $workerId, $leaseToken);
 
             return true;
         }
 
         if ($conversion instanceof AffiliateConversion
             && $this->reverseTicketAffiliateCommission->hasOpenPayoutReservation($conversion)) {
-            $receipt->forceFill([
-                'status' => ShareEffectStatus::Pending,
-                'lease_token' => null,
-                'leased_by' => null,
-                'lease_expires_at' => null,
-            ])->save();
+            $this->effectReceipts->releaseToPending($receipt->id, $workerId, $leaseToken);
 
             return true;
         }
 
-        $receipt->forceFill([
-            'status' => ShareEffectStatus::Failed,
-            'lease_token' => null,
-            'leased_by' => null,
-            'lease_expires_at' => null,
-            'failed_at' => now(),
-        ])->save();
+        $this->effectReceipts->markFailed($receipt->id, $workerId, $leaseToken);
 
         return true;
     }

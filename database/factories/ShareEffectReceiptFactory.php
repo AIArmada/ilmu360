@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Enums\ShareEffectStatus;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Models\ShareEffectReceipt;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;

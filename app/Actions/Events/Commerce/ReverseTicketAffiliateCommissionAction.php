@@ -12,13 +12,13 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\CommerceSupport\Support\OwnerTuple\OwnerTupleParser;
 use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
-use App\Enums\ShareEffectStatus;
-use App\Models\ShareEffectReceipt;
+use App\Features\ShareTracking\Api\EffectReceipts;
 
 final readonly class ReverseTicketAffiliateCommissionAction
 {
     public function __construct(
         private ReverseAffiliateConversion $reverseAffiliateConversion,
+        private EffectReceipts $effectReceipts,
     ) {}
 
     public function handle(PackageEventRegistration $registration, string $reason): ?AffiliateConversion
@@ -98,20 +98,12 @@ final readonly class ReverseTicketAffiliateCommissionAction
     ): void {
         $conversionId = (string) $conversion->getKey();
 
-        ShareEffectReceipt::query()->firstOrCreate(
-            ['effect_key' => 'ticket-affiliate-reversal:'.hash('sha256', $conversionId)],
-            [
-                'source_type' => 'event_registration',
-                'source_id' => (string) $registration->getKey(),
-                'effect_type' => 'ticket_affiliate_reversal',
-                'status' => ShareEffectStatus::Pending,
-                'payload' => [
-                    'conversion_id' => $conversionId,
-                    'registration_id' => (string) $registration->getKey(),
-                    'order_id' => (string) $registration->external_order_id,
-                    'reason' => $reason,
-                ],
-            ],
+        $this->effectReceipts->ensureTicketReversal(
+            effectKey: 'ticket-affiliate-reversal:'.hash('sha256', $conversionId),
+            registrationId: (string) $registration->getKey(),
+            conversionId: $conversionId,
+            orderId: (string) $registration->external_order_id,
+            reason: $reason,
         );
     }
 }
