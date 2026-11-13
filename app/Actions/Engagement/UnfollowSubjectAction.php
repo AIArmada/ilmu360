@@ -7,14 +7,13 @@ namespace App\Actions\Engagement;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Enums\ShareOutcomeType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -22,9 +21,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * Root unfollow writer for the package-canonical follow rows.
  *
  * Locks the caller's active follow row inside the same transaction that
- * removes it, then reverses the follow share outcome only when a row was
- * actually present. The share-outcome call stays on the existing reverse
- * action until D4e adopts the EngagementShareOutcomes contract.
+ * removes it, then reverses the follow share outcome through the
+ * EngagementShareOutcomes contract only when a row was actually present.
  */
 final readonly class UnfollowSubjectAction
 {
@@ -32,7 +30,7 @@ final readonly class UnfollowSubjectAction
 
     public function __construct(
         private EngagementManager $engagement,
-        private ReverseShareOutcomeAction $reverseShareOutcome,
+        private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
     public function handle(Institution|Person|Reference|Series $subject, User $user): UnfollowSubjectResult
@@ -52,10 +50,11 @@ final readonly class UnfollowSubjectAction
             OwnerContext::withOwner(null, fn () => $this->engagement->unfollow($user, $subject));
 
             if ($removed && $follow instanceof Follow) {
-                $this->reverseShareOutcome->handle(
-                    ShareOutcomeBusinessKey::follow($this->outcomeTypeFor($subject), (string) $follow->getKey()),
-                    'unfollowed',
-                    $user,
+                $this->shareOutcomes->reverseFollow(
+                    type: $this->outcomeTypeFor($subject),
+                    followId: (string) $follow->getKey(),
+                    reason: 'unfollowed',
+                    actor: $user,
                 );
             }
 

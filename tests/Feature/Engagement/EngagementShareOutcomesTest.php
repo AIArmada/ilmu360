@@ -2,11 +2,15 @@
 
 declare(strict_types=1);
 
+use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Engagement\Models\Follow;
+use AIArmada\Engagement\Models\Response;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Contracts\ShareTrackingContract;
 use App\Enums\ShareOutcomeType;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
@@ -174,4 +178,53 @@ it('does not reverse outcomes when account restore or event cleanup deletes enga
 
     expect(ShareOutcomeCorrection::query()->whereIn('business_key', [$bookmarkKey, $responseKey])->count())->toBe(0)
         ->and(ShareSourceAttributionReceipt::query()->whereIn('business_key', [$bookmarkKey, $responseKey])->count())->toBe(2);
+});
+
+it('never calls the engagement outcomes contract during account restore or event cleanup', function (): void {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $event = Event::factory()->create();
+
+    $user->bookmark($event);
+    $user->respond($event, 'going');
+    $user->follow($institution);
+
+    $outcomes = Mockery::mock(EngagementShareOutcomes::class);
+    $outcomes->shouldNotReceive('recordBookmark');
+    $outcomes->shouldNotReceive('reverseBookmark');
+    $outcomes->shouldNotReceive('recordResponse');
+    $outcomes->shouldNotReceive('reverseResponse');
+    $outcomes->shouldNotReceive('recordFollow');
+    $outcomes->shouldNotReceive('reverseFollow');
+
+    $this->app->instance(EngagementShareOutcomes::class, $outcomes);
+
+    $contributor = app(EngagementAccountLifecycleContributor::class);
+    $snapshot = $contributor->snapshot((string) $user->getKey());
+    $contributor->detach((string) $user->getKey());
+    $contributor->restore((string) $user->getKey(), $snapshot);
+
+    expect(Follow::query()
+        ->where('follower_id', $user->getKey())
+        ->where('followable_id', $institution->getKey())
+        ->where('status', 'active')
+        ->exists())->toBeTrue()
+        ->and(Bookmark::query()
+            ->where('bookmarker_id', $user->getKey())
+            ->where('bookmarkable_id', $event->getKey())
+            ->where('status', 'active')
+            ->exists())->toBeTrue()
+        ->and(Response::query()
+            ->where('responder_id', $user->getKey())
+            ->where('respondable_id', $event->getKey())
+            ->where('response_type', 'going')
+            ->where('status', 'active')
+            ->exists())->toBeTrue();
+
+    app(CleanupEventAction::class)->cleanup((string) $event->getKey());
+
+    expect(Bookmark::query()->where('bookmarkable_id', $event->getKey())->exists())->toBeFalse()
+        ->and(Response::query()->where('respondable_id', $event->getKey())->exists())->toBeFalse();
 });

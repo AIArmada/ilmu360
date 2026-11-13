@@ -6,10 +6,9 @@ namespace App\Actions\Engagement;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Models\Response;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\Event;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -17,9 +16,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * Root remove-going writer for the package-canonical response rows.
  *
  * Locks the caller's active response inside the same transaction that cancels
- * it, recalculates the counter and reverses the event-going share outcome only
- * when a row was actually present. Idempotent replays never reverse again.
- * D4e will switch the reversal to the EngagementShareOutcomes contract.
+ * it, recalculates the counter and reverses the event-going share outcome
+ * through the EngagementShareOutcomes contract only when a row was actually
+ * present. Idempotent replays never reverse again.
  */
 final readonly class RemoveEventGoingAction
 {
@@ -27,7 +26,7 @@ final readonly class RemoveEventGoingAction
 
     public function __construct(
         private EngagementCounterService $engagementCounter,
-        private ReverseShareOutcomeAction $reverseShareOutcome,
+        private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
     /**
@@ -55,10 +54,10 @@ final readonly class RemoveEventGoingAction
             $this->engagementCounter->recalculateResponses($event, 'going');
 
             if ($deleted && $response instanceof Response) {
-                $this->reverseShareOutcome->handle(
-                    ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
-                    'going_removed',
-                    $user,
+                $this->shareOutcomes->reverseResponse(
+                    responseId: (string) $response->getKey(),
+                    reason: 'going_removed',
+                    actor: $user,
                 );
             }
 

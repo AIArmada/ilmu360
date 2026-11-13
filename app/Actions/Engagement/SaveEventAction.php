@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Actions\Engagement;
 
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Enums\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ShareTrackingService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -19,8 +17,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * The package engagement tables have no application owner, so this named
  * action stays in the root Actions namespace. It owns the manager write and
- * the existing share-outcome record call; D4e will switch that call to the
- * EngagementShareOutcomes contract, and no caller should reproduce it.
+ * records the event-save share outcome through the EngagementShareOutcomes
+ * contract; no caller should reproduce either.
  */
 final readonly class SaveEventAction
 {
@@ -28,7 +26,7 @@ final readonly class SaveEventAction
 
     public function __construct(
         private EngagementManager $engagement,
-        private ShareTrackingService $shareTracking,
+        private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
     public function handle(Event $event, User $user, ?Request $request = null): SaveEventResult
@@ -38,9 +36,8 @@ final readonly class SaveEventAction
             $created = $bookmark->wasRecentlyCreated;
 
             if ($created) {
-                $this->shareTracking->recordOutcome(
-                    type: ShareOutcomeType::EventSave,
-                    businessKey: ShareOutcomeBusinessKey::eventSave((string) $bookmark->getKey()),
+                $this->shareOutcomes->recordBookmark(
+                    bookmarkId: (string) $bookmark->getKey(),
                     subject: $event,
                     actor: $user,
                     request: $request,

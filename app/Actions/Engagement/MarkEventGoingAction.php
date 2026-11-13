@@ -6,13 +6,11 @@ namespace App\Actions\Engagement;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Enums\ShareOutcomeType;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use App\Services\ShareTrackingService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -22,9 +20,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * The package engagement tables have no application owner, so this named
  * action stays in the root Actions namespace. It owns the response write,
- * going-triggered free admission, counter recalculation and the existing
- * share-outcome record call; no caller should reproduce that orchestration.
- * D4e will switch the outcome call to the EngagementShareOutcomes contract.
+ * going-triggered free admission, counter recalculation and records the
+ * event-going share outcome through the EngagementShareOutcomes contract; no
+ * caller should reproduce that orchestration.
  */
 final readonly class MarkEventGoingAction
 {
@@ -33,7 +31,7 @@ final readonly class MarkEventGoingAction
     public function __construct(
         private EngagementCounterService $engagementCounter,
         private AdmissionRegistration $admissions,
-        private ShareTrackingService $shareTracking,
+        private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
     /**
@@ -93,9 +91,8 @@ final readonly class MarkEventGoingAction
             $this->engagementCounter->recalculateResponses($event, 'going');
 
             if ($responseCreated) {
-                $this->shareTracking->recordOutcome(
-                    type: ShareOutcomeType::EventGoing,
-                    businessKey: ShareOutcomeBusinessKey::eventGoing((string) $response->getKey()),
+                $this->shareOutcomes->recordResponse(
+                    responseId: (string) $response->getKey(),
                     subject: $event,
                     actor: $user,
                     request: $request,

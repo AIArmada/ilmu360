@@ -17,7 +17,12 @@ use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use Carbon\CarbonInterface;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -146,4 +151,63 @@ it('records one going outcome and reverses it only across real api transitions',
     expect(d4cGoingConversionStatus($conversion))->toBe('reversed')
         ->and(ShareOutcomeCorrection::query()->where('business_key', $businessKey)->count())->toBe(1)
         ->and(ShareOutcomeCorrection::query()->where('business_key', $businessKey)->value('reason'))->toBe('going_removed');
+});
+
+it('records and reverses the going response through the engagement share outcomes contract', function (): void {
+    $user = User::factory()->create();
+    $event = d4cGoingRegistrationEvent();
+    $request = Request::create(route('events.show', $event));
+    $recorded = null;
+    $reversed = null;
+
+    $outcomes = Mockery::mock(EngagementShareOutcomes::class);
+    $outcomes->shouldReceive('recordResponse')
+        ->once()
+        ->withArgs(function (
+            string $responseId,
+            ?Model $subject,
+            ?Authenticatable $actor,
+            ?Request $receivedRequest,
+            array $metadata,
+            ?CarbonInterface $occurredAt,
+        ) use (&$recorded): bool {
+            $recorded = compact('responseId', 'subject', 'actor', 'receivedRequest', 'metadata', 'occurredAt');
+
+            return true;
+        });
+    $outcomes->shouldReceive('reverseResponse')
+        ->once()
+        ->withArgs(function (
+            string $responseId,
+            string $reason,
+            ?Authenticatable $actor,
+        ) use (&$reversed): bool {
+            $reversed = compact('responseId', 'reason', 'actor');
+
+            return true;
+        });
+
+    $this->app->instance(EngagementShareOutcomes::class, $outcomes);
+
+    app(MarkEventGoingAction::class)->handle($event, $user, $request);
+    app(MarkEventGoingAction::class)->handle($event, $user, $request);
+
+    $removed = app(RemoveEventGoingAction::class)->handle($event, $user);
+    app(RemoveEventGoingAction::class)->handle($event, $user);
+
+    $response = Response::query()->where('response_type', 'going')->firstOrFail();
+
+    expect($recorded['responseId'])->toBe((string) $response->getKey())
+        ->and($recorded['subject']?->is($event))->toBeTrue()
+        ->and($recorded['actor']?->is($user))->toBeTrue()
+        ->and($recorded['receivedRequest'])->toBe($request)
+        ->and($recorded['metadata'])->toBe([
+            'subject_id' => $event->getKey(),
+            'subject_type' => $event->getMorphClass(),
+        ])
+        ->and($recorded['occurredAt']?->equalTo($response->created_at))->toBeTrue()
+        ->and($removed['deleted'])->toBeTrue()
+        ->and($reversed['responseId'])->toBe((string) $response->getKey())
+        ->and($reversed['reason'])->toBe('going_removed')
+        ->and($reversed['actor']?->is($user))->toBeTrue();
 });

@@ -16,7 +16,12 @@ use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingService;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use Carbon\CarbonInterface;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -135,4 +140,66 @@ it('records one save outcome and reverses it only across real api transitions', 
     expect(d4bSaveConversionStatus($conversion))->toBe('reversed')
         ->and(ShareOutcomeCorrection::query()->where('business_key', $businessKey)->count())->toBe(1)
         ->and(ShareOutcomeCorrection::query()->where('business_key', $businessKey)->value('reason'))->toBe('save_removed');
+});
+
+it('records and reverses the bookmark through the engagement share outcomes contract', function (): void {
+    $user = User::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+        'starts_at' => now()->addDay(),
+    ]);
+    $request = Request::create(route('events.show', $event));
+    $recorded = null;
+    $reversed = null;
+
+    $outcomes = Mockery::mock(EngagementShareOutcomes::class);
+    $outcomes->shouldReceive('recordBookmark')
+        ->once()
+        ->withArgs(function (
+            string $bookmarkId,
+            ?Model $subject,
+            ?Authenticatable $actor,
+            ?Request $receivedRequest,
+            array $metadata,
+            ?CarbonInterface $occurredAt,
+        ) use (&$recorded): bool {
+            $recorded = compact('bookmarkId', 'subject', 'actor', 'receivedRequest', 'metadata', 'occurredAt');
+
+            return true;
+        });
+    $outcomes->shouldReceive('reverseBookmark')
+        ->once()
+        ->withArgs(function (
+            string $bookmarkId,
+            string $reason,
+            ?Authenticatable $actor,
+        ) use (&$reversed): bool {
+            $reversed = compact('bookmarkId', 'reason', 'actor');
+
+            return true;
+        });
+
+    $this->app->instance(EngagementShareOutcomes::class, $outcomes);
+
+    $saved = app(SaveEventAction::class)->handle($event, $user, $request);
+    app(SaveEventAction::class)->handle($event, $user, $request);
+
+    $unsaved = app(UnsaveEventAction::class)->handle($event, $user);
+    app(UnsaveEventAction::class)->handle($event, $user);
+
+    expect($recorded['bookmarkId'])->toBe((string) $saved->bookmark?->getKey())
+        ->and($recorded['subject']?->is($event))->toBeTrue()
+        ->and($recorded['actor']?->is($user))->toBeTrue()
+        ->and($recorded['receivedRequest'])->toBe($request)
+        ->and($recorded['metadata'])->toBe([
+            'subject_id' => $event->getKey(),
+            'subject_type' => $event->getMorphClass(),
+        ])
+        ->and($recorded['occurredAt']?->equalTo($saved->bookmark?->created_at))->toBeTrue()
+        ->and($unsaved->removed)->toBeTrue()
+        ->and($reversed['bookmarkId'])->toBe((string) $saved->bookmark?->getKey())
+        ->and($reversed['reason'])->toBe('save_removed')
+        ->and($reversed['actor']?->is($user))->toBeTrue();
 });

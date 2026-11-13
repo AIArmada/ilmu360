@@ -17,9 +17,11 @@ use App\Platform\FeatureModule;
  * (`App\Actions\Engagement\SaveEventAction`/`UnsaveEventAction`), D4c the
  * going writers (`MarkEventGoingAction`/`RemoveEventGoingAction`) plus the
  * shared `GoingWindow` eligibility, and D4d the follow writers
- * (`FollowSubjectAction`/`UnfollowSubjectAction`); the package manager remains
- * the canonical writer and callers never reproduce its orchestration.
- * Implementations are root adapters bound in AppServiceProvider.
+ * (`FollowSubjectAction`/`UnfollowSubjectAction`). D4e routes every save,
+ * going and follow share outcome through the root `EngagementShareOutcomes`
+ * recorder; the package manager remains the canonical writer and callers
+ * never reproduce its orchestration. Implementations are root adapters bound
+ * in AppServiceProvider.
  *
  * Must stay root adapters, documented here so later slices do not absorb them:
  * - EngagementAccountLifecycleContributor (account deletion/restoration

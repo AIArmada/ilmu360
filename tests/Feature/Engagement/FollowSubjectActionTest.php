@@ -20,8 +20,12 @@ use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Shared\Engagement\EngagementReader;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use Carbon\CarbonInterface;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
@@ -186,4 +190,72 @@ it('supports series follow and unfollow with reader and counter state', function
             (string) $user->getKey(),
             EngagementSubjectType::Series,
         ))->not->toContain((string) $series->getKey());
+});
+
+it('records and reverses the series follow through the engagement share outcomes contract', function (): void {
+    $user = User::factory()->create();
+    $series = Series::factory()->create(['visibility' => 'public']);
+    $request = Request::create(route('series.show', $series));
+    $recorded = null;
+    $reversed = null;
+
+    $outcomes = Mockery::mock(EngagementShareOutcomes::class);
+    $outcomes->shouldReceive('recordFollow')
+        ->once()
+        ->withArgs(function (
+            ShareOutcomeType $type,
+            string $followId,
+            ?Model $subject,
+            ?Authenticatable $actor,
+            ?Request $receivedRequest,
+            array $metadata,
+            ?CarbonInterface $occurredAt,
+        ) use (&$recorded): bool {
+            $recorded = compact('type', 'followId', 'subject', 'actor', 'receivedRequest', 'metadata', 'occurredAt');
+
+            return true;
+        });
+    $outcomes->shouldReceive('reverseFollow')
+        ->once()
+        ->withArgs(function (
+            ShareOutcomeType $type,
+            string $followId,
+            string $reason,
+            ?Authenticatable $actor,
+        ) use (&$reversed): bool {
+            $reversed = compact('type', 'followId', 'reason', 'actor');
+
+            return true;
+        });
+
+    $this->app->instance(EngagementShareOutcomes::class, $outcomes);
+
+    $follow = app(FollowSubjectAction::class)->handle(
+        subject: $series,
+        user: $user,
+        metadata: ['series_id' => $series->getKey()],
+        request: $request,
+    );
+    app(FollowSubjectAction::class)->handle(
+        subject: $series,
+        user: $user,
+        metadata: ['series_id' => $series->getKey()],
+        request: $request,
+    );
+
+    $unfollow = app(UnfollowSubjectAction::class)->handle($series, $user);
+    app(UnfollowSubjectAction::class)->handle($series, $user);
+
+    expect($recorded['type'])->toBe(ShareOutcomeType::SeriesFollow)
+        ->and($recorded['followId'])->toBe((string) $follow->follow->getKey())
+        ->and($recorded['subject']?->is($series))->toBeTrue()
+        ->and($recorded['actor']?->is($user))->toBeTrue()
+        ->and($recorded['receivedRequest'])->toBe($request)
+        ->and($recorded['metadata'])->toBe(['series_id' => $series->getKey()])
+        ->and($recorded['occurredAt']?->equalTo($follow->follow->created_at))->toBeTrue()
+        ->and($unfollow->removed)->toBeTrue()
+        ->and($reversed['type'])->toBe(ShareOutcomeType::SeriesFollow)
+        ->and($reversed['followId'])->toBe((string) $follow->follow->getKey())
+        ->and($reversed['reason'])->toBe('unfollowed')
+        ->and($reversed['actor']?->is($user))->toBeTrue();
 });

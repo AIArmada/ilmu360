@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
  * The caller owns the metadata shape because the surfaces intentionally differ:
  * event saves/going and the follow API emit `subject_id`/`subject_type`, while
  * the directory card records a `{type}_id` key. The recorder must not normalise
- * those shapes while the engagement callers are being moved behind it.
+ * those shapes.
  *
  * Restore and event-delete cleanup deliberately do not use this contract. The
  * account lifecycle contributor and the event cleanup action delete package

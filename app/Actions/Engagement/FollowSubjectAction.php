@@ -7,14 +7,13 @@ namespace App\Actions\Engagement;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
-use App\Contracts\ShareTrackingContract;
 use App\Enums\ShareOutcomeType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -24,8 +23,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *
  * The package engagement tables have no application owner, so this named
  * action stays in the root Actions namespace. It owns the manager write and
- * the existing share-outcome record call; D4e will switch that call to the
- * EngagementShareOutcomes contract, and no caller should reproduce it.
+ * records the follow share outcome through the EngagementShareOutcomes
+ * contract; no caller should reproduce either.
  *
  * Callers own eligibility and the per-surface metadata shape: the follow API
  * sends `subject_id`/`subject_type`, while directory pages, cards and series
@@ -37,7 +36,7 @@ final readonly class FollowSubjectAction
 
     public function __construct(
         private EngagementManager $engagement,
-        private ShareTrackingContract $shareTracking,
+        private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
     /**
@@ -58,11 +57,9 @@ final readonly class FollowSubjectAction
             $created = $follow->wasRecentlyCreated;
 
             if ($created) {
-                $outcomeType = $this->outcomeTypeFor($subject);
-
-                $this->shareTracking->recordOutcome(
-                    type: $outcomeType,
-                    businessKey: ShareOutcomeBusinessKey::follow($outcomeType, (string) $follow->getKey()),
+                $this->shareOutcomes->recordFollow(
+                    type: $this->outcomeTypeFor($subject),
+                    followId: (string) $follow->getKey(),
                     subject: $subject,
                     actor: $user,
                     request: $request,
