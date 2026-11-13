@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
-use App\Features\Directory\FeatureServiceProvider as DirectoryServiceProvider;
 use App\Features\Contributions\FeatureServiceProvider as ContributionsServiceProvider;
+use App\Features\Directory\FeatureServiceProvider as DirectoryServiceProvider;
 use App\Features\Discovery\FeatureServiceProvider as DiscoveryServiceProvider;
 use App\Features\Engagement\FeatureServiceProvider as EngagementServiceProvider;
 use App\Features\Events\FeatureServiceProvider as EventsServiceProvider;
@@ -18,6 +18,7 @@ use App\Features\Organizations\FeatureServiceProvider as OrganizationsServicePro
 use App\Features\Prayer\FeatureServiceProvider;
 use App\Features\Registration\FeatureServiceProvider as RegistrationServiceProvider;
 use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
+use App\Features\Rewards\FeatureServiceProvider as RewardsServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
 use App\Features\ShareTracking\FeatureServiceProvider as ShareTrackingServiceProvider;
 use App\Providers\AdminRegistryServiceProvider;
@@ -53,6 +54,7 @@ return [
     FeatureServiceProvider::class,
     RegistrationServiceProvider::class,
     ReportsServiceProvider::class,
+    RewardsServiceProvider::class,
     SavedSearchesServiceProvider::class,
     ShareTrackingServiceProvider::class,
     BlazeServiceProvider::class,

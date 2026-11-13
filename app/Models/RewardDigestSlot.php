@@ -45,6 +45,9 @@ class RewardDigestSlot extends Model
     public const string STATUS_CANCELLED = 'cancelled';
 
     #[\Override]
+    protected $table = 'reward_digest_slots';
+
+    #[\Override]
     protected $fillable = [
         'recipient_type',
         'recipient_id',
