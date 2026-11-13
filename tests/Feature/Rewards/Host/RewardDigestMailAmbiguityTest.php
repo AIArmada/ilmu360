@@ -21,11 +21,12 @@ use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\DeliveryFencing;
+use App\Features\Communications\Api\ManagedNotificationDelivery;
+use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
-use App\Features\Rewards\Actions\GratitudeDigests\ResolveDigestMailAmbiguityAction;
-use App\Features\Rewards\Notifications\ShareGratitudeDigestNotification;
+use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -126,14 +127,15 @@ function mailAmbiguityDrain(RewardDigestSlot $slot): void
         $byChannel[(string) $delivery->channel] = (string) $delivery->getKey();
     }
 
-    $notification = (new ShareGratitudeDigestNotification([
+    $notification = new ManagedNotification(app(ShareGratitudeDigestMessages::class)->build([
         'text' => (string) ($payload['text'] ?? ''),
         'counts' => (array) ($payload['counts'] ?? []),
         'sections' => (array) ($payload['sections'] ?? []),
         'window' => (array) ($payload['window'] ?? []),
         'plan_key' => (string) $slot->plan_key,
         'slot_id' => (string) $slot->getKey(),
-    ]))->withCommunicationContext((string) $slot->communication_id, $byChannel);
+    ]));
+    $notification->withCommunicationContext((string) $slot->communication_id, $byChannel);
 
     // One job attempt through the real mail/attempt/communication
     // boundary (pre-send flip, guarded channels, post-send record).
@@ -210,7 +212,7 @@ it("never resends mail after acceptance plus recording crash on {$mailLabel}", f
 
         app()->bind(CommunicationRecorder::class, CommunicationRecorderService::class);
 
-        $resolved = ResolveDigestMailAmbiguityAction::run(
+        $resolved = app(ManagedNotificationDelivery::class)->resolveAmbiguousExternalDelivery(
             $mailDeliveryId, 'sent', 'user', RewardLedgerFixtures::staffId(), 'staff', 'test-observed-1',
         );
 
@@ -325,7 +327,7 @@ it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$m
 
         $actorId = RewardLedgerFixtures::staffId();
 
-        $resolved = ResolveDigestMailAmbiguityAction::run(
+        $resolved = app(ManagedNotificationDelivery::class)->resolveAmbiguousExternalDelivery(
             $mailDeliveryId, 'sent', 'user', $actorId, 'staff', 'observed-transport-1',
         );
 
@@ -449,7 +451,7 @@ it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLab
         // resolution is failed with verified non-delivery evidence.
         $actorId = RewardLedgerFixtures::staffId();
 
-        $resolved = ResolveDigestMailAmbiguityAction::run(
+        $resolved = app(ManagedNotificationDelivery::class)->resolveAmbiguousExternalDelivery(
             $mailDeliveryId, 'failed', 'user', $actorId, 'staff', null, 'transport rejected before acceptance; logs show no DATA',
         );
 
@@ -577,7 +579,7 @@ it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailL
 
         $actorId = RewardLedgerFixtures::staffId();
 
-        $resolved = ResolveDigestMailAmbiguityAction::run(
+        $resolved = app(ManagedNotificationDelivery::class)->resolveAmbiguousExternalDelivery(
             $mailDeliveryId, 'sent', 'user', $actorId, 'staff', 'observed-logic-1',
         );
 
@@ -709,7 +711,7 @@ it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}"
 
         $actorId = RewardLedgerFixtures::staffId();
 
-        $resolved = ResolveDigestMailAmbiguityAction::run(
+        $resolved = app(ManagedNotificationDelivery::class)->resolveAmbiguousExternalDelivery(
             $mailDeliveryId, 'sent', 'user', $actorId, 'staff', 'observed-postsend-1',
         );
 

@@ -7,10 +7,8 @@ namespace App\Features\Rewards;
 use App\Features\Rewards\Actions\Enrollment\EnrollRewardProgramMemberAction;
 use App\Features\Rewards\Actions\Enrollment\EvaluatePreclaimShareOutcomesAction;
 use App\Features\Rewards\Actions\GratitudeDigests\GratitudeDigestAction;
-use App\Features\Rewards\Actions\GratitudeDigests\ResolveDigestMailAmbiguityAction;
 use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Api\MemberEnrollment;
-use App\Features\Rewards\Api\ResolveDigestMailAmbiguity;
 use App\Platform\FeatureModule;
 
 /**
@@ -22,15 +20,12 @@ use App\Platform\FeatureModule;
  * `$table`; feature code resolves it through the `reward_digest_slot` morph
  * alias and `Support\RewardsModel`, never by importing the root model.
  *
- * Shared seams keep the feature free of Communications internals and app users:
- * - `Shared\Communications\DigestPolicy`, implemented by Communications'
- *   `NotificationCenterDigestPolicy` over
- *   AccountNotificationPreferences/ResolvedNotificationPolicy and the global
- *   digest config; only scalar cadence, trigger, timezone, delivery time,
- *   weekly day and quiet hours cross.
- * - `Services\ShareGratitudeDigestMessages` resolves recipients through
- *   `Shared\Auth\AccountDirectory` and builds the existing
- *   `ShareGratitudeDigestNotification`.
+ * Communications integration crosses only its app API:
+ * - Rewards resolves policy through AccountNotificationPreferences and builds
+ *   immutable message values through `ShareGratitudeDigestMessages`.
+ * - Managed communication creation/adoption, delivery snapshots and
+ *   cancellation, plus ambiguous external-delivery settlement, use
+ *   `ManagedNotificationDelivery`; Rewards never reads package models.
  * - `Api\GratitudeDigest` exposes scalar plan, cancel, cancel-pending and
  *   dispatch entrypoints returning `Api\GratitudeDigestSnapshot`; the root
  *   `DigestRewardGratitudePlanner` is the package-contract adapter and
@@ -52,13 +47,8 @@ use App\Platform\FeatureModule;
  * writers, and app code performs zero direct writes to them.
  *
  * Intentional root adapters/holds documented for later slices:
- * - Mail ambiguity: `ResolveDigestMailAmbiguityCommand` stays a root transport
- *   adapter; `Api\ResolveDigestMailAmbiguity` exposes its scalar result and the
- *   `Actions\GratitudeDigests\ResolveDigestMailAmbiguityAction` records operator
- *   decisions through the Communications delivery-fencing API.
- * - Digest notification intent lives in `Notifications\ShareGratitudeDigestNotification`;
- *   its in-app payload uses the Communications API contract; Communications owns
- *   channel adapters and the delivery fence.
+ * - `ResolveDigestMailAmbiguityCommand` stays a root transport adapter and
+ *   delegates settlement to Communications after verifying the operator.
  * - Source facts: `CompositeRewardSourceFactReader` plus
  *   `ActivityRewardSourceFactReader`, `ShareAttributionRewardSourceFactReader`
  *   and `ReferralRewardSourceFactReader` stay root read adapters until the
@@ -79,11 +69,12 @@ use App\Platform\FeatureModule;
  *   adapters until their documented later slices. Communications owns its
  *   package dispatcher schedule.
  *
- * Lock order, H1 coupling (plan/cancel inside award transactions, including
- * reversal with no try/catch), H2 delivery/communication inversion, status
- * transitions, 20-hour calmness, merge/dedup, retries/escapes and payload shape
- * are preserved. No schema, retention, timing or communications behavior
- * changes happen in this slice.
+ * Lock order is Rewards slot → sorted deliveries → communication → attempts;
+ * channel sends keep delivery → communication → attempt. H1 coupling
+ * (plan/cancel inside award transactions, including reversal with no
+ * try/catch), status transitions, 20-hour calmness, merge/dedup,
+ * retries/escapes and payload shape are preserved. Communications package
+ * tables and schemas stay package-owned.
  */
 class FeatureServiceProvider extends FeatureModule
 {
@@ -91,6 +82,5 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(GratitudeDigest::class, GratitudeDigestAction::class);
         $this->app->bind(MemberEnrollment::class, EnrollRewardProgramMemberAction::class);
-        $this->app->bind(ResolveDigestMailAmbiguity::class, ResolveDigestMailAmbiguityAction::class);
     }
 }

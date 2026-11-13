@@ -16,9 +16,10 @@ use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
-use App\Features\Rewards\Notifications\ShareGratitudeDigestNotification;
+use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -164,14 +165,15 @@ function resolveCmdAmbiguous(string $prefix, string $source): array
                 $byChannel[(string) $delivery->channel] = (string) $delivery->getKey();
             }
 
-            $notification = (new ShareGratitudeDigestNotification([
+            $notification = new ManagedNotification(app(ShareGratitudeDigestMessages::class)->build([
                 'text' => (string) ($payload['text'] ?? ''),
                 'counts' => (array) ($payload['counts'] ?? []),
                 'sections' => (array) ($payload['sections'] ?? []),
                 'window' => (array) ($payload['window'] ?? []),
                 'plan_key' => (string) $slot->plan_key,
                 'slot_id' => (string) $slot->getKey(),
-            ]))->withCommunicationContext($communicationId, $byChannel);
+            ]));
+            $notification->withCommunicationContext($communicationId, $byChannel);
 
             DispatchManagedNotificationJob::dispatchSync(
                 notifiable: $user->refresh(),

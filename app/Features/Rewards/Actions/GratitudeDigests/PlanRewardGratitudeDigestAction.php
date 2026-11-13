@@ -11,10 +11,12 @@ use AIArmada\Rewards\Enums\RewardMilestoneStatus;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardBadgeGrant;
 use AIArmada\Rewards\Models\RewardMilestoneCycle;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationCadence;
+use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Support\RewardsModel;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Communications\DigestPolicy;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -49,7 +51,7 @@ final readonly class PlanRewardGratitudeDigestAction
     public const array CATEGORIES = ['awards', 'badges', 'milestones'];
 
     public function __construct(
-        private DigestPolicy $policies,
+        private AccountNotificationPreferences $policies,
         private AccountDirectory $accounts,
     ) {}
 
@@ -82,30 +84,28 @@ final readonly class PlanRewardGratitudeDigestAction
             ? CarbonImmutable::parse($decidedAt)->setTimezone('UTC')
             : CarbonImmutable::now('UTC');
 
-        $recipient = $this->accounts->resolveNotifiable($recipientId);
-
-        if ($recipient === null) {
+        if (! $this->accounts->exists($recipientId)) {
             throw new InvalidArgumentException('Unknown digest recipient.');
         }
 
-        $policy = $this->policies->resolve($recipient, GratitudeDigest::TRIGGER);
+        $policy = $this->policies->resolvePolicy($recipientId, NotificationTrigger::ShareGratitudeDigest);
 
         if (! $policy->enabled) {
             throw new InvalidArgumentException('Gratitude digests require the recipient to keep the trigger enabled.');
         }
 
-        if (! in_array($policy->cadence, ['daily', 'weekly'], true)) {
+        if (! in_array($policy->cadence, [NotificationCadence::Daily, NotificationCadence::Weekly], true)) {
             throw new InvalidArgumentException('Gratitude digests require a daily or weekly cadence.');
         }
 
         $tz = new \DateTimeZone($policy->timezone);
-        $dueLocal = $policy->cadence === 'weekly'
-            ? $decided->setTimezone($tz)->next($policy->weeklyDay)
+        $dueLocal = $policy->cadence === NotificationCadence::Weekly
+            ? $decided->setTimezone($tz)->next($policy->digestWeeklyDay)
             : $decided->setTimezone($tz)->addDay();
 
         [$hour, $minute, $second] = array_map(
             static fn (string $part): int => (int) $part,
-            explode(':', ($policy->deliveryTime ?? '08:00:00').':00:00'),
+            explode(':', ($policy->digestDeliveryTime ?? '08:00:00').':00:00'),
         );
 
         $dueAt = $dueLocal->setTime($hour, $minute, min($second, 59))->setTimezone('UTC');
@@ -122,7 +122,7 @@ final readonly class PlanRewardGratitudeDigestAction
             throw new InvalidArgumentException('Digest plan identity exceeds 191 characters.');
         }
 
-        $windowStart = $decided->subDays($policy->cadence === 'weekly' ? 7 : 1);
+        $windowStart = $decided->subDays($policy->cadence === NotificationCadence::Weekly ? 7 : 1);
 
         $attempt = 0;
 

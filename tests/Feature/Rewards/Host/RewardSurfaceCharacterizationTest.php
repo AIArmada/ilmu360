@@ -90,10 +90,9 @@ it('documents the intentional root adapters and package-canonical holds', functi
     $docblock = (string) (new ReflectionClass(RewardsFeatureServiceProvider::class))->getDocComment();
 
     expect($docblock)->toContain('GratitudeDigest')
-        ->and($docblock)->toContain('DigestPolicy')
         ->and($docblock)->toContain('ShareGratitudeDigestMessages')
+        ->and($docblock)->toContain('ManagedNotificationDelivery')
         ->and($docblock)->toContain('DigestRewardGratitudePlanner')
-        ->and($docblock)->toContain('ResolveDigestMailAmbiguityAction')
         ->and($docblock)->toContain('ResolveDigestMailAmbiguityCommand')
         ->and($docblock)->toContain('CompositeRewardSourceFactReader')
         ->and($docblock)->toContain('ActivityRewardSourceFactReader')
@@ -103,9 +102,7 @@ it('documents the intentional root adapters and package-canonical holds', functi
         ->and($docblock)->toContain('RewardPayoutMethods')
         ->and($docblock)->toContain('VouchersRewardBenefitCouponFulfillment')
         ->and($docblock)->toContain('Reward*Policy')
-        ->and($docblock)->toContain('Notifications\\ShareGratitudeDigestNotification')
-        ->and($docblock)->toContain('delivery-fencing API')
-        ->and($docblock)->toContain('channel adapters and the delivery fence')
+        ->and($docblock)->toContain('Communications after verifying the operator')
         ->and($docblock)->toContain('Commands/schedules/transport')
         ->and($docblock)->toContain('package-canonical')
         ->and($docblock)->toContain('root adapters');

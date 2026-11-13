@@ -4,22 +4,18 @@ declare(strict_types=1);
 
 namespace App\Features\Rewards\Actions\GratitudeDigests;
 
-use AIArmada\Communications\Actions\DispatchManagedNotificationAction;
-use AIArmada\Communications\Data\CommunicationContextData;
-use AIArmada\Communications\Enums\CommunicationCategory;
-use AIArmada\Communications\Enums\CommunicationPriority;
-use AIArmada\Communications\Enums\CommunicationStatus;
-use AIArmada\Communications\Enums\DeliveryStatus;
-use AIArmada\Communications\Jobs\DispatchManagedNotificationJob;
-use AIArmada\Communications\Models\Communication;
-use AIArmada\Communications\Models\CommunicationDelivery;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\ManagedCommunicationSnapshot;
+use App\Features\Communications\Api\ManagedNotificationDelivery;
+use App\Features\Communications\Api\ManagedNotificationDispatchRequest;
+use App\Features\Communications\Api\NotificationCadence;
+use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Features\Rewards\Support\RewardsModel;
-use App\Shared\Communications\DigestPolicy;
+use App\Shared\Auth\AccountDirectory;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -58,8 +54,10 @@ final readonly class DispatchDueRewardDigestsAction
     public const int MAX_STALLED_ESCAPES = 2;
 
     public function __construct(
-        private DigestPolicy $policies,
+        private AccountNotificationPreferences $policies,
         private ShareGratitudeDigestMessages $messages,
+        private AccountDirectory $accounts,
+        private ManagedNotificationDelivery $communications,
     ) {}
 
     /**
@@ -118,17 +116,17 @@ final readonly class DispatchDueRewardDigestsAction
                 return 'skipped';
             }
 
-            $recipient = $this->messages->notifiable((string) $slot->getAttribute('recipient_id'));
+            $recipientId = (string) $slot->getAttribute('recipient_id');
 
-            if ($recipient === null) {
+            if (! $this->accounts->exists($recipientId)) {
                 $this->markCancelled($slot, 'recipient-unknown', $now);
 
                 return 'cancelled';
             }
 
-            $policy = $this->policies->resolve($recipient, GratitudeDigest::TRIGGER);
+            $policy = $this->policies->resolvePolicy($recipientId, NotificationTrigger::ShareGratitudeDigest);
 
-            if (! $policy->enabled || ! in_array($policy->cadence, ['daily', 'weekly'], true)) {
+            if (! $policy->enabled || ! in_array($policy->cadence, [NotificationCadence::Daily, NotificationCadence::Weekly], true)) {
                 $this->markCancelled($slot, 'opted-out', $now);
 
                 return 'cancelled';
@@ -168,11 +166,35 @@ final readonly class DispatchDueRewardDigestsAction
 
             $slot->forceFill(['payload' => $recomputed])->save();
 
-            $communication = $this->adoptOrCreateCommunication(
-                $slot, $recipient, $recomputed, $policy->timezone, $policy->trigger, $now,
-            );
+            $summary = [
+                'text' => (string) ($recomputed['text'] ?? ''),
+                'counts' => (array) ($recomputed['counts'] ?? []),
+                'sections' => (array) ($recomputed['sections'] ?? []),
+                'window' => (array) ($recomputed['window'] ?? []),
+                'plan_key' => (string) $slot->getAttribute('plan_key'),
+                'slot_id' => (string) $slot->getKey(),
+            ];
+            $redriveSummary = $summary;
+            unset($redriveSummary['slot_id']);
 
-            if (! $communication instanceof Communication) {
+            $communication = $this->communications->adoptOrDispatch(new ManagedNotificationDispatchRequest(
+                recipientId: $recipientId,
+                idempotencyKey: (string) $slot->getAttribute('plan_key'),
+                category: 'digest',
+                priority: 'low',
+                timezone: $policy->timezone,
+                metadata: [
+                    'plan_key' => (string) $slot->getAttribute('plan_key'),
+                    'slot_id' => (string) $slot->getKey(),
+                    'trigger' => $policy->trigger->value,
+                ],
+                message: $this->messages->build($summary),
+                redriveMessage: $this->messages->build($redriveSummary),
+                now: $now,
+                stalledMinutes: self::STALLED_MINUTES,
+            ));
+
+            if (! $communication instanceof ManagedCommunicationSnapshot) {
                 $this->markCancelled($slot, 'no-eligible-channel', $now);
 
                 return 'cancelled';
@@ -180,130 +202,11 @@ final readonly class DispatchDueRewardDigestsAction
 
             $slot->forceFill([
                 'status' => RewardsModel::SLOT_SENDING,
-                'communication_id' => (string) $communication->getKey(),
+                'communication_id' => $communication->communicationId,
             ])->save();
 
             return 'dispatched';
         });
-    }
-
-    /**
-     * Adopt the latest sendable communication for the plan key, else
-     * create a fresh one. Returns null when no channel can carry the
-     * digest. An adopted transport is redriven through the real job only
-     * when it is provably jobless — every delivery pre-send and stalled
-     * past the threshold — so recovery applies once and a live job is
-     * never doubled.
-     *
-     * @param  array<string, mixed>  $payload
-     */
-    private function adoptOrCreateCommunication(
-        Model $slot,
-        Authenticatable $recipient,
-        array $payload,
-        string $timezone,
-        string $trigger,
-        CarbonImmutable $now,
-    ): ?Communication {
-        $planKey = (string) $slot->getAttribute('plan_key');
-
-        $latest = Communication::query()
-            ->where('idempotency_key', $planKey)
-            ->orderByDesc('id')
-            ->lockForUpdate()
-            ->first();
-
-        if ($latest instanceof Communication && $this->isSendable($latest)) {
-            $deliveries = CommunicationDelivery::query()
-                ->where('communication_id', $latest->getKey())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-
-            if ($deliveries->isNotEmpty()) {
-                $queuedAt = $latest->queued_at ?? $latest->created_at;
-                $allPreSend = $deliveries->every(
-                    static fn (CommunicationDelivery $delivery): bool => self::isPreSend($delivery->status)
-                );
-
-                if ($allPreSend
-                    && $queuedAt instanceof CarbonImmutable
-                    && $queuedAt->addMinutes(self::STALLED_MINUTES)->lessThan($now)
-                ) {
-                    $this->redriveJob($latest, $recipient, $payload, $deliveries->all());
-                }
-
-                return $latest->refresh();
-            }
-        }
-
-        $summary = [
-            'text' => (string) ($payload['text'] ?? ''),
-            'counts' => (array) ($payload['counts'] ?? []),
-            'sections' => (array) ($payload['sections'] ?? []),
-            'window' => (array) ($payload['window'] ?? []),
-            'plan_key' => $planKey,
-            'slot_id' => (string) $slot->getKey(),
-        ];
-
-        $communication = app(DispatchManagedNotificationAction::class)->handle(
-            $recipient,
-            $this->messages->digest($summary),
-            new CommunicationContextData(
-                category: CommunicationCategory::Digest,
-                priority: CommunicationPriority::Low,
-                timezone: $timezone,
-                idempotencyKey: $planKey,
-                metadata: [
-                    'plan_key' => $planKey,
-                    'slot_id' => (string) $slot->getKey(),
-                    'trigger' => $trigger,
-                ],
-            ),
-        );
-
-        $fresh = CommunicationDelivery::query()
-            ->where('communication_id', $communication->getKey())
-            ->exists();
-
-        return $fresh ? $communication : null;
-    }
-
-    /**
-     * @param  list<CommunicationDelivery>  $deliveries
-     * @param  array<string, mixed>  $payload
-     */
-    private function redriveJob(
-        Communication $communication,
-        Authenticatable $recipient,
-        array $payload,
-        array $deliveries,
-    ): void {
-        $byChannel = [];
-
-        foreach ($deliveries as $delivery) {
-            $byChannel[(string) $delivery->channel] = (string) $delivery->getKey();
-        }
-
-        $summary = [
-            'text' => (string) ($payload['text'] ?? ''),
-            'counts' => (array) ($payload['counts'] ?? []),
-            'sections' => (array) ($payload['sections'] ?? []),
-            'window' => (array) ($payload['window'] ?? []),
-            'plan_key' => (string) $communication->idempotency_key,
-        ];
-
-        $notification = $this->messages->redrive(
-            (string) $communication->getKey(),
-            $summary,
-            $byChannel,
-        );
-
-        DispatchManagedNotificationJob::dispatch(
-            notifiable: $recipient,
-            notification: $notification,
-            channels: array_keys($byChannel),
-        )->afterCommit();
     }
 
     /**
@@ -323,9 +226,9 @@ final readonly class DispatchDueRewardDigestsAction
             $communicationId = $slot->getAttribute('communication_id');
             $communication = $communicationId === null
                 ? null
-                : Communication::query()->whereKey((string) $communicationId)->lockForUpdate()->first();
+                : $this->communications->snapshot((string) $communicationId);
 
-            if (! $communication instanceof Communication) {
+            if (! $communication instanceof ManagedCommunicationSnapshot) {
                 // Defensive: the bound aggregate vanished; requeue so the
                 // next claim adopts-or-creates afresh.
                 $slot->forceFill(['status' => RewardsModel::SLOT_PLANNED])->save();
@@ -333,35 +236,10 @@ final readonly class DispatchDueRewardDigestsAction
                 return 'skipped';
             }
 
-            $deliveries = CommunicationDelivery::query()
-                ->where('communication_id', $communication->getKey())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get();
-
-            $outcomes = [];
-            $delivered = false;
-            $inFlight = false;
-            $ambiguous = false;
-
-            foreach ($deliveries as $delivery) {
-                $status = $delivery->status instanceof DeliveryStatus
-                    ? $delivery->status->value
-                    : (string) $delivery->status;
-                $outcomes[(string) $delivery->channel] = $status;
-
-                if ($this->isDelivered($delivery->status)) {
-                    $delivered = true;
-                }
-
-                if ($this->isInFlight($delivery->status)) {
-                    $inFlight = true;
-                }
-
-                if ($this->isAmbiguous($delivery->status)) {
-                    $ambiguous = true;
-                }
-            }
+            $outcomes = $communication->channelStatuses;
+            $delivered = $communication->hasDelivered;
+            $inFlight = $communication->hasInFlight;
+            $ambiguous = $communication->hasAmbiguous;
 
             if ($delivered) {
                 $payload = (array) ($slot->getAttribute('payload') ?? []);
@@ -383,7 +261,7 @@ final readonly class DispatchDueRewardDigestsAction
                 // Stalled escape: pre-send work with no job behind it
                 // (lost dispatch) requeues for redelivery, bounded.
                 // Ambiguous in-flight work never escapes.
-                $queuedAt = $communication->queued_at ?? $communication->created_at;
+                $queuedAt = $communication->queuedAt;
 
                 if (! $ambiguous
                     && $queuedAt instanceof CarbonImmutable
@@ -450,60 +328,6 @@ final readonly class DispatchDueRewardDigestsAction
             'payload' => $payload,
             'cancelled_at' => $now,
         ])->save();
-    }
-
-    private function isSendable(Communication $communication): bool
-    {
-        return $communication->status instanceof CommunicationStatus
-            && in_array($communication->status, [
-                CommunicationStatus::Draft,
-                CommunicationStatus::Scheduled,
-                CommunicationStatus::Queued,
-                CommunicationStatus::Processing,
-                CommunicationStatus::PartiallyCompleted,
-            ], true);
-    }
-
-    private static function isPreSend(mixed $status): bool
-    {
-        return $status instanceof DeliveryStatus
-            && in_array($status, [
-                DeliveryStatus::Pending,
-                DeliveryStatus::Scheduled,
-                DeliveryStatus::Queued,
-            ], true);
-    }
-
-    private function isDelivered(mixed $status): bool
-    {
-        return $status instanceof DeliveryStatus
-            && in_array($status, [
-                DeliveryStatus::Sent,
-                DeliveryStatus::Received,
-                DeliveryStatus::Delivered,
-                DeliveryStatus::Opened,
-                DeliveryStatus::Read,
-                DeliveryStatus::Clicked,
-                DeliveryStatus::Replied,
-            ], true);
-    }
-
-    private function isInFlight(mixed $status): bool
-    {
-        return $status instanceof DeliveryStatus
-            && in_array($status, [
-                DeliveryStatus::Pending,
-                DeliveryStatus::Scheduled,
-                DeliveryStatus::Queued,
-                DeliveryStatus::Sending,
-                DeliveryStatus::Accepted,
-            ], true);
-    }
-
-    private function isAmbiguous(mixed $status): bool
-    {
-        return $status instanceof DeliveryStatus
-            && in_array($status, [DeliveryStatus::Sending, DeliveryStatus::Accepted], true);
     }
 
     private function inQuietHours(

@@ -14,8 +14,6 @@ use DateTimeImmutable;
  */
 interface GratitudeDigest
 {
-    public const string TRIGGER = 'share_gratitude_digest';
-
     /**
      * @param  list<string>  $categories
      */

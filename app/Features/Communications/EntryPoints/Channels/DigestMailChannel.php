@@ -6,6 +6,7 @@ namespace App\Features\Communications\EntryPoints\Channels;
 
 use AIArmada\Communications\Models\CommunicationDelivery;
 use App\Features\Communications\Api\NotificationTransport;
+use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Communications\Support\Delivery\GuardedDeliverySend;
 use Illuminate\Contracts\Mail\Factory as MailFactory;
 use Illuminate\Mail\Markdown;
@@ -68,7 +69,9 @@ class DigestMailChannel
             return null;
         }
 
-        $operation = $this->operationSnapshot($notification);
+        $operation = $notification instanceof ManagedNotification
+            ? $notification->operationSnapshot()
+            : [];
 
         $claimed = DB::transaction(function () use ($deliveryId, $communicationId, $operation): ?array {
             $delivery = GuardedDeliverySend::claimExternal($deliveryId, $communicationId);
@@ -130,29 +133,6 @@ class DigestMailChannel
         }
 
         return $response;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function operationSnapshot(Notification $notification): array
-    {
-        if (! property_exists($notification, 'summary') || ! is_array($notification->summary)) {
-            return [];
-        }
-
-        $summary = $notification->summary;
-
-        return [
-            'plan_key' => isset($summary['plan_key']) && is_string($summary['plan_key']) ? $summary['plan_key'] : null,
-            'slot_id' => isset($summary['slot_id']) && is_string($summary['slot_id']) ? $summary['slot_id'] : null,
-            'payload_hash' => hash('sha256', json_encode([
-                'text' => $summary['text'] ?? '',
-                'counts' => $summary['counts'] ?? [],
-                'sections' => $summary['sections'] ?? [],
-                'window' => $summary['window'] ?? [],
-            ], JSON_THROW_ON_ERROR)),
-        ];
     }
 
     /**

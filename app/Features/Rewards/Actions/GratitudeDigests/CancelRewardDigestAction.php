@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Rewards\Actions\GratitudeDigests;
 
-use AIArmada\Communications\Actions\CancelCommunicationAction;
-use AIArmada\Communications\Enums\DeliveryStatus;
-use AIArmada\Communications\Models\Communication;
-use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Rewards\Support\RewardLedgerEntries;
+use App\Features\Communications\Api\ManagedNotificationDelivery;
 use App\Features\Rewards\Support\RewardsModel;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -37,6 +34,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
 final readonly class CancelRewardDigestAction
 {
     use AsAction;
+
+    public function __construct(private ManagedNotificationDelivery $communications) {}
 
     public function handle(
         Model|string $slot,
@@ -167,42 +166,11 @@ final readonly class CancelRewardDigestAction
     private function cancelSendingTransport(Model $slot): void
     {
         $communicationId = $slot->getAttribute('communication_id');
-        $communication = $communicationId === null
-            ? null
-            : Communication::query()->whereKey((string) $communicationId)->lockForUpdate()->first();
-
-        if (! $communication instanceof Communication) {
+        if (! is_string($communicationId) || $communicationId === '') {
             return;
         }
 
-        $deliveries = CommunicationDelivery::query()
-            ->where('communication_id', $communication->getKey())
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->get();
-
-        foreach ($deliveries as $delivery) {
-            if ($delivery->status instanceof DeliveryStatus && in_array($delivery->status, [
-                DeliveryStatus::Sent,
-                DeliveryStatus::Received,
-                DeliveryStatus::Delivered,
-                DeliveryStatus::Opened,
-                DeliveryStatus::Read,
-                DeliveryStatus::Clicked,
-                DeliveryStatus::Replied,
-            ], true)) {
-                throw new InvalidArgumentException('Digest already delivered on at least one channel; cancellation is closed.');
-            }
-
-            if ($delivery->status instanceof DeliveryStatus && in_array($delivery->status, [
-                DeliveryStatus::Sending,
-                DeliveryStatus::Accepted,
-            ], true)) {
-                throw new InvalidArgumentException('Digest delivery is in flight; reconcile first.');
-            }
-        }
-
-        app(CancelCommunicationAction::class)->handle((string) $communication->getKey(), 'digest-correction');
+        $this->communications->cancelBeforeSend($communicationId, 'digest-correction');
     }
 
     private function markCancelled(Model $slot, string $reason, CarbonImmutable $now): void

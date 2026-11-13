@@ -30,10 +30,11 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardAward;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationTransport;
+use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction;
-use App\Features\Rewards\Notifications\ShareGratitudeDigestNotification;
+use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -152,14 +153,15 @@ function digestDrain(RewardDigestSlot $slot): void
         $byChannel[(string) $delivery->channel] = (string) $delivery->getKey();
     }
 
-    $notification = (new ShareGratitudeDigestNotification([
+    $notification = new ManagedNotification(app(ShareGratitudeDigestMessages::class)->build([
         'text' => (string) ($payload['text'] ?? ''),
         'counts' => (array) ($payload['counts'] ?? []),
         'sections' => (array) ($payload['sections'] ?? []),
         'window' => (array) ($payload['window'] ?? []),
         'plan_key' => (string) $slot->plan_key,
         'slot_id' => (string) $slot->getKey(),
-    ]))->withCommunicationContext((string) $slot->communication_id, $byChannel);
+    ]));
+    $notification->withCommunicationContext((string) $slot->communication_id, $byChannel);
 
     DispatchManagedNotificationJob::dispatchSync(
         notifiable: $user,

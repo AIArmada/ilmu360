@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use AIArmada\Communications\Enums\DeliveryStatus;
+use AIArmada\Communications\Jobs\DispatchManagedNotificationJob;
+use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Communications\Models\NotificationInbox;
@@ -16,13 +18,22 @@ use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
+use App\Features\Communications\Api\NotificationTransport;
+use App\Features\Communications\Notifications\ManagedNotification;
+use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\ParallelTesting;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Mail\Transport\ArrayTransport;
 use PHPUnit\Framework\Assert;
+use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Process\Process;
+use Tests\Feature\Rewards\Host\DigestMailAcceptThenThrowTransport;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
@@ -36,8 +47,10 @@ function digestRaceReadyDir(string $case): string
         mkdir($dir, 0777, true);
     }
 
-    foreach (glob($dir.'/ready-*') ?: [] as $stale) {
-        unlink($stale);
+    foreach (glob($dir.'/*') ?: [] as $stale) {
+        if (is_file($stale)) {
+            unlink($stale);
+        }
     }
 
     return $dir;
@@ -91,6 +104,88 @@ function runDigestRacePair(string $database, string|array $modes, array $payload
     };
 
     return [$decode($first), $decode($second)];
+}
+
+/**
+ * @param  array<string, mixed>  $payload
+ * @return array{0: array<string, mixed>, 1: array<string, mixed>, 2: string}
+ */
+function runDigestControlledPair(
+    string $database,
+    string $firstMode,
+    string $secondMode,
+    array $payload,
+    string $case,
+    string $firstMarker,
+    string $secondMarker,
+    string $firstRelease,
+): array {
+    $readyDir = digestRaceReadyDir($case);
+    $payload['controlled'] = true;
+    file_put_contents($readyDir.'/payload.json', json_encode($payload, JSON_THROW_ON_ERROR));
+
+    $worker = __DIR__.'/RewardDigestRaceWorker.php';
+    $make = static fn (int $slot, string $mode): Process => new Process([
+        PHP_BINARY,
+        $worker,
+        '--database='.$database,
+        '--mode='.$mode,
+        '--ready-dir='.$readyDir,
+        '--slot='.$slot,
+    ], timeout: 120);
+    $first = $make(0, $firstMode);
+    $second = $make(1, $secondMode);
+
+    $waitFor = static function (string $marker) use ($readyDir): void {
+        $path = $readyDir.'/'.$marker;
+        $deadline = microtime(true) + 30.0;
+
+        while (! is_file($path) && microtime(true) < $deadline) {
+            usleep(20000);
+        }
+
+        Assert::assertTrue(is_file($path), 'Timed out waiting for controlled race marker ['.$marker.'].');
+    };
+
+    try {
+        $first->start();
+        $waitFor($firstMarker);
+        $second->start();
+        $waitFor($secondMarker);
+        file_put_contents($readyDir.'/'.$firstRelease, $firstRelease);
+        $first->wait();
+        $second->wait();
+
+        $decode = static function (Process $process): array {
+            $exit = $process->getExitCode();
+            $output = trim($process->getOutput());
+
+            if ($output === '') {
+                return ['ok' => false, 'exit' => $exit, 'error' => substr(trim($process->getErrorOutput()), 0, 300)];
+            }
+
+            /** @var array<string, mixed>|null $decoded */
+            $decoded = json_decode($output, true);
+
+            if (! is_array($decoded)) {
+                return ['ok' => false, 'exit' => $exit, 'error' => 'Worker output was not JSON.'];
+            }
+
+            $decoded['exit'] = $exit;
+
+            return $decoded;
+        };
+
+        return [$decode($first), $decode($second), $readyDir];
+    } finally {
+        if ($first->isRunning()) {
+            $first->stop(1);
+        }
+
+        if ($second->isRunning()) {
+            $second->stop(1);
+        }
+    }
 }
 
 /**
@@ -166,6 +261,42 @@ function digestRaceDueSlot(string $prefix, string $source): array
     );
 
     return [$user->refresh(), $slot->refresh()];
+}
+
+function digestRaceQueueCommunication(RewardDigestSlot $slot): RewardDigestSlot
+{
+    Queue::fake([DispatchManagedNotificationJob::class]);
+
+    $outcome = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T08:00:00Z'));
+    Assert::assertSame(1, $outcome['dispatched']);
+
+    return $slot->refresh();
+}
+
+/** @return array<string, mixed> */
+function digestRaceMessageSummary(RewardDigestSlot $slot): array
+{
+    $payload = (array) ($slot->payload ?? []);
+
+    return [
+        'text' => (string) ($payload['text'] ?? ''),
+        'counts' => (array) ($payload['counts'] ?? []),
+        'sections' => (array) ($payload['sections'] ?? []),
+        'window' => (array) ($payload['window'] ?? []),
+        'plan_key' => (string) $slot->plan_key,
+        'slot_id' => (string) $slot->getKey(),
+    ];
+}
+
+function digestRaceFileCount(string $path): int
+{
+    if (! is_file($path)) {
+        return 0;
+    }
+
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+    return is_array($lines) ? count($lines) : 0;
 }
 
 /**
@@ -373,6 +504,323 @@ it("keeps a raced cancel and dispatch coherent on {$digestLabel}", function (): 
 
         digestRaceAssertDispatchCancelCoherent($memberId);
     } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});
+
+it("lets a sender finish before cancellation acquires the sorted delivery set on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dgsndcxl');
+
+    try {
+        [$user, $slot] = digestRaceDueSlot('dg-snd-cxl', 'dg-snd-cxl-source-1');
+        $providerMarker = 'sender-cancel-provider-sent';
+
+        [$sender, $cancel, $readyDir] = runDigestControlledPair(
+            $database,
+            'dispatch',
+            'cancel_slot',
+            [
+                'slots' => [
+                    ['now' => '2026-06-23T08:00:00Z', 'in_memory_mail' => true, 'provider_marker' => $providerMarker],
+                    [
+                        'slot_id' => (string) $slot->getKey(),
+                        'reason' => 'operator-cancel-race',
+                        'force' => true,
+                        'decided_at' => '2026-06-23T08:01:00Z',
+                    ],
+                ],
+                'worker_barriers' => [
+                    0 => [
+                        'pause_after_delivery_lock' => [
+                            'query_kind' => 'single',
+                            'occurrence' => 3,
+                            'marker' => 'sender-delivery-locked',
+                            'release' => 'release-sender',
+                        ],
+                    ],
+                    1 => [
+                        'before_delivery_lock' => [
+                            'query_kind' => 'aggregate',
+                            'marker' => 'cancel-delivery-lock-started',
+                        ],
+                    ],
+                ],
+            ],
+            'dgsndcxl',
+            'sender-delivery-locked',
+            'cancel-delivery-lock-started',
+            'release-sender',
+        );
+
+        digestRaceWorkersExited($sender, $cancel);
+
+        $slot->refresh();
+        $statuses = CommunicationDelivery::query()
+            ->where('communication_id', (string) $slot->communication_id)
+            ->pluck('status', 'channel')
+            ->all();
+
+        expect($cancel['outcome'] ?? null)->toBe('refused')
+            ->and($cancel['message'] ?? '')->toContain('already delivered')
+            ->and($slot->status)->toBe(RewardDigestSlot::STATUS_SENT)
+            ->and($statuses[NotificationTransport::DigestMail->value])->toBe(DeliveryStatus::Sent)
+            ->and($statuses[NotificationTransport::Inbox->value])->toBe(DeliveryStatus::Sent)
+            ->and(NotificationInbox::query()->where('recipient_id', (string) $user->getKey())->count())->toBe(1)
+            ->and(digestRaceFileCount($readyDir.'/'.$providerMarker))->toBe(1);
+    } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});
+
+it("repairs a late send status flip after cancellation commits on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dglatecxl');
+
+    try {
+        [$user, $slot] = digestRaceDueSlot('dg-late-cxl', 'dg-late-cxl-source-1');
+        $slot = digestRaceQueueCommunication($slot);
+        $communicationId = (string) $slot->communication_id;
+        $mailDeliveryId = (string) CommunicationDelivery::query()
+            ->where('communication_id', $communicationId)
+            ->where('channel', NotificationTransport::DigestMail->value)
+            ->value('id');
+        $providerMarker = 'late-cancel-provider-sent';
+
+        [$cancel, $send, $readyDir] = runDigestControlledPair(
+            $database,
+            'cancel_slot',
+            'send_existing',
+            [
+                'slots' => [
+                    [
+                        'slot_id' => (string) $slot->getKey(),
+                        'reason' => 'content-correction-race',
+                        'force' => false,
+                        'decided_at' => '2026-06-23T08:01:00Z',
+                    ],
+                    [
+                        'user_id' => (string) $user->getKey(),
+                        'slot_id' => (string) $slot->getKey(),
+                        'communication_id' => $communicationId,
+                        'summary' => digestRaceMessageSummary($slot),
+                        'provider_marker' => $providerMarker,
+                    ],
+                ],
+                'worker_barriers' => [
+                    0 => [
+                        'pause_after_cancel_update' => [
+                            'marker' => 'cancel-deliveries-updated',
+                            'release' => 'release-cancel',
+                        ],
+                    ],
+                    1 => [
+                        'before_delivery_update' => [
+                            'delivery_id' => $mailDeliveryId,
+                            'marker' => 'late-send-pre-send-update-started',
+                        ],
+                    ],
+                ],
+            ],
+            'dglatecxl',
+            'cancel-deliveries-updated',
+            'late-send-pre-send-update-started',
+            'release-cancel',
+        );
+
+        digestRaceWorkersExited($cancel, $send);
+
+        $slot->refresh();
+        $communication = Communication::query()->whereKey($communicationId)->firstOrFail();
+        $deliveries = CommunicationDelivery::query()->where('communication_id', $communicationId)->get();
+
+        expect($cancel['outcome'] ?? null)->toBe('cancelled-or-recalculated')
+            ->and($slot->status)->toBe(RewardDigestSlot::STATUS_PLANNED)
+            ->and($communication->cancelled_at)->not->toBeNull()
+            ->and($deliveries)->toHaveCount(2)
+            ->and($deliveries->every(fn (CommunicationDelivery $delivery): bool => $delivery->status === DeliveryStatus::Cancelled && $delivery->cancelled_at !== null))->toBeTrue()
+            ->and(CommunicationAttempt::query()->whereIn('delivery_id', $deliveries->pluck('id'))->count())->toBe(0)
+            ->and(NotificationInbox::query()->where('recipient_id', (string) $user->getKey())->count())->toBe(0)
+            ->and(digestRaceFileCount($readyDir.'/'.$providerMarker))->toBe(0);
+    } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});
+
+it("reconciles after a sender commits its started attempt and delivery result on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dgrcnsnd');
+
+    try {
+        [$user, $slot] = digestRaceDueSlot('dg-rcn-snd', 'dg-rcn-snd-source-1');
+        $providerMarker = 'sender-reconcile-provider-sent';
+
+        [$sender, $reconcile, $readyDir] = runDigestControlledPair(
+            $database,
+            'dispatch',
+            'reconcile',
+            [
+                'slots' => [
+                    ['now' => '2026-06-23T08:00:00Z', 'in_memory_mail' => true, 'provider_marker' => $providerMarker],
+                    ['now' => '2026-06-23T09:00:00Z'],
+                ],
+                'worker_barriers' => [
+                    0 => [
+                        'pause_after_delivery_lock' => [
+                            'query_kind' => 'single',
+                            'occurrence' => 3,
+                            'marker' => 'sender-result-delivery-locked',
+                            'release' => 'release-sender',
+                        ],
+                    ],
+                    1 => [
+                        'before_delivery_lock' => [
+                            'query_kind' => 'aggregate',
+                            'marker' => 'reconcile-delivery-lock-started',
+                        ],
+                    ],
+                ],
+            ],
+            'dgrcnsnd',
+            'sender-result-delivery-locked',
+            'reconcile-delivery-lock-started',
+            'release-sender',
+        );
+
+        digestRaceWorkersExited($sender, $reconcile);
+
+        $slot->refresh();
+        $communicationId = (string) $slot->communication_id;
+        $mailDeliveryId = (string) CommunicationDelivery::query()
+            ->where('communication_id', $communicationId)
+            ->where('channel', NotificationTransport::DigestMail->value)
+            ->value('id');
+        $statuses = CommunicationDelivery::query()
+            ->where('communication_id', $communicationId)
+            ->pluck('status', 'channel')
+            ->all();
+
+        expect($slot->status)->toBe(RewardDigestSlot::STATUS_SENT)
+            ->and($statuses[NotificationTransport::DigestMail->value])->toBe(DeliveryStatus::Sent)
+            ->and($statuses[NotificationTransport::Inbox->value])->toBe(DeliveryStatus::Sent)
+            ->and(CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->whereNotNull('responded_at')->count())->toBe(1)
+            ->and(NotificationInbox::query()->where('recipient_id', (string) $user->getKey())->count())->toBe(1)
+            ->and(digestRaceFileCount($readyDir.'/'.$providerMarker))->toBe(1);
+    } finally {
+        RewardFinanceWorkerDb::tearDown($database, $previous);
+    }
+});
+
+it("settles an operator resolution before reconciliation without another send on {$digestLabel}", function (): void {
+    [$database, $previous] = RewardFinanceWorkerDb::setUp('dgrsnrcn');
+    $observer = sys_get_temp_dir().'/rewards-digest-race-ambiguity-'.getmypid().'.log';
+
+    if (is_file($observer)) {
+        unlink($observer);
+    }
+
+    try {
+        [$user, $slot] = digestRaceDueSlot('dg-rsn-rcn', 'dg-rsn-rcn-source-1');
+        $slot = digestRaceQueueCommunication($slot);
+        $communicationId = (string) $slot->communication_id;
+        $deliveries = CommunicationDelivery::query()
+            ->where('communication_id', $communicationId)
+            ->orderBy('id')
+            ->get();
+        $deliveryIdsByChannel = [];
+
+        foreach ($deliveries as $delivery) {
+            $deliveryIdsByChannel[(string) $delivery->channel] = (string) $delivery->getKey();
+        }
+
+        $mailDeliveryId = $deliveryIdsByChannel[NotificationTransport::DigestMail->value];
+        $staffId = RewardLedgerFixtures::staffId();
+        $mailer = Mail::mailer();
+        $previousTransport = $mailer->getSymfonyTransport();
+        $innerTransport = $previousTransport instanceof ArrayTransport ? $previousTransport : new ArrayTransport;
+        $mailer->setSymfonyTransport(new DigestMailAcceptThenThrowTransport($observer, $innerTransport));
+
+        try {
+            $notification = new ManagedNotification(
+                app(ShareGratitudeDigestMessages::class)->build(digestRaceMessageSummary($slot)),
+            );
+            $notification->withCommunicationContext($communicationId, $deliveryIdsByChannel);
+
+            try {
+                Notification::sendNow($user->refresh(), $notification, [NotificationTransport::DigestMail->value]);
+                $ambiguous = false;
+            } catch (TransportException $exception) {
+                $ambiguous = $exception->getMessage() === 'simulated transport timeout after provider acceptance';
+            }
+        } finally {
+            $mailer->setSymfonyTransport($previousTransport);
+        }
+
+        Assert::assertTrue($ambiguous, 'The setup must leave a started, unresolved mail attempt.');
+        Assert::assertSame(1, digestRaceFileCount($observer));
+
+        $ambiguousDelivery = CommunicationDelivery::query()->whereKey($mailDeliveryId)->firstOrFail();
+        Assert::assertSame(DeliveryStatus::Sending, $ambiguousDelivery->status);
+        Assert::assertSame(1, CommunicationAttempt::query()
+            ->where('delivery_id', $mailDeliveryId)
+            ->whereNull('responded_at')
+            ->whereNull('failed_at')
+            ->count());
+
+        [$resolution, $reconcile, $readyDir] = runDigestControlledPair(
+            $database,
+            'resolve',
+            'reconcile',
+            [
+                'slots' => [
+                    [
+                        'delivery_id' => $mailDeliveryId,
+                        'decision' => 'sent',
+                        'actor_type' => 'user',
+                        'actor_id' => $staffId,
+                        'actor_role' => 'staff',
+                        'provider_message_id' => 'operator-observed-race-1',
+                    ],
+                    ['now' => '2026-06-23T09:00:00Z'],
+                ],
+                'worker_barriers' => [
+                    0 => [
+                        'pause_after_delivery_lock' => [
+                            'query_kind' => 'aggregate',
+                            'communication_id' => $communicationId,
+                            'marker' => 'operator-deliveries-locked',
+                            'release' => 'release-operator',
+                        ],
+                    ],
+                    1 => [
+                        'before_delivery_lock' => [
+                            'query_kind' => 'aggregate',
+                            'communication_id' => $communicationId,
+                            'marker' => 'reconcile-after-operator-started',
+                        ],
+                    ],
+                ],
+            ],
+            'dgrsnrcn',
+            'operator-deliveries-locked',
+            'reconcile-after-operator-started',
+            'release-operator',
+        );
+
+        digestRaceWorkersExited($resolution, $reconcile);
+
+        $attempt = CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->firstOrFail();
+        $audit = (array) ($attempt->metadata['digest_mail_resolution'] ?? []);
+
+        expect($resolution['status'] ?? null)->toBe(DeliveryStatus::Sent->value)
+            ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENT)
+            ->and($audit['decision'] ?? null)->toBe('sent')
+            ->and($audit['provider_message_id'] ?? null)->toBe('operator-observed-race-1')
+            ->and($audit['actor_id'] ?? null)->toBe($staffId)
+            ->and(NotificationInbox::query()->where('recipient_id', (string) $user->getKey())->count())->toBe(0)
+            ->and(digestRaceFileCount($observer))->toBe(1);
+    } finally {
+        if (is_file($observer)) {
+            unlink($observer);
+        }
+
         RewardFinanceWorkerDb::tearDown($database, $previous);
     }
 });

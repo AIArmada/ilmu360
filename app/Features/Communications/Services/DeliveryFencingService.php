@@ -50,41 +50,52 @@ final class DeliveryFencingService implements DeliveryFencing
         array $deliveryIdsByChannel,
         string $failureMessage,
     ): void {
-        foreach ($deliveryIdsByChannel as $deliveryId) {
-            if ($deliveryId === '') {
-                continue;
+        $deliveryIds = array_values(array_unique(array_filter(
+            $deliveryIdsByChannel,
+            static fn (string $deliveryId): bool => $deliveryId !== '',
+        )));
+
+        if ($deliveryIds === []) {
+            return;
+        }
+
+        sort($deliveryIds, SORT_STRING);
+
+        DB::transaction(function () use ($communicationId, $deliveryIds, $failureMessage): void {
+            $deliveries = CommunicationDelivery::query()
+                ->where('communication_id', $communicationId)
+                ->whereIn('id', $deliveryIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy(static fn (CommunicationDelivery $delivery): string => (string) $delivery->getKey());
+            $communication = Communication::query()
+                ->whereKey($communicationId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $communication instanceof Communication || $communication->cancelled_at !== null) {
+                return;
             }
 
-            DB::transaction(function () use ($communicationId, $deliveryId, $failureMessage): void {
-                $delivery = CommunicationDelivery::query()
-                    ->whereKey($deliveryId)
-                    ->lockForUpdate()
-                    ->first();
-                $communication = Communication::query()
-                    ->whereKey($communicationId)
-                    ->lockForUpdate()
-                    ->first();
+            foreach ($deliveryIds as $deliveryId) {
+                $delivery = $deliveries->get($deliveryId);
 
-                if (! $delivery instanceof CommunicationDelivery
-                    || ! $communication instanceof Communication
-                    || (string) $delivery->communication_id !== $communicationId
-                    || $communication->cancelled_at !== null
-                    || $delivery->cancelled_at !== null
-                ) {
-                    return;
+                if (! $delivery instanceof CommunicationDelivery || $delivery->cancelled_at !== null) {
+                    continue;
                 }
 
                 if ($this->hasTerminalFailureEvidence($delivery)) {
-                    return;
+                    continue;
                 }
 
                 if (GuardedDeliverySend::isAmbiguousExternal($deliveryId)) {
-                    return;
+                    continue;
                 }
 
                 $this->recorder->markFailed($communicationId, $deliveryId, $failureMessage);
-            }, attempts: 3);
-        }
+            }
+        }, attempts: 3);
     }
 
     private function hasTerminalFailureEvidence(CommunicationDelivery $delivery): bool

@@ -1,6 +1,6 @@
 # Communications ownership map
 
-> **Status: C1–C4 implemented; C5–C6 remain.** This map records the current app/package boundary and implementation sequence. C1 removed the fake batch-completion stub and scheduled the package dispatcher. C2a moved app notification policy and preference writes into Communications. C2b moved push destination operations and account lifecycle handling. C3 moved inbox queries, snapshots, and read actions. C4 moved channel adapters, message rendering, delivery fencing, and transport registration into Communications; package tables remain unclaimed.
+> **Status: C1–C5 implemented; C6 remains.** This map records the current app/package boundary and implementation sequence. C1 removed the fake batch-completion stub and scheduled the package dispatcher. C2a moved app notification policy and preference writes into Communications. C2b moved push destination operations and account lifecycle handling. C3 moved inbox queries, snapshots, and read actions. C4 moved channel adapters, message rendering, delivery fencing, and transport registration into Communications. C5 moved Rewards transport operations behind the Communications API; package tables remain unclaimed.
 
 ## 1. Ownership boundary
 
@@ -28,7 +28,7 @@ The package migrations and models define these schemas. App-level direct model/q
 | Account `communication_preferences` | Communications `EnsureNotificationPreferencesAction`, `SaveNotificationPreferencesAction`, `SyncProfileNotificationSettingsAction`, `SyncSystemEmailDestinationAction`, and `UpdateNotificationLocaleAction` create/update base and family/trigger rules; `CommunicationsAccountLifecycleContributor` still snapshots/deletes/restores the base row | Communications policy writer. Preserve package schema and current account lifecycle behavior. Scoped family/trigger rows are intentionally retained on account detach and are not part of the lifecycle snapshot. |
 | `notification_destinations` | Communications `SyncSystemEmailDestinationAction` syncs the verified account email; `PushDestinationManagement` handles push registration, update, removal, delivery resolution, and API deletion; `CommunicationsAccountLifecycleContributor` snapshots/deletes/restores destinations | Communications destination writer. Preserve encrypted-address PHP matching and account scoping. |
 | `notification_inboxes` | `InboxChannel` delegates writes to package `DispatchInboxNotificationAction`; `NotificationInboxManagementService` returns immutable account-scoped snapshots and delegates reads to feature Actions backed by package `NotificationInboxService`; `CommunicationsAccountLifecycleContributor` snapshots/deletes/restores inbox rows | Communications inbox writer. Preserve signals and first-transition semantics. |
-| `communications` / `communication_deliveries` / `communication_attempts` | Communications channel adapters use the package `CommunicationManager`, recorder actions, and models. `GuardedDeliverySend` locks delivery/communication rows and creates/completes attempts through package actions. `ShareGratitudeDigestNotification::failed()` calls the scalar `DeliveryFencing` API, which locks the owned communication/delivery, checks cancellation tombstones, terminal timestamps, and ambiguity before recording failure. Rewards digest plan/dispatch/cancel actions and `ResolveDigestMailAmbiguityAction` still read or update package communication/delivery/attempt rows directly. | Package remains canonical. C5 moves Rewards orchestration behind Communications commands/snapshots while retaining reward slot coordination in Rewards; no direct cross-feature package-model reads or writes remain after that cutover. |
+| `communications` / `communication_deliveries` / `communication_attempts` | Communications channel adapters use the package `CommunicationManager`, recorder actions, and models. `GuardedDeliverySend` locks delivery/communication rows and creates/completes attempts through package actions. `DeliveryFencingService` handles failed and ambiguous external outcomes. Rewards now calls `ManagedNotificationDelivery` and consumes immutable snapshots; package model access remains inside Communications. | Package remains canonical and unclaimed by app features. Rewards owns only `reward_digest_slots`; Communications owns package aggregate creation/adoption, delivery inspection/cancellation, and ambiguity settlement. |
 | `communication_batches` | The retired `SendDigestNotificationsCommand` selected due rows and set `started_at`/`completed_at` without processing related communications or deliveries. No app caller of `CreateCommunicationBatchAction` or app batch producer was found. Vendor Filament exposes batch list/view pages. | C1 removed the stub. Keep the package table and admin resource canonical. Do not represent a completed batch until an actual batch workflow exists. |
 
 The former `AccountCommunications` root adapter was deleted after its callers moved to the Communications API. No builder or package model is exposed from `Features/Communications/Api`.
@@ -54,7 +54,7 @@ App policy now lives in `Features\Communications\Api` values/catalog, `Notificat
 
 App package-contract overrides live in `Features\Communications\Support\Integration` and include `AppRecipientSnapshotResolver`, `AppConsentResolver`, `AppPreferenceResolver`, `AppQuietHoursResolver`, `ProbeSafeDestinationResolver`, and `ListSafePayloadRedactor`. Suppression and rate limiting retain the package's `PermissiveEligibilityResolver` defaults; there is no app suppression adapter. Delivery integrations include API `EnumMapper`, `GuardedDeliverySend`, entrypoint channels `InboxChannel` / `DigestMailChannel` / `PushChannel`, `NotificationMessageRenderer`, and `DeliveryFencingService`. `Features/Communications/FeatureServiceProvider` binds these contracts and registers the `communications.inbox`, `communications.digest-mail`, and `communications.push` Laravel notification drivers. Keep one binding, one driver registration, and one package event-listener registration.
 
-`DigestPolicy`/`DigestPolicySnapshot` remain scalar Shared seams used by Rewards. Rewards builds `ShareGratitudeDigestNotification` through its feature-local `ShareGratitudeDigestMessages` service; the former Shared factory contract has been removed. `AccountNotificationSettings` was removed in C2b after Identity moved directly to the Communications API.
+Rewards resolves cadence and channels through `AccountNotificationPreferences`, builds an immutable `ManagedNotificationMessage`, and dispatches through `ManagedNotificationDelivery`. The Rewards-specific notification, ambiguity action/API/DTO, and Shared digest policy/snapshot have been removed. `AccountNotificationSettings` was removed in C2b after Identity moved directly to the Communications API.
 
 ## 5. Producers and responsibility
 
@@ -67,7 +67,7 @@ Communications owns delivery policy, destination resolution, channel integration
 | Feedback / Reports | Feature-owned notification classes and actions |
 | Identity / Auth | Welcome, email verification, and password reset notifications |
 | Membership | Member invitation notification |
-| Rewards | Gratitude digest planning and `ShareGratitudeDigestNotification`; the `reward_digest_slots` lifecycle remains Rewards-owned |
+| Rewards | Gratitude digest planning and slot lifecycle; notification aggregate and delivery operations cross `ManagedNotificationDelivery` |
 | Discovery / Saved Searches | Saved-search match facts are read through `SavedSearchReader`; `EventNotificationService` currently renders and dispatches them from root. Settle its feature owner with Discovery/Saved Searches when moving this producer. |
 
 Some app producers call `CommunicationManager::notify`; others call Laravel `Notification::send` directly and rely on package listeners/native capture. Preserve the exact channel selection, queueing, locale rendering, deduplication, and transaction behavior when converting those producers. Feature notification classes stay with the feature that owns their source facts.
@@ -92,7 +92,7 @@ Read marking records `notification.read` only on an unread-to-read transition an
 
 ## 7. Rewards coupling and delivery invariants
 
-Rewards' `DispatchDueRewardDigestsAction` and `CancelRewardDigestAction` currently coordinate a Rewards-owned slot with package Communication/Delivery rows. `ResolveDigestMailAmbiguityAction` now lives in Rewards and the root command calls its scalar API. C5 moves the remaining package reads and mutations behind Communications while preserving:
+Rewards' `DispatchDueRewardDigestsAction` and `CancelRewardDigestAction` coordinate the Rewards-owned slot through `ManagedNotificationDelivery`. The root ambiguity command verifies the operator and calls the Communications API. C5 preserves:
 
 - the existing row-lock order, transaction boundaries, after-commit behavior, and deadlock/retry behavior;
 - delivery cancellation vs send races and the mail external-I/O boundary;
@@ -100,7 +100,7 @@ Rewards' `DispatchDueRewardDigestsAction` and `CancelRewardDigestAction` current
 - reconciliation and payload-fingerprint rules, slot status transitions, and the command's evidence/role checks;
 - Rewards' ownership of `reward_digest_slots` and its existing public feature API.
 
-Current known hazards: the mail send path locks delivery then communication, while reward cancellation/reconciliation can lock communication then deliveries; a race can deadlock. The scheduled generic batch stub can falsely complete a batch. Laravel's `withoutOverlapping()` uses a default 1,440-minute mutex; a crashed scheduler run can suppress later runs for up to a day. Current settings do not expose an urgent-override or fallback-channel control; if either is introduced later, its runtime behavior must be implemented before it is presented as a user setting. These are explicit follow-up work items, not reasons to silently change policy during the ownership move.
+Current known hazards: Laravel's `withoutOverlapping()` uses a default 1,440-minute mutex; a crashed scheduler run can suppress later runs for up to a day. Current settings do not expose an urgent-override or fallback-channel control; if either is introduced later, its runtime behavior must be implemented before it is presented as a user setting. C1 removed the batch-completion stub, and C5 aligned aggregate operations with the sender's delivery-first lock order; both are covered by focused tests.
 
 ## 8. Planned slices
 
@@ -126,9 +126,13 @@ Commit `2eb54050` moved inbox reads behind `NotificationInboxManagement`, which 
 
 Commit `a38d8975` moved custom package-contract bindings, channel adapters, notification rendering, and delivery fencing into Communications while keeping notification intent with Rewards and other source features. Registered the current scalar transport IDs (`communications.inbox`, `communications.digest-mail`, `communications.push`), removed old channel class paths and the Rewards-only Shared message factory, and routed Rewards ambiguity resolution through scalar APIs. Failure fencing now checks communication/delivery cancellation tombstones, terminal timestamps, and ambiguous attempts; both Sent and Failed external resolutions reject missing or incomplete frozen fences. The map and feature-provider docs now describe current ownership. Focused C4 Pest passed 82 tests / 740 assertions; after strict-fence follow-up, Delivery and ambiguity-resolution Pest passed 15 tests / 425 assertions. Architecture scan passed with 0 violations across 18 features; `git diff --check` passed. Muse Ember remained unavailable; self-review and independent spec/standards reviews found no remaining scoped findings.
 
-### C5 — Rewards integration boundary
+### C5 — Rewards integration boundary (complete)
 
-Replace Rewards' direct package Communication/Delivery/Attempt model mutation with explicit scalar Communications commands/snapshots. Keep digest slot operations in Rewards and preserve transaction/lock/retry/ambiguity semantics. Resolve the lock-order hazard with race evidence before removing old writers.
+Moved package aggregate creation/adoption, delivery inspection/cancellation, and ambiguity settlement behind the immutable `ManagedNotificationDelivery` API. Rewards retains digest planning, slot state, content facts, and policy decisions; it has no direct Communications `Communication`, `CommunicationDelivery`, or `CommunicationAttempt` model imports. Removed the Rewards-specific notification, ambiguity action/API/DTO, and Shared digest policy/snapshot. No schema change, compatibility path, legacy API, or backfill was added.
+
+The lock order is Rewards slot → deliveries sorted by ID → communication → attempts; channel sends keep delivery → communication → attempt. The Rewards slot transaction still encloses the API call and slot update, queued work remains after-commit, and failure recording retains its three deadlock retries at the aggregate transaction boundary.
+
+Added deterministic isolated PostgreSQL barriers for sender-vs-cancel, late-send-after-cancel, sender-vs-reconcile, and operator-resolution-vs-reconcile. Focused Pest passed 49 tests / 995 assertions, including the race suite; the architecture scanner reported 0 violations across 18 features and `git diff --check` passed. Muse Ember remained unavailable; Codex self-review and two independent read-only reviews completed, with their retry-semantics and stale-documentation findings fixed and verified. No unavailable-model agreement is claimed.
 
 ### C6 — final transport/admin/MCP and boundary audit
 

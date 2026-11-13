@@ -4,39 +4,60 @@ declare(strict_types=1);
 
 namespace App\Features\Rewards\Services;
 
-use App\Features\Rewards\Notifications\ShareGratitudeDigestNotification;
-use App\Shared\Auth\AccountDirectory;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Notifications\Notification;
+use App\Features\Communications\Api\InAppNotificationPayload;
+use App\Features\Communications\Api\ManagedNotificationMessage;
+use App\Features\Communications\Api\NotificationFamily;
+use App\Features\Communications\Api\NotificationPriority;
+use App\Features\Communications\Api\NotificationTransport;
+use App\Features\Communications\Api\NotificationTrigger;
 
 /**
  * Rewards gratitude digest message builder.
  *
- * Builds the Rewards notification and resolves recipients through the account
- * directory. Consumers pass scalar identity and payload only.
+ * Builds immutable notification content and its frozen delivery identity.
  */
-final readonly class ShareGratitudeDigestMessages
+final class ShareGratitudeDigestMessages
 {
-    public function __construct(
-        private AccountDirectory $accounts,
-    ) {}
-
-    public function notifiable(string $recipientId): ?Authenticatable
+    /**
+     * @param  array<string, mixed>  $summary
+     */
+    public function build(array $summary): ManagedNotificationMessage
     {
-        return $this->accounts->resolveNotifiable($recipientId);
-    }
+        $text = (string) ($summary['text'] ?? '');
+        $counts = (array) ($summary['counts'] ?? []);
+        $sections = (array) ($summary['sections'] ?? []);
+        $window = (array) ($summary['window'] ?? []);
 
-    public function digest(array $summary): Notification
-    {
-        return new ShareGratitudeDigestNotification($summary);
-    }
-
-    public function redrive(
-        string $communicationId,
-        array $summary,
-        array $deliveryIdsByChannel,
-    ): Notification {
-        return (new ShareGratitudeDigestNotification($summary))
-            ->withCommunicationContext($communicationId, $deliveryIdsByChannel);
+        return new ManagedNotificationMessage(
+            channels: [NotificationTransport::DigestMail->value, NotificationTransport::Inbox->value],
+            inAppPayload: new InAppNotificationPayload(
+                pendingNotificationId: (string) ($summary['plan_key'] ?? ''),
+                family: NotificationFamily::Sharing,
+                trigger: NotificationTrigger::ShareGratitudeDigest,
+                priority: NotificationPriority::Low,
+                title: (string) __('notifications.share_gratitude_digest.title'),
+                body: (string) __('notifications.share_gratitude_digest.body', ['summary' => $text]),
+                entityType: 'reward_digest',
+                entityId: isset($summary['slot_id']) ? (string) $summary['slot_id'] : null,
+                meta: [
+                    'counts' => $counts,
+                    'sections' => $sections,
+                    'window' => $window,
+                ],
+            ),
+            mailSubjectTranslationKey: 'notifications.share_gratitude_digest.title',
+            mailBodyTranslationKey: 'notifications.share_gratitude_digest.body',
+            mailReplacements: ['summary' => $text],
+            operationSnapshot: [
+                'plan_key' => isset($summary['plan_key']) && is_string($summary['plan_key']) ? $summary['plan_key'] : null,
+                'slot_id' => isset($summary['slot_id']) && is_string($summary['slot_id']) ? $summary['slot_id'] : null,
+                'payload_hash' => hash('sha256', json_encode([
+                    'text' => $summary['text'] ?? '',
+                    'counts' => $summary['counts'] ?? [],
+                    'sections' => $summary['sections'] ?? [],
+                    'window' => $summary['window'] ?? [],
+                ], JSON_THROW_ON_ERROR)),
+            ],
+        );
     }
 }
