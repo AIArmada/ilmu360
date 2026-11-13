@@ -26,6 +26,8 @@ use App\Models\User;
 use App\Platform\FeatureCatalog;
 use App\Platform\FeatureModule;
 use App\Support\Api\Admin\AdminResourceMutationService;
+use App\Support\Rewards\RewardMemberPresenter;
+use App\Support\Rewards\RewardPayoutMethods;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Laravel\Sanctum\Sanctum;
@@ -108,6 +110,43 @@ it('documents the intentional root adapters and package-canonical holds', functi
         ->and($docblock)->toContain('Commands/schedules/transport')
         ->and($docblock)->toContain('package-canonical')
         ->and($docblock)->toContain('root adapters');
+});
+
+it('keeps member reward presentation read-only and the current readers uncached', function (): void {
+    $presenterPath = (string) (new ReflectionClass(RewardMemberPresenter::class))->getFileName();
+    $payoutMethodsPath = (string) (new ReflectionClass(RewardPayoutMethods::class))->getFileName();
+
+    expect($presenterPath)->toEndWith('/app/Support/Rewards/RewardMemberPresenter.php')
+        ->and($payoutMethodsPath)->toEndWith('/app/Support/Rewards/RewardPayoutMethods.php');
+
+    foreach ([$presenterPath, $payoutMethodsPath] as $path) {
+        $contents = (string) file_get_contents($path);
+
+        expect(preg_match('/\b(?:DB::|Cache::|Redis::)|\bcache\s*\(|::(?:create|insert|upsert|updateOrCreate|firstOrCreate|forceCreate|destroy|truncate)\s*\(|->(?:save|update|delete|upsert|insert|increment|decrement)\s*\(/', $contents))
+            ->toBe(0);
+    }
+
+    $memberReadSurfaces = [
+        ...glob(app_path('Http/Controllers/Api/Frontend/Reward*Controller.php')) ?: [],
+        app_path('Livewire/Pages/Dashboard/RewardMemberIndex.php'),
+        app_path('Livewire/Pages/Dashboard/UserDashboard.php'),
+    ];
+
+    foreach ($memberReadSurfaces as $path) {
+        expect(File::exists($path))->toBeTrue();
+
+        $contents = (string) file_get_contents($path);
+
+        expect(preg_match('/\b(?:Cache::|cache\s*\(|remember\s*\()/i', $contents))
+            ->toBe(0);
+    }
+
+    $manifest = json_decode(
+        (string) file_get_contents(base_path('app/Features/Rewards/feature.json')), true, 512, JSON_THROW_ON_ERROR,
+    );
+
+    expect(array_keys($manifest['owns']))->toBe(['table:reward_digest_slots'])
+        ->and(File::exists(app_path('Features/Rewards/Api/MemberRewards.php')))->toBeFalse();
 });
 
 it('records the enrollment signal on web first enrollment but not on API enrollment', function (): void {

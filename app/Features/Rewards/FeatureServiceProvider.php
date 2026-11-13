@@ -63,14 +63,18 @@ use App\Platform\FeatureModule;
  *   Events/Registration/SavedSearches/Engagement/ShareTracking/referrals
  *   owners expose read contracts.
  * - Member reads: `RewardMemberPresenter` and `RewardPayoutMethods` stay root
- *   catalog/presentation adapters over package models and config.
+ *   read-only presentation adapters over package models and config. API,
+ *   Livewire, dashboard-prompt and MCP readers remain independent and uncached;
+ *   there is no member reward read projection or cache until a real
+ *   cross-feature consumer and immutable snapshot/query-count evidence exist.
  * - Voucher fulfillment: `VouchersRewardBenefitCouponFulfillment` stays root
  *   and writes Vouchers package tables through Vouchers actions.
  * - Policies: the nine `App\Policies\Reward*Policy` classes stay root because
  *   they type-hint `App\Models\User`.
  * - Commands/schedules/transport: `SendDigestNotificationsCommand` (stub), the
- *   hourly schedule, API controllers, Livewire pages, observers/jobs and route
- *   registrations stay root until Rw4.
+ *   hourly schedule, API controllers, Livewire pages, observers/jobs, route
+ *   registrations, vendor Filament admin and read-only MCP stay root as
+ *   transport/composition adapters until their documented later slices.
  *
  * Lock order, H1 coupling (plan/cancel inside award transactions, including
  * reversal with no try/catch), H2 delivery/communication inversion, status
