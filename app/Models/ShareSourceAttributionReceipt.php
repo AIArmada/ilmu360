@@ -16,6 +16,9 @@ class ShareSourceAttributionReceipt extends Model
 
     use HasUuids;
 
+    #[\Override]
+    protected $table = 'share_source_attribution_receipts';
+
     public const string PROVENANCE_COOKIE = 'cookie';
 
     public const string PROVENANCE_CHECKOUT = 'checkout';

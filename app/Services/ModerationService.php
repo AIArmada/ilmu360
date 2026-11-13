@@ -14,7 +14,7 @@ use App\States\EventStatus\Draft;
 use App\States\EventStatus\NeedsChanges;
 use App\States\EventStatus\Pending;
 use App\States\EventStatus\Rejected;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

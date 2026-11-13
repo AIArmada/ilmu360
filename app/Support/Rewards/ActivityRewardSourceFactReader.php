@@ -10,7 +10,7 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;

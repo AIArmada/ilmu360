@@ -11,11 +11,11 @@ use AIArmada\Referrals\Enums\ReferralRewardStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\User;
 use App\Support\Rewards\ActivityRewardSourceFactReader;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 

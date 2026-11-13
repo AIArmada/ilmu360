@@ -24,6 +24,9 @@ class ShareSignalReaderSkip extends Model
     use HasUuids;
 
     #[\Override]
+    protected $table = 'share_signal_reader_skips';
+
+    #[\Override]
     protected $fillable = [
         'reader_name',
         'signal_event_id',

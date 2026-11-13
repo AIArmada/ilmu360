@@ -13,7 +13,7 @@ use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventKeyPerson;

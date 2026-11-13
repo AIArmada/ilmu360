@@ -26,7 +26,7 @@ use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Support\Share\ShareProfileScope;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 

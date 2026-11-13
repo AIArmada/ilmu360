@@ -17,7 +17,7 @@ use App\Models\Registration;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;

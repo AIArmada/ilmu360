@@ -23,6 +23,9 @@ class ShareCohortProjection extends Model
 {
     use HasUuids;
 
+    #[\Override]
+    protected $table = 'share_cohort_projections';
+
     public const string STAGE_OBSERVED = 'observed';
 
     public const string STAGE_PARTICIPATED = 'participated';

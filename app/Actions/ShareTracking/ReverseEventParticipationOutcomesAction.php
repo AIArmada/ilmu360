@@ -11,7 +11,7 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -49,7 +49,6 @@ final readonly class ReverseEventParticipationOutcomesAction
                 ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
                 $reason,
                 $actor,
-                request(),
             ));
     }
 
@@ -65,7 +64,6 @@ final readonly class ReverseEventParticipationOutcomesAction
                 ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
                 $reason,
                 $actor,
-                request(),
             ));
     }
 
@@ -81,7 +79,6 @@ final readonly class ReverseEventParticipationOutcomesAction
                 ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
                 $reason,
                 $actor,
-                request(),
             ));
     }
 
@@ -96,7 +93,6 @@ final readonly class ReverseEventParticipationOutcomesAction
                 ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                 $reason,
                 $actor,
-                request(),
             );
         });
     }

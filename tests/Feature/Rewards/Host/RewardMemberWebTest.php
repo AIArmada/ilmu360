@@ -17,7 +17,7 @@ use AIArmada\Rewards\Models\RewardPayee;
 use AIArmada\Rewards\Models\RewardProgram;
 use App\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;

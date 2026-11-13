@@ -38,7 +38,7 @@ use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Shared\Registration\CheckInNotifier;
 use App\Shared\ShareTracking\ParticipationAttribution;
 use App\Support\Registration\EventNotificationCheckInNotifier;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\ShareTracking\ShareTrackingParticipationAttribution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

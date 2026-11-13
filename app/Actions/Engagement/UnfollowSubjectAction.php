@@ -7,7 +7,7 @@ namespace App\Actions\Engagement;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;

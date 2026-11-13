@@ -26,7 +26,7 @@ use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;
 use App\Support\Communications\AccountCommunications;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;

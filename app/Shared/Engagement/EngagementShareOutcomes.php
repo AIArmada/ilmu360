@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Engagement;
 
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;

@@ -21,6 +21,9 @@ class ShareSignalReaderCursor extends Model
     use HasUuids;
 
     #[\Override]
+    protected $table = 'share_signal_reader_cursors';
+
+    #[\Override]
     protected $fillable = [
         'reader_name',
         'last_occurred_at',

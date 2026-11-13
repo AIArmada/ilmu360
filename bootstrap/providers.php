@@ -19,6 +19,7 @@ use App\Features\Prayer\FeatureServiceProvider;
 use App\Features\Registration\FeatureServiceProvider as RegistrationServiceProvider;
 use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
+use App\Features\ShareTracking\FeatureServiceProvider as ShareTrackingServiceProvider;
 use App\Providers\AdminRegistryServiceProvider;
 use App\Providers\ApiDocumentationServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -53,6 +54,7 @@ return [
     RegistrationServiceProvider::class,
     ReportsServiceProvider::class,
     SavedSearchesServiceProvider::class,
+    ShareTrackingServiceProvider::class,
     BlazeServiceProvider::class,
     FilamentPhoneInputServiceProvider::class,
     AhliPanelProvider::class,

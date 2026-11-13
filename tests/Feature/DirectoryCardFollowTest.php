@@ -6,7 +6,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Enums\FollowStatus;
 use AIArmada\Engagement\Models\Follow;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Livewire\Components\DirectoryCardFollow;
 use App\Models\Institution;
 use App\Models\Person;
@@ -18,7 +18,7 @@ use App\Services\ShareTrackingService;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Livewire\Livewire;
 use Tests\TestCase;
 

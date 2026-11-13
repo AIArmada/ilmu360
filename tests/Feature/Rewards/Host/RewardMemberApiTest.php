@@ -12,7 +12,7 @@ use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardProgram;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

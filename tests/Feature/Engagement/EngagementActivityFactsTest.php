@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;

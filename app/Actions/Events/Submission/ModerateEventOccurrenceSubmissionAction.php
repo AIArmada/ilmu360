@@ -19,7 +19,7 @@ use App\Models\EventSubmission;
 use App\Models\User;
 use App\Notifications\EventOccurrenceReviewedNotification;
 use App\Shared\Signals\SignalRecorder;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -105,7 +105,6 @@ final readonly class ModerateEventOccurrenceSubmissionAction
                 ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
                 'submission_rejected',
                 $moderator,
-                request(),
             );
 
             return [$submission, $event, $occurrence];

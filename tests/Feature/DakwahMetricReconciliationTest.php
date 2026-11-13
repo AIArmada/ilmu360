@@ -8,7 +8,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;

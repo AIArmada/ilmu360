@@ -8,7 +8,7 @@ use App\Contracts\ShareTrackingContract;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Carbon\CarbonInterface;

@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Api\Frontend;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Data\ShareTracking\ShareTrackingVisitData;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Enums\ShareSubjectType;
 use App\Platform\Api\ApiPagination;
 use App\Services\ShareTrackingAnalyticsService;

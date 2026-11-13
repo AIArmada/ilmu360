@@ -6,11 +6,11 @@ use AIArmada\Signals\Models\SignalIdentity;
 use AIArmada\Signals\Models\SignalSession;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Signals\SignalsServiceProvider;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 

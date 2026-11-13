@@ -6,14 +6,14 @@ namespace App\Actions\Events\Submission;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Contracts\ShareTrackingContract;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Features\Events\Api\EventSubmissions;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
 use App\Notifications\EventOccurrenceSubmittedNotification;
 use App\Services\ModerationService;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

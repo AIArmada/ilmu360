@@ -27,6 +27,9 @@ class ShareEffectReceipt extends Model
 
     use HasUuids;
 
+    #[\Override]
+    protected $table = 'share_effect_receipts';
+
     public const string STATUS_PENDING = 'pending';
 
     public const string STATUS_LEASED = 'leased';

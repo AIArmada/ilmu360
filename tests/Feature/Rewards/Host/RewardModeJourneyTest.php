@@ -40,7 +40,7 @@ use AIArmada\Rewards\Support\RewardPublishAssembler;
 use App\Models\EventCheckin;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

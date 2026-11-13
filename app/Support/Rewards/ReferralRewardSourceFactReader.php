@@ -15,11 +15,11 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 

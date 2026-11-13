@@ -16,7 +16,7 @@ use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
 use AIArmada\Rewards\Models\RewardAward;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

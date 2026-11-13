@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Laravel\Sanctum\Sanctum;
 
 it('lists only searches with the authenticated user owner type and identity', function (): void {

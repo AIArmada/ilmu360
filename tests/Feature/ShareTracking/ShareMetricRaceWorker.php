@@ -7,12 +7,12 @@ declare(strict_types=1);
 // autoloaders never execute it.
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Support\Share\CommittedShareSignalReader;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

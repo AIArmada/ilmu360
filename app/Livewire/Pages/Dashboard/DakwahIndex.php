@@ -4,7 +4,7 @@ namespace App\Livewire\Pages\Dashboard;
 
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Enums\ShareSubjectType;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;

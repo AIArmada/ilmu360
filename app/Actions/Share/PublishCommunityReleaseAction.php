@@ -10,7 +10,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Rewards\Actions\CreateRewardProgramAction;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\CommunityRelease;
 use App\Models\Registration;
 use App\Models\User;

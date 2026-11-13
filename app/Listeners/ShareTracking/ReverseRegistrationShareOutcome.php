@@ -11,7 +11,7 @@ use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\EventCheckin;
 use App\Models\User;
-use App\Support\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 
 /**
  * Reverse ticket commission and share outcomes when their source is cancelled,
@@ -46,7 +46,6 @@ final readonly class ReverseRegistrationShareOutcome
             ShareOutcomeBusinessKey::eventRegistration((string) $event->registration->getKey()),
             $reason,
             $actor instanceof User ? $actor : null,
-            request(),
         );
 
         EventCheckin::query()
@@ -57,7 +56,6 @@ final readonly class ReverseRegistrationShareOutcome
                 ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
                 $reason,
                 $actor instanceof User ? $actor : null,
-                request(),
             ));
     }
 }

@@ -6,7 +6,8 @@ namespace App\Support\ShareTracking;
 
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Contracts\ShareTrackingContract;
-use App\Enums\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\User;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use Carbon\CarbonInterface;
