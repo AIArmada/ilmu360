@@ -198,7 +198,6 @@ use App\Shared\Auth\ScopedMembershipRoleStore;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\Auth\UserMorphType;
-use App\Shared\Communications\AccountNotificationSettings;
 use App\Shared\Communications\DigestMessages;
 use App\Shared\Communications\DigestPolicy;
 use App\Shared\Contributions\ContributionEntityState;
@@ -239,12 +238,10 @@ use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\SignupAttributionContextResolverAdapter;
 use App\Support\Authz\EloquentScopedMembershipRoleStore;
 use App\Support\Authz\MemberPermissionGate;
-use App\Support\Communications\AccountNotificationSettingsAdapter;
 use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
-use App\Support\Communications\CommunicationsAccountLifecycleContributor;
 use App\Support\Communications\ListSafePayloadRedactor;
 use App\Support\Communications\NotificationCenterDigestPolicy;
 use App\Support\Communications\ProbeSafeDestinationResolver;
@@ -369,7 +366,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ParticipationAttribution::class, ShareTrackingParticipationAttribution::class);
         $this->app->bind(ActiveAttribution::class, ShareTrackingActiveAttribution::class);
         $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
-        $this->app->bind(AccountNotificationSettings::class, AccountNotificationSettingsAdapter::class);
         $this->app->bind(DigestPolicy::class, NotificationCenterDigestPolicy::class);
         $this->app->bind(DigestMessages::class, ShareGratitudeDigestMessages::class);
         $this->app->bind(PublishedProgramVersions::class, PublishedProgramVersionsAdapter::class);
@@ -397,7 +393,6 @@ class AppServiceProvider extends ServiceProvider
             ModerationAccountLifecycleContributor::class,
             EngagementAccountLifecycleContributor::class,
             AiAccountLifecycleContributor::class,
-            CommunicationsAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
 
         $this->app->bind(ReportEscalation::class, GlobalReportEscalation::class);

@@ -6,12 +6,12 @@ namespace App\Features\Identity\Services;
 
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;
 use App\Shared\Auth\AccountProfileUpdate;
 use App\Shared\Auth\AccountSettingsStore;
-use App\Shared\Communications\AccountNotificationSettings;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AccountSettingsService
@@ -20,7 +20,7 @@ final readonly class AccountSettingsService
         private AccountDirectory $accounts,
         private AccountSettingsStore $store,
         private AccountPreferences $preferences,
-        private AccountNotificationSettings $notificationSettings,
+        private AccountNotificationPreferences $notificationPreferences,
         private AccountAccess $access,
     ) {}
 
@@ -57,7 +57,7 @@ final readonly class AccountSettingsService
         $fresh = $this->accounts->profile($accountId)
             ?? throw new \RuntimeException('The updated account settings profile could not be loaded.');
 
-        $this->notificationSettings->syncProfileSettings($accountId);
+        $this->notificationPreferences->syncProfileSettings($accountId);
 
         if ($update->email !== $current->email) {
             $this->access->sendEmailVerification($accountId);

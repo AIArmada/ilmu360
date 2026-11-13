@@ -2,19 +2,17 @@
 
 namespace App\Notifications\Channels;
 
-use AIArmada\Communications\Models\CommunicationDestination;
-use App\Features\Communications\Api\NotificationChannel;
+use App\Features\Communications\Api\PushDestinationManagement;
+use App\Features\Communications\Api\PushDestinationSnapshot;
 use App\Notifications\Channels\Exceptions\ChannelDeliveryException;
-use App\Support\Communications\AccountCommunications;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
 class PushChannel
 {
     public function __construct(
-        protected AccountCommunications $communications,
+        protected PushDestinationManagement $destinations,
     ) {}
 
     /**
@@ -42,19 +40,14 @@ class PushChannel
         $destinations = method_exists($notifiable, 'routeNotificationForPush')
             ? $notifiable->routeNotificationForPush($notification)
             : ($notifiable instanceof Authenticatable
-                ? $this->communications->destinationsQuery((string) $notifiable->getAuthIdentifier())
-                    ->where('channel', NotificationChannel::Push->value)
-                    ->where('status', 'active')
-                    ->orderByDesc('is_primary')
-                    ->orderByDesc('last_seen_at')
-                    ->get()
-                : collect());
+                ? $this->destinations->forFallbackDelivery((string) $notifiable->getAuthIdentifier())
+                : []);
         $provider = (string) config('notification-center.push.provider', 'fcm');
         $projectId = config('notification-center.push.project_id');
         $credentials = config('notification-center.push.credentials');
         $results = [];
 
-        if (! $destinations instanceof Collection || $destinations->isEmpty()) {
+        if (! is_array($destinations) || $destinations === []) {
             throw new ChannelDeliveryException(
                 'Push delivery failed because no destinations are available.',
                 $provider,
@@ -73,7 +66,7 @@ class PushChannel
         ) {
             foreach ($destinations as $destination) {
                 $results[] = [
-                    'destination_id' => $destination instanceof CommunicationDestination ? $destination->id : null,
+                    'destination_id' => $destination instanceof PushDestinationSnapshot ? $destination->id : null,
                     'status' => 'failed',
                     'meta' => ['reason' => 'provider_not_configured'],
                 ];
@@ -90,11 +83,11 @@ class PushChannel
         $delivered = false;
 
         foreach ($destinations as $destination) {
-            if (! $destination instanceof CommunicationDestination) {
+            if (! $destination instanceof PushDestinationSnapshot) {
                 continue;
             }
 
-            $deviceToken = $destination->external_id;
+            $deviceToken = $destination->fcmToken;
 
             if (! is_string($deviceToken) || $deviceToken === '') {
                 $results[] = [

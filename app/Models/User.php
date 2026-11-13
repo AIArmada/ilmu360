@@ -6,13 +6,14 @@ use AIArmada\Authz\Facades\Authz;
 use AIArmada\Authz\Models\Permission;
 use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Engagement\Contracts\CanInteract;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Traits\CanBookmark;
 use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\Engagement\Traits\CanRespond;
 use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\PushDestinationManagement;
+use App\Features\Communications\Api\PushDestinationSnapshot;
 use App\Models\Concerns\HasUserRestoration;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
@@ -26,7 +27,6 @@ use App\Shared\Auth\ResourceOwner;
 use App\Shared\Feedback\FeedbackActor;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
-use App\Support\Communications\AccountCommunications;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -321,12 +321,10 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
         return $this->email;
     }
 
-    /**
-     * @return Collection<int, CommunicationDestination>
-     */
-    public function routeNotificationForPush(?Notification $notification = null): Collection
+    /** @return list<PushDestinationSnapshot> */
+    public function routeNotificationForPush(?Notification $notification = null): array
     {
-        return app(AccountCommunications::class)->pushDestinations((string) $this->getKey());
+        return app(PushDestinationManagement::class)->forNotification((string) $this->getKey());
     }
 
     public function canAccessPanel(Panel $panel): bool

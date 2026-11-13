@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace App\Support\Communications;
 
-use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\CommunicationPreference;
+use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
- * Interim package-model adapter for destination and inbox reads used by root callers.
+ * Interim package-model adapter for root policy-consent and inbox reads.
  *
  * Notification preference policy and locale/timezone reads now use the
- * Communications feature API. Inbox and destination boundaries remain for
- * their later migration slices.
+ * Communications feature API. Inbox reads remain for their later migration slice.
  */
 final readonly class AccountCommunications
 {
@@ -36,16 +34,6 @@ final readonly class AccountCommunications
             ->first();
     }
 
-    /**
-     * @return Builder<CommunicationDestination>
-     */
-    public function destinationsQuery(string $accountId): Builder
-    {
-        return CommunicationDestination::query()
-            ->where('recipient_type', (new User)->getMorphClass())
-            ->where('recipient_id', $accountId);
-    }
-
     public function hasActiveDestinationForRecipient(
         ?string $recipientType,
         ?string $recipientId,
@@ -61,18 +49,6 @@ final readonly class AccountCommunications
             ->where('channel', $channel)
             ->where('status', 'active')
             ->exists();
-    }
-
-    /**
-     * @return Collection<int, CommunicationDestination>
-     */
-    public function pushDestinations(string $accountId): Collection
-    {
-        return $this->destinationsQuery($accountId)
-            ->where('channel', 'push')
-            ->where('status', 'active')
-            ->orderByDesc('is_primary')
-            ->get();
     }
 
     /**

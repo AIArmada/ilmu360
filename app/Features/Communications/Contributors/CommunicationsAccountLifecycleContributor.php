@@ -2,23 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Contributors;
 
 use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Models\NotificationInbox;
-use App\Models\User;
 use App\Shared\Auth\AccountLifecycleContributor;
+use App\Shared\Auth\UserMorphType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * Preserves account communication preferences, destinations and inboxes
- * across deletion and restoration. Scoped preference rules are intentionally
- * retained, matching the pre-contributor deletion behavior.
+ * across deletion and restoration. Scoped family and trigger rules remain
+ * untouched when the base preference is detached.
  */
 final readonly class CommunicationsAccountLifecycleContributor implements AccountLifecycleContributor
 {
+    public function __construct(
+        private UserMorphType $userMorphType,
+    ) {}
+
     public function key(): string
     {
         return 'communications';
@@ -114,6 +118,6 @@ final readonly class CommunicationsAccountLifecycleContributor implements Accoun
 
     private function userMorphClass(): string
     {
-        return (new User)->getMorphClass();
+        return $this->userMorphType->morphClass();
     }
 }

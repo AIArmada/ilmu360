@@ -14,7 +14,7 @@ use App\Notifications\EventEscalationNotification;
 use App\Notifications\EventSubmittedNotification;
 use App\Features\Membership\Notifications\MemberInvitationNotification;
 use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Support\Communications\AccountCommunications;
+use AIArmada\Communications\Models\CommunicationDestination;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -28,13 +28,21 @@ it('routes mail notifications through the user email address and tracks destinat
     app(AccountNotificationPreferences::class)->syncSystemEmailDestination((string) $user->getKey());
 
     expect($user->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test')
-        ->and(app(AccountCommunications::class)->destinationsQuery((string) $user->getKey())->where('channel', 'email')->value('status'))->toBe('inactive');
+        ->and(CommunicationDestination::query()
+            ->where('recipient_type', $user->getMorphClass())
+            ->where('recipient_id', $user->getKey())
+            ->where('channel', 'email')
+            ->value('status'))->toBe('inactive');
 
     $user->forceFill(['email_verified_at' => now()])->save();
     app(AccountNotificationPreferences::class)->syncSystemEmailDestination((string) ($user->fresh() ?? $user)->getKey());
 
     expect(($user->fresh() ?? $user)->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test')
-        ->and(app(AccountCommunications::class)->destinationsQuery((string) ($user->fresh() ?? $user)->getKey())->where('channel', 'email')->value('status'))->toBe('active');
+        ->and(CommunicationDestination::query()
+            ->where('recipient_type', ($user->fresh() ?? $user)->getMorphClass())
+            ->where('recipient_id', ($user->fresh() ?? $user)->getKey())
+            ->where('channel', 'email')
+            ->value('status'))->toBe('active');
 });
 
 it('keeps the mail-capable notifications on the notifications-mail queue', function () {

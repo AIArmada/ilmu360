@@ -128,7 +128,10 @@ it('reads account communication settings, destinations and inbox counts', functi
     expect($notificationPreferences->preferredLocale((string) $user->getKey()))->toBe('en')
         ->and($notificationPreferences->preferredTimezone((string) $user->getKey()))->toBe('Asia/Kuala_Lumpur')
         ->and($communications->unreadInboxCount((string) $user->getKey()))->toBe(1)
-        ->and($communications->destinationsQuery((string) $user->getKey())->count())->toBe(1)
+        ->and(CommunicationDestination::query()
+            ->where('recipient_type', $user->getMorphClass())
+            ->where('recipient_id', $user->getKey())
+            ->count())->toBe(1)
         ->and($profile?->locale)->toBe('en')
         ->and($profile?->timezone)->toBe('Asia/Kuala_Lumpur');
 });

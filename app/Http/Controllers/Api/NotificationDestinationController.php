@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use AIArmada\Communications\Models\CommunicationDestination;
 use App\Data\Api\Notification\NotificationDestinationData as NotificationDestinationPayloadData;
-use App\Features\Communications\Api\NotificationChannel;
+use App\Features\Communications\Api\PushDestinationDetails;
+use App\Features\Communications\Api\PushDestinationManagement;
+use App\Features\Communications\Api\PushDestinationSnapshot;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Support\Communications\AccountCommunications;
-use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -21,6 +20,10 @@ use Illuminate\Validation\Rule;
 #[Group('Notification Destination', 'Authenticated push-destination registration endpoints for device installations.')]
 class NotificationDestinationController extends Controller
 {
+    public function __construct(
+        private readonly PushDestinationManagement $pushDestinations,
+    ) {}
+
     #[BodyParameter('installation_id', 'Client installation identifier for the push destination.', type: 'string', infer: false, example: 'ios-installation-123')]
     #[BodyParameter('platform', 'Push platform for the current device.', type: 'string', infer: false, example: 'ios')]
     #[BodyParameter('fcm_token', 'Current FCM token for the device installation.', type: 'string', infer: false, example: 'fcm-token-abc123')]
@@ -38,34 +41,15 @@ class NotificationDestinationController extends Controller
         $validated = $this->validatePushPayload($request);
         $user = $this->currentUser($request);
 
-        $destination = $this->findPushDestination($user, $validated['installation_id']);
-
-        if (! $destination instanceof CommunicationDestination) {
-            $destination = new CommunicationDestination;
-            $destination->forceFill([
-                'recipient_type' => $user->getMorphClass(),
-                'recipient_id' => $user->id,
-                'channel' => NotificationChannel::Push->value,
-                'address' => $validated['installation_id'],
-            ]);
-        }
-
-        $destination->forceFill([
-            'external_id' => $validated['fcm_token'],
-            'status' => 'active',
-            'is_primary' => false,
-            'verified_at' => now(),
-            'platform' => (string) $validated['platform'],
-            'app_version' => (string) ($validated['app_version'] ?? ''),
-            'device_label' => (string) ($validated['device_label'] ?? ''),
-            'locale' => (string) ($validated['locale'] ?? ''),
-            'timezone' => (string) ($validated['timezone'] ?? ''),
-            'last_seen_at' => isset($validated['last_seen_at']) ? $this->parseLastSeen($validated['last_seen_at']) : now(),
-        ])->save();
+        $destination = $this->pushDestinations->register(
+            (string) $user->getKey(),
+            (string) $validated['installation_id'],
+            $this->details($validated),
+        );
 
         return response()->json([
             'message' => __('notifications.api.push_registered'),
-            'data' => NotificationDestinationPayloadData::fromModel($destination)->toArray(),
+            'data' => NotificationDestinationPayloadData::fromSnapshot($destination)->toArray(),
         ], 201);
     }
 
@@ -86,25 +70,17 @@ class NotificationDestinationController extends Controller
         $validated = $this->validatePushPayload($request, $installation);
         $user = $this->currentUser($request);
 
-        $destination = $this->findPushDestination($user, $installation);
+        $destination = $this->pushDestinations->update(
+            (string) $user->getKey(),
+            $installation,
+            $this->details($validated),
+        );
 
-        abort_unless($destination instanceof CommunicationDestination, 404);
-
-        $destination->forceFill([
-            'external_id' => $validated['fcm_token'],
-            'status' => 'active',
-            'verified_at' => now(),
-            'platform' => (string) $validated['platform'],
-            'app_version' => (string) ($validated['app_version'] ?? ''),
-            'device_label' => (string) ($validated['device_label'] ?? ''),
-            'locale' => (string) ($validated['locale'] ?? ''),
-            'timezone' => (string) ($validated['timezone'] ?? ''),
-            'last_seen_at' => isset($validated['last_seen_at']) ? $this->parseLastSeen($validated['last_seen_at']) : now(),
-        ])->save();
+        abort_unless($destination instanceof PushDestinationSnapshot, 404);
 
         return response()->json([
             'message' => __('notifications.api.push_updated'),
-            'data' => NotificationDestinationPayloadData::fromModel($destination->fresh() ?? $destination)->toArray(),
+            'data' => NotificationDestinationPayloadData::fromSnapshot($destination)->toArray(),
         ]);
     }
 
@@ -115,23 +91,12 @@ class NotificationDestinationController extends Controller
     )]
     public function destroyPush(Request $request, string $installation): Response
     {
-        $destination = $this->findPushDestination($this->currentUser($request), $installation);
-        $destination?->delete();
+        $this->pushDestinations->deleteByInstallation(
+            (string) $this->currentUser($request)->getKey(),
+            $installation,
+        );
 
         return response()->noContent();
-    }
-
-    /**
-     * Addresses are encrypted at rest, so installation matching decrypts in PHP.
-     */
-    private function findPushDestination(User $user, string $installation): ?CommunicationDestination
-    {
-        $match = app(AccountCommunications::class)->destinationsQuery((string) $user->getKey())
-            ->where('channel', NotificationChannel::Push->value)
-            ->get()
-            ->first(fn (CommunicationDestination $destination): bool => $destination->address === $installation);
-
-        return $match instanceof CommunicationDestination ? $match : null;
     }
 
     /**
@@ -155,15 +120,22 @@ class NotificationDestinationController extends Controller
         ]);
     }
 
-    protected function parseLastSeen(mixed $value): CarbonImmutable
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function details(array $validated): PushDestinationDetails
     {
-        $date = is_string($value) ? $value : null;
+        $lastSeenAt = $validated['last_seen_at'] ?? null;
 
-        if ($date === null || $date === '') {
-            return now()->toImmutable();
-        }
-
-        return CarbonImmutable::parse($date);
+        return new PushDestinationDetails(
+            platform: (string) $validated['platform'],
+            fcmToken: (string) $validated['fcm_token'],
+            appVersion: (string) ($validated['app_version'] ?? ''),
+            deviceLabel: (string) ($validated['device_label'] ?? ''),
+            locale: (string) ($validated['locale'] ?? ''),
+            timezone: (string) ($validated['timezone'] ?? ''),
+            lastSeenAt: is_string($lastSeenAt) ? $lastSeenAt : null,
+        );
     }
 
     protected function currentUser(Request $request): User

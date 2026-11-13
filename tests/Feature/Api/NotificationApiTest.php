@@ -100,6 +100,34 @@ it('updates an existing push destination through the api', function () {
         ->assertJsonPath('data.verified_at', $destination->verified_at?->toIso8601String());
 });
 
+it('does not update or remove a push installation owned by another account', function (): void {
+    $owner = User::factory()->create();
+    $otherAccount = User::factory()->create();
+    $destination = createTestRecord(CommunicationDestination::class, [
+        'recipient_type' => $owner->getMorphClass(),
+        'recipient_id' => $owner->getKey(),
+        'channel' => 'push',
+        'address' => 'owner-installation',
+        'external_id' => 'owner-token',
+        'status' => 'active',
+    ]);
+
+    Sanctum::actingAs($otherAccount);
+
+    $this->putJson(route('api.notification-destinations.push.update', 'owner-installation'), [
+        'platform' => 'android',
+        'fcm_token' => 'attacker-token',
+    ])->assertNotFound();
+
+    $this->deleteJson(route('api.notification-destinations.push.destroy', 'owner-installation'))
+        ->assertNoContent();
+
+    $destination->refresh();
+
+    expect($destination->external_id)->toBe('owner-token');
+    $this->assertModelExists($destination);
+});
+
 it('lists serialized notification messages for the current user', function () {
     $user = User::factory()->create();
 

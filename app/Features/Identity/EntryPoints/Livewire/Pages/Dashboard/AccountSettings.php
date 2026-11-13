@@ -6,12 +6,13 @@ use AIArmada\Events\Models\EventSubmission;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Services\AccountSettingsService;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\PushDestinationManagement;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;
 use App\Shared\Auth\AccountProfileUpdate;
-use App\Shared\Communications\AccountNotificationSettings;
 use App\Shared\Directory\DirectoryOption;
 use App\Shared\Directory\PrayerInstitutionCatalog;
 use App\Shared\Membership\MembershipDirectory;
@@ -359,7 +360,7 @@ class AccountSettings extends Component implements HasForms
     {
         $accountId = $this->currentProfile()->id;
 
-        $this->notificationSettings()->save($accountId, $this->notificationPayload());
+        app(AccountNotificationPreferences::class)->save($accountId, $this->notificationPayload());
         $this->hydrateNotificationCenter($accountId);
 
         $this->successToast(__('notifications.flash.updated'));
@@ -370,7 +371,7 @@ class AccountSettings extends Component implements HasForms
     {
         $accountId = $this->currentProfile()->id;
 
-        abort_unless($this->notificationSettings()->removePushDestination($accountId, $destinationId), 404);
+        abort_unless(app(PushDestinationManagement::class)->removeById($accountId, $destinationId), 404);
 
         $this->hydrateNotificationCenter($accountId);
         $this->successToast(__('notifications.flash.device_removed'));
@@ -379,7 +380,7 @@ class AccountSettings extends Component implements HasForms
 
     protected function hydrateNotificationCenter(string $accountId): void
     {
-        $state = $this->notificationSettings()->stateFor($accountId);
+        $state = app(AccountNotificationPreferences::class)->stateFor($accountId);
 
         /** @var array<string, mixed> $settings */
         $settings = $state['settings'];
@@ -709,11 +710,6 @@ class AccountSettings extends Component implements HasForms
     protected function accountSettingsService(): AccountSettingsService
     {
         return app(AccountSettingsService::class);
-    }
-
-    protected function notificationSettings(): AccountNotificationSettings
-    {
-        return app(AccountNotificationSettings::class);
     }
 
     protected function prayerInstitutionCatalog(): PrayerInstitutionCatalog
