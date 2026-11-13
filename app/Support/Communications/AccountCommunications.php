@@ -6,16 +6,12 @@ namespace App\Support\Communications;
 
 use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Models\CommunicationDestination;
-use AIArmada\Communications\Models\NotificationInbox;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
- * Interim package-model adapter for root policy-consent and inbox reads.
+ * Interim package-model adapter for root policy and consent reads.
  *
  * Notification preference policy and locale/timezone reads now use the
- * Communications feature API. Inbox reads remain for their later migration slice.
+ * Communications feature API. Remaining reads move in the delivery-adapter slice.
  */
 final readonly class AccountCommunications
 {
@@ -51,32 +47,4 @@ final readonly class AccountCommunications
             ->exists();
     }
 
-    /**
-     * @return Builder<NotificationInbox>
-     */
-    public function inboxQuery(string $accountId): Builder
-    {
-        return NotificationInbox::query()
-            ->where('recipient_type', (new User)->getMorphClass())
-            ->where('recipient_id', $accountId);
-    }
-
-    /**
-     * @return MorphMany<NotificationInbox, User>
-     */
-    public function inboxRelationFor(User $user): MorphMany
-    {
-        return $user->morphMany(NotificationInbox::class, 'recipient');
-    }
-
-    public function unreadInboxCount(string $accountId, bool $excludeArchived = true): int
-    {
-        $query = $this->inboxQuery($accountId)->whereNull('read_at');
-
-        if ($excludeArchived) {
-            $query->whereNull('archived_at');
-        }
-
-        return $query->count();
-    }
 }

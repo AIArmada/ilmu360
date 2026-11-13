@@ -1,33 +1,40 @@
 <?php
 
-namespace App\Actions\Notifications;
+declare(strict_types=1);
+
+namespace App\Features\Communications\Actions\Inbox;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Communications\Services\NotificationInboxService;
-use App\Models\User;
+use App\Features\Communications\Api\NotificationInboxMessageSnapshot;
+use App\Features\Communications\Support\NotificationInbox\NotificationInboxMessageSnapshotFactory;
+use App\Shared\Auth\UserMorphType;
 use App\Shared\Signals\SignalRecorder;
-use App\Support\Communications\AccountCommunications;
 use BackedEnum;
-use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 use UnitEnum;
 
-final readonly class MarkNotificationMessageReadAction
+final readonly class MarkNotificationInboxMessageReadAction
 {
     use AsAction;
 
     public function __construct(
-        private SignalRecorder $signals,
+        private ResolveNotificationInboxRecipientAction $resolveRecipient,
         private NotificationInboxService $notificationInboxService,
-        private AccountCommunications $communications,
+        private NotificationInboxMessageSnapshotFactory $snapshots,
+        private SignalRecorder $signals,
+        private UserMorphType $userMorphType,
     ) {}
 
-    public function handle(User $user, string $messageId, ?Request $request = null): NotificationInbox
+    public function handle(string $accountId, string $messageId): NotificationInboxMessageSnapshot
     {
         OwnerContext::setForRequest(null);
 
-        $message = $this->communications->inboxQuery((string) $user->getKey())
+        $recipient = $this->resolveRecipient->handle($accountId);
+        $message = NotificationInbox::query()
+            ->where('recipient_type', $this->userMorphType->morphClass())
+            ->where('recipient_id', $accountId)
             ->whereNull('archived_at')
             ->whereKey($messageId)
             ->firstOrFail();
@@ -36,7 +43,7 @@ final readonly class MarkNotificationMessageReadAction
 
         if ($wasUnread) {
             $this->notificationInboxService->markAsRead(
-                $this->communications->inboxRelationFor($user)->whereNull('archived_at'),
+                $recipient->morphMany(NotificationInbox::class, 'recipient')->whereNull('archived_at'),
                 $messageId,
             );
         }
@@ -47,18 +54,18 @@ final readonly class MarkNotificationMessageReadAction
             $this->signals->record(
                 eventName: 'notification.read',
                 eventCategory: 'notification',
-                actorId: (string) $user->getKey(),
+                actorId: $accountId,
                 properties: [
                     'notification_id' => (string) $freshMessage->getKey(),
                     'family' => $this->enumValue($freshMessage->family),
                     'trigger' => $this->enumValue($freshMessage->trigger),
                     'action_url' => $freshMessage->data['action_url'] ?? null,
                 ],
-                request: $request ?? request(),
+                request: request(),
             );
         }
 
-        return $freshMessage;
+        return $this->snapshots->fromModel($freshMessage);
     }
 
     private function enumValue(mixed $value): ?string

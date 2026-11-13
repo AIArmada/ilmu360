@@ -14,6 +14,7 @@ use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\Registration;
 use App\Models\User;
+use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Shared\Auth\AccountDirectory;
 use App\Features\Contributions\Api\ContributionRequestReader;
@@ -23,7 +24,6 @@ use App\Shared\Events\AccountEventFacts;
 use App\Shared\Membership\MembershipApplicationReader;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
-use App\Support\Communications\AccountCommunications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -121,13 +121,13 @@ it('reads account communication settings, destinations and inbox counts', functi
         'read_at' => null,
     ]);
 
-    $communications = app(AccountCommunications::class);
+    $notificationInbox = app(NotificationInboxManagement::class);
     $notificationPreferences = app(AccountNotificationPreferences::class);
     $profile = app(AccountDirectory::class)->profile((string) $user->getKey());
 
     expect($notificationPreferences->preferredLocale((string) $user->getKey()))->toBe('en')
         ->and($notificationPreferences->preferredTimezone((string) $user->getKey()))->toBe('Asia/Kuala_Lumpur')
-        ->and($communications->unreadInboxCount((string) $user->getKey()))->toBe(1)
+        ->and($notificationInbox->unreadCountForAccount((string) $user->getKey()))->toBe(1)
         ->and(CommunicationDestination::query()
             ->where('recipient_type', $user->getMorphClass())
             ->where('recipient_id', $user->getKey())

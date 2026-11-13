@@ -25,7 +25,6 @@ use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Support\Communications\AccountCommunications;
 use App\Support\Rewards\PublishedRewardProgramVersionResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -246,24 +245,6 @@ class UserDashboard extends Component
         $user = $this->user();
 
         return collect(app(SavedSearchReader::class)->forOwner($user->getMorphClass(), (string) $user->getKey(), 3));
-    }
-
-    /**
-     * @return Collection<int, mixed>
-     */
-    #[Computed]
-    public function recentNotifications(): Collection
-    {
-        return app(AccountCommunications::class)->inboxQuery((string) $this->user()->getKey())
-            ->whereNull('archived_at')
-            ->limit(3)
-            ->get();
-    }
-
-    #[Computed]
-    public function unreadNotificationCount(): int
-    {
-        return app(AccountCommunications::class)->unreadInboxCount((string) $this->user()->getKey());
     }
 
     #[Computed]

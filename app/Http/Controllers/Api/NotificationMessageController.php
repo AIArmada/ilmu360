@@ -3,16 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Communications\Models\NotificationInbox;
-use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
-use App\Actions\Notifications\MarkNotificationMessageReadAction;
 use App\Data\Api\Notification\NotificationMessageData as NotificationMessagePayloadData;
 use App\Data\Api\Notification\NotificationReadAllResultData;
+use App\Features\Communications\Api\NotificationCatalog;
+use App\Features\Communications\Api\NotificationInboxManagement;
+use App\Features\Communications\Api\NotificationInboxMessageSnapshot;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
-use App\Support\Communications\AccountCommunications;
-use App\Features\Communications\Api\NotificationCatalog;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -37,29 +35,31 @@ class NotificationMessageController extends Controller
         $status = $request->string('status', 'unread')->toString();
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100);
 
-        $communications = app(AccountCommunications::class);
-
-        $query = $communications->inboxQuery((string) $user->getKey())
-            ->whereNull('archived_at')
-            ->when($family !== 'all' && array_key_exists($family, NotificationCatalog::families()), fn ($builder) => $builder->where('family', $family))
-            ->when($status === 'unread', fn ($builder) => $builder->whereNull('read_at'))
-            ->when($status === 'read', fn ($builder) => $builder->whereNotNull('read_at'));
-
-        $notifications = $query->paginate($perPage);
+        $familyValue = $family !== 'all' && array_key_exists($family, NotificationCatalog::families())
+            ? $family
+            : null;
+        $communications = app(NotificationInboxManagement::class);
+        $notifications = $communications->pageForAccount(
+            (string) $user->getKey(),
+            $familyValue,
+            $status,
+            $perPage,
+            max(1, $request->integer('page', 1)),
+        );
         $unreadCount = $status === 'unread'
-            ? $notifications->total()
-            : $communications->inboxQuery((string) $user->getKey())->whereNull('archived_at')->whereNull('read_at')->count();
+            ? $notifications->total
+            : $communications->unreadCountForAccount((string) $user->getKey());
 
         return response()->json([
-            'data' => collect($notifications->items())
-                ->map(fn (NotificationInbox $message): array => NotificationMessagePayloadData::fromModel($message)->toArray())
+            'data' => collect($notifications->messages)
+                ->map(fn (NotificationInboxMessageSnapshot $message): array => NotificationMessagePayloadData::fromSnapshot($message)->toArray())
                 ->all(),
             'meta' => [
                 'unread_count' => $unreadCount,
                 'pagination' => [
-                    'page' => $notifications->currentPage(),
-                    'per_page' => $notifications->perPage(),
-                    'total' => $notifications->total(),
+                    'page' => $notifications->page,
+                    'per_page' => $notifications->perPage,
+                    'total' => $notifications->total,
                 ],
             ],
         ]);
@@ -72,13 +72,13 @@ class NotificationMessageController extends Controller
     public function read(
         Request $request,
         string $message,
-        MarkNotificationMessageReadAction $markNotificationMessageReadAction,
+        NotificationInboxManagement $communications,
     ): JsonResponse {
-        $notification = $markNotificationMessageReadAction->handle($this->currentUser($request), $message, $request);
+        $notification = $communications->markAsRead((string) $this->currentUser($request)->getKey(), $message);
 
         return response()->json([
             'message' => __('notifications.api.read_success'),
-            'data' => NotificationMessagePayloadData::fromModel($notification)->toArray(),
+            'data' => NotificationMessagePayloadData::fromSnapshot($notification)->toArray(),
         ]);
     }
 
@@ -86,9 +86,9 @@ class NotificationMessageController extends Controller
         title: 'Mark all notification messages as read',
         description: 'Marks every inbox-visible notification message as read for the current authenticated user.',
     )]
-    public function readAll(Request $request, MarkAllNotificationMessagesReadAction $markAllNotificationMessagesReadAction): JsonResponse
+    public function readAll(Request $request, NotificationInboxManagement $communications): JsonResponse
     {
-        $updated = $markAllNotificationMessagesReadAction->handle($this->currentUser($request), $request);
+        $updated = $communications->markAllAsRead((string) $this->currentUser($request)->getKey());
 
         return response()->json([
             'message' => __('notifications.api.read_all_success'),

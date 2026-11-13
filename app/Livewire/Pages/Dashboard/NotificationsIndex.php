@@ -3,16 +3,16 @@
 namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Communications\Models\NotificationInbox;
-use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
-use App\Actions\Notifications\MarkNotificationMessageReadAction;
-use App\Models\User;
-use App\Support\Communications\AccountCommunications;
 use App\Features\Communications\Api\EnumMapper;
 use App\Features\Communications\Api\NotificationCatalog;
+use App\Features\Communications\Api\NotificationInboxManagement;
+use App\Features\Communications\Api\NotificationInboxMessageSnapshot;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Pagination\Paginator as CurrentPageResolver;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -57,14 +57,14 @@ class NotificationsIndex extends Component
 
     public function markAsRead(string $messageId): void
     {
-        app(MarkNotificationMessageReadAction::class)->handle($this->currentUser(), $messageId, request());
+        app(NotificationInboxManagement::class)->markAsRead((string) $this->currentUser()->getKey(), $messageId);
 
         $this->dispatch('notification-count-updated');
     }
 
     public function markAllAsRead(): void
     {
-        app(MarkAllNotificationMessagesReadAction::class)->handle($this->currentUser(), request());
+        app(NotificationInboxManagement::class)->markAllAsRead((string) $this->currentUser()->getKey());
 
         $this->dispatch('notification-count-updated');
     }
@@ -90,53 +90,63 @@ class NotificationsIndex extends Component
     #[Computed]
     public function unreadCount(): int
     {
-        return app(AccountCommunications::class)->unreadInboxCount((string) $this->currentUser()->getKey());
+        return app(NotificationInboxManagement::class)->unreadCountForAccount((string) $this->currentUser()->getKey());
     }
 
     /**
-     * @return LengthAwarePaginator<int, NotificationInbox>
+     * @return LengthAwarePaginator<int, NotificationInboxMessageSnapshot>
      */
     #[Computed]
     public function notifications(): LengthAwarePaginator
     {
-        $query = app(AccountCommunications::class)->inboxQuery((string) $this->currentUser()->getKey())
-            ->whereNull('archived_at')
-            ->orderByDesc('created_at')
-            ->when($this->family !== 'all', function ($builder): void {
-                $familyValue = NotificationCatalog::inboxFamilyValue($this->family);
+        $snapshot = app(NotificationInboxManagement::class)->pageForAccount(
+            (string) $this->currentUser()->getKey(),
+            $this->family === 'all' ? null : $this->family,
+            $this->status,
+            perPage: 12,
+            page: max(1, CurrentPageResolver::resolveCurrentPage('notifications_page')),
+            newestFirst: true,
+        );
 
-                if ($familyValue !== null) {
-                    $builder->where('family', $familyValue);
-                }
-            })
-            ->when($this->status === 'unread', fn ($builder) => $builder->whereNull('read_at'))
-            ->when($this->status === 'read', fn ($builder) => $builder->whereNotNull('read_at'));
-
-        return $query->paginate(perPage: 12, pageName: 'notifications_page');
+        return (new Paginator(
+            $snapshot->messages,
+            $snapshot->total,
+            $snapshot->perPage,
+            $snapshot->page,
+            [
+                'path' => Paginator::resolveCurrentPath(),
+                'pageName' => 'notifications_page',
+            ],
+        ))->withQueryString();
     }
 
-    public function familyLabel(NotificationInbox $message): string
+    public function familyLabel(NotificationInboxMessageSnapshot $message): string
     {
-        $appFamily = EnumMapper::toAppFamily($message->family);
+        $packageFamily = \AIArmada\Communications\Enums\NotificationFamily::from($message->family);
+        $appFamily = EnumMapper::toAppFamily($packageFamily);
 
         return $appFamily instanceof \App\Features\Communications\Api\NotificationFamily
             ? NotificationCatalog::familyDefinition($appFamily)['label']
-            : $message->family->label();
+            : $packageFamily->label();
     }
 
-    public function familyIcon(NotificationInbox $message): string
+    public function familyIcon(NotificationInboxMessageSnapshot $message): string
     {
-        return NotificationCatalog::familyIcon($message->family);
+        return NotificationCatalog::familyIcon(\AIArmada\Communications\Enums\NotificationFamily::from($message->family));
     }
 
-    public function priorityLabel(NotificationInbox $message): string
+    public function priorityLabel(NotificationInboxMessageSnapshot $message): string
     {
-        return __('notifications.options.priority.'.EnumMapper::toAppPriority($message->priority)->value);
+        $priority = \AIArmada\Communications\Enums\NotificationPriority::from($message->priority);
+
+        return __('notifications.options.priority.'.EnumMapper::toAppPriority($priority)->value);
     }
 
-    public function priorityTone(NotificationInbox $message): string
+    public function priorityTone(NotificationInboxMessageSnapshot $message): string
     {
-        return match (EnumMapper::toAppPriority($message->priority)->value) {
+        $priority = \AIArmada\Communications\Enums\NotificationPriority::from($message->priority);
+
+        return match (EnumMapper::toAppPriority($priority)->value) {
             'urgent' => 'red',
             'high' => 'amber',
             'medium' => 'sky',
@@ -144,9 +154,9 @@ class NotificationsIndex extends Component
         };
     }
 
-    public function notificationDate(NotificationInbox $message): CarbonImmutable
+    public function notificationDate(NotificationInboxMessageSnapshot $message): CarbonImmutable
     {
-        $occurredAt = data_get($message->data, 'occurred_at');
+        $occurredAt = $message->occurredAt;
 
         if (is_string($occurredAt) && $occurredAt !== '') {
             try {
@@ -156,7 +166,7 @@ class NotificationsIndex extends Component
             }
         }
 
-        return CarbonImmutable::parse($message->created_at ?? CarbonImmutable::now());
+        return CarbonImmutable::parse($message->createdAt ?? CarbonImmutable::now());
     }
 
     protected function currentUser(): User

@@ -13,14 +13,13 @@ use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger as PackageNotificationTrigger;
 use AIArmada\Communications\Models\NotificationInbox;
-use AIArmada\Communications\Services\NotificationInboxService;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Support\Communications\AccountCommunications;
+use App\Features\Communications\Api\NotificationInboxManagement;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -126,10 +125,12 @@ it('marks package inbox messages read via the communications boundary', function
         'read_at' => null,
     ]);
 
-    expect(app(AccountCommunications::class)->unreadInboxCount((string) $user->getKey()))->toBe(1);
+    $notificationInbox = app(NotificationInboxManagement::class);
 
-    app(NotificationInboxService::class)->markAsRead($user, $inbox->id);
+    expect($notificationInbox->unreadCountForAccount((string) $user->getKey()))->toBe(1);
 
-    expect(app(AccountCommunications::class)->unreadInboxCount((string) ($user->fresh() ?? $user)->getKey()))->toBe(0)
+    $notificationInbox->markAsRead((string) $user->getKey(), $inbox->id);
+
+    expect($notificationInbox->unreadCountForAccount((string) ($user->fresh() ?? $user)->getKey()))->toBe(0)
         ->and($inbox->fresh()->read_at)->not->toBeNull();
 });

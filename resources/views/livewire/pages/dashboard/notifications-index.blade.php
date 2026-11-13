@@ -1,8 +1,8 @@
 @section('title', __('notifications.inbox.page_title') . ' - ' . config('app.name'))
 
 @php
-    $channelOptions = collect(\App\Enums\NotificationChannel::supported())
-        ->mapWithKeys(fn (\App\Enums\NotificationChannel $channel): array => [$channel->value => $channel->label()])
+    $channelOptions = collect(\App\Features\Communications\Api\NotificationChannel::supported())
+        ->mapWithKeys(fn (\App\Features\Communications\Api\NotificationChannel $channel): array => [$channel->value => $channel->label()])
         ->all();
 
     $statusOptions = [
@@ -144,17 +144,19 @@
                 <div class="space-y-3">
                     @foreach ($this->notifications as $message)
                         @php
-                            $appFamily = \App\Support\Communications\EnumMapper::toAppFamily($message->family);
+                            $appFamily = \App\Features\Communications\Api\EnumMapper::toAppFamily(
+                                \AIArmada\Communications\Enums\NotificationFamily::from($message->family)
+                            );
                             $notificationDate = $this->notificationDate($message);
 
                             $familyTone = match ($appFamily) {
-                                \App\Enums\NotificationFamily::FollowedContent => 'bg-emerald-50 text-emerald-700',
-                                \App\Enums\NotificationFamily::SavedSearchMatches => 'bg-sky-50 text-sky-700',
-                                \App\Enums\NotificationFamily::EventUpdates => 'bg-amber-50 text-amber-700',
-                                \App\Enums\NotificationFamily::EventReminders => 'bg-orange-50 text-orange-700',
-                                \App\Enums\NotificationFamily::RegistrationCheckin => 'bg-teal-50 text-teal-700',
-                                \App\Enums\NotificationFamily::SubmissionWorkflow => 'bg-violet-50 text-violet-700',
-                                \App\Enums\NotificationFamily::Sharing => 'bg-rose-50 text-rose-700',
+                                \App\Features\Communications\Api\NotificationFamily::FollowedContent => 'bg-emerald-50 text-emerald-700',
+                                \App\Features\Communications\Api\NotificationFamily::SavedSearchMatches => 'bg-sky-50 text-sky-700',
+                                \App\Features\Communications\Api\NotificationFamily::EventUpdates => 'bg-amber-50 text-amber-700',
+                                \App\Features\Communications\Api\NotificationFamily::EventReminders => 'bg-orange-50 text-orange-700',
+                                \App\Features\Communications\Api\NotificationFamily::RegistrationCheckin => 'bg-teal-50 text-teal-700',
+                                \App\Features\Communications\Api\NotificationFamily::SubmissionWorkflow => 'bg-violet-50 text-violet-700',
+                                \App\Features\Communications\Api\NotificationFamily::Sharing => 'bg-rose-50 text-rose-700',
                                 default => 'bg-slate-100 text-slate-600',
                             };
 
@@ -170,11 +172,11 @@
                             wire:key="notification-{{ $message->id }}"
                             @class([
                                 'relative overflow-hidden rounded-2xl border shadow-sm transition hover:shadow-md',
-                                'border-emerald-200/80 bg-[#f4fbf6]' => $message->read_at === null,
-                                'border-[#eadfca] bg-[#fffdf8]' => $message->read_at !== null,
+                                'border-emerald-200/80 bg-[#f4fbf6]' => $message->readAt === null,
+                                'border-[#eadfca] bg-[#fffdf8]' => $message->readAt !== null,
                             ])
                         >
-                            @if ($message->read_at === null)
+                            @if ($message->readAt === null)
                                 <span class="absolute inset-y-0 start-0 w-1 bg-emerald-500" aria-hidden="true"></span>
                             @endif
 
@@ -195,7 +197,7 @@
                                             {{ $this->priorityLabel($message) }}
                                         </span>
 
-                                        @if ($message->read_at === null)
+                                        @if ($message->readAt === null)
                                             <span class="inline-flex items-center gap-1.5 rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">
                                                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden="true"></span>
                                                 {{ __('notifications.inbox.status.unread') }}
@@ -218,18 +220,18 @@
                                             {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($notificationDate, 'j M Y, g:i A') }}
                                         </time>
 
-                                        @if (! empty($message->data['channels_attempted'] ?? []))
+                                        @if ($message->channelsAttempted !== [])
                                             <span aria-hidden="true">·</span>
                                             <span>
                                                 {{ __('notifications.inbox.channels_attempted') }}:
-                                                {{ collect($message->data['channels_attempted'] ?? [])->map(fn (string $channel): string => $channelOptions[$channel] ?? $channel)->implode(', ') }}
+                                                {{ collect($message->channelsAttempted)->map(fn (string $channel): string => $channelOptions[$channel] ?? $channel)->implode(', ') }}
                                             </span>
                                         @endif
                                     </div>
                                 </div>
 
                                 <div class="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-stretch">
-                                    @if ($message->read_at === null)
+                                    @if ($message->readAt === null)
                                         <flux:button
                                             type="button"
                                             size="sm"
@@ -242,9 +244,9 @@
                                         </flux:button>
                                     @endif
 
-                                    @if ($message->data['action_url'] ?? null)
+                                    @if ($message->actionUrl)
                                         <flux:button
-                                            :href="$message->data['action_url']"
+                                            :href="$message->actionUrl"
                                             size="sm"
                                             variant="primary"
                                             icon-trailing="arrow-up-right"

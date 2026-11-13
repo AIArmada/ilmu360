@@ -3,18 +3,15 @@
 namespace App\Livewire\Components;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Communications\Models\NotificationInbox;
-use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
-use App\Actions\Notifications\MarkNotificationMessageReadAction;
+use App\Features\Communications\Api\EnumMapper;
+use App\Features\Communications\Api\NotificationCatalog;
+use App\Features\Communications\Api\NotificationInboxManagement;
+use App\Features\Communications\Api\NotificationInboxMessageSnapshot;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Time\UserTimezoneResolver;
-use App\Support\Communications\AccountCommunications;
-use App\Features\Communications\Api\EnumMapper;
-use App\Features\Communications\Api\NotificationCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Throwable;
@@ -105,7 +102,7 @@ class NotificationBell extends Component
     {
         $user = $this->currentUser();
 
-        app(MarkAllNotificationMessagesReadAction::class)->handle($user, request());
+        app(NotificationInboxManagement::class)->markAllAsRead((string) $user->getKey());
 
         if ($this->loaded) {
             $this->loadNotifications();
@@ -120,10 +117,10 @@ class NotificationBell extends Component
     {
         $user = $this->currentUser();
 
-        /** @var NotificationInbox $message */
-        $message = app(MarkNotificationMessageReadAction::class)->handle($user, $messageId, request());
+        $message = app(NotificationInboxManagement::class)
+            ->markAsRead((string) $user->getKey(), $messageId);
 
-        $actionUrl = data_get($message->data, 'action_url');
+        $actionUrl = $message->actionUrl;
 
         if (is_string($actionUrl) && $actionUrl !== '') {
             $this->redirect($actionUrl, navigate: true);
@@ -156,8 +153,8 @@ class NotificationBell extends Component
 
     private function resolveUnreadCount(User $user): int
     {
-        return OwnerContext::withOwner(null, fn (): int => app(AccountCommunications::class)
-            ->unreadInboxCount((string) $user->getKey()));
+        return OwnerContext::withOwner(null, fn (): int => app(NotificationInboxManagement::class)
+            ->unreadCountForAccount((string) $user->getKey()));
     }
 
     /**
@@ -179,36 +176,31 @@ class NotificationBell extends Component
     {
         $timezone = UserTimezoneResolver::resolve(request());
 
-        /** @var Collection<int, NotificationInbox> $messages */
-        $messages = OwnerContext::withOwner(null, function () use ($user): Collection {
-            $query = app(AccountCommunications::class)->inboxQuery((string) $user->getKey())
-                ->whereNull('archived_at')
-                ->orderByDesc('created_at')
-                ->limit(8);
+        /** @var list<NotificationInboxMessageSnapshot> $messages */
+        $messages = OwnerContext::withOwner(null, fn (): array => app(NotificationInboxManagement::class)
+            ->recentForAccount(
+                (string) $user->getKey(),
+                limit: 8,
+                unreadOnly: $this->filter === 'unread',
+            ));
 
-            if ($this->filter === 'unread') {
-                $query->whereNull('read_at');
-            }
-
-            return $query->get();
-        });
-
-        return $messages
-            ->map(function (NotificationInbox $message) use ($timezone): array {
-                $createdAt = CarbonImmutable::parse($message->created_at ?? CarbonImmutable::now());
+        return collect($messages)
+            ->map(function (NotificationInboxMessageSnapshot $message) use ($timezone): array {
+                $createdAt = CarbonImmutable::parse($message->createdAt ?? CarbonImmutable::now());
                 $localCreatedAt = $createdAt->setTimezone($timezone);
-                $appFamily = EnumMapper::toAppFamily($message->family);
+                $packageFamily = \AIArmada\Communications\Enums\NotificationFamily::from($message->family);
+                $appFamily = EnumMapper::toAppFamily($packageFamily);
 
                 return [
-                    'id' => (string) $message->getKey(),
+                    'id' => $message->id,
                     'title' => $message->title,
                     'body' => $message->body,
                     'family_label' => $appFamily instanceof \App\Features\Communications\Api\NotificationFamily
                         ? NotificationCatalog::familyDefinition($appFamily)['label']
-                        : $message->family->label(),
-                    'icon' => NotificationCatalog::familyIcon($message->family),
-                    'action_url' => data_get($message->data, 'action_url'),
-                    'read' => $message->read_at !== null,
+                        : $packageFamily->label(),
+                    'icon' => NotificationCatalog::familyIcon($packageFamily),
+                    'action_url' => $message->actionUrl,
+                    'read' => $message->readAt !== null,
                     'relative_time' => $localCreatedAt->locale(app()->getLocale())->shortRelativeDiffForHumans(),
                     'absolute_time' => UserDateTimeFormatter::translatedFormat($createdAt, 'j M Y, g:i A', timezone: $timezone),
                     'created_at_iso' => $createdAt->toIso8601String(),

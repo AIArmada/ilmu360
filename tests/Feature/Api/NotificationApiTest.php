@@ -6,6 +6,8 @@ use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\NotificationInbox;
+use App\Features\Communications\Api\NotificationInboxManagement;
+use App\Features\Communications\Api\NotificationInboxMessageSnapshot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -183,6 +185,101 @@ it('lists serialized notification messages for the current user', function () {
         ->assertJsonPath('data.0.meta.source', 'system');
 });
 
+it('returns immutable snapshots scoped to the requested account and visible inbox', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    createTestRecord(NotificationInbox::class, [
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Visible notification',
+        'body' => 'Visible body.',
+        'data' => ['action_url' => '/visible'],
+        'read_at' => null,
+    ]);
+
+    createTestRecord(NotificationInbox::class, [
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Archived notification',
+        'body' => 'Archived body.',
+        'data' => [],
+        'read_at' => null,
+        'archived_at' => now(),
+    ]);
+
+    createTestRecord(NotificationInbox::class, [
+        'recipient_type' => $otherUser->getMorphClass(),
+        'recipient_id' => $otherUser->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Other account notification',
+        'body' => 'Other account body.',
+        'data' => [],
+        'read_at' => null,
+    ]);
+
+    $page = app(NotificationInboxManagement::class)->pageForAccount(
+        (string) $user->getKey(),
+        familyValue: null,
+        status: 'all',
+        perPage: 20,
+        page: 1,
+    );
+
+    expect($page->messages)
+        ->toHaveCount(1)
+        ->and($page->messages[0])
+        ->toBeInstanceOf(NotificationInboxMessageSnapshot::class)
+        ->not->toBeInstanceOf(NotificationInbox::class)
+        ->and($page->messages[0]->title)->toBe('Visible notification');
+});
+
+it('filters notification messages by the public family key', function () {
+    $user = User::factory()->create();
+    $eventUpdate = createTestRecord(NotificationInbox::class, [
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Event update',
+        'body' => 'The schedule changed.',
+        'data' => [],
+        'read_at' => null,
+    ]);
+
+    createTestRecord(NotificationInbox::class, [
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::FollowUp->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Followed content update',
+        'body' => 'A followed item changed.',
+        'data' => [],
+        'read_at' => null,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->getJson(route('api.notifications.index', [
+        'family' => 'event_updates',
+        'status' => 'all',
+    ]))
+        ->assertOk()
+        ->assertJsonPath('meta.pagination.total', 1)
+        ->assertJsonPath('data.0.id', $eventUpdate->id)
+        ->assertJsonPath('data.0.family', NotificationFamily::EventUpdate->value);
+});
+
 it('marks a notification as read through the api', function () {
     $user = User::factory()->create();
     $message = createTestRecord(NotificationInbox::class, [
@@ -207,6 +304,29 @@ it('marks a notification as read through the api', function () {
         ->assertJsonPath('message', __('notifications.api.read_success'))
         ->assertJsonPath('data.id', $message->id)
         ->assertJsonPath('data.read_at', $message->read_at?->toIso8601String());
+});
+
+it('cannot mark another account notification as read', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $message = createTestRecord(NotificationInbox::class, [
+        'recipient_type' => $otherUser->getMorphClass(),
+        'recipient_id' => $otherUser->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Private message',
+        'body' => 'Not for this account.',
+        'data' => [],
+        'read_at' => null,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson(route('api.notifications.read', $message->id))
+        ->assertNotFound();
+
+    expect($message->fresh()->read_at)->toBeNull();
 });
 
 it('marks all unread notifications as read through the api', function () {

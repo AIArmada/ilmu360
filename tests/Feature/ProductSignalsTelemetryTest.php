@@ -195,10 +195,14 @@ it('records a signals event when a notification is read via the api', function (
     $this->postJson("/api/v1/notifications/{$message->id}/read")
         ->assertOk();
 
+    $this->postJson("/api/v1/notifications/{$message->id}/read")
+        ->assertOk();
+
     $signalEvent = SignalEvent::query()->where('event_name', 'notification.read')->latest('occurred_at')->first();
 
     expect($signalEvent)->not->toBeNull();
-    expect(data_get($signalEvent?->properties, 'notification_id'))->toBe($message->id);
+    expect(data_get($signalEvent?->properties, 'notification_id'))->toBe($message->id)
+        ->and(SignalEvent::query()->where('event_name', 'notification.read')->count())->toBe(1);
 });
 
 it('does not break notification reads when signals ingestion fails', function () {

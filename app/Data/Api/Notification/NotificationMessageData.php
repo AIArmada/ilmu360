@@ -2,11 +2,7 @@
 
 namespace App\Data\Api\Notification;
 
-use AIArmada\Communications\Enums\NotificationFamily;
-use AIArmada\Communications\Enums\NotificationPriority;
-use AIArmada\Communications\Enums\NotificationTrigger;
-use AIArmada\Communications\Models\NotificationInbox;
-use Carbon\CarbonInterface;
+use App\Features\Communications\Api\NotificationInboxMessageSnapshot;
 use Spatie\LaravelData\Data;
 
 class NotificationMessageData extends Data
@@ -31,28 +27,22 @@ class NotificationMessageData extends Data
         public array $meta,
     ) {}
 
-    public static function fromModel(NotificationInbox $message): self
+    public static function fromSnapshot(NotificationInboxMessageSnapshot $message): self
     {
-        $family = $message->family;
-        $trigger = $message->trigger;
-        $priority = $message->priority;
-        $readAt = $message->read_at;
-        $data = $message->data ?? [];
-
         return new self(
-            id: (string) $message->id,
-            family: $family instanceof NotificationFamily ? $family->value : (string) $family,
-            trigger: $trigger instanceof NotificationTrigger ? $trigger->value : (string) $trigger,
-            title: (string) $message->title,
+            id: $message->id,
+            family: $message->family,
+            trigger: $message->trigger,
+            title: $message->title,
             body: (string) $message->body,
-            action_url: $data['action_url'] ?? null,
-            entity_type: $data['entity_type'] ?? null,
-            entity_id: $data['entity_id'] ?? null,
-            priority: $priority instanceof NotificationPriority ? $priority->value : (string) $priority,
-            occurred_at: $data['occurred_at'] ?? null,
-            read_at: $readAt instanceof CarbonInterface ? $readAt->toIso8601String() : null,
-            channels_attempted: $data['channels_attempted'] ?? [],
-            meta: $data['meta'] ?? [],
+            action_url: $message->actionUrl,
+            entity_type: $message->entityType,
+            entity_id: $message->entityId,
+            priority: $message->priority,
+            occurred_at: $message->occurredAt,
+            read_at: $message->readAt,
+            channels_attempted: $message->channelsAttempted,
+            meta: $message->meta,
         );
     }
 }
