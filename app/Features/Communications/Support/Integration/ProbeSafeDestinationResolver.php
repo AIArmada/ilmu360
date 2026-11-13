@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Support\Integration;
 
 use AIArmada\Communications\Contracts\DestinationProtector;
 use AIArmada\Communications\Contracts\DestinationResolver;

@@ -14,12 +14,6 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Checkout\Contracts\StepContributor;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
-use AIArmada\Communications\Contracts\ConsentResolver;
-use AIArmada\Communications\Contracts\DestinationResolver;
-use AIArmada\Communications\Contracts\PayloadRedactor;
-use AIArmada\Communications\Contracts\PreferenceResolver;
-use AIArmada\Communications\Contracts\QuietHoursResolver;
-use AIArmada\Communications\Contracts\SuppressionResolver;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Customers\Models\Customer;
@@ -199,7 +193,6 @@ use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Communications\DigestMessages;
-use App\Shared\Communications\DigestPolicy;
 use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\ContributionRequestNotifier;
@@ -238,13 +231,6 @@ use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\SignupAttributionContextResolverAdapter;
 use App\Support\Authz\EloquentScopedMembershipRoleStore;
 use App\Support\Authz\MemberPermissionGate;
-use App\Support\Communications\AppConsentResolver;
-use App\Support\Communications\AppPreferenceResolver;
-use App\Support\Communications\AppQuietHoursResolver;
-use App\Support\Communications\AppSuppressionResolver;
-use App\Support\Communications\ListSafePayloadRedactor;
-use App\Support\Communications\NotificationCenterDigestPolicy;
-use App\Support\Communications\ProbeSafeDestinationResolver;
 use App\Support\Communications\ShareGratitudeDigestMessages;
 use App\Support\Directory\DirectoryAccountLifecycleContributor;
 use App\Support\Directory\EloquentDirectoryAdmin;
@@ -366,7 +352,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ParticipationAttribution::class, ShareTrackingParticipationAttribution::class);
         $this->app->bind(ActiveAttribution::class, ShareTrackingActiveAttribution::class);
         $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
-        $this->app->bind(DigestPolicy::class, NotificationCenterDigestPolicy::class);
         $this->app->bind(DigestMessages::class, ShareGratitudeDigestMessages::class);
         $this->app->bind(PublishedProgramVersions::class, PublishedProgramVersionsAdapter::class);
         $this->app->bind(PrayerInstitutionCatalog::class, EloquentPrayerInstitutionCatalog::class);
@@ -422,36 +407,6 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(PrettyPrinter::class, PrettyPrinter\Standard::class);
         $this->app->bind(McpOAuthRegisterController::class, OAuthRegisterController::class);
-
-        $this->app->bind(
-            QuietHoursResolver::class,
-            AppQuietHoursResolver::class,
-        );
-
-        $this->app->bind(
-            PreferenceResolver::class,
-            AppPreferenceResolver::class,
-        );
-
-        $this->app->bind(
-            ConsentResolver::class,
-            AppConsentResolver::class,
-        );
-
-        $this->app->bind(
-            SuppressionResolver::class,
-            AppSuppressionResolver::class,
-        );
-
-        $this->app->singleton(
-            PayloadRedactor::class,
-            ListSafePayloadRedactor::class,
-        );
-
-        $this->app->bind(
-            DestinationResolver::class,
-            ProbeSafeDestinationResolver::class,
-        );
 
         $filamentAuditingViews = base_path('vendor/tapp/filament-auditing/resources/views');
 

@@ -6,7 +6,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Communications\Contracts\PayloadRedactor;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Support\Communications\ListSafePayloadRedactor;
+use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 

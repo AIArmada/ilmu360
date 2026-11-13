@@ -1,12 +1,10 @@
 <?php
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Support\Integration;
 
 use AIArmada\Communications\Contracts\ConsentResolver;
 use AIArmada\Communications\Data\ConsentDecisionData;
 use App\Features\Communications\Api\NotificationChannel;
-use App\Features\Communications\Api\NotificationChannel as AppChannel;
-use App\Notifications\Channels\DigestMailChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppConsentResolver implements ConsentResolver
@@ -23,13 +21,13 @@ class AppConsentResolver implements ConsentResolver
             return new ConsentDecisionData(consented: true);
         }
 
-        $appChannel = $this->toAppChannel($channel);
+        $appChannel = NotificationChannel::fromPackageConsentChannel($channel);
 
         if (! $appChannel instanceof NotificationChannel) {
             return new ConsentDecisionData(consented: true);
         }
 
-        $hasActiveDestination = app(AccountCommunications::class)->hasActiveDestinationForRecipient(
+        $hasActiveDestination = app(NotificationRecipientSettingsLookup::class)->hasActiveDestinationForRecipient(
             $recipient->getMorphClass(),
             $recipientId,
             $appChannel->value,
@@ -57,13 +55,4 @@ class AppConsentResolver implements ConsentResolver
         return $modelClass::query()->find($recipientId);
     }
 
-    private function toAppChannel(string $channel): ?AppChannel
-    {
-        return match ($channel) {
-            'mail', DigestMailChannel::class => AppChannel::Email,
-            'database', 'in_app' => AppChannel::InApp,
-            'push', 'fcm' => AppChannel::Push,
-            default => AppChannel::tryFrom($channel),
-        };
-    }
 }

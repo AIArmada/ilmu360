@@ -2,18 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Support\Integration;
 
-use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Models\CommunicationDestination;
+use AIArmada\Communications\Models\CommunicationPreference;
 
-/**
- * Interim package-model adapter for root policy and consent reads.
- *
- * Notification preference policy and locale/timezone reads now use the
- * Communications feature API. Remaining reads move in the delivery-adapter slice.
- */
-final readonly class AccountCommunications
+/** Internal package-backed lookups for Communications delivery resolvers. */
+final readonly class NotificationRecipientSettingsLookup
 {
     public function basePreferenceForRecipient(?string $recipientType, ?string $recipientId): ?CommunicationPreference
     {

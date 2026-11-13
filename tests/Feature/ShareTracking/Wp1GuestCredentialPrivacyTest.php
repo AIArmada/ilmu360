@@ -5,7 +5,7 @@ declare(strict_types=1);
 use AIArmada\Communications\Contracts\PayloadRedactor;
 use App\Models\Event;
 use App\Models\User;
-use App\Support\Communications\ListSafePayloadRedactor;
+use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

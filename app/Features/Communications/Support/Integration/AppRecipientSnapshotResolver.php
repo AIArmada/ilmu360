@@ -1,28 +1,37 @@
 <?php
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Support\Integration;
 
 use AIArmada\Communications\Contracts\RecipientSnapshotResolver;
 use AIArmada\Communications\Data\RecipientSnapshotData;
-use App\Models\User;
+use App\Shared\Auth\UserMorphType;
+use Illuminate\Database\Eloquent\Model;
 
-class AppRecipientSnapshotResolver implements RecipientSnapshotResolver
+final readonly class AppRecipientSnapshotResolver implements RecipientSnapshotResolver
 {
+    public function __construct(
+        private UserMorphType $userMorphType,
+    ) {}
+
     public function resolve(mixed $notifiable): RecipientSnapshotData
     {
         $identifier = method_exists($notifiable, 'getKey')
             ? (string) $notifiable->getKey()
             : (string) spl_object_id($notifiable);
 
-        if ($notifiable instanceof User) {
-            $locale = $notifiable->preferredLocale();
-            $timezone = $notifiable->preferredTimezone();
+        if ($notifiable instanceof Model && $notifiable->getMorphClass() === $this->userMorphType->morphClass()) {
+            $locale = method_exists($notifiable, 'preferredLocale')
+                ? $notifiable->preferredLocale()
+                : $this->stringValue($notifiable->getAttribute('locale'));
+            $timezone = method_exists($notifiable, 'preferredTimezone')
+                ? $notifiable->preferredTimezone()
+                : $this->stringValue($notifiable->getAttribute('timezone'));
 
             return new RecipientSnapshotData(
                 identifier: $identifier,
-                displayName: $notifiable->name,
-                email: $notifiable->email,
-                phone: $notifiable->phone,
+                displayName: $this->stringValue($notifiable->getAttribute('name')),
+                email: $this->stringValue($notifiable->getAttribute('email')),
+                phone: $this->stringValue($notifiable->getAttribute('phone')),
                 locale: $locale,
                 timezone: $timezone,
             );
@@ -51,5 +60,10 @@ class AppRecipientSnapshotResolver implements RecipientSnapshotResolver
             locale: $locale,
             timezone: $timezone,
         );
+    }
+
+    private function stringValue(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

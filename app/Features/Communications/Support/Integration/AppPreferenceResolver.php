@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Support\Integration;
 
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\CommunicationPreference;
-use App\Notifications\Channels\DigestMailChannel;
-use App\Notifications\Channels\InboxChannel;
-use App\Notifications\Channels\PushChannel;
+use App\Features\Communications\Api\EnumMapper;
+use App\Features\Communications\Api\NotificationChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppPreferenceResolver implements PreferenceResolver
@@ -24,7 +23,7 @@ class AppPreferenceResolver implements PreferenceResolver
             return true;
         }
 
-        $setting = app(AccountCommunications::class)->basePreferenceForRecipient($recipient->getMorphClass(), $recipientId);
+        $setting = app(NotificationRecipientSettingsLookup::class)->basePreferenceForRecipient($recipient->getMorphClass(), $recipientId);
 
         if (! $setting instanceof CommunicationPreference) {
             return true;
@@ -63,7 +62,7 @@ class AppPreferenceResolver implements PreferenceResolver
             return null;
         }
 
-        $setting = app(AccountCommunications::class)->basePreferenceForRecipient($recipient->getMorphClass(), $recipientId);
+        $setting = app(NotificationRecipientSettingsLookup::class)->basePreferenceForRecipient($recipient->getMorphClass(), $recipientId);
 
         if (! $setting instanceof CommunicationPreference) {
             return null;
@@ -110,11 +109,6 @@ class AppPreferenceResolver implements PreferenceResolver
 
     private function mapChannel(string $channel): string
     {
-        return match ($channel) {
-            'mail', DigestMailChannel::class => 'email',
-            'database', InboxChannel::class => 'in_app',
-            PushChannel::class => 'push',
-            default => $channel,
-        };
+        return NotificationChannel::fromPackagePreferenceChannel($channel)?->value ?? $channel;
     }
 }

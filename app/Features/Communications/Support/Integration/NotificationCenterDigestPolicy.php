@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Support\Integration;
 
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationTrigger;
-use App\Models\User;
+use App\Shared\Auth\UserMorphType;
 use App\Shared\Communications\DigestPolicy;
 use App\Shared\Communications\DigestPolicySnapshot;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
@@ -23,11 +24,12 @@ final readonly class NotificationCenterDigestPolicy implements DigestPolicy
 {
     public function __construct(
         private AccountNotificationPreferences $settings,
+        private UserMorphType $userMorphType,
     ) {}
 
     public function resolve(Authenticatable $recipient, string $trigger): DigestPolicySnapshot
     {
-        if (! $recipient instanceof User) {
+        if (! $recipient instanceof Model || $recipient->getMorphClass() !== $this->userMorphType->morphClass()) {
             throw new InvalidArgumentException('Unknown digest recipient.');
         }
 
@@ -37,7 +39,7 @@ final readonly class NotificationCenterDigestPolicy implements DigestPolicy
             throw new InvalidArgumentException("Unknown digest trigger [{$trigger}].");
         }
 
-        $policy = $this->settings->resolvePolicy((string) $recipient->getKey(), $notificationTrigger);
+        $policy = $this->settings->resolvePolicy((string) $recipient->getAuthIdentifier(), $notificationTrigger);
 
         return new DigestPolicySnapshot(
             enabled: $policy->enabled,

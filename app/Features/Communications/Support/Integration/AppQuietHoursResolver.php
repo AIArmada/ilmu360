@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Communications;
+namespace App\Features\Communications\Support\Integration;
 
 use AIArmada\Communications\Contracts\QuietHoursResolver;
 use AIArmada\Communications\Models\CommunicationPreference;
@@ -96,6 +96,6 @@ class AppQuietHoursResolver implements QuietHoursResolver
             return null;
         }
 
-        return app(AccountCommunications::class)->basePreferenceForRecipient($user->getMorphClass(), $recipientId);
+        return app(NotificationRecipientSettingsLookup::class)->basePreferenceForRecipient($user->getMorphClass(), $recipientId);
     }
 }
