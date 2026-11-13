@@ -128,7 +128,7 @@ Commit `a38d8975` moved custom package-contract bindings, channel adapters, noti
 
 ### C5 — Rewards integration boundary (complete)
 
-Moved package aggregate creation/adoption, delivery inspection/cancellation, and ambiguity settlement behind the immutable `ManagedNotificationDelivery` API. Rewards retains digest planning, slot state, content facts, and policy decisions; it has no direct Communications `Communication`, `CommunicationDelivery`, or `CommunicationAttempt` model imports. Removed the Rewards-specific notification, ambiguity action/API/DTO, and Shared digest policy/snapshot. No schema change, compatibility path, legacy API, or backfill was added.
+Commit `b2759310` moved package aggregate creation/adoption, delivery inspection/cancellation, and ambiguity settlement behind the immutable `ManagedNotificationDelivery` API. Rewards retains digest planning, slot state, content facts, and policy decisions; it has no direct Communications `Communication`, `CommunicationDelivery`, or `CommunicationAttempt` model imports. Removed the Rewards-specific notification, ambiguity action/API/DTO, and Shared digest policy/snapshot. No schema change, compatibility path, legacy API, or backfill was added.
 
 The lock order is Rewards slot → deliveries sorted by ID → communication → attempts; channel sends keep delivery → communication → attempt. The Rewards slot transaction still encloses the API call and slot update, queued work remains after-commit, and failure recording retains its three deadlock retries at the aggregate transaction boundary.
 
