@@ -12,11 +12,10 @@ use App\Platform\FeatureModule;
  * DefaultEngagementManager are package-canonical, so this manifest claims
  * nothing (`owns: {}`) and adds no columns or parallel stores.
  *
- * D0 intentionally ships no Api contract and no bindings. The current reads
- * still run through the root EloquentEngagementReader adapter, while the
- * Livewire/API entrypoints own the save/follow/going orchestration. D4 moves
- * that orchestration into named actions and exposes the feature Api over the
- * package manager; a contract created now would have no consumer.
+ * D4a adds the read-side seams only: `EventEngagement`/`SubjectFollows` expose
+ * immutable scalar state while the package writer actions stay in
+ * `app/Actions/Engagement`. Implementations are root adapters bound in
+ * AppServiceProvider; no writer is moved by this slice.
  *
  * Must stay root adapters, documented here so later slices do not absorb them:
  * - EngagementAccountLifecycleContributor (account deletion/restoration

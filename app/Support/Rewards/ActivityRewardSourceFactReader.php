@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\Rewards;
 
-use AIArmada\Engagement\Models\Bookmark;
-use AIArmada\Engagement\Models\Follow;
-use AIArmada\Engagement\Models\Response;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
@@ -19,11 +16,14 @@ use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Registration;
 use App\Models\User;
+use App\Shared\Engagement\EngagementActivity;
+use App\Shared\Engagement\EngagementReader;
 use App\Support\ShareTracking\ActivityRewardBusinessKey;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use LogicException;
 use Throwable;
 
 /**
@@ -51,6 +51,14 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
 
         if ($outcome === ShareOutcomeType::SavedSearchCreated) {
             return $this->savedSearchFact($sourceBusinessKey, $parsed['source_transition_id']);
+        }
+
+        if ($this->isEngagementOutcome($outcome)) {
+            $activity = $this->resolveEngagementActivity($outcome, $parsed['source_transition_id']);
+
+            return $activity instanceof EngagementActivity
+                ? $this->engagementFact($sourceBusinessKey, $outcome, $activity)
+                : null;
         }
 
         $source = $this->resolveSourceRecord($parsed['source_transition_id']);
@@ -133,6 +141,142 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         );
     }
 
+    private function isEngagementOutcome(ShareOutcomeType $outcome): bool
+    {
+        return in_array($outcome, [
+            ShareOutcomeType::EventSave,
+            ShareOutcomeType::EventGoing,
+            ShareOutcomeType::InstitutionFollow,
+            ShareOutcomeType::PersonFollow,
+            ShareOutcomeType::SeriesFollow,
+            ShareOutcomeType::ReferenceFollow,
+        ], true);
+    }
+
+    private function resolveEngagementActivity(
+        ShareOutcomeType $outcome,
+        string $sourceTransitionId,
+    ): ?EngagementActivity {
+        $reader = app(EngagementReader::class);
+
+        if ($outcome === ShareOutcomeType::EventSave) {
+            $bookmarkId = $this->prefixedSourceId($sourceTransitionId, 'bookmark:');
+
+            return $bookmarkId !== null ? $reader->bookmarkActivity($bookmarkId) : null;
+        }
+
+        if ($outcome === ShareOutcomeType::EventGoing) {
+            $responseId = $this->prefixedSourceId($sourceTransitionId, 'response:');
+
+            return $responseId !== null ? $reader->responseActivity($responseId) : null;
+        }
+
+        if (in_array($outcome, [
+            ShareOutcomeType::InstitutionFollow,
+            ShareOutcomeType::PersonFollow,
+            ShareOutcomeType::SeriesFollow,
+            ShareOutcomeType::ReferenceFollow,
+        ], true)) {
+            $followId = $this->prefixedSourceId($sourceTransitionId, 'follow:');
+
+            return $followId !== null ? $reader->followActivity($followId) : null;
+        }
+
+        return null;
+    }
+
+    private function engagementFact(
+        string $sourceBusinessKey,
+        ShareOutcomeType $outcome,
+        EngagementActivity $activity,
+    ): ?RewardSourceFact {
+        $actor = $this->userForMorph($activity->actorType, $activity->actorId);
+
+        if (! $actor instanceof User) {
+            return null;
+        }
+
+        $occurredAt = $activity->occurredAt;
+
+        if (! $occurredAt instanceof CarbonImmutable) {
+            return null;
+        }
+
+        $invalid = $this->engagementInvalidates($outcome, $activity->status);
+
+        return new RewardSourceFact(
+            sourceBusinessKey: $sourceBusinessKey,
+            outcome: $outcome->value,
+            category: null,
+            occurredAt: $occurredAt,
+            verification: RewardVerificationLevel::Accepted,
+            isFirstTime: $this->isFirstEngagementActivity($outcome, $activity, $actor, $occurredAt),
+            actorId: (string) $actor->getKey(),
+            sharerId: null,
+            actorRole: RewardBeneficiaryRole::Participant,
+            isClaimedIdentity: true,
+            isAttributed: false,
+            isAmbiguousDevice: $this->metadataBoolean($activity->metadata, 'is_ambiguous_device'),
+            isBot: $this->metadataBoolean($activity->metadata, 'is_bot'),
+            isCancelled: $invalid,
+            isValid: ! $invalid,
+            fraudStatus: $this->metadataFraudStatus($activity->metadata),
+            correctionStatus: RewardSourceCorrectionStatus::Current,
+        );
+    }
+
+    private function isFirstEngagementActivity(
+        ShareOutcomeType $outcome,
+        EngagementActivity $activity,
+        User $actor,
+        CarbonImmutable $occurredAt,
+    ): bool {
+        $reader = app(EngagementReader::class);
+        $actorType = $actor->getMorphClass();
+        $actorId = (string) $actor->getKey();
+
+        return ! match ($outcome) {
+            ShareOutcomeType::EventSave => $reader->hasEarlierBookmarkActivity(
+                $actorType,
+                $actorId,
+                $occurredAt,
+                $activity->id,
+            ),
+            ShareOutcomeType::EventGoing => $reader->hasEarlierResponseActivity(
+                $actorType,
+                $actorId,
+                $occurredAt,
+                $activity->id,
+            ),
+            default => $reader->hasEarlierFollowActivity(
+                $actorType,
+                $actorId,
+                $occurredAt,
+                $activity->id,
+            ),
+        };
+    }
+
+    private function engagementInvalidates(ShareOutcomeType $outcome, ?string $status): bool
+    {
+        return match ($outcome) {
+            ShareOutcomeType::EventSave => ! in_array($status, [null, 'active'], true),
+            ShareOutcomeType::EventGoing => in_array($status, ['cancelled', 'expired'], true),
+            default => in_array($status, ['unfollowed', 'blocked'], true),
+        };
+    }
+
+    private function prefixedSourceId(string $sourceTransitionId, string $prefix): ?string
+    {
+        if (! str_starts_with($sourceTransitionId, $prefix)) {
+            return null;
+        }
+
+        $sourceId = substr($sourceTransitionId, strlen($prefix));
+
+        return $sourceId !== '' ? $sourceId : null;
+    }
+
     private function resolveSourceRecord(string $sourceTransitionId): ?Model
     {
         $sources = [
@@ -140,9 +284,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             'registration:' => Registration::class,
             'checkin:' => EventCheckin::class,
             'submission:' => EventSubmission::class,
-            'bookmark:' => Bookmark::class,
-            'response:' => Response::class,
-            'follow:' => Follow::class,
         ];
 
         foreach ($sources as $prefix => $modelClass) {
@@ -354,12 +495,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             ShareOutcomeType::EventRegistration => [Registration::class, ['registrant_type', 'registrant_id'], 'registered_at'],
             ShareOutcomeType::EventCheckin => [EventCheckin::class, ['attendee_type', 'attendee_id'], 'checked_in_at'],
             ShareOutcomeType::EventSubmission => [EventSubmission::class, ['submitter_type', 'submitter_id'], 'submitted_at'],
-            ShareOutcomeType::EventSave => [Bookmark::class, ['bookmarker_type', 'bookmarker_id'], 'bookmarked_at'],
-            ShareOutcomeType::EventGoing => [Response::class, ['responder_type', 'responder_id'], 'responded_at'],
-            ShareOutcomeType::InstitutionFollow,
-            ShareOutcomeType::PersonFollow,
-            ShareOutcomeType::SeriesFollow,
-            ShareOutcomeType::ReferenceFollow => [Follow::class, ['follower_type', 'follower_id'], 'followed_at'],
+            default => throw new LogicException('Engagement outcomes are resolved through the engagement reader.'),
         };
 
         $query = $modelClass::query()
@@ -384,8 +520,21 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
      */
     private function fraudStatusFor(Model $source, array $metadata): RewardSourceFraudStatus
     {
-        $value = $this->stringAttribute($source, 'fraud_status') ?? $this->scalarString($metadata['fraud_status'] ?? null);
+        return $this->fraudStatus(
+            $this->stringAttribute($source, 'fraud_status') ?? $this->scalarString($metadata['fraud_status'] ?? null),
+        );
+    }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    private function metadataFraudStatus(array $metadata): RewardSourceFraudStatus
+    {
+        return $this->fraudStatus($this->scalarString($metadata['fraud_status'] ?? null));
+    }
+
+    private function fraudStatus(?string $value): RewardSourceFraudStatus
+    {
         return match ($value) {
             'confirmed' => RewardSourceFraudStatus::Confirmed,
             'detected', 'reviewed', 'suspect' => RewardSourceFraudStatus::Suspect,
@@ -401,6 +550,14 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         $value = $this->attribute($source, $key) ?? ($metadata[$key] ?? false);
 
         return in_array($value, [true, 1, '1'], true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    private function metadataBoolean(array $metadata, string $key): bool
+    {
+        return in_array($metadata[$key] ?? false, [true, 1, '1'], true);
     }
 
     private function stringAttribute(Model $source, string $attribute): ?string

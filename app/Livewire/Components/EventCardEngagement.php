@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Components;
 
-use AIArmada\Engagement\Models\Bookmark;
 use App\Livewire\Concerns\TogglesEventGoing;
 use App\Livewire\Concerns\TogglesEventSave;
 use App\Models\Event;
@@ -107,12 +106,13 @@ class EventCardEngagement extends Component
             return;
         }
 
-        $this->isSaved = Bookmark::forBookmarker($user)
-            ->where('bookmarkable_type', (new Event)->getMorphClass())
-            ->where('bookmarkable_id', $this->eventId)
-            ->active()
-            ->exists();
-        $this->isGoing = app(EngagementReader::class)->isGoingToEvent(
+        $reader = app(EngagementReader::class);
+
+        $this->isSaved = $reader->hasSavedEvent(
+            (string) $user->getKey(),
+            $this->eventId,
+        );
+        $this->isGoing = $reader->isGoingToEvent(
             (string) $user->getKey(),
             $this->eventId,
         );

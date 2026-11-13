@@ -3,7 +3,6 @@
 namespace App\Services\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationManager;
-use AIArmada\Engagement\Models\Follow;
 use AIArmada\Events\Models\EventSubmission;
 use App\Enums\EventChangeSeverity;
 use App\Enums\NotificationCadence;
@@ -16,10 +15,14 @@ use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\Registration;
+use App\Models\Series;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\EventSearchService;
+use App\Shared\Engagement\EngagementReader;
+use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Support\Authz\MemberPermissionGate;
@@ -551,8 +554,6 @@ class EventNotificationService
 
     protected function notifyFollowedContentPublication(Event $event): void
     {
-        $event->loadMissing('personKeyPeople.person.follows.follower');
-
         $this->dispatchFollowedEntityNotifications(
             trigger: NotificationTrigger::FollowedPersonEvent,
             event: $event,
@@ -565,7 +566,6 @@ class EventNotificationService
         );
 
         if ($event->institution !== null) {
-            $event->loadMissing('institution.follows.follower');
             $this->dispatchFollowedEntityNotifications(
                 trigger: NotificationTrigger::FollowedInstitutionEvent,
                 event: $event,
@@ -577,12 +577,11 @@ class EventNotificationService
         $this->dispatchFollowedEntityNotifications(
             trigger: NotificationTrigger::FollowedSeriesEvent,
             event: $event,
-            followables: $event->series()->with('follows.follower')->get(),
+            followables: $event->series()->get(),
             labelResolver: static fn (mixed $series): ?string => $series?->title,
         );
 
         $references = $event->references()
-            ->with('follows.follower')
             ->get()
             ->unique('id')
             ->values();
@@ -663,24 +662,37 @@ class EventNotificationService
         callable $labelResolver,
     ): void {
         $users = [];
+        $engagementReader = app(EngagementReader::class);
 
         foreach ($followables as $followable) {
-            $labels = [];
-
-            if (! method_exists($followable, 'follows')) {
+            if (! $followable instanceof Person
+                && ! $followable instanceof Institution
+                && ! $followable instanceof Reference
+                && ! $followable instanceof Series) {
                 continue;
             }
 
-            $followers = $followable->follows()
-                ->active()
-                ->with('follower')
-                ->get()
-                ->map(static fn (Follow $follow): ?User => $follow->follower instanceof User ? $follow->follower : null)
-                ->filter(static fn (?User $follower): bool => $follower instanceof User);
+            $subjectType = match (true) {
+                $followable instanceof Person => EngagementSubjectType::Person,
+                $followable instanceof Institution => EngagementSubjectType::Institution,
+                $followable instanceof Reference => EngagementSubjectType::Reference,
+                $followable instanceof Series => EngagementSubjectType::Series,
+            };
+
+            $followerIds = $engagementReader->followerAccountIds(
+                $subjectType,
+                (string) $followable->getKey(),
+            );
+
+            if ($followerIds === []) {
+                continue;
+            }
+
+            $label = $labelResolver($followable);
+            $followers = User::query()->whereKey($followerIds)->get();
 
             foreach ($followers as $follower) {
                 $users[$follower->id]['user'] = $follower;
-                $label = $labelResolver($followable);
 
                 if (is_string($label) && $label !== '') {
                     $users[$follower->id]['labels'][$label] = $label;
