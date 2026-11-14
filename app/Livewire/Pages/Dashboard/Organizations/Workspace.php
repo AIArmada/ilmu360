@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Dashboard\Organizations;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Membership\Api\MembershipCommands;

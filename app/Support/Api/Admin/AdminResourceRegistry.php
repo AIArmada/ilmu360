@@ -6,7 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use AIArmada\FilamentAddressing\Resources\AddressCountryResource;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Data\Api\Event\EventPayloadData;
 use App\Filament\Resources\Persons\PersonResource;

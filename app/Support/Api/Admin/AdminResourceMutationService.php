@@ -13,7 +13,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;

@@ -5,7 +5,7 @@ namespace App\Livewire\Pages\SubmitEvent;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;

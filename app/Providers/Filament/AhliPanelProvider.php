@@ -10,6 +10,7 @@ use AIArmada\FilamentOrganizations\FilamentOrganizationsPlugin;
 use AIArmada\FilamentPersons\FilamentPersonsPlugin;
 use AIArmada\FilamentSignals\Concerns\TracksSignalsPanel;
 use App\Filament\Pages\AhliDashboard;
+use App\Filament\Resources\Events\EventResource;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -49,6 +50,7 @@ class AhliPanelProvider extends PanelProvider
             ->font('Outfit')
             ->maxContentWidth('full')
             ->discoverResources(in: app_path('Filament/Ahli/Resources'), for: 'App\Filament\Ahli\Resources')
+            ->resources([EventResource::class])
             ->discoverWidgets(in: app_path('Filament/Ahli/Widgets'), for: 'App\Filament\Ahli\Widgets')
             ->plugins([
                 FilamentEventsPlugin::make(),

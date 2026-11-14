@@ -1,9 +1,9 @@
 <?php
 
-use AIArmada\FilamentEvents\Resources\EventResource\Pages\EditEvent;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Filament\Pages\AdminDashboard;
 use App\Filament\Pages\ModerationQueue;
+use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
@@ -150,7 +150,7 @@ it('renders the admin event edit page without missing dashboard navigation route
     $event = Event::factory()->create(['status' => Draft::class]);
 
     $this->actingAs($administrator)
-        ->get(EditEvent::getUrl(['record' => $event->getKey()], panel: 'admin'))
+        ->get(EventResource::getUrl('edit', ['record' => $event], panel: 'admin'))
         ->assertSuccessful();
 });
 

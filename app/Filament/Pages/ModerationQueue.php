@@ -4,7 +4,7 @@ namespace App\Filament\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\EventEscalationType;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Actions\Events\Submission\ModerateEventOccurrenceSubmissionAction;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Reports\Api\ReportReader;

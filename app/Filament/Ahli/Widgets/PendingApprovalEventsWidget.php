@@ -3,7 +3,7 @@
 namespace App\Filament\Ahli\Widgets;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;

@@ -9,7 +9,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use AIArmada\Seating\Enums\SeatingMode;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Shared\Events\Enums\EventFormat;

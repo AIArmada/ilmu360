@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Features\Events\Api\EventModeration;
 use App\Models\Event;
 use App\Models\User;

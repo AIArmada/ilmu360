@@ -4,7 +4,7 @@ use AIArmada\Events\Models\EventTemplate;
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
 use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\InspirationResource;

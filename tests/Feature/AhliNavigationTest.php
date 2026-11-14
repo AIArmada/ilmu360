@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource;
 use App\Filament\Pages\AhliDashboard;
 use App\Models\Institution;

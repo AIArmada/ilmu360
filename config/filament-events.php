@@ -7,7 +7,6 @@ use AIArmada\FilamentSeating\RelationManagers\SeatMapsRelationManager;
 use AIArmada\FilamentTicketing\RelationManagers\TicketTypesRelationManager;
 use App\Filament\Resources\EventOccurrences\EventOccurrenceFeaturedFormExtension;
 use App\Filament\Resources\Events\EventAdminContextFormExtension;
-use App\Filament\Resources\Events\RelationManagers\ReferencesRelationManager;
 use App\Filament\Resources\EventTerms\TermDomainMappingExtension;
 
 return [
@@ -16,7 +15,7 @@ return [
     ],
     'resources' => [
         'enabled' => [
-            'event' => true,
+            'event' => false,
             'occurrence' => true,
             'session' => true,
             'venue' => false,
@@ -38,7 +37,6 @@ return [
             TermDomainMappingExtension::class,
         ],
         'event_relation_managers' => [
-            ReferencesRelationManager::class,
             TicketTypesRelationManager::class,
             SeatMapsRelationManager::class,
         ],

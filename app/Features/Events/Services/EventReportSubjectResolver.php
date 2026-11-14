@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Support\EventModel;
 use App\Platform\Models\SlugOrUuidResolver;
@@ -109,7 +108,7 @@ final readonly class EventReportSubjectResolver implements EventReportSubjectPro
             title: filled($event->getAttribute('title')) ? (string) $event->getAttribute('title') : $fallbackTitle,
             slug: (string) $event->getAttribute('slug'),
             publicUrl: route('events.show', $event),
-            adminUrl: EventResource::getUrl('view', ['record' => $event], panel: 'admin'),
+            adminUrl: route('filament.admin.resources.events.view', ['record' => $event]),
             imageUrl: null,
         );
     }

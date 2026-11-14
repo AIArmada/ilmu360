@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Api\Admin;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Event;
 use App\Models\User;

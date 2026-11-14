@@ -741,3 +741,18 @@ Review: added `page-hero-mobile-v2.webp`, with open sky behind the headline, bod
 Review: the open-book icon now uses a symmetric path bounded by the 24×24 viewBox; the right page is no longer clipped. `npm run build` and scoped `git diff --check` pass. Playwright renders at 390px and 1440px show the complete icon, and the path bounds stay within the viewBox.
 
 Migration history: [completed stage records](agent-architecture-migration-history.md). Current plan: [agent-architecture-migration.md](agent-architecture-migration.md).
+# Plan — Events E4b EventResource hard cut (2026-11-14)
+
+- [x] Replace the package-owned Event resource registration in both panels with one app resource that preserves the current route identities.
+- [x] Route create/edit saves through the existing Events authoring adapter and supply the current form contract, including date, prayer time, and organizer.
+- [x] Remove relationship-bound event form writes and the superseded references relation manager so these values have one Events-owned write path.
+- [x] Update admin/member resource registries and active app callers to the registered resource class.
+- [x] Add regression coverage for form rendering, create/edit persistence, both-panel resource registration, and the canonical event table fields.
+- [x] Run focused serial Pest, the architecture scan, route identity checks, PHP lint, graphify, and diff checks.
+- [x] Record E4b evidence while keeping broader Documentation/MCP/admin composition and the final app-wide audit open.
+
+# Review — Events E4b admin resource hard cut
+
+The app-owned EventResource now directly defines its query, table, infolist, page list, and active relation-manager registrations. Admin and Ahli panels no longer register the package EventResource; create/edit go through SaveAdminEventAction and the Events authoring API. The app resource has no relationship-bound event writes, package-resource delegation, or `delivery_mode` table column. The retired References relation manager and its registration were deleted. No compatibility shim, legacy path, data backfill, or superseded EventResource wrapper was retained.
+
+Verification: the focused serial Pest selection passed 17/17 (178 assertions); the architecture scan reports 0 violations across 20 features; `graphify update .`, changed-file PHP lint, and `git diff --check` passed. The parallel runner failed before test execution with the Paratest WrapperRunner type error, so the same selection passed serially. Broader Documentation/MCP/admin composition and the final app-wide audit remain open.

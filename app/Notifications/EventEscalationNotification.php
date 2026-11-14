@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;

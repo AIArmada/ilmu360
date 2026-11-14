@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Api\Member;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\FilamentEvents\Resources\EventResource as AhliEventResource;
+use App\Filament\Resources\Events\EventResource as AhliEventResource;
 use AIArmada\Organizations\Models\Organization;
 use App\Data\Api\Event\EventPayloadData;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
