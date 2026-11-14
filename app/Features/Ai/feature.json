@@ -1,0 +1,16 @@
+{
+  "schema": 2,
+  "name": "Ai",
+  "owns": {
+    "table:ai_model_pricings": [
+      "App\\Features\\Ai\\Actions\\CreateAiModelPricingAction",
+      "App\\Features\\Ai\\Actions\\UpdateAiModelPricingAction",
+      "App\\Features\\Ai\\Actions\\DeleteAiModelPricingAction",
+      "App\\Features\\Ai\\Actions\\DeleteAiModelPricingsAction"
+    ],
+    "table:ai_usage_logs": [
+      "App\\Features\\Ai\\Actions\\RecordAiUsageAction",
+      "App\\Features\\Ai\\Contributors\\AiAccountLifecycleContributor"
+    ]
+  }
+}

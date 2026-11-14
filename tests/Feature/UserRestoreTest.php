@@ -26,7 +26,7 @@ use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\Models\SocialAccount;
 use App\Features\Reports\Models\Report;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Models\AiUsageLog;
+use App\Features\Ai\Models\AiUsageLog;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
 use App\Models\Event;

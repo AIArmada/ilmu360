@@ -76,7 +76,6 @@ use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Slugs\ResolvePublicSlugAction;
-use App\Ai\Listeners\RecordAiUsage;
 use App\Checkout\ShareCheckoutStepContributor;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\NullCaptchaVerifier;
@@ -91,7 +90,6 @@ use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
 use App\Listeners\ShareTracking\ReverseScheduleCancellationShareOutcome;
 use App\Models\Affiliation;
-use App\Models\AiModelPricing;
 use App\Models\Audit as FilamentAudit;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
@@ -208,6 +206,7 @@ use App\Shared\Discovery\SearchFilterRules;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\Events\AccountEventFacts;
+use App\Shared\Language\LanguageCatalog;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Membership\MembershipApplicationReader;
 use App\Shared\Membership\MembershipPermissionEvaluator;
@@ -224,10 +223,10 @@ use App\Shared\ShareTracking\SavedSearchShareOutcomes;
 use App\Shared\ShareTracking\SignupRecorder;
 use App\Shared\Signals\SignalRecorder;
 use App\Shared\Time\UserDateTimeFormatting;
-use App\Support\Ai\AiAccountLifecycleContributor;
 use App\Support\Api\Admin\AdminValidateOnlyRemediationEnricher;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\SignupAttributionContextResolverAdapter;
+use App\Support\Language\DatabaseLanguageCatalog;
 use App\Support\Authz\EloquentScopedMembershipRoleStore;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Directory\DirectoryAccountLifecycleContributor;
@@ -297,13 +296,6 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Laravel\Ai\Events\AgentPrompted;
-use Laravel\Ai\Events\AgentStreamed;
-use Laravel\Ai\Events\AudioGenerated;
-use Laravel\Ai\Events\EmbeddingsGenerated;
-use Laravel\Ai\Events\ImageGenerated;
-use Laravel\Ai\Events\Reranked;
-use Laravel\Ai\Events\TranscriptionGenerated;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController as McpOAuthRegisterController;
 use Laravel\Passport\Passport;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -342,6 +334,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(AccountAccess::class, EloquentAccountAccess::class);
         $this->app->bind(AccountDirectory::class, EloquentAccountDirectory::class);
+        $this->app->bind(LanguageCatalog::class, DatabaseLanguageCatalog::class);
         $this->app->bind(AccountSettingsStore::class, EloquentAccountSettingsStore::class);
         $this->app->bind(SignupAttributionContextResolver::class, SignupAttributionContextResolverAdapter::class);
         $this->app->bind(GuestClaims::class, GuestClaimLookup::class);
@@ -374,7 +367,6 @@ class AppServiceProvider extends ServiceProvider
             DirectoryAccountLifecycleContributor::class,
             ModerationAccountLifecycleContributor::class,
             EngagementAccountLifecycleContributor::class,
-            AiAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
 
         $this->app->bind(ReportEscalation::class, GlobalReportEscalation::class);
@@ -543,18 +535,6 @@ class AppServiceProvider extends ServiceProvider
             app()->instance('share.schedule_reversal.listeners.registered', true);
         }
 
-        if (! app()->bound('ai.usage.listeners.registered')) {
-            EventFacade::listen(AgentPrompted::class, [RecordAiUsage::class, 'handle']);
-            EventFacade::listen(AgentStreamed::class, [RecordAiUsage::class, 'handle']);
-            EventFacade::listen(ImageGenerated::class, [RecordAiUsage::class, 'handle']);
-            EventFacade::listen(TranscriptionGenerated::class, [RecordAiUsage::class, 'handle']);
-            EventFacade::listen(EmbeddingsGenerated::class, [RecordAiUsage::class, 'handle']);
-            EventFacade::listen(Reranked::class, [RecordAiUsage::class, 'handle']);
-            EventFacade::listen(AudioGenerated::class, [RecordAiUsage::class, 'handle']);
-
-            app()->instance('ai.usage.listeners.registered', true);
-        }
-
         if (! self::$languageSwitchConfigured) {
             LanguageSwitch::configureUsing(function (LanguageSwitch $switch): void {
                 $switch->locales(['en', 'ms', 'id', 'ar', 'jv', 'ta', 'zh']);
@@ -577,7 +557,6 @@ class AppServiceProvider extends ServiceProvider
         Relation::morphMap([
             'address' => Address::class,
 
-            'ai_model_pricing' => AiModelPricing::class,
             'contact' => ContactMethod::class,
             'customer' => Customer::class,
             'user' => User::class,

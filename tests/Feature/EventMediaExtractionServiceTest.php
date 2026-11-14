@@ -1,7 +1,8 @@
 <?php
 
 use App\Livewire\Pages\SubmitEvent\Create;
-use App\Services\Ai\EventMediaExtractionService;
+use App\Features\Events\Api\EventMediaExtractionSource;
+use App\Features\Events\Services\EventMediaExtractionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -9,6 +10,21 @@ use Livewire\Livewire;
 beforeEach(function () {
     config()->set('ai.providers.openai.key', 'test-key');
 });
+
+function sourceForEventMediaExtraction(UploadedFile $file): EventMediaExtractionSource
+{
+    $content = $file->get();
+
+    if (! is_string($content)) {
+        throw new RuntimeException('The uploaded event media could not be read.');
+    }
+
+    return new EventMediaExtractionSource(
+        content: $content,
+        mimeType: (string) $file->getMimeType(),
+        fileName: $file->getClientOriginalName(),
+    );
+}
 
 /**
  * @return array<string, mixed>
@@ -57,7 +73,9 @@ it('sends livewire image uploads with the detected mime type', function () {
     expect($file->getClientMimeType())->toBe('application/octet-stream')
         ->and($file->getMimeType())->toBe('image/jpeg');
 
-    $payload = app(EventMediaExtractionService::class)->extract($file);
+    $payload = app(EventMediaExtractionService::class)
+        ->extract(sourceForEventMediaExtraction($file))
+        ->toArray();
 
     expect($payload['title'])->toBe('Majlis Ilmu');
 
@@ -87,7 +105,7 @@ it('sends livewire pdf uploads with the detected mime type', function () {
 
     expect($file->getMimeType())->toBe('application/pdf');
 
-    app(EventMediaExtractionService::class)->extract($file);
+    app(EventMediaExtractionService::class)->extract(sourceForEventMediaExtraction($file));
 
     $request = Http::recorded()[0][0] ?? null;
 

@@ -7,7 +7,8 @@ use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Services\Ai\EventMediaExtractionService;
+use App\Features\Events\Api\EventMediaExtraction;
+use App\Features\Events\Api\EventMediaExtractionResult;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\UploadedFile;
@@ -30,10 +31,10 @@ it('extracts media data with AI and moves the wizard to review step', function (
     $disciplineTag = submitEventTerm('discipline');
     $issueTag = submitEventTerm('issue');
 
-    $this->mock(EventMediaExtractionService::class, function (MockInterface $mock) use ($domainTag, $sourceTag, $disciplineTag, $issueTag): void {
+    $this->mock(EventMediaExtraction::class, function (MockInterface $mock) use ($domainTag, $sourceTag, $disciplineTag, $issueTag): void {
         $mock->shouldReceive('extract')
             ->once()
-            ->andReturn([
+            ->andReturn(new EventMediaExtractionResult([
                 'title' => 'Daurah Fiqh Keluarga',
                 'description' => 'Kupasan berkaitan fiqh keluarga semasa.',
                 'event_date' => now()->addDays(7)->toDateString(),
@@ -52,7 +53,7 @@ it('extracts media data with AI and moves the wizard to review step', function (
                 'source_tags' => [$sourceTag->id],
                 'discipline_tags' => [(string) $disciplineTag->id],
                 'issue_tags' => [(string) $issueTag->id],
-            ]);
+            ]));
     });
 
     $component = setSubmitEventFormState(Livewire::test(Create::class), [
@@ -93,7 +94,7 @@ it('extracts media data with AI and moves the wizard to review step', function (
 });
 
 it('rejects unsupported files before calling AI extraction', function () {
-    $this->mock(EventMediaExtractionService::class, function (MockInterface $mock): void {
+    $this->mock(EventMediaExtraction::class, function (MockInterface $mock): void {
         $mock->shouldNotReceive('extract');
     });
 

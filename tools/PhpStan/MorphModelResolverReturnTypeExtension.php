@@ -17,9 +17,9 @@ use PHPStan\Type\TypeCombinator;
 /**
  * Types literal morph-alias resolution at the call site.
  *
- * The runtime map lives in AppServiceProvider::boot(); this analysis-only map
- * mirrors it so Builder/model generics survive helper classes that resolve
- * feature-owned models through their stable morph aliases.
+ * Runtime maps live in application and feature service providers; this
+ * analysis-only map mirrors them so Builder/model generics survive helper
+ * classes that resolve feature-owned models through stable morph aliases.
  */
 final class MorphModelResolverReturnTypeExtension implements DynamicStaticMethodReturnTypeExtension
 {
@@ -28,7 +28,7 @@ final class MorphModelResolverReturnTypeExtension implements DynamicStaticMethod
      */
     public const MORPH_MODELS = [
         'address' => \AIArmada\Addressing\Models\Address::class,
-        'ai_model_pricing' => \App\Models\AiModelPricing::class,
+        'ai_model_pricing' => \App\Features\Ai\Models\AiModelPricing::class,
         'contact' => \AIArmada\Contacting\Models\ContactMethod::class,
         'customer' => \AIArmada\Customers\Models\Customer::class,
         'user' => \App\Models\User::class,

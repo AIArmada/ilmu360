@@ -53,6 +53,16 @@ return [
         ],
     ],
 
+    'media_extraction' => [
+        'max_file_size_kb' => (int) env('AI_EVENT_MEDIA_EXTRACTION_MAX_FILE_SIZE_KB', 10240),
+        'accepted_mime_types' => [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ],
+    ],
+
     'features' => [
         'auto_issue_passes' => env('EVENTS_AUTO_ISSUE_PASSES', true),
         'auto_allocate_seats' => env('EVENTS_AUTO_ALLOCATE_SEATS', true),

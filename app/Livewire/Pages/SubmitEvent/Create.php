@@ -11,6 +11,8 @@ use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
 use App\Data\Events\SubmitEventFormContext;
 use App\Enums\TaxonomyTerm\DomainTermCode;
+use App\Features\Events\Api\EventMediaExtraction;
+use App\Features\Events\Api\EventMediaExtractionSource;
 use App\Forms\Components\Select as InstitutionSelect;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Event;
@@ -20,7 +22,6 @@ use App\Models\Language;
 use App\Models\User;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
-use App\Services\Ai\EventMediaExtractionService;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -348,12 +349,12 @@ class Create extends Component implements HasActions, HasForms
         return $this->scopedInstitution() instanceof Institution;
     }
 
-    public function extractEventFromMedia(EventMediaExtractionService $eventMediaExtractionService): void
+    public function extractEventFromMedia(EventMediaExtraction $eventMediaExtraction): void
     {
         $this->assertSubmissionNotRateLimited('extract', 'event_source_attachment');
 
-        $maxFileSizeKb = (int) config('ai.features.event_media_extraction.max_file_size_kb', 10240);
-        $acceptedMimeTypes = config('ai.features.event_media_extraction.accepted_mime_types', [
+        $maxFileSizeKb = (int) config('events.media_extraction.max_file_size_kb', 10240);
+        $acceptedMimeTypes = config('events.media_extraction.accepted_mime_types', [
             'application/pdf',
             'image/jpeg',
             'image/png',
@@ -391,7 +392,19 @@ class Create extends Component implements HasActions, HasForms
         $file = $validated['event_source_attachment'];
 
         try {
-            $extractedState = $eventMediaExtractionService->extract($file);
+            $content = $file->get();
+
+            if (! is_string($content)) {
+                throw new RuntimeException('The uploaded event media could not be read.');
+            }
+
+            $source = new EventMediaExtractionSource(
+                content: $content,
+                mimeType: (string) $file->getMimeType(),
+                fileName: $file->getClientOriginalName(),
+            );
+
+            $extractedState = $eventMediaExtraction->extract($source)->toArray();
         } catch (Throwable $exception) {
             report($exception);
 

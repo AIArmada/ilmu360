@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Ai\EntryPoints\Filament\Resources\AiUsageLogs\Pages;
+
+use App\Features\Ai\EntryPoints\Filament\Resources\AiUsageLogs\AiUsageLogResource;
+use Filament\Resources\Pages\ListRecords;
+
+class ListAiUsageLogs extends ListRecords
+{
+    #[\Override]
+    protected static string $resource = AiUsageLogResource::class;
+
+    #[\Override]
+    protected function getHeaderActions(): array
+    {
+        return [];
+    }
+}

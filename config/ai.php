@@ -133,20 +133,6 @@ return [
         'event_media_extraction' => [
             'provider' => env('AI_EVENT_MEDIA_EXTRACTION_PROVIDER', 'openai'),
             'model' => env('AI_EVENT_MEDIA_EXTRACTION_MODEL'),
-            'max_file_size_kb' => (int) env('AI_EVENT_MEDIA_EXTRACTION_MAX_FILE_SIZE_KB', 10240),
-            'accepted_mime_types' => [
-                'application/pdf',
-                'image/jpeg',
-                'image/png',
-                'image/webp',
-            ],
-        ],
-        'event_cover_generation' => [
-            'provider' => env('AI_EVENT_COVER_GENERATION_PROVIDER', 'openai'),
-            'model' => env('AI_EVENT_COVER_GENERATION_MODEL', 'gpt-image-2'),
-            'quality' => env('AI_EVENT_COVER_GENERATION_QUALITY', 'low'),
-            'timeout' => (int) env('AI_EVENT_COVER_GENERATION_TIMEOUT', 120),
-            'max_reference_media' => (int) env('AI_EVENT_COVER_GENERATION_MAX_REFERENCE_MEDIA', 6),
         ],
     ],
 
@@ -179,7 +165,6 @@ return [
         'privileged_approval_threshold_usd' => (float) env('AI_PRIVILEGED_APPROVAL_THRESHOLD_USD', 10.0),
         'estimates' => [
             'event_media_extraction' => 0.05,
-            'image_generation' => 0.05,
         ],
     ],
 

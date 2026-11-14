@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\AiModelPricing;
-use App\Models\AiUsageLog;
+use App\Features\Ai\Models\AiModelPricing;
+use App\Features\Ai\Models\AiUsageLog;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Gateway\Gateway;
 use Laravel\Ai\Contracts\Providers\EmbeddingProvider;
