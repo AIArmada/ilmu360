@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Share;
+namespace App\Features\ShareTracking\Support;
 
 /**
  * Named share metric units.

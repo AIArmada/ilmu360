@@ -2,13 +2,11 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Actions\Share\PublishCommunityReleaseAction;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction;
 use App\Models\Event;
@@ -19,7 +17,7 @@ use App\Support\Share\CommittedShareSignalProducer;
 use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
-use App\Support\ShareTracking\ShareTrackingProfile;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,29 +27,6 @@ use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 
 uses(RefreshDatabase::class);
-
-function deliveryAffiliate(string $code, array $overrides = []): Affiliate
-{
-    return Affiliate::query()->create(array_merge([
-        'code' => $code,
-        'handle' => $code,
-        'name' => 'Delivery test affiliate',
-        'status' => 'active',
-    ], $overrides));
-}
-
-function deliveryConversion(Affiliate $affiliate, array $overrides = []): AffiliateConversion
-{
-    return AffiliateConversion::query()->create(array_merge([
-        'affiliate_id' => $affiliate->getKey(),
-        'affiliate_code' => $affiliate->code,
-        'commission_currency' => 'MYR',
-        'status' => 'approved',
-        'channel' => 'link',
-        'conversion_type' => 'event_checkin',
-        'occurred_at' => CarbonImmutable::parse('2026-05-10T00:00:00Z'),
-    ], $overrides));
-}
 
 function deliveryCommittedShare(object $testCase, User $user, CarbonImmutable $at): AffiliateTouchpoint
 {
@@ -181,7 +156,8 @@ it('reports cohorts with fixed maturity, pending unknowns, and fraud separation'
     // This pins delivery-surface maturity/pending behavior.
     config(['share-tracking.reporting.reporting_start' => '2026-01-01']);
 
-    User::factory()->create(['created_at' => CarbonImmutable::parse('2026-04-06T00:00:00Z')]);
+    $oldWeekStart = CarbonImmutable::now('UTC')->startOfWeek()->subWeeks(8);
+    User::factory()->create(['created_at' => $oldWeekStart]);
     User::factory()->create(['created_at' => CarbonImmutable::now('UTC')->startOfWeek()->addDay()]);
 
     $summary = (new ShareCohortAuthority)->summarize(CarbonImmutable::now('UTC'), 30);
@@ -189,7 +165,7 @@ it('reports cohorts with fixed maturity, pending unknowns, and fraud separation'
     expect($summary['status'])->toBe('active')
         ->and($summary['maturity_days'])->toBe(30);
 
-    $oldWeek = collect($summary['cohorts'])->firstWhere('cohort_week', '2026-04-06');
+    $oldWeek = collect($summary['cohorts'])->firstWhere('cohort_week', $oldWeekStart->toDateString());
 
     expect($oldWeek['mature'])->toBeTrue()
         ->and($oldWeek['denominator'])->toBe(1)
@@ -213,6 +189,12 @@ it('reports cohorts with fixed maturity, pending unknowns, and fraud separation'
 it('plans one digest slot per recipient day and dispatches after recheck', function () {
     $user = User::factory()->create();
 
+    app(AccountNotificationPreferences::class)->save((string) $user->getKey(), [
+        'settings' => [],
+        'families' => ['sharing' => ['enabled' => true, 'cadence' => 'daily']],
+        'triggers' => ['share_gratitude_digest' => ['enabled' => true]],
+    ]);
+
     $slot = PlanRewardGratitudeDigestAction::run('user', (string) $user->getKey());
 
     expect($slot->status)->toBe(RewardDigestSlot::STATUS_PLANNED)
@@ -231,53 +213,6 @@ it('plans one digest slot per recipient day and dispatches after recheck', funct
 
     expect($outcome['cancelled'])->toBe(1)
         ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_CANCELLED);
-});
-
-it('publishes community releases behind dual thresholds with suppression', function () {
-    setPermissionsTeamId(null);
-    $this->seed(RoleSeeder::class);
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-    $affiliate = deliveryAffiliate('community-aff-1', [
-        'metadata' => ShareTrackingProfile::memberMetadata(),
-    ]);
-    $staff = User::factory()->create();
-    $staff->assignRole('admin');
-
-    for ($i = 0; $i < 10; $i++) {
-        deliveryConversion($affiliate, [
-            'sharer_user_id' => (string) User::factory()->create()->getKey(),
-            'actor_user_id' => (string) User::factory()->create()->getKey(),
-            'status' => 'approved',
-            'channel' => 'link',
-            'conversion_type' => 'event_checkin',
-            'occurred_at' => CarbonImmutable::parse('2026-05-10T00:00:00Z'),
-        ]);
-    }
-
-    // Recent months refuse: releases are delayed micro-proof-free.
-    expect(fn () => PublishCommunityReleaseAction::run(
-        '2026-05', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-06-01T00:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'at least 7 days ago');
-
-    // Sparse cells suppress; the release still publishes coarse totals.
-    $release = PublishCommunityReleaseAction::run(
-        '2026-05', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-06-10T00:00:00Z'),
-    );
-
-    expect($release->sharer_count)->toBe(10)
-        ->and($release->participant_count)->toBe(10)
-        ->and($release->cells['total_outcomes'])->toBe(10)
-        ->and($release->cells['by_channel'])->toBe(['link' => 10]);
-
-    // Below-threshold months refuse with honest insufficient-data.
-    expect(fn () => PublishCommunityReleaseAction::run(
-        '2026-04', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-06-10T00:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'Insufficient data');
-
-    // Releases are immutable.
-    expect(fn () => $release->forceFill(['sharer_count' => 99])->save())
-        ->toThrow(LogicException::class, 'immutable');
 });
 
 it('serves impact, cohort, and community endpoints with correct authorization', function () {

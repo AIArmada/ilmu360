@@ -13,7 +13,7 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Models\User;
 use App\Support\Share\ShareMetricReader;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
-use App\Support\ShareTracking\ShareTrackingProfile;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;

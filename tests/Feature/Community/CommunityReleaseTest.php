@@ -7,19 +7,23 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Actions\Share\PublishCommunityReleaseAction;
-use App\Filament\Resources\CommunityReleases\Pages\ListCommunityReleases;
-use App\Filament\Resources\CommunityReleases\Pages\ViewCommunityRelease;
-use App\Models\CommunityRelease;
+use App\Features\Community\Actions\PublishCommunityReleaseAction;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\CommunityReleaseResource;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Pages\ListCommunityReleases;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Pages\ViewCommunityRelease;
+use App\Features\Community\Models\CommunityRelease;
+use App\Features\Community\Queries\CommunityReleaseReader;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use App\Support\Share\CommunityReleaseReader;
-use App\Support\ShareTracking\ShareTrackingProfile;
+use App\Support\Api\Admin\AdminResourceRegistry;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Filament\Facades\Filament;
+use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
@@ -141,6 +145,28 @@ it('publishes a fixed month behind dual thresholds with per-cell dual gating', f
     expect(fn () => PublishCommunityReleaseAction::run(
         '2026-04', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-06-10T00:00:00Z'),
     ))->toThrow(InvalidArgumentException::class, 'Insufficient data');
+});
+
+it('keeps the delayed release gate on the Community-owned publisher', function () {
+    $affiliate = communityAffiliate('community-delivery-gate');
+    $staff = communityStaff();
+
+    for ($index = 0; $index < 10; $index++) {
+        communityCleanPair($affiliate);
+    }
+
+    expect(fn () => PublishCommunityReleaseAction::run(
+        '2026-05', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-06-01T00:00:00Z'),
+    ))->toThrow(InvalidArgumentException::class, 'at least 7 days ago');
+
+    $release = PublishCommunityReleaseAction::run(
+        '2026-05', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-06-10T00:00:00Z'),
+    );
+
+    expect($release->sharer_count)->toBe(10)
+        ->and($release->participant_count)->toBe(10)
+        ->and($release->cells['total_outcomes'])->toBe(10)
+        ->and($release->cells['by_channel'])->toBe(['link' => 10]);
 });
 
 it('refuses arbitrary ranges and verifies real publisher roles', function () {
@@ -431,7 +457,7 @@ it('serves the latest period publicly with honest states and no history surface'
         ]);
     }
 
-    // Publish June first, then backfill May: the public surface still
+    // Publish June first, then publish older May: the public surface still
     // shows the latest PERIOD, and per-month drilldown does not exist.
     PublishCommunityReleaseAction::run(
         '2026-06', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-07-10T00:00:00Z'),
@@ -537,6 +563,18 @@ it('lists, views, and publishes releases in admin', function () {
         ->test(ViewCommunityRelease::class, ['record' => $release->getKey()])
         ->assertOk()
         ->assertSee('Distinct sharers');
+});
+
+it('registers its resource with the admin panel and generic admin API', function () {
+    $admin = communityStaff();
+
+    expect(Filament::getPanel('admin')->getResources())->toContain(CommunityReleaseResource::class)
+        ->and(app(AdminResourceRegistry::class)->resources())->toContain(CommunityReleaseResource::class);
+
+    Sanctum::actingAs($admin);
+
+    $this->getJson('/api/v1/admin/manifest')->assertOk()
+        ->assertJsonFragment(['key' => 'community-releases']);
 });
 
 it('hides unknown, corrupt, staff, and purchaser rows from every proven count and cell', function () {

@@ -8,6 +8,7 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use App\Features\ShareTracking\Api\MarkedShareAffiliateIds;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Shared\ShareTracking\CommittedShareSignal;
@@ -107,7 +108,7 @@ final class ShareMetricReader
         $windowEnd = $toUtc;
 
         $affiliateIds = $sharer === null
-            ? ShareProfileScope::markedAffiliateIds()
+            ? app(MarkedShareAffiliateIds::class)->allMarkedAffiliateIds()
             : $this->memberAffiliateIds($sharer);
 
         if ($affiliateIds === [] || $windowStart->greaterThan($windowEnd)) {

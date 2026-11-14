@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Share;
+namespace App\Features\Community\Queries;
 
-use App\Models\CommunityRelease;
+use App\Features\Community\Models\CommunityRelease;
 use Carbon\CarbonImmutable;
 
 /**
@@ -20,8 +20,8 @@ final class CommunityReleaseReader
      */
     public function latest(): array
     {
-        // Latest PERIOD wins over latest publish: a backfilled older
-        // month must never displace the current release on the public
+        // Latest PERIOD wins over latest publish: a later publication of an
+        // older month must never displace the current release on the public
         // surface.
         $release = CommunityRelease::query()
             ->orderByDesc('period_end')

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace App\Features\Community\Models;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -23,9 +23,11 @@ use LogicException;
  * @property array<string, mixed> $cells
  * @property CarbonImmutable|null $published_at
  */
-class CommunityRelease extends Model
+final class CommunityRelease extends Model
 {
     use HasUuids;
+
+    protected $table = 'community_releases';
 
     #[\Override]
     protected $fillable = [
@@ -54,7 +56,7 @@ class CommunityRelease extends Model
     protected static function booted(): void
     {
         static::updating(static function (): void {
-            throw new LogicException('Community releases are immutable; publish a correcting release instead.');
+            throw new LogicException('Published community releases are immutable.');
         });
 
         static::deleting(static function (): void {

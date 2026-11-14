@@ -24,7 +24,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\Active;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Support\ShareTracking\ShareTrackingProfile;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
 use Tests\Support\RealDriverFixture;

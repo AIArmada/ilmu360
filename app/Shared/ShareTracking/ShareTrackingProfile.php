@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\ShareTracking;
+namespace App\Shared\ShareTracking;
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\States\Active;
@@ -12,8 +12,8 @@ use App\Models\User;
  * Canonical share-profile identity.
  *
  * A share-tracking profile is an Affiliate row explicitly marked through
- * metadata. The marker is the only adoption signal: profile codes, names,
- * descriptions and legacy metadata keys are never read for ownership.
+ * metadata. The marker is the only adoption signal; profile codes, names and
+ * descriptions do not determine ownership.
  */
 final class ShareTrackingProfile
 {

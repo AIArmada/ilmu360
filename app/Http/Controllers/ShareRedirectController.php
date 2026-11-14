@@ -10,7 +10,7 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
 use App\Services\ShareTracking\ShareTrackingUrlService;
 use App\Support\ShareTracking\ShareDestinationPolicy;
-use App\Support\ShareTracking\ShareTrackingProfile;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 

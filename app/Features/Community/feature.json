@@ -1,0 +1,9 @@
+{
+  "schema": 2,
+  "name": "Community",
+  "owns": {
+    "table:community_releases": [
+      "App\\Features\\Community\\Actions\\PublishCommunityReleaseAction"
+    ]
+  }
+}

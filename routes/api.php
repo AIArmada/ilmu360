@@ -120,7 +120,6 @@ Route::prefix('v1')->group(function () {
         ->middleware('throttle:registration')
         ->name('api.events.registrations.store');
 
-    Route::get('/community/release', [RewardInsightController::class, 'community'])->name('community.release.show');
 });
 
 // Authenticated API endpoints

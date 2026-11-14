@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Resources\CommunityReleases\Pages;
+namespace App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Pages;
 
-use App\Filament\Resources\CommunityReleases\CommunityReleaseResource;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\CommunityReleaseResource;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewCommunityRelease extends ViewRecord

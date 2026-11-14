@@ -22,7 +22,7 @@ use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Auth\SignupAttributionContext;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use App\Support\Share\ShareProfileScope;
-use App\Support\ShareTracking\ShareTrackingProfile;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 

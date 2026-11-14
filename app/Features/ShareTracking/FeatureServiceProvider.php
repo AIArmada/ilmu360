@@ -11,13 +11,17 @@ use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\GuestShareClaims;
+use App\Features\ShareTracking\Api\MarkedShareAffiliateIds;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
+use App\Features\ShareTracking\Api\ShareOutcomeEvidenceReader;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
+use App\Features\ShareTracking\Queries\DatabaseMarkedShareAffiliateIds;
 use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
+use App\Features\ShareTracking\Queries\DatabaseShareOutcomeEvidenceReader;
 use App\Platform\FeatureModule;
 
 /**
@@ -72,6 +76,10 @@ use App\Platform\FeatureModule;
  * `Persistence\DatabaseSourceReceiptReader` exposes the ordered share-outcome
  * business keys in an inclusive receipt window for the Rewards preclaim
  * backfill, so that feature no longer imports the receipt model or table.
+ * Community uses `Api\ShareOutcomeEvidenceReader` for aggregate qualified
+ * evidence; the immutable result contains only counts and cells. Registration
+ * purchaser facts are resolved through Registration's public value API. The
+ * Signals cohort projection remains separate and is not release evidence.
  *
  * Must stay root (documented here so later slices do not absorb them): HTTP,
  * Livewire and route entrypoints; DTOs; analytics readers; observers;
@@ -89,7 +97,9 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(CommittedShareSignals::class, DrainCommittedShareSignalsAction::class);
         $this->app->bind(EffectReceipts::class, DatabaseEffectReceipts::class);
         $this->app->bind(GuestShareClaims::class, ClaimGuestProfileAction::class);
+        $this->app->bind(MarkedShareAffiliateIds::class, DatabaseMarkedShareAffiliateIds::class);
         $this->app->bind(OutcomeCorrections::class, DatabaseOutcomeCorrections::class);
+        $this->app->bind(ShareOutcomeEvidenceReader::class, DatabaseShareOutcomeEvidenceReader::class);
         $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
         $this->app->bind(SourceReceiptReader::class, DatabaseSourceReceiptReader::class);
     }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Support\Share\CommunityReleaseReader;
 use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
 use Carbon\CarbonImmutable;
@@ -14,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 
-#[Group('Rewards', 'Private impact metrics, cohort authority, and public community releases.')]
+#[Group('Rewards', 'Private impact and cohort metrics.')]
 class RewardInsightController extends FrontendController
 {
     #[Endpoint(title: 'Get your reward impact summary')]
@@ -65,9 +64,4 @@ class RewardInsightController extends FrontendController
         return response()->json(['data' => $summary]);
     }
 
-    #[Endpoint(title: 'Get the latest public community release')]
-    public function community(CommunityReleaseReader $reader): JsonResponse
-    {
-        return response()->json(['data' => $reader->latest()]);
-    }
 }

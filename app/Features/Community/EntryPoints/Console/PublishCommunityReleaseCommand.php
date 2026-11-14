@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Features\Community\EntryPoints\Console;
 
-use App\Actions\Share\PublishCommunityReleaseAction;
+use App\Features\Community\Actions\PublishCommunityReleaseAction;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;

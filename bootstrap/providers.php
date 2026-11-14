@@ -5,6 +5,7 @@ declare(strict_types=1);
 use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
 use App\Features\Ai\FeatureServiceProvider as AiServiceProvider;
+use App\Features\Community\FeatureServiceProvider as CommunityServiceProvider;
 use App\Features\Communications\FeatureServiceProvider as CommunicationsServiceProvider;
 use App\Features\Contributions\FeatureServiceProvider as ContributionsServiceProvider;
 use App\Features\Directory\FeatureServiceProvider as DirectoryServiceProvider;
@@ -43,6 +44,7 @@ return [
     AiServiceProvider::class,
     ApiDocumentationServiceProvider::class,
     AppServiceProvider::class,
+    CommunityServiceProvider::class,
     CommunicationsServiceProvider::class,
     ContributionsServiceProvider::class,
     DirectoryServiceProvider::class,

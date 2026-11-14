@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Policies;
+namespace App\Features\Community\Policies;
 
-use App\Models\CommunityRelease;
-use App\Models\User;
+use App\Features\Community\Models\CommunityRelease;
+use App\Shared\Auth\AccountActor;
 
 /**
  * Community release authorization, separately tiered:
@@ -16,20 +16,20 @@ use App\Models\User;
  * - Guests and members use the public latest-release endpoint, which
  *   needs no policy (coarse aggregates or honest insufficient-data).
  */
-class CommunityReleasePolicy
+final class CommunityReleasePolicy
 {
-    public function viewAny(?User $user): bool
+    public function viewAny(?AccountActor $user): bool
     {
-        return $user instanceof User
+        return $user instanceof AccountActor
             && $user->hasAnyRole(['super_admin', 'admin', 'moderator', 'editor', 'viewer']);
     }
 
-    public function view(?User $user, CommunityRelease $release): bool
+    public function view(?AccountActor $user, CommunityRelease $release): bool
     {
         return $this->viewAny($user);
     }
 
-    public function publish(User $user): bool
+    public function publish(AccountActor $user): bool
     {
         return $user->hasAnyRole(['super_admin', 'admin']);
     }

@@ -16,7 +16,7 @@ use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Share\ShareMetricReader;
 use App\Support\Share\ShareProfileScope;
-use App\Support\ShareTracking\ShareTrackingProfile;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 

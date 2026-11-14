@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Resources\CommunityReleases\Tables;
+namespace App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Tables;
 
-use App\Filament\Resources\CommunityReleases\CommunityReleaseResource;
-use App\Models\CommunityRelease;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\CommunityReleaseResource;
+use App\Features\Community\Models\CommunityRelease;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;

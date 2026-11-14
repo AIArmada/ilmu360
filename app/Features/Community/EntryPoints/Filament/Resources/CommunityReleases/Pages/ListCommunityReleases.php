@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Resources\CommunityReleases\Pages;
+namespace App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Pages;
 
-use App\Actions\Share\PublishCommunityReleaseAction;
-use App\Filament\Resources\CommunityReleases\CommunityReleaseResource;
-use App\Models\CommunityRelease;
+use App\Features\Community\Actions\PublishCommunityReleaseAction;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\CommunityReleaseResource;
+use App\Features\Community\Models\CommunityRelease;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;

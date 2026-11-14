@@ -7,12 +7,11 @@ use App\Services\ShareTracking\AdminShareAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\ShareTracking\ShareTrackingRetention;
-use App\Support\Share\CommunityReleaseReader;
 use App\Support\Share\ShareCohortAuthority;
-use App\Support\Share\ShareMetricDefinitions;
 use App\Support\Share\ShareMetricReader;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
+use App\Features\ShareTracking\Support\ShareMetricDefinitions;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -31,7 +30,6 @@ it('keeps the analytics readers as documented root adapters', function (string $
     'measurement contract' => [ShareTrackingMeasurement::class, 'app/Support/ShareTracking/ShareTrackingMeasurement.php'],
     'profile scope' => [ShareProfileScope::class, 'app/Support/Share/ShareProfileScope.php'],
     'cohort authority' => [ShareCohortAuthority::class, 'app/Support/Share/ShareCohortAuthority.php'],
-    'community releases' => [CommunityReleaseReader::class, 'app/Support/Share/CommunityReleaseReader.php'],
 ]);
 
 it('keeps every named metric unit distinct and versioned', function (): void {

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Resources\CommunityReleases;
+namespace App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases;
 
-use App\Filament\Resources\CommunityReleases\Pages\ListCommunityReleases;
-use App\Filament\Resources\CommunityReleases\Pages\ViewCommunityRelease;
-use App\Filament\Resources\CommunityReleases\Schemas\CommunityReleaseInfolist;
-use App\Filament\Resources\CommunityReleases\Tables\CommunityReleasesTable;
-use App\Models\CommunityRelease;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Pages\ListCommunityReleases;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Pages\ViewCommunityRelease;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Schemas\CommunityReleaseInfolist;
+use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Tables\CommunityReleasesTable;
+use App\Features\Community\Models\CommunityRelease;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
