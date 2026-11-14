@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use App\Platform\Http\FrontendController;
 use App\Enums\MemberSubjectType;
 use App\Support\Api\Frontend\FrontendFormContractService;
 use Dedoc\Scramble\Attributes\Endpoint;

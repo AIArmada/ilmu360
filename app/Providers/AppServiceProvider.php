@@ -50,27 +50,8 @@ use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
 use AIArmada\References\Models\ReferenceContributor;
-use AIArmada\Rewards\Contracts\RewardBenefitCatalog;
-use AIArmada\Rewards\Contracts\RewardBenefitCouponFulfillment;
 use AIArmada\Rewards\Contracts\RewardCorrectionKeySource;
-use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
-use AIArmada\Rewards\Contracts\RewardGratitudePlanner;
-use AIArmada\Rewards\Contracts\RewardReadinessChecker;
-use AIArmada\Rewards\Contracts\RewardReservationResolver;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
-use AIArmada\Rewards\Models\RewardAppeal;
-use AIArmada\Rewards\Models\RewardAward;
-use AIArmada\Rewards\Models\RewardBenefitGrant;
-use AIArmada\Rewards\Models\RewardBenefitItem;
-use AIArmada\Rewards\Models\RewardFundingEntry;
-use AIArmada\Rewards\Models\RewardPayee;
-use AIArmada\Rewards\Models\RewardPayoutRequest;
-use AIArmada\Rewards\Models\RewardProgram;
-use AIArmada\Rewards\Models\RewardRecovery;
-use AIArmada\Rewards\Support\FundedRewardFinancialReadinessChecker;
-use AIArmada\Rewards\Support\FundedRewardReadinessChecker;
-use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
-use AIArmada\Rewards\Support\RewardBenefitCatalogService;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
@@ -86,6 +67,7 @@ use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
+use App\Features\ShareTracking\Api\ShareAnalytics;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
 use App\Listeners\ShareTracking\ReverseScheduleCancellationShareOutcome;
@@ -167,15 +149,6 @@ use App\Policies\AddressCountryPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\FilamentAuditPolicy;
 use App\Policies\RegistrationPolicy;
-use App\Policies\RewardAppealPolicy;
-use App\Policies\RewardAwardPolicy;
-use App\Policies\RewardBenefitGrantPolicy;
-use App\Policies\RewardBenefitItemPolicy;
-use App\Policies\RewardFundingEntryPolicy;
-use App\Policies\RewardPayeePolicy;
-use App\Policies\RewardPayoutRequestPolicy;
-use App\Policies\RewardProgramPolicy;
-use App\Policies\RewardRecoveryPolicy;
 use App\Services\Captcha\TurnstileVerifier;
 use App\Services\ContributionEntityMutationService;
 use App\Services\Notifications\ContributionRequestNotificationService;
@@ -214,7 +187,6 @@ use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Shared\Registration\CheckInNotifier;
 use App\Shared\Reports\ReportEscalation;
 use App\Shared\Reports\ReportSubjectResolver;
-use App\Shared\Rewards\PublishedProgramVersions;
 use App\Shared\ShareTracking\ActiveAttribution;
 use App\Shared\ShareTracking\ClaimRecipients;
 use App\Shared\ShareTracking\GuestClaims;
@@ -255,13 +227,11 @@ use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Support\Reports\CompositeReportSubjectResolver;
 use App\Support\Reports\GlobalReportEscalation;
 use App\Support\Rewards\CompositeRewardSourceFactReader;
-use App\Support\Rewards\DigestRewardGratitudePlanner;
-use App\Support\Rewards\PublishedProgramVersionsAdapter;
 use App\Support\Rewards\ShareCorrectionKeySource;
-use App\Support\Rewards\VouchersRewardBenefitCouponFulfillment;
 use App\Support\Search\Adapters\InstitutionResourceSearchAdapter;
 use App\Support\Search\Adapters\PersonResourceSearchAdapter;
 use App\Support\Search\ReferenceSearchService;
+use App\Support\Share\ShareAnalyticsReader;
 use App\Support\ShareTracking\ClaimRecipientLookup;
 use App\Support\ShareTracking\EngagementOutcomeRecorder;
 use App\Support\ShareTracking\GuestClaimLookup;
@@ -343,7 +313,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ParticipationAttribution::class, ShareTrackingParticipationAttribution::class);
         $this->app->bind(ActiveAttribution::class, ShareTrackingActiveAttribution::class);
         $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
-        $this->app->bind(PublishedProgramVersions::class, PublishedProgramVersionsAdapter::class);
         $this->app->bind(PrayerInstitutionCatalog::class, EloquentPrayerInstitutionCatalog::class);
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(ScopedMembershipRoleStore::class, EloquentScopedMembershipRoleStore::class);
@@ -357,6 +326,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SubmissionEligibilitySync::class, PublicSubmissionEligibilitySync::class);
         $this->app->bind(AccountEventFacts::class, EloquentAccountEventFacts::class);
         $this->app->bind(EngagementReader::class, EloquentEngagementReader::class);
+        $this->app->bind(ShareAnalytics::class, ShareAnalyticsReader::class);
+        $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
+        $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
         $this->app->bind(EventEngagement::class, EloquentEngagementReader::class);
         $this->app->bind(SubjectFollows::class, EloquentEngagementReader::class);
         $this->app->bind(ContributionEntityState::class, ContributionEntityMutationService::class);
@@ -422,21 +394,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SignupAttributionSourceResolver::class, class_exists(Affiliate::class)
             ? AffiliateSignupAttributionSourceResolver::class
             : NullSignupAttributionSourceResolver::class);
-
-        // Reward host adapters (stateless; safe to share under Octane).
-        // Finance scope binds funded readiness: money/benefit activation
-        // proves funding, verified payees, and supported processors from
-        // immutable rows, and keeps refusing anything it cannot prove.
-        // Payout execution uses the package's manual operator rail with
-        // the methods configured in config/rewards.php.
-        $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
-        $this->app->singleton(RewardReservationResolver::class, PointLedgerRewardReservationResolver::class);
-        $this->app->singleton(RewardReadinessChecker::class, FundedRewardReadinessChecker::class);
-        $this->app->singleton(RewardFinancialReadinessChecker::class, FundedRewardFinancialReadinessChecker::class);
-        $this->app->singleton(RewardBenefitCatalog::class, RewardBenefitCatalogService::class);
-        $this->app->singleton(RewardBenefitCouponFulfillment::class, VouchersRewardBenefitCouponFulfillment::class);
-        $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
-        $this->app->singleton(RewardGratitudePlanner::class, DigestRewardGratitudePlanner::class);
 
         if (interface_exists(StepContributor::class)) {
             $this->app->tag(ShareCheckoutStepContributor::class, 'checkout.steps');
@@ -618,25 +575,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Registration::class, RegistrationPolicy::class);
         Gate::policy(TrackedProperty::class, TrackedPropertyPolicy::class);
 
-        Gate::policy(RewardAppeal::class, RewardAppealPolicy::class);
-        Gate::policy(RewardAward::class, RewardAwardPolicy::class);
-        Gate::policy(RewardBenefitGrant::class, RewardBenefitGrantPolicy::class);
-        Gate::policy(RewardBenefitItem::class, RewardBenefitItemPolicy::class);
-        Gate::policy(RewardFundingEntry::class, RewardFundingEntryPolicy::class);
-        Gate::policy(RewardPayee::class, RewardPayeePolicy::class);
-        Gate::policy(RewardPayoutRequest::class, RewardPayoutRequestPolicy::class);
-        Gate::policy(RewardProgram::class, RewardProgramPolicy::class);
-        Gate::policy(RewardRecovery::class, RewardRecoveryPolicy::class);
-
         Gate::define('audit', static fn (mixed $user, mixed $resource): bool => $user instanceof User
             && $user->hasAnyRole(['super_admin', 'admin', 'moderator']));
 
         Gate::define('restoreAudit', static fn (mixed $user, mixed $resource): bool => false);
-
-        // Fraud stewardship is authorized separately from award approval:
-        // stewards review fraud evidence, never approve awards.
-        Gate::define('reward-fraud-steward', static fn (mixed $user): bool => $user instanceof User
-            && $user->hasAnyRole(['super_admin', 'moderator']));
 
         $componentManager = ComponentManager::resolve();
 

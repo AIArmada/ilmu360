@@ -14,7 +14,6 @@ use AIArmada\Rewards\Models\RewardMilestoneCycle;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationTrigger;
-use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Support\RewardsModel;
 use App\Shared\Auth\AccountDirectory;
 use Carbon\CarbonImmutable;
@@ -39,9 +38,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * Categories are a fixed set, each backed by a real committed-state
  * section: awards (approvals/fulfillments in the window, corrected
  * awards excluded by status), badges (live grants), milestones (live
- * achievements). The slot lands DELAYED — tomorrow at the user's
- * digest delivery time for daily cadence, the next weekly day for
- * weekly — never immediate, never per-visit. Dispatch recomputes and
+ * achievements). The slot lands DELAYED — tomorrow at the configured
+ * global digest delivery time for daily cadence, the next configured
+ * weekly day for weekly cadence — never immediate, never per-visit. Dispatch recomputes and
  * cancels/recalculates when corrections moved the material.
  */
 final readonly class PlanRewardGratitudeDigestAction

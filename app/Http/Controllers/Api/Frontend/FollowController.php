@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use App\Platform\Http\FrontendController;
 use App\Actions\Engagement\FollowSubjectAction;
 use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Data\Api\Frontend\Follow\FollowStateData;

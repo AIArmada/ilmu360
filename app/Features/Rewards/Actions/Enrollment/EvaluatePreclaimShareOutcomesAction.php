@@ -18,7 +18,7 @@ use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 
 /**
- * Preclaim backfill after enrollment or reacceptance.
+ * Evaluate eligible prior outcomes after enrollment or reacceptance.
  *
  * Reads the published version's `windows.preclaim_lookback_days` guard, walks
  * the committed share-outcome receipts inside the inclusive lookback in
@@ -28,8 +28,7 @@ use InvalidArgumentException;
  * `ShareTracking\Api\SourceReceiptReader` and every source fact comes from the
  * package reader boundary, so no root model, service or support type is used.
  *
- * This collaborator keeps only the backfill entrypoint; the public
- * `Api\MemberEnrollment` boundary is implemented by
+ * The public `Api\MemberEnrollment` boundary is implemented by
  * `EnrollRewardProgramMemberAction`.
  */
 final readonly class EvaluatePreclaimShareOutcomesAction

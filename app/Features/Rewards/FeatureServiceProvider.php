@@ -4,12 +4,46 @@ declare(strict_types=1);
 
 namespace App\Features\Rewards;
 
+use AIArmada\Rewards\Models\RewardAppeal;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardBenefitGrant;
+use AIArmada\Rewards\Models\RewardBenefitItem;
+use AIArmada\Rewards\Models\RewardFundingEntry;
+use AIArmada\Rewards\Models\RewardPayee;
+use AIArmada\Rewards\Models\RewardPayoutRequest;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Models\RewardRecovery;
+use AIArmada\Rewards\Contracts\RewardBenefitCatalog;
+use AIArmada\Rewards\Contracts\RewardBenefitCouponFulfillment;
+use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
+use AIArmada\Rewards\Contracts\RewardGratitudePlanner;
+use AIArmada\Rewards\Contracts\RewardReadinessChecker;
+use AIArmada\Rewards\Contracts\RewardReservationResolver;
+use AIArmada\Rewards\Support\FundedRewardFinancialReadinessChecker;
+use AIArmada\Rewards\Support\FundedRewardReadinessChecker;
+use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
+use AIArmada\Rewards\Support\RewardBenefitCatalogService;
 use App\Features\Rewards\Actions\Enrollment\EnrollRewardProgramMemberAction;
 use App\Features\Rewards\Actions\Enrollment\EvaluatePreclaimShareOutcomesAction;
 use App\Features\Rewards\Actions\GratitudeDigests\GratitudeDigestAction;
 use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Api\MemberEnrollment;
+use App\Features\Rewards\Policies\RewardAppealPolicy;
+use App\Features\Rewards\Policies\RewardAwardPolicy;
+use App\Features\Rewards\Policies\RewardBenefitGrantPolicy;
+use App\Features\Rewards\Policies\RewardBenefitItemPolicy;
+use App\Features\Rewards\Policies\RewardFundingEntryPolicy;
+use App\Features\Rewards\Policies\RewardPayeePolicy;
+use App\Features\Rewards\Policies\RewardPayoutRequestPolicy;
+use App\Features\Rewards\Policies\RewardProgramPolicy;
+use App\Features\Rewards\Policies\RewardRecoveryPolicy;
+use App\Features\Rewards\Support\DigestRewardGratitudePlanner;
+use App\Features\Rewards\Support\PublishedProgramVersionsAdapter;
+use App\Features\Rewards\Support\VouchersRewardBenefitCouponFulfillment;
 use App\Platform\FeatureModule;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Rewards\PublishedProgramVersions;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Rewards owns `reward_digest_slots` (Rw1) through exactly three named writers:
@@ -27,12 +61,15 @@ use App\Platform\FeatureModule;
  *   cancellation, plus ambiguous external-delivery settlement, use
  *   `ManagedNotificationDelivery`; Rewards never reads package models.
  * - `Api\GratitudeDigest` exposes scalar plan, cancel, cancel-pending and
- *   dispatch entrypoints returning `Api\GratitudeDigestSnapshot`; the root
- *   `DigestRewardGratitudePlanner` is the package-contract adapter and
- *   `DispatchRewardDigestsCommand` calls the Api.
+ *   dispatch entrypoints returning `Api\GratitudeDigestSnapshot`; the
+ *   feature-local `DigestRewardGratitudePlanner` adapts the package contract,
+ *   and `DispatchRewardDigestsCommand` calls the Api.
+ * - Published-version resolution and Vouchers-backed coupon fulfillment are
+ *   feature-local integrations registered here.
  *
- * Rw2a adds the preclaim backfill behind `Api\MemberEnrollment`; Rw2b moves
- * enrollment, leave and reacceptance into `Actions\Enrollment`. The Api is
+ * Rw2a adds preclaim evaluation of eligible prior outcomes behind
+ * `Api\MemberEnrollment`; Rw2b moves enrollment, leave and reacceptance into
+ * `Actions\Enrollment`. The Api is
  * bound to `EnrollRewardProgramMemberAction`, which resolves the notifiable
  * through `Shared\Auth\AccountDirectory`, authorizes with the existing
  * policies, resolves the published version through
@@ -46,28 +83,35 @@ use App\Platform\FeatureModule;
  * `AIArmada\Rewards` actions/support helpers are their canonical external
  * writers, and app code performs zero direct writes to them.
  *
- * Intentional root adapters/holds documented for later slices:
+ * Active integration points:
  * - `ResolveDigestMailAmbiguityCommand` stays a root transport adapter and
  *   delegates settlement to Communications after verifying the operator.
- * - Source facts: `CompositeRewardSourceFactReader` plus
- *   `ActivityRewardSourceFactReader`, `ShareAttributionRewardSourceFactReader`
- *   and `ReferralRewardSourceFactReader` stay root read adapters until the
- *   Events/Registration/SavedSearches/Engagement/ShareTracking/referrals
- *   owners expose read contracts.
- * - Member reads: `RewardMemberPresenter` and `RewardPayoutMethods` stay root
- *   read-only presentation adapters over package models and config. API,
- *   Livewire, dashboard-prompt and MCP readers remain independent and uncached;
- *   there is no member reward read projection or cache until a real
- *   cross-feature consumer and immutable snapshot/query-count evidence exist.
- * - Voucher fulfillment: `VouchersRewardBenefitCouponFulfillment` stays root
- *   and writes Vouchers package tables through Vouchers actions.
- * - Policies: the nine `App\Policies\Reward*Policy` classes stay root because
- *   they type-hint `App\Models\User`.
- * - Commands/schedules/transport: the hourly Rewards schedule, API
- *   controllers, Livewire pages, observers/jobs, route registrations, vendor
- *   Filament admin and read-only MCP stay root as transport/composition
- *   adapters until their documented later slices. Communications owns its
- *   package dispatcher schedule.
+ * - `CompositeRewardSourceFactReader`, `ActivityRewardSourceFactReader`,
+ *   `ShareAttributionRewardSourceFactReader`, `ReferralRewardSourceFactReader`
+ *   and `ShareCorrectionKeySource` remain active root integration adapters. They
+ *   read canonical records still owned by other extracted and unextracted
+ *   domains. Root composition binds the package contracts; Rewards imports no
+ *   root implementation classes.
+ * - Member presentation, HTTP endpoints, Livewire page, view, and API/web
+ *   routes are feature-owned. They read package models without caching and
+ *   route all package writes through package Actions. The broad member reads
+ *   need no separate feature Api while every caller is inside Rewards.
+ * - The general dashboard's enrollment prompt remains root composition: it
+ *   combines reward eligibility with cross-feature banked activity facts and
+ *   performs enrollment through `Api\MemberEnrollment`.
+ * - `VouchersRewardBenefitCouponFulfillment` is feature-local and writes
+ *   Vouchers package tables through Vouchers actions.
+ * - The hourly Rewards schedule, ShareTracking observers, reversal job, and
+ *   ambiguity command remain active external integrations. Vendor Filament remains package-owned, while
+ *   generic admin API/MCP exposes reward resources read-only; any future
+ *   reward mutation must go through an AIArmada\Rewards Action.
+ * - Digest communications idempotency keys are indexed but not unique.
+ *   Duplicate Communication rows remain possible; reconciliation uses the
+ *   slot's `communication_id`, preserving H10 without implying uniqueness.
+ *
+ * The package planner names its achievement categories `$channels`; Rewards
+ * maps those values directly to the fixed digest categories, not delivery
+ * channels.
  *
  * Lock order is Rewards slot → sorted deliveries → communication → attempts;
  * channel sends keep delivery → communication → attempt. H1 coupling
@@ -82,5 +126,32 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(GratitudeDigest::class, GratitudeDigestAction::class);
         $this->app->bind(MemberEnrollment::class, EnrollRewardProgramMemberAction::class);
+        $this->app->bind(PublishedProgramVersions::class, PublishedProgramVersionsAdapter::class);
+
+        $this->app->singleton(RewardReservationResolver::class, PointLedgerRewardReservationResolver::class);
+        $this->app->singleton(RewardReadinessChecker::class, FundedRewardReadinessChecker::class);
+        $this->app->singleton(RewardFinancialReadinessChecker::class, FundedRewardFinancialReadinessChecker::class);
+        $this->app->singleton(RewardBenefitCatalog::class, RewardBenefitCatalogService::class);
+        $this->app->singleton(RewardBenefitCouponFulfillment::class, VouchersRewardBenefitCouponFulfillment::class);
+        $this->app->singleton(RewardGratitudePlanner::class, DigestRewardGratitudePlanner::class);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        Gate::policy(RewardAppeal::class, RewardAppealPolicy::class);
+        Gate::policy(RewardAward::class, RewardAwardPolicy::class);
+        Gate::policy(RewardBenefitGrant::class, RewardBenefitGrantPolicy::class);
+        Gate::policy(RewardBenefitItem::class, RewardBenefitItemPolicy::class);
+        Gate::policy(RewardFundingEntry::class, RewardFundingEntryPolicy::class);
+        Gate::policy(RewardPayee::class, RewardPayeePolicy::class);
+        Gate::policy(RewardPayoutRequest::class, RewardPayoutRequestPolicy::class);
+        Gate::policy(RewardProgram::class, RewardProgramPolicy::class);
+        Gate::policy(RewardRecovery::class, RewardRecoveryPolicy::class);
+
+        // Fraud stewardship is authorized separately from award approval.
+        Gate::define('reward-fraud-steward', static fn (mixed $actor): bool => $actor instanceof AccountActor
+            && $actor->hasAnyRole(['super_admin', 'moderator']));
     }
 }

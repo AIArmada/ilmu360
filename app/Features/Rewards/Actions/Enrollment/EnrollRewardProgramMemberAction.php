@@ -27,8 +27,8 @@ use Illuminate\Support\Facades\Gate;
  * argument order. This action resolves the member through
  * `Shared\Auth\AccountDirectory`, authorizes with `Gate::forUser()` against
  * the existing `enroll`/`leave` policies, resolves the published version
- * through `Shared\Rewards\PublishedProgramVersions`, then runs the preclaim
- * backfill after the package write. The first-active
+ * through `Shared\Rewards\PublishedProgramVersions`, then evaluates eligible
+ * prior outcomes after the package write. The first-active
  * `rewards.program_enrolled` signal is recorded only when the caller asks for
  * it, preserving the API-vs-web telemetry asymmetry.
  */
@@ -209,7 +209,7 @@ final readonly class EnrollRewardProgramMemberAction implements MemberEnrollment
 
     private function publishedVersion(string $programId): ?RewardProgramVersion
     {
-        $versionId = $this->publishedVersions->publishedVersionId($programId);
+        $versionId = $this->publishedVersions->publishedVersion($programId)?->versionId;
 
         if ($versionId === null) {
             return null;

@@ -109,6 +109,17 @@ it('denies guests every program surface', function (): void {
     expect(Gate::allows('view', $program))->toBeFalse();
 });
 
+it('limits fraud stewardship to super administrators and moderators', function (): void {
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('admin');
+
+    expect(Gate::forUser($moderator)->allows('reward-fraud-steward'))->toBeTrue()
+        ->and(Gate::forUser($administrator)->allows('reward-fraud-steward'))->toBeFalse();
+});
+
 it('scopes award reads to staff and the recipient', function (): void {
     [$program, $member, $other, $staff, $award] = policySeed('policy-award');
 

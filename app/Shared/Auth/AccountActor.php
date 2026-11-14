@@ -11,6 +11,11 @@ interface AccountActor
      */
     public function actorId(): string;
 
+    /**
+     * Morph type used for account ownership and attribution.
+     */
+    public function actorType(): string;
+
     public function hasGlobalAdminAccess(): bool;
 
     public function hasRole(string $role): bool;

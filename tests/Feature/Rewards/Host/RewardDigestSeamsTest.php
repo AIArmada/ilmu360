@@ -18,7 +18,7 @@ use App\Features\Rewards\FeatureServiceProvider as RewardsFeatureServiceProvider
 use App\Features\Rewards\Support\RewardsModel;
 use App\Models\RewardDigestSlot;
 use App\Platform\FeatureCatalog;
-use App\Support\Rewards\DigestRewardGratitudePlanner;
+use App\Features\Rewards\Support\DigestRewardGratitudePlanner;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;

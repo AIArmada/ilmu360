@@ -1,6 +1,6 @@
 # Rewards / digests — ownership and migration map
 
-**Status:** accepted ownership and hazard map. Rewards Rw0–Rw3 are implemented; the Communications migration is completing C4 and still needs C5.
+**Status:** accepted ownership and hazard map. Rewards Rw0–Rw4 are implemented; the Communications migration remains tracked separately.
 **Inventory base:** `refactor` @ `45c5c119` (the source inventory predates the current implementation).
 **Prepared:** 2026-11-13.
 **Precedence:** `AGENTS.md`, `.ai/rules`, `tasks/lessons.md`, `tasks/agent-architecture-migration.md` (next action), and the S-map entries in `tasks/agent-architecture-migration-history.md`.
@@ -37,21 +37,22 @@ Package topology: `RewardProgram` is the tenant/owner boundary (`HasOwner` + `Ha
 | Area | Files |
 |---|---|
 | Feature actions | `app/Features/Rewards/Actions/{Enrollment,GratitudeDigests}/*Action.php` |
-| Support | `app/Support/Rewards/*` (10): composite/activity/share-attribution/referral fact readers, planner adapter, version resolver, correction-key source, member presenter, payout-method catalog, voucher coupon fulfillment |
+| Root source readers | `app/Support/Rewards/*` (5): composite/activity/share-attribution/referral fact readers and correction-key source |
+| Feature support | `app/Features/Rewards/Support/*` (7): member presenter, payout-method catalog, digest-slot resolver, planner adapter, published-version resolver/adapter, voucher fulfillment |
 | Model | `app/Models/RewardDigestSlot.php` (only app-owned reward model) |
 | Rewards notification | `app/Features/Rewards/Notifications/ShareGratitudeDigestNotification.php` |
 | Communications delivery adapters | `app/Features/Communications/EntryPoints/Channels/*Channel.php` |
 | Delivery fence | `app/Features/Communications/Support/Delivery/GuardedDeliverySend.php` |
-| Policies | 9 `app/Policies/Reward*Policy.php` |
-| API | 9 controllers, 25 routes (`routes/api.php:270-295`) |
-| Web/Livewire | `app/Livewire/Pages/Dashboard/RewardMemberIndex.php`, enrollment prompt in `UserDashboard.php:94-149`; route `routes/web.php:131` |
-| Console | 3 commands, schedules `routes/console.php:28-53` |
+| Policies | 9 `app/Features/Rewards/Policies/Reward*Policy.php` |
+| API | 9 controllers, 25 routes (`app/Features/Rewards/Routes/api.php`) |
+| Web/Livewire | `app/Features/Rewards/EntryPoints/Livewire/Pages/Dashboard/RewardMemberIndex.php`, view in `Features/Rewards/Views`; enrollment prompt in `UserDashboard.php:94-149`; feature web route |
+| Console | `DispatchRewardDigestsCommand` and `ResolveDigestMailAmbiguityCommand`; schedules remain in `routes/console.php:28-53` |
 | Observers | `ShareSourceAttributionReceiptObserver`, `ShareOutcomeCorrectionObserver`; registered `AppServiceProvider.php:817-818` |
 | Jobs | `app/Jobs/Referrals/ReverseReferralRewardsForShareOutcomeJob.php` |
-| Wiring | contracts/policies `AppServiceProvider.php:483-490, 684-692`; fraud gate `:700-702`; config `config/rewards.php`, `config/filament-rewards.php`, `config/notification-center.php:7-8` |
+| Wiring | source-fact/correction contracts `AppServiceProvider.php:328-329`; policy/fraud gate `Features/Rewards/FeatureServiceProvider.php`; config `config/rewards.php`, `config/filament-rewards.php`, `config/notification-center.php:7-8` |
 | Admin | `FilamentRewardsPlugin::make()` at `app/Providers/Filament/AdminPanelProvider.php:110`; **no app Filament reward resource/page/widget** — the entire UI is vendor `aiarmada/filament-rewards` (10 resources) |
 | MCP | No reward-specific MCP tool. Generic admin API is read-only for rewards: `AdminResourceMutationService::supports()` allowlist `:100-115` excludes all reward resources; no `AIArmada\Rewards` import under `app/Mcp` or `app/Ai` |
-| Tests | `tests/Feature/Rewards/Host/*Test.php` 32 files, **234 cases**, ~10.7k lines; plus `tests/Feature/RewardAppealPolicyTest.php`; race workers and transports under `Host/` |
+| Tests | `tests/Feature/Rewards/Host/*Test.php` 33 files; race workers and transports under `Host/` |
 
 `config/rewards.php` mirrors the package table keys (formatting-only diff, prefix `reward_`), then adds host vocabulary: `outcomes` (including `referral_qualified`), `moderated_outcomes`, `recipient_types: ['user']`, `cap_scopes`, `payouts.methods: ['bank_transfer']`. `config/filament-rewards.php` is app-only (navigation, staff roles, owner types).
 
@@ -131,7 +132,7 @@ Important package-side unique keys (race contract): awards canonical unique `(re
    - `EvaluateRewardEntitlementAction.php:1042-1050`,
    - `GrantRewardBadgeAction.php:156-162`,
    - `RecordRewardMilestoneContributionAction.php:560-570, 625-637`.
-2. `App\Support\Rewards\DigestRewardGratitudePlanner:19-26` delegates to `PlanRewardGratitudeDigestAction` / `CancelRewardDigestAction`.
+2. `Features\Rewards\Support\DigestRewardGratitudePlanner:19-26` delegates to `PlanRewardGratitudeDigestAction` / `CancelRewardDigestAction`.
 3. Plan validates user recipient, 1..3 known categories, policy enabled + daily/weekly cadence (`NotificationSettingsManager:281-320`). Timezone is per-user; **delivery time and weekly day are global config** (`config/notification-center.php:7-8`, read at `NotificationSettingsManager:317-318`).
 4. Due time: next local day (daily) or `next(weeklyDay)` (weekly) at delivery time; “calmness floor” pushes to `decided + 20h`; `local_day` is derived from the **due** instant in the recipient timezone; `plan_key = gratitude:{recipientId}:{local_day}` (191-char guard).
 5. Concurrency: `DB::transaction` + `lockForUpdate` read; insert on miss (`:188-198`); unique violation caught **outside** the transaction, deadlock retried 3× (`:124-160`); concurrent insert merges into the winner under lock (`:154-158`). Merge only mutates `planned` slots; extends `payload.window.to`, unions categories, preserves `payload.delivery`, saves (`:210-239`). Sending/sent/cancelled return untouched.
@@ -166,7 +167,7 @@ Important package-side unique keys (race contract): awards canonical unique `(re
 ### F. Enrollment / acceptance / preclaim
 
 - API: `RewardEnrollmentController::store:24-64` (requires client `version_id`; policy `enroll`; package `EnrollRewardMemberAction`; then `EvaluatePreclaimShareOutcomesAction`), `destroy:67-98` (`leave`), `reaccept:101-145`.
-- Web: `RewardMemberIndex::enroll:84-110` routes through `EnrollRewardProgramMemberAction` (records the `rewards.program_enrolled` signal on first active enrollment, `:32-62`); `leave`, `reaccept` call package actions directly; dashboard prompt `UserDashboard:94-149` routes through the same wrapper.
+- Web: `Features\\Rewards\\EntryPoints\\Livewire\\Pages\\Dashboard\\RewardMemberIndex::enroll` routes through `Api\\MemberEnrollment` (records the `rewards.program_enrolled` signal on first active enrollment); `leave`, `reaccept` use the same feature Api; dashboard prompt `UserDashboard:94-149` uses the Api.
 - `EnrollRewardMemberAction` itself: enrollment identity unique `(program, member_type, member_id)`, acceptance/period `seq` unique, `current_acceptance_id` updates (`package EnrollRewardMemberAction.php:106-205`).
 - Preclaim: `EvaluatePreclaimShareOutcomesAction:32-122` reads `windows.preclaim_lookback_days` from the published version; cursor over `ShareSourceAttributionReceipt` in the lookback; roles by `sharer_id` and `actor_id`; dispatches `EvaluateRewardEntitlementJob` per role per receipt `->afterCommit()`; also resolves the mirrored `activity:` key. No chunk/limit; runs synchronously after enroll/reaccept.
 
@@ -220,16 +221,16 @@ Severity reflects migration risk, not a request to change behavior.
 | H13 | Medium | `ShareCorrectionKeySource::taintedKeys` scans all live awards, hashes each business key, and joins affiliates fraud signals; `causeFor` repeats queries per key. Sweep cost grows with award history; it also reads another feature’s correction/receipt tables directly. | `:28-224`. |
 | H14 | Medium | `reward_digest_slots` has **no retention policy** and model deletes are forbidden; one row per recipient per day accumulates forever. There is no prune command. | model `:103-105`; no retention command found. |
 | H15 | Medium | Ambiguous digest mail is operator-only with no alert/metric; a stuck `Sending` slot blocks that day's digest indefinitely. The resolution command is not digest-scoped — any `Sending` delivery with an unresolved attempt can be resolved. | `ResolveDigestMailAmbiguityAction:78-101`; command `:25-124`; no alert found. |
-| H16 | Medium | Livewire redemption passes a fresh `Str::uuid()` as `redemptionKey` on every click, so double-click/retry creates a new grant key (bounded only by stock/points). The API requires a caller-supplied idempotency key. | `RewardMemberIndex:225-239`; `RedeemRewardBenefitAction:84-88`; API `RewardBenefitController:76-90`. |
+| H16 | Medium | Livewire redemption passes a fresh `Str::uuid()` as `redemptionKey` on every click, so double-click/retry creates a new grant key (bounded only by stock/points). The API requires a caller-supplied idempotency key. | `Features/Rewards/EntryPoints/Livewire/Pages/Dashboard/RewardMemberIndex`; `RedeemRewardBenefitAction:84-88`; `RewardBenefitController:76-90`. |
 | H17 | Medium | API enrollment calls the package action directly and records no `rewards.program_enrolled` signal; Livewire/dashboard enrollment records it only on first active enrollment. Telemetry differs by surface. | `RewardEnrollmentController:44-55`; `EnrollRewardProgramMemberAction:32-62`; `ProductSignalSchemaRegistry:19`. |
 | H18 | Low-Medium | Staff role asymmetry: `filament-rewards.staff_roles` is `super_admin,admin`, while the `reward-fraud-steward` gate also allows `moderator`. Moderators can be authorized by the gate but the plugin's `staffActor()` rejects them. | `config/filament-rewards.php:38`; `AppServiceProvider:700-702`; `RewardAdminPresenter:204-230`. |
 | H19 | Low-Medium | Admin/MCP composition is vendor-only and currently read-only for rewards. Any future addition to the admin write allowlist must route through package actions; a generic model save would bypass ledger/cap/claim semantics. | `AdminResourceMutationService:100-115`; `FilamentRewardsPlugin:38-58`. |
 | H20 | Low | `CreateRewardProgramAction::isUniqueViolation` remains a generic SQLSTATE helper used by Rewards digest planning; it also treats any message containing “unique/duplicate” as a unique violation. | `CreateRewardProgramAction:112-122`; `Plan...:140`. |
 | H21 | Low | **Resolved in Communications C1:** the misleading `communications:send-digests` stub and schedule were removed. The package `communications:dispatch-due` command is now scheduled every minute and processes due Communication aggregates; batch lifecycle remains untouched. | `app/Features/Communications/FeatureServiceProvider.php`; `tasks/communications-map.md` C1. |
-| H22 | Low | `App\Support\Rewards\RewardPayoutMethods` re-derives the configured method set and labels independently from the package `ManualRewardPayoutMethodCatalog` (which reports registered/manual/supported flags, not labels); member methods and package readiness can drift if either side adds filtering. | app helper `:19-34`; package catalog `:24-59`; binding `AppServiceProvider:487`. |
-| H23 | Low | `RewardMemberPresenter::outcomeLabel` omits `referral_qualified`, so member award detail falls back to the raw outcome code for referral awards. | `:328-344`. |
+| H22 | Low | `RewardPayoutMethods` re-derives the configured method set and labels independently from the package `ManualRewardPayoutMethodCatalog` (which reports registered/manual/supported flags, not labels); member methods and package readiness can drift if either side adds filtering. | `app/Features/Rewards/Support/RewardPayoutMethods.php:19-34`; package catalog `:24-59`; binding `AppServiceProvider:487`. |
+| H23 | Low | **Resolved in Rw4:** `RewardMemberPresenter::outcomeLabel` now labels `referral_qualified` as “Qualified referral.” | `app/Features/Rewards/Support/RewardMemberPresenter.php:328-344`; `RewardMemberApiTest`. |
 | H24 | Low | Planner naming/payload drift: the package contract calls the argument `$channels` while the app treats it as digest categories; `digestPayload` hardcodes `recipient_type='user'` although `recipient_types` is configurable. | `RewardGratitudePlanner:19-29`; `Plan...:251-260`. |
-| H25 | Low | Reward read surfaces are uncached and duplicated: API controllers, Livewire page, dashboard prompt, and MCP each re-query package tables with their own recipient/status filters. No reward cache or projection exists today; a future cache would have no package-write invalidation hook (no reward model observers are registered). | `RewardAwardController`, `RewardBalanceController`, `RewardMemberIndex`, `UserDashboard:94-149`; `AppServiceProvider` has no reward model observers. |
+| H25 | Low | Reward read surfaces are uncached and duplicated: API controllers, Livewire page, dashboard prompt, and MCP each re-query package tables with their own recipient/status filters. No reward cache or projection exists today; a future cache would have no package-write invalidation hook (no reward model observers are registered). | `Features/Rewards/EntryPoints/Http/RewardAwardController`, `RewardBalanceController`, `RewardMemberIndex`, `UserDashboard:94-149`; `AppServiceProvider` has no reward model observers. |
 
 ---
 
@@ -249,7 +250,7 @@ Order: characteristics first; no table claim until all writers are feature-local
   - plan/cancel failure isolation from award transitions (H1 characterization, expected current behavior);
   - API vs Livewire enrollment signal parity (H17, expected current difference);
   - admin/MCP: `AdminResourceMutationService::supports()` is false for every reward resource (H19).
-- Document in the feature provider docblock which root adapters are intentional and why: `DigestRewardGratitudePlanner` and `ResolveDigestMailAmbiguityCommand`, `RewardSourceFactReader` composite + three readers, `RewardMemberPresenter`, `RewardPayoutMethods`, Vouchers fulfillment, policies, and transport.
+- Rw0 recorded the app-level integrations before their ownership cutovers. Rw4 moved the package planner, published-version integration, voucher fulfillment, policies, member presentation, HTTP/Livewire surfaces, and route registrations into Rewards. The source-fact readers and `ShareCorrectionKeySource` remain the root source-reading integration slice.
 
 **Stays root/package:** everything; no claims; package actions unchanged.
 **Evidence:** existing 234 reward cases + new focused cases; `php tools/architecture-check.php` 0/17; routes identical (738); no schema/migration change.
@@ -263,7 +264,7 @@ Order: characteristics first; no table claim until all writers are feature-local
   - At Rw1, `Shared\Communications\DigestMessages` built the notification through a root factory. C4 removed that single-consumer Shared contract; Rewards now injects its feature-local `ShareGratitudeDigestMessages` service directly.
   - Recipient resolution uses `Shared\Auth\AccountDirectory::resolveNotifiable()` / `AccountActor`, not `App\Models\User`.
 - Keep `RewardDigestSlot` in `app/Models` with literal `$table`, register `reward_digest_slot` morph alias + feature `Support\RewardsModel` resolver, and move only the three actions → `Features\Rewards\Actions\GratitudeDigests`. Preserve exact statuses, transactions, locks, retry bounds, payload shape, plan key, calmness floor, merge semantics. The feature calls package `DispatchManagedNotificationAction`, `CancelCommunicationAction`, `DispatchManagedNotificationJob`, `Communication`, and `CommunicationDelivery` directly (package imports are allowed).
-- Add `Features\Rewards\Api\GratitudeDigest` (interface) with plan/cancel/dispatch entrypoints returning scalars/void only (no model crosses); feature provider binds it; root `DigestRewardGratitudePlanner` becomes a thin package-contract adapter calling the Api (root→feature Api is allowed; root→feature private is not). `DispatchRewardDigestsCommand` calls the Api.
+- Add `Features\Rewards\Api\GratitudeDigest` (interface) with plan/cancel/dispatch entrypoints returning scalars/void only (no model crosses); feature provider binds it; feature-local `DigestRewardGratitudePlanner` adapts the package contract by calling the Api. `DispatchRewardDigestsCommand` calls the Api.
 - Claim `table:reward_digest_slots` with exactly the three feature writer classes. Keep `ResolveDigestMailAmbiguityCommand` at root as a CLI adapter; the action stays in Rewards and delegates Communications mutations to `DeliveryFencing`.
 - Do not change the lock order in this slice. Record H2 as a preserved hazard; if the deadlock is observed in the race suite, fix it in a separate, characterized change (delivery-first ordering everywhere) rather than silently reordering.
 
@@ -278,37 +279,39 @@ Order: characteristics first; no table claim until all writers are feature-local
 - Use `Shared\Auth\AccountActor`/`AccountDirectory` (already implemented by `User`) instead of root `User` in feature code.
 - Move `EnrollRewardProgramMemberAction` and `EvaluatePreclaimShareOutcomesAction` into `Features\Rewards\Actions`; expose `Api\MemberEnrollment` (`enroll`, `leave`, `reaccept`, `preclaim`) returning scalar ids/status/flags only. Route API controller and Livewire page through the Api; keep transport (`app/Http`, `app/Livewire`) root until Rw4. Preserve `rewards.program_enrolled` behavior and add the API path to it (or record the decision in §6).
 - Extract one shared source-fact mapping value/service so the activity and share-attribution readers use one verification/purchaser/role mapping; fix H11 deliberately (align to the package’s integer minor-unit contract) only with a failing-first characterization test.
-- Keep the three fact readers root as documented read adapters: they depend on root Events/Registration/SavedSearches/Engagement/ShareTracking models and package affiliate/referral models; moving them would require those owners’ read APIs first.
+- Rw2 keeps fact readers at root pending owner read APIs. Rw4 leaves those active root integrations in place and moves their package-contract bindings to root composition, keeping Rewards itself free of root implementation imports. Referral consumers resolve through `RewardSourceFactReader`.
 - `owns: {}` unchanged.
 
-**Stays root/package:** source readers, package evaluation/claims/awards, ShareTracking receipt writer/observer, referral package fulfillment, notification policy.
+**Stays package:** package evaluation/claims/awards and referral fulfillment. ShareTracking receipt writing and its observer remain active ShareTracking integrations.
 **Evidence:** `RewardEnrollmentPromptTest` 4, `RewardMemberApiTest` enrollment journey (48 total), `RewardMemberWebTest` 5, `RewardActivityFactsTest` 12, `RewardHostAdapterTest` 11, `RewardEventWiringTest` 6, `RewardSourceCorrectionTest` 5, `RewardModeJourneyTest` 6; Signal assertions; architecture 0/17; routes identical.
 **Holds:** no change to referral qualification/points, no change to award/claim semantics, no reader move, no new job fan-out beyond existing behavior (H4 recorded as a performance ticket).
 
 ### Rw3 — member awards, benefits, payouts, reconciliation read surfaces
 
 **Scope**
-- Add `Features\Rewards\Api\MemberRewards` returning immutable arrays/pagination for catalog, awards, appeal detail, balances, badges, payees, payouts, benefit grants, and the payout funds state.
-- Move `RewardMemberPresenter` and `RewardPayoutMethods` into the feature (they depend only on package models/enums/config + Carbon). Root controllers/Livewire call the Api; keep controllers/pages root until Rw4.
-- Keep every money/points write with package actions. Document `Request/Approve/Submit/Confirm/Reconcile/Cancel` payout, recovery, funding, budget, points, and benefit actions as canonical external writers; add explicit root-adapter docblocks.
+- The initial Rw3 pass characterized the read surfaces and temporarily kept the presenter helpers at root. Rw4 closes that hold by moving the presenter helpers, HTTP controllers, Livewire page, and view into Rewards as one hard cut.
+- Do not add a broad `Api\MemberRewards`: after Rw4, its HTTP and Livewire consumers are inside Rewards. The general dashboard enrollment prompt remains root composition because it combines reward eligibility with cross-feature banked-activity facts; writes still use `Api\MemberEnrollment`.
+- Keep every money/points write with package actions. Document `Request/Approve/Submit/Confirm/Reconcile/Cancel` payout, recovery, funding, budget, points, and benefit actions as canonical external writers; register authorization policies from the owning feature provider.
 - Add an explicit test that no app code writes a package reward table and that generic admin MCP write support remains false for all reward resources.
 - `owns: {}` unchanged.
 
-**Stays root/package:** all package ledger/money/points tables and actions; policies stay root (they type-hint `User`); Filament UI stays vendor; funding readiness bindings.
+**Stays root/package:** all package ledger/money/points tables and actions; Filament UI stays vendor; funding readiness bindings.
 **Evidence:** `RewardMemberApiTest` 48, `RewardMemberPayeeTest` 7, `RewardBenefitTest` 7, `RewardBenefitApiTest` 1, `RewardBenefitIdentityTest` 11, `RewardFinanceTest` 3, `RewardFinanceRaceTest` 9, `RewardFundingAuthorityTest` 10, `RewardFundingRaceTest` 3, `RewardPayoutLifecycleTest` 2, `RewardPayoutRaceTest` 5, `RewardFinanceAdminTest` 3, `RewardAdminTest` 4, `RewardAdminOperabilityTest` 6, `RewardProgramAdminLifecycleTest` 1, `RewardSurfaceRenderTest` 1; read parity (redaction, thirty-day impact bounds); architecture 0/17; routes identical.
-**Holds:** no package-table claim, no payout/points/funding/recovery behavior change, no policy move.
+**Holds (completed in Rw4):** no package-table claim, no payout/points/funding/recovery behavior change; policies moved into Rewards and use `AccountActor`.
 
 ### Rw4 — transport, admin/MCP/docs composition, final audit
 
 **Scope**
-- Move reward HTTP controllers, Livewire page, route registrations, and route names/middleware into `Features\Rewards` `EntryPoints`/`Routes`; preserve aliases, middleware order, payloads/status, Scramble groups/endpoints. Remove root registrations in the same change.
-- Keep policies root unless refactored to `AccountActor` (feature policies importing `User` would violate `feature-external`). Vendor Filament stays vendor; document it as an external writer of package tables. No new app Filament resources.
-- MCP: no reward-specific tools; add documentation/contract test that reward resources are read-only through the generic admin API and that any future write must call package actions.
+- Move reward HTTP controllers, Livewire page and view, member presentation helpers, route registrations, and route names/middleware into `Features\Rewards` `EntryPoints`/`Routes`/`Views`; preserve URIs, names, middleware order, payload/status, and Scramble groups/endpoints. Remove old root files and registrations in the same change.
+- Add the narrow `ShareTracking\Api\ShareAnalytics` contract for the Rewards impact/cohort endpoints. It returns scalar arrays and takes a scalar member id; Rewards does not import the root metric/cohort readers.
+- Move all nine reward policies into `Features\Rewards\Policies`, type their actors as `AccountActor`, and register them from the Rewards feature provider. Vendor Filament stays vendor; document it as an external writer of package tables. No new app Filament resources.
+- Keep the source-fact adapters at root as active integrations while their record owners lack public read contracts; bind the package `RewardSourceFactReader` and `RewardCorrectionKeySource` from root composition. Referral consumers use the package `RewardSourceFactReader` contract. Add no aliases or data backfills.
+- MCP: no reward-specific tools; keep reward resources read-only through the generic admin API/MCP. The contract test checks every vendor reward resource, the generic mutation service, and the MCP tool list. Any future reward write must call package actions through a Rewards-owned workflow.
 - Docs: correct digest-time docblocks (global config), planner `$channels` naming, H23 label gap, H10 idempotency note; update the active migration ledger and AGENTS notes.
 - Final pass (only after all slices): PHPStan level 6 + owned-write rule, Pint, scoped Rector, full Pest and real-driver groups, route snapshots cached/uncached, architecture scanner.
 
 **Stays root/package:** package actions/tables, communications/notifications, vendor Filament, and the ambiguity command (until its Communications slice).
-**Evidence:** route inventory byte-identical or intentionally aliased; docs/Scramble inventory; full reward suite 234+; architecture 0/17; ownership PHPStan 0; Pint/Rector final.
+**Verification:** focused serial selection covered 123 tests / 2,663 assertions: 122 passed and one stale docblock assertion failed; after listing the adapter names in the docblock, `RewardSurfaceCharacterizationTest` reran 7/7 (100 assertions). Architecture scan: 0 violations / 20 features. Uncached routes: 738 and identical URI/name/middleware signatures to the pre-cutover snapshot. Cached routes: 736; the only uncached-only entries are Scramble's two closure documentation routes (`docs/api`, `docs/api.json`); all other signatures match, including 42 cached reward routes. PHP lint and `git diff --check` pass. Route/config cache artifacts were cleared after verification.
 **Holds:** no behavior change in transport cutover; no new claims beyond `reward_digest_slots`; no Communications/AI/community-release work folded in.
 
 ---
@@ -324,7 +327,7 @@ Order: characteristics first; no table claim until all writers are feature-local
 ## 7. Holds and unverified items
 
 - Do not claim any of the 30 package tables; do not add app reward tables.
-- Do not move reward-source readers until Events/Registration/SavedSearches/Engagement/ShareTracking/Referrals expose the read contracts they need.
+- Do not move root source-fact adapters until Events/Registration/SavedSearches/Engagement/ShareTracking/Referrals expose the read contracts they need. Keep their package-contract bindings in root composition. Do not add parallel compatibility readers or data backfills.
 - Do not change digest merge/dedup, status truthfulness, retry/escape bounds, quiet-hours, mail-ambiguity holds, or money/points semantics in a migration slice.
 - Do not touch the historical `2026_10_08_040001_create_share_delivery_tables.php` grouping.
 - Not verified here: runtime UI behavior (read-only static analysis), real-driver deadlock reproduction (existing race tests should be treated as the baseline, not proof of H2 absence), production queue/Horizon behavior, and the exact performance cost of preclaim fan-out.

@@ -28,15 +28,6 @@ use App\Http\Controllers\Api\Frontend\InstitutionWorkspaceController;
 use App\Http\Controllers\Api\Frontend\ManifestController;
 use App\Http\Controllers\Api\Frontend\MembershipApplicationController;
 use App\Http\Controllers\Api\Frontend\MobileTelemetryController;
-use App\Http\Controllers\Api\Frontend\RewardAppealController;
-use App\Http\Controllers\Api\Frontend\RewardAwardController;
-use App\Http\Controllers\Api\Frontend\RewardBalanceController;
-use App\Http\Controllers\Api\Frontend\RewardBenefitController;
-use App\Http\Controllers\Api\Frontend\RewardEnrollmentController;
-use App\Http\Controllers\Api\Frontend\RewardInsightController;
-use App\Http\Controllers\Api\Frontend\RewardPayeeController;
-use App\Http\Controllers\Api\Frontend\RewardPayoutController;
-use App\Http\Controllers\Api\Frontend\RewardProgramController;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Http\Controllers\Api\Frontend\ShareAnalyticsController;
 use App\Http\Controllers\Api\RegistrationExportController;
@@ -242,32 +233,4 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/events/{event}/registrations/export', [RegistrationExportController::class, 'export'])
         ->name('api.registrations.export');
 
-    // Member rewards: catalog, enrollment, awards, balances, appeals
-    Route::prefix('rewards')->name('api.rewards.')->group(function (): void {
-        Route::get('/programs', [RewardProgramController::class, 'index'])->name('programs.index');
-        Route::get('/programs/{program}', [RewardProgramController::class, 'show'])->name('programs.show');
-        Route::post('/programs/{program}/enrollments', [RewardEnrollmentController::class, 'store'])->name('enrollments.store');
-        Route::delete('/programs/{program}/enrollments', [RewardEnrollmentController::class, 'destroy'])->name('enrollments.destroy');
-        Route::post('/programs/{program}/reaccept', [RewardEnrollmentController::class, 'reaccept'])->name('enrollments.reaccept');
-        Route::get('/awards', [RewardAwardController::class, 'index'])->name('awards.index');
-        Route::get('/awards/{award}', [RewardAwardController::class, 'show'])->name('awards.show');
-        Route::get('/balances', [RewardBalanceController::class, 'balances'])->name('balances.index');
-        Route::get('/badges', [RewardBalanceController::class, 'badges'])->name('badges.index');
-        Route::get('/appeals', [RewardAppealController::class, 'index'])->name('appeals.index');
-        Route::post('/awards/{award}/appeals', [RewardAppealController::class, 'store'])->name('appeals.store');
-        Route::get('/appeals/{appeal}', [RewardAppealController::class, 'show'])->name('appeals.show');
-        Route::get('/awards/{award}/payout', [RewardPayoutController::class, 'show'])->name('payout.show');
-        Route::get('/payouts', [RewardPayoutController::class, 'index'])->name('payouts.index');
-        Route::get('/payout-methods', [RewardPayeeController::class, 'methods'])->name('payout-methods.index');
-        Route::get('/payees', [RewardPayeeController::class, 'index'])->name('payees.index');
-        Route::post('/payees', [RewardPayeeController::class, 'store'])->name('payees.store');
-        Route::get('/benefits/catalog', [RewardBenefitController::class, 'catalog'])->name('benefits.catalog');
-        Route::post('/benefits/redemptions', [RewardBenefitController::class, 'redeem'])->name('benefits.redeem');
-        Route::get('/benefits/grants', [RewardBenefitController::class, 'grants'])->name('benefits.grants');
-        Route::get('/benefits/grants/{grant}', [RewardBenefitController::class, 'show'])->name('benefits.show');
-        Route::post('/benefits/grants/{grant}/consume', [RewardBenefitController::class, 'consume'])->name('benefits.consume');
-        Route::post('/benefits/grants/{grant}/cancel', [RewardBenefitController::class, 'cancel'])->name('benefits.cancel');
-        Route::get('/impact', [RewardInsightController::class, 'impact'])->name('impact.show');
-        Route::get('/cohort', [RewardInsightController::class, 'cohort'])->name('cohort.show');
-    });
 });

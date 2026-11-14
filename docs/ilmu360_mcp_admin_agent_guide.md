@@ -479,6 +479,7 @@ The admin server is the model-visible API-like surface for admin workflows. The 
 
 Admin tool behavior notes:
 
+- Reward resources are read-only through the generic admin API and MCP. The server exposes no reward-specific MCP tools. Any future reward mutation must call an `AIArmada\Rewards` Action through the Rewards feature; do not enable generic resource writes for reward resources.
 - `validate_only=true` is supported for create/update preview flows.
 - `apply_defaults=true` has no effect unless `validate_only=true`. Treat schema defaults as preview/autofill hints, not as a persisted-write shortcut.
 - `admin-list-resources` is a discovery manifest, not merely a small name list. Keep `verbose=false` for compact exploration and use `verbose=true` only when you need full metadata. Pass `writable_only=true` to filter the list to only resources with active write support.

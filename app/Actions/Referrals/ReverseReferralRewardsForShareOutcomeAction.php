@@ -8,8 +8,8 @@ use AIArmada\Referrals\Actions\ReverseReferralReward;
 use AIArmada\Referrals\Enums\ReferralRewardStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Rewards\Support\RewardSourceFact;
+use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Support\Rewards\ReferralRewardSourceFactReader;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -19,7 +19,7 @@ final readonly class ReverseReferralRewardsForShareOutcomeAction
 {
     public function __construct(
         private ReverseReferralReward $reverseReferralReward,
-        private ReferralRewardSourceFactReader $sourceFactReader,
+        private RewardSourceFactReader $sourceFactReader,
     ) {}
 
     public function handle(string $businessKey, string $reason): void

@@ -47,8 +47,8 @@ interface MemberEnrollment
     ): ?MemberEnrollmentSnapshot;
 
     /**
-     * Backfill reward evaluation for eligible receipts in the published
-     * version's preclaim lookback window.
+     * Evaluate eligible receipts in the published version's preclaim window
+     * when a member enrolls.
      */
     public function preclaim(
         string $programId,

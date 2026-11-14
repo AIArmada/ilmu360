@@ -15,7 +15,7 @@ use AIArmada\Rewards\Models\RewardBenefitGrant;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardPayee;
 use AIArmada\Rewards\Models\RewardProgram;
-use App\Livewire\Pages\Dashboard\RewardMemberIndex;
+use App\Features\Rewards\EntryPoints\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;

@@ -6,6 +6,8 @@ use AIArmada\Rewards\Actions\PublishRewardProgramVersionAction;
 use AIArmada\Rewards\Actions\TransitionRewardAwardAction;
 use AIArmada\Rewards\Actions\TransitionRewardProgramStatusAction;
 use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
+use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
@@ -193,6 +195,29 @@ it('shows redacted award history without counterpart identity', function (): voi
     expect($payload['reasons'])->not->toBeEmpty();
     expect($payload['reasons'][0])->toHaveKey('decided_by');
     expect($payload['reasons'][0])->not->toHaveKey('actor_id');
+
+    $referralAward = RewardAward::query()->create([
+        'program_id' => $program->getKey(),
+        'recipient_type' => $member->getMorphClass(),
+        'recipient_id' => (string) $member->getKey(),
+        'beneficiary_role' => RewardBeneficiaryRole::Recipient->value,
+        'source_business_key' => 'referral:qualified:'.Str::uuid(),
+        'family_key' => (string) $program->family_key,
+        'component' => RewardComponent::Recognition->value,
+        'status' => RewardAwardStatus::PendingReview->value,
+        'amount_snapshot' => ['type' => 'recognition'],
+        'policy_snapshot' => ['fixture' => true],
+        'consent_snapshot' => ['fixture' => true],
+        'source_snapshot' => [
+            'outcome' => 'referral_qualified',
+            'occurred_at' => CarbonImmutable::now('UTC')->toISOString(),
+        ],
+    ]);
+
+    test()->getJson('/api/v1/rewards/awards/'.$referralAward->getKey())
+        ->assertOk()
+        ->assertJsonPath('data.source.outcome', 'referral_qualified')
+        ->assertJsonPath('data.source.outcome_label', 'Qualified referral');
 });
 
 it('hides other members awards and appeals', function (): void {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use App\Platform\Http\FrontendController;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Models\Event;
 use App\Models\Institution;

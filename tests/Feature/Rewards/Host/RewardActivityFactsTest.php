@@ -27,7 +27,7 @@ use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Models\RewardSourceComponentClaim;
 use App\Features\Rewards\Api\MemberEnrollment;
-use App\Livewire\Pages\Dashboard\RewardMemberIndex;
+use App\Features\Rewards\EntryPoints\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;
@@ -589,7 +589,7 @@ it('dispatches signup activity evaluation after recording the user', function ()
     Queue::assertPushedTimes(EvaluateRewardEntitlementJob::class, 2);
 });
 
-it('backfills eligible preclaim signup facts for both the sharer and participant roles on enrollment', function (): void {
+it('evaluates eligible preclaim signup facts for both the sharer and participant roles on enrollment', function (): void {
     config(['rewards.outcomes' => array_values(array_unique([
         ...config('rewards.outcomes', []),
         ShareOutcomeType::Signup->value,
@@ -691,7 +691,7 @@ it('backfills eligible preclaim signup facts for both the sharer and participant
         ->exists())->toBeFalse();
 });
 
-it('excludes preclaim facts outside the lookback and applies the daily cap across backfill', function (): void {
+it('excludes preclaim facts outside the lookback and applies the daily cap across prior outcomes', function (): void {
     $sharer = User::factory()->create();
     [$program, $version] = seedActivityRewardProgramWithRules('preclaim-lookback-cap', [
         'eligibility' => [

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use App\Platform\Http\FrontendController;
 use App\Enums\MemberSubjectType;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Api\Frontend\FrontendCatalogService;

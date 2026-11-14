@@ -19,6 +19,8 @@ it('exposes global roles through the account actor contract', function (): void 
 
     expect($user)
         ->toBeInstanceOf(AccountActor::class)
+        ->and($user->actorId())->toBe((string) $user->getKey())
+        ->and($user->actorType())->toBe($user->getMorphClass())
         ->and($user->hasRole(GlobalRole::SUPER_ADMIN))->toBeTrue()
         ->and($user->hasRole(GlobalRole::ADMIN))->toBeFalse()
         ->and($user->hasRole(GlobalRole::MODERATOR))->toBeFalse();

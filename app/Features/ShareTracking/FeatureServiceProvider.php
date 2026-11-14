@@ -74,8 +74,10 @@ use App\Platform\FeatureModule;
  *
  * Rw2a adds one read seam: `Api\SourceReceiptReader` bound to
  * `Persistence\DatabaseSourceReceiptReader` exposes the ordered share-outcome
- * business keys in an inclusive receipt window for the Rewards preclaim
- * backfill, so that feature no longer imports the receipt model or table.
+ * business keys in an inclusive receipt window for Rewards preclaim evaluation,
+ * so that feature no longer imports the receipt model or table. `Api\ShareAnalytics`
+ * exposes scalar member and cohort summaries; root composition binds it to the
+ * analytics readers that remain root adapters.
  * Community uses `Api\ShareOutcomeEvidenceReader` for aggregate qualified
  * evidence; the immutable result contains only counts and cells. Registration
  * purchaser facts are resolved through Registration's public value API. The

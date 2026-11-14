@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Rewards\Support;
+
+use AIArmada\Rewards\Contracts\RewardGratitudePlanner;
+use App\Features\Rewards\Api\GratitudeDigest;
+use Carbon\CarbonImmutable;
+use DateTimeImmutable;
+
+/**
+ * Gratitude digests for reward achievements: plans delayed recipient
+ * digests per achievement channel and cancels pending slots when the
+ * achievement unwinds.
+ *
+ * Package-contract adapter: converts the package's `CarbonImmutable`
+ * argument and delegates to the Rewards feature Api. The package calls the category list
+ * `$channels`; those values are the fixed Rewards digest categories
+ * (`awards`, `badges`, `milestones`), not communications delivery channels.
+ */
+final readonly class DigestRewardGratitudePlanner implements RewardGratitudePlanner
+{
+    public function __construct(
+        private GratitudeDigest $digests,
+    ) {}
+
+    public function planFor(
+        string $recipientType,
+        string $recipientId,
+        array $channels,
+        CarbonImmutable $at,
+    ): void {
+        $this->digests->plan(
+            $recipientType,
+            $recipientId,
+            $channels,
+            DateTimeImmutable::createFromInterface($at),
+        );
+    }
+
+    public function cancelPendingFor(
+        string $recipientType,
+        string $recipientId,
+        string $reason,
+        CarbonImmutable $at,
+    ): void {
+        $this->digests->cancelPendingForRecipient(
+            $recipientType,
+            $recipientId,
+            $reason,
+            DateTimeImmutable::createFromInterface($at),
+        );
+    }
+}

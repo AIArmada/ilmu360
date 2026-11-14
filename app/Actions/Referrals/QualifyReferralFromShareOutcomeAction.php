@@ -10,12 +10,12 @@ use AIArmada\Referrals\Enums\ReferralInviteStatus;
 use AIArmada\Referrals\Enums\ReferralRewardStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
+use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Models\User;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Support\Rewards\ActivityRewardSourceFactReader;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -25,7 +25,7 @@ final readonly class QualifyReferralFromShareOutcomeAction
     private const string QUALIFIER_OUTCOME = 'first_accepted_registration_or_staff_verified_checkin';
 
     public function __construct(
-        private ActivityRewardSourceFactReader $activityReader,
+        private RewardSourceFactReader $sourceFactReader,
         private QualifyReferral $qualifyReferral,
         private FulfillReferralReward $fulfillReferralReward,
     ) {}
@@ -124,7 +124,7 @@ final readonly class QualifyReferralFromShareOutcomeAction
 
             $activityKey = ActivityRewardBusinessKey::for($outcome, $parsed['source_transition_id']);
 
-            return $this->activityReader->read($activityKey);
+            return $this->sourceFactReader->read($activityKey);
         }
 
         return null;

@@ -1,0 +1,99 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Rewards\EntryPoints\Http;
+
+use AIArmada\Rewards\Enums\RewardAwardStatus;
+use AIArmada\Rewards\Models\RewardAppeal;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardAwardEntry;
+use AIArmada\Rewards\Models\RewardProgram;
+use App\Features\Rewards\Support\RewardMemberPresenter;
+use App\Platform\Http\FrontendController;
+use App\Platform\Api\ApiPagination;
+use Dedoc\Scramble\Attributes\Endpoint;
+use Dedoc\Scramble\Attributes\Group;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+
+#[Group('Rewards', 'Member reward program catalog, enrollment, awards, balances, and appeals.')]
+class RewardAwardController extends FrontendController
+{
+    #[Endpoint(title: 'List your reward awards')]
+    public function index(Request $request): JsonResponse
+    {
+        $user = $this->requireAccountActor($request);
+        $this->authorize('viewAny', RewardAward::class);
+
+        $validated = $request->validate([
+            'status' => ['nullable', 'string', Rule::in(array_map(static fn (RewardAwardStatus $status): string => $status->value, RewardAwardStatus::cases()))],
+            'program_id' => ['nullable', 'uuid'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $perPage = ApiPagination::normalizePerPage((int) ($validated['per_page'] ?? 20), 20, 50);
+
+        $query = RewardAward::query()
+            ->where('recipient_type', $user->actorType())
+            ->where('recipient_id', $user->actorId())
+            ->orderByDesc('id');
+
+        if (is_string($validated['status'] ?? null)) {
+            $query->where('status', $validated['status']);
+        }
+
+        if (is_string($validated['program_id'] ?? null)) {
+            $query->where('program_id', $validated['program_id']);
+        }
+
+        $awards = $query->paginate($perPage);
+
+        $programs = RewardProgram::query()
+            ->whereIn('id', $awards->getCollection()->map(fn (RewardAward $award): string => (string) $award->program_id)->unique()->all())
+            ->get()
+            ->keyBy(fn (RewardProgram $program): string => (string) $program->getKey());
+
+        return response()->json([
+            'data' => $awards->getCollection()->map(
+                fn (RewardAward $award): array => RewardMemberPresenter::awardSummary(
+                    $award,
+                    $programs->get((string) $award->program_id),
+                )
+            )->all(),
+            'pagination' => ApiPagination::paginationMeta($awards),
+        ]);
+    }
+
+    #[Endpoint(title: 'Get a reward award')]
+    public function show(Request $request, string $award): JsonResponse
+    {
+        $user = $this->requireAccountActor($request);
+
+        /** @var RewardAward $record */
+        $record = RewardAward::query()
+            ->where('recipient_type', $user->actorType())
+            ->where('recipient_id', $user->actorId())
+            ->whereKey($award)
+            ->firstOrFail();
+        $this->authorize('view', $record);
+
+        $program = RewardProgram::query()->whereKey((string) $record->program_id)->first();
+
+        $entries = RewardAwardEntry::query()
+            ->where('award_id', $record->getKey())
+            ->orderBy('seq')
+            ->get();
+
+        $appeal = RewardAppeal::query()
+            ->where('award_id', $record->getKey())
+            ->orderByDesc('seq')
+            ->first();
+
+        return response()->json([
+            'data' => RewardMemberPresenter::awardDetail($record, $program, $entries, $appeal),
+        ]);
+    }
+}

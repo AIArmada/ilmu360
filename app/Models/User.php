@@ -55,6 +55,11 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
         return (string) $this->getKey();
     }
 
+    public function actorType(): string
+    {
+        return $this->getMorphClass();
+    }
+
     public function resourceOwnerType(): string
     {
         return $this->getMorphClass();

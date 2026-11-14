@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use App\Platform\Http\FrontendController;
 use AIArmada\Organizations\Models\Organization;
 use App\Actions\Events\Authoring\CreateEventWithInitialOccurrenceAction;
 use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;

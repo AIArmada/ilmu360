@@ -2,12 +2,9 @@
 
 declare(strict_types=1);
 
-// Rw1 characterization: feature scaffold/registration, the digest-slot claim
-// with exactly three named feature writers, the API vs Livewire enrollment
-// signal difference (H17), the generic admin API write refusal for every
-// reward Filament resource (H19), and the static proof that app code performs
-// no direct writes to package reward tables or to reward_digest_slots outside
-// the three feature digest actions.
+// Rewards surface contracts: feature registration, package-canonical writer
+// coverage, member/admin transport ownership, and absence of duplicate root
+// paths or generic admin mutation access.
 
 use AIArmada\FilamentRewards\Resources\RewardAppealResource\RewardAppealResource;
 use AIArmada\FilamentRewards\Resources\RewardAwardResource\RewardAwardResource;
@@ -20,16 +17,36 @@ use AIArmada\FilamentRewards\Resources\RewardPayoutResource\RewardPayoutResource
 use AIArmada\FilamentRewards\Resources\RewardProgramResource\RewardProgramResource;
 use AIArmada\FilamentRewards\Resources\RewardRecoveryResource\RewardRecoveryResource;
 use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Rewards\Models\RewardAppeal;
+use AIArmada\Rewards\Models\RewardAward;
+use AIArmada\Rewards\Models\RewardBenefitGrant;
+use AIArmada\Rewards\Models\RewardBenefitItem;
+use AIArmada\Rewards\Models\RewardFundingEntry;
+use AIArmada\Rewards\Models\RewardPayee;
+use AIArmada\Rewards\Models\RewardPayoutRequest;
+use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Models\RewardRecovery;
+use App\Features\Rewards\EntryPoints\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Features\Rewards\FeatureServiceProvider as RewardsFeatureServiceProvider;
-use App\Livewire\Pages\Dashboard\RewardMemberIndex;
+use App\Features\Rewards\Policies\RewardAppealPolicy;
+use App\Features\Rewards\Policies\RewardAwardPolicy;
+use App\Features\Rewards\Policies\RewardBenefitGrantPolicy;
+use App\Features\Rewards\Policies\RewardBenefitItemPolicy;
+use App\Features\Rewards\Policies\RewardFundingEntryPolicy;
+use App\Features\Rewards\Policies\RewardPayeePolicy;
+use App\Features\Rewards\Policies\RewardPayoutRequestPolicy;
+use App\Features\Rewards\Policies\RewardProgramPolicy;
+use App\Features\Rewards\Policies\RewardRecoveryPolicy;
+use App\Features\Rewards\Support\RewardMemberPresenter;
+use App\Features\Rewards\Support\RewardPayoutMethods;
+use App\Mcp\Servers\AdminServer;
 use App\Models\User;
 use App\Platform\FeatureCatalog;
 use App\Platform\FeatureModule;
 use App\Support\Api\Admin\AdminResourceMutationService;
-use App\Support\Rewards\RewardMemberPresenter;
-use App\Support\Rewards\RewardPayoutMethods;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;
@@ -84,9 +101,26 @@ it('discovers the Rewards feature with the digest-slot claim and registers its p
 
     expect(array_keys($providers, RewardsFeatureServiceProvider::class, true))->toHaveCount(1)
         ->and(is_subclass_of(RewardsFeatureServiceProvider::class, FeatureModule::class))->toBeTrue();
+
+    $rewardPolicies = [
+        RewardAppeal::class => RewardAppealPolicy::class,
+        RewardAward::class => RewardAwardPolicy::class,
+        RewardBenefitGrant::class => RewardBenefitGrantPolicy::class,
+        RewardBenefitItem::class => RewardBenefitItemPolicy::class,
+        RewardFundingEntry::class => RewardFundingEntryPolicy::class,
+        RewardPayee::class => RewardPayeePolicy::class,
+        RewardPayoutRequest::class => RewardPayoutRequestPolicy::class,
+        RewardProgram::class => RewardProgramPolicy::class,
+        RewardRecovery::class => RewardRecoveryPolicy::class,
+    ];
+
+    foreach ($rewardPolicies as $model => $policy) {
+        expect(Gate::getPolicyFor($model))->toBeInstanceOf($policy)
+            ->and(File::exists(app_path('Policies/'.class_basename($policy).'.php')))->toBeFalse();
+    }
 });
 
-it('documents the intentional root adapters and package-canonical holds', function (): void {
+it('documents active integrations and package-canonical ownership', function (): void {
     $docblock = (string) (new ReflectionClass(RewardsFeatureServiceProvider::class))->getDocComment();
 
     expect($docblock)->toContain('GratitudeDigest')
@@ -98,22 +132,31 @@ it('documents the intentional root adapters and package-canonical holds', functi
         ->and($docblock)->toContain('ActivityRewardSourceFactReader')
         ->and($docblock)->toContain('ShareAttributionRewardSourceFactReader')
         ->and($docblock)->toContain('ReferralRewardSourceFactReader')
-        ->and($docblock)->toContain('RewardMemberPresenter')
-        ->and($docblock)->toContain('RewardPayoutMethods')
+        ->and($docblock)->toContain('Member presentation, HTTP endpoints, Livewire page')
         ->and($docblock)->toContain('VouchersRewardBenefitCouponFulfillment')
-        ->and($docblock)->toContain('Reward*Policy')
         ->and($docblock)->toContain('Communications after verifying the operator')
-        ->and($docblock)->toContain('Commands/schedules/transport')
+        ->and($docblock)->toContain('generic admin API/MCP exposes reward resources read-only')
+        ->and($docblock)->toContain('Duplicate Communication rows remain possible')
         ->and($docblock)->toContain('package-canonical')
-        ->and($docblock)->toContain('root adapters');
+        ->and($docblock)->toContain('Active integration points');
 });
 
-it('keeps member reward presentation read-only and the current readers uncached', function (): void {
+it('keeps member reward presentation feature-local and the readers uncached', function (): void {
     $presenterPath = (string) (new ReflectionClass(RewardMemberPresenter::class))->getFileName();
     $payoutMethodsPath = (string) (new ReflectionClass(RewardPayoutMethods::class))->getFileName();
 
-    expect($presenterPath)->toEndWith('/app/Support/Rewards/RewardMemberPresenter.php')
-        ->and($payoutMethodsPath)->toEndWith('/app/Support/Rewards/RewardPayoutMethods.php');
+    expect($presenterPath)->toEndWith('/app/Features/Rewards/Support/RewardMemberPresenter.php')
+        ->and($payoutMethodsPath)->toEndWith('/app/Features/Rewards/Support/RewardPayoutMethods.php')
+        ->and(File::exists(app_path('Support/Rewards/RewardMemberPresenter.php')))->toBeFalse()
+        ->and(File::exists(app_path('Support/Rewards/RewardPayoutMethods.php')))->toBeFalse()
+        ->and(File::exists(app_path('Http/Controllers/Api/Frontend/RewardProgramController.php')))->toBeFalse()
+        ->and(File::exists(app_path('Livewire/Pages/Dashboard/RewardMemberIndex.php')))->toBeFalse()
+        ->and(File::exists(app_path('Support/Rewards/DigestRewardGratitudePlanner.php')))->toBeFalse()
+        ->and(File::exists(app_path('Support/Rewards/PublishedProgramVersionsAdapter.php')))->toBeFalse()
+        ->and(File::exists(app_path('Support/Rewards/PublishedRewardProgramVersionResolver.php')))->toBeFalse()
+        ->and(File::exists(app_path('Support/Rewards/VouchersRewardBenefitCouponFulfillment.php')))->toBeFalse()
+        ->and(File::exists(resource_path('views/livewire/pages/dashboard/reward-member-index.blade.php')))->toBeFalse()
+        ->and(File::exists(app_path('Features/Rewards/Views/pages/dashboard/reward-member-index.blade.php')))->toBeTrue();
 
     foreach ([$presenterPath, $payoutMethodsPath] as $path) {
         $contents = (string) file_get_contents($path);
@@ -123,8 +166,8 @@ it('keeps member reward presentation read-only and the current readers uncached'
     }
 
     $memberReadSurfaces = [
-        ...glob(app_path('Http/Controllers/Api/Frontend/Reward*Controller.php')) ?: [],
-        app_path('Livewire/Pages/Dashboard/RewardMemberIndex.php'),
+        ...glob(app_path('Features/Rewards/EntryPoints/Http/Reward*Controller.php')) ?: [],
+        app_path('Features/Rewards/EntryPoints/Livewire/Pages/Dashboard/RewardMemberIndex.php'),
         app_path('Livewire/Pages/Dashboard/UserDashboard.php'),
     ];
 
@@ -141,8 +184,7 @@ it('keeps member reward presentation read-only and the current readers uncached'
         (string) file_get_contents(base_path('app/Features/Rewards/feature.json')), true, 512, JSON_THROW_ON_ERROR,
     );
 
-    expect(array_keys($manifest['owns']))->toBe(['table:reward_digest_slots'])
-        ->and(File::exists(app_path('Features/Rewards/Api/MemberRewards.php')))->toBeFalse();
+    expect(array_keys($manifest['owns']))->toBe(['table:reward_digest_slots']);
 });
 
 it('records the enrollment signal on web first enrollment but not on API enrollment', function (): void {
@@ -196,6 +238,14 @@ it('denies generic admin API mutation for every reward Filament resource', funct
     foreach ($resources as $resource) {
         expect($mutations->supports($resource))->toBeFalse();
     }
+
+    $server = new ReflectionClass(AdminServer::class);
+    $tools = $server->getDefaultProperties()['tools'];
+    $instructions = $server->getAttributes(Laravel\Mcp\Server\Attributes\Instructions::class)[0]->getArguments()[0];
+
+    expect(array_values(array_filter($tools, static fn (string $tool): bool => str_contains($tool, 'Reward'))))->toBe([])
+        ->and($instructions)->toContain('Reward resources are read-only through the generic admin API and MCP')
+        ->and($instructions)->toContain('must call an AIArmada\\Rewards package Action through the Rewards feature');
 
     $appRewardResources = [];
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use App\Platform\Http\FrontendController;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Models\Event;
