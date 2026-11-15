@@ -6,7 +6,9 @@ namespace App\Features\Contributions;
 
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContributor;
+use App\Features\Contributions\Persistence\CacheVerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
 use App\Features\Contributions\Services\ContributionRequestLifecycleService;
 use App\Platform\FeatureModule;
@@ -47,6 +49,7 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
         $this->app->bind(ContributionRequestLifecycle::class, ContributionRequestLifecycleService::class);
+        $this->app->bind(VerifiedInstitutionMapsSelections::class, CacheVerifiedInstitutionMapsSelections::class);
 
         $this->app->tag([
             ContributionsAccountLifecycleContributor::class,

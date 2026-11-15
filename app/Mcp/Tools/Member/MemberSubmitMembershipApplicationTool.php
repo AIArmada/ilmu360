@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Enums\MemberSubjectType;
+use App\Features\Directory\Api\DirectoryReader;
+use App\Features\Directory\Api\DirectoryRecordType;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\MembershipApplicationSubjectType;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
-use App\Models\MembershipApplication;
+use App\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;
 use App\Models\User;
-use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Membership\MembershipSubjectType;
+use App\Platform\Media\StagedUploadFactory;
 use App\Support\Api\Member\MemberResourceService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use App\Support\Mcp\McpFilePayloadNormalizer;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Http\UploadedFile;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -25,7 +27,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use Throwable;
+use RuntimeException;
 
 #[IsReadOnly(false)]
 #[IsIdempotent(false)]
@@ -33,6 +35,8 @@ use Throwable;
 #[IsOpenWorld(false)]
 class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
 {
+    use DefinesMcpFileDescriptorSchema;
+
     #[\Override]
     protected string $name = 'member-submit-membership-application';
 
@@ -42,7 +46,8 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
     public function __construct(
         private readonly MembershipApplications $membershipApplications,
         private readonly McpFilePayloadNormalizer $filePayloadNormalizer,
-        private readonly MediaCollectionSync $mediaSyncService,
+        private readonly DirectoryReader $directoryReader,
+        private readonly StagedUploadFactory $stagedUploadFactory,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
@@ -57,37 +62,29 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
                 'evidence' => ['required', 'array', 'min:1', 'max:8'],
             ]);
 
-            $resolvedSubjectType = MemberSubjectType::fromRouteSegment((string) $validated['subject_type'])
-                ?? MemberSubjectType::tryFrom((string) $validated['subject_type']);
-            abort_unless($resolvedSubjectType?->isClaimable(), 400);
+            $resolvedSubjectType = MembershipApplicationSubjectType::tryFrom((string) $validated['subject_type']);
+            abort_unless($resolvedSubjectType instanceof MembershipApplicationSubjectType, 400);
 
-            $subject = $resolvedSubjectType->resolveSubject((string) $validated['subject']);
+            $directoryRecordType = DirectoryRecordType::tryFrom($resolvedSubjectType->value);
+            abort_unless($directoryRecordType instanceof DirectoryRecordType, 400);
+
+            $subjectId = $this->directoryReader->resolveIdentifier($directoryRecordType, (string) $validated['subject']);
+            abort_unless(is_string($subjectId), 404);
 
             $normalizedMediaPayload = $this->filePayloadNormalizer->normalize($validated, [
                 'evidence' => $this->evidenceMediaContract(),
             ]);
 
-            $application = null;
-
             try {
+                $normalizedEvidence = $normalizedMediaPayload['payload']['evidence'] ?? [];
+
                 $detail = $this->membershipApplications->submit(new SubmitMembershipApplicationInput(
-                    subjectType: MembershipSubjectType::from($resolvedSubjectType->value),
-                    subjectId: (string) $subject->getKey(),
+                    subjectType: $resolvedSubjectType->membershipSubjectType(),
+                    subjectId: $subjectId,
                     accountId: (string) $actor->getKey(),
                     justification: (string) $validated['justification'],
+                    evidenceFiles: $this->stageEvidenceFiles($normalizedEvidence),
                 ));
-
-                $application = OwnerContext::withOwner(null, fn (): MembershipApplication => MembershipApplication::query()
-                    ->findOrFail($detail->application->id));
-
-                $this->mediaSyncService->syncMultiple(
-                    $application,
-                    is_array($normalizedMediaPayload['payload']['evidence'] ?? null)
-                        ? $normalizedMediaPayload['payload']['evidence']
-                        : null,
-                    'evidence',
-                    replace: true,
-                );
 
                 return [
                     'data' => [
@@ -97,24 +94,12 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
                         ],
                     ],
                 ];
-            } catch (Throwable $exception) {
-                if ($application instanceof MembershipApplication) {
-                    try {
-                        $this->membershipApplications->discard((string) $application->getKey());
-                    } catch (Throwable $cleanupException) {
-                        report($cleanupException);
-                    }
-                }
-
-                if (! $exception instanceof \RuntimeException) {
-                    throw $exception;
-                }
-
+            } catch (RuntimeException $exception) {
                 throw ValidationException::withMessages([
                     'justification' => match ($exception->getMessage()) {
-                        'membership_claim_already_member' => __('You are already a member of this record.'),
-                        'membership_claim_duplicate_pending' => __('You already have a pending application for this record.'),
-                        'membership_claim_pending_invitation' => __('You already have a pending invitation for this record. Please accept that invitation instead.'),
+                        'membership_application_already_member' => __('You are already a member of this record.'),
+                        'membership_application_duplicate_pending' => __('You already have a pending application for this record.'),
+                        'membership_application_pending_invitation' => __('You already have a pending invitation for this record. Please accept that invitation instead.'),
                         default => __('The membership application could not be submitted.'),
                     },
                 ]);
@@ -135,23 +120,8 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
             'subject' => $schema->string()->required()->min(1),
             'justification' => $schema->string()->required()->max(2000),
             'evidence' => $schema->array()->required()->min(1)->max(8)
-                ->items(
-                    $schema->anyOf([
-                        $schema->object([
-                            'filename' => $schema->string()->required()->min(1),
-                            'mime_type' => $schema->string()->min(1),
-                            'content_base64' => $schema->string()->required()->min(1),
-                            'content_url' => $schema->string()->min(1),
-                        ])->withoutAdditionalProperties(),
-                        $schema->object([
-                            'filename' => $schema->string()->required()->min(1),
-                            'mime_type' => $schema->string()->min(1),
-                            'content_base64' => $schema->string()->min(1),
-                            'content_url' => $schema->string()->required()->min(1),
-                        ])->withoutAdditionalProperties(),
-                    ])
-                )
-                ->description('Array of MCP file descriptors. Each item must include filename plus either content_base64 or content_url. Multipart/form-data is not supported for MCP tools.'),
+                ->items($this->fileDescriptorSchema($schema))
+                ->description('Array of MCP file descriptors. Each item must include filename and exactly one of content_base64, content_url, or download_url. Multipart/form-data is not supported for MCP tools.'),
         ];
     }
 
@@ -160,10 +130,10 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
      */
     private function subjectTypeValues(): array
     {
-        return array_values(array_unique(array_merge(
-            array_map(static fn (MemberSubjectType $type): string => $type->value, MemberSubjectType::claimableCases()),
-            MemberSubjectType::claimableRouteSegments(),
-        )));
+        return array_map(
+            static fn (MembershipApplicationSubjectType $type): string => $type->value,
+            MembershipApplicationSubjectType::cases(),
+        );
     }
 
     /**
@@ -177,6 +147,38 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
             'max_file_size_kb' => (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024),
             'max_files' => 8,
         ];
+    }
+
+    /**
+     * @return list<\App\Shared\Media\StagedUpload>
+     */
+    private function stageEvidenceFiles(mixed $files): array
+    {
+        if (! is_array($files) || ! array_is_list($files)) {
+            throw ValidationException::withMessages([
+                'evidence' => ['The evidence files could not be normalized.'],
+            ]);
+        }
+
+        $uploads = [];
+
+        foreach ($files as $index => $file) {
+            if (! $file instanceof UploadedFile) {
+                throw ValidationException::withMessages([
+                    "evidence.{$index}" => ['The evidence file could not be normalized.'],
+                ]);
+            }
+
+            try {
+                $uploads[] = $this->stagedUploadFactory->fromUploadedFile($file);
+            } catch (InvalidArgumentException) {
+                throw ValidationException::withMessages([
+                    "evidence.{$index}" => ['The evidence file is no longer available.'],
+                ]);
+            }
+        }
+
+        return $uploads;
     }
 
     #[\Override]

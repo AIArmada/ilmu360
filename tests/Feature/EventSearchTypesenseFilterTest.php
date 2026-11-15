@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Features\Directory\Api\ReferenceQueries;
-use App\Shared\Events\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
+use App\Features\Directory\Api\ReferenceQueries;
 use App\Services\TypesenseEventDiscovery;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use Illuminate\Support\Str;
 
@@ -74,32 +74,35 @@ test('typesense filters restrict discovery to public event statuses', function (
     expect($filters)->toContain('status:=[approved,pending,cancelled]');
 });
 
-test('typesense filters include subdistrict constraint when provided', function () {
+test('typesense filters include role-keyed area constraint when provided', function () {
     $discovery = exposedTypesenseDiscovery();
+    $areaId = (string) Str::uuid();
 
     $filters = $discovery->exposedBuildTypesenseFilterParts([
         'area_assignments' => [
-            'administrative_subdivision' => '321',
+            'administrative_subdivision' => $areaId,
         ],
     ]);
 
-    expect($filters)->toContain('administrative_subdivision:=321');
+    expect($filters)->toContain('administrative_subdivision:='.$areaId);
 });
 
 test('typesense filters include country constraint when provided', function () {
     $discovery = exposedTypesenseDiscovery();
+    $countryId = (string) Str::uuid();
 
     $filters = $discovery->exposedBuildTypesenseFilterParts([
-        'country_id' => 132,
+        'country_id' => $countryId,
     ]);
 
-    expect($filters)->toContain('country_id:=132');
+    expect($filters)->toContain('country_id:='.$countryId);
 });
 
 test('country filter alone does not force database fallback', function () {
     $factory = new EventDiscoveryCriteriaFactory;
+    $countryId = (string) Str::uuid();
 
-    expect($factory->fromSearch(null, ['country_id' => '132'], 20, 'time')->requiresDatabaseFiltering)->toBeFalse();
+    expect($factory->fromSearch(null, ['country_id' => $countryId], 20, 'time')->requiresDatabaseFiltering)->toBeFalse();
 });
 
 test('reference author searches force database fallback', function () {

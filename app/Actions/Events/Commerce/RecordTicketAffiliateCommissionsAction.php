@@ -148,7 +148,7 @@ final readonly class RecordTicketAffiliateCommissionsAction
         }
 
         if ($actor['type'] === $affiliate->owner_type
-            && $actor['id'] ?? (string) $affiliate->owner_id === '') {
+            && $actor['id'] === (string) $affiliate->owner_id) {
             return [];
         }
 

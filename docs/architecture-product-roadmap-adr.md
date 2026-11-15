@@ -47,8 +47,8 @@ legacy state.
   unchanged unless a ticket explicitly says otherwise.
 - Keep prayer, Ramadan, Malaysian geography, moderation vocabulary, and Malay copy
   in `app/`; do not extract them into a package.
-- Use only canonical address keys: `country_id`, `state_id`, `city_id`,
-  `admin_area_1_id`, and `admin_area_2_id`.
+- Use package address IDs `country_id`, `state_id`, and optional `city_id`, then
+  persist administrative and postal areas in role-keyed `area_assignments`.
 - External data exposure happens after the transaction commits.
 - Run ticket-scoped checks; do not run the complete local Pest suite as a default.
 - If implementation contradicts a ticket, record the conflict and evidence in

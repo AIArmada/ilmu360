@@ -1,9 +1,11 @@
 <?php
 
 use App\Features\Directory\Api\InstitutionSubmissionAccess;
+use App\Features\Directory\Api\InstitutionSubmissionOptionsCache;
+use App\Features\Directory\Api\PersonSubmissionAccess;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\User;
-use App\Shared\Submission\SubmissionOptionsCache;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -35,6 +37,24 @@ function b1EligibleInstitution(string $countryId): Institution
     $institution->members()->updateExistingPivot($owner->getKey(), ['role' => 'owner']);
 
     return $institution->refresh();
+}
+
+function b1EligiblePerson(): Person
+{
+    $person = Person::factory()->create([
+        'allow_public_event_submission' => true,
+        'status' => 'verified',
+    ]);
+
+    $owner = User::factory()->create([
+        'phone' => fake()->unique()->numerify('+601########'),
+        'phone_verified_at' => Carbon::now(),
+    ]);
+
+    $person->members()->syncWithoutDetaching([$owner->getKey()]);
+    $person->members()->updateExistingPivot($owner->getKey(), ['role' => 'owner']);
+
+    return $person->refresh();
 }
 
 function b1SubmissionAdmin(): User
@@ -72,22 +92,53 @@ it('invalidates cached guest institution options for every country on a version 
 
     $malaysiaInstitution = b1EligibleInstitution($malaysiaId);
     $singaporeInstitution = b1EligibleInstitution($singaporeId);
-    $optionsCache = app(SubmissionOptionsCache::class);
+    $optionsCache = app(InstitutionSubmissionOptionsCache::class);
 
-    expect(app(SubmitEventOptionsProvider::class)->institutionOptions(null, $malaysiaId, null))
-        ->toHaveKey((string) $malaysiaInstitution->getKey())
-        ->and(app(SubmitEventOptionsProvider::class)->institutionOptions(null, $singaporeId, null))
-        ->toHaveKey((string) $singaporeInstitution->getKey());
+    $malaysiaLoads = 0;
+    $singaporeLoads = 0;
+    $loadMalaysia = function () use (&$malaysiaLoads, $malaysiaInstitution): array {
+        $malaysiaLoads++;
 
-    $malaysiaKey = $optionsCache->institutionOptionsKey($malaysiaId);
-    $singaporeKey = $optionsCache->institutionOptionsKey($singaporeId);
+        return [(string) $malaysiaInstitution->getKey() => $malaysiaInstitution->name];
+    };
+    $loadSingapore = function () use (&$singaporeLoads, $singaporeInstitution): array {
+        $singaporeLoads++;
 
-    expect(Cache::has($malaysiaKey))->toBeTrue()
-        ->and(Cache::has($singaporeKey))->toBeTrue();
+        return [(string) $singaporeInstitution->getKey() => $singaporeInstitution->name];
+    };
+
+    expect($optionsCache->rememberGuestOptions($malaysiaId, $loadMalaysia))->toHaveKey((string) $malaysiaInstitution->getKey())
+        ->and($optionsCache->rememberGuestOptions($singaporeId, $loadSingapore))->toHaveKey((string) $singaporeInstitution->getKey());
+
+    $optionsCache->rememberGuestOptions($malaysiaId, $loadMalaysia);
+    $optionsCache->rememberGuestOptions($singaporeId, $loadSingapore);
 
     $admin = b1SubmissionAdmin();
     app(InstitutionSubmissionAccess::class)->lock((string) $malaysiaInstitution->getKey(), (string) $admin->getKey());
 
-    expect($optionsCache->institutionOptionsKey($malaysiaId))->not->toBe($malaysiaKey)
-        ->and($optionsCache->institutionOptionsKey($singaporeId))->not->toBe($singaporeKey);
+    $optionsCache->rememberGuestOptions($malaysiaId, $loadMalaysia);
+    $optionsCache->rememberGuestOptions($singaporeId, $loadSingapore);
+
+    expect($malaysiaLoads)->toBe(2)
+        ->and($singaporeLoads)->toBe(2);
+});
+
+it('refreshes cached guest person options when submission access is locked and unlocked', function (): void {
+    $person = b1EligiblePerson();
+    $personId = (string) $person->getKey();
+
+    expect(app(SubmitEventOptionsProvider::class)->personOptions(null))
+        ->toHaveKey($personId);
+
+    $admin = b1SubmissionAdmin();
+
+    app(PersonSubmissionAccess::class)->lock($personId, (string) $admin->getKey());
+
+    expect(app(SubmitEventOptionsProvider::class)->personOptions(null))
+        ->not->toHaveKey($personId);
+
+    app(PersonSubmissionAccess::class)->unlock($personId, (string) $admin->getKey());
+
+    expect(app(SubmitEventOptionsProvider::class)->personOptions(null))
+        ->toHaveKey($personId);
 });

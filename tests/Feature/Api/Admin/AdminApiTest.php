@@ -11,16 +11,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventAgeGroup;
 use App\Enums\EventChangeSeverity;
-use App\Shared\Events\Enums\EventChangeType;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
@@ -39,9 +30,18 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionStatus;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Search\PersonSearchService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -92,8 +92,8 @@ it('lists accessible admin resources for privileged users', function () {
         ->and($response->json('data.workflow_actions.triage_report.mcp_tool'))->toBe('admin-triage-report')
         ->and($response->json('data.workflow_actions.review_contribution_request.mcp_schema_tool'))->toBe('admin-get-contribution-request-review-schema')
         ->and($response->json('data.workflow_actions.review_contribution_request.mcp_tool'))->toBe('admin-review-contribution-request')
-        ->and($response->json('data.workflow_actions.review_membership_claim.mcp_schema_tool'))->toBe('admin-get-membership-application-review-schema')
-        ->and($response->json('data.workflow_actions.review_membership_claim.mcp_tool'))->toBe('admin-review-membership-application')
+        ->and($response->json('data.workflow_actions.review_membership_application.mcp_schema_tool'))->toBe('admin-get-membership-application-review-schema')
+        ->and($response->json('data.workflow_actions.review_membership_application.mcp_tool'))->toBe('admin-review-membership-application')
         ->and($response->json('data.write_workflow.discover_resources'))->toContain('/api/v1/admin/manifest')
         ->and($response->json('data.rules'))->toContain('Use the admin record route_key returned by admin collection or detail payloads for record-specific paths.');
 
@@ -909,7 +909,7 @@ it('exposes event moderation schema and can request changes through the admin wo
     expect((string) $event->status)->toBe('needs_changes');
 
     $review = OwnerContext::withOwner(null, fn () => ModerationReview::query()
-        ->where('actionable_type', Event::class)
+        ->where('actionable_type', (new Event)->getMorphClass())
         ->where('actionable_id', $event->getKey())
         ->latest()
         ->first());
@@ -1115,11 +1115,11 @@ it('clears report optional scalars and evidence through the admin api', function
         'entity_type' => 'event',
         'entity_id' => (string) $event->getKey(),
         'category' => 'wrong_info',
-        'description' => 'Legacy report description.',
+        'description' => 'Existing report description.',
         'status' => 'open',
         'reporter_id' => (string) $reporter->getKey(),
         'handled_by' => (string) $handler->getKey(),
-        'resolution_note' => 'Legacy resolution note.',
+        'resolution_note' => 'Existing resolution note.',
         'evidence' => [
             fakeGeneratedImageUpload('admin-api-report-evidence-reset.png', 640, 640),
         ],
@@ -1562,7 +1562,7 @@ it('exposes donation channel write schema and can create and update donation cha
     $this->postJson('/api/v1/admin/donation-channels', [
         'donatable_type' => 'institution',
         'donatable_id' => (string) $institution->getKey(),
-        'recipient' => 'Rejected Legacy Status',
+        'recipient' => 'Rejected Status',
         'method' => 'bank_account',
         'bank_name' => 'Maybank',
         'account_number' => '123456789012',
@@ -1663,14 +1663,14 @@ it('surfaces donation channel update semantics through the admin api schema', fu
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
 
-    expect(data_get($fields->get('donatable_type'), 'accepted_aliases.persons'))->toBe((string) (new Person)->getMorphClass())
+    expect(data_get($fields->get('donatable_type'), 'mutation_semantics'))->toBe('replace_scalar_with_canonical_owner_type')
         ->and(data_get($fields->get('method'), 'mutation_semantics'))->toBe('replace_scalar_with_method_partition_reset')
         ->and(data_get($fields->get('method'), 'switch_clears_fields.duitnow'))->toContain('bank_name', 'account_number')
         ->and(data_get($fields->get('label'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
         ->and(data_get($fields->get('reference_note'), 'normalization.empty_string_at_mutation_layer'))->toBe('null');
 });
 
-it('normalizes donation channel owner aliases and clears method-specific strings through the admin api', function () {
+it('uses canonical donation channel owner types and clears method-specific strings through the admin api', function () {
     $admin = adminApiUser('super_admin');
     $institution = Institution::factory()->create();
 
@@ -1679,20 +1679,20 @@ it('normalizes donation channel owner aliases and clears method-specific strings
     $createResponse = $this->postJson('/api/v1/admin/donation-channels', [
         'donatable_type' => 'institution',
         'donatable_id' => (string) $institution->getKey(),
-        'label' => 'Alias Donation Channel',
-        'recipient' => 'Alias Recipient',
+        'label' => 'Canonical Donation Channel',
+        'recipient' => 'Canonical Recipient',
         'method' => 'bank_account',
         'bank_code' => 'MBB',
         'bank_name' => 'Maybank',
         'account_number' => '1234567890',
-        'reference_note' => 'Alias note',
+        'reference_note' => 'Canonical note',
         'status' => 'verified',
     ])->assertCreated();
 
     $donationChannelRouteKey = (string) $createResponse->json('data.record.route_key');
 
     $this->putJson('/api/v1/admin/donation-channels/'.$donationChannelRouteKey, [
-        'donatable_type' => Institution::class,
+        'donatable_type' => (string) (new Institution)->getMorphClass(),
         'donatable_id' => (string) $institution->getKey(),
         'label' => '',
         'recipient' => 'Alias Recipient',
@@ -1717,6 +1717,24 @@ it('normalizes donation channel owner aliases and clears method-specific strings
         ->and($donationChannel->account_number)->toBeNull()
         ->and($donationChannel->duitnow_type)->toBe('mobile')
         ->and($donationChannel->duitnow_value)->toBe('60112233445');
+});
+
+it('rejects non-canonical donation channel owner type aliases through the admin api', function () {
+    $admin = adminApiUser('super_admin');
+    $institution = Institution::factory()->create();
+
+    Sanctum::actingAs($admin);
+
+    foreach ([Institution::class, Person::class, Event::class, 'institutions', 'persons', 'events'] as $ownerType) {
+        $this->postJson('/api/v1/admin/donation-channels', [
+            'donatable_type' => $ownerType,
+            'donatable_id' => (string) $institution->getKey(),
+            'recipient' => 'Donation Recipient',
+            'method' => 'bank_account',
+            'bank_name' => 'Maybank',
+            'account_number' => '1234567890',
+        ])->assertUnprocessable()->assertJsonValidationErrors('donatable_type');
+    }
 });
 
 it('exposes membership claim review schema and can approve claims through the admin workflow endpoints', function () {
@@ -1869,8 +1887,8 @@ it('returns fresh person address data on admin GET requests after updates', func
             'country_id' => $firstFixtures['country_id'],
             'state_id' => $firstFixtures['state_id'],
             'area_assignments' => [
-                'administrative_district' => $firstFixtures['administrative_district_id'],
-                'administrative_subdivision' => $firstFixtures['administrative_subdivision_id'],
+                'administrative_district' => $firstFixtures['district_area_id'],
+                'administrative_subdivision' => $firstFixtures['subdivision_area_id'],
             ],
         ],
     ])->assertCreated();
@@ -1882,8 +1900,8 @@ it('returns fresh person address data on admin GET requests after updates', func
         ->assertJsonPath('data.record.attributes.address.country_id', $firstFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_district', $firstFixtures['administrative_district_id'])
-        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_subdivision', $firstFixtures['administrative_subdivision_id']);
+        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_district', $firstFixtures['district_area_id'])
+        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_subdivision', $firstFixtures['subdivision_area_id']);
 
     $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
         'name' => 'Admin API Address Freshness Person',
@@ -1893,24 +1911,24 @@ it('returns fresh person address data on admin GET requests after updates', func
             'country_id' => $secondFixtures['country_id'],
             'state_id' => $secondFixtures['state_id'],
             'area_assignments' => [
-                'administrative_district' => $secondFixtures['administrative_district_id'],
-                'administrative_subdivision' => $secondFixtures['administrative_subdivision_id'],
+                'administrative_district' => $secondFixtures['district_area_id'],
+                'administrative_subdivision' => $secondFixtures['subdivision_area_id'],
             ],
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_district', $secondFixtures['administrative_district_id'])
-        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_subdivision', $secondFixtures['administrative_subdivision_id']);
+        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_district', $secondFixtures['district_area_id'])
+        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_subdivision', $secondFixtures['subdivision_area_id']);
 
     $this->getJson('/api/v1/admin/people/'.$personRouteKey)
         ->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_district', $secondFixtures['administrative_district_id'])
-        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_subdivision', $secondFixtures['administrative_subdivision_id']);
+        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_district', $secondFixtures['district_area_id'])
+        ->assertJsonPath('data.record.attributes.address.area_assignments.administrative_subdivision', $secondFixtures['subdivision_area_id']);
 
     $person = Person::findOrFail($personRouteKey);
     $person->refresh();
@@ -1921,8 +1939,8 @@ it('returns fresh person address data on admin GET requests after updates', func
         ->assertJsonPath('data.0.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.0.attributes.address.line1')
         ->assertJsonMissingPath('data.0.attributes.address.google_maps_url')
-        ->assertJsonPath('data.0.attributes.address.area_assignments.administrative_district', $secondFixtures['administrative_district_id'])
-        ->assertJsonPath('data.0.attributes.address.area_assignments.administrative_subdivision', $secondFixtures['administrative_subdivision_id']);
+        ->assertJsonPath('data.0.attributes.address.area_assignments.administrative_district', $secondFixtures['district_area_id'])
+        ->assertJsonPath('data.0.attributes.address.area_assignments.administrative_subdivision', $secondFixtures['subdivision_area_id']);
 });
 
 it('surfaces person update semantics and collection rules through the admin api schema', function () {
@@ -1954,8 +1972,8 @@ it('surfaces person update semantics and collection rules through the admin api 
         ->and(data_get($fields->get('address.country_id'), 'required_when_parent_present_on_update'))->toBeTrue()
         ->and(data_get($fields->get('language_ids'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('contactMethods'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
+        ->and(data_get($fields->get('social_media'), 'input_normalization.handle_platforms'))->toContain('x')
+        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases'))->toBeNull();
 });
 
 it('replaces person collections and still requires an explicit country when mutating address data through the admin api', function () {
@@ -2239,8 +2257,8 @@ it('surfaces institution update semantics and nested item schemas through the ad
         ->and($contactItemFields->keys()->all())->toContain('type', 'value', 'purpose', 'is_public', 'sort_order')
         ->and(data_get($contactItemFields->get('value'), 'used_for_types'))->toContain('phone', 'whatsapp', 'email')
         ->and(data_get($fields->get('social_media'), 'collection_semantics.empty_array'))->toBe('clear_collection')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse()
+        ->and(data_get($fields->get('social_media'), 'input_normalization.handle_platforms'))->toContain('x')
+        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases'))->toBeNull()
         ->and(data_get($fields->get('social_media'), 'input_normalization.canonical_storage.identifier_field'))->toBe('handle')
         ->and($socialMediaItemFields->keys()->all())->toContain('platform', 'handle', 'url', 'sort_order')
         ->and(data_get($fields->get('social_media'), 'item_schema.at_least_one_of'))->toBe(['handle', 'url']);
@@ -2600,8 +2618,8 @@ it('surfaces venue update semantics and destructive empty-address behavior throu
         ->and(data_get($fields->get('facilities'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('facilities'), 'input_normalization.kind'))->toBe('facility_codes_to_relation')
         ->and(data_get($fields->get('contactMethods'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
+        ->and(data_get($fields->get('social_media'), 'input_normalization.handle_platforms'))->toContain('x')
+        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases'))->toBeNull();
 });
 
 it('replaces venue collections and deletes the address on an empty object through the admin api', function () {
@@ -2716,13 +2734,13 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
     $this->getJson('/api/v1/admin/catalogs/administrative-districts?state_id='.$fixtures['state_id'])
         ->assertOk()
         ->assertJsonFragment([
-            'id' => $fixtures['administrative_district_id'],
+            'id' => $fixtures['district_area_id'],
         ]);
 
-    $this->getJson('/api/v1/admin/catalogs/administrative-subdivisions?administrative_district='.$fixtures['administrative_district_id'])
+    $this->getJson('/api/v1/admin/catalogs/administrative-subdivisions?administrative_district='.$fixtures['district_area_id'])
         ->assertOk()
         ->assertJsonFragment([
-            'id' => $fixtures['administrative_subdivision_id'],
+            'id' => $fixtures['subdivision_area_id'],
             'label' => $fixtures['subdistrict_name'],
         ]);
 
@@ -2917,8 +2935,8 @@ it('surfaces reference update semantics and social-media normalization rules thr
         ->and(data_get($fields->get('publisher'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
         ->and(data_get($fields->get('social_media'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('social_media'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
+        ->and(data_get($fields->get('social_media'), 'input_normalization.handle_platforms'))->toContain('x')
+        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases'))->toBeNull();
 });
 
 it('clears normalized reference scalars and replaces canonicalized social media through the admin api', function () {
@@ -3022,7 +3040,7 @@ it('exposes admin address-area write schema and can create and update address ar
 
     $createResponse = $this->postJson('/api/v1/admin/address-areas', [
         'country_id' => $fixtures['country_id'],
-        'parent_id' => $fixtures['administrative_district_id'],
+        'parent_id' => $fixtures['district_area_id'],
         'type' => 'subdistrict',
         'level' => 3,
         'name' => '  Admin API Created Address Area  ',
@@ -3035,7 +3053,7 @@ it('exposes admin address-area write schema and can create and update address ar
         ->assertJsonPath('data.schema.method', 'PUT')
         ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/address-areas/'.$addressAreaRouteKey)
         ->assertJsonPath('data.schema.defaults.country_id', $fixtures['country_id'])
-        ->assertJsonPath('data.schema.defaults.parent_id', $fixtures['administrative_district_id'])
+        ->assertJsonPath('data.schema.defaults.parent_id', $fixtures['district_area_id'])
         ->assertJsonPath('data.schema.defaults.type', 'subdistrict')
         ->assertJsonPath('data.schema.defaults.level', 3)
         ->assertJsonPath('data.schema.defaults.name', 'Admin API Created Address Area');
@@ -3061,7 +3079,7 @@ it('surfaces address-area update semantics through the admin api schema', functi
 
     $createResponse = $this->postJson('/api/v1/admin/address-areas', [
         'country_id' => $fixtures['country_id'],
-        'parent_id' => $fixtures['administrative_district_id'],
+        'parent_id' => $fixtures['district_area_id'],
         'type' => 'subdistrict',
         'level' => 3,
         'name' => 'Admin API Schema Address Area',
@@ -3574,8 +3592,8 @@ function ensureAdminApiMalaysiaCountryExists(): string
  * @return array{
  *     country_id: string,
  *     state_id: string,
- *     administrative_district_id: string,
- *     administrative_subdivision_id: string,
+ *     district_area_id: string,
+ *     subdivision_area_id: string,
  *     subdistrict_name: string
  * }
  */
@@ -3597,8 +3615,8 @@ function ensureAdminApiSubdistrictFixtures(): array
     return [
         'country_id' => (string) $geo['country']->getKey(),
         'state_id' => (string) $geo['state']->getKey(),
-        'administrative_district_id' => (string) $geo['district']->getKey(),
-        'administrative_subdivision_id' => (string) $geo['subdistrict']->getKey(),
+        'district_area_id' => (string) $geo['district']->getKey(),
+        'subdivision_area_id' => (string) $geo['subdistrict']->getKey(),
         'subdistrict_name' => $subdistrictName,
         'area_tree_root_id' => (string) $geo['area_tree_root']->getKey(),
     ];

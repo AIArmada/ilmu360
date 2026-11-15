@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Engagement;
 
+use App\Features\Engagement\Actions\DeleteEventEngagementAction;
+use App\Features\Engagement\Api\EventEngagementDeletion;
+use App\Features\Engagement\Contributors\EngagementAccountLifecycleContributor;
 use App\Platform\FeatureModule;
+use App\Shared\Auth\AccountLifecycleContributor;
 
 /**
  * Engagement is the future owner of follow, save and going behaviour over the
@@ -20,15 +24,27 @@ use App\Platform\FeatureModule;
  * (`FollowSubjectAction`/`UnfollowSubjectAction`). D4e routes every save,
  * going and follow share outcome through the root `EngagementShareOutcomes`
  * recorder; the package manager remains the canonical writer and callers
- * never reproduce its orchestration. Implementations are root adapters bound
- * in AppServiceProvider.
+ * never reproduce its orchestration. Those implementations are root adapters
+ * bound in AppServiceProvider.
+ * Event deletion cleanup is Engagement-owned through `EventEngagementDeletion`;
+ * it deletes active bookmarks and going responses through package models,
+ * without claiming their package tables.
+ * Account deletion/restoration state contributes through the shared Identity
+ * lifecycle coordinator; its contributor is registered by this feature.
  *
- * Must stay root adapters, documented here so later slices do not absorb them:
- * - EngagementAccountLifecycleContributor (account deletion/restoration
- *   snapshots and restores, registered in AppServiceProvider).
- * - HTTP/Livewire entrypoints (the API controllers, card components and page
- *   traits that call the named engagement actions).
+ * HTTP/Livewire entrypoints (the API controllers, card components and page
+ * traits that call the named engagement actions) remain root adapters.
  * Share outcome reversal remains ShareTracking's contract; D4 composes it from
  * the engagement actions rather than moving it in.
  */
-class FeatureServiceProvider extends FeatureModule {}
+class FeatureServiceProvider extends FeatureModule
+{
+    public function register(): void
+    {
+        $this->app->bind(EventEngagementDeletion::class, DeleteEventEngagementAction::class);
+
+        $this->app->tag([
+            EngagementAccountLifecycleContributor::class,
+        ], AccountLifecycleContributor::TAG);
+    }
+}

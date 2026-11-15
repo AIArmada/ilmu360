@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
-use App\Filament\Resources\Events\EventResource;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Models\ContributionRequest;
 use App\Models\Event;
-use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
 use Filament\Resources\Resource;
@@ -29,6 +29,7 @@ final readonly class AdminRecordActionService
         private AdminReportTriageService $reportTriageService,
         private AdminContributionRequestReviewService $contributionRequestReviewService,
         private ReportTriageContract $reportTriageContract,
+        private MembershipApplications $membershipApplications,
     ) {}
 
     /**
@@ -179,8 +180,12 @@ final readonly class AdminRecordActionService
             $actions = [...$actions, ...$this->contributionRequestWorkflowActions($record, $recordKey, $actor)];
         }
 
-        if ($resourceClass === MembershipApplicationResource::class && $record instanceof MembershipApplication) {
-            $actions = [...$actions, ...$this->membershipClaimWorkflowActions($record, $recordKey, $actor)];
+        if ($resourceClass === MembershipApplicationResource::class) {
+            $application = $this->membershipApplications->find($recordKey);
+
+            if ($application !== null) {
+                $actions = [...$actions, ...$this->membershipApplicationWorkflowActions($application->application->status, $recordKey, $actor)];
+            }
         }
 
         return $actions;
@@ -331,32 +336,32 @@ final readonly class AdminRecordActionService
     /**
      * @return list<array<string, mixed>>
      */
-    private function membershipClaimWorkflowActions(MembershipApplication $record, string $recordKey, ?User $actor = null): array
+    private function membershipApplicationWorkflowActions(string $status, string $recordKey, ?User $actor = null): array
     {
-        if ($record->status !== ApplicationStatus::Pending || (! $actor instanceof User || ! $actor->hasAnyRole(['super_admin', 'admin', 'moderator']))) {
+        if ($status !== ApplicationStatus::Pending->value || (! $actor instanceof User || ! $actor->hasAnyRole(['super_admin', 'admin', 'moderator']))) {
             return [];
         }
 
         return [
             [
-                'key' => 'get_membership_claim_review_schema',
-                'label' => 'Fetch membership claim review schema',
+                'key' => 'get_membership_application_review_schema',
+                'label' => 'Fetch membership application review schema',
                 'category' => 'workflow_schema',
-                'description' => 'Read the explicit review schema for this membership claim before choosing the action.',
+                'description' => 'Read the explicit review schema for this membership application before choosing the action.',
                 'tool' => 'admin-get-membership-application-review-schema',
                 'arguments' => ['record_key' => $recordKey],
             ],
             [
-                'key' => 'review_membership_claim',
-                'label' => 'Review membership claim',
+                'key' => 'review_membership_application',
+                'label' => 'Review membership application',
                 'category' => 'workflow',
-                'description' => 'Approve or reject this pending membership claim through the explicit review workflow.',
+                'description' => 'Approve or reject this pending membership application through the explicit review workflow.',
                 'tool' => 'admin-review-membership-application',
                 'arguments' => ['record_key' => $recordKey, 'action' => 'approve', 'granted_role' => null, 'reviewer_note' => null],
-                'requires' => ['get_membership_claim_review_schema'],
+                'requires' => ['get_membership_application_review_schema'],
                 'schema_tool' => 'admin-get-membership-application-review-schema',
                 'schema_tool_arguments' => ['record_key' => $recordKey],
-                'schema_action_key' => 'get_membership_claim_review_schema',
+                'schema_action_key' => 'get_membership_application_review_schema',
             ],
         ];
     }
@@ -480,7 +485,7 @@ final readonly class AdminRecordActionService
     {
         $recommended = [];
 
-        foreach (['get_event_moderation_schema', 'moderate_event', 'generate_event_cover_image', 'generate_event_poster_image', 'get_report_triage_schema', 'triage_report', 'get_contribution_request_review_schema', 'review_contribution_request', 'get_membership_claim_review_schema', 'review_membership_claim', 'get_update_schema', 'list_related_records'] as $actionKey) {
+        foreach (['get_event_moderation_schema', 'moderate_event', 'generate_event_cover_image', 'generate_event_poster_image', 'get_report_triage_schema', 'triage_report', 'get_contribution_request_review_schema', 'review_contribution_request', 'get_membership_application_review_schema', 'review_membership_application', 'get_update_schema', 'list_related_records'] as $actionKey) {
             if ($this->hasAction($actions, $actionKey)) {
                 $recommended[] = $actionKey;
             }

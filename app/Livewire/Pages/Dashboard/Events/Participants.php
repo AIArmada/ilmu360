@@ -14,7 +14,7 @@ use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Commerce\EventCommercePolicy;
 use App\Shared\Events\Enums\EventAttendanceStatus;
-use App\Support\Events\ParticipantIdentity;
+use App\Shared\Events\ParticipantIdentity;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;

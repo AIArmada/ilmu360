@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Persistence;
 
-use App\Features\ShareTracking\Api\SourceAttributionReceiptSnapshot;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
+use App\Features\ShareTracking\Api\SourceAttributionReceiptSnapshot;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
@@ -72,7 +72,7 @@ final class DatabaseSourceAttributionReceipts implements SourceAttributionReceip
         CarbonInterface $occurredAt,
     ): SourceAttributionReceiptSnapshot {
         try {
-            $receipt = DB::transaction(static fn (): Model => ShareTrackingModel::sourceReceiptQuery()->create([
+            $receipt = DB::transaction(static fn (): Model => ShareTrackingModel::query('share_source_attribution_receipt')->create([
                 'namespace' => ShareOutcomeBusinessKey::NAMESPACE,
                 'outcome_type' => $type->value,
                 'source_transition_id' => $sourceTransitionId,
@@ -87,7 +87,7 @@ final class DatabaseSourceAttributionReceipts implements SourceAttributionReceip
                 throw $exception;
             }
 
-            $receipt = ShareTrackingModel::sourceReceiptQuery()
+            $receipt = ShareTrackingModel::query('share_source_attribution_receipt')
                 ->where('business_key', $businessKey)
                 ->firstOrFail();
         }

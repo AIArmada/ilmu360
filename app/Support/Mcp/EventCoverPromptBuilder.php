@@ -738,8 +738,6 @@ class EventCoverPromptBuilder
             $originalUrl = $media->getUrl();
         }
 
-        $sourceDimensions = $media->getCustomProperty('source_dimensions', []);
-
         return [
             'id' => (string) $media->getKey(),
             'role' => $role,
@@ -754,7 +752,6 @@ class EventCoverPromptBuilder
             'url' => $url !== '' ? $url : null,
             'original_url' => $originalUrl !== '' ? $originalUrl : null,
             'custom_properties' => $this->normalizeArray($media->custom_properties ?? []),
-            'source_dimensions' => is_array($sourceDimensions) ? $this->normalizeArray($sourceDimensions) : [],
             'selected_for_prompt' => $selected,
             'selection_reason' => $selectionReason,
         ];

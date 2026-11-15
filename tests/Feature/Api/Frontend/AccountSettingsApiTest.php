@@ -315,7 +315,7 @@ it('does not expose unscoped MCP tokens as server tokens', function () {
 
     $user = User::factory()->create();
     $user->assignRole('super_admin');
-    $user->createToken('legacy-admin-mcp');
+    $user->createToken('admin-mcp-token');
 
     Sanctum::actingAs($user);
 

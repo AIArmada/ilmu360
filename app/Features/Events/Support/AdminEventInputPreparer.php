@@ -4,7 +4,7 @@ namespace App\Features\Events\Support;
 
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
-use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -28,14 +28,14 @@ use Illuminate\Validation\ValidationException;
  *     venue_id: string|null,
  *     space_ids: list<string>,
  *     organizer_id: string|null,
- *     primary_organizer: \App\Models\Institution|\App\Models\Person|null
+ *     primary_organizer_kind: string|null
  * }
  */
 final readonly class AdminEventInputPreparer
 {
     public function __construct(
         private AdminEventFormStateBuilder $formState,
-        private SpaceEligibilityResolver $spaceEligibilityResolver,
+        private SpaceEligibility $spaceEligibilityResolver,
         private SubmissionTimingPolicy $timing,
         private GenerateEventSlugAction $generateEventSlugAction,
     ) {}
@@ -61,7 +61,7 @@ final readonly class AdminEventInputPreparer
         [$institutionId, $venueId, $spaceIds] = $this->resolveLocationState($state);
 
         $organizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? $event->primaryOrganizerInvolvement?->involveable_id);
-        $primaryOrganizer = OrganizerResolver::find($organizerId);
+        $organizerKind = OrganizerResolver::kindForId($organizerId);
 
         return [
             'state' => $state,
@@ -70,7 +70,7 @@ final readonly class AdminEventInputPreparer
             'venue_id' => $venueId,
             'space_ids' => $spaceIds,
             'organizer_id' => $organizerId,
-            'primary_organizer' => $primaryOrganizer,
+            'primary_organizer_kind' => $organizerKind,
         ];
     }
 
@@ -122,7 +122,7 @@ final readonly class AdminEventInputPreparer
             'published_at' => $creating ? null : $event->published_at,
         ];
 
-        $attributes['slug'] = $this->generateSlug($attributes, $state, $event, $creating, $startsAt instanceof \Carbon\CarbonInterface ? (string) $startsAt : null);
+        $attributes['slug'] = $this->generateSlug($attributes, $state, $event, $creating, $startsAt instanceof CarbonInterface ? (string) $startsAt : null);
 
         return $attributes;
     }
@@ -235,11 +235,10 @@ final readonly class AdminEventInputPreparer
     private function generateSlug(array $attributes, array $state, PackageEvent $event, bool $creating, ?string $startsAt = null): string
     {
         $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
-        $primaryOrganizer = OrganizerResolver::find($primaryOrganizerId);
-
         $personSlugSegments = $this->generateEventSlugAction->personSlugSegmentsForState(
             $this->normalizeStringArray($state['persons'] ?? []),
-            $primaryOrganizer,
+            OrganizerResolver::kindForId($primaryOrganizerId),
+            $primaryOrganizerId,
         );
 
         return $this->generateEventSlugAction->handle(

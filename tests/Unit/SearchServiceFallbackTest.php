@@ -3,6 +3,10 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
+use App\Features\Directory\Api\InstitutionSearchCache;
+use App\Features\Directory\Api\PersonSearchCache;
+use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\ReferenceSearchCache;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -36,7 +40,7 @@ it('falls back to the local person search index when typesense lookup fails', fu
     $baseService = app(PersonSearchService::class);
     $baseService->syncPersonRecord($person);
 
-    $service = new class extends PersonSearchService
+    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -93,7 +97,7 @@ it('falls back to local person fuzzy search when typesense lookup fails', functi
 
     app(PersonSearchService::class)->syncPersonRecord($person);
 
-    $service = new class extends PersonSearchService
+    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -153,7 +157,7 @@ it('can score a person when the local searchable name is empty', function () {
 
     DB::table('persons')->where('id', $person->getKey())->update(['searchable_name' => null]);
 
-    $service = new class extends PersonSearchService
+    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -187,7 +191,7 @@ it('keeps transposed person typos reachable through fallback candidate filtering
 
     app(PersonSearchService::class)->syncPersonRecord($person);
 
-    $service = new class extends PersonSearchService
+    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -222,7 +226,7 @@ it('keeps exact person fuzzy matches inside the capped fallback candidate set', 
 
     $baseService->syncPersonRecord($exactPerson);
 
-    $service = new class extends PersonSearchService
+    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -260,7 +264,7 @@ it('falls back to database institution search when typesense lookup fails', func
         'is_primary' => true,
     ]);
 
-    $service = new class extends InstitutionSearchService
+    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -292,7 +296,7 @@ it('falls back to database institution fuzzy search when typesense lookup fails'
         'status' => 'verified',
     ]);
 
-    $service = new class extends InstitutionSearchService
+    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -316,7 +320,7 @@ it('binds all institution name ordering parameters for multi-word fuzzy searches
         'status' => 'verified',
     ]);
 
-    $service = new class extends InstitutionSearchService
+    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -335,7 +339,7 @@ it('keeps transposed institution typos reachable through fallback candidate filt
         'status' => 'verified',
     ]);
 
-    $service = new class extends InstitutionSearchService
+    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -368,7 +372,7 @@ it('keeps exact institution fuzzy matches inside the capped fallback candidate s
         'status' => 'verified',
     ]);
 
-    $service = new class extends InstitutionSearchService
+    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -604,7 +608,7 @@ it('falls back to database reference search when typesense lookup fails', functi
         'status' => 'verified',
     ]);
 
-    $service = new class extends ReferenceSearchService
+    $service = new class(app(ReferenceSearchCache::class)) extends ReferenceSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -628,7 +632,7 @@ it('falls back to database reference fuzzy search when typesense lookup fails', 
         'status' => 'verified',
     ]);
 
-    $service = new class extends ReferenceSearchService
+    $service = new class(app(ReferenceSearchCache::class)) extends ReferenceSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -688,7 +692,7 @@ it('falls back to database institution search when public query typesense fails'
         'status' => 'verified',
     ]);
 
-    $service = new class extends InstitutionSearchService
+    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -722,7 +726,7 @@ it('passes the public status filter to typesense institution search', function (
         }
     });
 
-    $service = new class extends InstitutionSearchService
+    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         public array $capturedOptions = [];
 

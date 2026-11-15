@@ -2,9 +2,7 @@
 
 namespace App\Forms;
 
-use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Data\AddressLevelDefinition;
-use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
@@ -16,7 +14,6 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
-use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -42,7 +39,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
@@ -680,96 +676,6 @@ class SharedFormSchema
     }
 
     /**
-     * Create address record for a model that has an address() relationship.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    public static function createAddressFromData(
-        Event|Institution|Person|Venue $model,
-        array $data,
-        string $type = 'main',
-        bool $allowCountryOnly = false,
-    ): void {
-        $countryProvided = self::countrySelectionProvided($data);
-        $data = self::prepareAddressPersistenceData($data);
-        $countryId = self::normalizeLocationId($data['country_id'] ?? null);
-        $hasAddressContent = collect([
-            $data['line1'] ?? null,
-            $data['line2'] ?? null,
-            $data['postcode'] ?? null,
-            $data['state_id'] ?? null,
-            $data['city_id'] ?? null,
-            $data['area_assignments'] ?? [],
-            $data['google_maps_url'] ?? null,
-            $data['google_place_id'] ?? null,
-            $data['waze_url'] ?? null,
-            $data['latitude'] ?? null,
-            $data['longitude'] ?? null,
-        ])->contains(static fn (mixed $value): bool => filled($value));
-
-        if (! $hasAddressContent && (! $allowCountryOnly || ! $countryProvided && $countryId === null)) {
-            return;
-        }
-
-        if ($countryId === null && ! $countryProvided && $hasAddressContent) {
-            throw ValidationException::withMessages([
-                'address.country_id' => __('The address country is required.'),
-            ]);
-        }
-
-        if ($countryId === null) {
-            throw ValidationException::withMessages([
-                'address.country_id' => $countryProvided
-                    ? __('The selected country is invalid.')
-                    : __('The address country is required.'),
-            ]);
-        }
-
-        $address = Address::query()->create([
-            'line1' => $data['line1'] ?? null,
-            'line2' => $data['line2'] ?? null,
-            'postcode' => $data['postcode'] ?? null,
-            'country_id' => $countryId,
-            'state_id' => $data['state_id'] ?? null,
-            'city_id' => $data['city_id'] ?? null,
-            'country' => $data['country'] ?? null,
-            'country_code' => $data['country_code'] ?? null,
-            'state' => $data['state'] ?? null,
-            'city' => $data['city'] ?? null,
-            'latitude' => isset($data['latitude']) && $data['latitude'] !== '' ? (float) $data['latitude'] : null,
-            'longitude' => isset($data['longitude']) && $data['longitude'] !== '' ? (float) $data['longitude'] : null,
-            'google_maps_url' => $data['google_maps_url'] ?? null,
-            'google_place_id' => $data['google_place_id'] ?? null,
-            'google_feature_id' => $data['google_feature_id'] ?? null,
-            'google_cid' => $data['google_cid'] ?? null,
-            'google_entity_id' => $data['google_entity_id'] ?? null,
-            'formatted_address' => $data['formatted_address'] ?? null,
-            'components' => $data['components'] ?? [],
-            'metadata' => $data['metadata'] ?? [],
-            'navigation_links' => $data['navigation_links'] ?? [],
-            'waze_url' => $data['waze_url'] ?? null,
-        ]);
-
-        if ($model->exists) {
-            $model->addresses()
-                ->newPivotStatement()
-                ->where('addressable_type', $model->getMorphClass())
-                ->where('addressable_id', $model->getKey())
-                ->where('type', $type)
-                ->delete();
-
-            $model->attachAddress($address, type: $type, isPrimary: true);
-        }
-
-        app(SyncAddressAreaAssignmentsAction::class)->execute(
-            $address,
-            $data['area_assignments'] ?? [],
-            $data['state_id'] ?? null,
-            ['source' => 'ilmu360'],
-        );
-    }
-
-    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -798,9 +704,9 @@ class SharedFormSchema
     /**
      * @param  array<string, mixed>  $data
      */
-    public static function normalizeCountrySelection(array $data, bool $enabledOnly = false): ?string
+    public static function normalizeCountrySelection(array $data): ?string
     {
-        return AddressFormState::normalizeCountrySelection($data, $enabledOnly);
+        return AddressFormState::normalizeCountrySelection($data);
     }
 
     /**

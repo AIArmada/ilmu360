@@ -55,7 +55,18 @@ class EditReference extends EditRecord
             return OwnerContext::withOwner(null, function () use ($data, $record): Model {
                 ReferenceFormSchema::validateDirectInput($data);
 
+                $hasSocialProfiles = array_key_exists('socialProfiles', $data);
+                $socialProfiles = $data['socialProfiles'] ?? null;
+                unset($data['socialProfiles']);
+
                 app(ReferenceWorkflow::class)->saveFromAdmin($data, (string) $record->getKey());
+
+                if ($hasSocialProfiles) {
+                    app(ReferenceWorkflow::class)->syncRelations((string) $record->getKey(), [
+                        'social_media' => $socialProfiles,
+                    ]);
+                }
+
                 $record->refresh();
 
                 return $record;

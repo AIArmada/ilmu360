@@ -2,15 +2,16 @@
 
 namespace App\Observers;
 
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Directory\Api\PublicDirectoryCacheVersions;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
-use App\Platform\Cache\PublicDirectoryCacheVersion;
-use App\Platform\Cache\PublicListingsCache;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Platform\Routing\SyncSlugRedirectAction;
+use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class EventObserver implements ShouldHandleEventsAfterCommit
@@ -19,8 +20,9 @@ class EventObserver implements ShouldHandleEventsAfterCommit
 
     public function __construct(
         protected EventAuthoring $eventAuthoring,
-        protected SyncSlugRedirectAction $syncSlugRedirectAction,
-        protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
+        protected SlugRedirectRecorder $slugRedirectRecorder,
+        protected SlugRedirectCommands $slugRedirectCommands,
+        protected PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
         protected PublicListingsCache $publicListingsCache
     ) {}
 
@@ -46,7 +48,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     {
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpForEvent();
+        $this->publicDirectoryCacheVersions->bumpForEvent();
 
         if ($event->isPubliclyReachable()) {
             RenderShareCardJob::prewarmForEvent($event->getKey());
@@ -57,7 +59,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     {
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpForEvent();
+        $this->publicDirectoryCacheVersions->bumpForEvent();
 
         if ($event->wasChanged('slug')) {
             /**
@@ -68,7 +70,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
             CanonicalSlug::syncChanged(
                 $event,
                 $event->getPrevious()['slug'] ?? null,
-                $this->syncSlugRedirectAction,
+                $this->slugRedirectRecorder,
             );
         }
 
@@ -132,10 +134,10 @@ class EventObserver implements ShouldHandleEventsAfterCommit
 
     public function deleted(Event $event): void
     {
-        $this->syncSlugRedirectAction->purgeForModel($event);
+        $this->slugRedirectCommands->purge($event->getMorphClass(), (string) $event->getKey());
         $this->eventAuthoring->syncEventSlugsForTitle($event->title);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpForEvent();
+        $this->publicDirectoryCacheVersions->bumpForEvent();
     }
 }

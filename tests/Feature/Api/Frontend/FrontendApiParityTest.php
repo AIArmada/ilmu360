@@ -7,13 +7,11 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AffiliationType;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\Enums\TimingMode;
+use App\Features\Directory\Api\InstitutionSearchCache;
+use App\Features\Directory\Api\PersonSearchCache;
+use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\PublicDirectoryCacheVersions;
+use App\Features\Directory\Api\ReferenceSearchCache;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Http\Controllers\Api\Frontend\SearchController;
@@ -30,11 +28,17 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
-use App\Platform\Cache\PublicDirectoryCacheVersion;
 use App\Platform\Location\NormalizeGoogleMapsInputAction;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
@@ -83,7 +87,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->assertOk()
         ->json('data');
     $contributionUpdateFlow = $manifest['flows']['contribution_update'] ?? [];
-    $membershipClaimFlow = $manifest['flows']['membership_claim'] ?? [];
+    $membershipApplicationFlow = $manifest['flows']['membership_application'] ?? [];
     $followFlow = $manifest['flows']['follow'] ?? [];
     $inspirationFlow = $manifest['flows']['inspirations_random'] ?? [];
     $shareFlow = $manifest['flows']['share'] ?? [];
@@ -138,7 +142,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->and(collect($submitEvent['fields'])->firstWhere('name', 'submitter_email')['required'])->toBeFalse()
         ->and($contributionUpdateFlow['endpoint_template'] ?? null)->toContain('/api/v1/contributions/subjectType/subject/suggest')
         ->and($contributionUpdateFlow['schema_endpoint_template'] ?? null)->toContain('/api/v1/forms/contributions/subjectType/subject/suggest')
-        ->and($membershipClaimFlow['endpoint_template'] ?? null)->toContain('/api/v1/membership-applications/subjectType/subject')
+        ->and($membershipApplicationFlow['endpoint_template'] ?? null)->toContain('/api/v1/membership-applications/subjectType/subject')
         ->and($followFlow['state_endpoint_template'] ?? null)->toContain('/api/v1/follows/type/subject')
         ->and($inspirationFlow['endpoint'] ?? null)->toContain('/api/v1/inspirations/random')
         ->and($shareFlow['payload_endpoint'] ?? null)->toContain('/api/v1/share/payload')
@@ -181,6 +185,8 @@ it('exposes corrected frontend contract metadata', function () {
     $personFields = collect($personContract['fields'] ?? [])->pluck('name')->all();
 
     expect($personFields)
+        ->toContain('institutions')
+        ->not->toContain('institution_id', 'institution_position')
         ->not->toContain('address.country_code', 'address.country_key')
         ->not->toContain('address.line1')
         ->not->toContain('address.google_maps_url')
@@ -250,8 +256,8 @@ it('filters public institutions by current location radius and returns distance 
         'status' => 'verified',
     ]);
     syncPrimaryAddressForTest($nearInstitution, [
-        'lat' => 3.1390,
-        'lng' => 101.6869,
+        'latitude' => 3.1390,
+        'longitude' => 101.6869,
     ]);
 
     $farInstitution = Institution::factory()->create([
@@ -259,8 +265,8 @@ it('filters public institutions by current location radius and returns distance 
         'status' => 'verified',
     ]);
     syncPrimaryAddressForTest($farInstitution, [
-        'lat' => 3.2600,
-        'lng' => 101.8600,
+        'latitude' => 3.2600,
+        'longitude' => 101.8600,
     ]);
 
     $pendingInstitution = Institution::factory()->create([
@@ -268,8 +274,8 @@ it('filters public institutions by current location radius and returns distance 
         'status' => 'pending',
     ]);
     syncPrimaryAddressForTest($pendingInstitution, [
-        'lat' => 3.1395,
-        'lng' => 101.6869,
+        'latitude' => 3.1395,
+        'longitude' => 101.6869,
     ]);
 
     $response = $this->getJson('/api/v1/institutions?lat=3.1390&lng=101.6869&radius_km=12&per_page=10')
@@ -298,8 +304,8 @@ it('supports the nearby institution alias and sparse list fields', function () {
         'status' => 'verified',
     ]);
     syncPrimaryAddressForTest($nearInstitution, [
-        'lat' => 3.1390,
-        'lng' => 101.6869,
+        'latitude' => 3.1390,
+        'longitude' => 101.6869,
     ]);
 
     $farInstitution = Institution::factory()->create([
@@ -307,8 +313,8 @@ it('supports the nearby institution alias and sparse list fields', function () {
         'status' => 'verified',
     ]);
     syncPrimaryAddressForTest($farInstitution, [
-        'lat' => 3.2600,
-        'lng' => 101.8600,
+        'latitude' => 3.2600,
+        'longitude' => 101.8600,
     ]);
 
     $response = $this->getJson('/api/v1/institutions/near?near=3.1390,101.6869&radius_km=12&fields=id,name,location,distance_km,type')
@@ -835,13 +841,12 @@ it('returns only region address keys in the person suggest context state', funct
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
         'state_id' => (string) $geo['state']->getKey(),
-        'administrative_district_id' => (string) $geo['district']->getKey(),
-        'administrative_subdivision_id' => null,
+        'area_assignments' => ['administrative_district' => (string) $geo['district']->getKey()],
         'line1' => 'Jalan Lama 1',
         'line2' => 'Taman Lama',
         'postcode' => '50000',
-        'lat' => 3.139,
-        'lng' => 101.6869,
+        'latitude' => 3.139,
+        'longitude' => 101.6869,
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
         'google_place_id' => 'person-suggest-place',
         'waze_url' => 'https://waze.com/ul?ll=3.1390,101.6869',
@@ -876,8 +881,7 @@ it('rejects unchanged person region-only address round trips as validation error
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
         'state_id' => (string) $geo['state']->getKey(),
-        'administrative_district_id' => (string) $geo['district']->getKey(),
-        'administrative_subdivision_id' => null,
+        'area_assignments' => ['administrative_district' => (string) $geo['district']->getKey()],
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
@@ -918,8 +922,7 @@ it('preserves hidden person address details during region-only direct updates', 
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
         'state_id' => (string) $geo['state']->getKey(),
-        'administrative_district_id' => (string) $geo['district']->getKey(),
-        'administrative_subdivision_id' => null,
+        'area_assignments' => ['administrative_district' => (string) $geo['district']->getKey()],
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
@@ -1210,7 +1213,7 @@ it('falls back to local person and institution search on the frontend unified se
     app(PersonSearchService::class)->syncPersonRecord($person);
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class extends PersonSearchService
+    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -1225,7 +1228,7 @@ it('falls back to local person and institution search on the frontend unified se
         protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
     });
 
-    $this->app->bind(InstitutionSearchService::class, fn (): InstitutionSearchService => new class extends InstitutionSearchService
+    $this->app->bind(InstitutionSearchService::class, fn (): InstitutionSearchService => new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -1326,7 +1329,7 @@ it('falls back to local person directory search when typesense fails', function 
     app(PersonSearchService::class)->syncPersonRecord($person);
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class extends PersonSearchService
+    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -1362,7 +1365,7 @@ it('falls back to database institution directory search when typesense fails', f
 
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(InstitutionSearchService::class, fn (): InstitutionSearchService => new class extends InstitutionSearchService
+    $this->app->bind(InstitutionSearchService::class, fn (): InstitutionSearchService => new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -1925,8 +1928,8 @@ it('serializes institution detail payloads with address and donation metadata fo
         ...$geo['address'],
         'line1' => 'Jalan Masjid 1',
         'postcode' => '28000',
-        'lat' => 3.4501,
-        'lng' => 102.4194,
+        'latitude' => 3.4501,
+        'longitude' => 102.4194,
         'google_maps_url' => 'https://maps.google.com/?q=3.4501,102.4194',
         'waze_url' => 'https://waze.com/ul?ll=3.4501,102.4194',
     ]);
@@ -2001,8 +2004,8 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
         'line1' => 'Persiaran Masjid',
         'line2' => 'Seksyen 14',
         'postcode' => '40000',
-        'lat' => 3.0733,
-        'lng' => 101.5185,
+        'latitude' => 3.0733,
+        'longitude' => 101.5185,
         'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.0733%2C101.5185',
         'waze_url' => 'https://www.waze.com/ul?ll=3.0733,101.5185&navigate=yes',
     ]);
@@ -2251,8 +2254,9 @@ it('requires an explicit institution type when Google Maps cannot infer one', fu
     expect(Institution::query()->where('name', 'Pondok Selera')->exists())->toBeFalse();
 });
 
-it('creates person contribution requests through the frontend api with an explicit country alias', function () {
+it('creates person contribution requests with explicit country and institution fields', function () {
     $user = User::factory()->create();
+    $institution = Institution::factory()->create();
     $singaporeId = (string) ensureTestAddressCountry('SG', 'Singapore', 'SGP', ['Asia/Singapore'], '65')->getKey();
 
     Sanctum::actingAs($user);
@@ -2261,6 +2265,11 @@ it('creates person contribution requests through the frontend api with an explic
         ->postJson(route('api.client.contributions.persons.store'), [
             'name' => 'Frontend API Scoped Country Person',
             'gender' => 'male',
+            'institutions' => [[
+                'institution_id' => (string) $institution->getKey(),
+                'position' => 'Ustaz',
+                'is_primary' => true,
+            ]],
             'address' => [
                 'country_id' => $singaporeId,
                 'state_id' => null,
@@ -2269,11 +2278,13 @@ it('creates person contribution requests through the frontend api with an explic
         ->assertJsonPath('data.person.name', 'Frontend API Scoped Country Person');
 
     $person = Person::query()
-        ->with('addresses')
+        ->with(['addresses', 'institutions'])
         ->where('name', 'Frontend API Scoped Country Person')
         ->firstOrFail();
 
     expect($person->primaryAddress()?->country_id)->toBe($singaporeId)
+        ->and($person->institutions->firstWhere('id', $institution->getKey())?->pivot?->position)->toBe('Ustaz')
+        ->and((bool) $person->institutions->firstWhere('id', $institution->getKey())?->pivot?->is_primary)->toBeTrue()
         ->and($person->slug)->toEndWith('-sg')
         ->and(ContributionRequest::query()->where('entity_id', $person->getKey())->exists())->toBeTrue();
 });
@@ -2651,7 +2662,7 @@ it('falls back to indexed reference search when typesense fails', function () {
 
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(ReferenceSearchService::class, fn (): ReferenceSearchService => new class extends ReferenceSearchService
+    $this->app->bind(ReferenceSearchService::class, fn (): ReferenceSearchService => new class(app(ReferenceSearchCache::class)) extends ReferenceSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -2721,7 +2732,7 @@ it('bumps the person directory cache version when person records change', functi
         ->json('meta.cache.version');
 
     $person->update(['name' => 'Person Cache Version Updated']);
-    app(PublicDirectoryCacheVersion::class)->bumpPerson();
+    app(PublicDirectoryCacheVersions::class)->bumpPerson();
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
         ->assertOk()
@@ -2771,8 +2782,6 @@ it('bumps the person directory cache version when person addresses change', func
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
         'state_id' => null,
-        'administrative_district_id' => null,
-        'administrative_subdivision_id' => null,
     ]);
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
@@ -3340,7 +3349,7 @@ it('rejects frontend event submission cover and poster uploads with invalid aspe
         ->assertJsonValidationErrors(['cover', 'poster']);
 });
 
-it('requires explicit country input for frontend event submissions and accepts aliases', function () {
+it('requires explicit country input and resolves the frontend event timezone', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -3355,7 +3364,7 @@ it('requires explicit country input for frontend event submissions and accepts a
     Sanctum::actingAs($user);
 
     $payload = [
-        'title' => 'Frontend API Legacy Timezone Event',
+        'title' => 'Frontend API Timezone Event',
         'description' => 'API description',
         'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDay()->toDateString(),
@@ -3379,9 +3388,9 @@ it('requires explicit country input for frontend event submissions and accepts a
         'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
     ]))
         ->assertCreated()
-        ->assertJsonPath('data.event.title', 'Frontend API Legacy Timezone Event');
+        ->assertJsonPath('data.event.title', 'Frontend API Timezone Event');
 
-    $event = withGlobalOwnerContext(fn () => Event::query()->where('title', 'Frontend API Legacy Timezone Event')->firstOrFail());
+    $event = withGlobalOwnerContext(fn () => Event::query()->where('title', 'Frontend API Timezone Event')->firstOrFail());
 
     expect($event->timezone)->toBe('Asia/Kuala_Lumpur')
         ->and($event->starts_at?->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('20:15');
@@ -3769,7 +3778,10 @@ it('mirrors the public person page payload for app clients', function () {
     $venueSubdistrict = createTestAddressArea('Mentakab', 3, parent: $personGeo['district'], country: $country);
     syncPrimaryAddressForTest($venue, [
         ...$personGeo['address'],
-        'administrative_subdivision_id' => (string) $venueSubdistrict->getKey(),
+        'area_assignments' => [
+            ...$personGeo['address']['area_assignments'],
+            'administrative_subdivision' => (string) $venueSubdistrict->getKey(),
+        ],
         'city' => 'Mentakab',
     ]);
 

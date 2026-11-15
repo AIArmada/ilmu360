@@ -9,9 +9,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Runtime model access for ShareTracking while the models remain in the legacy
- * root namespace. Resolution goes through the registered morph aliases so the
- * feature never imports the private model class directly.
+ * Runtime model access for ShareTracking models kept in the app model
+ * namespace. Resolution uses registered morph aliases so the feature does not
+ * import those model classes directly.
  */
 final class ShareTrackingModel
 {
@@ -72,58 +72,15 @@ final class ShareTrackingModel
     }
 
     /**
+     * Resolves a model query from its canonical morph alias.
+     *
+     * Owning writers pass literal aliases so their table target stays explicit
+     * while the model classes remain in the application root namespace.
+     *
      * @return Builder<Model>
      */
-    public static function browserSelectionQuery(): Builder
+    public static function query(string $alias): Builder
     {
-        return self::browserSelection()::query();
-    }
-
-    /**
-     * @return Builder<Model>
-     */
-    public static function sourceReceiptQuery(): Builder
-    {
-        return self::sourceReceipt()::query();
-    }
-
-    /**
-     * @return Builder<Model>
-     */
-    public static function effectReceiptQuery(): Builder
-    {
-        return self::effectReceipt()::query();
-    }
-
-    /**
-     * @return Builder<Model>
-     */
-    public static function outcomeCorrectionQuery(): Builder
-    {
-        return self::outcomeCorrection()::query();
-    }
-
-    /**
-     * @return Builder<Model>
-     */
-    public static function cohortProjectionQuery(): Builder
-    {
-        return self::cohortProjection()::query();
-    }
-
-    /**
-     * @return Builder<Model>
-     */
-    public static function signalReaderCursorQuery(): Builder
-    {
-        return self::signalReaderCursor()::query();
-    }
-
-    /**
-     * @return Builder<Model>
-     */
-    public static function signalReaderSkipQuery(): Builder
-    {
-        return self::signalReaderSkip()::query();
+        return MorphModelResolver::resolve($alias)::query();
     }
 }

@@ -2,13 +2,6 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
-use AIArmada\Events\Models\EventTerm;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -18,6 +11,12 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
@@ -255,7 +254,7 @@ it('loads public detail pages', function () {
         ->assertSee($event->title);
 });
 
-it('renders public event poster containers using the poster aspect ratio', function () {
+it('renders poster actions on public event detail pages', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -293,14 +292,15 @@ it('renders public event poster containers using the poster aspect ratio', funct
         ->assertSuccessful()
         ->assertSee('data-cover-aspect="16:9"', false);
 
-    // Detail page still shows the real poster aspect ratio
     $this->get(route('events.show', $wideEvent))
         ->assertSuccessful()
-        ->assertSee('data-poster-aspect="16:9"', false);
+        ->assertSee('data-testid="event-hero-media"', false)
+        ->assertSee('Lihat poster');
 
     $this->get(route('events.show', $portraitEvent))
         ->assertSuccessful()
-        ->assertSee('data-poster-aspect="3:4"', false);
+        ->assertSee('data-testid="event-hero-media"', false)
+        ->assertSee('Lihat poster');
 });
 
 it('uses a wide placeholder aspect ratio for public events index cards without posters', function () {
@@ -381,8 +381,9 @@ it('shows federal territory event cards on series pages with subdistrict and sta
     syncPrimaryAddressForTest($venue, [
         'country_id' => (string) $country->getKey(),
         'state_id' => (string) $geo['state']->getKey(),
-        'administrative_district_id' => null,
-        'administrative_subdivision_id' => (string) $subdistrict->getKey(),
+        'area_assignments' => [
+            'administrative_subdivision' => (string) $subdistrict->getKey(),
+        ],
         'city' => null,
         'state' => 'Kuala Lumpur',
     ]);
@@ -809,14 +810,14 @@ it('renders optimized seo metadata on public detail pages', function () {
 
     $this->get(route('events.show', $event))
         ->assertSuccessful()
-        ->assertSee('<title>Kuliah Fiqh Munakahat - '.config('app.name').'</title>', false)
+        ->assertSee('<title>Kuliah Fiqh Munakahat · ', false)
         ->assertSee(Str::limit($event->description_text, 160), false);
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
         ->assertSee('<title>Masjid Al-Hidayah Taman Melawati - '.config('app.name').'</title>', false)
         ->assertSee('Pusat komuniti Islam yang aktif menganjurkan kuliah, kelas, dan program ilmu untuk masyarakat setempat.', false)
-        ->assertSee('<meta property="og:image" content="'.asset('images/placeholders/institution.png').'">', false)
+        ->assertSee('<meta property="og:image" content="'.asset('images/placeholders/institution-v2.png').'">', false)
         ->assertSee('<meta property="og:image:alt" content="Profil institusi Masjid Al-Hidayah Taman Melawati">', false);
 
     $this->get(route('persons.show', $person))
@@ -835,11 +836,8 @@ it('renders optimized seo metadata on public detail pages', function () {
         ->assertSee('Rujukan hadis dan adab yang sering digunakan dalam kuliah pengajian umum serta sesi pembelajaran mingguan.', false);
 });
 
-it('loads institution detail page with upcoming event category collection', function () {
-    app(EventTaxonomySeeder::class)->run();
-
+it('loads upcoming public events on institution detail pages', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
-    $eventCategory = EventTerm::query()->where('code', 'kuliah_ceramah')->firstOrFail();
     $event = Event::factory()
         ->for($institution)
         ->create([
@@ -847,7 +845,6 @@ it('loads institution detail page with upcoming event category collection', func
             'visibility' => EventVisibility::Public,
             'starts_at' => now()->addDay(),
             'ends_at' => now()->addDay()->addHour(),
-            'event_category_ids' => [$eventCategory->getKey()],
             'title' => 'Institution Upcoming Event',
         ]);
 
@@ -855,7 +852,7 @@ it('loads institution detail page with upcoming event category collection', func
         ->assertSuccessful()
         ->assertSee($institution->name)
         ->assertSee($event->title)
-        ->assertSee($eventCategory->name);
+        ->assertSee('data-testid="event-card-date-badge"', false);
 });
 
 it('renders pending institutions and keeps pending speaker pages out of search indexes', function () {
@@ -911,12 +908,14 @@ it('records guest submissions without a submitter id', function () {
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::query()->where('title', $title)->first();
-
-    expect($event)->not->toBeNull();
-    $submission = withGlobalOwnerContext(fn () => EventSubmission::query()->where('event_id', $event->id)->first());
+    $submission = withGlobalOwnerContext(fn () => EventSubmission::query()
+        ->whereHas('contactMethods', fn ($query) => $query
+            ->where('type', ContactMethodType::Email->value)
+            ->where('value', $email))
+        ->first());
 
     expect($submission)->not->toBeNull();
     expect($submission->submitter_id)->toBeNull();
+    expect(withGlobalOwnerContext(fn () => Event::query()->whereKey($submission->event_id)->exists()))->toBeTrue();
     expect(withGlobalOwnerContext(fn () => $submission->contactMethods()->where('type', ContactMethodType::Email->value)->where('value', $email)->exists()))->toBeTrue();
 });

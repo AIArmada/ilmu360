@@ -5,12 +5,12 @@ use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Http\UploadedFile;
@@ -571,8 +571,11 @@ it('filters institutions by negeri, daerah, and subdistrict scopes', function ()
     ]);
     syncPrimaryAddressForTest($institutionA2, [
         ...$geoA['address'],
-        'administrative_district_id' => (string) $districtA2->getKey(),
-        'administrative_subdivision_id' => (string) $subdistrictA2->getKey(),
+        'area_assignments' => [
+            ...$geoA['address']['area_assignments'],
+            'administrative_district' => (string) $districtA2->getKey(),
+            'administrative_subdivision' => (string) $subdistrictA2->getKey(),
+        ],
     ]);
 
     $institutionB = Institution::factory()->create([
@@ -620,7 +623,7 @@ it('counts approved and pending public upcoming events on institution cards', fu
         'status' => 'pending',
         'visibility' => 'public',
         'starts_at' => now()->addDays(1),
-        // Public listing counts use published_at (not legacy is_active).
+        // Public listing counts use published_at.
         'published_at' => now(),
     ]);
 

@@ -2,15 +2,14 @@
 
 namespace App\Features\Events\Actions\Authoring;
 
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Events\Support\EventModel;
 use App\Platform\Models\MorphModelResolver;
-use App\Platform\Routing\SyncSlugRedirectAction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\OrganizerResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -23,7 +22,7 @@ class GenerateEventSlugAction
     use AsAction;
 
     public function __construct(
-        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
+        private readonly SlugRedirectRecorder $slugRedirectRecorder,
     ) {}
 
     public function syncEventSlugsForTitle(string $title): bool
@@ -106,18 +105,24 @@ class GenerateEventSlugAction
     {
         $slug = $this->forEvent($event);
 
-        return CanonicalSlug::persist($event, $slug, $this->syncSlugRedirectAction);
+        return CanonicalSlug::persist($event, $slug, $this->slugRedirectRecorder);
     }
 
     /**
      * @param  string[]  $personIds
      * @return list<string>
      */
-    public function personSlugSegmentsForState(array $personIds, ?Model $primaryOrganizer): array
+    public function personSlugSegmentsForState(array $personIds, ?string $primaryOrganizerKind, ?string $primaryOrganizerId): array
     {
         $segments = $this->personSlugSegmentsForPersonIds($personIds);
 
-        if ($segments === [] && $primaryOrganizer instanceof Model && $primaryOrganizer->getMorphClass() === 'person') {
+        if ($segments === [] && $primaryOrganizerKind === 'person' && $primaryOrganizerId !== null) {
+            $primaryOrganizer = EventModel::query('person')->find($primaryOrganizerId);
+
+            if (! $primaryOrganizer instanceof Model) {
+                return [];
+            }
+
             $segments = $this->personSlugSegmentsForPersonIds([
                 (string) $primaryOrganizer->getKey(),
             ]);
@@ -283,11 +288,11 @@ class GenerateEventSlugAction
             return $personSlugSegments;
         }
 
-        $organizerId = $event->getRelation('primaryOrganizerInvolvement')?->getAttribute('involveable_id');
-        $organizer = $organizerId !== null ? OrganizerResolver::find((string) $organizerId) : null;
+        $organizerInvolvement = $event->getRelation('primaryOrganizerInvolvement');
+        $organizerId = $organizerInvolvement?->getAttribute('involveable_id');
 
-        if ($organizer instanceof Model && $organizer->getMorphClass() === 'person') {
-            $organizerSlug = $organizer->getAttribute('slug');
+        if ($organizerInvolvement?->getAttribute('involveable_type') === 'person' && is_string($organizerId)) {
+            $organizerSlug = EventModel::query('person')->whereKey($organizerId)->value('slug');
             if (is_string($organizerSlug) && $organizerSlug !== '') {
                 return [$organizerSlug];
             }

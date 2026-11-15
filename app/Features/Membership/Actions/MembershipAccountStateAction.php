@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Membership\Actions;
 
 use App\Platform\Models\MorphModelResolver;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -13,7 +12,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Member pivot rows keep their role (plus joined and audit timestamps) across
  * deletion/restoration. Membership-application attribution is detached and
- * restored only while the column is still null, so a claim reviewed or
+ * restored only while the column is still null, so an application reviewed or
  * reassigned by someone else in the meantime is never overwritten.
  */
 final readonly class MembershipAccountStateAction
@@ -46,7 +45,7 @@ final readonly class MembershipAccountStateAction
 
         $applicationClass = $this->applicationClass();
 
-        $snapshot['membership_claim_ids'] = $applicationClass::query()
+        $snapshot['membership_application_ids'] = $applicationClass::query()
             ->where('applicant_id', $accountId)
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
@@ -92,7 +91,7 @@ final readonly class MembershipAccountStateAction
         }
 
         $applicationClass = $this->applicationClass();
-        $applicantIds = $this->stringIds($snapshot['membership_claim_ids'] ?? []);
+        $applicantIds = $this->stringIds($snapshot['membership_application_ids'] ?? []);
 
         if ($applicantIds !== []) {
             $applicationClass::query()
@@ -112,7 +111,7 @@ final readonly class MembershipAccountStateAction
     }
 
     /**
-     * @return class-string<Model>
+     * @return class-string<\App\Models\MembershipApplication>
      */
     private function applicationClass(): string
     {

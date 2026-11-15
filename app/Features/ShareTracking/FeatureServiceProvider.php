@@ -7,20 +7,38 @@ namespace App\Features\ShareTracking;
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
+use App\Features\ShareTracking\Actions\GuestProfiles\DetachTrackedShareLinkAction;
+use App\Features\ShareTracking\Actions\GuestProfiles\PruneAbandonedGuestProfilesAction;
+use App\Features\ShareTracking\Actions\LandingAttribution\CreateLandingAttributionAction;
+use App\Features\ShareTracking\Actions\LandingAttribution\TouchPassiveNavigationAttributionAction;
+use App\Features\ShareTracking\Actions\MemberProfiles\EnsureMemberAffiliateProfileAction;
+use App\Features\ShareTracking\Actions\OutboundAttribution\CreateOutboundShareAttributionAction;
+use App\Features\ShareTracking\Actions\Touchpoints\RecordOutboundShareTouchpointAction;
+use App\Features\ShareTracking\Actions\Touchpoints\RecordVisitTouchpointAction;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Api\EffectReceipts;
+use App\Features\ShareTracking\Api\FinancialObligationReader;
+use App\Features\ShareTracking\Api\GuestProfilePruner;
 use App\Features\ShareTracking\Api\GuestShareClaims;
+use App\Features\ShareTracking\Api\LandingAttributionWriter;
 use App\Features\ShareTracking\Api\MarkedShareAffiliateIds;
+use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
+use App\Features\ShareTracking\Api\OutboundShareAttributionWriter;
+use App\Features\ShareTracking\Api\OutboundShareTouchpointWriter;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
+use App\Features\ShareTracking\Api\PassiveNavigationAttributionWriter;
 use App\Features\ShareTracking\Api\ShareOutcomeEvidenceReader;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
+use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
+use App\Features\ShareTracking\Api\VisitTouchpointWriter;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
-use App\Features\ShareTracking\Queries\DatabaseMarkedShareAffiliateIds;
 use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
+use App\Features\ShareTracking\Queries\AffiliateFinancialObligationReader as DatabaseFinancialObligationReader;
+use App\Features\ShareTracking\Queries\DatabaseMarkedShareAffiliateIds;
 use App\Features\ShareTracking\Queries\DatabaseShareOutcomeEvidenceReader;
 use App\Platform\FeatureModule;
 
@@ -87,9 +105,11 @@ use App\Platform\FeatureModule;
  * Livewire and route entrypoints; DTOs; analytics readers; observers;
  * `ProduceCommittedShareSignalJob`; commands and schedules; account
  * restoration; the checkout provenance step; `SignupAttributionSourceResolver`;
- * package affiliate models, actions and guest credential/claim primitives;
- * `ShareTrackingUrlService`/destination policy; and the narrow package gateway
- * left behind when `AffiliatesShareTrackingService` is peeled apart.
+ * other package affiliate models/actions and guest credential/claim primitives;
+ * the narrow landing-attribution, passive-navigation, and touchpoint Actions
+ * are table-resolver adapters;
+ * `ShareTrackingUrlService`/destination policy; and the root package gateway
+ * that coordinates ShareTracking operations with Affiliates.
  */
 class FeatureServiceProvider extends FeatureModule
 {
@@ -98,11 +118,20 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(BrowserSelectionWriter::class, LockBrowserSelectionAction::class);
         $this->app->bind(CommittedShareSignals::class, DrainCommittedShareSignalsAction::class);
         $this->app->bind(EffectReceipts::class, DatabaseEffectReceipts::class);
+        $this->app->bind(FinancialObligationReader::class, DatabaseFinancialObligationReader::class);
+        $this->app->bind(GuestProfilePruner::class, PruneAbandonedGuestProfilesAction::class);
         $this->app->bind(GuestShareClaims::class, ClaimGuestProfileAction::class);
+        $this->app->bind(LandingAttributionWriter::class, CreateLandingAttributionAction::class);
         $this->app->bind(MarkedShareAffiliateIds::class, DatabaseMarkedShareAffiliateIds::class);
+        $this->app->bind(MemberAffiliateProfileWriter::class, EnsureMemberAffiliateProfileAction::class);
+        $this->app->bind(OutboundShareAttributionWriter::class, CreateOutboundShareAttributionAction::class);
         $this->app->bind(OutcomeCorrections::class, DatabaseOutcomeCorrections::class);
         $this->app->bind(ShareOutcomeEvidenceReader::class, DatabaseShareOutcomeEvidenceReader::class);
         $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
         $this->app->bind(SourceReceiptReader::class, DatabaseSourceReceiptReader::class);
+        $this->app->bind(TrackedShareLinkDetacher::class, DetachTrackedShareLinkAction::class);
+        $this->app->bind(OutboundShareTouchpointWriter::class, RecordOutboundShareTouchpointAction::class);
+        $this->app->bind(PassiveNavigationAttributionWriter::class, TouchPassiveNavigationAttributionAction::class);
+        $this->app->bind(VisitTouchpointWriter::class, RecordVisitTouchpointAction::class);
     }
 }

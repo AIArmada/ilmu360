@@ -5,7 +5,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use Illuminate\Validation\ValidationException;
 
-it('includes biography, cover image, and institution position fields in person create option form', function () {
+it('includes biography, cover image, and affiliation rows in person create option form', function () {
     $flatten = function (array $components) use (&$flatten): array {
         $flattened = [];
 
@@ -49,11 +49,7 @@ it('includes biography, cover image, and institution position fields in person c
         ->values()
         ->all();
 
-    expect($fieldNames)->toContain('bio');
-    expect($fieldNames)->toContain('cover');
-    expect($fieldNames)->toContain('institution_position');
-    expect($fieldNames)->toContain('institution_id');
-    expect($components->get('institution_id')?->isMultiple())->toBeFalse();
+    expect($fieldNames)->toContain('bio', 'cover', 'institutions');
 });
 
 it('stores biography and institution pivot position when creating a person via create option', function () {
@@ -74,8 +70,11 @@ it('stores biography and institution pivot position when creating a person via c
         'name' => 'Ustaz Test Person',
         'gender' => 'male',
         'bio' => $bio,
-        'institution_id' => $institution->id,
-        'institution_position' => 'Mudir',
+        'institutions' => [[
+            'institution_id' => $institution->id,
+            'position' => 'Mudir',
+            'is_primary' => true,
+        ]],
     ]);
 
     /** @var Person $person */

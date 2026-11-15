@@ -9,10 +9,22 @@ use RuntimeException;
 /** Source-controlled ownership metadata; no database, container or parser dependency. */
 final class FeatureCatalog
 {
-    /** @return array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>} */
-    public static function load(string $root): array
+    /** @var list<string> */
+    private const ROOT_STORE_WRITER_PREFIXES = [
+        'App\\Console\\Commands\\',
+        'App\\Filament\\Pages\\',
+        'App\\Platform\\',
+        'App\\Support\\',
+    ];
+
+    /**
+     * @param  array<string, mixed>  $rootStoreWriters
+     * @return array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>, rootStoreWriters: array<string, array{adapter: 'cache'|'filesystem'|'redis', resource: string, reason: string, expires: string}>}
+     */
+    public static function load(string $root, array $rootStoreWriters = []): array
     {
-        $features = $owners = $writes = $aliases = [];
+        $features = $owners = $writes = $aliases = $declaredAliases = [];
+        $aliasResources = [];
         $paths = glob($root.'/app/Features/*', GLOB_ONLYDIR) ?: [];
         sort($paths, SORT_STRING);
 
@@ -53,19 +65,138 @@ final class FeatureCatalog
                 }
             }
 
-            $declaredAliases = $data['aliases'] ?? [];
-            if (! is_array($declaredAliases)) {
-                throw new RuntimeException("{$path}: aliases must be an object mapping alias to owned resource.");
+            $featureAliases = $data['aliases'] ?? [];
+            if (! is_array($featureAliases)) {
+                throw new RuntimeException("{$path}: aliases must map model aliases to declared storage resources.");
             }
-            foreach ($declaredAliases as $alias => $aliasResource) {
+            foreach ($featureAliases as $alias => $aliasResource) {
                 if (! is_string($alias) || ! preg_match('/^[a-z][a-z0-9_]*$/D', $alias)
-                    || ! is_string($aliasResource) || ! isset($data['owns'][$aliasResource])) {
-                    throw new RuntimeException("{$path}: alias [{$alias}] must map to a resource owned by this feature.");
+                    || ! is_string($aliasResource) || ! preg_match('/^(table|store):[A-Za-z0-9_.:-]+$/D', $aliasResource)) {
+                    throw new RuntimeException("{$path}: alias [{$alias}] must map to a declared storage resource.");
                 }
-                $aliases[$name][$alias] = $aliasResource;
+
+                $declaredAliases[$name][$alias] = $aliasResource;
             }
         }
 
-        return ['features' => $features, 'owners' => $owners, 'writes' => $writes, 'aliases' => $aliases];
+        foreach ($declaredAliases as $name => $featureAliases) {
+            foreach ($featureAliases as $alias => $aliasResource) {
+                if (! isset($owners[$aliasResource])) {
+                    throw new RuntimeException("{$name}: alias [{$alias}] maps to an undeclared resource [{$aliasResource}].");
+                }
+
+                if (isset($aliasResources[$alias]) && $aliasResources[$alias] !== $aliasResource) {
+                    throw new RuntimeException("Conflicting resource mappings for model alias [{$alias}].");
+                }
+
+                $aliases[$name][$alias] = $aliasResource;
+                $aliasResources[$alias] = $aliasResource;
+            }
+        }
+
+        $rootStoreWriters = self::validateRootStoreWriters($root, $rootStoreWriters, $owners, $writes);
+
+        return [
+            'features' => $features,
+            'owners' => $owners,
+            'writes' => $writes,
+            'aliases' => $aliases,
+            'rootStoreWriters' => $rootStoreWriters,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $rootStoreWriters
+     * @param  array<string, string>  $owners
+     * @param  array<string, list<string>>  $writes
+     * @return array<string, array{adapter: 'cache'|'filesystem'|'redis', resource: string, reason: string, expires: string}>
+     */
+    private static function validateRootStoreWriters(string $root, array $rootStoreWriters, array $owners, array $writes): array
+    {
+        if ($rootStoreWriters !== [] && array_is_list($rootStoreWriters)) {
+            throw new RuntimeException('Root store writers must map exact classes to named unowned stores.');
+        }
+
+        $resolvedRoot = realpath($root);
+
+        foreach ($rootStoreWriters as $class => $writer) {
+            if (! is_string($class)
+                || ! preg_match('/^App\\\\[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)+$/D', $class)) {
+                throw new RuntimeException('Root store writer keys must be exact fully-qualified class paths.');
+            }
+
+            if (! is_array($writer) || array_is_list($writer)
+                || array_diff(array_keys($writer), ['adapter', 'resource', 'reason', 'expires']) !== []
+                || array_diff(['adapter', 'resource', 'reason', 'expires'], array_keys($writer)) !== []) {
+                throw new RuntimeException("Root store writer entry must declare adapter, resource, reason and expires: {$class}");
+            }
+
+            $adapter = $writer['adapter'];
+            $resource = $writer['resource'];
+            $reason = $writer['reason'];
+            $expires = $writer['expires'];
+
+            if (! is_string($adapter) || ! in_array($adapter, ['cache', 'filesystem', 'redis'], true)) {
+                throw new RuntimeException("Root store writer requires an adapter family (cache, filesystem or redis): {$class}");
+            }
+
+            if (isset($writes[$class])) {
+                throw new RuntimeException("Root store writer collides with feature writer: {$class}");
+            }
+
+            $isAllowedNamespace = false;
+
+            foreach (self::ROOT_STORE_WRITER_PREFIXES as $prefix) {
+                if (str_starts_with($class, $prefix)) {
+                    $isAllowedNamespace = true;
+
+                    break;
+                }
+            }
+
+            if (! $isAllowedNamespace) {
+                throw new RuntimeException("Root store writer must use an allowlisted non-feature namespace: {$class}");
+            }
+
+            if (! is_string($resource) || ! preg_match('/^store:[A-Za-z0-9_.:-]+$/D', $resource)
+                || $resource === 'store:unknown') {
+                throw new RuntimeException("Root store writer requires a named store resource: {$class}");
+            }
+
+            if (isset($owners[$resource])) {
+                throw new RuntimeException("Root store writer cannot target feature-owned resource: {$resource}");
+            }
+
+            if (! is_string($reason) || trim($reason) === '') {
+                throw new RuntimeException("Root store writer requires a nonempty reason: {$class}");
+            }
+
+            if (! is_string($expires)) {
+                throw new RuntimeException("Root store writer requires a future expiry date: {$class}");
+            }
+
+            $expiryDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $expires);
+
+            if (! $expiryDate || $expiryDate->format('Y-m-d') !== $expires || $expires <= gmdate('Y-m-d')) {
+                throw new RuntimeException("Invalid/expired root store writer: {$class} {$resource}");
+            }
+
+            $file = $root.'/app/'.str_replace('\\', '/', substr($class, strlen('App\\'))).'.php';
+            $resolvedFile = realpath($file);
+
+            if ($resolvedRoot === false || $resolvedFile === false || ! is_file($resolvedFile)
+                || ! str_starts_with($resolvedFile, $resolvedRoot.DIRECTORY_SEPARATOR)) {
+                throw new RuntimeException("Missing/escaped root store writer: {$class}");
+            }
+
+            $rootStoreWriters[$class] = [
+                'adapter' => $adapter,
+                'resource' => $resource,
+                'reason' => $reason,
+                'expires' => $expires,
+            ];
+        }
+
+        return $rootStoreWriters;
     }
 }

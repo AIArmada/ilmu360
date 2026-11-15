@@ -12,10 +12,11 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Support\ShareTracking\ShareTrackingFinance;
 use App\Shared\ShareTracking\ShareTrackingProfile;
+use App\Support\ShareTracking\ShareTrackingFinance;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 use Spatie\DeletedModels\Models\DeletedModel;
 use Spatie\Permission\PermissionRegistrar;
@@ -41,8 +42,8 @@ trait HasUserRestoration
                 // links (80), event ownership/submission/attendance links (70),
                 // contribution attribution (60), moderation attribution (50),
                 // engagement (40), AI usage (30), and communications (20).
-                // Conventional authentication state, share tracking, and global
-                // authorization rows remain in this trait.
+                // Authentication state, share tracking and global authorization
+                // rows remain in this trait.
                 app(AccountLifecycle::class)->detach((string) $user->getKey());
                 $user->deleteAuthenticationState();
                 // Share cleanup revokes this claimant's guest-claim associations
@@ -104,15 +105,8 @@ trait HasUserRestoration
                 unset($restoredModel->deleted_relations_snapshot);
             });
 
-            self::deletedModels()->where('key', $key)->delete();
-
             return $restoredUser;
         });
-
-        DB::table((new DeletedModel)->getTable())
-            ->where('key', (string) $key)
-            ->where('model', (new self)->getMorphClass())
-            ->delete();
 
         return $restoredUser;
     }
@@ -129,28 +123,28 @@ trait HasUserRestoration
             return;
         }
 
-        $legacy = $snapshot['legacy'] ?? [];
-        $legacy = is_array($legacy) ? $legacy : [];
+        $authorization = $snapshot['authorization'] ?? [];
+        $authorization = is_array($authorization) ? $authorization : [];
         $contributorSnapshot = array_filter($snapshot, is_array(...));
         $accountId = (string) $restoredModel->getKey();
 
-        OwnerContext::withOwner(null, function () use ($restoredModel, $snapshot, $contributorSnapshot, $legacy, $accountId): void {
+        OwnerContext::withOwner(null, function () use ($restoredModel, $snapshot, $contributorSnapshot, $authorization, $accountId): void {
             app(AccountLifecycle::class)->restore($accountId, $contributorSnapshot);
             $restoredModel->restoreDeletedAffiliateTrackingSnapshot($snapshot['share_tracking'] ?? null);
-            $restoredModel->restoreGlobalPermissionRows($legacy);
+            $restoredModel->restoreGlobalPermissionRows($authorization);
             app(AccountLifecycle::class)->afterRestore($accountId);
         });
     }
 
     protected function captureDeletedRelationsSnapshot(): void
     {
-        $legacy = [
-            'model_has_roles' => $this->permissionRows('model_has_roles'),
-            'model_has_permissions' => $this->permissionRows('model_has_permissions'),
+        $authorization = [
+            'model_has_roles' => $this->permissionRows(DB::table((string) (config('permission.table_names.model_has_roles') ?: 'model_has_roles'))),
+            'model_has_permissions' => $this->permissionRows(DB::table((string) (config('permission.table_names.model_has_permissions') ?: 'model_has_permissions'))),
         ];
 
         $this->deletedRelationsSnapshot = app(AccountLifecycle::class)->snapshot((string) $this->getKey()) + [
-            'legacy' => $legacy,
+            'authorization' => $authorization,
             'share_tracking' => $this->captureDeletedAffiliateTrackingSnapshot(),
         ];
     }
@@ -191,7 +185,11 @@ trait HasUserRestoration
                 ->where('owner_type', $this->getMorphClass())
                 ->where('owner_id', $this->getKey())
                 ->get()
-                ->first(fn (Affiliate $candidate): bool => ShareTrackingProfile::isMarkedMemberFor($candidate, $this));
+                ->first(fn (Affiliate $candidate): bool => ShareTrackingProfile::isMarkedMemberForOwner(
+                    $candidate,
+                    $this->getMorphClass(),
+                    (string) $this->getKey(),
+                ));
 
             if (! $affiliate instanceof Affiliate) {
                 return [];
@@ -212,9 +210,6 @@ trait HasUserRestoration
     }
 
     /**
-     * @param  array<string, mixed>  $snapshot
-     */
-    /**
      * Global (team-null) authorization rows are conventional Authz state and
      * remain outside the account lifecycle contributors.
      *
@@ -222,10 +217,10 @@ trait HasUserRestoration
      */
     protected function restoreGlobalPermissionRows(array $snapshot): void
     {
-        DB::table($this->permissionTable('model_has_roles'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_roles'));
-        DB::table($this->permissionTable('model_has_permissions'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_permissions'));
-
-        OwnerContext::withOwner(null, function (): void {});
+        DB::table((string) (config('permission.table_names.model_has_roles') ?: 'model_has_roles'))
+            ->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_roles'));
+        DB::table((string) (config('permission.table_names.model_has_permissions') ?: 'model_has_permissions'))
+            ->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_permissions'));
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -291,22 +286,15 @@ trait HasUserRestoration
      *
      * @return list<array<string, mixed>>
      */
-    private function permissionRows(string $tableKey): array
+    private function permissionRows(QueryBuilder $query): array
     {
-        return DB::table($this->permissionTable($tableKey))
+        return $query
             ->where($this->permissionModelKeyName(), $this->getKey())
             ->where('model_type', $this->getMorphClass())
             ->whereNull($this->permissionTeamKey())
             ->get()
             ->map(fn (object $row): array => (array) $row)
             ->all();
-    }
-
-    private function permissionTable(string $tableKey): string
-    {
-        $table = config("permission.table_names.{$tableKey}");
-
-        return is_string($table) && $table !== '' ? $table : $tableKey;
     }
 
     private function permissionModelKeyName(): string
@@ -371,7 +359,11 @@ trait HasUserRestoration
             // a stale snapshot. It must still be the restored user's own
             // marked profile; a foreign row under this id is left untouched
             // and the share restore stops.
-            if (! ShareTrackingProfile::isMarkedMemberFor($existing, $this)) {
+            if (! ShareTrackingProfile::isMarkedMemberForOwner(
+                $existing,
+                $this->getMorphClass(),
+                (string) $this->getKey(),
+            )) {
                 return null;
             }
 
@@ -391,7 +383,7 @@ trait HasUserRestoration
     }
 
     /**
-     * @param  class-string<Model>  $modelClass
+     * @param  class-string<AffiliateLink|AffiliateAttribution|AffiliateTouchpoint|AffiliateConversion>  $modelClass
      * @param  array<int, mixed>  $records
      */
     private function restoreShareChildren(string $modelClass, array $records, string $affiliateId): void

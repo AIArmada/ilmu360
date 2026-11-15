@@ -13,9 +13,9 @@ use LogicException;
  * Deterministic coordinator for tagged account lifecycle contributors.
  *
  * Contributors run by descending priority, then by key, in every phase. The
- * conventional User restoration trait delegates its migrated lifecycle steps
- * to this contract; contributors that have not moved yet remain under the
- * trait's `legacy` snapshot key.
+ * conventional User restoration trait delegates feature-owned lifecycle
+ * steps to this contract; authentication and global authorization remain in
+ * the trait.
  */
 final class AccountLifecycleCoordinator implements AccountLifecycle
 {

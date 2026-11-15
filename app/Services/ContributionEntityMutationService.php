@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
@@ -31,6 +30,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Location\AddressAssignments;
+use App\Platform\Models\MorphModelResolver;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Directory\Enums\InstitutionNameType;
@@ -55,14 +55,22 @@ class ContributionEntityMutationService implements ContributionEntityState
 {
     public function __construct(
         private readonly EventAuthoring $authoring,
-        private readonly AddressCountryResolver $addressingCountryResolver,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
     ) {}
 
     /** @return array<string, mixed> */
-    public function stateFor(Model $entity): array
+    public function stateFor(string $entityType, string $entityId): array
+    {
+        $modelClass = MorphModelResolver::resolve($entityType);
+        $entity = $modelClass::query()->findOrFail($entityId);
+
+        return $this->stateForEntity($entity);
+    }
+
+    /** @return array<string, mixed> */
+    public function stateForEntity(Model $entity): array
     {
         return match (true) {
             $entity instanceof Institution => $this->institutionState($entity),
@@ -112,9 +120,16 @@ class ContributionEntityMutationService implements ContributionEntityState
                     $this->field('gender', 'string', allowedValues: $this->enumValues(Gender::class)),
                     $this->field('bio', 'rich_text'),
                     $this->field('language_ids', 'array<string>', catalog: route('api.client.catalogs.languages')),
-                    $this->field('institution_id', 'uuid', catalog: route('api.client.catalogs.submit-institutions')),
-                    $this->field('institution_position', 'string', maxLength: 255),
-                    $this->field('institutions', 'array<object>', catalog: route('api.client.catalogs.submit-institutions')),
+                    $this->field('institutions', 'array<object>', catalog: route('api.client.catalogs.submit-institutions'), meta: [
+                        'item_schema' => [
+                            'type' => 'object',
+                            'fields' => [
+                                ['name' => 'institution_id', 'type' => 'uuid', 'required' => true],
+                                ['name' => 'position', 'type' => 'string', 'required' => false, 'max_length' => 255],
+                                ['name' => 'is_primary', 'type' => 'boolean', 'required' => false],
+                            ],
+                        ],
+                    ]),
                     $this->field('address', 'object'),
                     $this->field('address.country_id', 'uuid', catalog: route('api.client.catalogs.countries')),
                     $this->field('contactMethods', 'array<object>'),
@@ -270,8 +285,6 @@ class ContributionEntityMutationService implements ContributionEntityState
                 'title_assignments.*.status' => ['required', Rule::in($this->enumValues(AssignmentStatus::class))],
                 'gender' => ['sometimes', Rule::in($this->enumValues(Gender::class))],
                 'bio' => ['nullable'],
-                'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
-                'institution_position' => ['nullable', 'string', 'max:255'],
                 'address' => ['sometimes', 'array'],
                 'address.country_id' => ['required_with:address', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
                 'address.state_id' => ['prohibited'],
@@ -733,6 +746,7 @@ class ContributionEntityMutationService implements ContributionEntityState
 
     /**
      * @param  list<string|int>|null  $allowedValues
+     * @param  array<string, mixed>  $meta
      * @return array<string, mixed>
      */
     private function field(
@@ -741,15 +755,19 @@ class ContributionEntityMutationService implements ContributionEntityState
         ?int $maxLength = null,
         ?array $allowedValues = null,
         ?string $catalog = null,
+        array $meta = [],
     ): array {
-        return array_filter([
-            'name' => $name,
-            'type' => $type,
-            'required' => false,
-            'max_length' => $maxLength,
-            'allowed_values' => $allowedValues,
-            'catalog' => $catalog,
-        ], static fn (mixed $value): bool => $value !== null);
+        return array_merge(
+            array_filter([
+                'name' => $name,
+                'type' => $type,
+                'required' => false,
+                'max_length' => $maxLength,
+                'allowed_values' => $allowedValues,
+                'catalog' => $catalog,
+            ], static fn (mixed $value): bool => $value !== null),
+            array_filter($meta, static fn (mixed $value): bool => $value !== null),
+        );
     }
 
     /**
@@ -815,7 +833,7 @@ class ContributionEntityMutationService implements ContributionEntityState
         }
 
         return SharedFormSchema::hydrateAddressFormState([
-            'country_id' => $address->country_id ?? $this->addressingCountryResolver->resolveId($address->country_code),
+            'country_id' => $address->country_id,
             'state_id' => $address->state_id,
             'city_id' => $address->city_id,
             'state' => $address->state,

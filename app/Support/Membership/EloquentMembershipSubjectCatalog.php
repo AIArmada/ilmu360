@@ -87,6 +87,7 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
             publicUrl: $detail->publicUrl,
             status: $detail->status,
             imageUrl: $detail->imageUrl,
+            adminUrl: $detail->adminUrl,
         );
     }
 

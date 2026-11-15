@@ -1,3 +1,33 @@
+# Review — recent canonical event involvement import fix (2026-11-14)
+
+- [x] Review the recent seeder, PHPStan baseline, regression, and documentation changes against repository standards and the migration hard-cut requirements.
+- [x] Verify the source/target event involvement semantics and test coverage against the installed Events package schema.
+- [x] Run only scoped validation needed for any review findings; record the audit result without disturbing concurrent work.
+
+## Review result
+
+- Independent standards review found no documented-standard violations or baseline smells in the scoped changes.
+- Spec review confirmed the importer implementation matches the canonical schema and hard-cut requirements. It found one regression-fixture gap: no non-person morph row was present. Added a same-ID non-person source row; the existing event-level count now proves the morph filter is enforced.
+- Final focused serial Pest selection passed 2 tests / 3 assertions; the parallel runner still fails before execution with its Paratest `WrapperRunner` TypeError. Previous scoped checks remain: Pint passed, focused PHPStan for `ProductionSpeakerSeeder.php` passed, and `git diff --check` was clean.
+- The `--dirty` Pint invocation also applied style/import-only formatting to ten already-dirty PHP files outside this review scope; no functional changes were intended there.
+
+# Todo — close post-range architecture audit findings (2026-11-14)
+
+- [x] Confirm the stale PHPStan baseline path and verify the current Communications notification class path.
+- [x] Replace the production speaker importer's retired source event-link query with canonical event-involvement fields, preserving import behavior.
+- [x] Add focused coverage for the canonical event-involvement import query; run the notification regression and changed test file once.
+- [x] Run Pint, PHPStan, `git diff --check`, and a no-leftovers search; review only task-owned changes.
+- [x] Record verification and the user's hard-cut rule in this review and `tasks/lessons.md`.
+
+## Review — post-range architecture audit findings
+
+- Removed the PHPStan ignore entry for a deleted notification settings manager. The Communications notification class is already defined under its current Notifications namespace, and the approval regression test passes; no alias or shim was added.
+- Updated the production speaker importer to read canonical event involvements for `person` rows without occurrence/session context. It copies canonical role, display name, ordering, status, visibility, notes, and timestamps; the duplicate check is scoped to event-level rows. The fixture also proves occurrence/session rows are not promoted and reruns remain idempotent.
+- Updated the current event table catalogue and ownership notes to describe the package-owned involvement table and removed the obsolete table entry.
+- Verification: targeted Pest selection passed (2 tests, 3 assertions); Pint passed; focused PHPStan for `ProductionSpeakerSeeder.php` passed (0 errors); scoped `git diff --check` and searches for the retired source table, stale baseline path, and obsolete notification class were clean.
+- Repository-wide PHPStan completed sequentially after raising PHP 8.5's `max_memory_limit`; it still reports 38 findings across other concurrent work. The default parallel invocation remains limited by a 512 MB worker cap, so this scoped change is clean but the shared worktree is not PHPStan-clean.
+- Parallel Pest filtering hits an installed Paratest `WrapperRunner` TypeError; the same selection passed serially.
+
 # Institution QR uploads, autofill dedupe, required Maps (2026-11-09)
 
 - [x] Add per-channel QR upload to the donation repeater on both forms (`storeFiles(false)`, read at submit).

@@ -10,7 +10,6 @@ use App\Features\Communications\Api\ManagedNotificationDelivery;
 use App\Features\Communications\Api\ManagedNotificationDispatchRequest;
 use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationTrigger;
-use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Features\Rewards\Support\RewardsModel;
 use App\Shared\Auth\AccountDirectory;
@@ -318,6 +317,9 @@ final readonly class DispatchDueRewardDigestsAction
         });
     }
 
+    /**
+     * @param  \App\Models\RewardDigestSlot  $slot
+     */
     private function markCancelled(Model $slot, string $reason, CarbonImmutable $now): void
     {
         $payload = (array) ($slot->getAttribute('payload') ?? []);

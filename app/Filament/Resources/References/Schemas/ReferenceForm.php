@@ -73,6 +73,8 @@ class ReferenceForm
                     ->components([
                         Repeater::make('socialProfiles')
                             ->relationship()
+                            ->saveRelationshipsUsing(null)
+                            ->dehydrated()
                             ->schema([
                                 Select::make('platform')
                                     ->options(SocialPlatform::options())

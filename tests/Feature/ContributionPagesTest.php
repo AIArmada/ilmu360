@@ -8,14 +8,9 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Signals\Models\SignalEvent;
+use App\Enums\MemberSubjectType;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventFormat;
-use App\Enums\MemberSubjectType;
-use App\Shared\Events\Enums\TimingMode;
 use App\Features\Reports\EntryPoints\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Features\Reports\Models\Report;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
@@ -33,6 +28,11 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -2145,9 +2145,9 @@ it('formats institution membership claim options with the location hierarchy', f
         return $instance;
     });
 
-    $searchOptions = Closure::bind(fn () => $this->membershipClaimSearchOptions(MemberSubjectType::Institution->value, 'Payung'), $component, ContributionsIndex::class)();
+    $searchOptions = Closure::bind(fn () => $this->membershipApplicationSearchOptions(MemberSubjectType::Institution->value, 'Payung'), $component, ContributionsIndex::class)();
 
-    $selectedLabel = Closure::bind(fn () => $this->membershipClaimOptionLabel(MemberSubjectType::Institution->value, $institution->getKey()), $component, ContributionsIndex::class)();
+    $selectedLabel = Closure::bind(fn () => $this->membershipApplicationOptionLabel(MemberSubjectType::Institution->value, $institution->getKey()), $component, ContributionsIndex::class)();
 
     expect($searchOptions)->toHaveKey($institution->getKey())
         ->and($searchOptions[$institution->getKey()])->toBe('Masjid Payung - Shah Alam, Petaling, Selangor')
@@ -2353,7 +2353,7 @@ it('hydrates primary and public flags for person contacts and social media', fun
         ]);
     });
 
-    $state = app(ContributionEntityMutationService::class)->stateFor($person->fresh());
+    $state = app(ContributionEntityMutationService::class)->stateForEntity($person->fresh());
 
     $contact = collect($state['contactMethods'])->firstWhere('value', 'speaker@example.test');
     $social = collect($state['social_media'])->firstWhere('handle', 'speaker');
@@ -2388,7 +2388,7 @@ it('keeps person update suggestions on a region-only address form', function () 
         ->assertDontSee(__('Waze URL'));
 });
 
-it('does not treat unchanged person update forms as changes when legacy address fields exist', function () {
+it('does not treat unchanged person update forms as changes when current address data exists', function () {
     $owner = User::factory()->create();
     $country = ensureTestMalaysiaCountry();
     $person = Person::factory()->create([

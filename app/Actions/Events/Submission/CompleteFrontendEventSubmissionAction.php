@@ -6,14 +6,14 @@ namespace App\Actions\Events\Submission;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Contracts\ShareTrackingContract;
-use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventSubmissions;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
 use App\Notifications\EventOccurrenceSubmittedNotification;
-use App\Services\ModerationService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,18 +23,17 @@ use Spatie\Permission\Exceptions\RoleDoesNotExist;
 use Throwable;
 
 /**
- * Interim submission-completion adapter.
+ * Composes submission-owned persistence with account and share side effects.
  *
  * Submission-owned writes (guest contacts, open-door admission and access
- * policy) go through Events\Api\EventSubmissions. Moderation still calls the
- * root ModerationService until E3b, and share outcomes stay with this root
- * orchestrator.
+ * policy) go through Events\Api\EventSubmissions. Moderation goes through the
+ * Events API, and share outcomes stay with this root orchestrator.
  */
 final readonly class CompleteFrontendEventSubmissionAction
 {
     public function __construct(
         private ShareTrackingContract $shareTracking,
-        private ModerationService $moderation,
+        private EventModeration $moderation,
         private EventSubmissions $submissions,
     ) {}
 
@@ -113,9 +112,13 @@ final readonly class CompleteFrontendEventSubmissionAction
         $event->refresh();
 
         if ($moderationAction === 'approve') {
-            $this->moderation->approve($event, $submitter, 'Auto-approved from institution dashboard submission.');
+            $this->moderation->approve(
+                (string) $event->getKey(),
+                $submitter instanceof User ? (string) $submitter->getKey() : null,
+                'Auto-approved from institution dashboard submission.',
+            );
         } elseif ($moderationAction === 'submit') {
-            $this->moderation->submitForModeration($event);
+            $this->moderation->submitForModeration((string) $event->getKey());
         }
 
         $this->shareTracking->recordOutcome(

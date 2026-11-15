@@ -45,7 +45,7 @@ final class SurfaceSyncPolicy
                 ],
                 [
                     'key' => 'workflow_api',
-                    'description' => 'Public or authenticated workflow contracts such as contributions, membership claims, account settings, and workspace actions.',
+                    'description' => 'Public or authenticated workflow contracts such as contributions, membership applications, account settings, and workspace actions.',
                     'default_surfaces' => ['public_api', 'authenticated_api'],
                     'implementation_rule' => 'Mirror into Ahli panel or Member MCP only when the flow is genuine member self-service, not merely because generic CRUD exists.',
                 ],
@@ -59,7 +59,7 @@ final class SurfaceSyncPolicy
             'workflow_first_capabilities' => [
                 'event moderation',
                 'contribution review',
-                'membership-claim review',
+                'membership-application review',
                 'report triage',
             ],
             'default_panel_only_operations' => [

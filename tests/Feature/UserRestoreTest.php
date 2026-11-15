@@ -22,11 +22,11 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;
+use App\Features\Ai\Models\AiUsageLog;
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\Models\SocialAccount;
 use App\Features\Reports\Models\Report;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Features\Ai\Models\AiUsageLog;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -192,12 +192,12 @@ it('restores a deleted user together with key relationships and child records', 
         'proposer_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
-    $membershipClaim = MembershipApplication::factory()->create([
+    $membershipApplication = MembershipApplication::factory()->create([
         'applicant_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
     $moderationReview = OwnerContext::withOwner(null, fn () => ModerationReview::factory()->create([
-        'actionable_type' => Event::class,
+        'actionable_type' => (new Event)->getMorphClass(),
         'actionable_id' => $sharedEvent->id,
         'actioned_by_type' => (new User)->getMorphClass(),
         'actioned_by_id' => $user->id,
@@ -602,7 +602,7 @@ it('restores a deleted user together with key relationships and child records', 
         'reviewer_id' => $user->id,
     ]);
     assertDatabaseHas('membership_applications', [
-        'id' => $membershipClaim->id,
+        'id' => $membershipApplication->id,
         'reviewer_id' => $user->id,
     ]);
     assertDatabaseHas('moderation_actions', [

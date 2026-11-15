@@ -570,7 +570,7 @@ return [
 
 **Streaming** (Infrastructure present, not actively used):
 ```php
-// SSE streaming infrastructure configured in routes/ai.php
+// Laravel MCP's Streamable HTTP transport supports SSE responses,
 // but no tools currently use generator-based streaming
 ```
 
@@ -1536,7 +1536,7 @@ Missing resource types:
 
 ### Streaming - Not Active
 
-**Current State**: SSE infrastructure present, not used
+**Current State**: Streamable HTTP supports SSE responses; current tools do not stream
 **Potential Enhancement**: Long-running operations (bulk updates, processing jobs)
 
 Current tools complete quickly; streaming not necessary.

@@ -48,6 +48,11 @@ final readonly class EloquentAccountSettingsStore implements AccountSettingsStor
         $user->forceFill($attributes)->save();
     }
 
+    public function updateTimezone(string $accountId, string $timezone): void
+    {
+        $this->user($accountId)->forceFill(['timezone' => $timezone])->save();
+    }
+
     public function updateAdministrative(string $accountId, array $attributes): void
     {
         $this->user($accountId)->forceFill($attributes)->save();

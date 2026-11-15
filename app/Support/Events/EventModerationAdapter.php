@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Support\Events;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Api\EventModeration;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ModerationService;
+use App\States\EventStatus\Approved;
 use App\Support\Moderation\EventModerationWorkflow;
 
 /**
@@ -80,9 +82,35 @@ final readonly class EventModerationAdapter implements EventModeration
         );
     }
 
+    public function remoderateIfApproved(string $eventId, string $note): bool
+    {
+        $event = Event::query()->find($eventId);
+
+        if (! $event instanceof Event || ! $event->status instanceof Approved) {
+            return false;
+        }
+
+        $this->moderation->remoderate($event, null, $note);
+
+        return true;
+    }
+
     public function handleSensitiveChange(string $eventId, array $changes): void
     {
         $this->moderation->handleSensitiveChange($this->event($eventId), $changes);
+    }
+
+    public function deleteReviewsForEvent(string $eventId): void
+    {
+        $event = Event::query()->withoutOwnerScope()->find($eventId);
+
+        if ($event === null) {
+            return;
+        }
+
+        $event->moderationReviews()->each(static function ($review): void {
+            OwnerContext::withOwner(null, static fn () => $review->delete());
+        });
     }
 
     public function availableActions(string $eventId): array

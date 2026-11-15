@@ -1,12 +1,6 @@
 <?php
 
 use App\Enums\EventChangeSeverity;
-use App\Shared\Events\Enums\EventChangeType;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
@@ -14,6 +8,12 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\PrayerReference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -401,7 +401,8 @@ it('keeps raw utc event timestamps stable while localizing helper fields from re
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $utcResponse = $this->getJson('/api/v1/events?sort=starts_at')
+    $utcResponse = $this->withHeader('X-Timezone', 'UTC')
+        ->getJson('/api/v1/events?sort=starts_at')
         ->assertOk();
 
     $mytResponse = $this->withHeader('X-Timezone', 'Asia/Kuala_Lumpur')
@@ -803,7 +804,8 @@ it('serializes event detail payloads with poster metadata and included persons',
 
     $event->persons()->attach($person->id);
 
-    $response = $this->getJson('/api/v1/events/'.$event->id.'?include=persons');
+    $response = $this->withHeader('X-Timezone', 'UTC')
+        ->getJson('/api/v1/events/'.$event->id.'?include=persons');
 
     $response->assertOk()
         ->assertJsonPath('data.id', $event->id)
@@ -872,8 +874,8 @@ it('serializes included institution address display fields on event detail paylo
         'postcode' => '43000',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
         'waze_url' => 'https://waze.com/ul?ll=3.1390,101.6869',
-        'lat' => 3.139,
-        'lng' => 101.6869,
+        'latitude' => 3.139,
+        'longitude' => 101.6869,
     ]);
 
     $event = Event::factory()->for($institution)->create([

@@ -3,6 +3,7 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Signals\Models\SignalEvent;
+use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -11,7 +12,6 @@ use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\EventSubmittedNotification;
-use App\Features\Events\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -83,7 +83,7 @@ describe('Event Approval', function () {
         // Service returns void now (transitions handle logic), so we check DB for review
         $this->service->approve($event, $moderator, 'Looks good!');
 
-        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
 
         expect($review)->toBeInstanceOf(ModerationReview::class);
         expect($review->type)->toBe(ModerationActionType::Approve);
@@ -140,7 +140,7 @@ describe('Event Approval', function () {
         ]);
         OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($organizerInstitution));
 
-        app(EventKeyPersonSyncService::class)->sync($event, [(string) $person->id]);
+        app(SyncEventKeyPeopleAction::class)->syncEvent($event, [(string) $person->id]);
 
         // Approve event
         OwnerContext::withOwner(null, fn () => $this->service->approve($event, $moderator));
@@ -165,7 +165,7 @@ describe('Event Approval', function () {
             'status' => 'pending',
         ]);
 
-        app(EventKeyPersonSyncService::class)->sync($event, [(string) $person->id]);
+        app(SyncEventKeyPeopleAction::class)->syncEvent($event, [(string) $person->id]);
 
         $this->service->approve($event, $moderator);
 
@@ -193,7 +193,7 @@ describe('Event Needs Changes', function () {
             'Please add person details'
         );
 
-        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
 
         expect($review->type)->toBe(ModerationActionType::ChangesRequested);
         expect($review->reason)->toBe('incomplete_info');
@@ -226,7 +226,7 @@ describe('Event Rejection', function () {
             'This appears to be spam.'
         );
 
-        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
 
         expect($review->type)->toBe(ModerationActionType::Reject);
         expect((string) $event->fresh()->status)->toBe('rejected');
@@ -264,7 +264,7 @@ describe('Event Cancellation', function () {
         expect((string) $event->status)->toBe('cancelled');
         expect($event->published_at)->not->toBeNull();
 
-        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
         expect($review)->toBeInstanceOf(ModerationReview::class);
         expect($review->type)->toBe(ModerationActionType::Cancelled);
 
@@ -314,7 +314,7 @@ describe('Sensitive Change Handling', function () {
             'starts_at' => now()->addDays(1),
         ]);
 
-        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
 
         expect($review)->toBeNull();
     });
@@ -346,7 +346,7 @@ describe('Event Reconsideration', function () {
 
         expect((string) $event->fresh()->status)->toBe('pending');
 
-        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
         expect($review->type)->toBe(ModerationActionType::Reconsidered);
         expect($review->actioned_by_id)->toBe($moderator->id);
     });
@@ -366,7 +366,7 @@ describe('Revert to Draft', function () {
         expect((string) $event->fresh()->status)->toBe('draft');
         expect($event->fresh()->published_at)->toBeNull();
 
-        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
         expect($review->type)->toBe(ModerationActionType::RevertedToDraft);
     });
 
@@ -398,7 +398,7 @@ describe('Re-moderation', function () {
 
         expect((string) $event->fresh()->status)->toBe('pending');
 
-        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
         expect($review->type)->toBe(ModerationActionType::Remoderated);
         expect($review->actioned_by_id)->toBe($moderator->id);
     });

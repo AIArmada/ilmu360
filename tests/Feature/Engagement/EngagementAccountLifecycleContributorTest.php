@@ -5,9 +5,9 @@ declare(strict_types=1);
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Enums\FollowStatus;
 use AIArmada\Engagement\Models\Follow;
+use App\Features\Engagement\Contributors\EngagementAccountLifecycleContributor;
 use App\Models\User;
 use App\Models\Venue;
-use App\Support\Engagement\EngagementAccountLifecycleContributor;
 
 it('snapshots, detaches and restores venue follows with the venue morph alias', function (): void {
     $user = User::factory()->create();

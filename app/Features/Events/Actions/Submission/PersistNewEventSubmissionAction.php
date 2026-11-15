@@ -12,10 +12,8 @@ use App\Features\Events\Actions\Scheduling\ResolveInstitutionalPrayerSlotGroupAc
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Support\EventModel;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\ValidatedEventSubmission;
 use Illuminate\Support\Arr;
 use RuntimeException;
-use Spatie\MediaLibrary\HasMedia;
 
 final readonly class PersistNewEventSubmissionAction
 {
@@ -31,10 +29,9 @@ final readonly class PersistNewEventSubmissionAction
      * existing parent; explicit event-container submissions use the separate
      * session action.
      *
-     * @param  (callable(HasMedia): void)|null  $persistRelationships
      * @return array{event: PackageEvent, session: null, occurrence: EventOccurrence, submission: PackageEventSubmission, grouped: bool, parent_created: bool, occurrence_pending_review: bool}
      */
-    public function handle(ValidatedEventSubmission $submission, ?callable $persistRelationships = null): array
+    public function handle(ValidatedEventSubmission $submission): array
     {
         $groupIdentity = $this->groupResolver->identity($submission);
         $event = $groupIdentity === null ? null : $this->groupResolver->findExisting($groupIdentity);
@@ -55,7 +52,6 @@ final readonly class PersistNewEventSubmissionAction
             submission: $submission,
             pendingReview: $occurrencePendingReview,
             groupIdentity: $groupIdentity,
-            persistRelationships: $persistRelationships,
         );
 
         $event->forceFill([
@@ -65,7 +61,7 @@ final readonly class PersistNewEventSubmissionAction
         ])->save();
 
         $submissionData = [
-            'submitter_name' => $submission->state['submitter_name'] ?? $submission->submitter?->name,
+            'submitter_name' => $submission->state['submitter_name'] ?? $submission->submitter?->getAttribute('name'),
             'occurrence_title' => $occurrence->title,
         ];
 

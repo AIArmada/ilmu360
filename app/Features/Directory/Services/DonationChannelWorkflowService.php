@@ -12,8 +12,8 @@ use App\Features\Directory\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Features\Directory\Actions\DonationChannels\TransitionDonationChannelStatusAction;
 use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Models\DonationChannel;
 use App\Shared\Directory\Enums\DonationChannelStatus;
-use Illuminate\Database\Eloquent\Model;
 use LogicException;
 
 final readonly class DonationChannelWorkflowService implements DonationChannelWorkflow
@@ -29,20 +29,18 @@ final readonly class DonationChannelWorkflowService implements DonationChannelWo
 
     public function save(array $data, ?string $channelId = null): string
     {
-        $channel = $channelId !== null
-            ? DirectoryModel::query('donation_channel')->find($channelId)
-            : null;
+        $channel = $channelId !== null ? $this->findChannel($channelId) : null;
 
-        $saved = $this->saveChannel->handle($data, $channel instanceof Model ? $channel : null);
+        $saved = $this->saveChannel->handle($data, $channel);
 
         return (string) $saved->getKey();
     }
 
     public function transition(string $channelId, string $status, ?string $verifierId = null): void
     {
-        $channel = DirectoryModel::query('donation_channel')->find($channelId);
+        $channel = $this->findChannel($channelId);
 
-        if (! $channel instanceof Model) {
+        if (! $channel instanceof DonationChannel) {
             throw new LogicException('A new donation channel must be saved before it can transition.');
         }
 
@@ -61,9 +59,9 @@ final readonly class DonationChannelWorkflowService implements DonationChannelWo
 
     public function demoteDefault(string $channelId): void
     {
-        $channel = DirectoryModel::query('donation_channel')->find($channelId);
+        $channel = $this->findChannel($channelId);
 
-        if ($channel instanceof Model) {
+        if ($channel instanceof DonationChannel) {
             $this->demoteDefault->handle($channel);
         }
     }
@@ -83,10 +81,29 @@ final readonly class DonationChannelWorkflowService implements DonationChannelWo
         $deleted = 0;
 
         foreach (DirectoryModel::query('donation_channel')->whereKey($channelIds)->get() as $channel) {
+            if (! $channel instanceof DonationChannel) {
+                throw new LogicException('The registered donation channel model must extend the Directory donation channel model.');
+            }
+
             $this->deleteChannel->handle($channel);
             $deleted++;
         }
 
         return $deleted;
+    }
+
+    private function findChannel(string $channelId): ?DonationChannel
+    {
+        $channel = DirectoryModel::query('donation_channel')->find($channelId);
+
+        if ($channel === null) {
+            return null;
+        }
+
+        if (! $channel instanceof DonationChannel) {
+            throw new LogicException('The registered donation channel model must extend the Directory donation channel model.');
+        }
+
+        return $channel;
     }
 }

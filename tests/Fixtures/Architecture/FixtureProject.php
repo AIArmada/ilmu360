@@ -23,23 +23,31 @@ final readonly class FixtureProject
         $this->configure();
     }
 
-    /** @param list<array<string, string>> $exceptions */
-    public function configure(array $exceptions = []): void
+    /**
+     * @param  list<array<string, string>>  $exceptions
+     * @param  array<string, string>  $rootStoreWriters
+     */
+    public function configure(array $exceptions = [], array $rootStoreWriters = []): void
     {
         $this->write('tools/architecture.json', json_encode([
             'schema' => 2,
             'discovery' => 'native',
+            'root_store_writers' => $rootStoreWriters,
             'exceptions' => $exceptions,
         ], JSON_THROW_ON_ERROR));
     }
 
-    /** @param array<string, list<string>> $owns */
-    public function feature(string $name, array $owns = []): void
+    /**
+     * @param  array<string, list<string>>  $owns
+     * @param  array<string, string>  $aliases
+     */
+    public function feature(string $name, array $owns = [], array $aliases = []): void
     {
         $this->write("app/Features/{$name}/feature.json", json_encode([
             'schema' => 2,
             'name' => $name,
             'owns' => $owns,
+            'aliases' => $aliases,
         ], JSON_THROW_ON_ERROR));
         $this->write("app/Features/{$name}/FeatureServiceProvider.php", "<?php\nnamespace App\\Features\\{$name};\nclass FeatureServiceProvider {}\n");
     }

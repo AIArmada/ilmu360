@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Owns event_links/event_audiences/event_audience_profiles writes behind the
- * legacy Event::saved projection hook.
+ * Event::saved projection hook.
  */
 final readonly class SyncEventProjectionsAction implements EventProjections
 {

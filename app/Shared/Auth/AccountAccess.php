@@ -52,5 +52,10 @@ interface AccountAccess
 
     public function sendEmailVerification(string $accountId): void;
 
+    /**
+     * Persist the reset password and completion Signal before caller-owned token and event effects.
+     */
+    public function persistResetPassword(string $accountId, string $password, ?Request $request = null): void;
+
     public function resetPassword(string $accountId, string $password, ?Request $request = null): void;
 }

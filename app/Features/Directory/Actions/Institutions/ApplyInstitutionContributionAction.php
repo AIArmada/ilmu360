@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\Institutions;
 
+use App\Models\Institution;
 use App\Shared\Directory\Enums\InstitutionType;
 use BackedEnum;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Apply an approved contribution update to an existing institution.
@@ -23,7 +23,7 @@ final readonly class ApplyInstitutionContributionAction
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed> Changed attributes.
      */
-    public function handle(Model $institution, array $payload): array
+    public function handle(Institution $institution, array $payload): array
     {
         $institution->fill([
             'name' => $payload['name'] ?? $institution->getAttribute('name'),

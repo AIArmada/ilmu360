@@ -89,8 +89,6 @@ it('applies location scope to direct search', function () {
             'state_id' => (string) $selangor['state']->getKey(),
             'city_id' => null,
             'locality_id' => null,
-            'district_id' => null,
-            'subdivision_id' => null,
             'area_ids' => [],
         ],
         followedOnly: false,

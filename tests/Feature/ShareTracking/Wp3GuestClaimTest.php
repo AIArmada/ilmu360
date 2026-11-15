@@ -131,7 +131,11 @@ it('claims a guest history explicitly after signup', function (): void {
         ->and($source->owner)->toBeNull()
         ->and($recipient)->toBeInstanceOf(Affiliate::class)
         ->and((string) $recipient->getKey())->not->toBe($guest['affiliate_id'])
-        ->and(ShareTrackingProfile::isMarkedMemberFor($recipient, $this->claimant))->toBeTrue();
+        ->and(ShareTrackingProfile::isMarkedMemberForOwner(
+            $recipient,
+            $this->claimant->getMorphClass(),
+            (string) $this->claimant->getKey(),
+        ))->toBeTrue();
 
     // A claim records the association only: no award, no notification,
     // no receipt rewrite.

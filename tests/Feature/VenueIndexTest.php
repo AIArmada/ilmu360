@@ -184,8 +184,7 @@ it('dispatches the filter snapshot to results when venue search changes', functi
             'search' => 'dewan',
             'country_id' => null,
             'state_id' => null,
-            'district_id' => null,
-            'subdivision_id' => null,
+            'areas' => [],
         ]);
 });
 

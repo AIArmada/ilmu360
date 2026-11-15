@@ -518,7 +518,6 @@ No webhook signature/retry/delivery-log contract was established for external in
 | `media-library:regenerate` | Weekly Sunday 03:00 Malaysia time | Missing responsive media conversions |
 | `horizon:snapshot` | Every 5 minutes UTC | Queue throughput/wait-time dashboard data |
 | `communications:dispatch-due` | Every minute UTC | Queue due package Communication aggregates |
-| Slug backfill jobs | Triggered by commands/actions | Backfill event/institution/speaker/reference/venue slugs |
 | Responsive image job | Media event/queue | Generate conversions |
 
 Evidence: `routes/console.php`, `app/Jobs/*`. Retry counts, backoff, idempotency, alerting, and worker capacity require inspection of each job and deployment configuration; several are Missing.
@@ -655,7 +654,7 @@ Key dependencies are Laravel/Filament/Livewire/Fortify/Sanctum/Passport/Horizon/
 | Runtime entry/config | `artisan`, `public/index.php`, `composer.json`, `package.json`, `vite.config.js`, `docker-compose.yml` |
 | Web navigation | `routes/web.php`, `routes/console.php` |
 | API | `routes/api.php`, `app/Http/Controllers/Api/**` |
-| AI-agent access | `routes/ai.php`, `app/Mcp/**`, `app/Http/Controllers/Mcp/**`, MCP middleware |
+| AI-agent access | `routes/ai.php`, `app/Mcp/**`, `app/Http/Controllers/Mcp/OAuthRegisterController.php`, MCP middleware |
 | Domain entities | `app/Models/**`, `database/migrations/**`, package migrations |
 | Event lifecycle | `app/States/EventStatus/**`, `app/Actions/Events/**`, `app/Policies/EventPolicy.php` |
 | Moderation | `app/Filament/Pages/ModerationQueue.php`, admin moderation controllers, moderation tests |

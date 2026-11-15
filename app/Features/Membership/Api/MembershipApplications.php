@@ -4,37 +4,24 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Api;
 
-use App\Shared\Membership\MembershipSubjectType;
-
 /**
- * Read boundary for membership applications.
+ * Public read and write boundary for membership applications.
  */
 interface MembershipApplications
 {
     /**
-     * @return list<MembershipApplicationSummary>
+     * @return list<MembershipApplicationDetail>
      */
     public function forApplicant(string $accountId): array;
 
     /**
-     * @return list<MembershipApplicationSummary>
-     */
-    public function forReviewer(string $accountId): array;
-
-    /**
-     * Applications for one subject, optionally narrowed by status.
+     * Roles that may be granted when an application is approved.
      *
-     * @return list<MembershipApplicationSummary>
+     * @return array<string, string>
      */
-    public function forSubject(
-        MembershipSubjectType $subjectType,
-        string $subjectId,
-        ?string $status = null,
-    ): array;
+    public function reviewRoleOptions(): array;
 
     public function find(string $applicationId): ?MembershipApplicationDetail;
-
-    public function findForApplicant(string $accountId, string $applicationId): ?MembershipApplicationDetail;
 
     /**
      * Submit a pending application for one subject on behalf of an account.
@@ -61,7 +48,8 @@ interface MembershipApplications
      *
      * Delegates the transition, role grant and applicant notification to the
      * canonical package action and returns the committed review snapshot.
-     * Unknown role names fall back to editor, matching the existing UI flows.
+     * The granted role must be one of the roles returned by reviewRoleOptions();
+     * unsupported roles raise InvalidArgumentException.
      */
     public function approve(
         string $applicationId,

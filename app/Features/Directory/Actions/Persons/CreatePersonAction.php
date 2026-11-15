@@ -7,9 +7,11 @@ namespace App\Features\Directory\Actions\Persons;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Directory\Support\DirectoryModel;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Models\Person;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
+use RuntimeException;
 
 /**
  * Create a person from a contribution, quick-add or author payload.
@@ -32,7 +34,7 @@ final readonly class CreatePersonAction
         bool $assignOwner = false,
         bool $syncRelations = true,
         bool $defaultGender = true,
-    ): Model {
+    ): Person {
         $name = (string) ($payload['name'] ?? 'Person');
         $now = now();
         $attributes = [
@@ -55,6 +57,10 @@ final readonly class CreatePersonAction
         }
 
         $person = DirectoryModel::query('person')->create($attributes);
+
+        if (! $person instanceof Person) {
+            throw new RuntimeException('The registered person model must be the Directory person model.');
+        }
 
         if ($actor instanceof Model && $assignOwner) {
             $this->membershipCommands->assignOwner(

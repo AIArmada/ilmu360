@@ -4,36 +4,30 @@ declare(strict_types=1);
 
 namespace App\Shared\Events;
 
-use AIArmada\Events\Models\EventInvolvement;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Shared\Support\MorphAlias;
 
 final class OrganizerResolver
 {
-    public static function find(?string $id): Institution|Person|null
+    public static function kindForId(?string $id): ?string
     {
-        if ($id === null) {
+        if (! is_string($id) || trim($id) === '') {
             return null;
         }
 
-        return Institution::query()->find($id)
-            ?? Person::query()->find($id);
-    }
-
-    /**
-     * Organizer rows store the configured morph alias. Legacy rows may still
-     * hold the fully qualified class name, so normalize before comparing.
-     */
-    public static function involvementMatchesInstitution(?EventInvolvement $involvement, Institution|string $institution): bool
-    {
-        if (! $involvement instanceof EventInvolvement) {
-            return false;
+        if (Institution::query()->whereKey($id)->exists()) {
+            return 'institution';
         }
 
-        $institutionId = $institution instanceof Institution ? (string) $institution->getKey() : $institution;
+        return Person::query()->whereKey($id)->exists() ? 'person' : null;
+    }
 
-        return (string) $involvement->involveable_id === $institutionId
-            && MorphAlias::of($involvement->involveable_type) === (new Institution)->getMorphClass();
+    public static function involvementMatchesInstitution(
+        ?string $involveableType,
+        ?string $involveableId,
+        string $institutionId,
+    ): bool {
+        return $involveableId === $institutionId
+            && $involveableType === (new Institution)->getMorphClass();
     }
 }

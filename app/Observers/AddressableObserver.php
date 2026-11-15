@@ -6,14 +6,14 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\PublicDirectoryCacheVersions;
 use App\Features\Directory\Api\VenueWorkflow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
-use App\Platform\Cache\PublicDirectoryCacheVersion;
-use App\Platform\Cache\PublicListingsCache;
+use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
@@ -24,7 +24,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly VenueWorkflow $venueWorkflow,
-        private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
+        private readonly PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
         private readonly PublicListingsCache $publicListingsCache,
     ) {}
 
@@ -35,7 +35,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         $address = $addressable->address;
 
         if ($address instanceof Address) {
-            $this->publicDirectoryCacheVersion->bumpForAddress($address);
+            $this->bumpDirectoryVersionsForAddress($address);
         }
 
         $this->syncAddressable($addressable);
@@ -48,7 +48,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         $address = $addressable->address;
 
         if ($address instanceof Address) {
-            $this->publicDirectoryCacheVersion->bumpForAddress($address);
+            $this->bumpDirectoryVersionsForAddress($address);
         }
 
         $this->syncAddressable($addressable, $address instanceof Address ? $address : null);
@@ -92,6 +92,18 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
             $this->syncSearchableEvents($subject->events()->get(['events.*']));
             $this->publicListingsCache->bustMajlisListing();
         }
+    }
+
+    private function bumpDirectoryVersionsForAddress(Address $address): void
+    {
+        $address->loadMissing('addressableLinks');
+
+        $addressableMorphTypes = $address->addressableLinks
+            ->map(static fn (Addressable $link): string => (string) $link->addressable_type)
+            ->values()
+            ->all();
+
+        $this->publicDirectoryCacheVersions->bumpForAddressableTypes($addressableMorphTypes);
     }
 
     private function syncSearchableModel(Institution|Person $model): void

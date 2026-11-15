@@ -236,8 +236,10 @@ it('records person affiliation sync audits on auditable subjects', function () {
     $this->actingAs($administrator);
 
     app(ContributionEntityMutationService::class)->syncPersonRelations($person, [
-        'institution_id' => $newInstitution->id,
-        'institution_position' => 'Mudir',
+        'institutions' => [
+            ['institution_id' => $newInstitution->id, 'position' => 'Mudir', 'is_primary' => true],
+            ['institution_id' => $secondaryInstitution->id, 'position' => 'Advisor', 'is_primary' => false],
+        ],
     ]);
 
     $person = $person->fresh('institutions');
@@ -292,8 +294,11 @@ it('records person affiliation pivot updates when the institution is already att
     $this->actingAs($administrator);
 
     app(ContributionEntityMutationService::class)->syncPersonRelations($person, [
-        'institution_id' => $institution->id,
-        'institution_position' => 'Mudir',
+        'institutions' => [[
+            'institution_id' => $institution->id,
+            'position' => 'Mudir',
+            'is_primary' => true,
+        ]],
     ]);
 
     $person = $person->fresh('institutions');

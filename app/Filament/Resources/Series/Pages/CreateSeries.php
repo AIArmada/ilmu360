@@ -21,15 +21,15 @@ class CreateSeries extends CreateRecord
     protected static string $resource = SeriesResource::class;
 
     /**
-     * Filament keeps ownership of the languages relationship and media
-     * collections; the authoring boundary receives scalar form state only.
+     * The authoring boundary receives language IDs and persists the relation;
+     * Filament continues to manage the media collections.
      *
      * @param  array<string, mixed>  $data
      */
     protected function handleRecordCreation(array $data): Model
     {
         $seriesId = app(SeriesAuthoring::class)->save(
-            Arr::except($data, ['languages', 'cover', 'gallery']),
+            Arr::except($data, ['cover', 'gallery']),
         );
 
         return Series::query()->findOrFail($seriesId);

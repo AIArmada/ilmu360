@@ -6,8 +6,10 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
+use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
+use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Directory\Api\DirectoryContributionMedia;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\InstitutionContributionFormSchema;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
@@ -15,6 +17,7 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Signals\SignalRecorder;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -23,7 +26,6 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -104,6 +106,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
         array $selection,
         ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
         MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
+        VerifiedInstitutionMapsSelections $verifiedMapsSelections,
     ): array {
         $this->hitMapsThrottle('select');
 
@@ -134,18 +137,14 @@ class SubmitInstitution extends Component implements HasActions, HasForms
         $token = Str::random(48);
         $previousToken = $this->verifiedMapsSelectionToken;
         $this->verifiedMapsSelectionToken = $token;
-        Cache::put($this->verifiedMapsSelectionCacheKey($token), [
-            ...$selectionData,
-            'address' => Arr::except($selectionData['address'], ['cascade_reset_guard']),
-            'autofilled_contacts' => $merged['autofilled_contacts'],
-            'autofilled_social_profiles' => $merged['autofilled_social_profiles'],
-            'autofilled_name' => $merged['autofilled_name'],
-            'autofilled_type' => $merged['autofilled_type'],
-        ], now()->addMinutes(30));
-
-        if (is_string($previousToken) && $previousToken !== '') {
-            Cache::forget($this->verifiedMapsSelectionCacheKey($previousToken));
-        }
+        $verifiedMapsSelections->replace(
+            InstitutionMapsSelectionContext::create(),
+            session()->getId(),
+            $this->getId(),
+            $token,
+            VerifiedInstitutionMapsSelection::fromResolvedSelection($selectionData, $merged),
+            $previousToken,
+        );
 
         $user = auth()->user();
 
@@ -316,7 +315,12 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                 session()->flash('contribution_submission_name', $submittedName);
             }
 
-            Cache::forget($this->verifiedMapsSelectionCacheKey($this->verifiedMapsSelectionToken));
+            app(VerifiedInstitutionMapsSelections::class)->forget(
+                InstitutionMapsSelectionContext::create(),
+                session()->getId(),
+                $this->getId(),
+                $this->verifiedMapsSelectionToken,
+            );
             $this->verifiedMapsSelectionToken = null;
 
             $this->redirect(route('contributions.submission-success', [
@@ -346,13 +350,13 @@ class SubmitInstitution extends Component implements HasActions, HasForms
             return null;
         }
 
-        $selection = Cache::get($this->verifiedMapsSelectionCacheKey($this->verifiedMapsSelectionToken));
-
-        return is_array($selection) ? $selection : null;
-    }
-
-    private function verifiedMapsSelectionCacheKey(?string $token): string
-    {
-        return 'institution-contribution:verified-maps:'.hash('sha256', session()->getId().'|'.$this->getId().'|'.($token ?? ''));
+        return app(VerifiedInstitutionMapsSelections::class)
+            ->get(
+                InstitutionMapsSelectionContext::create(),
+                session()->getId(),
+                $this->getId(),
+                $this->verifiedMapsSelectionToken,
+            )
+            ?->toArray();
     }
 }

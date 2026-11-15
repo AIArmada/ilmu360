@@ -69,14 +69,13 @@ final readonly class AttachInstitutionSpaceAction
             }
 
             $now = now();
-            $table = DB::table('institution_space');
-            $exists = $table
+            $exists = DB::table('institution_space')
                 ->where('institution_id', $institutionId)
                 ->where('space_id', $spaceId)
                 ->exists();
 
             if ($exists) {
-                $table
+                DB::table('institution_space')
                     ->where('institution_id', $institutionId)
                     ->where('space_id', $spaceId)
                     ->update([
@@ -87,7 +86,7 @@ final readonly class AttachInstitutionSpaceAction
                 return;
             }
 
-            $table->insert([
+            DB::table('institution_space')->insert([
                 'institution_id' => $institutionId,
                 'space_id' => $spaceId,
                 'capacity' => $capacity,

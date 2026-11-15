@@ -9,8 +9,8 @@ namespace App\Features\Events\Api;
  *
  * The root Event model's `deleting` hook delegates here so the cleanup of
  * membership, engagement, registration, submission, moderation, announcement
- * and media rows stays owned by Events. Package cascade cleanup still runs in
- * the model's `deleted` hook.
+ * and media rows stays owned by Events. Package cascade cleanup follows from
+ * the model's `deleting` hook while the event still exists.
  */
 interface EventDeletion
 {

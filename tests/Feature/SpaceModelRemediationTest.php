@@ -2,11 +2,10 @@
 
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\VenueSpaceType;
+use App\Data\Api\Event\EventPayloadData;
 use App\Features\Directory\Actions\Spaces\AttachInstitutionSpaceAction;
 use App\Features\Directory\Actions\Spaces\DetachInstitutionSpaceAction;
 use App\Features\Directory\Actions\Spaces\SaveSpaceAction;
-use App\Shared\Directory\SpaceEligibilityResolver;
-use App\Data\Api\Event\EventPayloadData;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Filament\Resources\Spaces\RelationManagers\InstitutionsRelationManager;
 use App\Models\Event;
@@ -15,9 +14,9 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Policies\SpacePolicy;
+use App\Shared\Directory\SpaceEligibility;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
-use Database\Seeders\SpaceSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -42,17 +41,17 @@ it('enforces catalog and owner-scoped space eligibility for every selected id', 
     $institutionSpace->institutions()->attach($institution);
     $otherInstitutionSpace->institutions()->attach($otherInstitution);
 
-    $resolver = app(SpaceEligibilityResolver::class);
+    $resolver = app(SpaceEligibility::class);
 
-    expect($resolver->catalogQuery()->pluck('id')->map(strval(...))->all())
+    expect(array_keys($resolver->catalogOptions()))
         ->toContain((string) $catalog->getKey(), (string) $institutionSpace->getKey())
         ->not->toContain((string) $venueSpace->getKey());
 
-    expect($resolver->institutionQuery((string) $institution->getKey())->pluck('id')->map(strval(...))->all())
+    expect(array_keys($resolver->institutionOptions((string) $institution->getKey())))
         ->toContain((string) $catalog->getKey(), (string) $institutionSpace->getKey())
         ->not->toContain((string) $otherInstitutionSpace->getKey(), (string) $venueSpace->getKey());
 
-    expect($resolver->venueQuery((string) $venue->getKey())->pluck('id')->map(strval(...))->all())
+    expect(array_keys($resolver->venueOptions((string) $venue->getKey())))
         ->toContain((string) $catalog->getKey(), (string) $venueSpace->getKey())
         ->not->toContain((string) $otherVenueSpace->getKey());
 
@@ -90,7 +89,7 @@ it('uses scoped slug uniqueness and stores venue ownership', function (): void {
     ]))->toThrow(ValidationException::class);
 });
 
-it('seeds taxonomy, propagates the type, and preserves historical space names', function (): void {
+it('uses seeded taxonomy and preserves space names on event locations', function (): void {
     (new VenueSpaceTypeSeeder)->run();
     (new VenueSpaceTypeSeeder)->run();
 
@@ -121,21 +120,6 @@ it('seeds taxonomy, propagates the type, and preserves historical space names', 
 
     expect(EventLocation::query()->where('event_id', $event->getKey())->value('space_name_snapshot'))
         ->toBe('Moved Hall');
-
-    $legacyEvent = Event::factory()->create();
-    EventLocation::create([
-        'event_id' => $legacyEvent->getKey(),
-        'location_role' => 'primary',
-        'venue_space_id' => $space->getKey(),
-        'visibility' => 'public',
-        'status' => 'active',
-        'sort_order' => 0,
-    ]);
-
-    (new SpaceSeeder)->run();
-
-    expect(EventLocation::query()->where('event_id', $legacyEvent->getKey())->value('space_name_snapshot'))
-        ->toBe('Renamed Hall');
 });
 
 it('rejects inactive taxonomy codes and institution links on venue-owned spaces', function (): void {

@@ -7,8 +7,12 @@ namespace App\Features\Events\Services;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\Event;
 use AIArmada\Ticketing\Enums\PricingMode;
+use App\Features\Events\Actions\Authoring\ApplyChangeAnnouncementMutationsAction;
 use App\Features\Events\Actions\Authoring\ApplyEventContributionAction;
 use App\Features\Events\Actions\Authoring\ConfigureEventAdmissionAction;
+use App\Features\Events\Actions\Authoring\CreateEventChangeAnnouncementAction;
+use App\Features\Events\Actions\Authoring\CreateEventShellAction;
+use App\Features\Events\Actions\Authoring\CreateInitialEventAccessPolicyAction;
 use App\Features\Events\Actions\Authoring\EnsureEventTaxonomyTermAction;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Features\Events\Actions\Authoring\PersistEventAuthoringAction;
@@ -25,7 +29,6 @@ use App\Features\Events\Api\EventScheduleInput;
 use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Events\OrganizerResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -36,11 +39,18 @@ use InvalidArgumentException;
  *
  * Root transports observe/controllers call this interface; the concrete
  * actions own all persistence.
+ *
+ * @phpstan-import-type EventShellAttributes from EventAuthoring
+ * @phpstan-import-type EventChangeAnnouncementAttributes from EventAuthoring
  */
 final readonly class EventAuthoringService implements EventAuthoring
 {
     public function __construct(
         private PersistEventAuthoringAction $persistEvent,
+        private CreateEventShellAction $createEventShellAction,
+        private CreateInitialEventAccessPolicyAction $createInitialEventAccessPolicyAction,
+        private ApplyChangeAnnouncementMutationsAction $applyChangeAnnouncementMutationsAction,
+        private CreateEventChangeAnnouncementAction $createEventChangeAnnouncementAction,
         private GenerateEventSlugAction $generateEventSlug,
         private SyncEventClassificationsAction $syncClassifications,
         private SyncEventKeyPeopleAction $syncKeyPeople,
@@ -58,6 +68,32 @@ final readonly class EventAuthoringService implements EventAuthoring
     public function saveAdminEvent(array $data, ?string $eventId = null): AdminEventSaveResult
     {
         return $this->persistEvent->handle($data, $eventId);
+    }
+
+    /**
+     * @param  EventShellAttributes  $attributes
+     */
+    public function createEventShell(array $attributes): string
+    {
+        return $this->createEventShellAction->handle($attributes);
+    }
+
+    public function createInitialAccessPolicy(string $eventId, bool $registrationRequired): void
+    {
+        $this->createInitialEventAccessPolicyAction->handle($eventId, $registrationRequired);
+    }
+
+    public function applyChangeAnnouncementMutations(string $eventId, string $type, array $changes): array
+    {
+        return $this->applyChangeAnnouncementMutationsAction->handle($eventId, $type, $changes);
+    }
+
+    /**
+     * @param  EventChangeAnnouncementAttributes  $attributes
+     */
+    public function createChangeAnnouncement(array $attributes): string
+    {
+        return $this->createEventChangeAnnouncementAction->handle($attributes);
     }
 
     public function applyContributionUpdate(string $eventId, array $state): array
@@ -119,11 +155,12 @@ final readonly class EventAuthoringService implements EventAuthoring
         return $this->generateEventSlug->personSlugSegmentsForPersonIds($personIds);
     }
 
-    public function personSlugSegmentsForState(array $personIds, ?string $organizerId): array
+    public function personSlugSegmentsForState(array $personIds, ?string $organizerKind, ?string $organizerId): array
     {
         return $this->generateEventSlug->personSlugSegmentsForState(
             $personIds,
-            $organizerId !== null ? OrganizerResolver::find($organizerId) : null,
+            $organizerKind,
+            $organizerId,
         );
     }
 
@@ -178,7 +215,8 @@ final readonly class EventAuthoringService implements EventAuthoring
     public function syncOccurrenceOrganizer(string $occurrenceId, string $organizerId): void
     {
         $occurrence = EventModel::query('event_occurrence')->withoutOwnerScope()->findOrFail($occurrenceId);
-        $organizer = OrganizerResolver::find($organizerId);
+        $organizer = EventModel::query('institution')->find($organizerId)
+            ?? EventModel::query('person')->find($organizerId);
 
         if ($organizer === null) {
             return;

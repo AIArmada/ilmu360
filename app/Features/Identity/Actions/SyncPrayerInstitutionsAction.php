@@ -15,15 +15,15 @@ use Illuminate\Support\Facades\DB;
  */
 final class SyncPrayerInstitutionsAction
 {
+    private const USER_PRAYER_INSTITUTIONS_TABLE = 'user_prayer_institutions';
+
     /**
      * @param  list<string>  $institutionIds
      */
     public function handle(string $accountId, PrayerType $prayerType, array $institutionIds): void
     {
         DB::transaction(function () use ($accountId, $prayerType, $institutionIds): void {
-            $table = DB::table('user_prayer_institutions');
-
-            $currentIds = $table
+            $currentIds = DB::table(self::USER_PRAYER_INSTITUTIONS_TABLE)
                 ->where('user_id', $accountId)
                 ->where('prayer_type', $prayerType->value)
                 ->pluck('institution_id')
@@ -33,7 +33,7 @@ final class SyncPrayerInstitutionsAction
             $detachedIds = array_values(array_diff($currentIds, $institutionIds));
 
             if ($detachedIds !== []) {
-                $table
+                DB::table(self::USER_PRAYER_INSTITUTIONS_TABLE)
                     ->where('user_id', $accountId)
                     ->where('prayer_type', $prayerType->value)
                     ->whereIn('institution_id', $detachedIds)
@@ -48,7 +48,7 @@ final class SyncPrayerInstitutionsAction
 
             $now = now();
 
-            $table->insertOrIgnore(array_map(
+            DB::table(self::USER_PRAYER_INSTITUTIONS_TABLE)->insertOrIgnore(array_map(
                 static fn (string $institutionId): array => [
                     'user_id' => $accountId,
                     'institution_id' => $institutionId,

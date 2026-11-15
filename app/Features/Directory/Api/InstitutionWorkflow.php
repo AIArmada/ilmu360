@@ -7,7 +7,7 @@ namespace App\Features\Directory\Api;
 /**
  * Institution contribution and lifecycle workflow boundary.
  *
- * Contributions, Events and legacy submission adapters call this instead of
+ * Contributions, Events and submission actions call this instead of
  * mutating institution rows directly.
  */
 interface InstitutionWorkflow

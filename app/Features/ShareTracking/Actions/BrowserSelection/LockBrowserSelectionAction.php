@@ -47,10 +47,10 @@ final readonly class LockBrowserSelectionAction implements BrowserSelectionWrite
             return;
         }
 
-        $selection->forceFill([
+        ShareTrackingModel::query('share_browser_selection')->whereKey($selection->getKey())->update([
             'current_attribution_id' => $attributionId,
             'accepted_at' => now(),
-        ])->save();
+        ]);
     }
 
     public function clear(?string $selectionId = null, ?string $browserKey = null): void
@@ -58,16 +58,16 @@ final readonly class LockBrowserSelectionAction implements BrowserSelectionWrite
         $selection = $selectionId !== null ? $this->selectionById($selectionId, lock: false) : null;
 
         if (! $selection instanceof Model && is_string($browserKey) && $browserKey !== '') {
-            $selection = ShareTrackingModel::browserSelectionQuery()
+            $selection = ShareTrackingModel::query('share_browser_selection')
                 ->where('browser_key', $browserKey)
                 ->first();
         }
 
         if ($selection instanceof Model) {
-            $selection->forceFill([
+            ShareTrackingModel::query('share_browser_selection')->whereKey($selection->getKey())->update([
                 'current_attribution_id' => null,
                 'accepted_at' => null,
-            ])->save();
+            ]);
         }
     }
 
@@ -80,7 +80,7 @@ final readonly class LockBrowserSelectionAction implements BrowserSelectionWrite
         }
 
         try {
-            return DB::transaction(static fn (): Model => ShareTrackingModel::browserSelectionQuery()->create([
+            return DB::transaction(static fn (): Model => ShareTrackingModel::query('share_browser_selection')->create([
                 'browser_key' => $browserKey,
                 'current_attribution_id' => null,
                 'accepted_at' => null,
@@ -90,7 +90,7 @@ final readonly class LockBrowserSelectionAction implements BrowserSelectionWrite
                 throw $exception;
             }
 
-            return ShareTrackingModel::browserSelectionQuery()
+            return ShareTrackingModel::query('share_browser_selection')
                 ->where('browser_key', $browserKey)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -99,7 +99,7 @@ final readonly class LockBrowserSelectionAction implements BrowserSelectionWrite
 
     private function lockExistingSelection(string $browserKey): ?Model
     {
-        return ShareTrackingModel::browserSelectionQuery()
+        return ShareTrackingModel::query('share_browser_selection')
             ->where('browser_key', $browserKey)
             ->lockForUpdate()
             ->first();
@@ -107,7 +107,7 @@ final readonly class LockBrowserSelectionAction implements BrowserSelectionWrite
 
     private function selectionById(string $selectionId, bool $lock): ?Model
     {
-        $query = ShareTrackingModel::browserSelectionQuery()->whereKey($selectionId);
+        $query = ShareTrackingModel::query('share_browser_selection')->whereKey($selectionId);
 
         if ($lock) {
             $query->lockForUpdate();

@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
-use App\Models\MembershipApplication;
+use App\Features\Membership\Api\MembershipApplications;
 use App\Models\User;
-use App\Support\Api\Admin\AdminResourceRegistry;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
-use App\Support\Membership\MembershipApplicationPresenter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -28,9 +25,7 @@ class AdminGetMembershipApplicationReviewSchemaTool extends AbstractAdminTool
     #[\Override]
     protected string $description = 'Use this when you need the review schema for a membership application before submitting an approve or reject decision. Returns available actions, required fields, and conditional rules.';
 
-    public function __construct(
-        private readonly AdminResourceRegistry $registry,
-    ) {}
+    public function __construct(private readonly MembershipApplications $membershipApplications) {}
 
     public function handle(Request $request): ResponseFactory|Response
     {
@@ -41,8 +36,8 @@ class AdminGetMembershipApplicationReviewSchemaTool extends AbstractAdminTool
                 'record_key' => ['required', 'string'],
             ]);
 
-            /** @var MembershipApplication $application */
-            $application = $this->registry->resolveRecord(MembershipApplicationResource::class, (string) $validated['record_key']);
+            $application = $this->membershipApplications->find((string) $validated['record_key']);
+            abort_unless($application !== null, 404);
 
             return [
                 'data' => [
@@ -65,7 +60,7 @@ class AdminGetMembershipApplicationReviewSchemaTool extends AbstractAdminTool
                                 'name' => 'granted_role',
                                 'type' => 'string',
                                 'required' => false,
-                                'allowed_values' => array_keys(MembershipApplicationPresenter::approvalRoleOptions($application)),
+                                'allowed_values' => array_keys($this->membershipApplications->reviewRoleOptions()),
                             ],
                             [
                                 'name' => 'reviewer_note',

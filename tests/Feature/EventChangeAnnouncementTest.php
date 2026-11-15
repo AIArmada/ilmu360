@@ -4,7 +4,6 @@ use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Actions\Events\Changes\PublishEventChangeAnnouncementAction;
 use App\Enums\EventChangeSeverity;
-use App\Shared\Events\Enums\EventChangeType;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Models\Event;
@@ -12,8 +11,11 @@ use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Registration;
+use App\Models\Space;
 use App\Models\User;
+use App\Models\Venue;
 use App\Services\Notifications\EventNotificationService;
+use App\Shared\Events\Enums\EventChangeType;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Database\Factories\EventKeyPersonFactory;
@@ -22,6 +24,7 @@ use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -55,6 +58,8 @@ it('publishes cancellation announcements and notifies committed users only once'
     $event->refresh();
 
     expect((string) $event->status)->toBe('cancelled')
+        ->and($event->cancelled_at)->not->toBeNull()
+        ->and($event->last_state_change_at)->not->toBeNull()
         ->and($announcement->published_at)->not->toBeNull()
         ->and(data_get($announcement->metadata, 'status'))->toBeNull()
         ->and($announcement->severity)->toBe(EventChangeSeverity::Urgent)
@@ -77,6 +82,148 @@ it('publishes cancellation announcements and notifies committed users only once'
         ->where('recipient_type', $follower->getMorphClass())
         ->get()
         ->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['meta']['fingerprint'] ?? null) === 'event-change:'.$announcement->id))->toBeFalse();
+});
+
+it('publishes repeat cancellation notices without reapplying occurrence transitions', function () {
+    $administrator = eventChangeAdministrator();
+    $event = eventChangeApprovedEvent(['title' => 'Kuliah Dibatalkan']);
+
+    app(PublishEventChangeAnnouncementAction::class)->handle(
+        event: $event,
+        actor: $administrator,
+        type: EventChangeType::Cancelled,
+        publicMessage: 'Majlis ini dibatalkan oleh pihak penganjur.',
+        notify: false,
+    );
+
+    $event->refresh();
+    $occurrence = $event->primaryOccurrence;
+    $cancelledAt = $event->cancelled_at?->toIso8601String();
+    $lastStateChangeAt = $event->last_state_change_at?->toIso8601String();
+    $occurrenceUpdatedAt = $occurrence?->updated_at?->toIso8601String();
+
+    $this->travelTo(now()->addMinute());
+
+    $repeatAnnouncement = app(PublishEventChangeAnnouncementAction::class)->handle(
+        event: $event,
+        actor: $administrator,
+        type: EventChangeType::Cancelled,
+        publicMessage: 'Majlis ini dibatalkan oleh pihak penganjur. Maklumat lanjut menyusul.',
+        notify: false,
+    );
+
+    $freshEvent = $event->fresh();
+    $freshOccurrence = $occurrence?->fresh();
+    $this->travelBack();
+
+    expect((string) $freshEvent->status)->toBe('cancelled')
+        ->and($freshEvent->cancelled_at?->toIso8601String())->toBe($cancelledAt)
+        ->and($freshEvent->last_state_change_at?->toIso8601String())->toBe($lastStateChangeAt)
+        ->and((string) $freshOccurrence?->status)->toBe('cancelled')
+        ->and($freshOccurrence?->updated_at?->toIso8601String())->toBe($occurrenceUpdatedAt)
+        ->and($repeatAnnouncement->exists)->toBeTrue()
+        ->and(EventChangeAnnouncement::query()
+            ->where('event_id', $event->getKey())
+            ->where('update_type', EventChangeType::Cancelled->value)
+            ->count())->toBe(2);
+});
+
+it('applies venue and space changes through the event location boundary', function () {
+    $administrator = eventChangeAdministrator();
+    $originalInstitution = Institution::factory()->create();
+    $event = eventChangeApprovedEvent(['institution_id' => (string) $originalInstitution->getKey()]);
+    $venue = Venue::factory()->create();
+    $space = Space::factory()->create();
+
+    $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
+        event: $event,
+        actor: $administrator,
+        type: EventChangeType::LocationChanged,
+        publicMessage: 'The event location changed.',
+        changes: [
+            'venue_id' => (string) $venue->getKey(),
+            'space_ids' => [(string) $space->getKey()],
+        ],
+        notify: false,
+    );
+
+    $event->refresh();
+    $primaryLocation = $event->primaryLocation;
+
+    expect($event->institution_id)->toBeNull()
+        ->and($event->default_venue_id)->toBe((string) $venue->getKey())
+        ->and($primaryLocation?->venue_id)->toBe((string) $venue->getKey())
+        ->and($primaryLocation?->venue_space_id)->toBe((string) $space->getKey())
+        ->and(data_get($announcement->metadata, 'changed_fields'))->toContain('institution_id', 'venue_id', 'space_ids');
+
+    $newInstitution = Institution::factory()->create();
+
+    $institutionAnnouncement = app(PublishEventChangeAnnouncementAction::class)->handle(
+        event: $event,
+        actor: $administrator,
+        type: EventChangeType::LocationChanged,
+        publicMessage: 'The event moved back to an institution location.',
+        changes: [
+            'institution_id' => (string) $newInstitution->getKey(),
+            'space_ids' => [],
+        ],
+        notify: false,
+    );
+
+    $event->refresh();
+
+    expect($event->institution_id)->toBe((string) $newInstitution->getKey())
+        ->and($event->default_venue_id)->toBeNull()
+        ->and($event->primaryLocation)->toBeNull()
+        ->and(data_get($institutionAnnouncement->metadata, 'changed_fields'))->toContain('institution_id', 'venue_id', 'space_ids');
+});
+
+it('rejects invalid venue and space selections in change announcements', function () {
+    $administrator = eventChangeAdministrator();
+    $event = eventChangeApprovedEvent();
+    $targetVenue = Venue::factory()->create();
+    $otherVenue = Venue::factory()->create();
+    $foreignSpace = Space::factory()->create(['venue_id' => $otherVenue->getKey()]);
+    $existingLocationIds = $event->locations()->pluck('id')->all();
+
+    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+        event: $event,
+        actor: $administrator,
+        type: EventChangeType::LocationChanged,
+        publicMessage: 'The event location changed.',
+        changes: [
+            'venue_id' => (string) Str::uuid(),
+            'space_ids' => [],
+        ],
+        notify: false,
+    ))->toThrow(ValidationException::class);
+
+    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+        event: $event,
+        actor: $administrator,
+        type: EventChangeType::LocationChanged,
+        publicMessage: 'The event location changed.',
+        changes: [
+            'venue_id' => (string) $targetVenue->getKey(),
+            'space_ids' => [(string) $foreignSpace->getKey()],
+        ],
+        notify: false,
+    ))->toThrow(ValidationException::class);
+
+    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+        event: $event,
+        actor: $administrator,
+        type: EventChangeType::LocationChanged,
+        publicMessage: 'The event location changed.',
+        changes: ['space_ids' => [123]],
+        notify: false,
+    ))->toThrow(ValidationException::class);
+
+    expect(EventChangeAnnouncement::query()->where('event_id', $event->getKey())->exists())->toBeFalse()
+        ->and($event->fresh()->institution_id)->toBe($event->institution_id)
+        ->and($event->fresh()->default_venue_id)->toBeNull();
+
+    expect($event->fresh()->locations()->pluck('id')->all())->toBe($existingLocationIds);
 });
 
 it('keeps ordinary edits out of the change announcement workflow', function () {
@@ -624,7 +771,11 @@ it('marks schedule changes into the next 24 hours as urgent', function () {
             notify: false,
         );
 
-        expect($announcement->severity)->toBe(EventChangeSeverity::Urgent);
+        $event->refresh();
+
+        expect($announcement->severity)->toBe(EventChangeSeverity::Urgent)
+            ->and($event->primaryOccurrence?->starts_at?->equalTo($now->copy()->addHours(12)))->toBeTrue()
+            ->and($event->primaryOccurrence?->ends_at?->equalTo($now->copy()->addHours(14)))->toBeTrue();
     } finally {
         Carbon::setTestNow();
         CarbonImmutable::setTestNow();

@@ -47,7 +47,7 @@ Core architecture style is modular monolith:
 - Spatie Eloquent Sortable
 - Spatie Deleted Models (instead of SoftDeletes)
 - Owen-it Laravel Auditing
-- `aiarmada/addressing` (UUID geography: country / state / city / admin_area_1 (district) / admin_area_2 (subdistrict))
+- `aiarmada/addressing` (UUID country / state / city relations plus role-keyed administrative and postal area assignments)
 - `aiarmada/contacting`, `aiarmada/engagement`, `aiarmada/events`, `aiarmada/membership`, `aiarmada/moderation`, `aiarmada/references`, `aiarmada/signals`, `aiarmada/ticketing`, `aiarmada/inventory`, `aiarmada/seating`, `aiarmada/authz`, `aiarmada/commerce-support`, `aiarmada/affiliates`, `aiarmada/communications`
 
 ### 2.4 Developer Tooling
@@ -199,7 +199,7 @@ Use the parity docs test (`tests/Unit/CrudComparisonDocsTest.php`) as the canoni
 
 ## 8.2 Typesense schema and settings
 - `config/scout.php`
-- Event collection schema includes filtering facets (`state_id`, `city_id`, `admin_area_1_id`, `admin_area_2_id`, language, status, visibility, topic/speaker) and geopoint.
+- Event collection schema includes country/state/city filters, configured address-area role facets, language, status, visibility, topic/speaker, and geopoint.
 
 ## 8.3 Geo and filter support
 Search supports:
@@ -345,7 +345,7 @@ Project-level conventions used in this codebase:
 - Foreign keys use UUID columns without DB-level FK constraints/cascades.
 - SoftDeletes are not used; deleted-model tracking uses Spatie deleted models.
 - Integrity and cascade behavior are handled in application logic.
-- Geography is UUID end-to-end via `aiarmada/addressing`: `country_id`, `state_id`, `city_id`, `admin_area_1_id` (district), `admin_area_2_id` (subdistrict). There are no integer geography tables and no `district_id` / `subdistrict_id` aliases.
+- Geography is UUID end-to-end via `aiarmada/addressing`: `addresses.country_id`, `addresses.state_id`, and optional `addresses.city_id`; administrative and postal areas are stored as `address_area_assignments` keyed by configured role. No fixed admin-area columns or integer geography identifiers are used.
 
 Recent schema change to note:
 - `speakers.bio` now uses `jsonb` and is edited via rich editor JSON content.

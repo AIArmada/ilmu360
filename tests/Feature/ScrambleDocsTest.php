@@ -372,7 +372,7 @@ it('publishes named response schemas for directory search and form contracts', f
             'MembershipApplicationFormResponse',
             'ContributionSuggestContextResponse',
         ])
-        ->and($searchParameters)->toContain('search', 'q')
+        ->and($searchParameters)->toContain('search')->not->toContain('q')
         ->and(data_get($paths, '/search.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/SearchIndexResponse')
         ->and(data_get($paths, '/manifest.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/PublicManifestResponse')
         ->and(data_get($paths, '/forms/mobile-telemetry.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/MobileTelemetryFormResponse')
@@ -708,7 +708,7 @@ it('summarizes workflow endpoints for clients and agents', function () {
         ->and($paths['/admin/{resourceKey}/{recordKey}']['put']['summary'] ?? null)->toBe('Update an admin resource record')
         ->and($paths['/admin/{resourceKey}/{recordKey}']['put']['description'] ?? null)->toContain('schema?operation=update&recordKey={recordKey}')
         ->and($paths['/catalogs/countries']['get']['summary'] ?? null)->toBe('List public countries catalog')
-        ->and($paths['/catalogs/membership-application-subjects/{subjectType}']['get']['summary'] ?? null)->toBe('List membership-claim subjects')
+        ->and($paths['/catalogs/membership-application-subjects/{subjectType}']['get']['summary'] ?? null)->toBe('List membership-application subjects')
         ->and($paths['/catalogs/spaces']['get']['description'] ?? null)->toContain('global space options when no `institution_id` is selected')
         ->and($paths['/me/events/going']['get']['summary'] ?? null)->toBe('List going events')
         ->and($paths['/me/events/saved']['get']['summary'] ?? null)->toBe('List saved events')

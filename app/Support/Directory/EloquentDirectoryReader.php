@@ -23,15 +23,13 @@ use App\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\DirectoryOption;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Support\Api\Frontend\FrontendCatalogService;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Interim Directory reader over the current Eloquent models.
- *
- * Directory owns these reads once its models move; this adapter keeps current
- * title, slug, URL and media behavior while exposing immutable values only.
+ * Database-backed implementation of Directory's immutable read contract.
  */
 final readonly class EloquentDirectoryReader implements DirectoryReader
 {
@@ -42,7 +40,20 @@ final readonly class EloquentDirectoryReader implements DirectoryReader
 
     public function exists(DirectoryRecordType $type, string $identifier): bool
     {
-        return $this->find($type, $identifier) instanceof DirectoryDetail;
+        return $this->resolveIdentifier($type, $identifier) !== null;
+    }
+
+    public function resolveIdentifier(DirectoryRecordType $type, string $identifier): ?string
+    {
+        $identifier = trim($identifier);
+
+        if ($identifier === '') {
+            return null;
+        }
+
+        $model = $this->query($type, $identifier);
+
+        return $model instanceof Model ? (string) $model->getKey() : null;
     }
 
     public function find(DirectoryRecordType $type, string $identifier): ?DirectoryDetail
@@ -84,6 +95,65 @@ final readonly class EloquentDirectoryReader implements DirectoryReader
         );
     }
 
+    public function searchPrayerInstitutions(string $search, int $limit = 50): array
+    {
+        $query = Institution::query()
+            ->where('institutions.status', InstitutionStatus::Verified->value);
+        $search = trim($search);
+
+        if ($search !== '') {
+            $query->searchNameOrNickname($search);
+        }
+
+        return $query
+            ->orderBy('name')
+            ->limit(max(1, $limit))
+            ->with('names')
+            ->get(['id', 'name'])
+            ->map(static fn (Institution $institution): DirectoryOption => new DirectoryOption(
+                id: (string) $institution->id,
+                label: $institution->display_name,
+            ))
+            ->all();
+    }
+
+    public function prayerInstitutionLabels(array $institutionIds): array
+    {
+        if ($institutionIds === []) {
+            return [];
+        }
+
+        $labels = Institution::query()
+            ->whereKey($institutionIds)
+            ->with('names')
+            ->get(['id', 'name'])
+            ->mapWithKeys(static fn (Institution $institution): array => [
+                (string) $institution->id => $institution->display_name,
+            ])
+            ->all();
+
+        foreach ($institutionIds as $institutionId) {
+            $labels[$institutionId] ??= $institutionId;
+        }
+
+        return $labels;
+    }
+
+    public function selectablePrayerInstitutionIds(array $institutionIds): array
+    {
+        if ($institutionIds === []) {
+            return [];
+        }
+
+        return Institution::query()
+            ->where('institutions.status', InstitutionStatus::Verified->value)
+            ->whereKey($institutionIds)
+            ->pluck('institutions.id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
+    }
+
     private function query(DirectoryRecordType $type, string $identifier): ?Model
     {
         /** @var class-string<Model> $modelClass */
@@ -110,6 +180,9 @@ final readonly class EloquentDirectoryReader implements DirectoryReader
             publicUrl: $this->publicUrl($type, $model),
             adminUrl: $this->adminUrl($type, $model),
             imageUrl: $this->imageUrl($type, $model),
+            institutionType: $type === DirectoryRecordType::Institution
+                ? $this->stringValue($model->getAttribute('type'))
+                : null,
         );
     }
 
@@ -166,6 +239,15 @@ final readonly class EloquentDirectoryReader implements DirectoryReader
         }
 
         return filled($status) ? (string) $status : null;
+    }
+
+    private function stringValue(mixed $value): ?string
+    {
+        if ($value instanceof BackedEnum) {
+            return (string) $value->value;
+        }
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     private function publicUrl(DirectoryRecordType $type, Model $model): ?string

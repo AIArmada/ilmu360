@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Platform\Http\FrontendController;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Addressing\Support\AddressLocationScope;
@@ -19,6 +18,7 @@ use App\Data\Api\Frontend\Search\ReferenceDetailData;
 use App\Data\Api\Frontend\Search\ReferenceListData;
 use App\Data\Api\Frontend\Search\SeriesDetailData;
 use App\Data\Api\Frontend\Search\VenueDetailData;
+use App\Features\Directory\Api\PublicDirectoryCacheVersions;
 use App\Features\Directory\Api\ReferenceQueries;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -31,7 +31,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Api\ApiPagination;
 use App\Platform\Api\Search\SearchRequestNormalizer;
-use App\Platform\Cache\PublicDirectoryCacheVersion;
+use App\Platform\Http\FrontendController;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Platform\Search\PublicDiscovery;
 use App\Services\EventSearchService;
@@ -139,7 +139,7 @@ class SearchController extends FrontendController
         private readonly InstitutionSearchService $institutionSearchService,
         private readonly ReferenceSearchService $referenceSearchService,
         private readonly PersonSearchService $personSearchService,
-        private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
+        private readonly PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
         private readonly SearchRequestNormalizer $searchRequestNormalizer,
         private readonly SearchPayloadTransformer $searchPayloadTransformer,
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
@@ -154,12 +154,10 @@ class SearchController extends FrontendController
         description: 'Returns a compact public search payload for events, persons, and institutions using the same visibility rules as the client surface.',
     )]
     #[QueryParameter('search', 'Optional free-text search query across public events, persons, and institutions.', required: false, type: 'string', infer: false, example: 'Kuliah')]
-    #[QueryParameter('q', 'Alias for `search`, accepted for clients that use common search-query naming.', required: false, type: 'string', infer: false, example: 'Kuliah')]
     public function search(Request $request): JsonResponse
     {
         $user = $this->currentUser($request);
-        $search = $this->searchRequestNormalizer->normalizedString($request->query('search'))
-            ?? $this->searchRequestNormalizer->normalizedString($request->query('q'));
+        $search = $this->searchRequestNormalizer->normalizedString($request->query('search'));
         $coordinates = $this->searchRequestNormalizer->resolvedNearbyCoordinates($request);
         $lat = $coordinates['lat'];
         $lng = $coordinates['lng'];
@@ -1236,7 +1234,7 @@ class SearchController extends FrontendController
      */
     private function institutionDirectoryCacheData(): array
     {
-        return $this->publicDirectoryCacheVersion->institution();
+        return $this->publicDirectoryCacheVersions->institution();
     }
 
     /**
@@ -1244,7 +1242,7 @@ class SearchController extends FrontendController
      */
     private function personDirectoryCacheData(): array
     {
-        return $this->publicDirectoryCacheVersion->person();
+        return $this->publicDirectoryCacheVersions->person();
     }
 
     /**

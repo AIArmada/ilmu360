@@ -3,12 +3,12 @@
 namespace App\Filament\Resources\Institutions\Pages;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
+use App\Models\InstitutionName;
 use App\Models\User;
 use App\Support\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\DeleteAction;
@@ -54,6 +54,15 @@ class EditInstitution extends EditRecord
     #[\Override]
     protected function mutateFormDataBeforeFill(array $data): array
     {
+        $data['names'] = $this->institutionRecord()->names()
+            ->get()
+            ->map(static fn (InstitutionName $name): array => [
+                'name_type' => $name->name_type->value,
+                'full_name' => $name->full_name,
+                'language_code' => $name->language_code,
+                'is_primary' => $name->is_primary,
+            ])
+            ->all();
         $data['address'] = $this->addressFormState($this->institutionRecord()->primaryAddress());
 
         return $data;
@@ -79,12 +88,26 @@ class EditInstitution extends EditRecord
             }
         }
 
-        return OwnerContext::withOwner(null, function () use ($data, $actor, $record): Institution {
+        $relationPayload = [];
+
+        if (array_key_exists('contactMethods', $data)) {
+            $relationPayload['contactMethods'] = $data['contactMethods'];
+            unset($data['contactMethods']);
+        }
+
+        if (array_key_exists('socialProfiles', $data)) {
+            $relationPayload['social_media'] = $data['socialProfiles'];
+            unset($data['socialProfiles']);
+        }
+
+        return OwnerContext::withOwner(null, function () use ($data, $actor, $record, $relationPayload): Institution {
             $institutionId = app(InstitutionWorkflow::class)->saveFromAdmin(
                 $data,
                 (string) $actor->getKey(),
                 (string) $record->getKey(),
             );
+
+            app(InstitutionWorkflow::class)->syncRelations($institutionId, $relationPayload);
 
             return Institution::query()->findOrFail($institutionId);
         });
@@ -122,8 +145,7 @@ class EditInstitution extends EditRecord
      */
     private function addressFormState(?Address $address): array
     {
-        $countryId = SharedFormSchema::normalizeLocationId($address?->country_id)
-            ?? app(AddressCountryResolver::class)->resolveId($address?->country_code);
+        $countryId = SharedFormSchema::normalizeLocationId($address?->country_id);
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $countryId,

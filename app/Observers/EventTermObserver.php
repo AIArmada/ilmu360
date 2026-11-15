@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\Events\Models\EventTerm;
-use App\Platform\Cache\PublicListingsCache;
+use App\Services\PublicListingsCache;
 use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

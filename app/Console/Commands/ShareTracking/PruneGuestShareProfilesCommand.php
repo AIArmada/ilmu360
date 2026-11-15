@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\ShareTracking;
 
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Api\GuestProfilePruner;
 use App\Shared\ShareTracking\ShareTrackingRetention;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -14,11 +14,11 @@ use Illuminate\Console\Command;
 #[Description('Prune abandoned anonymous share profiles past retention, keeping claims, conversions, and published short links intact.')]
 class PruneGuestShareProfilesCommand extends Command
 {
-    public function handle(AffiliatesShareTrackingService $shareTrackingService): int
+    public function handle(GuestProfilePruner $guestProfilePruner): int
     {
         $days = (int) ($this->option('days') ?: config('share-tracking.guest_profile.retention_days', ShareTrackingRetention::GUEST_PROFILE_DAYS));
 
-        $result = $shareTrackingService->pruneAbandonedGuestProfiles(
+        $result = $guestProfilePruner->prune(
             retentionDays: $days,
             limit: (int) $this->option('limit'),
             dryRun: (bool) $this->option('dry-run'),

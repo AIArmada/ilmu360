@@ -24,7 +24,7 @@ parameters:
     treatPhpDocTypesAsCertain: false
 
     parallel:
-        maximumNumberOfProcesses: 8
+        maximumNumberOfProcesses: 4
 
     excludePaths:
         analyse:
@@ -55,5 +55,11 @@ services:
         class: Tools\PhpStan\MorphHelperReturnTypeExtension
         arguments:
             helperClass: App\Features\Contributions\Support\ContributionModel
+        tags:
+            - phpstan.broker.dynamicStaticMethodReturnTypeExtension
+    -
+        class: Tools\PhpStan\MorphHelperReturnTypeExtension
+        arguments:
+            helperClass: App\Features\Rewards\Support\RewardsModel
         tags:
             - phpstan.broker.dynamicStaticMethodReturnTypeExtension

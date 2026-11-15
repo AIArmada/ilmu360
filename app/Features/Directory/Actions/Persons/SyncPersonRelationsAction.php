@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\Persons;
 
 use AIArmada\Addressing\Models\Address;
+use App\Models\Person;
 use App\Platform\Directory\EntityRelationSync;
-use App\Shared\Directory\SyncsLanguages;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 /**
@@ -26,7 +25,7 @@ final readonly class SyncPersonRelationsAction
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function handle(Model $person, array $payload): void
+    public function handle(Person $person, array $payload): void
     {
         if (array_key_exists('names', $payload)) {
             $this->names->handle($person, $payload['names']);
@@ -34,8 +33,6 @@ final readonly class SyncPersonRelationsAction
 
         if (array_key_exists('institutions', $payload)) {
             $this->affiliations->handle($person, $payload['institutions']);
-        } elseif (array_key_exists('institution_id', $payload) || array_key_exists('institution_position', $payload)) {
-            $this->affiliations->syncSingle($person, $payload);
         }
 
         if (array_key_exists('title_ids', $payload)) {
@@ -64,12 +61,8 @@ final readonly class SyncPersonRelationsAction
                 is_iterable($payload['language_ids']) ? $payload['language_ids'] : [],
             );
 
-            if ($person instanceof SyncsLanguages) {
-                $person->syncLanguages($languageIds);
-            }
+            $person->syncLanguages($languageIds);
         }
-
-        $this->affiliations->syncSingle($person, $payload);
     }
 
     /**
@@ -78,48 +71,18 @@ final readonly class SyncPersonRelationsAction
      */
     private function personAddressPayload(array $payload): ?array
     {
-        if (array_key_exists('address', $payload)) {
-            return is_array($payload['address']) ? $payload['address'] : [];
-        }
-
-        $addressKeys = [
-            'country_id',
-            'country_code',
-            'country_key',
-            'area_assignments',
-            'line1',
-            'line2',
-            'postcode',
-            'latitude',
-            'longitude',
-            'google_maps_url',
-            'google_place_id',
-            'google_feature_id',
-            'google_cid',
-            'google_entity_id',
-            'waze_url',
-        ];
-
-        if (! collect($addressKeys)->contains(fn (string $key): bool => array_key_exists($key, $payload))) {
+        if (! array_key_exists('address', $payload)) {
             return null;
         }
 
-        $address = [];
-
-        foreach ($addressKeys as $key) {
-            if (array_key_exists($key, $payload)) {
-                $address[$key] = $payload[$key];
-            }
-        }
-
-        return $address;
+        return is_array($payload['address']) ? $payload['address'] : [];
     }
 
     /**
      * @param  array<string, mixed>  $addressPayload
      * @return array<string, mixed>
      */
-    private function preserveHiddenAddressFields(Model $person, array $addressPayload): array
+    private function preserveHiddenAddressFields(Person $person, array $addressPayload): array
     {
         $existingAddress = $this->primaryAddress($person);
 
@@ -148,7 +111,7 @@ final readonly class SyncPersonRelationsAction
         return $addressPayload;
     }
 
-    private function primaryAddress(Model $person): ?Address
+    private function primaryAddress(Person $person): ?Address
     {
         $person->loadMissing('addresses');
         $addresses = $person->getRelation('addresses');

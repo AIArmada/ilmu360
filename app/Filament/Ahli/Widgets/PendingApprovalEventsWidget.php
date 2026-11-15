@@ -114,10 +114,10 @@ class PendingApprovalEventsWidget extends TableWidget
                         ->where('is_primary', true)
                         ->where(function (Builder $q) use ($institutionIds, $personIds): void {
                             $q->where(function (Builder $instQuery) use ($institutionIds): void {
-                                $instQuery->whereIn('involveable_type', [Institution::class, 'institution'])
+                                $instQuery->where('involveable_type', (new Institution)->getMorphClass())
                                     ->whereIn('involveable_id', $institutionIds);
                             })->orWhere(function (Builder $spkQuery) use ($personIds): void {
-                                $spkQuery->whereIn('involveable_type', [Person::class, 'person'])
+                                $spkQuery->where('involveable_type', (new Person)->getMorphClass())
                                     ->whereIn('involveable_id', $personIds);
                             });
                         });

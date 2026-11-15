@@ -2,7 +2,6 @@
 
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitations;
@@ -24,6 +23,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Shared\Auth\AccountLifecycleContributor;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectCatalog;
@@ -217,6 +217,13 @@ it('writes membership pivots through the command boundary', function (): void {
     expect($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'editor'))->toBeFalse();
 });
 
+it('rejects bulk detachment of package-owned organization memberships', function (): void {
+    expect(fn () => app(MembershipCommands::class)->removeAllMembers(
+        MembershipSubjectType::Organization,
+        'organization-id',
+    ))->toThrow(InvalidArgumentException::class, 'Organization membership is owned by the Organizations package.');
+});
+
 it('reads applications and invitations through the feature query boundaries', function (): void {
     $applicant = User::factory()->create();
     $reviewer = User::factory()->create();
@@ -233,10 +240,13 @@ it('reads applications and invitations through the feature query boundaries', fu
     $applicantId = (string) $applicant->getKey();
     $applicationId = (string) $application->getKey();
 
-    expect($applications->forApplicant($applicantId)[0]->id ?? null)->toBe($applicationId)
-        ->and($applications->findForApplicant($applicantId, $applicationId)?->application->id)->toBe($applicationId)
-        ->and($applications->find($applicationId)?->reviewerId)->toBe((string) $reviewer->getKey())
-        ->and($applications->forSubject(MembershipSubjectType::Institution, (string) $institution->getKey()))->toHaveCount(1);
+    $applicantApplications = $applications->forApplicant($applicantId);
+
+    expect($applicantApplications[0]->application->id ?? null)->toBe($applicationId)
+        ->and($applicantApplications[0]->subjectTitle)->toBe($institution->name)
+        ->and($applicantApplications[0]->applicantPayload($applicantId)['can_cancel'])->toBeTrue()
+        ->and($applications->find($applicationId)?->reviewer?->id)->toBe((string) $reviewer->getKey())
+        ->and(array_keys($applications->reviewRoleOptions()))->toBe(['owner', 'admin', 'editor']);
 
     $inviter = User::factory()->create();
     $invitation = new MemberInvitation;

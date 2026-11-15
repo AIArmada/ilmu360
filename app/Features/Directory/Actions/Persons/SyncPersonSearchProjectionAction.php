@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\Persons;
 
-use App\Features\Directory\Persistence\PersonSearchCache;
+use App\Features\Directory\Persistence\PersonSearchCacheStore;
 use App\Features\Directory\Support\DirectoryModel;
 use App\Shared\Directory\PersonSearchText;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
 final readonly class SyncPersonSearchProjectionAction
 {
     public function __construct(
-        private PersonSearchCache $cache,
+        private PersonSearchCacheStore $cache,
     ) {}
 
     public function sync(Model $person, bool $bustCache = true): void
@@ -79,7 +79,7 @@ final readonly class SyncPersonSearchProjectionAction
 
     public function bustPublicSearchCache(): void
     {
-        $this->cache->bump();
+        $this->cache->bumpPublicSearchVersion();
     }
 
     private function syncTerms(Model $person): void

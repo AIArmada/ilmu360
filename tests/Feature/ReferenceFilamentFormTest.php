@@ -1,14 +1,14 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
-use App\Shared\Directory\Enums\ReferencePartType;
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Filament\Resources\References\Pages\CreateReference;
 use App\Filament\Resources\References\Pages\EditReference;
 use App\Forms\ReferenceFormSchema;
 use App\Models\Reference;
 use App\Models\User;
 use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Directory\Enums\ReferencePartType;
+use App\Shared\Directory\Enums\ReferenceType;
 use Database\Seeders\LanguageSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -53,6 +53,49 @@ it('persists a selected parent book through the direct Filament reference form',
         ->and($part->partTypeValue())->toBe(ReferencePartType::Jilid->value)
         ->and($part->partNumberValue())->toBe('2')
         ->and($part->year)->toBe(2024);
+});
+
+it('persists reference social profiles through Directory on create and edit', function (): void {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    Livewire::actingAs($administrator)
+        ->test(CreateReference::class)
+        ->fillForm([
+            'title' => 'Reference with Social Profiles',
+            'type' => ReferenceType::Book->value,
+            'record_kind' => 'work',
+            'status' => 'verified',
+            'socialProfiles' => [[
+                'platform' => 'facebook',
+                'label' => 'Original page',
+                'handle' => 'reference-original',
+            ]],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $reference = Reference::query()->where('title', 'Reference with Social Profiles')->firstOrFail();
+
+    expect($reference->socialProfiles()->where('platform', 'facebook')->value('label'))->toBe('Original page');
+
+    Livewire::actingAs($administrator)
+        ->test(EditReference::class, ['record' => $reference->getRouteKey()])
+        ->fillForm([
+            'socialProfiles' => [[
+                'platform' => 'youtube',
+                'label' => 'Updated channel',
+                'handle' => 'reference-updated',
+            ]],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($reference->fresh()->socialProfiles()->pluck('platform')->all())->toBe(['youtube'])
+        ->and($reference->fresh()->socialProfiles()->value('label'))->toBe('Updated channel');
 });
 
 it('persists edition bibliographic fields through the direct Filament reference form', function (): void {

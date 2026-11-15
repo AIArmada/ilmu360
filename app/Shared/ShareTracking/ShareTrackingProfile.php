@@ -69,7 +69,7 @@ final class ShareTrackingProfile
             && in_array($metadata[self::KIND_KEY] ?? null, [self::KIND_MEMBER, self::KIND_GUEST], true);
     }
 
-    public static function isMarkedMemberFor(?Affiliate $affiliate, User $user): bool
+    public static function isMarkedMemberForOwner(?Affiliate $affiliate, string $ownerType, string $ownerId): bool
     {
         if (! self::isMarked($affiliate)) {
             return false;
@@ -80,8 +80,8 @@ final class ShareTrackingProfile
 
         return is_array($metadata)
             && ($metadata[self::KIND_KEY] ?? null) === self::KIND_MEMBER
-            && $affiliate->owner_type === $user->getMorphClass()
-            && (string) $affiliate->owner_id === (string) $user->getKey();
+            && $affiliate->owner_type === $ownerType
+            && (string) $affiliate->owner_id === $ownerId;
     }
 
     public static function isMarkedGuest(?Affiliate $affiliate): bool

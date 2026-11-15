@@ -43,11 +43,7 @@ class ModerationReview extends ModerationAction implements Auditable
     {
         return $query
             ->where('actionable_id', $eventId)
-            ->where(function (Builder $typeQuery): void {
-                $typeQuery
-                    ->where('actionable_type', Event::class)
-                    ->orWhere('actionable_type', (new Event)->getMorphClass());
-            });
+            ->where('actionable_type', (new Event)->getMorphClass());
     }
 
     /**

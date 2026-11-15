@@ -6,6 +6,8 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Contracts\CaptchaVerifier;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventSubmissionInput;
+use App\Features\Events\Api\EventSubmissionOrganizerKind;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
@@ -18,7 +20,6 @@ use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
-use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerLocation;
 use App\Shared\Submission\EntitySubmissionAccess;
@@ -139,6 +140,8 @@ class SubmitFrontendEventAction
             ]);
         }
 
+        $organizerKind = $primaryOrganizer instanceof Institution ? 'institution' : 'person';
+
         [$targetInstitutionId, $targetVenueId] = $this->context->resolveTargetLocation($validated, $primaryOrganizer);
         $this->context->assertSpaceSelectionIsEligible($validated, $targetInstitutionId, $targetVenueId, $validationKeyPrefix);
 
@@ -182,27 +185,29 @@ class SubmitFrontendEventAction
         $autoApproved = $scopedInstitution instanceof Institution;
         $personSlugSegments = $this->authoring->personSlugSegmentsForState(
             is_array($validated['persons'] ?? null) ? $validated['persons'] : [],
+            $organizerKind,
             (string) $primaryOrganizer->getKey(),
         );
 
         $endsAt = $this->timing->resolveEndsAt($validated['end_time'] ?? null, $startsAt, $timezone, $validationKeyPrefix);
         $isSessionSubmission = $eventContainer instanceof Event;
-        $validatedSubmission = new ValidatedEventSubmission(
+        $submissionInput = new EventSubmissionInput(
             state: $validated,
-            startsAt: $startsAt,
-            endsAt: $endsAt,
+            startsAt: $startsAt->toIso8601String(),
+            endsAt: $endsAt?->toIso8601String(),
             timezone: $timezone,
-            primaryOrganizer: $primaryOrganizer,
+            primaryOrganizerKind: EventSubmissionOrganizerKind::from($organizerKind),
+            primaryOrganizerId: (string) $primaryOrganizer->getKey(),
             targetInstitutionId: $targetInstitutionId,
             targetVenueId: $targetVenueId,
-            prayerTime: $prayerTime,
+            prayerTime: $prayerTime->value,
             prayerReference: $prayerReference,
             prayerOffset: $prayerOffset?->minutes(),
             prayerDisplayText: $prayerDisplayText,
             autoApproved: $autoApproved,
             sessionSubmission: $isSessionSubmission,
-            submitter: $submitter,
-            eventContainer: $eventContainer,
+            submitterId: $submitter instanceof User ? (string) $submitter->getKey() : null,
+            eventContainerId: $eventContainer instanceof Event ? (string) $eventContainer->getKey() : null,
             personSlugSegments: $personSlugSegments,
             occurrenceId: $occurrenceId,
             validationKeyPrefix: $validationKeyPrefix,
@@ -215,7 +220,7 @@ class SubmitFrontendEventAction
         );
 
         $persisted = DB::transaction(function () use (
-            $validatedSubmission,
+            $submissionInput,
             $persistRelationships,
             $validated,
             $request,
@@ -224,15 +229,11 @@ class SubmitFrontendEventAction
             $autoApproved,
         ): array {
             $mediaSubject = null;
-            $persistMedia = $persistRelationships === null ? null : function (HasMedia $subject) use ($persistRelationships, &$mediaSubject): void {
-                $mediaSubject = $subject;
-                $persistRelationships($subject);
-            };
 
             try {
                 $persisted = $isSessionSubmission
-                    ? $this->submissions->persistSession($validatedSubmission, $persistMedia)
-                    : $this->submissions->persistNew($validatedSubmission, $persistMedia);
+                    ? $this->submissions->persistSession($submissionInput)
+                    : $this->submissions->persistNew($submissionInput);
 
                 $submissionId = $persisted['submission_id'];
 
@@ -250,6 +251,16 @@ class SubmitFrontendEventAction
                 $session = is_string($persisted['session_id'])
                     ? EventSession::query()->find($persisted['session_id'])
                     : null;
+
+                if ($persistRelationships !== null) {
+                    $mediaSubject = $session instanceof EventSession ? $session : $occurrence;
+
+                    if (! $mediaSubject instanceof HasMedia) {
+                        throw new \RuntimeException('The persisted event submission target must support media relationships.');
+                    }
+
+                    $persistRelationships($mediaSubject);
+                }
 
                 $this->completeSubmission->handle(
                     event: $event,

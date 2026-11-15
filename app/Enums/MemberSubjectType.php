@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use AIArmada\Organizations\Models\Organization;
+use App\Features\Membership\Api\MembershipApplicationSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -31,51 +32,33 @@ enum MemberSubjectType: string
     public function publicRouteSegment(): string
     {
         return match ($this) {
-            self::Institution => 'institusi',
-            self::Person => 'penceramah',
+            self::Institution => MembershipApplicationSubjectType::Institution->publicRouteSegment(),
+            self::Person => MembershipApplicationSubjectType::Person->publicRouteSegment(),
             self::Event => 'majlis',
             self::Reference => 'rujukan',
             self::Organization => 'organisasi',
         };
     }
 
-    public static function fromRouteSegment(string $routeSegment): ?self
+    public static function fromPublicRouteSegment(string $routeSegment): ?self
     {
+        $membershipSubjectType = MembershipApplicationSubjectType::fromPublicRouteSegment($routeSegment);
+
+        if ($membershipSubjectType instanceof MembershipApplicationSubjectType) {
+            return self::from($membershipSubjectType->value);
+        }
+
         return match ($routeSegment) {
-            'institution', 'institusi' => self::Institution,
-            'person', 'penceramah' => self::Person,
-            'event', 'majlis' => self::Event,
-            'reference', 'rujukan' => self::Reference,
-            'organization', 'organisasi' => self::Organization,
+            'majlis' => self::Event,
+            'rujukan' => self::Reference,
+            'organisasi' => self::Organization,
             default => null,
         };
     }
 
-    public function isClaimable(): bool
+    public function supportsMembershipApplication(): bool
     {
-        return in_array($this, self::claimableCases(), true);
-    }
-
-    /**
-     * @return list<self>
-     */
-    public static function claimableCases(): array
-    {
-        return [
-            self::Institution,
-            self::Person,
-        ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    public static function claimableRouteSegments(): array
-    {
-        return array_map(
-            static fn (self $subjectType): string => $subjectType->publicRouteSegment(),
-            self::claimableCases(),
-        );
+        return MembershipApplicationSubjectType::tryFrom($this->value) instanceof MembershipApplicationSubjectType;
     }
 
     public function modelClass(): string

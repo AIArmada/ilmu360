@@ -1,12 +1,15 @@
 <?php
 
+use App\Features\Directory\Api\PublicDirectoryStats;
+use App\Features\Events\Api\EventHomepageStats;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\Reference;
 use App\Models\Venue;
-use App\Platform\Cache\PublicListingsCache;
+use App\Services\PublicListingsCache;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -82,6 +85,30 @@ function assertHomepageStatsCacheWasCleared(array $keys): void
             ->toBeFalse("Expected cache key [{$key}] to be cleared.");
     }
 }
+
+it('reads homepage counts through their feature-owned caches', function (): void {
+    Event::factory()->create([
+        'status' => 'approved',
+        'starts_at' => now()->addDays(7),
+    ]);
+    Person::factory()->create(['status' => 'verified']);
+    Institution::factory()->create(['status' => 'verified']);
+    Reference::factory()->create(['status' => 'verified', 'parent_id' => null]);
+
+    $eventCount = Event::active()->count('id');
+    $personCount = Person::active()->count('id');
+    $institutionCount = Institution::active()->count('id');
+    $referenceCount = Reference::active()->root()->count('id');
+
+    expect(app(EventHomepageStats::class)->activeEventCount())->toBe($eventCount)
+        ->and(app(PublicDirectoryStats::class)->activePersonCount())->toBe($personCount)
+        ->and(app(PublicDirectoryStats::class)->activeInstitutionCount())->toBe($institutionCount)
+        ->and(app(PublicDirectoryStats::class)->rootReferenceCount())->toBe($referenceCount)
+        ->and(Cache::has('home.stats.events.active'))->toBeTrue()
+        ->and(Cache::has('home.stats.persons.active'))->toBeTrue()
+        ->and(Cache::has('home.stats.institutions.active'))->toBeTrue()
+        ->and(Cache::has('home.stats.references.active'))->toBeTrue();
+});
 
 it('clears majlis listing cache when event is submitted from public submit form', function () {
     $this->seed(EventRoleSeeder::class);

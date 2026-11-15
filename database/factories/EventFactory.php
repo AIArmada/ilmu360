@@ -6,17 +6,18 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Database\Factories\EventFactory as PackageEventFactory;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventLink;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
-use App\Shared\Events\EventCategoryCatalog;
+use App\Models\Event;
+use App\Models\Institution;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\Enums\TimingMode;
-use App\Models\Event;
-use App\Models\Institution;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonInterface;
@@ -232,7 +233,7 @@ class EventFactory extends PackageEventFactory
                     ? Carbon::instance($startsAt)->subDay()
                     : now();
             }
-        })->afterCreating(function ($event): void {
+        })->afterCreating(function (PackageEvent $event): void {
             if (! $event instanceof Event) {
                 return;
             }
@@ -333,7 +334,11 @@ class EventFactory extends PackageEventFactory
             PrayerOffset::After30,
         ]);
 
-        return $this->afterCreating(function (Event $event) use ($prayer, $offset): void {
+        return $this->afterCreating(function (PackageEvent $event) use ($prayer, $offset): void {
+            if (! $event instanceof Event) {
+                return;
+            }
+
             OwnerContext::withOwner($event->owner, function () use ($event, $prayer, $offset): void {
                 app(SyncEventScheduleAction::class)->execute(
                     event: $event,

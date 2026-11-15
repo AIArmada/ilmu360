@@ -7,14 +7,15 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\Venue;
 use AIArmada\Events\Models\VenueSpace;
 use App\Contracts\ShareCards\ShareCardRenderer;
-use App\Shared\Events\Enums\EventChangeType;
-use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\EventShareCardCache;
 use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Services\ShareCards\ShareCardService;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Support\ShareCards\PangoShareCardRenderer;
 use App\Support\ShareCards\ShareCardEventPresenter;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -66,6 +67,36 @@ function wp3scPngSize(string $bytes): array
 
     return [(int) $info[0], (int) $info[1], (string) $info['mime']];
 }
+
+it('publishes reads and removes invalid revision-pinned card files through the Events cache', function (): void {
+    $cache = app(EventShareCardCache::class);
+    $revision = 'a1b2c3d4e5f60718';
+    $path = 'share-cards/share-card-'.$revision.'.png';
+    $bytes = "\x89PNG\r\n\x1a\npayload";
+
+    $cache->publish($revision, $bytes);
+
+    expect($cache->read($revision))->toBe($bytes)
+        ->and(Storage::disk('public')->files('share-cards'))->toBe([$path]);
+
+    Storage::disk('public')->put($path, 'invalid');
+
+    expect($cache->read($revision))->toBeNull()
+        ->and(Storage::disk('public')->exists($path))->toBeFalse();
+});
+
+it('removes a cached card when storage returns a null read', function (): void {
+    $revision = 'a1b2c3d4e5f60718';
+    $path = 'share-cards/share-card-'.$revision.'.png';
+    $disk = Mockery::mock(FilesystemAdapter::class);
+    $disk->shouldReceive('exists')->once()->with($path)->andReturnTrue();
+    $disk->shouldReceive('get')->once()->with($path)->andReturnNull();
+    $disk->shouldReceive('delete')->once()->with($path)->andReturnTrue();
+
+    Storage::shouldReceive('disk')->once()->with('public')->andReturn($disk);
+
+    expect(app(EventShareCardCache::class)->read($revision))->toBeNull();
+});
 
 it('serves a reachable immutable 1200x630 card', function (): void {
     $event = wp3scEvent();
@@ -724,7 +755,7 @@ it('falls back honestly when card publishing fails', function (): void {
 
     parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
 
-    $path = $this->cards->cacheFilePath((string) ($query['v'] ?? ''));
+    $revision = (string) ($query['v'] ?? '');
 
     // A file blocking the cache directory: every publish write fails.
     Storage::disk('public')->put('share-cards', 'blocked');
@@ -733,7 +764,7 @@ it('falls back honestly when card publishing fails', function (): void {
 
     $response->assertRedirect($event->card_image_url);
     expect((string) $response->headers->get('Cache-Control'))->toContain('no-store')
-        ->and(Storage::disk('public')->exists($path))->toBeFalse();
+        ->and(app(EventShareCardCache::class)->read($revision))->toBeNull();
 
     // No stale partial publication survives the failure.
     Storage::disk('public')->delete('share-cards');

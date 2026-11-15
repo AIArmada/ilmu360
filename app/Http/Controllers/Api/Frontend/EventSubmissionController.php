@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Platform\Http\FrontendController;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Platform\Http\FrontendController;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -240,8 +240,9 @@ class EventSubmissionController extends FrontendController
         // The location institution is not ownership; only the primary
         // organizer establishes the institutional scope.
         return OrganizerResolver::involvementMatchesInstitution(
-            $event->primaryOrganizerInvolvement,
-            $institution,
+            $event->primaryOrganizerInvolvement?->involveable_type,
+            $event->primaryOrganizerInvolvement?->involveable_id,
+            (string) $institution->getKey(),
         );
     }
 }

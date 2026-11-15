@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\VenueSpaceType;
 use App\Models\Space;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -57,34 +55,5 @@ class SpaceSeeder extends Seeder
             ]);
         }
 
-        $typeIds = VenueSpaceType::query()->pluck('id', 'code');
-
-        EventLocation::query()
-            ->whereNotNull('venue_space_id')
-            ->where(function ($query): void {
-                $query
-                    ->whereNull('space_name_snapshot')
-                    ->orWhereNull('venue_space_type_id');
-            })
-            ->with('venueSpace:id,name,space_type')
-            ->chunkById(100, function ($locations) use ($typeIds): void {
-                foreach ($locations as $location) {
-                    $code = $location->venueSpace?->space_type;
-                    $typeId = is_string($code) ? $typeIds->get($code) : null;
-                    $updates = [];
-
-                    if ($typeId !== null && (string) $location->venue_space_type_id !== (string) $typeId) {
-                        $updates['venue_space_type_id'] = $typeId;
-                    }
-
-                    if ($location->space_name_snapshot === null && $location->venueSpace?->name !== null) {
-                        $updates['space_name_snapshot'] = $location->venueSpace->name;
-                    }
-
-                    if ($updates !== []) {
-                        $location->forceFill($updates)->saveQuietly();
-                    }
-                }
-            });
     }
 }

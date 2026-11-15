@@ -24,7 +24,7 @@ final readonly class NotificationDispatchService implements NotificationDispatch
         $notifiable = $this->accounts->resolveNotifiable($accountId);
 
         if (! $notifiable instanceof Authenticatable) {
-            throw (new ModelNotFoundException)->setModel(Authenticatable::class, [$accountId]);
+            throw new ModelNotFoundException("Account [{$accountId}] cannot receive notifications.");
         }
 
         $this->communications->notify($notifiable, new InAppNotification($payload));

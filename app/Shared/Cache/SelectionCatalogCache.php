@@ -76,11 +76,15 @@ final class SelectionCatalogCache
 
     /**
      * @param  array<string, string>  $preferredLabels  Optional localized labels keyed by language code.
+     * @param  int  $ttlSeconds  Cache lifetime for the language rows.
      * @return array<string, string>
      */
-    public function languageOptions(string $key, array $preferredLabels = []): array
-    {
-        return collect($this->languageRows())
+    public function languageOptions(
+        string $key,
+        array $preferredLabels = [],
+        int $ttlSeconds = self::CATALOG_TTL_SECONDS,
+    ): array {
+        return collect($this->languageRows($ttlSeconds))
             ->mapWithKeys(static function (array $language) use ($key, $preferredLabels): array {
                 $optionKey = match ($key) {
                     'code' => $language['code'],
@@ -293,13 +297,17 @@ final class SelectionCatalogCache
     /**
      * @return list<array{id: string, code: string, name: string, native: string|null}>
      */
-    private function languageRows(): array
+    private function languageRows(int $ttlSeconds = self::CATALOG_TTL_SECONDS): array
     {
+        $cacheKey = $ttlSeconds === self::CATALOG_TTL_SECONDS
+            ? 'selection_catalog:languages:rows'
+            : "selection_catalog:languages:rows:ttl:{$ttlSeconds}";
+
         /** @var list<array{id: string, code: string, name: string, native: string|null}> $rows */
         $rows = $this->versionedCache->remember(
             self::LANGUAGES_VERSION_KEY,
-            'selection_catalog:languages:rows',
-            self::CATALOG_TTL_SECONDS,
+            $cacheKey,
+            $ttlSeconds,
             static fn (): array => Language::query()
                 ->orderBy('name')
                 ->get(['id', 'code', 'name', 'native'])

@@ -379,6 +379,8 @@ test('explicit copy-link and native-share actions record outbound share touchpoi
 
     expect(Affiliate::count())->toBe(1)
         ->and(AffiliateLink::count())->toBe(1)
+        ->and(AffiliateAttribution::query()->where('attribution_type', 'outbound_share')->count())->toBe(1)
+        ->and(AffiliateLink::query()->firstOrFail()->clicks)->toBe(2)
         ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(2);
 
     $providers = AffiliateTouchpoint::query()

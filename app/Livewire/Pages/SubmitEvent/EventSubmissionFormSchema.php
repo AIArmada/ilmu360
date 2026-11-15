@@ -18,7 +18,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Shared\Cache\SelectionCatalogCache;
-use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -1130,11 +1130,7 @@ final class EventSubmissionFormSchema
                                 $venueId !== ''
                                 && $get('location_type') === 'venue'
                             ) {
-                                return app(SpaceEligibilityResolver::class)->venueQuery($venueId)
-                                    ->where('status', 'active')
-                                    ->orderBy('name')
-                                    ->pluck('name', 'id')
-                                    ->toArray();
+                                return app(SpaceEligibility::class)->venueOptions($venueId, activeOnly: true);
                             }
 
                             $institutionId = $get('location_institution_id');
@@ -1143,15 +1139,9 @@ final class EventSubmissionFormSchema
                                 $institutionId = $this->resolvedPrimaryOrganizerInstitutionId($get('primary_organizer_id'));
                             }
 
-                            $query = is_scalar($institutionId) && trim((string) $institutionId) !== ''
-                                ? app(SpaceEligibilityResolver::class)->institutionQuery(trim((string) $institutionId))
-                                : app(SpaceEligibilityResolver::class)->catalogQuery();
-
-                            return $query
-                                ->where('status', 'active')
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->toArray();
+                            return is_scalar($institutionId) && trim((string) $institutionId) !== ''
+                                ? app(SpaceEligibility::class)->institutionOptions(trim((string) $institutionId), activeOnly: true)
+                                : app(SpaceEligibility::class)->catalogOptions(activeOnly: true);
                         }),
                 ]),
         ];

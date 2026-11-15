@@ -11,8 +11,8 @@ use App\Features\Events\Support\EventModel;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Owns the event-level event_locations rows behind Event::syncLocation and the
- * default_venue/institution selection observer.
+ * Owns event-level event_locations rows behind Event::syncLocation and the
+ * default-venue selection observer.
  */
 final readonly class SyncEventLocationsAction implements EventLocations
 {
@@ -99,7 +99,6 @@ final readonly class SyncEventLocationsAction implements EventLocations
     public function syncPrimaryFromSelection(
         string $eventId,
         bool $venueChanged,
-        bool $institutionChanged,
     ): bool {
         $event = EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
 
@@ -138,32 +137,8 @@ final readonly class SyncEventLocationsAction implements EventLocations
             return false;
         }
 
-        // Institution-only changes must preserve the explicit event-level
-        // space selection; a venue change keeps the historical replace
-        // semantics (the newly selected venue owns its spaces).
-        $spaceIds = $institutionChanged && ! $venueChanged
-            ? $this->eventLevelSpaceIds($eventId)
-            : [];
-
-        $this->sync($eventId, $venueId, $spaceIds);
+        $this->sync($eventId, $venueId);
 
         return true;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function eventLevelSpaceIds(string $eventId): array
-    {
-        return EventLocation::query()
-            ->where('event_id', $eventId)
-            ->whereNull('event_occurrence_id')
-            ->whereNull('event_session_id')
-            ->whereNotNull('venue_space_id')
-            ->orderBy('sort_order')
-            ->pluck('venue_space_id')
-            ->filter(fn (mixed $spaceId): bool => is_string($spaceId) && $spaceId !== '')
-            ->values()
-            ->all();
     }
 }

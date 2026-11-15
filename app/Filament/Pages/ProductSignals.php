@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use AIArmada\FilamentSignals\Pages\LiveActivityReport;
+use App\Features\Events\Api\ProductSignalsDashboardCache;
 use App\Platform\Time\UserTimezoneResolver;
 use App\Services\Signals\ProductSignalsInsightsService;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Facades\Cache;
 use UnitEnum;
 
 /**
@@ -64,11 +64,13 @@ final class ProductSignals extends Page
 
     public ?string $liveActivityUrl = null;
 
-    public function mount(ProductSignalsInsightsService $insights): void
-    {
-        $this->report = Cache::remember(
-            'filament.product-signals.dashboard:'.UserTimezoneResolver::resolve().':'.app()->getLocale(),
-            now()->addMinute(),
+    public function mount(
+        ProductSignalsInsightsService $insights,
+        ProductSignalsDashboardCache $dashboardCache,
+    ): void {
+        $this->report = $dashboardCache->rememberDashboard(
+            UserTimezoneResolver::resolve(),
+            app()->getLocale(),
             fn (): array => $insights->dashboard(),
         );
 

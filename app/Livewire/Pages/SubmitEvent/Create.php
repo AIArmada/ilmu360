@@ -5,14 +5,16 @@ namespace App\Livewire\Pages\SubmitEvent;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Filament\Resources\Events\EventResource;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
 use App\Data\Events\SubmitEventFormContext;
 use App\Enums\TaxonomyTerm\DomainTermCode;
+use App\Features\Events\Api\EventInstitutionQuickAddMapsProof;
+use App\Features\Events\Api\EventInstitutionQuickAddMapsProofStore;
 use App\Features\Events\Api\EventMediaExtraction;
 use App\Features\Events\Api\EventMediaExtractionSource;
+use App\Filament\Resources\Events\EventResource;
 use App\Forms\Components\Select as InstitutionSelect;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Event;
@@ -55,7 +57,6 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -513,21 +514,29 @@ class Create extends Component implements HasActions, HasForms
         $previousToken = $this->institutionQuickAddProofToken;
 
         if (is_string($previousToken) && $previousToken !== '') {
-            Cache::forget($this->institutionQuickAddCacheKey($previousToken));
+            app(EventInstitutionQuickAddMapsProofStore::class)->forget(
+                session()->getId(),
+                $this->getId(),
+                $previousToken,
+            );
         }
 
         $token = Str::random(48);
         $nonce = Str::random(48);
         $this->institutionQuickAddProofToken = $token;
 
-        Cache::put($this->institutionQuickAddCacheKey($token), [
-            'token' => $token,
-            'nonce' => $nonce,
-            'form_path' => $context['form_path'],
-            'address_path' => $context['address_path'],
-            'owner_path' => $context['owner_path'],
-            'selection' => null,
-        ], now()->addMinutes(30));
+        app(EventInstitutionQuickAddMapsProofStore::class)->put(
+            session()->getId(),
+            $this->getId(),
+            $token,
+            EventInstitutionQuickAddMapsProof::begin(
+                $token,
+                $nonce,
+                $context['form_path'],
+                $context['address_path'],
+                $context['owner_path'],
+            ),
+        );
 
         return $nonce;
     }
@@ -584,7 +593,7 @@ class Create extends Component implements HasActions, HasForms
         data_set($this, $context['address_path'].'.maps_selection_token', $this->institutionQuickAddProofToken);
         $this->resetValidation($context['address_path'].'.google_place_id');
 
-        $record['selection'] = [
+        $selection = [
             ...$selectionData,
             'address' => Arr::except($selectionData['address'], ['cascade_reset_guard']),
             'autofilled_contacts' => $merged['autofilled_contacts'],
@@ -592,10 +601,18 @@ class Create extends Component implements HasActions, HasForms
             'autofilled_name' => $merged['autofilled_name'],
             'autofilled_type' => $merged['autofilled_type'],
         ];
-        Cache::put(
-            $this->institutionQuickAddCacheKey($this->institutionQuickAddProofToken),
-            $record,
-            now()->addMinutes(30),
+
+        $token = $this->institutionQuickAddProofToken;
+
+        if (! is_string($token) || $token === '') {
+            $this->rejectInstitutionQuickAddMapsSelection($context['address_path']);
+        }
+
+        app(EventInstitutionQuickAddMapsProofStore::class)->put(
+            session()->getId(),
+            $this->getId(),
+            $token,
+            EventInstitutionQuickAddMapsProof::fromRecord($record)->withSelection($selection),
         );
 
         $user = auth()->user();
@@ -661,7 +678,11 @@ class Create extends Component implements HasActions, HasForms
         $token = $this->institutionQuickAddProofToken;
 
         if (is_string($token) && $token !== '') {
-            Cache::forget($this->institutionQuickAddCacheKey($token));
+            app(EventInstitutionQuickAddMapsProofStore::class)->forget(
+                session()->getId(),
+                $this->getId(),
+                $token,
+            );
         }
 
         $this->institutionQuickAddProofToken = null;
@@ -769,7 +790,9 @@ class Create extends Component implements HasActions, HasForms
             return null;
         }
 
-        $record = Cache::get($this->institutionQuickAddCacheKey($token));
+        $record = app(EventInstitutionQuickAddMapsProofStore::class)
+            ->get(session()->getId(), $this->getId(), $token)
+            ?->toArray();
 
         if (! is_array($record)
             || ! is_string($record['token'] ?? null)
@@ -794,11 +817,6 @@ class Create extends Component implements HasActions, HasForms
         }
 
         return $record;
-    }
-
-    private function institutionQuickAddCacheKey(string $token): string
-    {
-        return 'event-institution-quick-add:verified-maps:'.hash('sha256', session()->getId().'|'.$this->getId().'|'.$token);
     }
 
     private function rejectInstitutionQuickAddMapsSelection(string $addressStatePath): never
@@ -1011,8 +1029,9 @@ class Create extends Component implements HasActions, HasForms
         // The location institution is not ownership; only the primary
         // organizer establishes the institutional scope.
         return OrganizerResolver::involvementMatchesInstitution(
-            $event->primaryOrganizerInvolvement,
-            $institution,
+            $event->primaryOrganizerInvolvement?->involveable_type,
+            $event->primaryOrganizerInvolvement?->involveable_id,
+            (string) $institution->getKey(),
         );
     }
 

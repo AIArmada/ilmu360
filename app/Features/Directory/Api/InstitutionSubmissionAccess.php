@@ -7,7 +7,7 @@ namespace App\Features\Directory\Api;
 /**
  * Public operation for institution public-submission flags.
  *
- * Membership, Identity and the legacy submission-lock service call this
+ * Membership, Identity and the submission-lock service call this
  * instead of writing Directory columns directly.
  */
 interface InstitutionSubmissionAccess

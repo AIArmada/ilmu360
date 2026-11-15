@@ -1,0 +1,15 @@
+{
+  "schema": 2,
+  "name": "SlugRedirects",
+  "owns": {
+    "table:slug_redirects": [
+      "App\\Features\\SlugRedirects\\Actions\\RecordSlugRedirectAction",
+      "App\\Features\\SlugRedirects\\Actions\\PurgeSlugRedirectsAction",
+      "App\\Features\\SlugRedirects\\Actions\\MarkSlugRedirectUsedAction",
+      "App\\Features\\SlugRedirects\\Actions\\CreateSlugRedirectAction",
+      "App\\Features\\SlugRedirects\\Actions\\UpdateSlugRedirectAction",
+      "App\\Features\\SlugRedirects\\Actions\\DeleteSlugRedirectAction",
+      "App\\Features\\SlugRedirects\\Actions\\DeleteSlugRedirectsAction"
+    ]
+  }
+}

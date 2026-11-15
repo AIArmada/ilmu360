@@ -5,6 +5,7 @@ declare(strict_types=1);
 use AIArmada\Affiliates\Enums\CommissionType;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Models\AffiliateBalance;
 use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateCredential;
@@ -195,4 +196,24 @@ it('keeps guest profiles with conversions and marked member profiles', function 
 
     expect(Affiliate::query()->withoutGlobalScope(OwnerScope::class)->whereKey($guest->id)->exists())->toBeTrue()
         ->and(Affiliate::query()->withoutGlobalScope(OwnerScope::class)->whereKey($member->id)->exists())->toBeTrue();
+});
+
+it('keeps stale guest profiles with nonzero financial balances', function (): void {
+    ['affiliate' => $affiliate] = pgspGuestShare();
+    pgspBackdate($affiliate);
+
+    OwnerContext::withOwner(null, fn (): AffiliateBalance => AffiliateBalance::query()->create([
+        'affiliate_id' => $affiliate->getKey(),
+        'currency' => 'MYR',
+        'holding_minor' => 0,
+        'available_minor' => 2500,
+        'lifetime_earnings_minor' => 2500,
+        'minimum_payout_minor' => 0,
+        'payout_sequence' => 1,
+    ]));
+
+    $this->artisan('share:prune-guest-profiles')->assertSuccessful();
+
+    expect(Affiliate::query()->withoutGlobalScope(OwnerScope::class)->whereKey($affiliate->getKey())->exists())->toBeTrue()
+        ->and(AffiliateBalance::query()->where('affiliate_id', $affiliate->getKey())->exists())->toBeTrue();
 });

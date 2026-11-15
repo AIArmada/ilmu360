@@ -7,8 +7,8 @@ namespace App\Observers;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaRelationship;
-use App\Platform\Cache\PublicDirectoryCacheVersion;
-use App\Platform\Cache\PublicListingsCache;
+use App\Features\Directory\Api\PublicDirectoryCacheVersions;
+use App\Services\PublicListingsCache;
 use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 class AddressAreaObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
+        private readonly PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
         private readonly PublicListingsCache $publicListingsCache,
         private readonly SelectionCatalogCache $selectionCatalogCache,
     ) {}
@@ -56,7 +56,7 @@ class AddressAreaObserver implements ShouldHandleEventsAfterCommit
 
     private function flushLocationCaches(): void
     {
-        $this->publicDirectoryCacheVersion->bumpAll();
+        $this->publicDirectoryCacheVersions->bumpAll();
         $this->publicListingsCache->bustMajlisListing();
         $this->selectionCatalogCache->bustAddress();
     }

@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Model;
  * Reference work-family resolution for public visibility and event scoping.
  *
  * Works own authorship; editions and parts inherit from the root work. Public
- * expansion is limited to the same two descendant levels the legacy model
- * exposed and never includes unpublished or inactive records.
+ * expansion includes at most two descendant levels and never includes
+ * unpublished or inactive records.
  */
 final class ReferenceFamily
 {

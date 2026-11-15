@@ -200,7 +200,7 @@ final readonly class ClaimGuestProfileAction implements GuestShareClaims
             return;
         }
 
-        $keys = ShareTrackingModel::sourceReceiptQuery()
+        $keys = ShareTrackingModel::query('share_source_attribution_receipt')
             ->whereIn('attribution_id', $attributionIds)
             ->orderBy('occurred_at')
             ->limit(500)

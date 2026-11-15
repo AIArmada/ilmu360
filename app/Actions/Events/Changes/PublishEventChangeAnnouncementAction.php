@@ -2,9 +2,9 @@
 
 namespace App\Actions\Events\Changes;
 
-use AIArmada\Events\Contracts\EventLifecycleWorkflow;
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 use App\Enums\EventChangeSeverity;
+use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
@@ -13,7 +13,6 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\Shared\Events\Enums\EventChangeType;
-use App\States\EventStatus\Cancelled;
 use App\Support\Spaces\SpaceLocationPresenter;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -58,14 +57,16 @@ class PublishEventChangeAnnouncementAction
 
         $this->validateReplacementEvent($event, $replacementEvent);
 
-        $announcement = DB::transaction(function () use ($event, $actor, $type, $publicMessage, $internalNote, $replacementEvent, $changes, $severity): EventChangeAnnouncement {
+        $announcementId = DB::transaction(function () use ($event, $actor, $type, $publicMessage, $internalNote, $replacementEvent, $changes, $severity): string {
             $event->refresh();
             $event->loadMissing($this->snapshotRelations());
 
             $beforeSnapshot = $this->snapshot($event);
-            $changedFields = $this->applyEventMutations($event, $type, $changes);
-
-            $event->save();
+            $changedFields = app(EventAuthoring::class)->applyChangeAnnouncementMutations(
+                (string) $event->getKey(),
+                $type->value,
+                $changes,
+            );
             $event->refresh();
             $event->loadMissing($this->snapshotRelations());
 
@@ -86,13 +87,13 @@ class PublishEventChangeAnnouncementAction
 
             $message = $this->publicMessage($type, $publicMessage, $replacementEvent);
 
-            $announcement = EventChangeAnnouncement::query()->create([
-                'event_id' => $event->id,
-                'replacement_event_id' => $replacementEvent?->id,
+            $announcementId = app(EventAuthoring::class)->createChangeAnnouncement([
+                'event_id' => (string) $event->getKey(),
+                'replacement_event_id' => $replacementEvent === null ? null : (string) $replacementEvent->getKey(),
                 'created_by_type' => $actor->getMorphClass(),
-                'created_by_id' => $actor->id,
-                'update_type' => $type,
-                'severity' => $severity,
+                'created_by_id' => (string) $actor->getKey(),
+                'update_type' => $type->value,
+                'severity' => $severity->value,
                 'message' => $message,
                 'title' => $message,
                 'notes' => $internalNote,
@@ -101,7 +102,7 @@ class PublishEventChangeAnnouncementAction
                     'before_snapshot' => $beforeSnapshot,
                     'after_snapshot' => $afterSnapshot,
                 ],
-                'published_at' => now(),
+                'published_at' => now()->toDateTimeString(),
                 'visibility' => 'public',
             ]);
 
@@ -111,8 +112,10 @@ class PublishEventChangeAnnouncementAction
                 $event->unsearchable();
             }
 
-            return $announcement;
+            return $announcementId;
         });
+
+        $announcement = EventChangeAnnouncement::query()->findOrFail($announcementId);
 
         if ($notify) {
             app(EventNotificationService::class)->notifyEventChangeAnnouncement(
@@ -185,74 +188,6 @@ class PublishEventChangeAnnouncementAction
         }
 
         return false;
-    }
-
-    /**
-     * @param  array<string, mixed>  $changes
-     * @return list<string>
-     */
-    private function applyEventMutations(Event $event, EventChangeType $type, array $changes): array
-    {
-        $changedFields = [];
-
-        foreach ($this->supportedScalarFields() as $field) {
-            if (! array_key_exists($field, $changes)) {
-                continue;
-            }
-
-            $event->{$field} = $changes[$field];
-            $changedFields[] = $field;
-        }
-
-        $occurrence = $event->primaryOccurrence;
-
-        if ($type === EventChangeType::Cancelled) {
-            $event->status = Cancelled::class;
-            $changedFields[] = 'status';
-            if ($occurrence) {
-                $occurrence->cancel();
-                $changedFields[] = 'occurrence_status';
-            }
-        }
-
-        if ($type === EventChangeType::Postponed && $occurrence) {
-            $occurrence->postpone();
-            $changedFields[] = 'occurrence_status';
-        }
-
-        if (in_array($type, [
-            EventChangeType::RescheduledEarlier,
-            EventChangeType::RescheduledLater,
-            EventChangeType::ScheduleChanged,
-        ], true)) {
-            $startsAt = $changes['starts_at'] ?? null;
-            $endsAt = $changes['ends_at'] ?? null;
-            if ($occurrence && $startsAt && $endsAt) {
-                app(EventLifecycleWorkflow::class)->reschedule(
-                    $occurrence, $startsAt, $endsAt
-                );
-                $changedFields[] = 'occurrence_status';
-            }
-        }
-
-        return $changedFields;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function supportedScalarFields(): array
-    {
-        return [
-            'title',
-            'timezone',
-            'institution_id',
-            'venue_id',
-            'space_id',
-            'event_url',
-            'live_url',
-            'recording_url',
-        ];
     }
 
     /**

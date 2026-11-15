@@ -1,6 +1,9 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Signals\Models\SignalEvent;
@@ -9,6 +12,7 @@ use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Models\Institution;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Directory\InstitutionFacilities;
@@ -92,6 +96,58 @@ it('saves enabled and disabled facility lists into the canonical merged map thro
         ->and($fresh->primaryAddress())->not->toBeNull()
         ->and($fresh->primaryAddress()?->country_code)->toBe('MY')
         ->and($fresh->effective_facilities)->toBe(['parking' => true]);
+});
+
+it('updates and clears institution names through the Directory workflow', function (): void {
+    $administrator = facilitiesAdminUser();
+    $institution = Institution::factory()->create(['status' => InstitutionStatus::Verified]);
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Official,
+        'full_name' => 'Nama Rasmi Lama',
+        'language_code' => 'ms',
+        'is_primary' => true,
+    ]);
+
+    saveInstitutionFacilitiesForm($administrator, $institution, [
+        'names' => [
+            ['name_type' => 'official', 'full_name' => 'Nama Rasmi Baharu', 'language_code' => 'ms', 'is_primary' => true],
+            ['name_type' => 'nickname', 'full_name' => 'Nama Ringkas', 'language_code' => 'en', 'is_primary' => false],
+        ],
+    ]);
+
+    $updatedNames = $institution->names()->orderBy('full_name')->get();
+
+    expect($updatedNames->pluck('full_name')->all())->toBe(['Nama Rasmi Baharu', 'Nama Ringkas'])
+        ->and($updatedNames->firstWhere('full_name', 'Nama Rasmi Baharu')?->name_type)->toBe(InstitutionNameType::Official)
+        ->and($updatedNames->firstWhere('full_name', 'Nama Rasmi Baharu')?->is_primary)->toBeTrue();
+
+    saveInstitutionFacilitiesForm($administrator, $institution, ['names' => []]);
+
+    expect($institution->names()->count())->toBe(0);
+});
+
+it('saves institution contacts and social profiles through the Directory workflow', function (): void {
+    $administrator = facilitiesAdminUser();
+    $institution = Institution::factory()->create();
+
+    saveInstitutionFacilitiesForm($administrator, $institution, [
+        'contactMethods' => [[
+            'type' => ContactMethodType::Email->value,
+            'label' => 'Office',
+            'purpose' => ContactPurpose::General->value,
+            'value' => 'office@example.test',
+            'is_primary' => true,
+            'is_public' => true,
+        ]],
+        'socialProfiles' => [[
+            'platform' => SocialPlatform::Facebook->value,
+            'label' => 'Official page',
+            'handle' => 'institution-official',
+        ]],
+    ]);
+
+    expect($institution->fresh()->contactMethods()->where('type', ContactMethodType::Email->value)->value('label'))->toBe('Office')
+        ->and($institution->fresh()->socialProfiles()->where('platform', SocialPlatform::Facebook->value)->value('label'))->toBe('Official page');
 });
 
 it('preserves explicit disabled facilities when the admin form is saved unchanged', function (): void {

@@ -8,11 +8,9 @@ use AIArmada\Events\Enums\ScheduleKind;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleFromInputAction;
 use App\Features\Events\Api\EventScheduleInput;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibility;
 use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Events\OrganizerResolver;
 use App\Shared\Prayer\PrayerOffset;
-use App\Shared\Support\MorphAlias;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -32,7 +30,7 @@ final readonly class ApplyEventContributionAction
         private SyncEventScheduleFromInputAction $syncSchedule,
         private SyncEventKeyPeopleAction $syncKeyPeople,
         private SyncEventClassificationsAction $syncClassifications,
-        private SpaceEligibilityResolver $spaceEligibilityResolver,
+        private SpaceEligibility $spaceEligibilityResolver,
     ) {}
 
     /**
@@ -172,7 +170,12 @@ final readonly class ApplyEventContributionAction
         if (array_key_exists('primary_organizer_id', $payload)) {
             $organizerId = $this->normalizeOptionalString($payload['primary_organizer_id']);
 
-            $event->setPrimaryOrganizer(OrganizerResolver::find($organizerId));
+            $organizer = $organizerId === null
+                ? null
+                : EventModel::query('institution')->find($organizerId)
+                    ?? EventModel::query('person')->find($organizerId);
+
+            $event->setPrimaryOrganizer($organizer);
         }
 
         if (array_key_exists('language_ids', $payload)) {
@@ -278,9 +281,7 @@ final readonly class ApplyEventContributionAction
                 }
 
                 $role = is_string($entry['role_code'] ?? null) ? trim($entry['role_code']) : null;
-                $involveableType = is_string($entry['involveable_type'] ?? null) && $entry['involveable_type'] !== ''
-                    ? MorphAlias::of($entry['involveable_type'])
-                    : null;
+                $involveableType = ($entry['involveable_type'] ?? null) === 'person' ? 'person' : null;
                 $involveableId = is_string($entry['involveable_id'] ?? null) && $entry['involveable_id'] !== '' ? $entry['involveable_id'] : null;
                 $name = is_string($entry['display_name'] ?? null) ? trim($entry['display_name']) : null;
                 $notes = is_string($entry['notes'] ?? null) ? trim($entry['notes']) : null;

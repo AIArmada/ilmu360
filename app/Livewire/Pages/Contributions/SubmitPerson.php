@@ -5,11 +5,11 @@ namespace App\Livewire\Pages\Contributions;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\PersonContributionFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -60,7 +60,6 @@ class SubmitPerson extends Component implements HasActions, HasForms
             showCountryField: true,
             includeAlternativeNames: true,
             useTitleMultiSelect: true,
-            useInstitutionRepeater: true,
             splitProfileSections: true,
             requireCountryField: true,
             includeWazeUrlField: false,

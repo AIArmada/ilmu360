@@ -4,6 +4,8 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventAccessPolicy;
+use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;
+use App\Features\Ai\Models\AiModelPricing;
 use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\InspirationResource;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
@@ -11,7 +13,6 @@ use App\Features\Reports\Models\Report;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
 use App\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
-use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Filament\Resources\Audits\AuditResource;
 use App\Filament\Resources\Authz\UserResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
@@ -22,7 +23,6 @@ use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
-use App\Features\Ai\Models\AiModelPricing;
 use App\Models\Audit;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
@@ -168,7 +168,7 @@ it('records moderation review creation in audits', function () {
     $this->actingAs($administrator);
 
     $review = ModerationReview::query()->create([
-        'actionable_type' => Event::class,
+        'actionable_type' => (new Event)->getMorphClass(),
         'actionable_id' => $event->getKey(),
         'actioned_by_type' => (new User)->getMorphClass(),
         'actioned_by_id' => $administrator->getKey(),

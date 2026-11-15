@@ -17,6 +17,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class MembershipApplication extends BaseMembershipApplication implements AuditableContract, HasMedia
 {
+    protected $table = 'membership_applications';
+
     /** @use HasFactory<MembershipApplicationFactory> */
     use AuditsModelChanges, HasFactory, InteractsWithMedia;
 

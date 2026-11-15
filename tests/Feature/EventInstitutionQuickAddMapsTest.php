@@ -1,14 +1,13 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
@@ -264,12 +263,12 @@ it('creates a verified organizer institution with provider geography and editabl
 it('blocks a duplicate Maps identity when quick-adding a location institution', function () {
     $geography = createTestPackageGeography();
     $existing = Institution::factory()->create(['status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($existing, [
+    attachTestInstitutionAddress($existing, [
         'country_id' => (string) $geography['country']->getKey(),
         'google_place_id' => 'existing_place',
         'google_cid' => '11885663895765773631',
         'google_maps_url' => 'https://maps.google.com/?cid=11885663895765773631',
-    ], allowCountryOnly: true);
+    ]);
 
     configureEventInstitutionQuickAddMaps();
     fakeEventInstitutionQuickAddPlace(eventInstitutionQuickAddPlace('new_location_place'));

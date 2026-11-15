@@ -5,6 +5,8 @@ namespace App\Models;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
 use AIArmada\Events\Models\EventRegistrationParticipant;
+use App\Features\Registration\Api\EventRegistrationDeletion;
+use App\Features\Registration\Api\RegistrationExportRecord;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\RegistrationFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -17,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 /** @extends PackageEventRegistration<Event> */
-class Registration extends PackageEventRegistration implements AuditableContract
+class Registration extends PackageEventRegistration implements AuditableContract, RegistrationExportRecord
 {
     /** @use HasFactory<RegistrationFactory> */
     use AuditsModelChanges, HasFactory;
@@ -92,21 +94,22 @@ class Registration extends PackageEventRegistration implements AuditableContract
     #[\Override]
     protected static function booted(): void
     {
-        // Register this participant-owned cleanup first: the vendor
-        // registration cascade deletes the participant rows, and participant
-        // answers/attendances are keyed by participant id. An attendance may
-        // also have a null event_registration_id, so the vendor registration
-        // attendance relation cannot see it. Contact methods cascade from the
-        // participant model's HasContactMethods deleting hook.
+        // Clean participant data and delete descendants through the app model first.
         static::deleting(function (Registration $registration): void {
-            $registration->participants()->each(function (EventRegistrationParticipant $participant): void {
-                $participant->answers()->each(fn ($answer): bool => (bool) $answer->delete());
-                $participant->attendances()->each(fn ($attendance): bool => (bool) $attendance->delete());
-                $participant->delete();
-            });
+            app(EventRegistrationDeletion::class)->deleteParticipantChildrenBeforeVendorCascade(
+                (string) $registration->getKey(),
+            );
         });
 
         parent::booted();
+    }
+
+    #[\Override]
+    public function delete(): ?bool
+    {
+        return DB::transaction(function (): ?bool {
+            return parent::delete();
+        });
     }
 
     #[\Override]
@@ -271,6 +274,39 @@ class Registration extends PackageEventRegistration implements AuditableContract
         }
 
         return (string) $status;
+    }
+
+    public function exportId(): string
+    {
+        return (string) $this->getKey();
+    }
+
+    public function fallbackRegistrantName(): ?string
+    {
+        $registrant = $this->registrant;
+
+        return $registrant instanceof User ? $registrant->name : null;
+    }
+
+    public function fallbackRegistrantEmail(): ?string
+    {
+        $registrant = $this->registrant;
+
+        return $registrant instanceof User ? $registrant->email : null;
+    }
+
+    public function exportRegisteredAt(): ?\DateTimeInterface
+    {
+        $registeredAt = $this->getAttribute('registered_at');
+
+        return $registeredAt instanceof \DateTimeInterface ? $registeredAt : null;
+    }
+
+    public function exportCreatedAt(): ?\DateTimeInterface
+    {
+        $createdAt = $this->getAttribute('created_at');
+
+        return $createdAt instanceof \DateTimeInterface ? $createdAt : null;
     }
 
     private function normalizedString(mixed $value): ?string

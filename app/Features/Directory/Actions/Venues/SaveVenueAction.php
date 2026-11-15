@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\Venues;
 
 use App\Features\Directory\Support\DirectoryModel;
+use App\Models\Venue;
 use App\Shared\Directory\Enums\VenueType;
 use BackedEnum;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
+use RuntimeException;
 
 /**
  * Create or update a venue through the owning Directory feature.
@@ -30,10 +31,14 @@ final readonly class SaveVenueAction
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, ?Model $venue = null): Model
+    public function handle(array $data, ?Venue $venue = null): Venue
     {
-        $creating = ! $venue instanceof Model;
+        $creating = $venue === null;
         $venue ??= DirectoryModel::new('venue');
+
+        if (! $venue instanceof Venue) {
+            throw new RuntimeException('The registered venue model must be the Directory venue model.');
+        }
 
         if (! $creating) {
             DirectoryModel::assert($venue, 'venue');
@@ -113,7 +118,7 @@ final readonly class SaveVenueAction
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncVenueFacilities(Model $venue, array $data): void
+    private function syncVenueFacilities(Venue $venue, array $data): void
     {
         if (! array_key_exists('facilities', $data)) {
             return;

@@ -10,10 +10,8 @@ use Throwable;
 /**
  * Canonical share-measurement contract.
  *
- * Until the operator declares a reporting start, no certified numbers are
- * presented under the current definition: readers withhold measurements
- * and report a not-configured status. There is no runtime now() fallback
- * and no historical old-schema reader or backfill.
+ * Until the operator declares a reporting start, readers withhold measurements
+ * and report a not-configured status instead of choosing an implicit date.
  */
 final class ShareTrackingMeasurement
 {

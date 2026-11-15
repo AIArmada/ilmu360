@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Shared\Contributions;
 
-use Illuminate\Database\Eloquent\Model;
-
 /**
  * Pending contribution request guard.
  *
@@ -14,5 +12,5 @@ use Illuminate\Database\Eloquent\Model;
  */
 interface ContributionRequestGuard
 {
-    public function ensureNoPending(Model $entity): void;
+    public function ensureNoPending(string $entityType, string $entityId): void;
 }

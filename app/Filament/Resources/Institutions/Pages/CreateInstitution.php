@@ -40,11 +40,25 @@ class CreateInstitution extends CreateRecord
             abort(403);
         }
 
-        return OwnerContext::withOwner(null, function () use ($data, $user): Model {
+        $relationPayload = [];
+
+        if (array_key_exists('contactMethods', $data)) {
+            $relationPayload['contactMethods'] = $data['contactMethods'];
+            unset($data['contactMethods']);
+        }
+
+        if (array_key_exists('socialProfiles', $data)) {
+            $relationPayload['social_media'] = $data['socialProfiles'];
+            unset($data['socialProfiles']);
+        }
+
+        return OwnerContext::withOwner(null, function () use ($data, $relationPayload, $user): Model {
             $institutionId = app(InstitutionWorkflow::class)->saveFromAdmin(
                 $data,
                 (string) $user->getKey(),
             );
+
+            app(InstitutionWorkflow::class)->syncRelations($institutionId, $relationPayload);
 
             return Institution::query()->findOrFail($institutionId);
         });

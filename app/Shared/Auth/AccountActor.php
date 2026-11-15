@@ -18,6 +18,9 @@ interface AccountActor
 
     public function hasGlobalAdminAccess(): bool;
 
+    /** Whether the account has a global role assignment that grants app-admin API entry. */
+    public function hasApplicationAdminAccess(): bool;
+
     public function hasRole(string $role): bool;
 
     /**

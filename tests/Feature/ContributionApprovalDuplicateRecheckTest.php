@@ -3,15 +3,14 @@
 use AIArmada\Authz\Models\Role;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
+use App\Models\ContributionRequest;
+use App\Models\Institution;
+use App\Models\User;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
-use App\Forms\SharedFormSchema;
-use App\Models\ContributionRequest;
-use App\Models\Institution;
-use App\Models\User;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,7 +31,7 @@ function approvalRecheckStagedCreate(string $name, array $address): Contribution
         'name' => $name,
         'status' => InstitutionStatus::Pending,
     ]);
-    SharedFormSchema::createAddressFromData($institution, $address, allowCountryOnly: true);
+    attachTestInstitutionAddress($institution, $address);
 
     return ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -109,7 +108,7 @@ it('approves a clean create without self-blocking on its staged institution', fu
 it('blocks approving an update that moves onto a taken place', function () {
     $locality = approvalRecheckLocality();
     $holder = Institution::factory()->create(['status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($holder, $locality + ['google_place_id' => 'taken_place'], allowCountryOnly: true);
+    attachTestInstitutionAddress($holder, $locality + ['google_place_id' => 'taken_place']);
     $moving = Institution::factory()->create(['status' => InstitutionStatus::Verified]);
 
     $update = ContributionRequest::factory()->create([
@@ -131,7 +130,7 @@ it('blocks approving an update that moves onto a taken place', function () {
 it('approves an update that keeps its own place without self-blocking', function () {
     $locality = approvalRecheckLocality();
     $entity = Institution::factory()->create(['status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($entity, $locality + ['google_place_id' => 'own_place'], allowCountryOnly: true);
+    attachTestInstitutionAddress($entity, $locality + ['google_place_id' => 'own_place']);
 
     $update = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Update,
@@ -171,9 +170,9 @@ it('serializes institution approvals on the shared Maps identity lock', function
 it('blocks approving a name-only update that duplicates a name in the same locality', function () {
     $locality = approvalRecheckLocality();
     $holder = Institution::factory()->create(['name' => 'Masjid Taken Name', 'status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($holder, $locality, allowCountryOnly: true);
+    attachTestInstitutionAddress($holder, $locality);
     $target = Institution::factory()->create(['name' => 'Masjid Old Name', 'status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($target, $locality, allowCountryOnly: true);
+    attachTestInstitutionAddress($target, $locality);
 
     $update = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Update,
@@ -194,7 +193,7 @@ it('blocks approving a name-only update that duplicates a name in the same local
 it('approves a name-only update with a unique name', function () {
     $locality = approvalRecheckLocality();
     $target = Institution::factory()->create(['name' => 'Masjid Old Name', 'status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($target, $locality, allowCountryOnly: true);
+    attachTestInstitutionAddress($target, $locality);
 
     $update = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Update,
@@ -215,10 +214,10 @@ it('approves a name-only update with a unique name', function () {
 it('audits a staged create against its entity current identity instead of stale proposed data', function () {
     $locality = approvalRecheckLocality();
     $holder = Institution::factory()->create(['name' => 'Holder Mosque', 'status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($holder, $locality + ['google_place_id' => 'occupied_place'], allowCountryOnly: true);
+    attachTestInstitutionAddress($holder, $locality + ['google_place_id' => 'occupied_place']);
 
     $staged = Institution::factory()->create(['name' => 'Corrected Mosque', 'status' => InstitutionStatus::Pending]);
-    SharedFormSchema::createAddressFromData($staged, $locality + ['google_place_id' => 'occupied_place'], allowCountryOnly: true);
+    attachTestInstitutionAddress($staged, $locality + ['google_place_id' => 'occupied_place']);
 
     $create = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -237,7 +236,7 @@ it('audits a staged create against its entity current identity instead of stale 
         ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
 
     $moved = Institution::factory()->create(['name' => 'Moved Mosque', 'status' => InstitutionStatus::Pending]);
-    SharedFormSchema::createAddressFromData($moved, $locality + ['google_place_id' => 'free_place'], allowCountryOnly: true);
+    attachTestInstitutionAddress($moved, $locality + ['google_place_id' => 'free_place']);
 
     $cleanCreate = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -365,9 +364,9 @@ it('blocks approving an update that moves an institution into a taken name and l
     ];
 
     $holder = Institution::factory()->create(['name' => 'Masjid Branch', 'status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($holder, $locality, allowCountryOnly: true);
+    attachTestInstitutionAddress($holder, $locality);
     $moving = Institution::factory()->create(['name' => 'Masjid Branch', 'status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($moving, $otherLocalityIds, allowCountryOnly: true);
+    attachTestInstitutionAddress($moving, $otherLocalityIds);
 
     $update = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Update,
@@ -411,10 +410,10 @@ it('rejects a stale rejection after the request was already rejected', function 
     expect($create->fresh()?->status)->toBe(ContributionRequestStatus::Rejected);
 });
 
-it('approves flat proposed payloads carrying Maps keys outside the address array', function () {
+it('blocks approving an update with a nested Maps identity already claimed', function () {
     $locality = approvalRecheckLocality();
     $holder = Institution::factory()->create(['name' => 'Flat Holder', 'status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($holder, $locality + ['google_place_id' => 'flat_place'], allowCountryOnly: true);
+    attachTestInstitutionAddress($holder, $locality + ['google_place_id' => 'flat_place']);
     $moving = Institution::factory()->create(['name' => 'Flat Mover', 'status' => InstitutionStatus::Verified]);
 
     $update = ContributionRequest::factory()->create([
@@ -424,7 +423,7 @@ it('approves flat proposed payloads carrying Maps keys outside the address array
         'entity_id' => (string) $moving->getKey(),
         'proposer_id' => User::factory()->create(),
         'status' => ContributionRequestStatus::Pending,
-        'proposed_data' => ['address' => [], 'google_place_id' => 'flat_place'],
+        'proposed_data' => ['address' => ['google_place_id' => 'flat_place']],
     ]);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($update, User::factory()->create()))
@@ -436,7 +435,7 @@ it('approves flat proposed payloads carrying Maps keys outside the address array
 it('treats a blank proposed name as absent when an update moves locality', function () {
     $locality = approvalRecheckLocality();
     $holder = Institution::factory()->create(['name' => 'Masjid Blank Move', 'status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($holder, $locality + ['google_place_id' => 'blank_holder_place'], allowCountryOnly: true);
+    attachTestInstitutionAddress($holder, $locality + ['google_place_id' => 'blank_holder_place']);
     $moving = Institution::factory()->create(['name' => 'Masjid Blank Move', 'status' => InstitutionStatus::Verified]);
 
     $update = ContributionRequest::factory()->create([

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Platform\Http\FrontendController;
 use App\Enums\MemberSubjectType;
+use App\Platform\Http\FrontendController;
 use App\Support\Api\Frontend\FrontendFormContractService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -86,16 +86,16 @@ class ManifestController extends FrontendController
     }
 
     #[Endpoint(
-        title: 'Get membership-claim field contract',
-        description: 'Returns the field contract for claiming membership on a supported public subject type.',
+        title: 'Get membership-application field contract',
+        description: 'Returns the field contract for submitting a membership application for a supported public subject type.',
     )]
-    public function membershipClaim(string $subjectType): JsonResponse
+    public function membershipApplication(string $subjectType): JsonResponse
     {
-        $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
-        abort_unless($resolvedSubjectType?->isClaimable(), 404);
+        $resolvedSubjectType = MemberSubjectType::fromPublicRouteSegment($subjectType);
+        abort_unless($resolvedSubjectType?->supportsMembershipApplication(), 404);
 
         return response()->json([
-            'data' => $this->contracts->membershipClaim($resolvedSubjectType),
+            'data' => $this->contracts->membershipApplication($resolvedSubjectType),
         ]);
     }
 

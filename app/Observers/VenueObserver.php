@@ -3,10 +3,10 @@
 namespace App\Observers;
 
 use App\Features\Directory\Api\VenueWorkflow;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Venue;
-use App\Platform\Cache\PublicListingsCache;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Platform\Routing\SyncSlugRedirectAction;
+use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class VenueObserver implements ShouldHandleEventsAfterCommit
@@ -15,7 +15,7 @@ class VenueObserver implements ShouldHandleEventsAfterCommit
 
     public function __construct(
         protected VenueWorkflow $venueWorkflow,
-        protected SyncSlugRedirectAction $syncSlugRedirectAction,
+        protected SlugRedirectCommands $slugRedirectCommands,
         protected PublicListingsCache $publicListingsCache
     ) {}
 
@@ -40,7 +40,7 @@ class VenueObserver implements ShouldHandleEventsAfterCommit
     {
         // Bridge rows are removed synchronously inside Venue::delete();
         // this after-commit observer keeps derived side effects only.
-        $this->syncSlugRedirectAction->purgeForModel($venue);
+        $this->slugRedirectCommands->purge($venue->getMorphClass(), (string) $venue->getKey());
         $this->venueWorkflow->syncSlugsForName($venue->name);
         $this->publicListingsCache->bustMajlisListing();
     }

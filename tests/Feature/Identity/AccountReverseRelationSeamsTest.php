@@ -7,6 +7,10 @@ use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationInboxManagement;
+use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Features\Membership\Api\MembershipApplications;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
@@ -14,14 +18,10 @@ use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\Registration;
 use App\Models\User;
-use App\Features\Communications\Api\NotificationInboxManagement;
-use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Shared\Auth\AccountDirectory;
-use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;
-use App\Shared\Membership\MembershipApplicationReader;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -78,10 +78,10 @@ it('reads membership applications and contribution requests for their owner', fu
     $otherApplication = MembershipApplication::factory()->create(['applicant_id' => $other->id]);
     $contribution = ContributionRequest::factory()->create(['proposer_id' => $user->id]);
 
-    $applications = app(MembershipApplicationReader::class);
-    expect($applications->applicationIdsForApplicant((string) $user->getKey()))->toBe([(string) $application->id])
-        ->and($applications->findApplicationIdForApplicant((string) $user->getKey(), (string) $application->id))->toBe((string) $application->id)
-        ->and($applications->findApplicationIdForApplicant((string) $user->getKey(), (string) $otherApplication->id))->toBeNull();
+    $applications = app(MembershipApplications::class);
+    expect($applications->forApplicant((string) $user->getKey()))->toHaveCount(1)
+        ->and($applications->forApplicant((string) $user->getKey())[0]->application->id)->toBe((string) $application->id)
+        ->and($applications->cancelForApplicant((string) $user->getKey(), (string) $otherApplication->id))->toBeNull();
 
     $contributions = app(ContributionRequestReader::class);
     expect($contributions->requestIdsForProposer((string) $user->getKey()))->toBe([(string) $contribution->id])

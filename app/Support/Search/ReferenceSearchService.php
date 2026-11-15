@@ -4,6 +4,7 @@ namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\References\Enums\ReferenceContributorRole;
+use App\Features\Directory\Api\ReferenceSearchCache;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Search\FuzzySearchPolicy;
@@ -14,7 +15,6 @@ use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Expression;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,11 +23,9 @@ use Illuminate\Support\Facades\Log;
  */
 class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedSearch
 {
-    private const int PUBLIC_SEARCH_CACHE_TTL = 600;
-
-    private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'reference_search_public_version_v2';
-
     private const string PUBLIC_TYPESENSE_FILTER = 'status:=[verified,pending] && published_at:>0';
+
+    public function __construct(private readonly ReferenceSearchCache $referenceSearchCache) {}
 
     /**
      * @param  Builder<Reference>  $query
@@ -94,14 +92,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedS
             return [];
         }
 
-        $cacheKey = sprintf(
-            'reference_search_public:%s:%s',
-            $this->publicSearchCacheVersion(),
-            md5($normalizedSearch),
-        );
-
-        /** @var list<string> $ids */
-        $ids = Cache::remember($cacheKey, self::PUBLIC_SEARCH_CACHE_TTL, function () use ($normalizedSearch): array {
+        return $this->referenceSearchCache->rememberPublicSearchIds($normalizedSearch, function () use ($normalizedSearch): array {
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
@@ -115,8 +106,6 @@ class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedS
 
             return $this->publicSearchIdsFromDatabase($normalizedSearch);
         });
-
-        return $ids;
     }
 
     /**
@@ -152,14 +141,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedS
 
         $minimumScore = $this->minimumFuzzyScore($normalizedSearch);
 
-        $cacheKey = sprintf(
-            'reference_search_public_fuzzy:%s:%s',
-            $this->publicSearchCacheVersion(),
-            md5($normalizedSearch),
-        );
-
-        /** @var list<string> $ids */
-        $ids = Cache::remember($cacheKey, self::PUBLIC_SEARCH_CACHE_TTL, function () use ($minimumScore, $normalizedSearch): array {
+        return $this->referenceSearchCache->rememberPublicFuzzySearchIds($normalizedSearch, function () use ($minimumScore, $normalizedSearch): array {
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
@@ -173,8 +155,6 @@ class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedS
 
             return $this->publicFuzzySearchIdsFromDatabase($normalizedSearch, $minimumScore);
         });
-
-        return $ids;
     }
 
     /**
@@ -576,11 +556,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedS
 
     public function bustPublicSearchCache(): void
     {
-        Cache::put(
-            self::PUBLIC_SEARCH_CACHE_VERSION_KEY,
-            $this->publicSearchCacheVersion() + 1,
-            now()->addDays(30),
-        );
+        $this->referenceSearchCache->bumpPublicSearchVersion();
     }
 
     public function normalizedSearch(string $search): ?string
@@ -588,11 +564,6 @@ class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedS
         $normalized = StringSimilarity::normalize($search);
 
         return $normalized === '' ? null : $normalized;
-    }
-
-    private function publicSearchCacheVersion(): int
-    {
-        return (int) Cache::get(self::PUBLIC_SEARCH_CACHE_VERSION_KEY, 1);
     }
 
     /**

@@ -358,7 +358,7 @@ When the user asks you to “look for” a named place, start with the most like
 
 ## MCP media/file upload contract
 
-Member tools like `member-submit-membership-application` accept media/file descriptors in JSON format. File uploads work identically to the admin MCP surface; see `docs/ilmu360_mcp_admin_agent_guide.md#mcp-mediafile-upload-contract` for full descriptor shape, aliases, and security rules.
+Member tools like `member-submit-membership-application` accept media/file descriptors in JSON format. File uploads use the same exact descriptor keys and security rules as the admin MCP surface; see `docs/ilmu360_mcp_admin_agent_guide.md#mcp-mediafile-upload-contract`.
 
 **Quick reference** — all of these descriptor formats are accepted:
 
@@ -369,8 +369,8 @@ Member tools like `member-submit-membership-application` accept media/file descr
 // Content URL
 { "filename": "proof.pdf", "content_url": "https://example.com/file.pdf" }
 
-// Descriptor using download_url/file_id (from file widget)
-{ "filename": "proof.pdf", "download_url": "https://api.openai.com/files/...", "file_id": "file_xyz" }
+// Descriptor using the ChatGPT connector's canonical download_url field
+{ "filename": "proof.pdf", "download_url": "https://api.openai.com/files/..." }
 ```
 
 For field-specific rules, inspect the tool's `file_descriptor_shape` in the schema after calling `member-get-write-schema`.
@@ -402,12 +402,11 @@ You can also provide a URL-based descriptor when base64 content is unavailable:
 {
   "filename": "poster.png",
   "download_url": "https://api.openai.com/files/file_id/content",
-  "file_id": "file_12345",
   "mime_type": "image/png"
 }
 ```
 
-Accepted aliases are `file_name`, `fileName`, or `name` for `filename`; `mime` or `mimeType` for `mime_type`; and `base64`, `contentBase64`, or `data` for `content_base64`. URL aliases `contentUrl` and `url` are accepted for `content_url`. ChatGPT file params: `downloadUrl` or `download_url` for content URL, and `fileId` or `file_id` for metadata (ignored by server). Data URLs are accepted for `content_base64`. Filename extensions are recommended; when they are omitted, the server derives the staged extension from `mime_type` or the fetched response content type. For safety, URL-based descriptors (`content_url` or `download_url`) must be absolute `http(s)` URLs without embedded credentials, must resolve to public hosts only, and must not redirect.
+File descriptor keys are exact: `filename`, optional `mime_type`, and exactly one of `content_base64`, `content_url`, or `download_url`. The ChatGPT connector uses `download_url`; `file_id` is available only on standalone event image uploads. Alternate key spellings are rejected. `content_base64` accepts raw base64 or a data URL. URL descriptors must be absolute HTTP(S) URLs without credentials, resolve to public hosts, and must not redirect.
 
 If a client bridge/proxy file-URL rewrite fails before request dispatch (for example mount-rewrite errors), use `content_base64` descriptors as the fallback path. Event upload tools intentionally run descriptor-first and do not rely on rewrite metadata.
 
@@ -445,9 +444,9 @@ The member server is the model-visible API-like surface for Ahli-scoped workflow
 | `member-approve-contribution-request` | Approve a pending contribution request | `POST /api/v1/member/contribution-requests/{requestKey}/approve` |
 | `member-reject-contribution-request` | Reject a pending contribution request | `POST /api/v1/member/contribution-requests/{requestKey}/reject` |
 | `member-cancel-contribution-request` | Cancel one of the member's pending contribution requests | `DELETE /api/v1/member/contribution-requests/{requestKey}` |
-| `member-list-membership-applications` | List the authenticated member's membership applications | `GET /api/v1/member/membership-applications` |
-| `member-submit-membership-application` | Submit a membership application with evidence uploads | `POST /api/v1/member/membership-applications/{subjectType}/{subject}` |
-| `member-cancel-membership-application` | Cancel one of the member's membership applications | `DELETE /api/v1/member/membership-applications/{applicationId}` |
+| `member-list-membership-applications` | List the authenticated member's membership applications | `GET /api/v1/membership-applications` |
+| `member-submit-membership-application` | Submit a membership application with evidence uploads | `POST /api/v1/membership-applications/{subjectType}/{subject}` |
+| `member-cancel-membership-application` | Cancel one of the member's membership applications | `DELETE /api/v1/membership-applications/{applicationId}` |
 
 Member tool behavior notes:
 

@@ -23,8 +23,9 @@ class CreatePerson extends CreateRecord
         unset($data['address']);
 
         $actorId = auth()->id();
+        $personWorkflow = app(PersonWorkflow::class);
 
-        $personId = app(PersonWorkflow::class)->saveFromAdmin([
+        $personId = $personWorkflow->saveFromAdmin([
             ...Arr::only($data, [
                 'name',
                 'middle_name',
@@ -37,6 +38,12 @@ class CreatePerson extends CreateRecord
             ]),
             'address' => $address,
         ], (string) $actorId, assignOwner: false);
+
+        $personWorkflow->syncRelations($personId, [
+            'contactMethods' => $data['contactMethods'] ?? [],
+            'social_media' => $data['socialProfiles'] ?? [],
+            'language_ids' => $data['languages'] ?? [],
+        ]);
 
         return Person::query()->findOrFail($personId);
     }

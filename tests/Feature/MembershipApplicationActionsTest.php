@@ -54,7 +54,7 @@ it('rejects a claim when the applicant is already a member', function () {
         $claimant,
         'I manage this speaker profile.',
     ))
-        ->toThrow(RuntimeException::class, 'membership_claim_already_member');
+        ->toThrow(RuntimeException::class, 'membership_application_already_member');
 
     expect(MembershipApplication::query()
         ->where('subject_id', $person->getKey())
@@ -80,7 +80,7 @@ it('rejects a second pending claim for the same subject and applicant', function
         $claimant,
         'I manage this speaker profile.',
     ))
-        ->toThrow(RuntimeException::class, 'membership_claim_duplicate_pending');
+        ->toThrow(RuntimeException::class, 'membership_application_duplicate_pending');
 
     expect(MembershipApplication::query()
         ->where('subject_id', $person->getKey())
@@ -108,7 +108,7 @@ it('rejects a claim while a matching invitation is still pending', function () {
         $claimant,
         'I help manage this institution.',
     ))
-        ->toThrow(RuntimeException::class, 'membership_claim_pending_invitation');
+        ->toThrow(RuntimeException::class, 'membership_application_pending_invitation');
 
     expect(MembershipApplication::query()
         ->where('subject_id', $institution->getKey())
@@ -135,6 +135,27 @@ it('approves a claim and grants editor membership', function () {
         ->and($claim->fresh()->granted_role)->toBe('editor')
         ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue()
         ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Institution))->toBe(['editor']);
+});
+
+it('rejects a role that is not offered for application approval', function () {
+    $institution = Institution::factory()->create();
+    $claimant = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $application = MembershipApplication::factory()
+        ->for($institution, 'subject')
+        ->create([
+            'applicant_id' => $claimant->getKey(),
+            'status' => ApplicationStatus::Pending,
+        ]);
+
+    expect(fn () => app(MembershipApplications::class)->approve(
+        (string) $application->getKey(),
+        (string) $reviewer->getKey(),
+        'viewer',
+    ))->toThrow(InvalidArgumentException::class, 'Unsupported membership application approval role.');
+
+    expect($application->fresh()->status)->toBe(ApplicationStatus::Pending)
+        ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeFalse();
 });
 
 it('approves a claim and can grant owner through the central moderation path', function () {

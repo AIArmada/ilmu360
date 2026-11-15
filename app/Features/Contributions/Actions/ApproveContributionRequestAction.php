@@ -424,37 +424,7 @@ class ApproveContributionRequestAction
      */
     private function addressPayload(array $payload): array
     {
-        if (is_array($payload['address'] ?? null) && $payload['address'] !== []) {
-            return $payload['address'];
-        }
-
-        $addressKeys = [
-            'country_id',
-            'state_id',
-            'city_id',
-            'area_assignments',
-            'line1',
-            'line2',
-            'postcode',
-            'latitude',
-            'longitude',
-            'google_maps_url',
-            'google_place_id',
-            'google_feature_id',
-            'google_cid',
-            'google_entity_id',
-            'waze_url',
-        ];
-
-        $address = [];
-
-        foreach ($addressKeys as $key) {
-            if (array_key_exists($key, $payload)) {
-                $address[$key] = $payload[$key];
-            }
-        }
-
-        return $address;
+        return is_array($payload['address'] ?? null) ? $payload['address'] : [];
     }
 
     private function attachAsOwnerIfSupported(?Model $user, Model $entity): void

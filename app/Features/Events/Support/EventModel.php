@@ -11,7 +11,7 @@ use RuntimeException;
 
 /**
  * Runtime model access for Events actions while the models remain in the
- * legacy root namespace. Resolution goes through the registered morph aliases
+ * application root namespace. Resolution goes through the registered morph aliases
  * so the feature never imports another capability's private model class.
  */
 final class EventModel

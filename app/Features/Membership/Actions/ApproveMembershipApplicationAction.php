@@ -7,8 +7,10 @@ namespace App\Features\Membership\Actions;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\ApproveMembershipApplicationAction as PackageApproveMembershipApplicationAction;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -32,6 +34,10 @@ final readonly class ApproveMembershipApplicationAction
         string $grantedRole,
         ?string $note = null,
     ): Model {
+        if (! array_key_exists($grantedRole, MembershipApplicationFormRules::applicationRoleOptions())) {
+            throw new InvalidArgumentException('Unsupported membership application approval role.');
+        }
+
         return OwnerContext::withOwner(null, function () use ($applicationId, $grantedRole, $note, $reviewerAccountId): Model {
             $application = $this->applicationClass()::query()->findOrFail($applicationId);
             $reviewer = $this->accountClass()::query()->findOrFail($reviewerAccountId);
@@ -39,7 +45,7 @@ final readonly class ApproveMembershipApplicationAction
             $this->approveApplication->handle(
                 $application,
                 $reviewer,
-                MemberRole::tryFrom($grantedRole) ?? MemberRole::Editor,
+                MemberRole::from($grantedRole),
                 $note,
             );
 

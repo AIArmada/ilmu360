@@ -70,14 +70,13 @@ final readonly class AddInstitutionVenueLinkAction
             }
 
             $now = now();
-            $table = DB::table('institution_venue');
-            $exists = $table
+            $exists = DB::table('institution_venue')
                 ->where('institution_id', $institutionId)
                 ->where('venue_id', $venueId)
                 ->exists();
 
             if ($exists) {
-                $table
+                DB::table('institution_venue')
                     ->where('institution_id', $institutionId)
                     ->where('venue_id', $venueId)
                     ->update([
@@ -89,7 +88,7 @@ final readonly class AddInstitutionVenueLinkAction
                 return;
             }
 
-            $table->insert([
+            DB::table('institution_venue')->insert([
                 'id' => (string) Str::uuid(),
                 'institution_id' => $institutionId,
                 'venue_id' => $venueId,

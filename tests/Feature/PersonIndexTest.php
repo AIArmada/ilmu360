@@ -6,7 +6,7 @@ use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -14,7 +14,7 @@ use App\Models\Language;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Features\Events\Services\EventKeyPersonSyncService;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Support\Search\PersonSearchService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -924,15 +924,15 @@ it('counts only upcoming public occurrences on the person index cards', function
         'visibility' => 'public',
     ]);
 
-    app(EventKeyPersonSyncService::class)->sync(
+    app(SyncEventKeyPeopleAction::class)->syncEvent(
         $upcomingEvent,
         [(string) $person->getKey()],
     );
-    app(EventKeyPersonSyncService::class)->sync(
+    app(SyncEventKeyPeopleAction::class)->syncEvent(
         $pastEvent,
         [(string) $person->getKey()],
     );
-    app(EventKeyPersonSyncService::class)->sync(
+    app(SyncEventKeyPeopleAction::class)->syncEvent(
         $pastAndUpcomingEvent,
         [(string) $person->getKey()],
     );
@@ -997,9 +997,9 @@ it('can filter the person directory to speakers with upcoming public events', fu
         'starts_at' => now()->addDays(3),
     ]);
 
-    app(EventKeyPersonSyncService::class)->sync($upcomingEvent, [(string) $upcomingSpeaker->getKey()]);
-    app(EventKeyPersonSyncService::class)->sync($pastEvent, [(string) $pastSpeaker->getKey()]);
-    app(EventKeyPersonSyncService::class)->sync($unlistedEvent, [(string) $unlistedSpeaker->getKey()]);
+    app(SyncEventKeyPeopleAction::class)->syncEvent($upcomingEvent, [(string) $upcomingSpeaker->getKey()]);
+    app(SyncEventKeyPeopleAction::class)->syncEvent($pastEvent, [(string) $pastSpeaker->getKey()]);
+    app(SyncEventKeyPeopleAction::class)->syncEvent($unlistedEvent, [(string) $unlistedSpeaker->getKey()]);
 
     $component = Livewire::test('pages.persons.index')
         ->call('toggleUpcomingOnly');

@@ -2,6 +2,7 @@
 
 use AIArmada\Membership\Actions\RevokeInvitationAction;
 use App\Enums\MemberSubjectType;
+use App\Features\Directory\Actions\Institutions\DeleteInstitutionAction;
 use App\Features\Membership\Actions\AcceptSubjectMemberInvitation;
 use App\Features\Membership\Actions\InviteSubjectMember;
 use App\Models\Institution;
@@ -211,7 +212,7 @@ it('rejects acceptance when the invited subject no longer exists', function () {
         now()->addWeek(),
     );
 
-    $institution->delete();
+    app(DeleteInstitutionAction::class)->handle($institution);
 
     expect(fn () => app(AcceptSubjectMemberInvitation::class)->handle($invitation->fresh() ?? $invitation, $invitee))
         ->toThrow(ValidationException::class);

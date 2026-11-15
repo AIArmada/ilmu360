@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Listeners;
 
-use App\Platform\Cache\PublicDirectoryCacheVersion;
+use App\Features\Directory\Api\PublicDirectoryCacheVersions;
 use App\Platform\Media\MediaChangeListener;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -14,10 +14,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 final readonly class MediaDirectoryCacheListener implements MediaChangeListener
 {
-    public function __construct(private PublicDirectoryCacheVersion $cacheVersion) {}
+    public function __construct(private PublicDirectoryCacheVersions $cacheVersions) {}
 
     public function mediaChanged(Media $media, string $change): void
     {
-        $this->cacheVersion->bumpForMedia($media);
+        $this->cacheVersions->bumpForMediaType((string) $media->model_type);
     }
 }

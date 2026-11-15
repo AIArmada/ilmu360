@@ -13,7 +13,6 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
-use App\Filament\Resources\Events\EventResource;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
@@ -31,6 +30,7 @@ use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Inspirations\Api\InspirationAdminContract;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
@@ -610,7 +610,7 @@ class AdminResourceMutationService
     {
         $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $this->isInspirationModel($record) || $this->isReportModel($record) || $record instanceof Series || $record instanceof Space
             ? []
-            : $this->contributionEntityMutationService->stateFor($record);
+            : $this->contributionEntityMutationService->stateForEntity($record);
 
         if ($record instanceof AddressArea) {
             $defaults = [
@@ -635,7 +635,7 @@ class AdminResourceMutationService
 
         if ($record instanceof DonationChannel) {
             $defaults = [
-                'donatable_type' => $this->normalizeDonationChannelOwnerType($record->donatable_type),
+                'donatable_type' => (string) $record->donatable_type,
                 'donatable_id' => (string) $record->donatable_id,
                 'label' => $record->label,
                 'recipient' => $record->recipient,
@@ -684,11 +684,6 @@ class AdminResourceMutationService
                     $defaults['address']['waze_url'],
                 );
             }
-
-            unset(
-                $defaults['institution_id'],
-                $defaults['institution_position'],
-            );
 
             $defaults['status'] = $record->status;
             $defaults['allow_public_event_submission'] = (bool) $record->allow_public_event_submission;
@@ -993,14 +988,14 @@ class AdminResourceMutationService
     private function normalizeDonationChannelPayload(array $validated, ?Model $record = null): array
     {
         $ownerType = array_key_exists('donatable_type', $validated)
-            ? $this->normalizeDonationChannelOwnerType($validated['donatable_type'])
-            : ($record instanceof DonationChannel ? $this->normalizeDonationChannelOwnerType($record->donatable_type) : null);
+            ? $validated['donatable_type']
+            : ($record instanceof DonationChannel ? (string) $record->donatable_type : null);
 
         $ownerId = array_key_exists('donatable_id', $validated)
             ? trim((string) $validated['donatable_id'])
             : ($record instanceof DonationChannel ? (string) $record->donatable_id : '');
 
-        if (! is_string($ownerType) || $ownerType === '') {
+        if (! is_string($ownerType) || ! in_array($ownerType, $this->donationChannelOwnerTypeValues(), true)) {
             throw ValidationException::withMessages([
                 'donatable_type' => __('The selected donation channel owner type is invalid.'),
             ]);
@@ -1026,20 +1021,6 @@ class AdminResourceMutationService
         return $validated;
     }
 
-    private function normalizeDonationChannelOwnerType(mixed $value): string
-    {
-        $normalized = is_scalar($value) ? trim((string) $value) : '';
-
-        return match ($normalized) {
-            'institution', 'institutions', Institution::class => (string) (new Institution)->getMorphClass(),
-            Person::class => (string) (new Person)->getMorphClass(),
-            'event', 'events', Event::class => (string) (new Event)->getMorphClass(),
-            default => throw ValidationException::withMessages([
-                'donatable_type' => __('The selected donation channel owner type is invalid.'),
-            ]),
-        };
-    }
-
     /**
      * @return class-string<Model>
      */
@@ -1063,21 +1044,6 @@ class AdminResourceMutationService
             (string) (new Person)->getMorphClass(),
             (string) (new Event)->getMorphClass(),
         ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function donationChannelAcceptedOwnerTypes(): array
-    {
-        return array_values(array_unique([
-            ...$this->donationChannelOwnerTypeValues(),
-            Institution::class,
-            Person::class,
-            Event::class,
-            'institutions',
-            'events',
-        ]));
     }
 
     /**
@@ -1187,12 +1153,6 @@ class AdminResourceMutationService
             'input_normalization' => [
                 'kind' => 'canonical_social_handle_storage',
                 'handle_platforms' => $this->socialHandlePlatforms(),
-                'platform_aliases' => [
-                    'x' => [
-                        'normalizes_to' => SocialPlatform::X->value,
-                        'accepted_by_write_validation' => false,
-                    ],
-                ],
                 'canonical_storage' => [
                     'identifier_field' => 'handle',
                     'url_field' => 'url',
@@ -1228,15 +1188,7 @@ class AdminResourceMutationService
     {
         return [
             $this->field('donatable_type', 'string', required: true, default: (string) (new Institution)->getMorphClass(), allowedValues: $this->donationChannelOwnerTypeValues(), meta: [
-                'mutation_semantics' => 'replace_scalar_with_owner_alias_normalization',
-                'accepted_aliases' => [
-                    'institutions' => (string) (new Institution)->getMorphClass(),
-                    Institution::class => (string) (new Institution)->getMorphClass(),
-                    'person', 'persons', Person::class => (string) (new Person)->getMorphClass(),
-                    'persons' => (string) (new Person)->getMorphClass(),
-                    'events' => (string) (new Event)->getMorphClass(),
-                    Event::class => (string) (new Event)->getMorphClass(),
-                ],
+                'mutation_semantics' => 'replace_scalar_with_canonical_owner_type',
                 'paired_with' => 'donatable_id',
             ]),
             $this->field('donatable_id', 'string', required: true, meta: [
@@ -1957,7 +1909,7 @@ class AdminResourceMutationService
         $maxUploadSize = 'max:'.$this->maxUploadSizeKb();
 
         return [
-            'donatable_type' => [$required, 'string', Rule::in($this->donationChannelAcceptedOwnerTypes())],
+            'donatable_type' => [$required, 'string', Rule::in($this->donationChannelOwnerTypeValues())],
             'donatable_id' => [$required, 'uuid'],
             'label' => ['nullable', 'string', 'max:255'],
             'recipient' => [$required, 'string', 'max:255'],

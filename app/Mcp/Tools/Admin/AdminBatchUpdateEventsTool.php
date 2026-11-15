@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Admin;
 
 use App\Enums\RegistrationScope;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Space;
-use App\Models\Venue;
+use App\Features\Directory\Api\DirectoryReader;
+use App\Features\Directory\Api\DirectoryRecordType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -42,10 +39,11 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
     protected string $title = 'Batch Update Events';
 
     #[\Override]
-    protected string $description = 'Use this MCP-only event wrapper to update multiple existing events in one request. Each item identifies the target event via event_key and resolves organizer, location, persons, and references by route keys before calling the shared admin event update path. person_keys and reference_keys are full-sync aliases for the underlying persons/references UUID arrays: omit the field or pass null to preserve existing relationships; pass [] to detach all; pass a non-empty array to replace all. Items are processed independently; the response contains a per-row result with status updated, validation_failed, unresolved_key, not_found, or error. Set validate_only=true to preview all rows without persisting. Include external_row_id per item for idempotency tracking and safe retries after interruption. Maximum 50 events per batch.';
+    protected string $description = 'Use this MCP event tool to update multiple existing events in one request. Each item identifies the target event via event_key and resolves organizer, location, persons, and references by route keys before calling the shared admin event update path. For person_keys and reference_keys, omit or pass null to preserve existing relationships; pass [] to detach all; pass a non-empty array of route keys (slugs or UUIDs) to replace all. Items are processed independently; the response contains a per-row result with status updated, validation_failed, unresolved_key, not_found, or error. Set validate_only=true to preview all rows without persisting. Include external_row_id per item for idempotency tracking and safe retries after interruption. Maximum 50 events per batch.';
 
     public function __construct(
         private readonly AdminResourceService $resourceService,
+        private readonly DirectoryReader $directoryReader,
     ) {}
 
     public function handle(Request $request): Generator
@@ -215,6 +213,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
                 ? $this->resolvePrimaryOrganizerIdentifier(
                     field: 'primary_organizer_key',
                     key: $primaryOrganizerKey,
+                    directoryReader: $this->directoryReader,
                 )
                 : null;
         }
@@ -224,7 +223,8 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
         if ($institutionKey !== null) {
             $payload['institution_id'] = $this->resolveRecordIdentifier(
                 field: 'institution_key',
-                modelClass: Institution::class,
+                type: DirectoryRecordType::Institution,
+                directoryReader: $this->directoryReader,
                 key: $institutionKey,
             );
         }
@@ -234,7 +234,8 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
         if ($venueKey !== null) {
             $payload['venue_id'] = $this->resolveRecordIdentifier(
                 field: 'venue_key',
-                modelClass: Venue::class,
+                type: DirectoryRecordType::Venue,
+                directoryReader: $this->directoryReader,
                 key: $venueKey,
             );
         }
@@ -244,7 +245,8 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
         if ($spaceKey !== null) {
             $payload['space_id'] = $this->resolveRecordIdentifier(
                 field: 'space_key',
-                modelClass: Space::class,
+                type: DirectoryRecordType::Space,
+                directoryReader: $this->directoryReader,
                 key: $spaceKey,
             );
         }
@@ -261,7 +263,8 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             $payload['persons'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
                     field: 'person_keys',
-                    modelClass: Person::class,
+                    type: DirectoryRecordType::Person,
+                    directoryReader: $this->directoryReader,
                     key: $key,
                 ),
                 $personKeys,
@@ -280,7 +283,8 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             $payload['references'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
                     field: 'reference_keys',
-                    modelClass: Reference::class,
+                    type: DirectoryRecordType::Reference,
+                    directoryReader: $this->directoryReader,
                     key: $key,
                 ),
                 $referenceKeys,
@@ -320,8 +324,8 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),
-            'person_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying persons UUID array. Omit or pass null to preserve currently attached persons. Pass [] to detach all persons. Pass a non-empty array of person slugs/UUIDs to replace all attached persons.'),
-            'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying references UUID array. Omit or pass null to preserve currently linked references. Pass [] to detach all references. Pass a non-empty array of reference slugs/UUIDs to replace all linked references.'),
+            'person_keys' => $schema->array()->items($schema->string())->nullable()->description('Person route keys (slugs or UUIDs). Omit or pass null to preserve currently attached persons. Pass [] to detach all persons. Pass a non-empty array to replace all attached persons.'),
+            'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('Reference route keys (slugs or UUIDs). Omit or pass null to preserve currently linked references. Pass [] to detach all references. Pass a non-empty array to replace all linked references.'),
             'languages' => $schema->array()->items($schema->string())->nullable(),
             'domain_tags' => $schema->array()->items($schema->string())->nullable(),
             'discipline_tags' => $schema->array()->items($schema->string())->nullable(),

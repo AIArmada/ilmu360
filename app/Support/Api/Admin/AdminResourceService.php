@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Event;
@@ -98,7 +97,7 @@ class AdminResourceService
                         'mcp_schema_tool' => 'admin-get-contribution-request-review-schema',
                         'mcp_tool' => 'admin-review-contribution-request',
                     ],
-                    'review_membership_claim' => [
+                    'review_membership_application' => [
                         'schema_endpoint_template' => route('api.admin.membership-applications.review-schema', ['recordKey' => 'recordKey'], false),
                         'endpoint_template' => route('api.admin.membership-applications.review', ['recordKey' => 'recordKey'], false),
                         'mcp_schema_tool' => 'admin-get-membership-application-review-schema',

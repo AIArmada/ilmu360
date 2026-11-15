@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Shared\Events\AccountEventFacts;
 
 /**
- * Interim account-scoped Events reader over the current tables.
+ * Root account-scoped Events fact reader used by account and reward projections.
  *
  * Events will expose this boundary from its own feature once the authoring
  * slice is extracted. Until then this adapter replaces the removed User

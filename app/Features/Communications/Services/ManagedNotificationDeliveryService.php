@@ -291,10 +291,11 @@ final readonly class ManagedNotificationDeliveryService implements ManagedNotifi
         $allPreSend = $deliveries->isNotEmpty();
 
         foreach ($deliveries as $delivery) {
-            $status = $delivery->status instanceof DeliveryStatus
-                ? $delivery->status
-                : DeliveryStatus::tryFrom((string) $delivery->status);
-            $channelStatuses[(string) $delivery->channel] = $status?->value ?? (string) $delivery->status;
+            $statusValue = $delivery->status instanceof DeliveryStatus
+                ? $delivery->status->value
+                : (string) $delivery->status;
+            $status = DeliveryStatus::tryFrom($statusValue);
+            $channelStatuses[(string) $delivery->channel] = $status->value ?? $statusValue;
             $hasDelivered = $hasDelivered || $this->isDelivered($status);
             $hasInFlight = $hasInFlight || $this->isInFlight($status);
             $hasAmbiguous = $hasAmbiguous || $this->isAmbiguous($status);

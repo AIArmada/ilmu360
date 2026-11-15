@@ -1,15 +1,15 @@
 <?php
 
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 
 beforeEach(function () {
@@ -94,20 +94,6 @@ it('updates the existing primary involvement when organizer changes', function (
     expect($involvement->getKey())->toBe($firstId)
         ->and($involvement->involveable_type)->toBe((new Person)->getMorphClass())
         ->and($involvement->involveable_id)->toBe((string) $person->getKey());
-});
-
-it('ignores legacy organizer metadata when no primary involvement exists', function () {
-    $event = Event::factory()->create();
-
-    $event->metadata = array_merge(
-        (array) $event->metadata,
-        ['organizer_type' => Person::class, 'organizer_id' => 'some-uuid'],
-    );
-    $event->save();
-
-    $fresh = $event->fresh();
-    expect($fresh->primaryOrganizerInvolvement)->toBeNull()
-        ->and($fresh->organizer)->toBeNull();
 });
 
 it('creates organizer involvement via submit-event flow with a person organizer', function () {

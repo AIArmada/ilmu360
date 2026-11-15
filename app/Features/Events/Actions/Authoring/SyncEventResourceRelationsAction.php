@@ -5,9 +5,7 @@ namespace App\Features\Events\Actions\Authoring;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
-use App\Features\Events\Services\EventKeyPersonSyncService;
 use App\Features\Registration\Api\AdmissionFacts;
-use App\Shared\Support\MorphAlias;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class SyncEventResourceRelationsAction
@@ -15,7 +13,7 @@ class SyncEventResourceRelationsAction
     use AsAction;
 
     public function __construct(
-        private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
+        private readonly SyncEventKeyPeopleAction $syncKeyPeople,
         private readonly AdmissionFacts $admissionFacts,
     ) {}
 
@@ -88,7 +86,7 @@ class SyncEventResourceRelationsAction
         app(SyncEventClassificationsAction::class)->handle($event, $classificationState);
 
         if ($syncKeyPeople) {
-            $this->eventKeyPersonSyncService->sync(
+            $this->syncKeyPeople->syncEvent(
                 $event,
                 is_array($state['persons'] ?? null) ? $state['persons'] : [],
                 $this->canonicalKeyPeople($state['other_key_people'] ?? []),
@@ -128,7 +126,7 @@ class SyncEventResourceRelationsAction
 
         return collect($rows)->filter(static fn (mixed $row): bool => is_array($row))->map(static fn (array $row): array => [
             'role_code' => $row['role_code'] ?? null,
-            'involveable_type' => MorphAlias::of(is_string($row['involveable_type'] ?? null) ? $row['involveable_type'] : null),
+            'involveable_type' => ($row['involveable_type'] ?? null) === 'person' ? 'person' : null,
             'involveable_id' => $row['involveable_id'] ?? null,
             'display_name' => $row['display_name'] ?? null,
             'visibility' => $row['visibility'] ?? 'public',

@@ -45,7 +45,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
 
             // Create review record
             OwnerContext::withOwner(null, fn () => ModerationReview::create([
-                'actionable_type' => Event::class,
+                'actionable_type' => $this->event->getMorphClass(),
                 'actionable_id' => $this->event->id,
                 'actioned_by_type' => (new User)->getMorphClass(),
                 'actioned_by_id' => $this->moderator?->id,

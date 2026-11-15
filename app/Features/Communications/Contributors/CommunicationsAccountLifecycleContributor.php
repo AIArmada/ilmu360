@@ -10,7 +10,6 @@ use AIArmada\Communications\Models\NotificationInbox;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\UserMorphType;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Preserves account communication preferences, destinations and inboxes
@@ -69,14 +68,14 @@ final readonly class CommunicationsAccountLifecycleContributor implements Accoun
 
     public function restore(string $accountId, array $snapshot): void
     {
-        $this->restoreModel(CommunicationPreference::class, $snapshot['notification_setting'] ?? null);
+        $this->restorePreference($snapshot['notification_setting'] ?? null);
 
         foreach ($snapshot['notification_destinations'] ?? [] as $attributes) {
-            $this->restoreModel(CommunicationDestination::class, $attributes);
+            $this->restoreDestination($attributes);
         }
 
         foreach ($snapshot['notification_inboxes'] ?? [] as $attributes) {
-            $this->restoreModel(NotificationInbox::class, $attributes);
+            $this->restoreInbox($attributes);
         }
     }
 
@@ -100,20 +99,40 @@ final readonly class CommunicationsAccountLifecycleContributor implements Accoun
             ->whereNull('scope_type');
     }
 
-    /**
-     * @param  class-string<Model>  $modelClass
-     */
-    private function restoreModel(string $modelClass, mixed $attributes): void
+    private function restorePreference(mixed $attributes): void
     {
         if (! is_array($attributes)) {
             return;
         }
 
-        /** @var Model $model */
-        $model = new $modelClass;
-        $model->timestamps = false;
-        $model->forceFill($attributes);
-        $model->saveQuietly();
+        $preference = new CommunicationPreference;
+        $preference->timestamps = false;
+        $preference->forceFill($attributes);
+        $preference->saveQuietly();
+    }
+
+    private function restoreDestination(mixed $attributes): void
+    {
+        if (! is_array($attributes)) {
+            return;
+        }
+
+        $destination = new CommunicationDestination;
+        $destination->timestamps = false;
+        $destination->forceFill($attributes);
+        $destination->saveQuietly();
+    }
+
+    private function restoreInbox(mixed $attributes): void
+    {
+        if (! is_array($attributes)) {
+            return;
+        }
+
+        $inbox = new NotificationInbox;
+        $inbox->timestamps = false;
+        $inbox->forceFill($attributes);
+        $inbox->saveQuietly();
     }
 
     private function userMorphClass(): string

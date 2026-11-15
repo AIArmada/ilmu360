@@ -299,14 +299,11 @@ All under prefix `/api/v1`. Routes grouped by auth middleware as defined in `rou
 
 | # | Method | URI | Server | Middleware | Purpose |
 |---|--------|-----|--------|-----------|---------|
-| 1 | GET (SSE) | `/mcp/admin` | `AdminServer` | `NormalizeMcpAcceptHeader`, `auth:sanctum`, `EnsureAdminMcpAccess` | Admin MCP SSE stream |
-| 2 | GET (SSE) | `/mcp/member` | `MemberServer` | `NormalizeMcpAcceptHeader`, `auth:sanctum`, `EnsureMemberMcpAccess` | Member MCP SSE stream |
-| 3 | N/A | `/ilmu360-admin-local` | `AdminServer` | (local only) | Admin MCP local transport |
-| 4 | N/A | `/ilmu360-member-local` | `MemberServer` | (local only) | Member MCP local transport |
-| 5 | GET | `/mcp/admin` | `AdminMcpController@stream` | `NormalizeMcpAcceptHeader`, `auth:sanctum`, `AddWwwAuthenticateHeader`, `EnsureAdminMcpAccess` | HTTP stream |
-| 6 | DELETE | `/mcp/admin` | `AdminMcpController@destroy` | same as above | Destroy session |
-| 7 | GET | `/mcp/member` | `MemberMcpController@stream` | `NormalizeMcpAcceptHeader`, `auth:sanctum`, `AddWwwAuthenticateHeader`, `EnsureMemberMcpAccess` | HTTP stream |
-| 8 | DELETE | `/mcp/member` | `MemberMcpController@destroy` | same as above | Destroy session |
+| 1 | POST (Streamable HTTP) | `/mcp/admin` | `AdminServer` | `auth:sanctum,api`, `EnsureAdminMcpAccess` | Admin MCP requests |
+| 2 | POST (Streamable HTTP) | `/mcp/member` | `MemberServer` | `auth:sanctum,api`, `EnsureMemberMcpAccess` | Member MCP requests |
+| 3 | GET/HEAD, DELETE | `/mcp/admin`, `/mcp/member` | Laravel MCP | Returns 405 with `Allow: POST` | Unsupported transport methods |
+| 4 | N/A | `ilmu360-admin-local` | `AdminServer` | (local only) | Admin MCP local transport |
+| 5 | N/A | `ilmu360-member-local` | `MemberServer` | (local only) | Member MCP local transport |
 
 Also: `oauth/mcp` — MCP OAuth routes (auto-registered via `Mcp::oauthRoutes()`)
 
@@ -547,7 +544,7 @@ Form → Livewire submit()
         ├── SyncEventScheduleAction                            → event_occurrences
         ├── CreateEventSessionAction (if session)              → event_sessions
         ├── $event->setPrimaryOrganizer(organizer)             → event_involvements
-        ├── EventKeyPersonSyncService::sync()                  → event_key_people
+        ├── SyncEventKeyPeopleAction::handle()                 → event_involvements
         ├── $event->syncLanguages(languageIds)                 → event_languages
         ├── SyncEventClassificationsAction                     → event_classifications
         ├── Save media (cover/poster/gallery)                  → media
@@ -565,9 +562,8 @@ Form → Livewire submit()
 - `events` — core event
 - `event_occurrences` — schedule
 - `event_sessions` — (if session)
-- `event_involvements` — primary organizer
+- `event_involvements` — primary organizer, speakers and other roles
 - `event_locations` — venue/institution location
-- `event_key_people` — speakers + roles
 - `event_languages` — language links
 - `event_classifications` — categories, domains, disciplines, sources, issues
 - `event_submissions` — submission record
@@ -740,16 +736,6 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | `admin-batch-create-events` | JSON array | 50 | Events (full creation) |
 | `admin-batch-create-records` | JSON array | 100 | Any writable resource |
 
-### 6.4 Backfill Jobs
-
-| Job | Model | Purpose |
-|-----|-------|---------|
-| `BackfillEventSlugs` | `Event` | Regenerate slugs |
-| `BackfillPersonSlugs` | `Person` | Regenerate slugs |
-| `BackfillInstitutionSlugs` | `Institution` | Regenerate slugs |
-| `BackfillVenueSlugs` | `Venue` | Regenerate slugs |
-| `BackfillReferenceSlugs` | `Reference` | Regenerate slugs |
-
 ---
 
 ## 7. Complete Model Inventory
@@ -781,7 +767,7 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | 21 | `ModerationReview` | `moderation_reviews` (package) | UUID | Audits | — | `AIArmada\Moderation\Models\ModerationAction` |
 | 22 | `MediaLink` | `media_links` | UUID | Audits, HasFactory, HasUuids | `MediaLinkFactory` | `Model` |
 | 23 | `MembershipApplication` | `membership_applications` (package) | UUID | Audits, HasFactory, InteractsWithMedia | `MembershipApplicationFactory` | `AIArmada\Membership\Models\MembershipApplication` |
-| 24 | `EventKeyPerson` | `event_key_people` (package) | UUID | — | — | `AIArmada\Events\Models\EventInvolvement` |
+| 24 | `EventKeyPerson` | `event_involvements` (package) | UUID | — | — | `AIArmada\Events\Models\EventInvolvement` |
 | 25 | `EventKeyPersonPivot` | `event_involvements` | UUID | HasUuids | — | `Pivot` |
 | 26 | `EventReferencePivot` | `event_references` | UUID | HasUuids | — | `MorphPivot` |
 | 27 | `Inspiration` | `inspirations` | UUID | Audits, HasFactory, HasUuids, InteractsWithMedia | `InspirationFactory` | `Model` |
@@ -974,7 +960,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `ContributionEntityMutationService` | Contributions | Apply contribution changes to entities |
 | `EventCategoryCatalog` | Events | Category catalog with rules |
 | `EventCategoryPolicy` | Events | Category-based policies |
-| `EventKeyPersonSyncService` | Events | Sync key people relationships |
+| `SyncEventKeyPeopleAction` | Events | Sync event involvements |
 | `EventSearchService` | Events | Advanced event search with filters |
 | `ModerationService` | Moderation | State machine transitions for moderation |
 | `PostgresEventDiscovery` | Events | Postgres-based event discovery |
@@ -1048,11 +1034,6 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 |-----|-------|---------|
 | `DispatchEventReminderNotifications` | default (every 15 min) | Send event reminders |
 | `EscalatePendingEvents` | default (hourly) | Escalate stuck pending events |
-| `BackfillEventSlugs` | default | Regenerate event slugs |
-| `BackfillPersonSlugs` | default | Regenerate person slugs |
-| `BackfillInstitutionSlugs` | default | Regenerate institution slugs |
-| `BackfillVenueSlugs` | default | Regenerate venue slugs |
-| `BackfillReferenceSlugs` | default | Regenerate reference slugs |
 | `GenerateResponsiveImagesJob` | media | Generate responsive image conversions |
 
 ---
@@ -1070,11 +1051,6 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `IssueMcpToken` | `mcp:token {email} {name=opencode-mcp} {--server=admin}` | Issue MCP auth token |
 | `MigrateMediaToNewStructure` | `app:media:migrate-structure {--dry-run} {--force}` | Migrate media file structure |
 | `PruneOrphanedEntities` | `app:prune-orphaned-entities {--hours=48} {--dry-run}` | Remove orphaned records |
-| `QueueBackfillEventSlugs` | `events:queue-slug-backfill` | Queue slug backfill job |
-| `QueueBackfillInstitutionSlugs` | `institutions:queue-slug-backfill` | Queue slug backfill |
-| `QueueBackfillReferenceSlugs` | `references:queue-slug-backfill` | Queue slug backfill |
-| `QueueBackfillPersonSlugs` | `persons:queue-slug-backfill` | Queue slug backfill |
-| `QueueBackfillVenueSlugs` | `venues:queue-slug-backfill` | Queue slug backfill |
 | `SyncPublicSubmissionLocks` | `app:sync-public-submission-locks` | Sync submission lock state |
 
 ---
@@ -1108,8 +1084,7 @@ User fills 5-step form (Livewire Anonymous Component)
             ├── events: title, slug, description, timezone, status, visibility, gender, etc.
             ├── event_occurrences: starts_at, ends_at, timing_mode
             ├── event_locations: venue_id, institution_id, space_ids
-            ├── event_involvements: primary organizer (institution/person)
-            ├── event_key_people: speakers + other roles
+            ├── event_involvements: organizer, speakers + other roles
             ├── event_languages: language IDs
             ├── event_classifications: category/domain/discipline/source/issue
             └── event_submissions: submitter info, status
@@ -1270,7 +1245,7 @@ institutions ──hasMany──→ member_invitations (morph)
 
 persons ──belongsToMany──→ events (via involvements)
 persons ──belongsToMany──→ institutions
-persons ──hasMany──→ event_key_people
+persons ──hasMany──→ event_involvements
 
 addresses ──morphTo──→ addressable (institution, person, venue, event)
 contact_methods ──morphTo──→ contactable

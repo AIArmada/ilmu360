@@ -335,7 +335,7 @@
                     @endif
                     @if($replacementEvent instanceof \App\Models\Event)
                         <a href="{{ route('events.show', $replacementEvent) }}" wire:navigate class="mt-3.5 inline-flex items-center gap-2 rounded-full bg-[#14342e] px-4 py-2 text-[13px] font-semibold text-[#fdfaf2] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#1d4a41] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
-                            {{ __('Lihat majlis pengganti') }}
+                            {{ __('Lihat Majlis Pengganti') }}
                             <span aria-hidden="true">→</span>
                         </a>
                     @endif

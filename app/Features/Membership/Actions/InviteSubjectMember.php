@@ -53,7 +53,6 @@ final readonly class InviteSubjectMember
             (int) config('membership.invitations.default_expiry_days', 14)
         );
 
-        /** @var class-string<MembershipInvitation> $invitationClass */
         $invitationClass = MorphModelResolver::resolve('member_invitation');
 
         $invitation = new $invitationClass;
@@ -89,7 +88,6 @@ final readonly class InviteSubjectMember
 
     private function assertNoPendingInvitation(Model $subject, string $email): void
     {
-        /** @var class-string<MembershipInvitation> $invitationClass */
         $invitationClass = MorphModelResolver::resolve('member_invitation');
 
         $exists = $invitationClass::query()

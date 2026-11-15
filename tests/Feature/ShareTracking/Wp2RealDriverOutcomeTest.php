@@ -684,7 +684,7 @@ function wp2MalformedKeyCase(TestCase $testCase): void
         $service = app(AffiliatesShareTrackingService::class);
 
         $malformed = [
-            'legacy:signup:user:'.((string) Str::uuid()),
+            'unrecognized:signup:user:'.((string) Str::uuid()),
             'share-outcome:event_save:response:'.((string) Str::uuid()),
             'share-outcome:event_save:bookmark:not-a-uuid',
             'share-outcome:event_save:bookmark:',

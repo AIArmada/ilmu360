@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\Persons;
 
 use AIArmada\Persons\Enums\Gender;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Person;
 
 /**
  * Apply an approved contribution update to an existing person.
@@ -21,7 +21,7 @@ final readonly class ApplyPersonContributionAction
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed> Changed attributes.
      */
-    public function handle(Model $person, array $payload): array
+    public function handle(Person $person, array $payload): array
     {
         $person->fill([
             'name' => $payload['name'] ?? $person->getAttribute('name'),

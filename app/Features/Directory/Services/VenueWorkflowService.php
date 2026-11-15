@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Services;
 
-use App\Features\Directory\Actions\Venues\BackfillVenueSlugsAction;
 use App\Features\Directory\Actions\Venues\ChangeVenueStatusAction;
 use App\Features\Directory\Actions\Venues\ChangeVenueVisibilityAction;
 use App\Features\Directory\Actions\Venues\CreateVenueAction;
 use App\Features\Directory\Actions\Venues\DeleteVenueAction;
+use App\Features\Directory\Actions\Venues\DetachVenueVerifierAction;
 use App\Features\Directory\Actions\Venues\GenerateVenueSlugAction;
+use App\Features\Directory\Actions\Venues\RestoreVenueVerifierAction;
 use App\Features\Directory\Actions\Venues\SaveVenueAction;
 use App\Features\Directory\Actions\Venues\SyncVenueRelationsAction;
 use App\Features\Directory\Api\VenueWorkflow;
 use App\Features\Directory\Support\DirectoryModel;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Venue;
 use RuntimeException;
 
 /**
@@ -29,8 +30,9 @@ final readonly class VenueWorkflowService implements VenueWorkflow
         private ChangeVenueStatusAction $changeVenueStatus,
         private ChangeVenueVisibilityAction $changeVenueVisibility,
         private GenerateVenueSlugAction $generateVenueSlug,
-        private BackfillVenueSlugsAction $backfillVenueSlugs,
         private SyncVenueRelationsAction $syncVenueRelations,
+        private DetachVenueVerifierAction $detachVenueVerifier,
+        private RestoreVenueVerifierAction $restoreVenueVerifier,
     ) {}
 
     public function createFromForm(array $payload): string
@@ -50,7 +52,7 @@ final readonly class VenueWorkflowService implements VenueWorkflow
         $deleted = 0;
 
         foreach (DirectoryModel::query('venue')->whereKey($venueIds)->get() as $venue) {
-            if (! $venue instanceof Model) {
+            if (! $venue instanceof Venue) {
                 continue;
             }
 
@@ -86,16 +88,21 @@ final readonly class VenueWorkflowService implements VenueWorkflow
         return $this->generateVenueSlug->syncVenueSlugsForName($name);
     }
 
-    public function backfillSlugs(array $venueIds = []): array
+    public function detachVerifier(string $accountId): void
     {
-        return $this->backfillVenueSlugs->handle($venueIds);
+        $this->detachVenueVerifier->handle($accountId);
     }
 
-    private function venue(string $venueId): Model
+    public function restoreVerifier(string $accountId, array $venueIds): void
+    {
+        $this->restoreVenueVerifier->handle($accountId, $venueIds);
+    }
+
+    private function venue(string $venueId): Venue
     {
         $venue = DirectoryModel::query('venue')->find($venueId);
 
-        if (! $venue instanceof Model) {
+        if (! $venue instanceof Venue) {
             throw new RuntimeException("Venue [{$venueId}] was not found.");
         }
 

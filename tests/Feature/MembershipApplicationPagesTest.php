@@ -4,14 +4,14 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
+use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
+use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
+use App\Filament\Resources\MembershipApplications\Support\MembershipApplicationAdminPresenter;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
-use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
-use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Illuminate\Http\UploadedFile;
@@ -296,7 +296,7 @@ it('shows claim conflicts on a visible field and does not save profile data on f
             ->exists())->toBeFalse();
 });
 
-it('rejects forged membership role and relationship values', function () {
+it('rejects forged membership role and relationship values', function (string $role) {
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['status' => 'verified']);
 
@@ -305,11 +305,14 @@ it('rejects forged membership role and relationship values', function () {
             'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
             'subjectId' => $institution->getKey(),
         ])
-        ->set('data.applied_role', 'not-a-role')
+        ->set('data.applied_role', $role)
         ->set('data.relationship', 'self')
         ->call('submit')
         ->assertHasErrors(['data.applied_role']);
-});
+})->with([
+    'unknown role' => 'not-a-role',
+    'view-only role' => MemberRole::Viewer->value,
+]);
 
 it('requires relationship detail when Other is selected', function () {
     $user = User::factory()->create();
@@ -364,7 +367,7 @@ it('shows the relationship detail next to Other for moderators', function () {
             'meta' => ['relationship' => 'other', 'relationship_detail' => 'Bekas pelajar'],
         ]);
 
-    expect(MembershipApplicationPresenter::relationshipLabel($claim))->toBe('Lain-lain (Bekas pelajar)');
+    expect(MembershipApplicationAdminPresenter::relationshipLabel($claim))->toBe('Lain-lain (Bekas pelajar)');
 });
 
 it('stores an optional family detail and shows it in the relationship label', function () {
@@ -388,7 +391,7 @@ it('stores an optional family detail and shows it in the relationship label', fu
     $claim = MembershipApplication::query()->where('applicant_id', $user->getKey())->firstOrFail();
 
     expect($claim->meta['relationship_detail'])->toBe('Isteri')
-        ->and(MembershipApplicationPresenter::relationshipLabel($claim))->toBe('Ahli keluarga (Isteri)');
+        ->and(MembershipApplicationAdminPresenter::relationshipLabel($claim))->toBe('Ahli keluarga (Isteri)');
 });
 
 it('ignores relationship detail for options that do not accept it', function () {
@@ -412,7 +415,7 @@ it('ignores relationship detail for options that do not accept it', function () 
     $claim = MembershipApplication::query()->where('applicant_id', $user->getKey())->firstOrFail();
 
     expect($claim->meta['relationship_detail'])->toBeNull()
-        ->and(MembershipApplicationPresenter::relationshipLabel($claim))->toBe('Ahli Pasukan');
+        ->and(MembershipApplicationAdminPresenter::relationshipLabel($claim))->toBe('Ahli Pasukan');
 });
 
 it('renders the public membership claim page in Malay without a side-by-side layout', function () {

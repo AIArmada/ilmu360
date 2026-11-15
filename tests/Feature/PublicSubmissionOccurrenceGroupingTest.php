@@ -12,14 +12,10 @@ use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSubmissionLog;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Actions\Events\Submission\ModerateEventOccurrenceSubmissionAction;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Data\Api\Event\EventPayloadData;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -27,6 +23,10 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Services\PublicScheduleDiscoveryService;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Events\PublicScheduleSlug;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -351,7 +351,7 @@ it('matches the canonical parent identity and keeps each prayer expression on it
     $institution = publicOccurrenceGroupingInstitution();
     $first = app(SubmitFrontendEventAction::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
-            'title' => 'Legacy Topic',
+            'title' => 'Shared Topic',
             'event_date' => now()->addDays(8)->toDateString(),
         ]),
         request: publicOccurrenceGroupingRequest(),
@@ -370,7 +370,7 @@ it('matches the canonical parent identity and keeps each prayer expression on it
     expect($second['event']->getKey())->toBe($event->getKey())
         ->and($second['parent_created'])->toBeFalse()
         ->and($event->fresh()->occurrences()->count())->toBe(2)
-        ->and($occurrence->fresh()->title)->toBe('Legacy Topic')
+        ->and($occurrence->fresh()->title)->toBe('Shared Topic')
         ->and(EventTimeExpression::query()->where('event_occurrence_id', $occurrence->getKey())->sole()->anchor_code)->toBe('maghrib')
         ->and(EventTimeExpression::query()->where('event_occurrence_id', $second['occurrence']->getKey())->sole()->anchor_code)->toBe('maghrib')
         ->and(EventTimeExpression::query()->where('event_id', $event->getKey())->whereNull('event_occurrence_id')->count())->toBe(0);

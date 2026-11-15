@@ -61,7 +61,6 @@ use App\Checkout\ShareCheckoutStepContributor;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
-use App\Features\Directory\Api\DirectoryAdminContract;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Engagement\Api\EventEngagement;
@@ -132,6 +131,8 @@ use App\Observers\TitleCategoryObserver;
 use App\Observers\UserObserver;
 use App\Observers\VenueObserver;
 use App\Platform\Api\ApiErrorDetailsEnricher;
+use App\Platform\Auditing\AuditRecorder;
+use App\Platform\Auditing\EloquentAuditRecorder;
 use App\Platform\Auth\EloquentAccountAccess;
 use App\Platform\Auth\EloquentAccountDirectory;
 use App\Platform\Auth\EloquentAccountSettingsStore;
@@ -153,7 +154,6 @@ use App\Services\Captcha\TurnstileVerifier;
 use App\Services\ContributionEntityMutationService;
 use App\Services\Notifications\ContributionRequestNotificationService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountLifecycleContributor;
@@ -167,11 +167,7 @@ use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Contributions\InstitutionClaimGuard;
-use App\Shared\Directory\DirectoryCatalog;
-use App\Shared\Directory\PrayerInstitutionCatalog;
 use App\Shared\Directory\ReferenceScopedSearch;
-use App\Shared\Directory\SpaceEligibilityResolver;
-use App\Shared\Directory\SubmissionEligibilitySync;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
 use App\Shared\Discovery\SearchFilterNormalizer;
@@ -181,11 +177,9 @@ use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\Events\AccountEventFacts;
 use App\Shared\Language\LanguageCatalog;
 use App\Shared\Location\VisitorCountryResolving;
-use App\Shared\Membership\MembershipApplicationReader;
 use App\Shared\Membership\MembershipPermissionEvaluator;
 use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Shared\Registration\CheckInNotifier;
-use App\Shared\Reports\ReportEscalation;
 use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\ShareTracking\ActiveAttribution;
 use App\Shared\ShareTracking\ClaimRecipients;
@@ -198,34 +192,27 @@ use App\Shared\Time\UserDateTimeFormatting;
 use App\Support\Api\Admin\AdminValidateOnlyRemediationEnricher;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Support\Auth\SignupAttributionContextResolverAdapter;
-use App\Support\Language\DatabaseLanguageCatalog;
 use App\Support\Authz\EloquentScopedMembershipRoleStore;
 use App\Support\Authz\MemberPermissionGate;
-use App\Support\Directory\DirectoryAccountLifecycleContributor;
-use App\Support\Directory\EloquentDirectoryAdmin;
-use App\Support\Directory\EloquentDirectoryCatalog;
-use App\Support\Directory\EloquentDirectoryCommands;
+use App\Support\Directory\DirectoryCommandsAdapter;
 use App\Support\Directory\EloquentDirectoryReader;
-use App\Support\Directory\EloquentPrayerInstitutionCatalog;
 use App\Support\Discovery\DatabaseSearchFilterLabels;
 use App\Support\Discovery\EventSavedSearchExecutor;
 use App\Support\Discovery\EventSearchFilterCatalog;
 use App\Support\Discovery\EventSearchFilterNormalizer;
 use App\Support\Discovery\EventSearchFilterRules;
 use App\Support\Engagement\EloquentEngagementReader;
-use App\Support\Engagement\EngagementAccountLifecycleContributor;
 use App\Support\Events\EloquentAccountEventFacts;
 use App\Support\Filament\ContentVersionedJs;
+use App\Support\Language\DatabaseLanguageCatalog;
 use App\Support\Location\VisitorCountryResolver;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
-use App\Support\Membership\EloquentMembershipApplicationReader;
 use App\Support\Membership\EloquentMembershipSubjectCatalog;
 use App\Support\Moderation\ModerationAccountLifecycleContributor;
 use App\Support\Passport\PassportKeyProvisioner;
 use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Support\Reports\CompositeReportSubjectResolver;
-use App\Support\Reports\GlobalReportEscalation;
 use App\Support\Rewards\CompositeRewardSourceFactReader;
 use App\Support\Rewards\ShareCorrectionKeySource;
 use App\Support\Search\Adapters\InstitutionResourceSearchAdapter;
@@ -239,7 +226,6 @@ use App\Support\ShareTracking\SavedSearchOutcomeRecorder;
 use App\Support\ShareTracking\ShareTrackingActiveAttribution;
 use App\Support\ShareTracking\ShareTrackingParticipationAttribution;
 use App\Support\ShareTracking\ShareTrackingSignupRecorder;
-use App\Support\Submission\PublicSubmissionEligibilitySync;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -302,6 +288,7 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
+        $this->app->bind(AuditRecorder::class, EloquentAuditRecorder::class);
         $this->app->bind(AccountAccess::class, EloquentAccountAccess::class);
         $this->app->bind(AccountDirectory::class, EloquentAccountDirectory::class);
         $this->app->bind(LanguageCatalog::class, DatabaseLanguageCatalog::class);
@@ -313,17 +300,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ParticipationAttribution::class, ShareTrackingParticipationAttribution::class);
         $this->app->bind(ActiveAttribution::class, ShareTrackingActiveAttribution::class);
         $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
-        $this->app->bind(PrayerInstitutionCatalog::class, EloquentPrayerInstitutionCatalog::class);
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(ScopedMembershipRoleStore::class, EloquentScopedMembershipRoleStore::class);
         $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);
         $this->app->bind(MembershipPermissionEvaluator::class, MemberPermissionGate::class);
-        $this->app->bind(MembershipApplicationReader::class, EloquentMembershipApplicationReader::class);
-        $this->app->bind(DirectoryCatalog::class, EloquentDirectoryCatalog::class);
         $this->app->bind(DirectoryReader::class, EloquentDirectoryReader::class);
-        $this->app->bind(DirectoryCommands::class, EloquentDirectoryCommands::class);
-        $this->app->bind(DirectoryAdminContract::class, EloquentDirectoryAdmin::class);
-        $this->app->bind(SubmissionEligibilitySync::class, PublicSubmissionEligibilitySync::class);
+        $this->app->bind(DirectoryCommands::class, DirectoryCommandsAdapter::class);
         $this->app->bind(AccountEventFacts::class, EloquentAccountEventFacts::class);
         $this->app->bind(EngagementReader::class, EloquentEngagementReader::class);
         $this->app->bind(ShareAnalytics::class, ShareAnalyticsReader::class);
@@ -336,12 +318,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
         $this->app->bind(InstitutionClaimGuard::class, EnsureUniqueContributionCreateAction::class);
         $this->app->tag([
-            DirectoryAccountLifecycleContributor::class,
             ModerationAccountLifecycleContributor::class,
-            EngagementAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
 
-        $this->app->bind(ReportEscalation::class, GlobalReportEscalation::class);
         $this->app->bind(ReportSubjectResolver::class, CompositeReportSubjectResolver::class);
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
         $this->app->bind(SearchFilterCatalog::class, EventSearchFilterCatalog::class);
@@ -361,8 +340,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ReferenceScopedSearch::class, ReferenceSearchService::class);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
-
-        $this->app->singleton(SpaceEligibilityResolver::class, DefaultSpaceEligibilityResolver::class);
 
         $this->registerPublicSlugRegistry();
 
@@ -507,10 +484,7 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        // Merged map, not enforced: legacy organizer-involvement rows may still
-        // store fully-qualified class names (normalized to aliases by migration
-        // + MorphAlias-tolerant resolvers; see EventOrganizerInvolvementSyncTest).
-        // Writes canonicalize through getMorphClass().
+        // Merged map, not enforced: polymorphic writes use configured aliases.
         Relation::morphMap([
             'address' => Address::class,
 

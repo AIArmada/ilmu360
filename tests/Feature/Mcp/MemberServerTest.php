@@ -6,11 +6,7 @@ use AIArmada\Persons\Enums\TitleUsagePosition;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Enums\EventChangeSeverity;
-use App\Shared\Events\Enums\EventChangeType;
 use App\Enums\MemberSubjectType;
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Mcp\Prompts\MemberDocumentationToolRoutingPrompt;
@@ -44,6 +40,10 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Events\Enums\EventChangeType;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Mcp\MemberMcpDocumentationPreflight;
 use App\Support\Search\PersonSearchService;
@@ -532,7 +532,7 @@ it('returns member update schema and updates institutions through member MCP wri
             ->where('data.schema.endpoint', null)
             ->where('data.schema.content_type', 'application/json')
             ->where('data.schema.media_uploads_supported', true)
-            ->where('data.schema.media_upload_transport', 'json_base64_descriptor_or_download_url')
+            ->where('data.schema.media_upload_transport', 'json_file_descriptor')
             ->where('data.schema.unsupported_fields', [])
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
@@ -545,8 +545,8 @@ it('returns member update schema and updates institutions through member MCP wri
                     && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && $contactItemFields->has('type')
                     && $contactItemFields->has('value')
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
+                    && in_array('x', data_get($fieldMap->get('social_media'), 'input_normalization.handle_platforms', []), true)
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases') === null;
             })
             ->etc());
 
@@ -613,8 +613,8 @@ it('returns member update schema for persons with surfaced mutation semantics', 
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'invalid_without_country'
                     && data_get($fieldMap->get('address.country_id'), 'required_when_parent_present_on_update') === true
                     && data_get($fieldMap->get('language_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false
+                    && in_array('x', data_get($fieldMap->get('social_media'), 'input_normalization.handle_platforms', []), true)
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases') === null
                     && data_get($fieldMap->get('name'), 'required') === true
                     && data_get($fieldMap->get('gender'), 'allowed_values') !== null;
             })
@@ -662,8 +662,8 @@ it('returns member update schema for references with surfaced mutation semantics
                     && data_get($fieldMap->get('author_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
                     && data_get($fieldMap->get('publication_year'), 'normalization.empty_string_at_mutation_layer') === 'null'
                     && data_get($fieldMap->get('social_media'), 'collection_semantics.submitted_array') === 'replace_collection'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
+                    && in_array('x', data_get($fieldMap->get('social_media'), 'input_normalization.handle_platforms', []), true)
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases') === null;
             })
             ->etc());
 });
@@ -995,38 +995,12 @@ it('keeps admin and member MCP boundaries separate', function () {
         ->assertHasErrors(['Forbidden.']);
 });
 
-it('serves an authenticated event stream compatibility endpoint for /mcp/member', function () {
-    [$member] = institutionMemberMcpContext();
-    $token = $member->createToken('mcp-member-http-test', [McpTokenManager::MEMBER_ABILITY])->plainTextToken;
-
-    $response = $this->withToken($token)
-        ->get('/mcp/member');
-
-    $response->assertOk();
-    expect($response->headers->get('content-type'))->toContain('text/event-stream');
-    expect($response->streamedContent())->toContain(': keep-alive');
-});
-
-it('returns a bearer-auth challenge for unauthenticated member MCP stream requests', function () {
-    $response = $this->withHeaders([
-        'Accept' => 'text/event-stream',
-    ])->get('/mcp/member');
+it('returns a bearer-auth challenge for unauthenticated member MCP requests', function () {
+    $response = $this->postJson('/mcp/member', []);
 
     $response->assertUnauthorized();
     $response->assertHeader('WWW-Authenticate');
     expect((string) $response->headers->get('WWW-Authenticate'))->toContain('Bearer realm="mcp"');
-});
-
-it('serves the member MCP stream for Passport-authenticated eligible users', function () {
-    [$member] = institutionMemberMcpContext();
-
-    Passport::actingAs(memberPassportUser($member), ['mcp:use']);
-
-    $response = $this->get('/mcp/member');
-
-    $response->assertOk();
-    expect($response->headers->get('content-type'))->toContain('text/event-stream');
-    expect($response->streamedContent())->toContain(': keep-alive');
 });
 
 it('initializes and lists member MCP tools over the HTTP endpoint for Passport-authenticated members', function () {
@@ -1170,11 +1144,17 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
 
     $evidenceVariants = data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.anyOf');
 
-    expect($evidenceVariants)->toHaveCount(2)
+    expect($evidenceVariants)->toHaveCount(3)
         ->and($evidenceVariants[0]['required'] ?? [])->toContain('filename', 'content_base64')
         ->and($evidenceVariants[1]['required'] ?? [])->toContain('filename', 'content_url')
+        ->and($evidenceVariants[2]['required'] ?? [])->toContain('filename', 'download_url')
         ->and($evidenceVariants[0]['properties']['content_base64']['type'] ?? null)->toBe('string')
-        ->and($evidenceVariants[1]['properties']['content_url']['type'] ?? null)->toBe('string');
+        ->and($evidenceVariants[1]['properties']['content_url']['type'] ?? null)->toBe('string')
+        ->and($evidenceVariants[2]['properties']['download_url']['type'] ?? null)->toBe('string')
+        ->and($evidenceVariants[0]['properties'] ?? [])->not->toHaveKey('content_url')
+        ->and($evidenceVariants[1]['properties'] ?? [])->not->toHaveKey('content_base64')
+        ->and($evidenceVariants[2]['properties'] ?? [])->not->toHaveKey('content_base64')
+        ->and($evidenceVariants[2]['properties'] ?? [])->not->toHaveKey('content_url');
 
     $githubIssueCategorySchema = data_get($tools->get('member-create-github-issue'), 'inputSchema.properties.category');
 
@@ -1184,24 +1164,24 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
         ->toContain('bug', 'docs_mismatch', 'proposal', 'feature_request', 'parameter_change', 'other');
 });
 
-it('returns forbidden for Passport-authenticated users without member access on the member MCP stream endpoint', function () {
+it('returns forbidden for Passport-authenticated users without member access on the member MCP endpoint', function () {
     $user = User::factory()->create();
 
     Passport::actingAs(memberPassportUser($user), ['mcp:use']);
 
-    $this->get('/mcp/member')->assertForbidden();
+    $this->postJson('/mcp/member', [])->assertForbidden();
 });
 
-it('returns forbidden for authenticated users without member access on the member MCP stream endpoint', function () {
+it('returns forbidden for authenticated users without member access on the member MCP endpoint', function () {
     $user = User::factory()->create();
     $token = $user->createToken('mcp-member-http-test', [McpTokenManager::MEMBER_ABILITY])->plainTextToken;
 
     $this->withToken($token)
-        ->get('/mcp/member')
+        ->postJson('/mcp/member', [])
         ->assertForbidden();
 });
 
-it('rejects admin-scoped tokens on the member MCP stream endpoint even for dual-scope users', function () {
+it('rejects admin-scoped tokens on the member MCP endpoint even for dual-scope users', function () {
     $member = globalRoleMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -1212,11 +1192,11 @@ it('rejects admin-scoped tokens on the member MCP stream endpoint even for dual-
     $token = $member->createToken('mcp-admin-only', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
 
     $this->withToken($token)
-        ->get('/mcp/member')
+        ->postJson('/mcp/member', [])
         ->assertForbidden();
 });
 
-it('rejects legacy wildcard MCP tokens on the member MCP stream endpoint', function () {
+it('rejects wildcard-scope MCP tokens on the member MCP endpoint', function () {
     $member = globalRoleMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -1224,10 +1204,10 @@ it('rejects legacy wildcard MCP tokens on the member MCP stream endpoint', funct
 
     addTestMember($institution, $member, 'admin');
 
-    $token = $member->createToken('legacy-admin-mcp')->plainTextToken;
+    $token = $member->createToken('wildcard-admin-mcp')->plainTextToken;
 
     $this->withToken($token)
-        ->get('/mcp/member')
+        ->postJson('/mcp/member', [])
         ->assertForbidden();
 });
 

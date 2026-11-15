@@ -3,18 +3,16 @@
 namespace App\Actions\Events\Authoring;
 
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventModeration;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ModerationService;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Interim admin-save adapter.
+ * Composes feature-owned admin persistence and initial moderation.
  *
- * Moderation still lives in the root ModerationService/state machine until
- * E3b routes this adapter through Events\Api\EventModeration. Everything else
- * delegates to the Events authoring boundary; this class only applies the
- * requested initial status after the feature save commits.
+ * Filament and admin API entrypoints need the saved Event model for their
+ * resource response, while persistence and moderation use the Events APIs.
  */
 final readonly class SaveAdminEventAction
 {
@@ -22,7 +20,7 @@ final readonly class SaveAdminEventAction
 
     public function __construct(
         private EventAuthoring $authoring,
-        private ModerationService $moderationService,
+        private EventModeration $moderation,
     ) {}
 
     /**
@@ -37,15 +35,16 @@ final readonly class SaveAdminEventAction
         );
 
         $event = Event::query()->findOrFail($result->eventId);
+        $eventId = (string) $event->getKey();
 
         if ($creating) {
             if ($result->requestedStatus === 'pending') {
-                $this->moderationService->submitForModeration($event);
+                $this->moderation->submitForModeration($eventId);
             }
 
             if ($result->requestedStatus === 'approved') {
-                $this->moderationService->submitForModeration($event);
-                $this->moderationService->approve($event, $actor);
+                $this->moderation->submitForModeration($eventId);
+                $this->moderation->approve($eventId, (string) $actor->getKey());
             }
         }
 

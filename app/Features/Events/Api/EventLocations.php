@@ -20,6 +20,5 @@ interface EventLocations
     public function syncPrimaryFromSelection(
         string $eventId,
         bool $venueChanged,
-        bool $institutionChanged,
     ): bool;
 }

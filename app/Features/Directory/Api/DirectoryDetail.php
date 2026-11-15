@@ -21,5 +21,6 @@ final readonly class DirectoryDetail
         public ?string $publicUrl,
         public ?string $adminUrl,
         public ?string $imageUrl,
+        public ?string $institutionType = null,
     ) {}
 }

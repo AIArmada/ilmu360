@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\Venues;
 
 use App\Features\Directory\Support\DirectoryModel;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Venue;
 
 /**
  * Delete a venue through the owning feature.
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class DeleteVenueAction
 {
-    public function handle(Model $venue): void
+    public function handle(Venue $venue): void
     {
         DirectoryModel::assert($venue, 'venue');
 

@@ -1,16 +1,16 @@
 <?php
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\TimingMode;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -416,7 +416,7 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Unknown Filter Key Test',
                     'filters' => [
-                        'administrative_subdivision_id' => (string) Str::uuid(),
+                        'obsolete_area_filter_id' => (string) Str::uuid(),
                     ],
                     'notify' => 'daily',
                 ]);
@@ -700,8 +700,8 @@ describe('Saved Search API Endpoints', function () {
 
                 $institution = Institution::factory()->create();
                 syncPrimaryAddressForTest($institution, [
-                    'lat' => 3.1390,
-                    'lng' => 101.6869,
+                    'latitude' => 3.1390,
+                    'longitude' => 101.6869,
                 ]);
 
                 Event::factory()->for($institution)->create([

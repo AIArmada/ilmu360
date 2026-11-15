@@ -247,7 +247,7 @@ class FrontendFormContractService
                     'endpoint' => route('api.client.contributions.index'),
                     'auth_required' => true,
                 ],
-                'membership_claim' => [
+                'membership_application' => [
                     'method' => 'POST',
                     'endpoint_template' => route('api.client.membership-applications.store', [
                         'subjectType' => 'subjectType',
@@ -507,8 +507,16 @@ class FrontendFormContractService
                 $this->field('name', 'string', required: true, maxLength: 255),
                 $this->field('gender', 'string', required: true, default: Gender::Male->value, allowedValues: $this->enumValues(Gender::class)),
                 $this->field('bio', 'rich_text', required: false),
-                $this->field('institution_id', 'uuid', required: false, catalog: route('api.client.catalogs.submit-institutions')),
-                $this->field('institution_position', 'string', required: false, maxLength: 255),
+                $this->field('institutions', 'array<object>', required: false, catalog: route('api.client.catalogs.submit-institutions'), meta: [
+                    'item_schema' => [
+                        'type' => 'object',
+                        'fields' => [
+                            ['name' => 'institution_id', 'type' => 'uuid', 'required' => true],
+                            ['name' => 'position', 'type' => 'string', 'required' => false, 'max_length' => 255],
+                            ['name' => 'is_primary', 'type' => 'boolean', 'required' => false],
+                        ],
+                    ],
+                ]),
                 $this->field('address', 'object', required: true),
                 $this->field('address.country_id', 'uuid', required: true, catalog: route('api.client.catalogs.countries')),
                 $this->field('address.area_assignments', 'array<object>', required: false),
@@ -601,10 +609,10 @@ class FrontendFormContractService
     /**
      * @return array<string, mixed>
      */
-    public function membershipClaim(MemberSubjectType $subjectType): array
+    public function membershipApplication(MemberSubjectType $subjectType): array
     {
         return [
-            'flow' => 'membership_claim',
+            'flow' => 'membership_application',
             'method' => 'POST',
             'endpoint_template' => route('api.client.membership-applications.store', [
                 'subjectType' => $subjectType->publicRouteSegment(),

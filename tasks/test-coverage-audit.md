@@ -174,7 +174,7 @@
 ## 3. Service Coverage (36 services)
 
 ### Directly Covered (20)
-CalendarService, ContributionEntityMutationService, EventCategoryCatalog, EventCategoryPolicy, EventKeyPersonSyncService, EventSearchService, TypesenseEventDiscovery, PrayerTimeService, ModerationService, ShareTrackingService, ShareTrackingAnalyticsService, AffiliateRuntimeDataPurger, AiBudgetPolicy, EventMediaExtractionService, NetworkDiagnosticsService, EventNotificationService, NotificationSettingsManager, SignalsTracker, ProductSignalSchemaRegistry, AffiliateSignalsBridge
+CalendarService, ContributionEntityMutationService, EventCategoryCatalog, EventCategoryPolicy, SyncEventKeyPeopleAction, EventSearchService, TypesenseEventDiscovery, PrayerTimeService, ModerationService, ShareTrackingService, ShareTrackingAnalyticsService, AffiliateRuntimeDataPurger, AiBudgetPolicy, EventMediaExtractionService, NetworkDiagnosticsService, EventNotificationService, NotificationSettingsManager, SignalsTracker, ProductSignalSchemaRegistry, AffiliateSignalsBridge
 
 ### Indirectly Covered (9)
 AdminShareAnalyticsService, AffiliatesShareTrackingService, AffiliatesShareTrackingAnalyticsService, AiBudgetDecision, AiUsageLedger, TurnstileVerifier, GitHubIssueReporter, ContributionRequestNotificationService, ProductSignalsInsightsService
@@ -252,22 +252,17 @@ AdminShareAnalyticsService, AffiliatesShareTrackingService, AffiliatesShareTrack
 
 ---
 
-## 5. Job Coverage (8 jobs)
+## 5. Job Coverage (3 jobs)
 
 | Job | Status | How Tested |
 |-----|--------|------------|
 | `DispatchEventReminderNotifications` | **UNCOVERED** | |
 | `EscalatePendingEvents` | Indirect | `EventEscalationTest` — direct `->handle()` calls |
-| `BackfillEventSlugs` | **COVERED** | `BackfillSlugJobsTest` — `->handle()` + `$this->artisan()` + `Queue::assertPushed` |
-| `BackfillSpeakerSlugs` | Indirect | `SpeakerSlugGenerationTest` — `->handle()` + `Queue::assertPushed` |
-| `BackfillInstitutionSlugs` | Indirect | `InstitutionSlugGenerationTest` — `->handle()` + `Queue::assertPushed` |
-| `BackfillVenueSlugs` | **COVERED** | `BackfillSlugJobsTest` — `->handle()` + `Bus::assertBatched` |
-| `BackfillReferenceSlugs` | **COVERED** | `BackfillSlugJobsTest` — `->handle()` + `$this->artisan()` + `Queue::assertPushed` |
 | `GenerateResponsiveImagesJob` | **UNCOVERED** | |
 
 ---
 
-## 6. Console Command Coverage (15 commands)
+## 6. Console Command Coverage (10 commands)
 
 | Command | Status | How Tested |
 |---------|--------|------------|
@@ -279,11 +274,6 @@ AdminShareAnalyticsService, AffiliatesShareTrackingService, AffiliatesShareTrack
 | `IssueMcpToken` | **COVERED** | 4 tests: admin/member tokens + rejection |
 | `MigrateMediaToNewStructure` | **UNCOVERED** | |
 | `PruneOrphanedEntities` | **UNCOVERED** | |
-| `QueueBackfillEventSlugs` | **COVERED** | `BackfillSlugJobsTest` — `$this->artisan()` + `Queue::assertPushed` |
-| `QueueBackfillInstitutionSlugs` | Indirect | `InstitutionSlugGenerationTest` — `$this->artisan(...)` |
-| `QueueBackfillSpeakerSlugs` | Indirect | `SpeakerSlugGenerationTest` — `$this->artisan(...)` |
-| `QueueBackfillReferenceSlugs` | **COVERED** | `BackfillSlugJobsTest` — `$this->artisan()` + `Queue::assertPushed` |
-| `QueueBackfillVenueSlugs` | **COVERED** | `BackfillSlugJobsTest` — `$this->artisan()` + `Bus::assertBatched` |
 | `DispatchDueCommunicationsCommand` (package) | **COVERED** | `Communications/DispatchDueCommunicationsCommandTest` — due aggregate is queued |
 | `SyncPublicSubmissionLocks` | **UNCOVERED** | |
 
@@ -372,7 +362,7 @@ InstitutionSeeder, VenueSeeder, LanguageSeeder, FacilityTypeSeeder, DistrictSeed
 4. **Event submission** — 17 separate test files covering all variants (guest/auth, captcha, prayer time, end time, media, organizer access, AI extraction)
 5. **Saved searches API** — 12 dedicated test functions, 30+ individual validation assertions
 6. **User deletion + restoration** — 912-line test covering full cascade
-7. **Slug generation** (speaker + institution) — 25 + 13 test functions with thorough edge case coverage
+7. **Slug generation** (person + institution) — covered for collisions, source changes, and related event slug updates
 8. **Cascade protection** (AddressArea/AddressCountry) — well-tested
 
 ### Critical Gaps
@@ -389,7 +379,6 @@ InstitutionSeeder, VenueSeeder, LanguageSeeder, FacilityTypeSeeder, DistrictSeed
 
 8. ~~**Auth actions**~~ → **COVERED** (7 tests: ResolveSocialiteUserAction has 3 scenarios, AuthenticateApiUserAction has 4).
 9. **Event core actions** — `PersistValidatedEventSubmissionAction` (core DB write), `SubmitFrontendEventAction` (orchestrator), `CompleteFrontendEventSubmissionAction` (side effects) — only tested through Livewire/API integration. If a refactor breaks these separate from the form, no test catches it.
-10. ~~**Jobs**~~ → **COVERED** (7 tests for event/venue/reference backfill jobs + commands).
 11. ~~**Schedule integrity**~~ → **COVERED** (8 tests verifying all schedule entries have correct frequency/expression).
 12. ~~**Institution workspace member management API**~~ → **COVERED** (7 tests: PUT update role + DELETE remove member with permission/validation edge cases).
 13. **ProductSignalsService** — Core signal recording service with zero direct test coverage.
@@ -410,7 +399,6 @@ InstitutionSeeder, VenueSeeder, LanguageSeeder, FacilityTypeSeeder, DistrictSeed
 | 🟠 HIGH | Event core persistence actions (3) | `PersistValidatedEventSubmissionAction`, `SubmitFrontendEventAction`, `CompleteFrontendEventSubmissionAction` — core event writing workflow |
 | ~~🟠 HIGH~~ | ~~AuditedMediaObserver (updated/deleted)~~ | **COVERED** — 3 tests: created, deleted, collection change audit. |
 | ~~🟡 MEDIUM~~ | ~~AddressableObserver~~ | **COVERED** — 4 tests: scout reindex on Institution/Speaker/Venue addressable create. |
-| ~~🟡 MEDIUM~~ | ~~3 untested backfill jobs~~ | **COVERED** — 7 tests: event, venue, reference backfill handle() + commands |
 | 🟡 MEDIUM | Model boot events (Institution/Speaker/Venue `verified_by`) | **COVERED** — 7 tests for Institution/Speaker/Venue verified_by, verified_at, last_state_change_at |
 | 🟡 MEDIUM | 6 uncovered services | PostgresEventDiscovery, ShareTrackingUrlService, AiCostResolver, etc. |
 | ~~🟡 MEDIUM~~ | ~~Schedule integrity~~ | **COVERED** — 8 tests verifying all schedule entries frequency/expression |
@@ -452,7 +440,7 @@ A second verification pass was conducted on all critical claims. Corrections app
 
 ## Post-2026-07-23 Coverage Update
 
-New tests (97 tests, 200+ assertions across 16 files):
+Remaining regression files:
 
 | File | Tests | Risk Addressed |
 |------|-------|----------------|
@@ -464,7 +452,6 @@ New tests (97 tests, 200+ assertions across 16 files):
 | `ModelBootEventsTest` | 7 | Institution/Speaker/Venue verified_by, timestamps |
 | `AuthActionsTest` | 7 | ResolveSocialiteUserAction, AuthenticateApiUserAction |
 | `InstitutionWorkspaceMemberApiTest` | 7 | PUT/DELETE member management endpoints |
-| `BackfillSlugJobsTest` | 7 | Event/venue/reference backfill handle() + commands |
 | `ModelScopesAndCreatingEventsTest` | 5 | Reference::active() scope, Report/SavedSearch creating fallback |
 | `ScheduleIntegrityTest` | 8 | All 8 schedule entries frequency verified |
 | `SaveDonationChannelActionTest` | 8 | 3 payment methods, update, owner types, validation |

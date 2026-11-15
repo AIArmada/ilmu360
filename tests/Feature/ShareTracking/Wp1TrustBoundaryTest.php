@@ -16,6 +16,9 @@ use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\Disabled;
 use AIArmada\Affiliates\States\PaidConversion;
 use AIArmada\Affiliates\Support\IpHasher;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\ShareTracking\Api\MemberAffiliateProfileResult;
+use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
@@ -113,7 +116,11 @@ it('marks new member share profiles and never adopts an unmarked commercial prof
 
     $marked = $affiliates->first(fn (Affiliate $affiliate): bool => $affiliate->id !== $commercial->id);
 
-    expect(ShareTrackingProfile::isMarkedMemberFor($marked, $this->sharer))->toBeTrue()
+    expect(ShareTrackingProfile::isMarkedMemberForOwner(
+        $marked,
+        $this->sharer->getMorphClass(),
+        (string) $this->sharer->getKey(),
+    ))->toBeTrue()
         ->and($marked->metadata)->toBe([
             'share_tracking_profile' => true,
             'profile_kind' => 'member',
@@ -260,12 +267,14 @@ it('clears an unrelated stale selection when an explicit token is invalid', func
         ->and(AffiliateAttribution::query()->count())->toBe(1);
 });
 
-it('does not renew attribution expiry on passive navigation', function (): void {
+it('updates seen timestamps without renewing attribution expiry during passive navigation', function (): void {
     $payload = wp1SharePayload($this, $this->sharer, route('events.show', $this->event));
     $cookie = wp1LandingCookie($this, (string) $payload['url']);
 
     $attribution = AffiliateAttribution::query()->where('attribution_type', 'landing')->firstOrFail();
     $landingExpiry = $attribution->expires_at->copy();
+    $landingLastSeen = $attribution->last_seen_at->copy();
+    $landingLastCookieSeen = $attribution->last_cookie_seen_at->copy();
 
     $this->travel(24)->hours();
 
@@ -273,7 +282,11 @@ it('does not renew attribution expiry on passive navigation', function (): void 
         ->get(route('events.index'))
         ->assertOk();
 
-    expect($attribution->fresh()->expires_at->equalTo($landingExpiry))->toBeTrue();
+    $passiveAttribution = $attribution->fresh();
+
+    expect($passiveAttribution->expires_at->equalTo($landingExpiry))->toBeTrue()
+        ->and($passiveAttribution->last_seen_at->greaterThan($landingLastSeen))->toBeTrue()
+        ->and($passiveAttribution->last_cookie_seen_at->greaterThan($landingLastCookieSeen))->toBeTrue();
 });
 
 it('excludes proven self-referral credit without inventing identities', function (): void {
@@ -695,7 +708,11 @@ it('restores only canonical owned share records and skips foreign snapshots', fu
     $restoredProfile = Affiliate::query()->whereKey($affiliate->id)->firstOrFail();
     $restoredLink = AffiliateLink::query()->whereKey($link->id)->firstOrFail();
 
-    expect(ShareTrackingProfile::isMarkedMemberFor($restoredProfile, $restored))->toBeTrue();
+    expect(ShareTrackingProfile::isMarkedMemberForOwner(
+        $restoredProfile,
+        $restored->getMorphClass(),
+        (string) $restored->getKey(),
+    ))->toBeTrue();
 
     // Restoration never reactivates referral tracking: the profile and its
     // links stay disabled until an explicit authorized fresh activation.
@@ -878,6 +895,76 @@ it('preserves extra profile metadata across share payload reuse without purpose 
         ->where('owner_type', $this->sharer->getMorphClass())
         ->where('owner_id', $this->sharer->getKey())
         ->count())->toBe(1);
+});
+
+it('refreshes member profile contact snapshots while preserving lifecycle state and extra metadata', function (): void {
+    wp1SharePayload($this, $this->sharer, route('events.show', $this->event));
+
+    $affiliate = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($this->sharer);
+    expect($affiliate)->not->toBeNull();
+
+    $activatedAt = Carbon\CarbonImmutable::parse('2025-04-12 08:30:00', 'UTC');
+    $affiliate->forceFill([
+        'activated_at' => $activatedAt,
+        'metadata' => array_merge($affiliate->metadata ?? [], ['fraud_review_note' => 'preserve-this']),
+    ])->save();
+
+    $this->sharer->forceFill([
+        'name' => 'Updated WP1 Sharer',
+        'email' => 'updated-wp1-sharer@example.test',
+    ])->save();
+
+    wp1SharePayload($this, $this->sharer, route('events.show', $this->event));
+
+    $affiliate = $affiliate->fresh();
+
+    expect($affiliate->name)->toBe('Updated WP1 Sharer')
+        ->and($affiliate->contact_email)->toBe('updated-wp1-sharer@example.test')
+        ->and($affiliate->purpose)->toBe(ShareTrackingProfile::PURPOSE_SHARE_MEMBER)
+        ->and($affiliate->status)->toBeInstanceOf(Active::class)
+        ->and($affiliate->activated_at?->toIso8601String())->toBe($activatedAt->toIso8601String())
+        ->and($affiliate->metadata)->toMatchArray([
+            'share_tracking_profile' => true,
+            'profile_kind' => 'member',
+            'fraud_review_note' => 'preserve-this',
+        ])
+        ->and(Affiliate::query()
+            ->where('owner_type', $this->sharer->getMorphClass())
+            ->where('owner_id', $this->sharer->getKey())
+            ->count())->toBe(1);
+});
+
+it('requires a matching owner context before creating a member profile', function (): void {
+    $otherUser = User::factory()->create();
+    $affiliateCount = Affiliate::query()->count();
+    $ensureProfile = fn (): MemberAffiliateProfileResult => app(MemberAffiliateProfileWriter::class)->ensureForUser(
+        (string) $this->sharer->getKey(),
+        $this->sharer->name,
+        $this->sharer->email,
+    );
+
+    expect(fn () => OwnerContext::withOwner(null, $ensureProfile))
+        ->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.');
+
+    expect(fn () => OwnerContext::withOwner($otherUser, $ensureProfile))
+        ->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.');
+
+    expect(Affiliate::query()->count())->toBe($affiliateCount);
+});
+
+it('keeps the ineligible validation error when a member profile disappears before rehydration', function (): void {
+    $writer = Mockery::mock(MemberAffiliateProfileWriter::class);
+    $writer->shouldReceive('ensureForUser')
+        ->once()
+        ->with((string) $this->sharer->getKey(), $this->sharer->name, $this->sharer->email)
+        ->andReturn(new MemberAffiliateProfileResult((string) Str::uuid(), true));
+
+    app()->instance(MemberAffiliateProfileWriter::class, $writer);
+
+    expect(fn () => app(AffiliatesShareTrackingService::class)->createOrReuseLink(
+        $this->sharer,
+        route('events.show', $this->event),
+    ))->toThrow(InvalidArgumentException::class, 'This share profile is not eligible to create new tracked links.');
 });
 
 it('excludes new credit for marked profiles whose member owner is missing', function (): void {

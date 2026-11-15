@@ -1,6 +1,5 @@
 <?php
 
-use App\Forms\SharedFormSchema;
 use App\Platform\Location\LocationLevelLabels;
 use App\Support\Location\LocationSlugResolver;
 use Illuminate\Support\Str;
@@ -22,11 +21,11 @@ new
         #[Url]
         public ?string $state_id = null;
 
+        /**
+         * @var array<string, ?string>
+         */
         #[Url]
-        public ?string $district_id = null;
-
-        #[Url]
-        public ?string $subdivision_id = null;
+        public array $areas = [];
 
         #[Computed]
         public function states(): array
@@ -35,50 +34,52 @@ new
         }
 
         #[Computed]
-        public function districts(): array
+        public function firstAreaOptions(): array
         {
             $countryId = $this->normalizedLocationId($this->country_id);
-            $role = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+            $role = $this->firstAreaRole();
 
-            if ($role === null) {
+            if ($countryId === null || $role === null) {
                 return [];
             }
 
-            return SharedFormSchema::areaOptionsForRole($countryId, $role, $this->normalizedLocationId($this->state_id));
+            $parentId = $this->locationSlugResolver()->areaParentIdForRole(
+                $countryId,
+                $role,
+                $this->normalizedLocationId($this->state_id),
+                $this->normalizedAreas(),
+            );
+
+            return $this->locationSlugResolver()->areaMapsForRole($countryId, $role, $parentId)['options'];
         }
 
         #[Computed]
-        public function subdistricts(): array
+        public function secondAreaOptions(): array
         {
             $countryId = $this->normalizedLocationId($this->country_id);
-            $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+            $role = $this->secondAreaRole();
 
-            if ($role === null) {
+            if ($countryId === null || $role === null) {
                 return [];
             }
 
-            $parentId = $this->normalizedLocationId($this->district_id)
-                ?? ($this->isParentlessAreaProfileSelection() ? $this->normalizedLocationId($this->state_id) : null);
+            $parentId = $this->locationSlugResolver()->areaParentIdForRole(
+                $countryId,
+                $role,
+                $this->normalizedLocationId($this->state_id),
+                $this->normalizedAreas(),
+            );
 
-            if ($parentId === null) {
-                return [];
-            }
-
-            return SharedFormSchema::areaOptionsForRole($countryId, $role, $parentId);
+            return $this->locationSlugResolver()->areaMapsForRole($countryId, $role, $parentId)['options'];
         }
 
         public function isParentlessAreaProfileSelection(): bool
         {
-            if ($this->districts() !== []) {
+            if ($this->firstAreaOptions() !== []) {
                 return false;
             }
 
-            $countryId = $this->normalizedLocationId($this->country_id);
-            $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
-            $stateId = $this->normalizedLocationId($this->state_id);
-
-            return $role !== null && $stateId !== null
-                && SharedFormSchema::areaOptionsForRole($countryId, $role, $stateId) !== [];
+            return $this->secondAreaRole() !== null && $this->secondAreaOptions() !== [];
         }
 
         public function stateLabel(): string
@@ -86,31 +87,40 @@ new
             return LocationLevelLabels::label($this->normalizedLocationId($this->country_id), 'state_id', __('State / Province'));
         }
 
-        public function districtLabel(): string
+        public function firstAreaLabel(): string
         {
             $countryId = $this->normalizedLocationId($this->country_id);
-            $role = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+            $role = $this->firstAreaRole();
 
             return $role === null
-                ? __('District')
-                : LocationLevelLabels::label($countryId, $role, __('District'), $this->normalizedLocationId($this->state_id));
+                ? __('Administrative area')
+                : LocationLevelLabels::label($countryId, $role, __('Administrative area'), $this->normalizedLocationId($this->state_id), $this->normalizedAreas());
         }
 
-        public function subdistrictLabel(): string
+        public function secondAreaLabel(): string
         {
             $countryId = $this->normalizedLocationId($this->country_id);
-            $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
-            $districtRole = $this->locationSlugResolver()->districtRoleForCountry($countryId);
+            $role = $this->secondAreaRole();
 
             if ($role === null) {
-                return __('Subdivision');
+                return __('Administrative area');
             }
 
-            $areaIds = $districtRole === null
-                ? []
-                : [$districtRole => $this->normalizedLocationId($this->district_id)];
+            return LocationLevelLabels::label($countryId, $role, __('Administrative area'), $this->normalizedLocationId($this->state_id), $this->normalizedAreas());
+        }
 
-            return LocationLevelLabels::label($countryId, $role, __('Subdivision'), $this->normalizedLocationId($this->state_id), $areaIds);
+        public function firstAreaRole(): ?string
+        {
+            $countryId = $this->normalizedLocationId($this->country_id);
+
+            return $this->locationSlugResolver()->districtRoleForCountry($countryId);
+        }
+
+        public function secondAreaRole(): ?string
+        {
+            $countryId = $this->normalizedLocationId($this->country_id);
+
+            return $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
         }
 
         public function updatedSearch(): void
@@ -121,26 +131,26 @@ new
         public function updatedCountryId(): void
         {
             $this->state_id = null;
-            $this->district_id = null;
-            $this->subdivision_id = null;
+            $this->areas = [];
             $this->syncResults();
         }
 
         public function updatedStateId(): void
         {
-            $this->district_id = null;
-            $this->subdivision_id = null;
+            $this->areas = [];
             $this->syncResults();
         }
 
-        public function updatedDistrictId(): void
+        public function updatedAreas(mixed $value, ?string $key = null): void
         {
-            $this->subdivision_id = null;
-            $this->syncResults();
-        }
+            $countryId = $this->normalizedLocationId($this->country_id);
 
-        public function updatedSubdivisionId(): void
-        {
+            if ($countryId !== null && $key !== null) {
+                foreach ($this->locationSlugResolver()->areaSuccessorRolesForCountry($countryId, $key) as $successorRole) {
+                    unset($this->areas[$successorRole]);
+                }
+            }
+
             $this->syncResults();
         }
 
@@ -155,8 +165,7 @@ new
             $this->search = null;
             $this->country_id = null;
             $this->state_id = null;
-            $this->district_id = null;
-            $this->subdivision_id = null;
+            $this->areas = [];
             $this->syncResults();
         }
 
@@ -164,7 +173,7 @@ new
          * The filter snapshot shared with the results child: same shape for the
          * initial mount params and every later sync dispatch.
          *
-         * @return array{search: ?string, country_id: ?string, state_id: ?string, district_id: ?string, subdivision_id: ?string}
+         * @return array{search: ?string, country_id: ?string, state_id: ?string, areas: array<string, string>}
          */
         public function filterPayload(): array
         {
@@ -172,8 +181,7 @@ new
                 'search' => $this->search,
                 'country_id' => $this->country_id,
                 'state_id' => $this->state_id,
-                'district_id' => $this->district_id,
-                'subdivision_id' => $this->subdivision_id,
+                'areas' => $this->normalizedAreas(),
             ];
         }
 
@@ -202,6 +210,35 @@ new
             return $normalized;
         }
 
+        /**
+         * @return array<string, string>
+         */
+        private function normalizedAreas(): array
+        {
+            $countryId = $this->normalizedLocationId($this->country_id);
+
+            if ($countryId === null) {
+                return [];
+            }
+
+            $roles = $this->locationSlugResolver()->areaRolesForCountry($countryId);
+            $normalized = [];
+
+            foreach ($this->areas as $role => $areaId) {
+                if (! is_string($role) || ! in_array($role, $roles, true) || ! is_string($areaId)) {
+                    continue;
+                }
+
+                $normalizedAreaId = $this->normalizedLocationId($areaId);
+
+                if ($normalizedAreaId !== null) {
+                    $normalized[$role] = $normalizedAreaId;
+                }
+            }
+
+            return $normalized;
+        }
+
     };
 ?>
 
@@ -216,17 +253,18 @@ new
 @php
     $search = $this->search;
     $states = $this->states;
-    $districts = $this->districts;
-    $subdistricts = $this->subdistricts;
+    $firstAreaOptions = $this->firstAreaOptions;
+    $secondAreaOptions = $this->secondAreaOptions;
     $countryId = $this->country_id;
     $stateId = $this->state_id;
-    $adminArea1Id = $this->district_id;
-    $adminArea2Id = $this->subdivision_id;
+    $firstAreaRole = $this->firstAreaRole();
+    $secondAreaRole = $this->secondAreaRole();
+    $areas = $this->areas;
     $stateLabel = $this->stateLabel();
-    $districtLabel = $this->districtLabel();
-    $subdistrictLabel = $this->subdistrictLabel();
+    $firstAreaLabel = $this->firstAreaLabel();
+    $secondAreaLabel = $this->secondAreaLabel();
     $isParentlessAreaProfile = $this->isParentlessAreaProfileSelection();
-    $hasScopedFilters = filled($countryId) || filled($stateId) || filled($adminArea1Id) || filled($adminArea2Id);
+    $hasScopedFilters = filled($countryId) || filled($stateId) || count($areas) > 0;
 @endphp
 
 <div class="relative min-h-screen">
@@ -295,41 +333,43 @@ new
                         </div>
                     @endif
 
-                    @unless($isParentlessAreaProfile)
+                    @if($firstAreaRole !== null && ! $isParentlessAreaProfile)
                         <div>
-                            <label for="venue-district-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {{ $districtLabel }}
+                            <label for="venue-first-area-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ $firstAreaLabel }}
                             </label>
                             <select
-                                id="venue-district-filter"
-                                    wire:model.live="district_id"
-                                @disabled($districts === [])
+                                id="venue-first-area-filter"
+                                wire:model.live="areas.{{ $firstAreaRole }}"
+                                @disabled($firstAreaOptions === [])
                                 class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                             >
-                                <option value="">{{ __('All :level', ['level' => $districtLabel]) }}</option>
-                                @foreach($districts as $id => $name)
+                                <option value="">{{ __('All :level', ['level' => $firstAreaLabel]) }}</option>
+                                @foreach($firstAreaOptions as $id => $name)
                                     <option value="{{ $id }}">{{ $name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                    @endunless
+                    @endif
 
-                    <div>
-                        <label for="venue-subdistrict-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            {{ $subdistrictLabel }}
-                        </label>
-                        <select
-                            id="venue-subdistrict-filter"
-                            wire:model.live="subdivision_id"
-                            @disabled($subdistricts === [])
-                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                        >
-                            <option value="">{{ __('All :level', ['level' => $subdistrictLabel]) }}</option>
-                            @foreach($subdistricts as $id => $name)
-                                <option value="{{ $id }}">{{ $name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if($secondAreaRole !== null)
+                        <div>
+                            <label for="venue-second-area-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ $secondAreaLabel }}
+                            </label>
+                            <select
+                                id="venue-second-area-filter"
+                                wire:model.live="areas.{{ $secondAreaRole }}"
+                                @disabled($secondAreaOptions === [])
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                            >
+                                <option value="">{{ __('All :level', ['level' => $secondAreaLabel]) }}</option>
+                                @foreach($secondAreaOptions as $id => $name)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                 </div>
 
                 @if($hasScopedFilters)

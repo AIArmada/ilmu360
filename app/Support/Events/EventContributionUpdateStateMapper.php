@@ -208,7 +208,8 @@ class EventContributionUpdateStateMapper
     {
         [$targetInstitutionId, $targetVenueId] = PrayerTargetSelector::forSave(
             $state['event_format'] ?? $event?->delivery_mode,
-            OrganizerResolver::find(self::normalizeOptionalString($state['primary_organizer_id'] ?? null)),
+            OrganizerResolver::kindForId(self::normalizeOptionalString($state['primary_organizer_id'] ?? null)),
+            self::normalizeOptionalString($state['primary_organizer_id'] ?? null),
             self::normalizeOptionalString($state['institution_id'] ?? null),
             self::normalizeOptionalString($state['venue_id'] ?? null),
         );

@@ -28,12 +28,13 @@ new
 
         public ?string $state_id = null;
 
-        public ?string $district_id = null;
-
-        public ?string $subdivision_id = null;
+        /**
+         * @var array<string, string>
+         */
+        public array $areas = [];
 
         /**
-         * @param  array{search?: ?string, country_id?: ?string, state_id?: ?string, district_id?: ?string, subdivision_id?: ?string}  $filters
+         * @param  array{search?: ?string, country_id?: ?string, state_id?: ?string, areas?: array<string, string>}  $filters
          */
         public function mount(array $filters = []): void
         {
@@ -48,7 +49,7 @@ new
         }
 
         /**
-         * @param  array{search?: ?string, country_id?: ?string, state_id?: ?string, district_id?: ?string, subdivision_id?: ?string}  $filters
+         * @param  array{search?: ?string, country_id?: ?string, state_id?: ?string, areas?: array<string, string>}  $filters
          */
         #[On('venue-filters-updated')]
         public function syncFilters(array $filters): void
@@ -58,7 +59,7 @@ new
         }
 
         /**
-         * @param  array{search?: ?string, country_id?: ?string, state_id?: ?string, district_id?: ?string, subdivision_id?: ?string}  $filters
+         * @param  array{search?: ?string, country_id?: ?string, state_id?: ?string, areas?: array<string, string>}  $filters
          */
         private function applyFilters(array $filters): void
         {
@@ -67,8 +68,7 @@ new
             $this->search = $this->filterString($filters, 'search');
             $this->country_id = $this->filterString($filters, 'country_id');
             $this->state_id = $this->filterString($filters, 'state_id');
-            $this->district_id = $this->filterString($filters, 'district_id');
-            $this->subdivision_id = $this->filterString($filters, 'subdivision_id');
+            $this->areas = $this->normalizedAreas(is_array($filters['areas'] ?? null) ? $filters['areas'] : []);
         }
 
         private function filterString(array $filters, string $key): ?string
@@ -139,17 +139,13 @@ new
         {
             $countryId = $this->normalizedLocationId($this->country_id);
             $stateId = $this->normalizedLocationId($this->state_id);
-            $adminArea1Id = $this->normalizedLocationId($this->district_id);
-            $adminArea2Id = $this->normalizedLocationId($this->subdivision_id);
+            $areaIds = $this->normalizedAreas($this->areas);
 
-            if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null) {
+            if ($countryId === null && $stateId === null && $areaIds === []) {
                 return $query;
             }
 
-            $districtRole = $this->locationSlugResolver()->districtRoleForCountry($countryId);
-            $subdivisionRole = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
-
-            return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id, $districtRole, $subdivisionRole): void {
+            return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $areaIds): void {
                 if ($countryId !== null) {
                     $addressQuery->where('country_id', $countryId);
                 }
@@ -158,14 +154,9 @@ new
                     $addressQuery->where('state_id', $stateId);
                 }
 
-                if ($adminArea1Id !== null && $districtRole !== null) {
+                foreach ($areaIds as $role => $areaId) {
                     $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                        ->where('role', $districtRole)->where('address_area_id', $adminArea1Id));
-                }
-
-                if ($adminArea2Id !== null && $subdivisionRole !== null) {
-                    $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                        ->where('role', $subdivisionRole)->where('address_area_id', $adminArea2Id));
+                        ->where('role', $role)->where('address_area_id', $areaId));
                 }
             });
         }
@@ -196,6 +187,36 @@ new
 
             if ($normalized === '' || ! Str::isUuid($normalized)) {
                 return null;
+            }
+
+            return $normalized;
+        }
+
+        /**
+         * @param  array<mixed>  $areas
+         * @return array<string, string>
+         */
+        private function normalizedAreas(array $areas): array
+        {
+            $countryId = $this->normalizedLocationId($this->country_id);
+
+            if ($countryId === null) {
+                return [];
+            }
+
+            $roles = app(LocationSlugResolver::class)->areaRolesForCountry($countryId);
+            $normalized = [];
+
+            foreach ($areas as $role => $areaId) {
+                if (! is_string($role) || ! in_array($role, $roles, true) || ! is_string($areaId)) {
+                    continue;
+                }
+
+                $normalizedAreaId = $this->normalizedLocationId($areaId);
+
+                if ($normalizedAreaId !== null) {
+                    $normalized[$role] = $normalizedAreaId;
+                }
             }
 
             return $normalized;

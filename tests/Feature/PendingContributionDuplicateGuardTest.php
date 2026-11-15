@@ -1,13 +1,12 @@
 <?php
 
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -204,7 +203,7 @@ it('blocks an update moving onto another pending update claim', function () {
 it('matches name-only pending updates against the target locality', function () {
     $locality = pendingDupGuardGeography();
     $target = Institution::factory()->create(['status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($target, $locality, allowCountryOnly: true);
+    attachTestInstitutionAddress($target, $locality);
 
     pendingDupGuardClaim(
         ['name' => 'Renamed Pending Institution'],
@@ -246,7 +245,7 @@ it('matches name-only pending updates against the target locality', function () 
 it('prefers the existing-record message when both an institution and a pending claim match', function () {
     $locality = pendingDupGuardGeography();
     $existing = Institution::factory()->create(['status' => InstitutionStatus::Verified]);
-    SharedFormSchema::createAddressFromData($existing, $locality + ['google_place_id' => 'shared_place_id'], allowCountryOnly: true);
+    attachTestInstitutionAddress($existing, $locality + ['google_place_id' => 'shared_place_id']);
 
     pendingDupGuardClaim([
         'name' => 'Something Else',

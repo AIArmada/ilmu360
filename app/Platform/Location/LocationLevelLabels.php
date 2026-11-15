@@ -56,7 +56,7 @@ final class LocationLevelLabels
 
     private static function normalizeLocationId(mixed $value): ?string
     {
-        if (! is_string($value) && ! is_int($value)) {
+        if (! is_string($value)) {
             return null;
         }
 
@@ -66,7 +66,7 @@ final class LocationLevelLabels
             return null;
         }
 
-        if (Str::isUuid($trimmed) || ctype_digit($trimmed)) {
+        if (Str::isUuid($trimmed)) {
             return $trimmed;
         }
 

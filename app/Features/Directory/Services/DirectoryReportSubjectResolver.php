@@ -15,11 +15,10 @@ use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
- * Interim Directory-only report subject provider.
+ * Directory report subject provider implementation.
  *
- * Reports composes it with the interim Events provider until Events exposes its
- * own subject API. Querying through morph aliases keeps the adapter free of
- * feature-private imports when the models move.
+ * Reports composes this implementation with the Events-owned provider.
+ * Registered model aliases keep returned values independent of mutable models.
  *
  * @internal
  */
@@ -187,10 +186,10 @@ final readonly class DirectoryReportSubjectResolver implements DirectoryReportSu
     private function adminUrl(Model $model): ?string
     {
         return match ($model->getMorphClass()) {
-            'institution' => AdminResourceUrl::edit('institutions', (string) $model->getKey()),
-            'person' => AdminResourceUrl::edit('persons', (string) $model->getKey()),
-            'reference' => AdminResourceUrl::edit('references', (string) $model->getKey()),
-            'donation_channel' => AdminResourceUrl::edit('donation-channels', (string) $model->getKey()),
+            'institution' => AdminResourceUrl::edit('institutions', (string) $model->getRouteKey()),
+            'person' => AdminResourceUrl::edit('persons', (string) $model->getRouteKey()),
+            'reference' => AdminResourceUrl::edit('references', (string) $model->getRouteKey()),
+            'donation_channel' => AdminResourceUrl::edit('donation-channels', (string) $model->getRouteKey()),
             default => null,
         };
     }

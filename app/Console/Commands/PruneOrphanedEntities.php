@@ -88,9 +88,9 @@ class PruneOrphanedEntities extends Command
      * @template TModel of Model
      *
      * @param  Builder<TModel>  $query
-     * @param  (Closure(list<string>): int)|null  $deleteUsing
+     * @param  Closure(list<string>): int  $deleteUsing
      */
-    private function pruneModel(string $label, Builder $query, bool $dryRun, ?Closure $deleteUsing = null): int
+    private function pruneModel(string $label, Builder $query, bool $dryRun, Closure $deleteUsing): int
     {
         $count = $query->count();
 
@@ -106,16 +106,12 @@ class PruneOrphanedEntities extends Command
             return 0;
         }
 
-        if ($deleteUsing instanceof Closure) {
-            $model = $query->getModel();
-            /** @var list<string> $ids */
-            $ids = (clone $query)->pluck($model->getQualifiedKeyName())
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->all();
-            $deleteUsing($ids);
-        } else {
-            $query->each(fn (Model $model): ?bool => $model->delete());
-        }
+        $model = $query->getModel();
+        /** @var list<string> $ids */
+        $ids = (clone $query)->pluck($model->getQualifiedKeyName())
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->all();
+        $deleteUsing($ids);
 
         $this->line("  {$label}: {$count} pruned.");
 

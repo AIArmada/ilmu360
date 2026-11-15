@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\DonationChannels;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\DonationChannel;
 
 /**
  * Delete a donation channel through the owning feature.
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class DeleteDonationChannelAction
 {
-    public function handle(Model $donationChannel): void
+    public function handle(DonationChannel $donationChannel): void
     {
         $donationChannel->delete();
     }

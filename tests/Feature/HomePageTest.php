@@ -7,11 +7,6 @@ use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Events\Enums\TimingMode;
 use App\Livewire\Components\EventFilters;
 use App\Models\Event;
 use App\Models\Institution;
@@ -20,6 +15,11 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
@@ -191,7 +191,7 @@ it('loads the tonight events component when events exist', function () {
         ->assertSee('Malam Ini');
 });
 
-it('renders the homepage interval shortcuts without legacy date aliases', function () {
+it('renders the canonical homepage interval shortcuts', function () {
     $response = $this->get('/');
 
     $response->assertSuccessful()

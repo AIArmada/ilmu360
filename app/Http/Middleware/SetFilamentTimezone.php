@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Platform\Time\UserTimezoneResolver;
+use App\Shared\Auth\AccountSettingsStore;
 use Closure;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SetFilamentTimezone
 {
+    public function __construct(private readonly AccountSettingsStore $accountSettings) {}
+
     /**
      * Handle an incoming request.
      *
@@ -27,7 +30,7 @@ class SetFilamentTimezone
         $shouldPersistTimezone = in_array($resolution['source'], ['preferred', 'header', 'request_input', 'cookie'], true);
 
         if ($user !== null && $shouldPersistTimezone && data_get($user, 'timezone') !== $timezone) {
-            $user->forceFill(['timezone' => $timezone])->save();
+            $this->accountSettings->updateTimezone((string) $user->getAuthIdentifier(), $timezone);
         }
 
         if ($request->hasSession()) {

@@ -9,7 +9,7 @@ use App\Shared\Reports\ReportSubjectResolver;
 /**
  * Directory-owned report subject provider.
  *
- * Reports composes this provider with the interim Events provider until Events
- * exposes its own public subject API.
+ * Reports composes this provider with the Events-owned provider through the
+ * shared report-subject contract.
  */
 interface DirectoryReportSubjectProvider extends ReportSubjectResolver {}

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\Persons;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Person;
 
 /**
  * Delete a person through the owning feature.
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class DeletePersonAction
 {
-    public function handle(Model $person): void
+    public function handle(Person $person): void
     {
         $person->delete();
     }

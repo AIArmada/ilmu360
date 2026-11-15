@@ -11,12 +11,12 @@ use App\Features\Events\Agents\EventMediaExtractionAgent;
 use App\Features\Events\Api\EventMediaExtraction;
 use App\Features\Events\Api\EventMediaExtractionResult;
 use App\Features\Events\Api\EventMediaExtractionSource;
-use App\Shared\Language\LanguageCatalog;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Language\LanguageCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use ArrayAccess;
@@ -35,9 +35,6 @@ final readonly class EventMediaExtractionService implements EventMediaExtraction
         private LanguageCatalog $languageCatalog,
     ) {}
 
-    /**
-     * @return array<string, mixed>
-     */
     public function extract(EventMediaExtractionSource $source): EventMediaExtractionResult
     {
         $provider = config('ai.features.event_media_extraction.provider');

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Directory\Api;
 
 /**
- * Donation-channel lifecycle boundary for legacy model hooks.
+ * Donation-channel lifecycle boundary for model hooks.
  */
 interface DonationChannelWorkflow
 {

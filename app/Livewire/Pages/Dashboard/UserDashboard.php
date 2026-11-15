@@ -24,8 +24,8 @@ use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;
+use App\Shared\Rewards\PublishedProgramVersions;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Support\Rewards\PublishedRewardProgramVersionResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
@@ -101,15 +101,14 @@ class UserDashboard extends Component
             ->orderBy('title')
             ->orderBy('id')
             ->get();
-        $versionResolver = app(PublishedRewardProgramVersionResolver::class);
+        $publishedVersions = app(PublishedProgramVersions::class);
 
         foreach ($programs as $program) {
             if ($user->cannot('enroll', $program)) {
                 continue;
             }
 
-            $version = $versionResolver->resolve($program);
-            $eligibility = $version?->rules['eligibility'] ?? null;
+            $eligibility = $publishedVersions->publishedVersion((string) $program->getKey())?->eligibility;
 
             if (! is_array($eligibility) || ($eligibility['require_enrollment'] ?? false) !== true) {
                 continue;

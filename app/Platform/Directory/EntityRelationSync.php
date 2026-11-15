@@ -11,7 +11,6 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
-use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Models\ContactMethod;
@@ -25,17 +24,9 @@ use Illuminate\Validation\ValidationException;
 /**
  * Shared address/contact/social relation synchronization for directory
  * entities (institutions, speakers, references, venues).
- *
- * The implementation was lifted from the legacy contribution mutation service
- * so the owning feature and the remaining legacy callers share one behavior
- * instead of duplicating relation persistence.
  */
 final readonly class EntityRelationSync
 {
-    public function __construct(
-        private AddressCountryResolver $addressingCountryResolver,
-    ) {}
-
     public function syncAddress(Model $model, mixed $addressPayload, bool $allowCountryOnly = false): void
     {
         if (! method_exists($model, 'primaryAddress') || ! method_exists($model, 'attachAddress')) {
@@ -53,7 +44,7 @@ final readonly class EntityRelationSync
             $payload['google_maps_url'] ?? null,
             $payload['google_place_id'] ?? null,
             $payload['waze_url'] ?? null,
-            $allowCountryOnly ? ($payload['country_id'] ?? $payload['country_code'] ?? $payload['country_key'] ?? null) : null,
+            $allowCountryOnly ? ($payload['country_id'] ?? null) : null,
         ])->contains(fn (mixed $value): bool => filled($value));
 
         /** @var Address|null $existingAddress */
@@ -76,8 +67,7 @@ final readonly class EntityRelationSync
         $countryId = $this->normalizeUuid($payload['country_id'] ?? null);
 
         if ($countryId === null && ! $countryProvided) {
-            $countryId = $this->normalizeUuid($existingAddress?->country_id)
-                ?? $this->addressingCountryResolver->resolveId($existingAddress?->country_code);
+            $countryId = $this->normalizeUuid($existingAddress?->country_id);
         }
 
         if ($countryId === null) {
@@ -217,6 +207,7 @@ final readonly class EntityRelationSync
 
                 return [
                     'type' => $type->value,
+                    'label' => is_string($contact['label'] ?? null) ? $contact['label'] : null,
                     'purpose' => $purpose->value,
                     'value' => $value,
                     'is_primary' => (bool) ($contact['is_primary'] ?? false),
@@ -257,6 +248,7 @@ final readonly class EntityRelationSync
 
                 return [
                     'platform' => $platform,
+                    'label' => is_string($entry['label'] ?? null) ? $entry['label'] : null,
                     'purpose' => ContactPurpose::General->value,
                     'handle' => $handle !== '' ? $handle : null,
                     'url' => $url !== '' ? $url : null,
@@ -417,7 +409,7 @@ final readonly class EntityRelationSync
 
     private function normalizeUuid(mixed $value): ?string
     {
-        if (! is_string($value) && ! is_int($value)) {
+        if (! is_string($value)) {
             return null;
         }
 
@@ -427,6 +419,6 @@ final readonly class EntityRelationSync
             return null;
         }
 
-        return Str::isUuid($trimmed) || ctype_digit($trimmed) ? $trimmed : null;
+        return Str::isUuid($trimmed) ? $trimmed : null;
     }
 }

@@ -36,8 +36,8 @@ class EditSeries extends EditRecord
     }
 
     /**
-     * Filament keeps ownership of the languages relationship and media
-     * collections; the authoring boundary receives scalar form state only.
+     * The authoring boundary receives language IDs and persists the relation;
+     * Filament continues to manage the media collections.
      *
      * @param  array<string, mixed>  $data
      */
@@ -48,7 +48,7 @@ class EditSeries extends EditRecord
         }
 
         app(SeriesAuthoring::class)->save(
-            Arr::except($data, ['languages', 'cover', 'gallery']),
+            Arr::except($data, ['cover', 'gallery']),
             (string) $record->getKey(),
         );
 

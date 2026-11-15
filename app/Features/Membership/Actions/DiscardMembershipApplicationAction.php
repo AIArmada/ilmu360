@@ -14,7 +14,7 @@ use Spatie\MediaLibrary\HasMedia;
 /**
  * Remove an application that could not be completed with its required evidence.
  *
- * A failed evidence upload must not leave a pending claim that moderators
+ * A failed evidence upload must not leave a pending application that moderators
  * cannot verify. Media is cleared before the application row is removed.
  */
 final readonly class DiscardMembershipApplicationAction

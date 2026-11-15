@@ -92,12 +92,12 @@
 
 ---
 
-### "I'm integrating MCP file descriptors (content_base64 / download_url)"
+### "I'm integrating MCP file uploads"
 → Read: **[CHATGPT_FILE_PARAMS_INTEGRATION.md](CHATGPT_FILE_PARAMS_INTEGRATION.md)**
 
 ✅ You'll learn:
-- Descriptor formats (`content_base64`, `content_url`, `download_url`, `file_id`)
-- Proxy-safe upload guidance for connector environments
+- The exact descriptor keys and one-source rule
+- Which upload metadata is specific to standalone event image tools
 - How to detect media-capable fields
 - Security validation rules
 
@@ -176,11 +176,11 @@
 |----------|--------------|--------|
 | MCP_USER_GUIDE_ENGLISH.md | April 29, 2026 | ✅ Current |
 | MCP_USER_GUIDE_MALAY.md | April 29, 2026 | ✅ Current |
-| ilmu360_mcp_guide.md | April 25, 2026 | ✅ Current |
-| ilmu360_mcp_admin_agent_guide.md | April 28, 2026 | ✅ Current |
-| ilmu360_mcp_member_agent_guide.md | April 28, 2026 | ✅ Current |
-| ilmu360_mcp_tool_examples.md | April 29, 2026 | ✅ Current |
-| CHATGPT_FILE_PARAMS_INTEGRATION.md | April 29, 2026 | ✅ Current |
+| ilmu360_mcp_guide.md | November 14, 2026 | ✅ Current |
+| ilmu360_mcp_admin_agent_guide.md | November 14, 2026 | ✅ Current |
+| ilmu360_mcp_member_agent_guide.md | November 14, 2026 | ✅ Current |
+| ilmu360_mcp_tool_examples.md | November 14, 2026 | ✅ Current |
+| CHATGPT_FILE_PARAMS_INTEGRATION.md | November 14, 2026 | ✅ Current |
 | ilmu360_mcp_event_csv_json_creation_guide.md | May 5, 2026 | ✅ Current |
 
 ---

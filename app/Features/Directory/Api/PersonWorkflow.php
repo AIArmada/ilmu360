@@ -130,11 +130,6 @@ interface PersonWorkflow
     public function buildSlug(string $name, array $payload = [], ?string $ignorePersonId = null): string;
 
     /**
-     * @return list<string>
-     */
-    public function backfillSlugs(): array;
-
-    /**
      * @param  list<string>  $order
      */
     public function reorderFeatured(array $order): void;

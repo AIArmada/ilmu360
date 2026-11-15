@@ -1,12 +1,12 @@
 <?php
 
 use App\Features\Events\Actions\Submission\PersistOccurrenceSubmissionAction;
-use App\Shared\Events\ValidatedEventSubmission;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventVisibility;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 

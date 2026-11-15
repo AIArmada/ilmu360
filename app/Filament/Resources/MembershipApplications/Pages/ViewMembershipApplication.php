@@ -6,9 +6,9 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
+use App\Filament\Resources\MembershipApplications\Support\MembershipApplicationAdminPresenter;
 use App\Models\MembershipApplication;
 use App\Models\User;
-use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -39,9 +39,9 @@ class ViewMembershipApplication extends ViewRecord
             Action::make('open_subject')
                 ->label('Open Record')
                 ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
-                ->url(fn (): ?string => MembershipApplicationPresenter::subjectAdminUrl($this->applicationRecord()))
+                ->url(fn (): ?string => MembershipApplicationAdminPresenter::subjectAdminUrl($this->applicationRecord()))
                 ->openUrlInNewTab()
-                ->visible(fn (): bool => filled(MembershipApplicationPresenter::subjectAdminUrl($this->applicationRecord()))),
+                ->visible(fn (): bool => filled(MembershipApplicationAdminPresenter::subjectAdminUrl($this->applicationRecord()))),
         ];
     }
 
@@ -57,7 +57,7 @@ class ViewMembershipApplication extends ViewRecord
             ->schema([
                 Select::make('granted_role')
                     ->label('Granted Role')
-                    ->options(MembershipApplicationPresenter::approvalRoleOptions($this->applicationRecord()))
+                    ->options(MembershipApplicationAdminPresenter::approvalRoleOptions())
                     ->required(),
                 Textarea::make('reviewer_note')
                     ->label('Reviewer Note')

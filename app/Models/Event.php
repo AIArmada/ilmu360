@@ -32,6 +32,7 @@ use App\Enums\MemberSubjectType;
 use App\Features\Engagement\Api\GoingWindow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventDeletion;
+use App\Features\Events\Api\EventDeletionScope;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Api\EventProjections;
 use App\Models\Builders\EventBuilder;
@@ -135,6 +136,8 @@ use Spatie\ModelStates\HasStates;
  */
 class Event extends PackageEvent implements AuditableContract, Bookmarkable, Respondable
 {
+    protected $table = 'events';
+
     /**
      * @use HasFactory<EventFactory>
      * @use HasMembers<User>
@@ -264,11 +267,14 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         });
 
         static::deleting(function (Event $event): void {
-            app(EventDeletion::class)->cleanup((string) $event->getKey());
-        });
+            $eventId = (string) $event->getKey();
 
-        static::deleted(function (Event $event): void {
-            EventDeleteCascade::deleteForEvent($event);
+            app(EventDeletionScope::class)->whileDeleting($eventId, function () use ($event, $eventId): void {
+                OwnerContext::withOwner(null, function () use ($event, $eventId): void {
+                    app(EventDeletion::class)->cleanup($eventId);
+                    EventDeleteCascade::deleteForEvent($event);
+                });
+            });
         });
     }
 
@@ -786,7 +792,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $changed = app(EventLocations::class)->syncPrimaryFromSelection(
             (string) $this->getKey(),
             venueChanged: $this->wasChanged('default_venue_id'),
-            institutionChanged: $this->wasChanged('institution_id'),
         );
 
         if ($changed) {
@@ -1888,7 +1893,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function moderationReviews(): HasMany
     {
         return $this->hasMany(ModerationReview::class, 'actionable_id')
-            ->where('actionable_type', Event::class);
+            ->where('actionable_type', $this->getMorphClass());
     }
 
     /**
@@ -1897,7 +1902,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function latestModerationReview(): HasOne
     {
         return $this->hasOne(ModerationReview::class, 'actionable_id')
-            ->where('actionable_type', Event::class)
+            ->where('actionable_type', $this->getMorphClass())
             ->orderByDesc('created_at')
             ->orderByDesc('id');
     }
@@ -2277,21 +2282,12 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return $this->resolvedPosterDimensions = ['width' => 0, 'height' => 0];
         }
 
-        $storedDimensions = $posterMedia->getCustomProperty('source_dimensions', []);
-        $storedWidth = is_array($storedDimensions) ? (int) ($storedDimensions['width'] ?? 0) : 0;
-        $storedHeight = is_array($storedDimensions) ? (int) ($storedDimensions['height'] ?? 0) : 0;
-        $width = (int) ($posterMedia->width ?? 0);
-        $height = (int) ($posterMedia->height ?? 0);
-
-        if (($width <= 0 || $height <= 0) && $storedWidth > 0 && $storedHeight > 0) {
-            $width = $storedWidth;
-            $height = $storedHeight;
-        }
-
+        $width = max((int) ($posterMedia->width ?? 0), 0);
+        $height = max((int) ($posterMedia->height ?? 0), 0);
         $posterPath = $posterMedia->getPath();
         $relativePosterPath = $posterMedia->getPathRelativeToRoot();
 
-        if ($posterPath !== '' && ! is_file($posterPath)) {
+        if (($width <= 0 || $height <= 0) && $posterPath !== '' && ! is_file($posterPath)) {
             try {
                 $posterPath = Storage::disk($posterMedia->disk)->path($relativePosterPath);
             } catch (\Throwable) {
@@ -2303,8 +2299,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             $dimensions = @getimagesize($posterPath);
 
             if (is_array($dimensions)) {
-                $width = $dimensions[0];
-                $height = $dimensions[1];
+                $width = max((int) $dimensions[0], 0);
+                $height = max((int) $dimensions[1], 0);
             }
         }
 
@@ -2314,37 +2310,14 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
                 $dimensions = @getimagesizefromstring($posterContents);
 
                 if (is_array($dimensions)) {
-                    $width = $dimensions[0];
-                    $height = $dimensions[1];
+                    $width = max((int) $dimensions[0], 0);
+                    $height = max((int) $dimensions[1], 0);
                 }
             } catch (\Throwable) {
             }
         }
 
-        $this->storePosterDimensions($posterMedia, $width, $height);
-
         return $this->resolvedPosterDimensions = ['width' => $width, 'height' => $height];
-    }
-
-    private function storePosterDimensions(Media $posterMedia, int $width, int $height): void
-    {
-        if ($width <= 0 || $height <= 0) {
-            return;
-        }
-
-        $storedDimensions = $posterMedia->getCustomProperty('source_dimensions', []);
-        $storedWidth = is_array($storedDimensions) ? (int) ($storedDimensions['width'] ?? 0) : 0;
-        $storedHeight = is_array($storedDimensions) ? (int) ($storedDimensions['height'] ?? 0) : 0;
-
-        if ($storedWidth === $width && $storedHeight === $height) {
-            return;
-        }
-
-        $posterMedia->setCustomProperty('source_dimensions', [
-            'width' => $width,
-            'height' => $height,
-        ]);
-        $posterMedia->saveQuietly();
     }
 
     /**
@@ -2477,39 +2450,14 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
 
     public function getPosterDisplayAspectRatioAttribute(): string
     {
-        ['width' => $width, 'height' => $height] = $this->resolvePosterDimensions();
-
-        if ($width <= 0 || $height <= 0) {
-            return '16:9';
-        }
-
-        $ratio = $width / $height;
-        $supportedRatios = [
-            '1:1' => 1,
-            '3:4' => 3 / 4,
-            '16:9' => 16 / 9,
-        ];
-
-        $closestRatio = '16:9';
-        $closestDelta = INF;
-
-        foreach ($supportedRatios as $supportedRatioKey => $supportedRatioValue) {
-            $delta = abs($ratio - $supportedRatioValue);
-
-            if ($delta < $closestDelta) {
-                $closestRatio = $supportedRatioKey;
-                $closestDelta = $delta;
-            }
-        }
-
-        return $closestRatio;
+        return '3:4';
     }
 
     /**
      * Get the supported aspect ratio for the image used on event cards.
      *
-     * Covers are the landscape web artwork, posters preserve their detected
-     * supported ratio, and the logo/placeholder fallback is square.
+     * Covers use the landscape web artwork, posters use the fixed share ratio,
+     * and the logo/placeholder fallback is square.
      */
     public function getCardImageAspectRatioAttribute(): string
     {

@@ -10,30 +10,32 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-it('accepts camelCase MCP media descriptor keys', function () {
+it('rejects non-canonical MCP media descriptor field names', function () {
     $normalizer = app(McpFilePayloadNormalizer::class);
 
-    $normalized = $normalizer->normalize(
-        payload: [
-            'avatar' => [
-                'fileName' => 'person-avatar.png',
-                'mimeType' => 'image/png',
-                'contentBase64' => base64_encode('fake-image-bytes'),
+    try {
+        $normalizer->normalize(
+            payload: [
+                'avatar' => [
+                    'fileName' => 'person-avatar.png',
+                    'mimeType' => 'image/png',
+                    'contentBase64' => base64_encode('fake-image-bytes'),
+                ],
             ],
-        ],
-        mediaFieldContracts: [
-            'avatar' => [
-                'type' => 'file',
-                'accepted_mime_types' => ['image/png'],
-                'max_file_size_kb' => 512,
+            mediaFieldContracts: [
+                'avatar' => [
+                    'type' => 'file',
+                    'accepted_mime_types' => ['image/png'],
+                    'max_file_size_kb' => 512,
+                ],
             ],
-        ],
-    );
+        );
 
-    expect($normalized['payload']['avatar'])->toBeInstanceOf(UploadedFile::class)
-        ->and($normalized['temporary_paths'])->toHaveCount(1);
-
-    $normalizer->cleanup($normalized['temporary_paths']);
+        $this->fail('Expected ValidationException to be thrown.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors()['avatar'][0] ?? null)
+            ->toContain('Unsupported MCP file descriptor fields');
+    }
 });
 
 it('accepts MCP media descriptors with content_url fallback', function () {
@@ -98,7 +100,7 @@ it('accepts content_url responses when content-type includes parameters', functi
     $normalizer->cleanup($normalized['temporary_paths']);
 });
 
-it('accepts ChatGPT download_url as alternative to content_url', function () {
+it('accepts the ChatGPT download_url descriptor field', function () {
     Http::fake([
         'https://api.openai.com/files/file_id/content' => Http::response('png-bytes', 200, [
             'Content-Type' => 'image/png',
@@ -113,7 +115,6 @@ it('accepts ChatGPT download_url as alternative to content_url', function () {
                 [
                     'filename' => 'proof.png',
                     'download_url' => 'https://api.openai.com/files/file_id/content',
-                    'file_id' => 'file_12345',
                 ],
             ],
         ],
@@ -133,21 +134,15 @@ it('accepts ChatGPT download_url as alternative to content_url', function () {
     $normalizer->cleanup($normalized['temporary_paths']);
 });
 
-it('ignores file_id metadata from ChatGPT file params', function () {
-    Http::fake([
-        'https://api.openai.com/files/file_id/content' => Http::response('file-bytes', 200, [
-            'Content-Type' => 'application/pdf',
-        ]),
-    ]);
-
+it('rejects ChatGPT file metadata outside event image uploads', function () {
     $normalizer = app(McpFilePayloadNormalizer::class);
 
-    $normalized = $normalizer->normalize(
+    expect(fn () => $normalizer->normalize(
         payload: [
             'evidence' => [
                 [
                     'filename' => 'report.pdf',
-                    'download_url' => 'https://api.openai.com/files/file_id/content',
+                    'content_base64' => base64_encode('file-bytes'),
                     'file_id' => 'file_abc123xyz',
                 ],
             ],
@@ -160,13 +155,35 @@ it('ignores file_id metadata from ChatGPT file params', function () {
                 'max_files' => 8,
             ],
         ],
-    );
+    ))->toThrow(ValidationException::class);
+});
 
-    expect($normalized['payload']['evidence'])->toBeArray()
-        ->and($normalized['payload']['evidence'][0])->toBeInstanceOf(UploadedFile::class)
-        ->and($normalized['payload']['evidence'][0]->getClientOriginalName())->toBe('report.pdf');
+it('rejects file descriptors that specify more than one content source', function () {
+    $normalizer = app(McpFilePayloadNormalizer::class);
 
-    $normalizer->cleanup($normalized['temporary_paths']);
+    try {
+        $normalizer->normalize(
+            payload: [
+                'avatar' => [
+                    'filename' => 'person-avatar.png',
+                    'content_base64' => base64_encode('fake-image-bytes'),
+                    'content_url' => 'https://example.com/person-avatar.png',
+                ],
+            ],
+            mediaFieldContracts: [
+                'avatar' => [
+                    'type' => 'file',
+                    'accepted_mime_types' => ['image/png'],
+                    'max_file_size_kb' => 512,
+                ],
+            ],
+        );
+
+        $this->fail('Expected ValidationException to be thrown.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors()['avatar'][0] ?? null)
+            ->toContain('Provide exactly one file content source.');
+    }
 });
 
 it('rejects localhost content_url values for MCP descriptors', function () {

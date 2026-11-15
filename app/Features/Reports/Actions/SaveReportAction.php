@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\Actions;
 
+use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\Models\Report;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaEvidence;
-use App\Platform\Reporting\ReportLifecycle;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Validation\ValidationException;

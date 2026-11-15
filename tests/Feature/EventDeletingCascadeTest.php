@@ -1,9 +1,12 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventAttendanceLog;
+use AIArmada\Events\Models\EventLocation;
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
@@ -20,12 +23,18 @@ use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
 it('deletes all related records when an event is deleted', function () {
     $event = Event::factory()->create();
+    $occurrence = EventOccurrence::factory()->create(['event_id' => $event->id]);
+    $occurrenceLocation = EventLocation::factory()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $occurrence->id,
+    ]);
     $person = Person::factory()->create();
     $user = User::factory()->create();
 
@@ -39,6 +48,24 @@ it('deletes all related records when an event is deleted', function () {
     EventReference::factory()->create(['event_id' => $event->id]);
     $registration = Registration::factory()->forRegistrant($user)->create(['event_id' => $event->id]);
     $participant = $registration->participants()->where('is_primary', true)->sole();
+    $childRegistration = Registration::factory()
+        ->for($event)
+        ->withPrimaryParticipant('Child Participant')
+        ->create(['parent_registration_id' => $registration->id]);
+    $childParticipant = $childRegistration->participants()->where('is_primary', true)->sole();
+    $childAttendance = EventCheckin::factory()->create([
+        'event_id' => $event->id,
+        'event_registration_id' => null,
+        'event_registration_participant_id' => $childParticipant->id,
+        'attendee_type' => $user->getMorphClass(),
+        'attendee_id' => $user->id,
+    ]);
+    $childAttendanceLog = EventAttendanceLog::query()->create([
+        'event_attendance_id' => $childAttendance->id,
+        'action' => 'check_in',
+        'source' => 'test',
+        'occurred_at' => now(),
+    ]);
     $answer = EventRegistrationAnswer::query()->create([
         'event_registration_id' => $registration->id,
         'event_registration_participant_id' => $participant->id,
@@ -75,7 +102,7 @@ it('deletes all related records when an event is deleted', function () {
         'mediable_type' => $event->getMorphClass(),
     ]);
     ModerationReview::factory()->create([
-        'actionable_type' => Event::class,
+        'actionable_type' => (new Event)->getMorphClass(),
         'actionable_id' => $event->id,
         'actioned_by_type' => $user->getMorphClass(),
         'actioned_by_id' => $user->id,
@@ -96,7 +123,13 @@ it('deletes all related records when an event is deleted', function () {
     ]);
 
     $eventId = $event->id;
+    $occurrenceId = (string) $occurrence->getKey();
+    $occurrenceLocationId = (string) $occurrenceLocation->getKey();
     $registrationId = $registration->id;
+    $childRegistrationId = $childRegistration->id;
+    $childParticipantId = $childParticipant->id;
+    $childAttendanceId = $childAttendance->id;
+    $childAttendanceLogId = $childAttendanceLog->id;
     $participantId = $participant->id;
     $answerId = $answer->id;
     $itemId = $item->id;
@@ -108,9 +141,16 @@ it('deletes all related records when an event is deleted', function () {
         ->pluck('id')
         ->all();
 
+    $deletingRegistrationIds = [];
+    EventFacade::listen('eloquent.deleting: '.Registration::class, function (Registration $deletingRegistration) use (&$deletingRegistrationIds): void {
+        $deletingRegistrationIds[] = (string) $deletingRegistration->getKey();
+    });
+
     $event->delete();
 
     expect(EventAccessPolicy::query()->where('event_id', $eventId)->exists())->toBeFalse()
+        ->and(EventOccurrence::query()->withoutOwnerScope()->whereKey($occurrenceId)->exists())->toBeFalse()
+        ->and(EventLocation::query()->withoutOwnerScope()->whereKey($occurrenceLocationId)->exists())->toBeFalse()
         ->and(EventKeyPerson::query()->where('event_id', $eventId)->exists())->toBeFalse()
         ->and(EventReference::query()->where('event_id', $eventId)->exists())->toBeFalse()
         ->and(EventCheckin::query()->where('event_id', $eventId)->exists())->toBeFalse()
@@ -122,7 +162,7 @@ it('deletes all related records when an event is deleted', function () {
             ->exists()
         )->toBeFalse()
         ->and(ModerationReview::query()
-            ->where('actionable_type', Event::class)
+            ->where('actionable_type', (new Event)->getMorphClass())
             ->where('actionable_id', $eventId)
             ->exists()
         )->toBeFalse()
@@ -133,6 +173,11 @@ it('deletes all related records when an event is deleted', function () {
         ->and(DB::table('event_registration_items')->where('id', $itemId)->exists())->toBeFalse()
         ->and(DB::table('event_attendances')->where('id', $checkinId)->exists())->toBeFalse()
         ->and(DB::table('event_attendance_logs')->where('id', $logId)->exists())->toBeFalse()
+        ->and(DB::table('event_registrations')->where('id', $childRegistrationId)->exists())->toBeFalse()
+        ->and(DB::table('event_registration_participants')->where('id', $childParticipantId)->exists())->toBeFalse()
+        ->and(DB::table('event_attendances')->where('id', $childAttendanceId)->exists())->toBeFalse()
+        ->and(DB::table('event_attendance_logs')->where('id', $childAttendanceLogId)->exists())->toBeFalse()
+        ->and($deletingRegistrationIds)->toBe([$childRegistrationId, $registrationId])
         ->and(Bookmark::query()
             ->where('bookmarkable_type', $event->getMorphClass())
             ->where('bookmarkable_id', $eventId)
@@ -149,11 +194,37 @@ it('deletes an event through the named delete action', function () {
     $event = Event::factory()->create();
     $eventId = (string) $event->getKey();
 
+    OwnerContext::flushState();
+
     $deleted = app(DeleteEventAction::class)->handle($eventId);
 
     expect($deleted)->toBeTrue()
         ->and(Event::query()->whereKey($eventId)->exists())->toBeFalse()
+        ->and(OwnerContext::hasOverride())->toBeFalse()
         ->and(app(DeleteEventAction::class)->handle($eventId))->toBeFalse();
+});
+
+it('rejects event deletion before cleanup when a registration tree crosses events', function (): void {
+    $event = Event::factory()->create();
+    $otherEvent = Event::factory()->create();
+    $user = User::factory()->create();
+    $event->members()->attach($user);
+    $registration = Registration::factory()->for($event)->withPrimaryParticipant('Parent')->create();
+    $foreignChild = Registration::factory()->for($otherEvent)->withPrimaryParticipant('Foreign Child')->create([
+        'parent_registration_id' => $registration->getKey(),
+    ]);
+    $eventId = (string) $event->getKey();
+    $registrationIds = [(string) $registration->getKey(), (string) $foreignChild->getKey()];
+
+    expect(fn () => $event->delete())->toThrow(LogicException::class);
+
+    expect(fn () => $event->primaryOccurrence?->delete())
+        ->toThrow(Illuminate\Validation\ValidationException::class);
+
+    expect(DB::table('events')->where('id', $eventId)->exists())->toBeTrue()
+        ->and(DB::table('event_members')->where('event_id', $eventId)->where('user_id', $user->getKey())->exists())->toBeTrue()
+        ->and(DB::table('event_registrations')->whereIn('id', $registrationIds)->count())->toBe(2)
+        ->and(DB::table('event_registration_participants')->whereIn('event_registration_id', $registrationIds)->count())->toBe(2);
 });
 
 it('detaches members when event is deleted', function () {

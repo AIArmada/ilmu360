@@ -83,9 +83,12 @@ final class ShareProfileScope
             ->where('owner_type', $user->getMorphClass())
             ->where('owner_id', $user->getKey())
             ->get()
-            ->first(fn (Affiliate $candidate): bool => ShareTrackingProfile::isMarkedMemberFor($candidate, $user));
+            ->first(fn (Affiliate $candidate): bool => ShareTrackingProfile::isMarkedMemberForOwner(
+                $candidate,
+                $user->getMorphClass(),
+                (string) $user->getKey(),
+            ));
 
         return $affiliate instanceof Affiliate ? (string) $affiliate->getKey() : null;
     }
-
 }

@@ -152,20 +152,40 @@ final class McpFilePayloadNormalizer
 
         /** @var array<string, mixed> $descriptor */
         $descriptor = $value;
-        $fileName = $this->stringValue($descriptor, ['filename', 'file_name', 'fileName', 'name']);
-        $base64 = $this->stringValue($descriptor, ['content_base64', 'contentBase64', 'base64', 'data']);
-        // Support both content_url and ChatGPT's download_url for fetching files
-        $contentUrl = $this->stringValue($descriptor, ['content_url', 'contentUrl', 'url', 'download_url', 'downloadUrl']);
-        $mimeType = $this->stringValue($descriptor, ['mime_type', 'mimeType', 'mime']);
-        // file_id is metadata from ChatGPT file params (ignored, used for reference only)
-        $fileId = $this->stringValue($descriptor, ['file_id', 'fileId']);
+        $supportedKeys = ['filename', 'content_base64', 'content_url', 'download_url', 'mime_type'];
+        $unsupportedKeys = array_values(array_diff(array_keys($descriptor), $supportedKeys));
+
+        if ($unsupportedKeys !== []) {
+            throw ValidationException::withMessages([
+                $field => ['Unsupported MCP file descriptor fields: '.implode(', ', $unsupportedKeys).'.'],
+            ]);
+        }
+
+        $fileName = $this->stringValue($descriptor, 'filename');
+        $base64 = $this->stringValue($descriptor, 'content_base64');
+        $contentUrl = $this->stringValue($descriptor, 'content_url');
+        $downloadUrl = $this->stringValue($descriptor, 'download_url');
+        $mimeType = $this->stringValue($descriptor, 'mime_type');
+
+        if ($contentUrl !== null && $downloadUrl !== null) {
+            throw ValidationException::withMessages([
+                $field => ['Provide one URL field: content_url or download_url.'],
+            ]);
+        }
+
+        if ($base64 !== null && ($contentUrl !== null || $downloadUrl !== null)) {
+            throw ValidationException::withMessages([
+                $field => ['Provide exactly one file content source.'],
+            ]);
+        }
+
+        $contentUrl ??= $downloadUrl;
 
         Log::debug('mcp.image_upload: parsing descriptor', [
             'field' => $field,
             'filename' => $fileName,
             'has_base64' => $base64 !== null,
             'has_content_url' => $contentUrl !== null,
-            'has_file_id' => $fileId !== null,
             'declared_mime_type' => $mimeType,
             'descriptor_keys' => array_keys($descriptor),
         ]);
@@ -182,11 +202,10 @@ final class McpFilePayloadNormalizer
             Log::debug('mcp.image_upload: descriptor missing content source (no base64 or url)', [
                 'field' => $field,
                 'filename' => $fileName,
-                'file_id' => $fileId,
             ]);
 
             throw ValidationException::withMessages([
-                $field => ['The MCP file descriptor must include either content_base64, content_url, or download_url. MCP tools do not accept multipart/form-data payloads. ChatGPT connectors may pass {download_url, file_id}.'],
+                $field => ['The MCP file descriptor must include one of content_base64, content_url, or download_url. MCP tools do not accept multipart/form-data payloads.'],
             ]);
         }
 
@@ -302,13 +321,10 @@ final class McpFilePayloadNormalizer
             Log::debug('mcp.image_upload: decoded content is not a string after processing', [
                 'field' => $field,
                 'filename' => $fileName,
-                'file_id' => $fileId,
             ]);
 
             throw ValidationException::withMessages([
-                $field => is_string($fileId)
-                    ? ["The MCP file descriptor (file_id: {$fileId}) could not be decoded."]
-                    : ['The MCP file descriptor could not be decoded.'],
+                $field => ['The MCP file descriptor could not be decoded.'],
             ]);
         }
 
@@ -359,19 +375,12 @@ final class McpFilePayloadNormalizer
 
     /**
      * @param  array<string, mixed>  $descriptor
-     * @param  list<string>  $keys
      */
-    private function stringValue(array $descriptor, array $keys): ?string
+    private function stringValue(array $descriptor, string $key): ?string
     {
-        foreach ($keys as $key) {
-            $value = $descriptor[$key] ?? null;
+        $value = $descriptor[$key] ?? null;
 
-            if (is_string($value) && trim($value) !== '') {
-                return trim($value);
-            }
-        }
-
-        return null;
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 
     /**

@@ -4,8 +4,17 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Concerns;
 
-use AIArmada\Events\Models\Event;
+use App\Features\Events\Api\EventImageCollection;
+use App\Features\Events\Api\EventImageUploadResult;
+use App\Features\Events\Api\EventImageUploads;
+use App\Features\Events\Api\UploadEventImageInput;
+use App\Models\Event;
+use App\Platform\Media\StagedUploadFactory;
+use App\Support\Api\Admin\AdminResourceRegistry;
+use App\Support\Api\Member\MemberResourceRegistry;
+use App\Support\Mcp\McpFilePayloadNormalizer;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Http\UploadedFile;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -13,10 +22,11 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 trait UploadsEventImage
 {
+    use DefinesMcpFileDescriptorSchema;
+
     /**
      * @return array<string, Type>
      */
@@ -27,14 +37,9 @@ trait UploadsEventImage
                 ->required()
                 ->min(1)
                 ->description('Event UUID or slug/route key. Example: tadabbur-isu-semasa-ummah-qdkhqqn.'),
-            'image' => $schema->object([
-                'filename' => $schema->string()->required()->description('Filename including extension, e.g. event-cover.jpg.'),
-                'content_base64' => $schema->string()->nullable()->description('Base64-encoded image content.'),
-                'content_url' => $schema->string()->nullable()->description('HTTPS URL to fetch the image content.'),
-                'mime_type' => $schema->string()->nullable()->description('MIME type of the image, e.g. image/jpeg, image/png, image/webp. Auto-detected if omitted.'),
-            ])
+            'image' => $this->fileDescriptorSchema($schema, supportsFileId: true)
                 ->required()
-                ->description('Image file descriptor. Pass either {content_base64, filename} or {content_url, filename}. Avoid connector file rewrite paths in proxied environments.'),
+                ->description('Image file descriptor. Provide exactly one of content_base64, content_url, or download_url with filename.'),
             'creative_direction' => $schema->string()
                 ->nullable()
                 ->description('Optional note about the creative direction saved as metadata on the media item.'),
@@ -63,21 +68,14 @@ trait UploadsEventImage
                 'file_name' => $schema->string()->required(),
                 'name' => $schema->string()->required(),
                 'size' => $schema->integer()->required(),
-            ])->required()->description('The stored Spatie MediaLibrary item.'),
+            ])->required()->description('The stored media item.'),
         ];
     }
 
     /**
-     * Normalize the raw `image` argument into a file descriptor array.
-     *
-     * Some MCP clients (e.g. ChatGPT with `openai/fileParams`) serialize object
-     * parameters as a JSON-encoded string instead of a JSON object. This method
-     * accepts both formats so upload tools work correctly regardless of the client.
-     *
      * @return array<string, mixed>
      *
-     * @throws ValidationException if the value is neither a valid descriptor array
-     *                             nor a JSON-encoded descriptor object
+     * @throws ValidationException
      */
     protected function normalizeImageDescriptor(mixed $value, ?string $traceId = null): array
     {
@@ -90,34 +88,8 @@ trait UploadsEventImage
             return $value;
         }
 
-        if (is_string($value) && $value !== '') {
-            $decoded = json_decode($value, true);
-
-            if (is_array($decoded) && ! array_is_list($decoded)) {
-                Log::debug('mcp.image_upload: descriptor received as JSON-encoded string, decoded successfully', [
-                    'trace_id' => $traceId,
-                    'keys' => array_keys($decoded),
-                    'json_length' => strlen($value),
-                ]);
-
-                return $decoded;
-            }
-
-            Log::debug('mcp.image_upload: descriptor received as string but could not be decoded as JSON object', [
-                'trace_id' => $traceId,
-                'type' => gettype($value),
-                'json_error' => json_last_error_msg(),
-                'preview' => substr($value, 0, 100),
-            ]);
-        } else {
-            Log::debug('mcp.image_upload: descriptor received with unexpected type', [
-                'trace_id' => $traceId,
-                'type' => gettype($value),
-            ]);
-        }
-
         throw ValidationException::withMessages([
-            'image' => ['The image must be a valid file descriptor object.'],
+            'image' => ['The image must be a file descriptor object.'],
         ]);
     }
 
@@ -126,58 +98,120 @@ trait UploadsEventImage
      */
     protected function enforceEventDescriptorHasContentSource(array $descriptor): void
     {
-        $base64Value = $descriptor['content_base64']
-            ?? $descriptor['contentBase64']
-            ?? $descriptor['base64']
-            ?? $descriptor['data']
-            ?? null;
+        $sources = array_filter(
+            ['content_base64', 'content_url', 'download_url'],
+            static fn (string $key): bool => is_string($descriptor[$key] ?? null)
+                && trim((string) $descriptor[$key]) !== '',
+        );
 
-        $contentUrl = $descriptor['content_url']
-            ?? $descriptor['contentUrl']
-            ?? $descriptor['url']
-            ?? null;
-
-        if (is_string($base64Value) && trim($base64Value) !== '') {
-            return;
-        }
-
-        if (is_string($contentUrl) && trim($contentUrl) !== '') {
+        if (count($sources) === 1) {
             return;
         }
 
         throw ValidationException::withMessages([
-            'image' => ['Event image uploads require either content_base64 or content_url.'],
+            'image' => ['Event image uploads require exactly one of content_base64, content_url, or download_url.'],
         ]);
     }
 
-    protected function eventImageUploadResponse(Event $event, Media $media, string $collection): ResponseFactory
-    {
-        $url = $media->getUrl();
-        $text = "Uploaded {$collection} image for ".($event->title).'.';
+    protected function resolveEventId(
+        AdminResourceRegistry|MemberResourceRegistry $registry,
+        string $eventKey,
+    ): ?string {
+        $resourceClass = $registry->resolve('events');
 
-        if ($url !== '') {
-            $text .= "\nSaved media URL: {$url}";
+        abort_unless(is_string($resourceClass) && $registry->canAccessResource($resourceClass), 404);
+
+        $query = $registry->queryFor($resourceClass);
+        $model = $query->getModel();
+
+        $record = Str::isUuid($eventKey)
+            ? $query->where($model->qualifyColumn($model->getRouteKeyName()), $eventKey)->first()
+            : $query->where($model->qualifyColumn('slug'), $eventKey)->first();
+
+        return $record instanceof Event ? (string) $record->getKey() : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $descriptor
+     */
+    protected function uploadEventImage(
+        EventImageUploads $uploads,
+        string $eventId,
+        EventImageCollection $collection,
+        array $descriptor,
+        ?string $creativeDirection,
+        string $traceId,
+    ): EventImageUploadResult {
+        $normalizer = app(McpFilePayloadNormalizer::class);
+        $field = $collection->value;
+        $normalized = $normalizer->normalize(
+            [$field => $this->descriptorForNormalization($descriptor)],
+            [$field => [
+                'type' => 'file',
+                'accepted_mime_types' => ['image/jpeg', 'image/png', 'image/webp'],
+                'max_file_size_kb' => 20480,
+            ]],
+        );
+
+        Log::debug('mcp.image_upload: descriptor normalized', [
+            'trace_id' => $traceId,
+            'event_id' => $eventId,
+            'collection' => $field,
+            'temporary_paths_count' => count($normalized['temporary_paths']),
+        ]);
+
+        try {
+            $file = $normalized['payload'][$field] ?? null;
+
+            if (! $file instanceof UploadedFile) {
+                throw ValidationException::withMessages([
+                    'image' => ['The event image could not be normalized into an upload.'],
+                ]);
+            }
+
+            $sourceFileId = $descriptor['file_id'] ?? null;
+
+            return $uploads->upload(new UploadEventImageInput(
+                eventId: $eventId,
+                collection: $collection,
+                file: app(StagedUploadFactory::class)->fromUploadedFile($file),
+                creativeDirection: $creativeDirection,
+                sourceFileId: is_string($sourceFileId) ? $sourceFileId : null,
+            ));
+        } finally {
+            $normalizer->cleanup($normalized['temporary_paths']);
+
+            Log::debug('mcp.image_upload: temporary files cleanup completed', [
+                'trace_id' => $traceId,
+                'event_id' => $eventId,
+                'collection' => $field,
+                'temporary_paths_count' => count($normalized['temporary_paths']),
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $descriptor
+     * @return array<string, mixed>
+     */
+    private function descriptorForNormalization(array $descriptor): array
+    {
+        $sourceFileId = $descriptor['file_id'] ?? null;
+
+        if ($sourceFileId !== null && ! is_string($sourceFileId)) {
+            throw ValidationException::withMessages([
+                'image.file_id' => ['The ChatGPT file identifier must be a string.'],
+            ]);
         }
 
-        return Response::structured([
-            'event' => [
-                'id' => (string) $event->getKey(),
-                'route_key' => (string) $event->getRouteKey(),
-                'slug' => (string) $event->slug,
-                'title' => (string) $event->title,
-                'public_url' => route('events.show', ['event' => $event->slug], false),
-            ],
-            'collection' => $collection,
-            'media' => [
-                'id' => (string) $media->getKey(),
-                'url' => $url,
-                'collection' => (string) $media->collection_name,
-                'mime_type' => (string) $media->mime_type,
-                'file_name' => (string) $media->file_name,
-                'name' => (string) $media->name,
-                'size' => (int) $media->size,
-            ],
-        ]);
+        unset($descriptor['file_id']);
+
+        return $descriptor;
+    }
+
+    protected function eventImageUploadResponse(EventImageUploadResult $result): ResponseFactory
+    {
+        return Response::structured($result->toArray());
     }
 
     protected function startEventImageUploadTrace(Request $request, string $toolName): string
@@ -217,9 +251,10 @@ trait UploadsEventImage
             return [
                 'type' => 'array',
                 'keys' => array_keys($image),
-                'has_download_url' => isset($image['download_url']) || isset($image['downloadUrl']),
-                'has_content_base64' => isset($image['content_base64']) || isset($image['contentBase64']) || isset($image['data']) || isset($image['base64']),
-                'has_file_id' => isset($image['file_id']) || isset($image['fileId']),
+                'has_content_base64' => isset($image['content_base64']),
+                'has_content_url' => isset($image['content_url']),
+                'has_download_url' => isset($image['download_url']),
+                'has_file_id' => isset($image['file_id']),
             ];
         }
 
@@ -227,7 +262,6 @@ trait UploadsEventImage
             return [
                 'type' => 'string',
                 'length' => strlen($image),
-                'starts_with_json_object' => str_starts_with(trim($image), '{'),
             ];
         }
 

@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
-it('uses uuid-compatible oauth ownership columns', function () {
+it('uses UUID columns for OAuth ownership', function () {
     expect(Schema::hasTable('oauth_auth_codes'))->toBeTrue()
         ->and(Schema::hasTable('oauth_access_tokens'))->toBeTrue()
         ->and(Schema::hasTable('oauth_clients'))->toBeTrue()

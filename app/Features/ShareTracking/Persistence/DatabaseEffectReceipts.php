@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Persistence;
 
-use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
 use App\Features\ShareTracking\Api\EffectReceipts;
+use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
@@ -35,7 +35,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
         $effectKey = $businessKey.':projection';
 
         try {
-            $receipt = DB::transaction(static fn (): Model => ShareTrackingModel::effectReceiptQuery()->create([
+            $receipt = DB::transaction(static fn (): Model => ShareTrackingModel::query('share_effect_receipt')->create([
                 'effect_key' => $effectKey,
                 'source_type' => ShareOutcomeBusinessKey::NAMESPACE,
                 'source_id' => $businessKey,
@@ -59,7 +59,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
                 throw $exception;
             }
 
-            $receipt = ShareTrackingModel::effectReceiptQuery()
+            $receipt = ShareTrackingModel::query('share_effect_receipt')
                 ->where('effect_key', $effectKey)
                 ->firstOrFail();
         }
@@ -74,7 +74,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
         string $orderId,
         string $reason,
     ): EffectReceiptSnapshot {
-        $receipt = ShareTrackingModel::effectReceiptQuery()->firstOrCreate(
+        $receipt = ShareTrackingModel::query('share_effect_receipt')->firstOrCreate(
             ['effect_key' => $effectKey],
             [
                 'source_type' => 'event_registration',
@@ -95,7 +95,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
 
     public function claimableBatch(array $ownedEffectTypes, int $limit): array
     {
-        $receipts = DB::transaction(static fn (): Collection => ShareTrackingModel::effectReceiptQuery()
+        $receipts = DB::transaction(static fn (): Collection => ShareTrackingModel::query('share_effect_receipt')
             ->whereIn('effect_type', $ownedEffectTypes)
             ->where(function ($query): void {
                 $query->where('status', ShareEffectStatus::Pending->value)
@@ -122,7 +122,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
         string $leaseToken,
     ): ?EffectReceiptSnapshot {
         return DB::transaction(function () use ($receiptId, $ownedEffectTypes, $workerId, $leaseToken): ?EffectReceiptSnapshot {
-            $locked = ShareTrackingModel::effectReceiptQuery()
+            $locked = ShareTrackingModel::query('share_effect_receipt')
                 ->whereKey($receiptId)
                 ->lockForUpdate()
                 ->first();
@@ -144,13 +144,20 @@ final class DatabaseEffectReceipts implements EffectReceipts
                 return null;
             }
 
-            $locked->forceFill([
+            $attributes = [
                 'status' => ShareEffectStatus::Leased,
                 'lease_token' => $leaseToken,
                 'leased_by' => mb_substr($workerId, 0, 64),
                 'lease_expires_at' => now()->addMinutes(self::LEASE_MINUTES),
                 'attempts' => ((int) $locked->getAttribute('attempts')) + 1,
-            ])->save();
+            ];
+
+            $locked->forceFill($attributes);
+            $attributes['status'] = ShareEffectStatus::Leased->value;
+
+            ShareTrackingModel::query('share_effect_receipt')
+                ->whereKey($locked->getKey())
+                ->update($attributes);
 
             return $this->snapshot($locked);
         });
@@ -162,7 +169,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
         string $leaseToken,
     ): ?EffectReceiptSnapshot {
         return DB::transaction(function () use ($receiptId, $workerId, $leaseToken): ?EffectReceiptSnapshot {
-            $locked = ShareTrackingModel::effectReceiptQuery()
+            $locked = ShareTrackingModel::query('share_effect_receipt')
                 ->whereKey($receiptId)
                 ->lockForUpdate()
                 ->first();
@@ -198,7 +205,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
 
     public function releaseToPending(string $receiptId, string $workerId, string $leaseToken): void
     {
-        ShareTrackingModel::effectReceiptQuery()
+        ShareTrackingModel::query('share_effect_receipt')
             ->whereKey($receiptId)
             ->where('lease_token', $leaseToken)
             ->where('leased_by', mb_substr($workerId, 0, 64))
@@ -212,7 +219,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
 
     public function lockCancelableBySource(string $sourceId): array
     {
-        $receipts = DB::transaction(static fn (): Collection => ShareTrackingModel::effectReceiptQuery()
+        $receipts = DB::transaction(static fn (): Collection => ShareTrackingModel::query('share_effect_receipt')
             ->where('source_id', $sourceId)
             ->whereIn('status', [ShareEffectStatus::Pending->value, ShareEffectStatus::Leased->value])
             ->lockForUpdate()
@@ -227,7 +234,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
     public function cancelPendingBySource(string $sourceId): void
     {
         DB::transaction(function () use ($sourceId): void {
-            $effects = ShareTrackingModel::effectReceiptQuery()
+            $effects = ShareTrackingModel::query('share_effect_receipt')
                 ->where('source_id', $sourceId)
                 ->whereIn('status', [ShareEffectStatus::Pending->value, ShareEffectStatus::Leased->value])
                 ->lockForUpdate()
@@ -238,13 +245,13 @@ final class DatabaseEffectReceipts implements EffectReceipts
                     return;
                 }
 
-                $effect->forceFill([
-                    'status' => ShareEffectStatus::Cancelled,
+                ShareTrackingModel::query('share_effect_receipt')->whereKey($effect->getKey())->update([
+                    'status' => ShareEffectStatus::Cancelled->value,
                     'lease_token' => null,
                     'leased_by' => null,
                     'lease_expires_at' => null,
                     'cancelled_at' => now(),
-                ])->save();
+                ]);
             });
         });
     }
@@ -256,7 +263,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
         ShareEffectStatus $status,
         string $timestampColumn,
     ): void {
-        ShareTrackingModel::effectReceiptQuery()
+        ShareTrackingModel::query('share_effect_receipt')
             ->whereKey($receiptId)
             ->where('lease_token', $leaseToken)
             ->where('leased_by', mb_substr($workerId, 0, 64))

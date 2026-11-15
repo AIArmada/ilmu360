@@ -5,11 +5,7 @@ use AIArmada\Events\Models\EventAudience;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -17,7 +13,11 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use App\Features\Events\Services\EventKeyPersonSyncService;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Submission\SubmitEventPrefill;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -55,7 +55,7 @@ function adaptivePublicDuplicatePeopleFixtures(): array
     ]);
     $publicSpeaker = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $privateSpeaker = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
-    app(EventKeyPersonSyncService::class)->sync($event, [$publicSpeaker->getKey(), $privateSpeaker->getKey()], [
+    app(SyncEventKeyPeopleAction::class)->syncEvent($event, [$publicSpeaker->getKey(), $privateSpeaker->getKey()], [
         ['role_code' => EventKeyPersonRole::Moderator->value, 'display_name' => 'Visible Moderator', 'visibility' => 'public'],
         ['role_code' => EventKeyPersonRole::PersonInCharge->value, 'display_name' => 'Private Contact', 'visibility' => 'private', 'notes' => 'Private organizer notes'],
     ]);

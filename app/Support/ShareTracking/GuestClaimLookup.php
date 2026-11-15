@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\ShareTracking\GuestClaims;
 use App\Shared\ShareTracking\GuestClaimSnapshot;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use App\Support\Share\ShareProfileScope;
 use DateTimeImmutable;
 use DateTimeInterface;

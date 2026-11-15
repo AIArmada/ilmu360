@@ -3,7 +3,15 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
-use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
+use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
+use App\Filament\Resources\Persons\Pages\CreatePerson;
+use App\Forms\PersonFormSchema;
+use App\Models\ContributionRequest;
+use App\Models\Event;
+use App\Models\Person;
+use App\Models\User;
+use App\Services\ContributionEntityMutationService;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
@@ -11,23 +19,11 @@ use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Filament\Resources\Persons\Pages\CreatePerson;
-use App\Forms\PersonFormSchema;
-use App\Jobs\BackfillPersonSlugs;
-use App\Models\ContributionRequest;
-use App\Models\Event;
-use App\Models\Person;
-use App\Models\User;
-use App\Platform\Cache\PublicListingsCache;
-use App\Services\ContributionEntityMutationService;
-use App\Features\Events\Services\EventKeyPersonSyncService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -305,59 +301,6 @@ it('appends a numeric suffix when the same person name reuses the same country s
         ->and($second->slug)->toBe('ustaz-ahmad-fauzi-2-my');
 });
 
-it('backfills existing person slugs through the queued job logic', function () {
-    $country = createPersonSlugCountry();
-    $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
-    $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
-
-    $first = createPersonForSlugBackfill(
-        id: '00000000-0000-0000-0000-000000000011',
-        name: 'Ustaz Ahmad Fauzi',
-        slug: 'legacy-random-1',
-        country: $country,
-    );
-
-    $second = createPersonForSlugBackfill(
-        id: '00000000-0000-0000-0000-000000000012',
-        name: 'Ustaz Ahmad Fauzi',
-        slug: 'legacy-random-2',
-        country: $country,
-    );
-
-    Person::withoutTimestamps(function () use ($first, $second): void {
-        $first->forceFill(['slug' => 'legacy-random-1'])->saveQuietly();
-        $second->forceFill(['slug' => 'legacy-random-2'])->saveQuietly();
-    });
-
-    $event = Event::factory()->create([
-        'title' => 'Forum Backfill Penceramah',
-        'slug' => 'legacy-event-slug',
-        'starts_at' => $startsAt,
-        'timezone' => 'Asia/Kuala_Lumpur',
-        'event_category_ids' => [eventCategoryId('lain_lain')],
-        'gender' => EventGenderRestriction::All->value,
-        'age_group' => [EventAgeGroup::AllAges->value],
-        'children_allowed' => true,
-        'delivery_mode' => EventFormat::Physical->value,
-        'visibility' => EventVisibility::Public->value,
-        'status' => 'approved',
-    ]);
-
-    app(EventKeyPersonSyncService::class)->sync($event, [$first->id]);
-
-    expect($event->fresh()?->slug)->toBe("forum-backfill-penceramah-legacy-random-1-{$expectedSuffix}");
-
-    app(BackfillPersonSlugs::class)->handle(
-        app(GenerateEventSlugAction::class),
-        app(PersonWorkflow::class),
-        app(PublicListingsCache::class),
-    );
-
-    expect($first->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-my')
-        ->and($second->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-2-my')
-        ->and($event->fresh()?->slug)->toBe("forum-backfill-penceramah-ustaz-ahmad-fauzi-my-{$expectedSuffix}");
-});
-
 it('updates related event slugs when a person address change changes the person slug', function () {
     $malaysia = createPersonSlugCountry();
     $singapore = createPersonSlugCountry(
@@ -370,7 +313,7 @@ it('updates related event slugs when a person address change changes the person 
     $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $person = createPersonForSlugBackfill(
+    $person = createPersonForSlugTest(
         id: '00000000-0000-0000-0000-000000000013',
         name: 'Ustaz Ahmad Fauzi',
         slug: 'ustaz-ahmad-fauzi-my',
@@ -379,7 +322,7 @@ it('updates related event slugs when a person address change changes the person 
 
     $event = Event::factory()->create([
         'title' => 'Forum Alamat Penceramah',
-        'slug' => 'legacy-event-slug-address',
+        'slug' => 'event-slug-address',
         'starts_at' => $startsAt,
         'timezone' => 'Asia/Kuala_Lumpur',
         'event_category_ids' => [eventCategoryId('lain_lain')],
@@ -391,7 +334,7 @@ it('updates related event slugs when a person address change changes the person 
         'status' => 'approved',
     ]);
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$person->id]);
+    app(SyncEventKeyPeopleAction::class)->syncEvent($event, [$person->id]);
 
     expect($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-my-{$expectedSuffix}");
 
@@ -406,16 +349,6 @@ it('updates related event slugs when a person address change changes the person 
 
     expect($person->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg')
         ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-sg-{$expectedSuffix}");
-});
-
-it('queues the person slug backfill command', function () {
-    Queue::fake();
-
-    $this->artisan('persons:queue-slug-backfill')
-        ->expectsOutput('Queued person slug backfill job.')
-        ->assertSuccessful();
-
-    Queue::assertPushed(BackfillPersonSlugs::class);
 });
 
 it('uses a country suffix only when person country data is present', function () {
@@ -455,7 +388,7 @@ function createPersonSlugCountry(
     ]);
 }
 
-function createPersonForSlugBackfill(string $id, string $name, string $slug, AddressCountry $country): Person
+function createPersonForSlugTest(string $id, string $name, string $slug, AddressCountry $country): Person
 {
     $person = Person::unguarded(fn () => Person::query()->create([
         'id' => $id,

@@ -4,7 +4,7 @@ use App\Filament\Resources\Persons\Schemas\PersonForm;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Schema;
 
-it('does not expose the legacy education tab on the person edit form', function () {
+it('omits the education tab from the person edit form', function () {
     $tabs = PersonForm::configure(Schema::make())->getComponents()[0];
 
     expect($tabs)->toBeInstanceOf(Tabs::class);

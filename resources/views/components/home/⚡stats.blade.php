@@ -1,10 +1,7 @@
 <?php
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use Illuminate\Support\Facades\Cache;
+use App\Features\Directory\Api\PublicDirectoryStats;
+use App\Features\Events\Api\EventHomepageStats;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -12,35 +9,25 @@ new class extends Component {
     #[Computed]
     public function events(): int
     {
-        return Cache::remember('home.stats.events.active', 3600, function (): int {
-            return Event::active()->count('id');
-        });
+        return app(EventHomepageStats::class)->activeEventCount();
     }
 
     #[Computed]
     public function persons(): int
     {
-        return Cache::remember('home.stats.persons.active', 3600, function (): int {
-            return Person::active()->count('id');
-        });
+        return app(PublicDirectoryStats::class)->activePersonCount();
     }
 
     #[Computed]
     public function institutions(): int
     {
-        return Cache::remember('home.stats.institutions.active', 3600, function (): int {
-            return Institution::active()->count('id');
-        });
+        return app(PublicDirectoryStats::class)->activeInstitutionCount();
     }
 
     #[Computed]
     public function references(): int
     {
-        return Cache::remember('home.stats.references.active', 3600, function (): int {
-            return Reference::active()
-                ->root()
-                ->count('id');
-        });
+        return app(PublicDirectoryStats::class)->rootReferenceCount();
     }
 };
 ?>

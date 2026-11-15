@@ -12,7 +12,7 @@ test('schema no longer contains removed columns and tables', function (): void {
     $this->assertTrue(Schema::hasTable('event_involvements'));
     $this->assertTrue(Schema::hasTable('event_attendances'));
     $this->assertTrue(Schema::hasTable('contribution_requests'));
-    $this->assertFalse(Schema::hasTable('membership_claims'));
+    $this->assertFalse(Schema::hasTable('membership_applications'));
     $this->assertTrue(Schema::hasTable('reference_members'));
     $this->assertTrue(Schema::hasTable('membership_invitations'));
     $this->assertFalse(Schema::hasTable('notification_settings'));

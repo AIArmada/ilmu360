@@ -13,6 +13,9 @@
     ],
     "table:user_prayer_institutions": [
       "App\\Features\\Identity\\Actions\\SyncPrayerInstitutionsAction"
+    ],
+    "store:oauth-transactions": [
+      "App\\Features\\Identity\\Persistence\\OAuthTransactionStore"
     ]
   }
 }

@@ -19,7 +19,6 @@ use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Submission\EntitySubmissionAccess;
 use App\Shared\Submission\SubmissionTimingPolicy;
-use App\Shared\Support\MorphAlias;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -408,7 +407,7 @@ final class SubmitEventPrefill
         $organizerId = $organizer?->involveable_id;
         $institutionId = is_string($duplicateEvent->institution_id) ? $duplicateEvent->institution_id : null;
 
-        $organizerType = MorphAlias::of($organizer?->involveable_type);
+        $organizerType = $organizer?->involveable_type;
 
         if ($organizerType === (new Institution)->getMorphClass() && $organizerId !== null && $access->canUseInstitution($submitter, $organizerId)) {
             $defaults['primary_organizer_kind'] = 'institution';

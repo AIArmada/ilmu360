@@ -8,6 +8,7 @@ use AIArmada\Persons\Enums\Gender;
 use App\Features\Directory\Api\PersonSubmissionAccess;
 use App\Features\Directory\Support\DirectoryModel;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Models\Person;
 use App\Platform\Addressing\AddressFormState;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipSubjectType;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
+use RuntimeException;
 
 /**
  * Save a person through the admin/API form path.
@@ -37,12 +39,16 @@ final readonly class SavePersonAction
     public function handle(
         array $data,
         Model&AccountActor $actor,
-        ?Model $person = null,
+        ?Person $person = null,
         string $validationErrorKey = 'allow_public_event_submission',
         bool $assignOwner = true,
-    ): Model {
-        $creating = ! $person instanceof Model;
+    ): Person {
+        $creating = $person === null;
         $person ??= DirectoryModel::new('person');
+
+        if (! $person instanceof Person) {
+            throw new RuntimeException('The registered person model must be the Directory person model.');
+        }
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];
         $addressProvided = array_key_exists('address', $data) && is_array($data['address'] ?? null);
@@ -95,7 +101,8 @@ final readonly class SavePersonAction
             ]));
             $attributes['allow_public_event_submission'] = true;
 
-            $person = DirectoryModel::query('person')->create($attributes);
+            $person->fill($attributes);
+            $person->save();
 
             if ($assignOwner) {
                 $this->membershipCommands->assignOwner(
@@ -135,7 +142,7 @@ final readonly class SavePersonAction
     }
 
     private function syncPublicSubmissionToggle(
-        Model $person,
+        Person $person,
         Model&AccountActor $actor,
         bool $currentPublicSubmission,
         bool $requestedPublicSubmission,

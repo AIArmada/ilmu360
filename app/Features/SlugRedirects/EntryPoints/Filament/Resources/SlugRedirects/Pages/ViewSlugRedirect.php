@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\Pages;
+
+use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\SlugRedirectResource;
+use Filament\Actions\EditAction;
+use Filament\Resources\Pages\ViewRecord;
+
+class ViewSlugRedirect extends ViewRecord
+{
+    #[\Override]
+    protected static string $resource = SlugRedirectResource::class;
+
+    #[\Override]
+    protected function getHeaderActions(): array
+    {
+        return [
+            EditAction::make(),
+        ];
+    }
+}

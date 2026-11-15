@@ -28,7 +28,7 @@ When you are comparing a report, a Filament page, an HTTP admin endpoint, and an
 Key rules:
 
 - `GET /api/v1/admin/{resourceKey}/schema` documents the raw HTTP admin contract.
-- `GET /mcp/admin` uses a separate MCP write-schema formatter; destructive `clear_*` media flags are removed there, while supported media/file fields are advertised with file descriptor metadata supporting `content_base64`, `content_url`, or ChatGPT `download_url` / `file_id` parameters.
+- The admin MCP server publishes sanitized write schemas; destructive `clear_*` media flags are omitted, while supported media/file fields use `filename`, optional `mime_type`, and exactly one `content_base64`, `content_url`, or `download_url` source. Standalone event image tools also accept `file_id` metadata.
 - Public/mobile event detail payload changes do not automatically imply MCP event-record changes. For example, the public `GET /api/v1/events/{event}` surface now exposes normalized reference cover aliases for native clients, but MCP event records still come from the admin/member resource services rather than `App\Http\Controllers\Api\EventController`.
 - Event record detail through `admin-get-record` and `member-get-record` now embeds the same public change-surface projections as the public event detail payload under `data.record.attributes.active_change_notice`, `data.record.attributes.change_announcements`, and `data.record.attributes.replacement_event`.
 - Those MCP event-detail projections resolve replacement chains to the latest still-reachable public or unlisted target and omit stale unreachable replacements rather than exposing dead public links.
@@ -54,7 +54,7 @@ If you are writing or reviewing an AI-generated report, read the raw HTTP admin 
 
 - Route: `/mcp/member`
 - Server class: `App\Mcp\Servers\MemberServer`
-- Intended for Ahli/member workflows such as resource discovery, record browsing, record detail, schema discovery, supported updates on writable member-visible resources, contribution-request queues, and membership claims.
+- Intended for Ahli/member workflows such as resource discovery, record browsing, record detail, schema discovery, supported updates on writable member-visible resources, contribution-request queues, and membership applications.
 
 Important connector-surface rule:
 
@@ -225,9 +225,9 @@ Apply this before operational tools such as:
 - `admin-get-resource-meta`, `member-get-resource-meta`
 - `admin-get-write-schema`, `member-get-write-schema`
 - `admin-create-record`, `admin-batch-create-records`, `admin-update-record`, `admin-batch-update-records`, `admin-create-event`, `admin-batch-create-events`, `admin-update-event`, `admin-batch-update-events`, `member-update-record`
-- `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, `admin-get-membership-claim-review-schema`
-- `admin-moderate-event`, `admin-triage-report`, `admin-review-contribution-request`, `admin-review-membership-claim`
-- `member-list-contribution-requests`, `member-approve-contribution-request`, `member-reject-contribution-request`, `member-cancel-contribution-request`, `member-list-membership-claims`, `member-submit-membership-claim`, and `member-cancel-membership-claim`
+- `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, `admin-get-membership-application-review-schema`
+- `admin-moderate-event`, `admin-triage-report`, `admin-review-contribution-request`, `admin-review-membership-application`
+- `member-list-contribution-requests`, `member-approve-contribution-request`, `member-reject-contribution-request`, `member-cancel-contribution-request`, `member-list-membership-applications`, `member-submit-membership-application`, and `member-cancel-membership-application`
 
 The client may skip a fresh docs fetch only when the verified guide is already active in context, or when the user provides the exact `resource_key`, `record_key`, tool, and intended read operation and no interpretation is required.
 
@@ -249,14 +249,14 @@ Use this section as the quick MCP-only capability summary.
 | Record list | `admin-list-records` | `member-list-records` |
 | Record read | `admin-get-record` | `member-get-record` |
 | Record action guidance | `admin-get-record-actions` | `member-get-record-actions` |
-| Explicit workflow schema discovery | `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, `admin-get-membership-claim-review-schema` | Not exposed |
+| Explicit workflow schema discovery | `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, `admin-get-membership-application-review-schema` | Not exposed |
 | Related-record traversal | `admin-list-related-records` | `member-list-related-records` |
 | Write schema discovery | `admin-get-write-schema` | `member-get-write-schema` |
 | GitHub issue reporting | `admin-create-github-issue` | `member-create-github-issue` |
 | Event moderation | `admin-moderate-event` | Not exposed |
 | Report triage | `admin-triage-report` | Not exposed |
 | Contribution-request workflows | `admin-review-contribution-request` | `member-list-contribution-requests`, `member-approve-contribution-request`, `member-reject-contribution-request`, `member-cancel-contribution-request` |
-| Membership-claim workflows | `admin-review-membership-claim` | `member-list-membership-claims`, `member-submit-membership-claim`, `member-cancel-membership-claim` |
+| Membership-application workflows | `admin-review-membership-application` | `member-list-membership-applications`, `member-submit-membership-application`, `member-cancel-membership-application` |
 | Event image prompts | `admin-event-cover-image-prompt` (prompt), `admin-event-poster-image-prompt` (prompt) | `member-event-cover-image-prompt` (prompt), `member-event-poster-image-prompt` (prompt) |
 | Event image upload | `admin-upload-event-cover-image`, `admin-upload-event-poster-image` | `member-upload-event-cover-image`, `member-upload-event-poster-image` |
 | Dedicated event create | `admin-create-event` | Not exposed |
@@ -319,14 +319,14 @@ Event image generation uses a 3-step workflow on each server:
 
 - Use `admin-get-record-actions` or `member-get-record-actions` when you already have a specific record and want the shortest model-visible list of next MCP calls.
 - These read-only tools return focused next-step actions such as refreshing record detail, traversing exposed relations, fetching update schemas, previewing updates, and any explicit workflow tools that are currently valid for that record.
-- On the admin surface, workflow-bearing records such as events, reports, contribution requests, and membership claims include both dedicated workflow-schema tool hints and the action-specific defaults, fields, conditional rules, and currently available workflow actions in the same response.
+- On the admin surface, workflow-bearing records such as events, reports, contribution requests, and membership applications include both dedicated workflow-schema tool hints and the action-specific defaults, fields, conditional rules, and currently available workflow actions in the same response.
 - These tools do not execute mutations; they only point the client at the correct next MCP tool call.
 
 ### Explicit workflow schema tools
 
 - Use the dedicated admin workflow-schema tools when you want the canonical read-only workflow contract for one record before calling the matching mutation tool.
 - These tools return the same workflow payload shape used by the HTTP admin schema endpoints: defaults, available actions, fields, and conditional rules.
-- Current explicit workflow schema tools are `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, and `admin-get-membership-claim-review-schema`.
+- Current explicit workflow schema tools are `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, and `admin-get-membership-application-review-schema`.
 
 ### Entity selection heuristics for record search
 
@@ -384,7 +384,7 @@ When the user asks you to “look for” a named place, start with the most like
 - Series write schemas now expose additional field semantics for `description`, `languages`, and `slug`.
 - For series, `title`, `slug`, and `visibility` remain required on update; `description` clears on `null` / trimmed empty input and `languages` follows omit-preserve / null-clear / array-replace semantics.
 - Donation channel write schemas now expose additional field semantics for `donatable_type`, `method`, `label`, `reference_note`, and the method-specific bank / DuitNow / ewallet fields.
-- For donation channels, owner-type aliases normalize to canonical stored morph values, method switches clear unrelated field groups, and destructive QR clear flags remain unsupported through MCP.
+- For donation channels, `donatable_type` must be the canonical stored morph value (`institution`, `person`, or `event`); method switches clear unrelated field groups, and destructive QR clear flags remain unsupported through MCP.
 - Inspiration write schemas now expose additional field semantics for `content`, `source`, and `main`.
 - For inspirations, `category`, `locale`, `title`, and `content` remain required on update; `source` clears on `null` / trimmed empty input, and the single `main` media field can only be replaced through MCP, not directly cleared through a destructive flag.
 - Space write schemas now expose additional field semantics for `slug`, `capacity`, and `institutions`.
@@ -427,12 +427,12 @@ The admin server is the model-visible API-like surface for admin workflows. The 
 | `admin-get-event-moderation-schema` | Read the explicit moderation schema for one event | `GET /api/v1/admin/events/{recordKey}/moderation-schema` |
 | `admin-get-report-triage-schema` | Read the explicit triage schema for one report | `GET /api/v1/admin/reports/{recordKey}/triage-schema` |
 | `admin-get-contribution-request-review-schema` | Read the explicit review schema for one contribution request | `GET /api/v1/admin/contribution-requests/{recordKey}/review-schema` |
-| `admin-get-membership-claim-review-schema` | Read the explicit review schema for one membership claim | `GET /api/v1/admin/membership-claims/{recordKey}/review-schema` |
+| `admin-get-membership-application-review-schema` | Read the explicit review schema for one membership application | `GET /api/v1/admin/membership-applications/{recordKey}/review-schema` |
 | `admin-create-github-issue` | Create a GitHub issue in the configured repository and auto-assign Copilot | `POST /api/v1/github-issues` (admin caller path) |
 | `admin-moderate-event` | Run one explicit moderation action on an event | `POST /api/v1/admin/events/{recordKey}/moderate` |
 | `admin-triage-report` | Run one explicit triage action on a report | `POST /api/v1/admin/reports/{recordKey}/triage` |
 | `admin-review-contribution-request` | Approve or reject one pending contribution request | `POST /api/v1/admin/contribution-requests/{recordKey}/review` |
-| `admin-review-membership-claim` | Approve or reject a pending membership claim | `POST /api/v1/admin/membership-claims/{recordKey}/review` |
+| `admin-review-membership-application` | Approve or reject a pending membership application | `POST /api/v1/admin/membership-applications/{recordKey}/review` |
 | `admin-create-record` | Create or preview a writable admin record | `POST /api/v1/admin/{resourceKey}` |
 | `admin-batch-create-records` | Create up to 100 records in a single request; each item processed independently with per-row results | `POST /api/v1/admin/{resourceKey}/batch` |
 | `admin-create-event` | Create or preview a new event with event-first fields and relation route keys, optionally including cover, poster, or gallery image descriptors | `POST /api/v1/admin/{resourceKey}` with `resourceKey=events` (MCP wrapper with route-key conveniences) |
@@ -449,10 +449,10 @@ Admin tool behavior notes:
 - `validate_only=true` is supported for create/update/batch preview flows.
 - `apply_defaults=true` is preview-only. It is honored only when `validate_only=true`, where it merges schema defaults into the candidate payload for validation feedback. It is ignored for persisted creates/updates; for real writes, send the exact values you want saved.
 - Batch tools (`admin-batch-create-events`, `admin-batch-update-events`, `admin-batch-create-records`, `admin-batch-update-records`) process each item independently. The response contains a `data.results` array with per-row `status` values (`created`, `updated`, `validation_failed`, `unresolved_key`, `not_found`, `error`, or `preview`) and a `data.summary` block with per-status counts. Include `external_row_id` per item for idempotency tracking and safe retries.
-- For batch event tools, unresolved `organizer_key`, `institution_key`, `venue_key`, `space_key`, `speaker_keys`, or `reference_keys` yield `unresolved_key` at the row level without failing the whole batch.
+- For batch event tools, unresolved `primary_organizer_key`, `institution_key`, `venue_key`, `space_key`, `person_keys`, or `reference_keys` yield `unresolved_key` at the row level without failing the whole batch.
 - `admin-batch-create-events` and `admin-batch-update-events` have a per-batch maximum of 50 items; `admin-batch-create-records` and `admin-batch-update-records` have a per-batch maximum of 100 items.
-- Dedicated MCP event tools are convenience wrappers, not separate persistence paths. They accept route-key aliases (`organizer_key`, `institution_key`, `venue_key`, `space_key`, `speaker_keys`, `reference_keys`) and normalize them into the same admin event payload used by the raw HTTP/admin resource writer.
-- `admin-update-event` and `admin-batch-update-events` use presence-sensitive relation aliases: omit `speaker_keys`/`reference_keys` or pass `null` to preserve existing relationships; pass `[]` to detach all; pass a non-empty array to replace all.
+- Event-specific MCP tools use the shared admin event write path. They accept route-key fields (`primary_organizer_key`, `institution_key`, `venue_key`, `space_key`, `person_keys`, `reference_keys`) and resolve them into the canonical admin event payload.
+- `admin-update-event` and `admin-batch-update-events` use presence-sensitive relation fields: omit `person_keys`/`reference_keys` or pass `null` to preserve existing relationships; pass `[]` to detach all; pass a non-empty array to replace all.
 - `admin-list-resources` is a discovery manifest, not merely a small name list. Keep `verbose=false` for compact exploration and use `verbose=true` only when you need full metadata. Pass `writable_only=true` to filter the list to only resources with active write support.
 - `current_media` is metadata only; it is useful for form prefill but does not expose signed URLs.
 - `admin-search-events` is the dedicated event-discovery MCP path and is aligned with `GET /api/v1/admin/events/search`. It supports keyword search with default cross-entity expansion (institution/speaker/reference), geo-proximity sorting (`sort=distance` with `lat`, `lng`, `radius_km`), date range (`starts_after`, `starts_before`, `time_scope`), clock-time or prayer-relative windows (`timing_mode`, `starts_time_from/until`, `prayer_time`), event type and format arrays, audience and audience-boolean filters, institution/venue/speaker/role filters, tag/reference UUID arrays, reference author filters (`reference_author_search`), and query expansion toggles (`search_include_institutions`, `search_include_persons`, `search_include_references`). Each parameter includes an inline description of valid values in the tool schema.
@@ -468,11 +468,11 @@ Admin tool behavior notes:
 - If the prompt call fails while attaching reference images, retry the prompt call with `include_existing_media=false` and `max_reference_media=0`.
 - Event media writes enforce fixed ratios across MCP writes: `cover` must be `16:9` and `poster` must be `3:4`.
 - `clear_*` media flags are intentionally rejected in MCP even when the raw HTTP admin schema may mention destructive media handling.
-- `admin-create-event` now maps to the `/hantar-majlis` wizard payload model for event creation and writes through the admin API create endpoint (`POST /api/v1/admin/events` via `POST /api/v1/admin/{resourceKey}`). It accepts scalar event fields, relation route keys (`organizer_key`, `institution_key`, `venue_key`, `space_key`), speaker/reference route-key arrays (`speaker_keys`, `reference_keys`), language IDs (`languages`), tag arrays (`domain_tags`, `discipline_tags`, `source_tags`, `issue_tags`), `other_key_people`, optional `series`, and media descriptors (`cover`, `poster`, `gallery`). For persisted creates, include the actual defaultable values you want stored (`timezone`, `event_format`, `visibility`, `gender`, `age_group`, etc.); `apply_defaults` will not fill them unless the call is a validate-only preview.
+- `admin-create-event` uses the event-first create contract and writes through the admin API create endpoint (`POST /api/v1/admin/events` via `POST /api/v1/admin/{resourceKey}`). It accepts `primary_organizer_key`, `institution_key`, `venue_key`, `space_key`, `person_keys`, and `reference_keys` route-key fields, language IDs (`languages`), tag arrays (`domain_tags`, `discipline_tags`, `source_tags`, `issue_tags`), `other_key_people`, optional `series`, and media descriptors (`cover`, `poster`, `gallery`). For persisted creates, include the actual defaultable values you want stored (`timezone`, `event_format`, `visibility`, `gender`, `age_group`, etc.); `apply_defaults` only fills them for a validate-only preview.
 - `admin-get-record-media` returns media collection metadata for one admin record. Use it to verify that cover/poster/gallery uploads persisted and to build reference-media descriptors for image generation prompts.
 - `admin-read-debug-log` returns recent application debug-log lines, optionally filtered by a keyword. Restrict access to trusted admin actors only.
 - `admin-create-github-issue` creates a GitHub issue and, for admin actors, automatically assigns Copilot using the server-side configuration and model fallback chain. This tool is **conditionally registered** and only present when the GitHub issue reporter is configured; it will be absent from `tools/list` if GitHub issue reporting has not been set up.
-- The admin workflow tools (`admin-get-event-moderation-schema`, `admin-moderate-event`, `admin-get-report-triage-schema`, `admin-triage-report`, `admin-get-contribution-request-review-schema`, `admin-review-contribution-request`, `admin-get-membership-claim-review-schema`, `admin-review-membership-claim`) are **conditionally registered** based on the current user's permissions: moderation tools require `canModerate`, triage tools require `canTriage`, and review tools require `canReview`. If these tools are absent from `tools/list`, the authenticated admin user lacks the corresponding workflow permission.
+- The admin workflow tools (`admin-get-event-moderation-schema`, `admin-moderate-event`, `admin-get-report-triage-schema`, `admin-triage-report`, `admin-get-contribution-request-review-schema`, `admin-review-contribution-request`, `admin-get-membership-application-review-schema`, `admin-review-membership-application`) are **conditionally registered** based on the current user's permissions: moderation tools require `canModerate`, triage tools require `canTriage`, and review tools require `canReview`. If these tools are absent from `tools/list`, the authenticated admin user lacks the corresponding workflow permission.
 - All read-only discovery, list, get, and schema tools carry `#[IsReadOnly]` + `#[IsIdempotent]` annotations; AI clients that honor MCP tool annotations can call them freely without confirmation prompts.
 - All write and workflow execution tools carry `#[IsReadOnly(false)]` + `#[IsIdempotent(false)]` annotations; AI clients that honor MCP annotations may prompt for confirmation before calling them.
 
@@ -498,9 +498,9 @@ The member server is the model-visible API-like surface for Ahli-scoped workflow
 | `member-approve-contribution-request` | Approve one reviewable contribution request |
 | `member-reject-contribution-request` | Reject one reviewable contribution request |
 | `member-cancel-contribution-request` | Cancel one pending contribution request owned by the authenticated member |
-| `member-list-membership-claims` | List the authenticated member's membership claims |
-| `member-submit-membership-claim` | Submit a membership claim with justification and evidence uploads |
-| `member-cancel-membership-claim` | Cancel one pending membership claim owned by the authenticated member |
+| `member-list-membership-applications` | List the authenticated member's membership applications |
+| `member-submit-membership-application` | Submit a membership application with justification and evidence uploads |
+| `member-cancel-membership-application` | Cancel one pending membership application owned by the authenticated member |
 | `member-create-github-issue` | Create a GitHub issue in the configured repository |
 | `member-update-record` | Update a writable member record using the schema-guided payload contract |
 | `member-read-debug-log` | Read recent filtered lines from the application debug log | MCP-only debug log reader |
@@ -518,7 +518,7 @@ Member tool behavior notes:
 - Member related-record traversal is limited to one level and only for relations exposed by member resource metadata.
 - For `people`, `institutions`, and `references`, `member-list-records` search reuses the same specialized search services as the public directory endpoints, while still respecting Ahli membership scope. Unlike `admin-list-records`, `member-list-records` does **not** accept a `filters` object; use `search`, `starts_after`, `starts_before`, and `starts_on_local_date` to narrow results.
 - Contribution-request workflow tools cover listing, approving, rejecting, and cancelling queue items that the authenticated member can legitimately act on through the Ahli surface.
-- Membership-claim workflow tools cover listing, submitting with evidence uploads, and cancelling the member's own pending claims.
+- Membership-application workflow tools cover listing, submitting with evidence uploads, and cancelling the member's own pending applications.
 - `member-create-github-issue` creates a plain GitHub issue only; it does not assign Copilot.
 - `member-update-record` does **not** support `apply_defaults` (unlike `admin-update-record`). Preview calls via `validate_only=true` normalize the payload but do not apply schema defaults.
 - Media/file upload fields accept JSON file descriptors when the matching member write schema advertises them; descriptor content may be provided via `content_base64`, `content_url`, or `download_url`.
@@ -537,7 +537,7 @@ MCP write tools are JSON tools, not multipart HTTP endpoints. When a schema adve
 }
 ```
 
-Accepted aliases are `file_name` or `name` for `filename`, `mime` for `mime_type`, and `base64` or `data` for `content_base64`. Data URLs are accepted for `content_base64`. Filename extensions are recommended; when they are omitted, the server derives the staged extension from `mime_type`.
+File descriptor keys are exact: `filename`, optional `mime_type`, and exactly one of `content_base64`, `content_url`, or `download_url`. The ChatGPT connector uses `download_url`; `file_id` is optional metadata for event image uploads. Alternate key spellings are rejected. `content_base64` accepts raw base64 or a data URL. URL descriptors must be absolute HTTP(S) URLs without credentials, resolve to public hosts, and must not redirect.
 
 Schema fields describe the exact upload rules:
 
@@ -648,10 +648,10 @@ Use this as the quick scan list when you want ChatGPT to reason about the connec
 | `admin-get-record-actions` | Get focused next-step MCP actions for one admin record | `resource_key`, `record_key` |
 | `admin-upload-event-cover-image` | Upload a pre-generated image to the event `cover` collection at `16:9` (use `admin-event-cover-image-prompt` first) | `event_key`, `image`, `creative_direction?` |
 | `admin-upload-event-poster-image` | Upload a pre-generated image to the event `poster` collection at `3:4` (use `admin-event-poster-image-prompt` first) | `event_key`, `image`, `creative_direction?` |
-| `admin-create-event` | MCP-only wrapper to create or preview a new event with event-first fields and relation route keys, aligned to `/hantar-majlis` non-media payload structure. `apply_defaults?` is preview-only. | `title`, `event_date`, `event_category_ids` (array), `prayer_time`, `description?`, `custom_time?`, `end_time?`, `timezone?`, `event_format?`, `visibility?`, `event_url?`, `live_url?`, `recording_url?`, `gender?`, `age_group?` (array), `children_allowed?`, `is_muslim_only?`, `organizer_type?`, `organizer_key?`, `institution_key?`, `venue_key?`, `space_key?`, `speaker_keys?` (array), `reference_keys?` (array), `languages?` (array of IDs), `domain_tags?` (array), `discipline_tags?` (array), `source_tags?` (array), `issue_tags?` (array), `other_key_people?` (array), `series?` (array), `status?`, `registration_required?`, `registration_mode?`, `is_priority?`, `is_active?`, `cover?`, `poster?`, `gallery?`, `validate_only?`, `apply_defaults?` |
+| `admin-create-event` | Create or preview an event using the current event-first MCP contract. `apply_defaults?` is preview-only. | `title`, `event_date`, `event_category_ids` (array), `prayer_time`, `primary_organizer_key` (required route key), `description?`, `custom_time?`, `end_time?`, `timezone?`, `event_format?`, `visibility?`, `event_url?`, `live_url?`, `recording_url?`, `gender?`, `age_group?` (array), `children_allowed?`, `is_muslim_only?`, `institution_key?`, `venue_key?`, `space_key?`, `person_keys?` (route-key array), `reference_keys?` (route-key array), `languages?` (UUID array), `domain_tags?` (array), `discipline_tags?` (array), `source_tags?` (array), `issue_tags?` (array), `other_key_people?` (array), `series?` (UUID array), `status?`, `registration_required?`, `registration_mode?`, `cover?`, `poster?`, `gallery?`, `validate_only?`, `apply_defaults?` |
 | `admin-batch-create-events` | MCP-only batch create for up to 50 events; same field contract per item as `admin-create-event`, plus per-batch `validate_only?`, `apply_defaults?`. `apply_defaults?` is ignored unless `validate_only=true`. | `items` (array, max 50), `validate_only?`, `apply_defaults?` — each item: same event fields + optional `external_row_id` |
-| `admin-update-event` | MCP-only update wrapper with event-first fields and relation route keys. `speaker_keys`/`reference_keys`: omit or `null` to preserve, `[]` to detach all, non-empty array to replace all. | `event_key`, all `admin-create-event` fields except required scalars, `validate_only?` |
-| `admin-batch-update-events` | MCP-only batch update for up to 50 existing events; each item must include `event_key`; same relation presence semantics as `admin-update-event`. | `items` (array, max 50), `validate_only?` — each item: `event_key` + same event fields + optional `external_row_id` |
+| `admin-update-event` | Update an event using the event-first MCP contract. For `person_keys` and `reference_keys`, omit or pass `null` to preserve, `[]` to detach all, or a non-empty route-key array to replace all. | `event_key`, optional event fields from `admin-create-event` except `validate_only` and `apply_defaults` |
+| `admin-batch-update-events` | Update up to 50 events; each item must include `event_key` and can include `external_row_id`. Relation fields use the same presence semantics as `admin-update-event`. | `items` (array, max 50), `validate_only?` — each item: `event_key`, optional event fields, `external_row_id?` |
 | `admin-get-record-media` | List media attachments for one admin record | `resource_key`, `record_key` |
 | `admin-read-debug-log` | Read recent filtered lines from the debug log | `filter?`, `lines?`, `all?` |
 | `admin-create-github-issue` | Create a GitHub issue in the configured repository and auto-assign Copilot (conditionally registered) | `category`, `title`, `summary`, `platform?`, `proposal?`, `description?` (plus additional diagnostic fields) |
@@ -659,11 +659,11 @@ Use this as the quick scan list when you want ChatGPT to reason about the connec
 | `admin-get-event-moderation-schema` | Fetch the explicit moderation schema for one event | `record_key` |
 | `admin-get-report-triage-schema` | Fetch the explicit triage schema for one report | `record_key` |
 | `admin-get-contribution-request-review-schema` | Fetch the explicit review schema for one contribution request | `record_key` |
-| `admin-get-membership-claim-review-schema` | Fetch the explicit review schema for one membership claim | `record_key` |
+| `admin-get-membership-application-review-schema` | Fetch the explicit review schema for one membership application | `record_key` |
 | `admin-moderate-event` | Run one explicit moderation action on an event | `record_key`, `action`, `reason_code?`, `note?` |
 | `admin-triage-report` | Run one explicit triage action on a report | `record_key`, `action`, `resolution_note?` |
 | `admin-review-contribution-request` | Approve or reject one pending contribution request | `record_key`, `action`, `reason_code?`, `reviewer_note?` |
-| `admin-review-membership-claim` | Approve or reject one pending membership claim | `record_key`, `action`, `granted_role_slug?`, `reviewer_note?` |
+| `admin-review-membership-application` | Approve or reject one pending membership application | `record_key`, `action`, `granted_role_slug?`, `reviewer_note?` |
 | `admin-create-record` | Create or preview a writable admin record | `resource_key`, `payload`, `validate_only?`, `apply_defaults?` |
 | `admin-batch-create-records` | Batch create up to 100 records for a writable admin resource | `resource_key`, `items` (array, max 100), `validate_only?` — each item: `payload` + optional `external_row_id` |
 | `admin-update-record` | Update or preview a writable admin record | `resource_key`, `record_key`, `payload`, `validate_only?`, `apply_defaults?` |
@@ -692,9 +692,9 @@ Use this as the quick scan list when you want ChatGPT to reason about the connec
 | `member-approve-contribution-request` | Approve one reviewable contribution request | `request_id`, `reviewer_note?` |
 | `member-reject-contribution-request` | Reject one reviewable contribution request | `request_id`, `reason_code`, `reviewer_note?` |
 | `member-cancel-contribution-request` | Cancel one pending contribution request owned by the member | `request_id` |
-| `member-list-membership-claims` | List the authenticated member's membership claims | none |
-| `member-submit-membership-claim` | Submit a membership claim with evidence uploads | `subject_type`, `subject`, `justification`, `evidence` |
-| `member-cancel-membership-claim` | Cancel one pending membership claim owned by the member | `claim_id` |
+| `member-list-membership-applications` | List the authenticated member's membership applications | none |
+| `member-submit-membership-application` | Submit a membership application with evidence uploads | `subject_type`, `subject`, `justification`, `evidence` |
+| `member-cancel-membership-application` | Cancel one pending membership application owned by the member | `application_id` |
 
 ### Reading rules for the appendix
 

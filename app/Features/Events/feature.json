@@ -3,6 +3,7 @@
   "name": "Events",
   "owns": {
     "table:events": [
+      "App\\Features\\Events\\Actions\\Authoring\\CreateEventShellAction",
       "App\\Features\\Events\\Actions\\Authoring\\PersistEventAuthoringAction",
       "App\\Features\\Events\\Actions\\Authoring\\GenerateEventSlugAction",
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
@@ -12,7 +13,10 @@
       "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
       "App\\Features\\Events\\Actions\\Delete\\DeleteEventAction",
       "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction",
-      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyChangeAnnouncementMutationsAction",
+      "App\\Features\\Events\\Actions\\Account\\DetachEventAccountOwnershipAction",
+      "App\\Features\\Events\\Actions\\Account\\RestoreEventAccountOwnershipAction"
     ],
     "table:event_series_items": [
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
@@ -32,7 +36,8 @@
     ],
     "table:event_terms": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction",
-      "App\\Features\\Events\\Actions\\Authoring\\EnsureEventTaxonomyTermAction"
+      "App\\Features\\Events\\Actions\\Authoring\\EnsureEventTaxonomyTermAction",
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventTermDomainMappingAction"
     ],
     "table:event_classifications": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventClassificationsAction",
@@ -63,10 +68,16 @@
       "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_access_policies": [
+      "App\\Features\\Events\\Actions\\Authoring\\CreateInitialEventAccessPolicyAction",
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
       "App\\Features\\Events\\Actions\\Submission\\CompleteEventSubmissionWritesAction",
       "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction",
       "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction"
+    ],
+    "table:event_occurrences": [
+      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ApplyChangeAnnouncementMutationsAction",
+      "App\\Features\\Events\\Actions\\Submission\\ReviewOccurrenceSubmissionAction"
     ],
     "table:event_links": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventProjectionsAction",
@@ -91,10 +102,62 @@
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction",
       "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
-      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction",
+      "App\\Features\\Events\\Actions\\Account\\DetachEventAccountOwnershipAction",
+      "App\\Features\\Events\\Actions\\Account\\RestoreEventAccountOwnershipAction",
+      "App\\Features\\Events\\Actions\\Submission\\ReviewOccurrenceSubmissionAction"
+    ],
+    "table:event_submission_logs": [
+      "App\\Features\\Events\\Actions\\Submission\\ReviewOccurrenceSubmissionAction"
+    ],
+    "table:seat_maps": [
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventSeatMapsAction",
+      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction"
+    ],
+    "table:seat_sections": [
+      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction"
+    ],
+    "table:seats": [
+      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction"
+    ],
+    "table:ticket_ticket_type_seating_options": [
+      "App\\Features\\Events\\Actions\\Authoring\\ConfigureEventAdmissionAction"
     ],
     "table:media_links": [
       "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
+    ],
+    "store:default-event-search": [
+      "App\\Features\\Events\\Persistence\\EventSearchCacheStore"
+    ],
+    "store:homepage-event-stats": [
+      "App\\Features\\Events\\Persistence\\EventHomepageStatsCacheStore"
+    ],
+    "store:event-involvement-fingerprint": [
+      "App\\Features\\Events\\Persistence\\EventInvolvementFingerprintStore"
+    ],
+    "store:event-institution-quick-add-maps-proof": [
+      "App\\Features\\Events\\Persistence\\EventInstitutionQuickAddMapsProofCacheStore"
+    ],
+    "store:event-share-card-cache": [
+      "App\\Features\\Events\\Persistence\\EventShareCardCacheStore"
+    ],
+    "store:event-submission-options": [
+      "App\\Features\\Events\\Persistence\\EventSubmissionOptionsCacheStore"
+    ],
+    "store:product-signals-dashboard": [
+      "App\\Features\\Events\\Persistence\\ProductSignalsDashboardCacheStore"
     ]
+  },
+  "aliases": {
+    "event": "table:events",
+    "package_event": "table:events",
+    "series": "table:event_series",
+    "event_occurrence": "table:event_occurrences",
+    "event_submission": "table:event_submissions",
+    "event_key_person": "table:event_involvements",
+    "event_location": "table:event_locations",
+    "registration": "table:event_registrations",
+    "institution": "table:institutions",
+    "space": "table:venue_spaces"
   }
 }

@@ -55,11 +55,23 @@ interface EventModeration
     public function remoderate(string $eventId, ?string $actorId, ?string $note = null, ?string $reasonCode = null): void;
 
     /**
+     * Send an approved event back to moderation when a report requires review.
+     *
+     * @return bool Whether the event was approved and remoderated.
+     */
+    public function remoderateIfApproved(string $eventId, string $note): bool;
+
+    /**
      * Log sensitive changes that require an explicit public announcement.
      *
      * @param  array<string, mixed>  $changes
      */
     public function handleSensitiveChange(string $eventId, array $changes): void;
+
+    /**
+     * Delete moderation reviews for an event before the event itself is deleted.
+     */
+    public function deleteReviewsForEvent(string $eventId): void;
 
     /**
      * Moderation actions available for the event's current state.

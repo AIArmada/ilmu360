@@ -3,17 +3,12 @@
 use AIArmada\Authz\Models\Role;
 use AIArmada\Events\Enums\ScheduleKind;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Mcp\Prompts\Concerns\BuildsEventImagePrompt;
 use App\Mcp\Servers\AdminServer;
 use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Admin\AdminCreateEventTool;
 use App\Mcp\Tools\Admin\AdminGetRecordActionsTool;
+use App\Mcp\Tools\Admin\AdminUpdateEventTool;
 use App\Mcp\Tools\Admin\AdminUploadEventCoverImageTool;
 use App\Mcp\Tools\Member\MemberGetRecordActionsTool;
 use App\Mcp\Tools\Member\MemberUploadEventCoverImageTool;
@@ -25,6 +20,12 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Support\Mcp\EventCoverPromptBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -56,6 +57,7 @@ it('uploads and stores an admin 16:9 event cover image via base64 descriptor', f
                 'filename' => 'generated-cover.jpg',
                 'content_base64' => base64_encode((string) $contents),
                 'mime_type' => 'image/jpeg',
+                'file_id' => 'file_cover_123',
             ],
             'creative_direction' => 'Use deep emerald, warm gold.',
         ])
@@ -72,6 +74,7 @@ it('uploads and stores an admin 16:9 event cover image via base64 descriptor', f
 
     expect($coverMedia)->toBeInstanceOf(Media::class)
         ->and((string) $coverMedia->collection_name)->toBe('cover');
+    expect($coverMedia->getCustomProperty('chatgpt_file_id'))->toBe('file_cover_123');
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetRecordActionsTool::class, [
@@ -152,18 +155,15 @@ it('uploads and stores a member 3:4 event poster only for accessible events', fu
         ->assertSee('Resource not found.');
 });
 
-it('accepts a JSON-encoded string image descriptor (ChatGPT openai/fileParams serialization)', function (): void {
+it('rejects a JSON-encoded string image descriptor', function (): void {
     $admin = eventImageGenerationAdminUser();
     [$event] = eventImageGenerationEventFixture();
 
-    $imageFixture = fakeGeneratedImageUpload('chatgpt-cover.jpg', 1200, 800);
-    $contents = file_get_contents($imageFixture->getRealPath());
-    expect($contents)->toBeString();
-
     $descriptorString = json_encode([
         'filename' => 'chatgpt-cover.jpg',
-        'content_base64' => base64_encode((string) $contents),
+        'content_base64' => base64_encode('fake-image-bytes'),
         'mime_type' => 'image/jpeg',
+        'file_id' => 'file_cover_123',
     ]);
 
     AdminServer::actingAs($admin)
@@ -171,14 +171,9 @@ it('accepts a JSON-encoded string image descriptor (ChatGPT openai/fileParams se
             'event_key' => $event->slug,
             'image' => $descriptorString,
         ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('event.route_key', $event->getRouteKey())
-            ->where('collection', 'cover')
-            ->has('media.id')
-            ->etc());
+        ->assertSee('The image must be a file descriptor object.');
 
-    expect($event->fresh()->getFirstMedia('cover'))->toBeInstanceOf(Media::class);
+    expect($event->fresh()->getFirstMedia('cover'))->toBeNull();
 });
 
 it('uploads and stores an admin event cover via content_url descriptor', function (): void {
@@ -238,7 +233,7 @@ it('rejects event upload descriptors without content source', function (): void 
                 'mime_type' => 'image/webp',
             ],
         ])
-        ->assertSee('Event image uploads require either content_base64 or content_url.');
+        ->assertSee('Event image uploads require exactly one of content_base64, content_url, or download_url.');
 });
 
 it('exposes mutating and open-world metadata for event image upload tools', function (): void {
@@ -259,11 +254,36 @@ it('exposes mutating and open-world metadata for event image upload tools', func
         'openWorldHint' => true,
     ]);
 
+    $imageVariants = data_get($adminTool, 'inputSchema.properties.image.anyOf');
+
     expect(data_get($adminTool, '_meta.openai/toolInvocation/invoking'))->toBe('Uploading event cover image...')
         ->and(data_get($memberTool, '_meta.openai/toolInvocation/invoked'))->toBe('Event cover image uploaded.')
         ->and(data_get($adminTool, '_meta.openai/fileParams'))->toBeNull()
         ->and(data_get($memberTool, '_meta.openai/fileParams'))->toBeNull()
-        ->and(data_get($adminTool, 'inputSchema.properties.image'))->toBeArray();
+        ->and($imageVariants)->toHaveCount(3)
+        ->and($imageVariants[0]['properties']['content_base64']['type'] ?? null)->toBe('string')
+        ->and($imageVariants[1]['properties']['content_url']['type'] ?? null)->toBe('string')
+        ->and($imageVariants[2]['properties']['download_url']['type'] ?? null)->toBe('string')
+        ->and($imageVariants[2]['properties']['file_id']['type'] ?? null)->toBe('string')
+        ->and($imageVariants[0]['properties'] ?? [])->not->toHaveKey('content_url')
+        ->and($imageVariants[1]['properties'] ?? [])->not->toHaveKey('download_url');
+
+    foreach ([app(AdminCreateEventTool::class), app(AdminUpdateEventTool::class)] as $eventTool) {
+        $eventToolSchema = $eventTool->toArray();
+
+        $coverVariants = data_get($eventToolSchema, 'inputSchema.properties.cover.anyOf');
+        $posterVariants = data_get($eventToolSchema, 'inputSchema.properties.poster.anyOf');
+        $galleryVariants = data_get($eventToolSchema, 'inputSchema.properties.gallery.items.anyOf');
+
+        expect($coverVariants)->toHaveCount(3)
+            ->and($posterVariants)->toHaveCount(3)
+            ->and($galleryVariants)->toHaveCount(3)
+            ->and($coverVariants[2]['properties']['download_url']['type'] ?? null)->toBe('string')
+            ->and($posterVariants[2]['properties']['download_url']['type'] ?? null)->toBe('string')
+            ->and($galleryVariants[2]['properties']['download_url']['type'] ?? null)->toBe('string')
+            ->and($coverVariants[0]['properties'] ?? [])->not->toHaveKey('content_url')
+            ->and($coverVariants[2]['properties'] ?? [])->not->toHaveKey('file_id');
+    }
 
     expect(data_get(app(AdminCreateEventTool::class)->toArray(), '_meta.openai/fileParams'))
         ->toBeNull();

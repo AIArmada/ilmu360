@@ -10,10 +10,17 @@ use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
 use App\Features\Events\Actions\Submission\CompleteEventSubmissionWritesAction;
 use App\Features\Events\Actions\Submission\PersistNewEventSubmissionAction;
 use App\Features\Events\Actions\Submission\PersistSessionSubmissionAction;
+use App\Features\Events\Actions\Submission\ReviewOccurrenceSubmissionAction;
 use App\Features\Events\Actions\Submission\SubmissionRelationSync;
+use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
+use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissions;
-use App\Shared\Events\ValidatedEventSubmission;
+use App\Features\Events\Support\EventModel;
+use App\Platform\Models\MorphModelResolver;
+use App\Shared\Prayer\EventPrayerTime;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Submission persistence boundary implementation.
@@ -28,6 +35,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
         private ValidateEventSubmissionInputAction $validateInput,
         private PersistNewEventSubmissionAction $persistNewEvent,
         private PersistSessionSubmissionAction $persistSession,
+        private ReviewOccurrenceSubmissionAction $reviewOccurrenceSubmission,
         private CompleteEventSubmissionWritesAction $completeWrites,
         private SubmissionRelationSync $relationSync,
     ) {}
@@ -42,9 +50,9 @@ final readonly class EventSubmissionsService implements EventSubmissions
         $this->relationSync->assertCatalogSelectionsAreAvailable($state, $prefix);
     }
 
-    public function persistNew(ValidatedEventSubmission $input, ?callable $persistMedia = null): array
+    public function persistNew(EventSubmissionInput $input): array
     {
-        $persisted = $this->persistNewEvent->handle($input, $persistMedia);
+        $persisted = $this->persistNewEvent->handle($this->resolveInput($input));
 
         return $this->result(
             event: $persisted['event'],
@@ -57,9 +65,9 @@ final readonly class EventSubmissionsService implements EventSubmissions
         );
     }
 
-    public function persistSession(ValidatedEventSubmission $input, ?callable $persistMedia = null): array
+    public function persistSession(EventSubmissionInput $input): array
     {
-        $persisted = $this->persistSession->handle($input, $persistMedia);
+        $persisted = $this->persistSession->handle($this->resolveInput($input));
         $occurrence = $persisted['session']->occurrence;
 
         return $this->result(
@@ -70,6 +78,36 @@ final readonly class EventSubmissionsService implements EventSubmissions
             parentCreated: false,
             grouped: false,
             occurrencePendingReview: false,
+        );
+    }
+
+    public function approveOccurrenceSubmission(
+        string $submissionId,
+        string $performedByType,
+        string $performedById,
+        ?string $note = null,
+    ): array {
+        return $this->reviewOccurrenceSubmission->approve(
+            $submissionId,
+            $performedByType,
+            $performedById,
+            $note,
+        );
+    }
+
+    public function rejectOccurrenceSubmission(
+        string $submissionId,
+        string $performedByType,
+        string $performedById,
+        string $reason,
+        string $note,
+    ): array {
+        return $this->reviewOccurrenceSubmission->reject(
+            $submissionId,
+            $performedByType,
+            $performedById,
+            $reason,
+            $note,
         );
     }
 
@@ -94,7 +132,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
     }
 
     /**
-     * @return array{event_id: string, submission_id: string|null, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
+     * @return array{event_id: string, submission_id: string, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
      */
     private function result(
         PackageEvent $event,
@@ -114,5 +152,57 @@ final readonly class EventSubmissionsService implements EventSubmissions
             'grouped' => $grouped,
             'occurrence_pending_review' => $occurrencePendingReview,
         ];
+    }
+
+    private function resolveInput(EventSubmissionInput $input): ValidatedEventSubmission
+    {
+        $primaryOrganizer = $this->resolveModel($input->primaryOrganizerKind->value, $input->primaryOrganizerId);
+        $submitter = $input->submitterId === null ? null : $this->resolveModel('user', $input->submitterId);
+        $eventContainer = $input->eventContainerId === null
+            ? null
+            : EventModel::query('event')->find($input->eventContainerId);
+
+        if ($eventContainer !== null && ! $eventContainer instanceof PackageEvent) {
+            throw new \RuntimeException('Expected the event model to extend the events package model.');
+        }
+
+        return new ValidatedEventSubmission(
+            state: $input->state,
+            startsAt: Carbon::parse($input->startsAt),
+            endsAt: $input->endsAt === null ? null : Carbon::parse($input->endsAt),
+            timezone: $input->timezone,
+            primaryOrganizer: $primaryOrganizer,
+            targetInstitutionId: $input->targetInstitutionId,
+            targetVenueId: $input->targetVenueId,
+            prayerTime: $input->prayerTime === null ? null : EventPrayerTime::from($input->prayerTime),
+            prayerReference: $input->prayerReference,
+            prayerOffset: $input->prayerOffset,
+            prayerDisplayText: $input->prayerDisplayText,
+            autoApproved: $input->autoApproved,
+            sessionSubmission: $input->sessionSubmission,
+            submitter: $submitter,
+            eventContainer: $eventContainer,
+            personSlugSegments: $input->personSlugSegments,
+            occurrenceId: $input->occurrenceId,
+            validationKeyPrefix: $input->validationKeyPrefix,
+            prayerSource: $input->prayerSource,
+            prayerFetchedAt: $input->prayerFetchedAt,
+            prayerZone: $input->prayerZone,
+            prayerLat: $input->prayerLat,
+            prayerLng: $input->prayerLng,
+            prayerCountry: $input->prayerCountry,
+        );
+    }
+
+    private function resolveModel(string $alias, string $id): Model
+    {
+        $modelClass = MorphModelResolver::resolve($alias);
+        $model = $modelClass::query()->findOrFail($id);
+
+        if (! $model instanceof Model) {
+            throw new \RuntimeException("Expected the [{$alias}] morph alias to resolve to an Eloquent model.");
+        }
+
+        return $model;
     }
 }

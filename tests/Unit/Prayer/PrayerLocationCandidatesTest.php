@@ -7,6 +7,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Models\Institution;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
@@ -198,7 +199,12 @@ it('borrows the owning institution address when the venue has none', function ()
     detachPrayerCandidatesAddresses($owner);
     $ownerAddress = makePrayerCandidatesAddress($country, $state);
     attachPrayerCandidatesAddress($owner, $ownerAddress);
-    $venue->institutions()->attach($owner->getKey(), ['role' => InstitutionVenueRole::Operated, 'is_primary' => true]);
+    app(InstitutionVenueLinks::class)->add(
+        (string) $owner->getKey(),
+        (string) $venue->getKey(),
+        InstitutionVenueRole::Operated,
+        true,
+    );
 
     expect(PrayerLocation::forTargets((string) $venue->getKey(), null)?->getKey())
         ->toBe($ownerAddress->getKey());
@@ -222,8 +228,17 @@ it('prefers the primary owner among venue institutions', function () {
     $secondAddress = makePrayerCandidatesAddress($country, $state);
     attachPrayerCandidatesAddress($second, $secondAddress);
 
-    $venue->institutions()->attach($first->getKey(), ['role' => InstitutionVenueRole::Operated, 'is_primary' => false]);
-    $venue->institutions()->attach($second->getKey(), ['role' => InstitutionVenueRole::Operated, 'is_primary' => true]);
+    app(InstitutionVenueLinks::class)->add(
+        (string) $first->getKey(),
+        (string) $venue->getKey(),
+        InstitutionVenueRole::Operated,
+    );
+    app(InstitutionVenueLinks::class)->add(
+        (string) $second->getKey(),
+        (string) $venue->getKey(),
+        InstitutionVenueRole::Operated,
+        true,
+    );
 
     expect(PrayerLocation::forTargets((string) $venue->getKey(), null)?->getKey())
         ->toBe($secondAddress->getKey());

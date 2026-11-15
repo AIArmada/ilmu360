@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\DonationChannels;
 
 use App\Features\Directory\Support\DirectoryModel;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\DonationChannel;
 
 /**
  * Demote every other default channel for the same owner.
  */
 final readonly class DemoteDefaultDonationChannelsAction
 {
-    public function handle(Model $channel): void
+    public function handle(DonationChannel $channel): void
     {
         DirectoryModel::assert($channel, 'donation_channel');
 

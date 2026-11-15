@@ -3,7 +3,7 @@
 namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
-use App\Features\Directory\Api\PersonSearchCacheVersion;
+use App\Features\Directory\Api\PersonSearchCache;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Platform\Search\FuzzySearchPolicy;
@@ -11,18 +11,15 @@ use App\Platform\Search\TypesenseHealthCheckService;
 use App\Shared\Directory\PersonSearchText;
 use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class PersonSearchService implements PublicDiscoveryAdapter
 {
-    private const int PUBLIC_SEARCH_CACHE_TTL = 600;
-
     public function __construct(
-        private readonly ?PersonWorkflow $personWorkflow = null,
-        private readonly ?PersonSearchCacheVersion $personSearchCacheVersion = null,
+        private readonly PersonWorkflow $personWorkflow,
+        private readonly PersonSearchCache $personSearchCache,
     ) {}
 
     public function buildSearchableName(
@@ -141,14 +138,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             return [];
         }
 
-        $cacheKey = sprintf(
-            'person_search_public:%s:%s',
-            $this->publicSearchCacheVersion(),
-            md5($normalizedSearch),
-        );
-
-        /** @var list<string> $ids */
-        $ids = Cache::remember($cacheKey, self::PUBLIC_SEARCH_CACHE_TTL, function () use ($normalizedSearch): array {
+        return $this->personSearchCache->rememberPublicSearchIds($normalizedSearch, function () use ($normalizedSearch): array {
             $localIds = $this->publicSearchIdsFromLocalSearch($normalizedSearch);
 
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
@@ -166,8 +156,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
             return $localIds;
         });
-
-        return $ids;
     }
 
     /**
@@ -231,14 +219,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             return [];
         }
 
-        $cacheKey = sprintf(
-            'person_search_public_fuzzy:%s:%s',
-            $this->publicSearchCacheVersion(),
-            md5($normalizedSearch),
-        );
-
-        /** @var list<string> $ids */
-        $ids = Cache::remember($cacheKey, self::PUBLIC_SEARCH_CACHE_TTL, function () use ($normalizedSearch): array {
+        return $this->personSearchCache->rememberPublicFuzzySearchIds($normalizedSearch, function () use ($normalizedSearch): array {
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
@@ -304,8 +285,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 ->values()
                 ->all();
         });
-
-        return $ids;
     }
 
     /**
@@ -507,12 +486,12 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     public function syncPersonRecord(Person $person): void
     {
-        $this->workflow()->syncSearchProjection((string) $person->getKey());
+        $this->personWorkflow->syncSearchProjection((string) $person->getKey());
     }
 
     public function reindexAll(int $chunkSize = 100): int
     {
-        return $this->workflow()->reindexSearch($chunkSize);
+        return $this->personWorkflow->reindexSearch($chunkSize);
     }
 
     public function searchIndexSchemaReady(): bool
@@ -522,17 +501,12 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     public function purgePersonRecord(Person $person): void
     {
-        $this->workflow()->purgeSearchProjection((string) $person->getKey());
-    }
-
-    private function workflow(): PersonWorkflow
-    {
-        return $this->personWorkflow ?? app(PersonWorkflow::class);
+        $this->personWorkflow->purgeSearchProjection((string) $person->getKey());
     }
 
     public function bustPublicSearchCache(): void
     {
-        $this->cacheVersion()->bump();
+        $this->personSearchCache->bumpPublicSearchVersion();
     }
 
     public function normalizedSearch(string $search): ?string
@@ -540,16 +514,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $normalized = StringSimilarity::normalize($search);
 
         return $normalized === '' ? null : $normalized;
-    }
-
-    private function publicSearchCacheVersion(): int
-    {
-        return $this->cacheVersion()->version();
-    }
-
-    private function cacheVersion(): PersonSearchCacheVersion
-    {
-        return $this->personSearchCacheVersion ?? app(PersonSearchCacheVersion::class);
     }
 
     /**

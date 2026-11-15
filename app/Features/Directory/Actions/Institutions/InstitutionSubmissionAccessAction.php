@@ -6,8 +6,9 @@ namespace App\Features\Directory\Actions\Institutions;
 
 use App\Features\Directory\Api\InstitutionSubmissionAccess;
 use App\Features\Directory\Api\InstitutionSubmissionEligibility;
-use App\Features\Directory\Persistence\InstitutionSubmissionCache;
+use App\Features\Directory\Api\InstitutionSubmissionOptionsCache;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Models\Institution;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
@@ -28,7 +29,7 @@ final readonly class InstitutionSubmissionAccessAction implements InstitutionSub
     public function __construct(
         private MembershipDirectory $memberships,
         private AccountDirectory $accounts,
-        private InstitutionSubmissionCache $cache,
+        private InstitutionSubmissionOptionsCache $submissionOptionsCache,
     ) {}
 
     public function eligibility(string $institutionId): InstitutionSubmissionEligibility
@@ -55,7 +56,7 @@ final readonly class InstitutionSubmissionAccessAction implements InstitutionSub
             'public_submission_locked_by' => $actorId,
         ])->save();
 
-        $this->cache->forget();
+        $this->submissionOptionsCache->invalidate();
     }
 
     public function unlock(string $institutionId, string $actorId): void
@@ -68,7 +69,7 @@ final readonly class InstitutionSubmissionAccessAction implements InstitutionSub
             'allow_public_event_submission' => true,
         ])->save();
 
-        $this->cache->forget();
+        $this->submissionOptionsCache->invalidate();
     }
 
     public function reopenIfIneligible(string $institutionId): bool
@@ -87,7 +88,7 @@ final readonly class InstitutionSubmissionAccessAction implements InstitutionSub
             'allow_public_event_submission' => true,
         ])->save();
 
-        $this->cache->forget();
+        $this->submissionOptionsCache->invalidate();
 
         return true;
     }
@@ -128,7 +129,7 @@ final readonly class InstitutionSubmissionAccessAction implements InstitutionSub
         return $reopened;
     }
 
-    private function eligibilityFor(Model $institution): InstitutionSubmissionEligibility
+    private function eligibilityFor(Institution $institution): InstitutionSubmissionEligibility
     {
         $institution->loadMissing('members');
 
@@ -169,11 +170,11 @@ final readonly class InstitutionSubmissionAccessAction implements InstitutionSub
         ]);
     }
 
-    private function institution(string $institutionId): Model
+    private function institution(string $institutionId): Institution
     {
         $institution = DirectoryModel::query('institution')->find($institutionId);
 
-        if (! $institution instanceof Model) {
+        if (! $institution instanceof Institution) {
             throw new RuntimeException("Institution [{$institutionId}] was not found.");
         }
 

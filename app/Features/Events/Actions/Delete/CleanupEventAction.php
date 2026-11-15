@@ -4,24 +4,25 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Delete;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Engagement\Api\EventEngagementDeletion;
 use App\Features\Events\Api\EventDeletion;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Support\EventModel;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Registration\Api\EventRegistrationDeletion;
 use App\Shared\Membership\MembershipSubjectType;
 
 /**
  * Owns the application-level cleanup that runs before the event row is
  * deleted.
  *
- * Direct deletes here: membership pivots (through the Membership boundary),
+ * Cleanup here includes membership pivots (through the Membership boundary),
  * event involvements/key people, access policies, reference records,
- * bookmarks, going responses, submissions, moderation reviews, change
- * announcements and media links. Registration, attendance and check-in rows
- * must also be deleted here: the vendor EventDeleteCascade cannot replace
- * these deletes because the root Event model invokes it from the `deleted`
- * hook, after the event row is gone, and the cascade's owner-scoped child
- * queries filter through `whereHas('event')`, so they match no rows.
+ * submissions, moderation reviews, change announcements and media links.
+ * Engagement and Registration cleanup delegate to their owning features before
+ * the event row is deleted. The vendor EventDeleteCascade runs afterward in the
+ * model's `deleting` hook while the event is still available to its owner-scoped
+ * child queries, so it removes the remaining package-owned children.
  * The event-scoped package tables without app write paths (links, audiences,
  * languages, locations, classifications, time expressions, series items) are
  * still removed by that vendor cascade.
@@ -30,6 +31,9 @@ final readonly class CleanupEventAction implements EventDeletion
 {
     public function __construct(
         private MembershipCommands $membership,
+        private EventEngagementDeletion $engagementDeletion,
+        private EventRegistrationDeletion $registrationDeletion,
+        private EventModeration $eventModeration,
     ) {}
 
     public function cleanup(string $eventId): void
@@ -40,6 +44,8 @@ final readonly class CleanupEventAction implements EventDeletion
             return;
         }
 
+        $this->registrationDeletion->assertEventRegistrationsCanBeDeleted($eventId);
+
         $this->membership->removeAllMembers(
             MembershipSubjectType::Event,
             $eventId,
@@ -49,21 +55,14 @@ final readonly class CleanupEventAction implements EventDeletion
         $event->accessPolicies()->delete();
         $event->keyPeople()->delete();
         $event->referenceRecords()->delete();
-        $event->savedBy()->delete();
-        $event->goingBy()->delete();
+        $this->engagementDeletion->deleteForEvent($eventId, $event->getMorphClass());
 
-        $event->registrations()->each(static function ($registration): void {
-            $registration->delete();
-        });
-        $event->checkins()->each(static function ($checkin): void {
-            $checkin->delete();
-        });
+        $this->registrationDeletion->deleteForEvent($eventId);
+
         $event->submissions()->each(static function ($submission): void {
             $submission->delete();
         });
-        $event->moderationReviews()->each(static function ($review): void {
-            OwnerContext::withOwner(null, static fn () => $review->delete());
-        });
+        $this->eventModeration->deleteReviewsForEvent($eventId);
         $event->changeAnnouncements()->each(static function ($announcement): void {
             $announcement->delete();
         });

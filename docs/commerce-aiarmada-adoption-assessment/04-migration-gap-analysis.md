@@ -35,7 +35,7 @@
 | `event_attendees`/`event_checkins` (app) vs `event_attendances` (pkg) | `UNCLEAR_REQUIRES_DECISION` | (AIA-MIG-006) |
 | `reports`, `saved_searches` | `PACKAGE_OWNED_WITH_APP_EXTENSIONS` | commerce-support owns base; app may extend (AIA-MIG-007) |
 | `inventory_*`, `ticket_*`, `seat_*` | `PACKAGE_OWNED` (dormant) | unused (AIA-MIG-008) |
-| app-specific: `institutions`, `speakers`, `donation_channels`, `inspirations`, `spaces`, `teams`, `ai_*`, `contribution_requests`, `slug_redirects`, `event_change_announcements`, `event_key_people`, `event_settings`, `event_user`, `event_saves`, `media_links`, `reference_user` | `APP_OWNED` | genuine app domain |
+| app-specific: `institutions`, `speakers`, `donation_channels`, `inspirations`, `spaces`, `teams`, `ai_*`, `contribution_requests`, `slug_redirects`, `event_change_announcements`, `event_settings`, `event_user`, `event_saves`, `media_links`, `reference_user` | `APP_OWNED` | genuine app domain |
 
 ## Migration strategy recommendations
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Registration;
 
 use AIArmada\CommerceSupport\Events\PaymentRefunded;
+use App\Features\Registration\Actions\DeleteEventRegistrationsAction;
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
 use App\Features\Registration\Actions\PrepareAdmissionCheckoutAction;
 use App\Features\Registration\Actions\ProcessAdmissionRefundAction;
@@ -16,9 +17,10 @@ use App\Features\Registration\Api\AdmissionFacts;
 use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Api\AdmissionRegistration;
-use App\Features\Registration\Api\PaidRegistrationFacts;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
+use App\Features\Registration\Api\EventRegistrationDeletion;
+use App\Features\Registration\Api\PaidRegistrationFacts;
 use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
 use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
@@ -100,34 +102,27 @@ use Illuminate\Support\Facades\Event;
  * package-canonical and unclaimed.
  *
  * R5a claims account-lifecycle contributor ownership.
- * RegistrationAccountLifecycleContributor rewrites event_registrations
- * registrant links, event_attendances attendee links and event check-in
- * verifier links during account deletion/restoration, and recreates rows
- * captured by legacy snapshots. It is tagged once by this provider under the
- * shared AccountLifecycleContributor tag with the unchanged `events` key and
- * priority 70, so existing deleted-account snapshots stay readable. The
- * contributor is a declared manifest writer for event_registrations and
- * event_attendances, the Registration-owned tables it rewrites directly. Its
- * Events-owned event ownership and event_submissions submitter-link rewrites
- * are account-lifecycle cross-owner writes recorded for the final exact
- * exceptions; they are not claimed here.
+ * RegistrationAccountLifecycleContributor detaches and restores
+ * event_registrations registrant links, event_attendances attendee links and
+ * event check-in verifier links. Events-owned event ownership and submission
+ * links are delegated through EventAccountOwnership. The contributor is
+ * tagged once under AccountLifecycleContributor with the `events` key and
+ * priority 70, and writes only Registration-owned attendance tables.
  *
  * The following root/package writers remain and are recorded for the later
  * migration slices:
  *
- * - root Registration model: booted() keeps only the participant-owned
- *   cleanup that runs before the vendor registration cascade. The vendor
- *   EventDeleteCascade::deleteForRegistration removes participants (contact
- *   methods cascade from the participant HasContactMethods deleting hook),
- *   registration-level answers/items/attendances with their logs, passes,
- *   child registrations and registration-owned morph children. The root hook
- *   deletes participant answers and participant attendances first, which
- *   covers attendance rows with a null event_registration_id that the
- *   registration attendance relation cannot see, then deletes the participant
- *   row. Check-ins are event_attendances rows keyed by event_registration_id,
- *   so the vendor registration attendance relation covers them; the root hook
- *   no longer repeats registration-level answers, items, attendances or
- *   check-ins.
+ * - root Registration model: booted() delegates participant-owned cleanup and
+ *   descendant deletion to EventRegistrationDeletion before the vendor
+ *   registration cascade. The Registration feature deletes descendants
+ *   through configured app models in leaf-first order, preserving each
+ *   Registration audit hook. It also removes participant answers and
+ *   attendances, including attendance rows with a null
+ *   event_registration_id that the vendor registration relation cannot see.
+ *   The vendor EventDeleteCascade::deleteForRegistration removes any
+ *   remaining participants (contact methods cascade from the participant
+ *   HasContactMethods deleting hook), registration-level answers, items and
+ *   attendances with their logs, passes and registration-owned morph children.
  * - vendor Filament registration/attendance surfaces: the registration
  *   resource importer (EventRegistrationImporter) and the check-in console
  *   (CheckInConsole) write registrations and attendance outside the feature
@@ -139,10 +134,13 @@ use Illuminate\Support\Facades\Event;
  *
  * The dashboard registration-questions workspace is a Registration entry
  * point that delegates question writes to the package actions; admission
- * setup remains Events-owned. R6 consolidated the registration delete path in
- * the root model hook. Registration exports still wait for the R5 reads/
- * exports slice, and the vendor Filament attendance console remains deferred
- * to the final admin composition.
+ * setup remains Events-owned. R6 moved registration and check-in deletion
+ * into the Registration API; the root model hook delegates participant cleanup
+ * and descendant deletion before the vendor cascade. R5 moved the registration
+ * export transport into this
+ * feature, with explicit actor-aware audit rows written by
+ * RecordRegistrationExportAuditAction. The vendor Filament attendance console
+ * remains deferred to the final admin composition.
  */
 class FeatureServiceProvider extends FeatureModule
 {
@@ -156,6 +154,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AdmissionRefunds::class, ProcessAdmissionRefundAction::class);
         $this->app->bind(AttendanceCommands::class, RecordSelfCheckInAction::class);
         $this->app->bind(AttendanceState::class, ResolveAttendanceState::class);
+        $this->app->bind(EventRegistrationDeletion::class, DeleteEventRegistrationsAction::class);
 
         $this->app->tag([
             RegistrationAccountLifecycleContributor::class,

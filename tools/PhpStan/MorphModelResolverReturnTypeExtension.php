@@ -49,6 +49,7 @@ final class MorphModelResolverReturnTypeExtension implements DynamicStaticMethod
         'order_refund' => \AIArmada\Orders\Models\OrderRefund::class,
         'contribution_request' => \App\Models\ContributionRequest::class,
         'event_registration_participant' => \AIArmada\Events\Models\EventRegistrationParticipant::class,
+        'reward_digest_slot' => \App\Models\RewardDigestSlot::class,
         'membership_application' => \App\Models\MembershipApplication::class,
         'moderation_review' => \App\Models\ModerationReview::class,
         'media_link' => \App\Models\MediaLink::class,

@@ -1,8 +1,8 @@
 <?php
 
-use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\User;
+use App\Shared\Events\Enums\EventVisibility;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function (): void {
@@ -36,7 +36,12 @@ it('returns authenticated share analytics dashboard and link detail data for mob
         'tracking_token' => $trackingToken,
     ])->assertNoContent();
 
-    $this->get($shareUrl)->assertOk();
+    $shortLink = $this->get($shareUrl)->assertRedirect();
+    $destinationUrl = (string) $shortLink->headers->get('Location');
+
+    expect($destinationUrl)->not->toBe('');
+
+    $this->get($destinationUrl)->assertOk();
 
     $dashboard = $this->getJson(route('api.client.share.analytics', [
         'type' => 'event',

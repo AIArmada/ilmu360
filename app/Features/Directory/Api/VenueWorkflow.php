@@ -46,9 +46,8 @@ interface VenueWorkflow
 
     public function syncSlugsForName(string $name): bool;
 
-    /**
-     * @param  list<string>  $venueIds
-     * @return list<string>
-     */
-    public function backfillSlugs(array $venueIds = []): array;
+    public function detachVerifier(string $accountId): void;
+
+    /** @param list<string> $venueIds */
+    public function restoreVerifier(string $accountId, array $venueIds): void;
 }

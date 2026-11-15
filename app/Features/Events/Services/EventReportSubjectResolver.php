@@ -14,10 +14,10 @@ use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
- * Interim Events report-subject provider.
+ * Events report-subject provider implementation.
  *
- * Reports composes it with Directory's provider. Querying through the event
- * morph alias keeps this adapter free of the private root event model.
+ * Reports composes this implementation with Directory's provider. The
+ * resolver returns immutable report values and keeps Event queries internal.
  *
  * @internal
  */

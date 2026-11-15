@@ -3,11 +3,11 @@
 namespace App\Observers;
 
 use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Directory\Api\PublicDirectoryCacheVersions;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Institution;
-use App\Platform\Cache\PublicDirectoryCacheVersion;
-use App\Platform\Cache\PublicListingsCache;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Platform\Routing\SyncSlugRedirectAction;
+use App\Services\PublicListingsCache;
 use App\Support\Search\InstitutionSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -17,8 +17,8 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
 
     public function __construct(
         protected InstitutionWorkflow $institutionWorkflow,
-        protected SyncSlugRedirectAction $syncSlugRedirectAction,
-        protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
+        protected SlugRedirectCommands $slugRedirectCommands,
+        protected PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
         protected PublicListingsCache $publicListingsCache,
         protected InstitutionSearchService $institutionSearchService,
     ) {}
@@ -46,7 +46,7 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
 
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpInstitution();
+        $this->publicDirectoryCacheVersions->bumpInstitution();
         $this->institutionSearchService->bustPublicSearchCache();
     }
 
@@ -54,11 +54,11 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
     {
         // Bridge rows are removed synchronously inside Institution::delete();
         // this after-commit observer keeps derived side effects only.
-        $this->syncSlugRedirectAction->purgeForModel($institution);
+        $this->slugRedirectCommands->purge($institution->getMorphClass(), (string) $institution->getKey());
         $this->institutionWorkflow->syncSlugsForName($institution->name);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpInstitution();
+        $this->publicDirectoryCacheVersions->bumpInstitution();
         $this->institutionSearchService->bustPublicSearchCache();
     }
 }

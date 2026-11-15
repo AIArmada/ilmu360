@@ -29,8 +29,22 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
             return;
         }
 
+        $this->storeSingle($model, $file, $collection);
+    }
+
+    /**
+     * @param  array<string, mixed>  $customProperties
+     */
+    public function storeSingle(
+        HasMedia $model,
+        UploadedFile $file,
+        string $collection,
+        ?string $name = null,
+        array $customProperties = [],
+    ): Media {
         $model->clearMediaCollection($collection);
-        $this->addMedia($model, $file, $collection);
+
+        return $this->addMedia($model, $file, $collection, $name, $customProperties);
     }
 
     /**
@@ -109,8 +123,14 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
         }
     }
 
-    private function addMedia(HasMedia $model, UploadedFile $file, string $collection): void
-    {
+    /** @param array<string, mixed> $customProperties */
+    private function addMedia(
+        HasMedia $model,
+        UploadedFile $file,
+        string $collection,
+        ?string $name = null,
+        array $customProperties = [],
+    ): Media {
         $modelRecord = $model instanceof Model ? $model : null;
         $extension = strtolower((string) ($file->extension() ?: $file->getClientOriginalExtension()));
         $suffix = strtolower(substr((string) Str::ulid(), -8));
@@ -120,10 +140,10 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
             $fileName .= ".{$extension}";
         }
 
-        $model
+        return $model
             ->addMedia($file)
             ->usingFileName($fileName)
-            ->usingName(MediaFileNamer::resolveDisplayNameFromModel(
+            ->usingName($name ?? MediaFileNamer::resolveDisplayNameFromModel(
                 $modelRecord,
                 $collection,
                 $file->getClientOriginalName(),
@@ -131,6 +151,7 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
             ->withCustomProperties([
                 'collection' => $collection,
                 'original_file_name' => $file->getClientOriginalName(),
+                ...$customProperties,
             ])
             ->toMediaCollection($collection);
     }

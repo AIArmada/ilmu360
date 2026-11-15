@@ -4,12 +4,20 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
+use AIArmada\Membership\Enums\ApplicationStatus;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Membership\Api\MembershipApplicationDetail;
+use App\Features\Membership\Api\MembershipApplicationEvidence;
+use App\Features\Membership\Api\MembershipApplicationReviewer;
 use App\Features\Membership\Api\MembershipApplicationSummary;
 use App\Features\Membership\Api\MembershipInvitationDetail;
+use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Shared\Membership\MembershipSubjectType;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Maps membership models to scalar Api values without leaking Eloquent types.
@@ -45,15 +53,55 @@ final readonly class MembershipValueMapper
         );
     }
 
-    public static function applicationDetail(Model $application): MembershipApplicationDetail
-    {
+    public static function applicationDetail(
+        Model $application,
+        MembershipSubjectCatalog $subjectCatalog,
+    ): MembershipApplicationDetail {
+        $summary = self::applicationSummary($application);
+        $subject = $subjectCatalog->find($summary->subjectType, $summary->subjectId);
+        $status = self::stringValue($application->getAttribute('status')) ?? '';
+        $grantedRole = self::stringValue($application->getAttribute('granted_role'));
+        $reviewerModel = $application->getRelationValue('reviewer');
+
+        $reviewer = $reviewerModel instanceof Model
+            ? new MembershipApplicationReviewer(
+                id: (string) $reviewerModel->getKey(),
+                name: self::stringValue($reviewerModel->getAttribute('name')),
+                email: self::stringValue($reviewerModel->getAttribute('email')),
+            )
+            : null;
+
+        $evidence = $application instanceof HasMedia
+            ? $application->getMedia('evidence')
+                ->map(static fn (Media $media): MembershipApplicationEvidence => new MembershipApplicationEvidence(
+                    id: (string) $media->getKey(),
+                    name: $media->name !== '' ? $media->name : $media->file_name,
+                    url: $media->getAvailableUrl(['thumb']) ?: $media->getUrl(),
+                ))
+                ->all()
+            : [];
+        $meta = $application->getAttribute('meta');
+        $notes = is_array($meta) && is_string($meta['notes'] ?? null) && $meta['notes'] !== ''
+            ? $meta['notes']
+            : null;
+
         return new MembershipApplicationDetail(
-            application: self::applicationSummary($application),
-            reviewerId: self::stringValue($application->getAttribute('reviewer_id')),
+            application: $summary,
+            subjectLabel: $summary->subjectType->label(),
+            subjectTitle: $subject->label ?? $summary->subjectId,
+            subjectPublicUrl: $subject?->publicUrl,
+            statusLabel: ApplicationStatus::tryFrom($status)?->label() ?? Str::headline($status),
+            roleLabel: $grantedRole === null
+                ? '-'
+                : (MemberRole::tryFrom($grantedRole)?->label() ?? $grantedRole),
+            justification: (string) $application->getAttribute('justification'),
+            notes: $notes,
+            reviewer: $reviewer,
             reviewerNote: self::stringValue($application->getAttribute('reviewer_note')),
-            grantedRole: self::stringValue($application->getAttribute('granted_role')),
+            grantedRole: $grantedRole,
             reviewedAt: self::dateTime($application->getAttribute('reviewed_at')),
             cancelledAt: self::dateTime($application->getAttribute('cancelled_at')),
+            evidence: $evidence,
         );
     }
 

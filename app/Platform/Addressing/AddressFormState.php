@@ -14,12 +14,8 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Canonical address form-state normalization shared by every feature that
- * persists an address through a form or contribution payload.
- *
- * The behavior was extracted verbatim from the legacy form schema so callers
- * outside the form layer (feature actions) can prepare address data without
- * importing the Filament-facing schema class.
+ * Canonical address form-state normalization shared by directory forms and
+ * feature actions that persist address data.
  */
 final class AddressFormState
 {
@@ -116,25 +112,19 @@ final class AddressFormState
      */
     public static function countrySelectionProvided(array $data): bool
     {
-        foreach (['country_id', 'country_code', 'country_key'] as $field) {
-            $value = $data[$field] ?? null;
-
-            if (is_int($value)) {
-                return true;
-            }
-
-            if (is_string($value) && trim($value) !== '') {
-                return true;
-            }
+        if (! array_key_exists('country_id', $data)) {
+            return false;
         }
 
-        return false;
+        $value = $data['country_id'];
+
+        return $value !== null && (! is_string($value) || trim($value) !== '');
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public static function normalizeCountrySelection(array $data, bool $enabledOnly = false): ?string
+    public static function normalizeCountrySelection(array $data): ?string
     {
         $countryId = self::normalizeLocationId($data['country_id'] ?? null);
 
@@ -142,22 +132,12 @@ final class AddressFormState
             return $countryId;
         }
 
-        $countryCode = $data['country_code'] ?? null;
-
-        if (is_string($countryCode) && preg_match('/^[A-Za-z]{2}$/', trim($countryCode)) === 1) {
-            $resolvedId = AddressCountry::query()
-                ->where('iso2', mb_strtoupper(trim($countryCode)))
-                ->value('id');
-
-            return is_string($resolvedId) ? $resolvedId : null;
-        }
-
         return null;
     }
 
     public static function normalizeLocationId(mixed $value): ?string
     {
-        if (! is_string($value) && ! is_int($value)) {
+        if (! is_string($value)) {
             return null;
         }
 
@@ -167,7 +147,7 @@ final class AddressFormState
             return null;
         }
 
-        if (Str::isUuid($trimmed) || ctype_digit($trimmed)) {
+        if (Str::isUuid($trimmed)) {
             return $trimmed;
         }
 

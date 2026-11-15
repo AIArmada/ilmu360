@@ -9,11 +9,7 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Contracts\ShareTrackingContract;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -23,9 +19,13 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
-use App\Features\Events\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonInterface;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\RoleSeeder;
@@ -361,7 +361,7 @@ it('preserves private visibility and other scopes when syncing event key people'
     $moderatorPerson = Person::factory()->create(['status' => 'verified']);
     $occurrence = $event->primaryOccurrence;
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$speaker->getKey()], [
+    app(SyncEventKeyPeopleAction::class)->syncEvent($event, [$speaker->getKey()], [
         [
             'role_code' => 'moderator',
             'involveable_type' => 'person',
@@ -385,14 +385,14 @@ it('preserves private visibility and other scopes when syncing event key people'
 
     $sessionSpeaker = Person::factory()->create(['status' => 'verified']);
 
-    app(EventKeyPersonSyncService::class)->syncSession($session, [$sessionSpeaker->getKey()]);
+    app(SyncEventKeyPeopleAction::class)->syncSession($session, [$sessionSpeaker->getKey()]);
 
     expect(EventInvolvement::query()->where('event_session_id', $session->getKey())->count())->toBe(1);
 
     // Re-syncing the event scope must not touch the session scope.
     $replacement = Person::factory()->create(['status' => 'verified']);
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$replacement->getKey()]);
+    app(SyncEventKeyPeopleAction::class)->syncEvent($event, [$replacement->getKey()]);
 
     expect(EventInvolvement::query()->where('event_session_id', $session->getKey())->count())->toBe(1)
         ->and((string) EventInvolvement::query()->where('event_session_id', $session->getKey())->value('involveable_id'))

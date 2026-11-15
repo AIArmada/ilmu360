@@ -6,6 +6,7 @@ use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Data\EventDiscoveryCriteria;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\Events\Api\EventSearchCache;
 use App\Models\Event;
 use App\Platform\Search\TypesenseHealthCheckService;
 use App\Shared\Events\EventCategoryCatalog;
@@ -16,7 +17,6 @@ use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -30,6 +30,7 @@ class EventSearchService
         private readonly EventCategoryCatalog $categoryCatalog,
         private readonly EventSearchRelationProvider $relationProvider,
         private readonly ReferenceQueries $referenceQueries,
+        private readonly EventSearchCache $eventSearchCache,
         private readonly FuzzyEventMatcher $fuzzyMatcher = new FuzzyEventMatcher,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
         private readonly EventDiscoveryFilterSet $filterSet = new EventDiscoveryFilterSet,
@@ -117,19 +118,14 @@ class EventSearchService
         $criteria = $this->criteriaFactory->fromSearch(null, [], $perPage, 'time');
 
         try {
-            /** @var array{ids: list<string>, total: int} $payload */
-            $payload = Cache::remember(
-                'default_events_search_v2',
-                60,
-                function () use ($criteria): array {
-                    $paginator = $this->performSearch($criteria);
+            $payload = $this->eventSearchCache->rememberDefaultSearch(function () use ($criteria): array {
+                $paginator = $this->performSearch($criteria);
 
-                    return [
-                        'ids' => array_values(array_map(static fn (Event $event): string => (string) $event->getKey(), $paginator->items())),
-                        'total' => $paginator->total(),
-                    ];
-                },
-            );
+                return [
+                    'ids' => array_values(array_map(static fn (Event $event): string => (string) $event->getKey(), $paginator->items())),
+                    'total' => $paginator->total(),
+                ];
+            });
         } catch (Throwable $exception) {
             Log::warning('Default event search cache failed, using uncached results', [
                 'error' => $exception->getMessage(),
@@ -138,10 +134,10 @@ class EventSearchService
             return $this->performSearch($criteria);
         }
 
-        if ($payload['ids'] === []) {
+        if ($payload->ids === []) {
             return new Paginator(
                 items: collect(),
-                total: $payload['total'],
+                total: $payload->total,
                 perPage: $perPage,
                 currentPage: 1,
                 options: [
@@ -155,11 +151,11 @@ class EventSearchService
         $events = Event::query()
             ->with($this->relationProvider->relations())
             ->whereHas('occurrences')
-            ->whereKey($payload['ids'])
+            ->whereKey($payload->ids)
             ->get()
             ->keyBy('id');
 
-        $orderedEvents = collect($payload['ids'])
+        $orderedEvents = collect($payload->ids)
             ->map(static function (string $eventId) use ($events): ?Event {
                 $event = $events->get($eventId);
 
@@ -170,7 +166,7 @@ class EventSearchService
 
         return new Paginator(
             items: $orderedEvents,
-            total: $payload['total'],
+            total: $payload->total,
             perPage: $perPage,
             currentPage: 1,
             options: [

@@ -493,7 +493,7 @@ Interactive API docs are available on the API host under `/docs`, with the gener
 | `GET` | `/forms/account-settings` | Required | Account-settings contract |
 | `GET` | `/forms/advanced-events` | Required | Advanced parent-program builder contract |
 | `GET` | `/forms/institution-workspace` | Required | Institution workspace contract |
-| `GET` | `/forms/membership-claims/{subjectType}` | Required | Membership-claim contract for the selected subject type |
+| `GET` | `/forms/membership-applications/{subjectType}` | Required | Membership-application contract for the selected subject type |
 | `GET` | `/forms/contributions/{subjectType}/{subject}/suggest` | Required | Suggest-update context and editable state |
 
 ### Public query endpoints
@@ -525,7 +525,7 @@ Notes:
 - These detail payloads now mirror the web client media collections and public-contact visibility rules.
 - Institution payloads expose `public_image_url` as the canonical cover -> logo -> placeholder image. Use that for cards and previews. Use `logo_url` or `cover_url` only when you need those explicit assets.
 - Public event detail payloads now serialize linked references with a normalized image contract for mobile cards and previews: `media.front_cover_url`, `media.back_cover_url`, plus top-level aliases `front_cover_url`, `back_cover_url`, `cover_url`, and `thumb_url`.
-- Unified search accepts `search` as the canonical query parameter and `q` as a compatibility alias, for example `GET /api/v1/search?search=Kuliah` or `GET /api/v1/search?q=Kuliah`.
+- Unified search uses the `search` query parameter, for example `GET /api/v1/search?search=Kuliah`.
 - Institution directory requests can filter by the device's current location: `GET /api/v1/institutions?lat=3.1390&lng=101.6869&radius_km=15` or `GET /api/v1/institutions/near?near=3.1390,101.6869&radius_km=15`. The `/institutions/near` alias requires either `near=lat,lng` or both `lat` and `lng`; calling it without coordinates intentionally returns a validation error. `radius_km` defaults to 15, is clamped between 1 and 100, and is always expressed in kilometers. Nearby results are sorted nearest-first and include `distance_km`; non-nearby requests return `distance_km: null`.
 - Followed directory records are listed through the same directory endpoints with `following=true`, for example `GET /api/v1/persons?following=true`, `GET /api/v1/institutions?following=true`, and `GET /api/v1/references?following=true`. There are no plural follow-list routes such as `/follows/persons`; the `/follows/{type}/{subject}` endpoints are only for a single record's follow state and follow/unfollow mutations.
 - Public `/events`, `/institutions`, `/institutions/near`, `/persons`, and `/references` list endpoints accept `fields=` for sparse top-level responses when mobile clients need smaller pagination payloads.
@@ -551,9 +551,9 @@ Notes:
 | `POST` | `/contributions/{requestId}/approve` | Approve a reviewable contribution request |
 | `POST` | `/contributions/{requestId}/reject` | Reject a reviewable contribution request |
 | `POST` | `/contributions/{requestId}/cancel` | Cancel the current user’s pending contribution request |
-| `GET` | `/membership-claims` | List the current user’s membership claims |
-| `POST` | `/membership-claims/{subjectType}/{subject}` | Submit a membership claim with evidence uploads |
-| `DELETE` | `/membership-claims/{claimId}` | Cancel the current user’s pending membership claim |
+| `GET` | `/membership-applications` | List the current user’s membership applications |
+| `POST` | `/membership-applications/{subjectType}/{subject}` | Submit a membership application with evidence uploads |
+| `DELETE` | `/membership-applications/{applicationId}` | Cancel the current user’s pending membership application |
 | `POST` | `/reports` | Submit a report with optional evidence uploads |
 | `POST` | `/github-issues` | Create a GitHub issue in the ilmu360 repository for integration, MCP, or API feedback |
 | `POST` | `/advanced-events` | Create an advanced parent program submission |
@@ -715,7 +715,7 @@ Assignment behavior:
 - Institution create requires an explicit address country.
 - Send `address.country_id`.
 - Public institution create accepts media fields `cover` and `gallery`.
-- If the same normalized institution name plus the same `state_id`, `admin_area_1_id` (district), and `admin_area_2_id` (subdistrict) already exists, create will fail with HTTP `422` on `name`.
+- If a normalized institution name already exists for the same canonical address (`country_id`, `state_id`, optional `city_id`, and role-keyed `area_assignments`), create will fail with HTTP `422` on `name`.
 
 #### `GET /forms/contributions/persons`
 
@@ -723,8 +723,7 @@ Assignment behavior:
 - Speaker create requires an explicit country plus region selectors. Send:
   - `address.country_id`
   - `address.state_id`
-  - `address.admin_area_1_id` (district)
-  - `address.admin_area_2_id` (subdistrict)
+  - `address.area_assignments` keyed by the configured country roles
 - Do not send:
   - `address.line1`
   - `address.line2`
@@ -754,7 +753,7 @@ Public upload metadata:
 - Public event submissions accept `cover`, `poster`, and `gallery`.
 - Event `cover` uploads are validated as `16:9`.
 - Event `poster` uploads are validated as `3:4`.
-- Membership claims accept `evidence` files.
+- Membership applications accept `evidence` files.
 - Reports accept `evidence` files.
 - Image upload fields accept `image/jpeg`, `image/png`, and `image/webp`.
 - Evidence fields accept `image/jpeg`, `image/png`, `image/webp`, and `application/pdf`.
@@ -1053,7 +1052,7 @@ Nested collection item contracts for institutions:
   - `address.google_maps_url`
   - `address.google_place_id`
   - `address.waze_url`
-- Admin speaker clients should send `address.country_id`, `address.state_id`, `address.city_id` (optional), `address.admin_area_1_id` (district), and `address.admin_area_2_id` (subdistrict).
+- Admin speaker clients should send `address.country_id`, `address.state_id`, optional `address.city_id`, and `address.area_assignments` keyed by the configured country roles.
 - The `allow_public_event_submission` field is only accepted on `PUT` (update), not on `POST` (create). Sending it on create returns `422`.
 - For events, sparse `PUT` updates are supported. Omitted scalar fields and relation arrays preserve the current stored value; you only need to send the arrays that should actually change.
 - For events, submitted `persons` or `other_key_people` arrays rebuild the combined `key_people` rows. Do not rely on row ids surviving an update.
@@ -1131,8 +1130,7 @@ Supported filters:
 - `filter[ends_after]`
 - `filter[ends_before]`
 - `filter[state_id]`
-- `filter[admin_area_1_id]` (district)
-- `filter[admin_area_2_id]` (subdistrict)
+- `filter[area_assignments][<role>]` for each configured administrative or postal area filter
 - `filter[city_id]`
 - `filter[speaker]`
 - `filter[key_person_roles]`
@@ -1507,4 +1505,4 @@ All timestamps in API responses end in `Z` (UTC). Convert them to the viewer's t
 Never send any of the following for person create or update (both public contribution and admin):
 `address.line1`, `address.line2`, `address.postcode`, `address.lat`, `address.lng`, `address.google_maps_url`, `address.google_place_id`, `address.waze_url`
 
-The server will reject them with HTTP `422`. Send `address.country_id`, then `address.state_id`, optional `address.city_id`, `address.admin_area_1_id` (district), and `address.admin_area_2_id` (subdistrict).
+The server will reject them with HTTP `422`. Send `address.country_id`, then `address.state_id`, optional `address.city_id`, and `address.area_assignments` keyed by the configured country roles.

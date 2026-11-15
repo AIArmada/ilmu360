@@ -1,10 +1,11 @@
 <?php
 
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Reports\Models\Report;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Models\User;
+use App\Shared\Events\Enums\EventVisibility;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -40,6 +41,22 @@ it('uses moderation transition when a high risk event report is submitted', func
 
     $this->assertDatabaseHas(config('moderation.database.tables.moderation_actions'), [
         'actionable_id' => $event->id,
+        'type' => 'remoderated',
+    ]);
+});
+
+it('does not remoderate an event that is not approved', function () {
+    $event = Event::factory()->create([
+        'status' => 'pending',
+        'visibility' => EventVisibility::Public,
+    ]);
+
+    expect(app(EventModeration::class)->remoderateIfApproved((string) $event->getKey(), 'Report review'))
+        ->toBeFalse()
+        ->and((string) $event->fresh()->status)->toBe('pending');
+
+    $this->assertDatabaseMissing(config('moderation.database.tables.moderation_actions'), [
+        'actionable_id' => $event->getKey(),
         'type' => 'remoderated',
     ]);
 });

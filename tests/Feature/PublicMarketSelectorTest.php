@@ -4,7 +4,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('does not expose legacy market switcher markup after the country cutover', function () {
+it('omits market switching markup', function () {
     $response = $this->withSession(['locale' => 'en'])
         ->get(route('about'));
 
@@ -14,7 +14,7 @@ it('does not expose legacy market switcher markup after the country cutover', fu
         ->assertDontSee('/pasaran/', false);
 });
 
-it('does not resolve legacy market switch routes after the country cutover', function () {
+it('does not register market switching routes', function () {
     $this->get('/market/malaysia')->assertNotFound();
     $this->get('/pasaran/malaysia')->assertNotFound();
 });

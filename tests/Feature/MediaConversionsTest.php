@@ -71,7 +71,7 @@ it('detects landscape poster orientation', function () {
     expect($event->poster_orientation)->toBe('landscape');
 });
 
-it('maps poster display aspect ratios to the closest supported event ratios', function () {
+it('uses the fixed portrait display ratio for event posters', function () {
     $portraitEvent = Event::factory()->create();
     $portraitEvent->addMedia(fakeGeneratedImageUpload('poster-portrait.png', 800, 1200))
         ->toMediaCollection('poster');
@@ -89,36 +89,9 @@ it('maps poster display aspect ratios to the closest supported event ratios', fu
         ->toMediaCollection('poster');
 
     expect($portraitEvent->poster_display_aspect_ratio)->toBe('3:4')
-        ->and($standardLandscapeEvent->poster_display_aspect_ratio)->toBe('16:9')
-        ->and($wideLandscapeEvent->poster_display_aspect_ratio)->toBe('16:9')
-        ->and($squareEvent->poster_display_aspect_ratio)->toBe('1:1');
-});
-
-it('backfills missing poster dimensions after resolving the display aspect ratio', function () {
-    $event = Event::factory()->create();
-    $event->addMedia(fakeGeneratedImageUpload('poster-wide.png', 1600, 900))
-        ->toMediaCollection('poster');
-
-    $posterMedia = $event->getFirstMedia('poster');
-
-    expect($posterMedia)->not->toBeNull();
-
-    $posterMedia->setCustomProperty('source_dimensions', [
-        'width' => 0,
-        'height' => 0,
-    ]);
-    $posterMedia->saveQuietly();
-
-    $event = $event->fresh();
-
-    expect($event->poster_display_aspect_ratio)->toBe('16:9');
-
-    $posterMedia = $event->getFirstMedia('poster');
-    $storedDimensions = $posterMedia?->fresh()?->getCustomProperty('source_dimensions', []);
-
-    expect($posterMedia)->not->toBeNull()
-        ->and((int) (($storedDimensions['width'] ?? 0)))->toBe(1600)
-        ->and((int) (($storedDimensions['height'] ?? 0)))->toBe(900);
+        ->and($standardLandscapeEvent->poster_display_aspect_ratio)->toBe('3:4')
+        ->and($wideLandscapeEvent->poster_display_aspect_ratio)->toBe('3:4')
+        ->and($squareEvent->poster_display_aspect_ratio)->toBe('3:4');
 });
 
 it('defines accepted MIME types for Event cover and poster collections', function () {
@@ -176,7 +149,7 @@ it('resolves the supported aspect ratio for the image used on event cards', func
 
     expect($coverEvent->card_image_aspect_ratio)->toBe('16:9')
         ->and($posterEvent->card_image_aspect_ratio)->toBe('3:4')
-        ->and($squareEvent->card_image_aspect_ratio)->toBe('1:1')
+        ->and($squareEvent->card_image_aspect_ratio)->toBe('3:4')
         ->and(Event::factory()->create()->card_image_aspect_ratio)->toBe('16:9');
 });
 

@@ -18,7 +18,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Shared\Cache\SelectionCatalogCache;
-use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -1301,16 +1301,9 @@ class CreateAdvanced extends Component implements HasForms
             return [];
         }
 
-        $query = $locationType === 'venue'
-            ? app(SpaceEligibilityResolver::class)->venueQuery($locationId)
-            : app(SpaceEligibilityResolver::class)->institutionQuery($locationId);
-
-        return $query
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->mapWithKeys(fn (mixed $label, mixed $id): array => [(string) $id => (string) $label])
-            ->all();
+        return $locationType === 'venue'
+            ? app(SpaceEligibility::class)->venueOptions($locationId, activeOnly: true)
+            : app(SpaceEligibility::class)->institutionOptions($locationId, activeOnly: true);
     }
 
     protected function summaryLocation(Get $get): string
@@ -1406,15 +1399,9 @@ class CreateAdvanced extends Component implements HasForms
             return [];
         }
 
-        $query = $locationType === 'venue'
-            ? app(SpaceEligibilityResolver::class)->venueQuery($locationId)
-            : app(SpaceEligibilityResolver::class)->institutionQuery($locationId);
-
-        return $query
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return $locationType === 'venue'
+            ? app(SpaceEligibility::class)->venueOptions($locationId, activeOnly: true)
+            : app(SpaceEligibility::class)->institutionOptions($locationId, activeOnly: true);
     }
 
     /** @return array<string, string> */

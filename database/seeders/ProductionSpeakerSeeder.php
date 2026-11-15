@@ -18,12 +18,12 @@ use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Enums\SpeakerStatus;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -84,8 +84,6 @@ class ProductionSpeakerSeeder extends Seeder
 
     private int $importedSearchTermCount = 0;
 
-    private int $importedRedirectCount = 0;
-
     private int $importedMemberLinkCount = 0;
 
     private int $importedInstitutionLinkCount = 0;
@@ -116,7 +114,7 @@ class ProductionSpeakerSeeder extends Seeder
             throw new RuntimeException('The production speaker source database must differ from the local target database.');
         }
 
-        foreach (['speakers', 'speaker_user', 'speaker_search_terms', 'addresses', 'countries', 'states', 'cities', 'social_media', 'slug_redirects', 'media', 'events', 'event_key_people', 'users', 'institutions', 'institution_speaker'] as $table) {
+        foreach (['speakers', 'speaker_user', 'speaker_search_terms', 'addresses', 'countries', 'states', 'cities', 'social_media', 'media', 'events', 'event_involvements', 'users', 'institutions', 'institution_speaker'] as $table) {
             if (! Schema::connection($sourceConnection)->hasTable($table)) {
                 throw new RuntimeException("The production speaker source database is missing the [{$table}] table.");
             }
@@ -145,7 +143,6 @@ class ProductionSpeakerSeeder extends Seeder
                     $this->importAddress($source, $sourceSpeaker, $person);
                     $this->importSocialProfiles($source, $sourceSpeaker, $person);
                     $this->importSearchTerms($source, $sourceSpeaker, $person);
-                    $this->importSlugRedirects($source, $sourceSpeaker, $person);
                     $this->importMemberLinks($source, $sourceSpeaker, $person);
                     $this->importInstitutionLinks($source, $sourceSpeaker, $person);
                     $this->importEventLinks($source, $sourceSpeaker, $person);
@@ -165,7 +162,6 @@ class ProductionSpeakerSeeder extends Seeder
                 ['Package-native addresses', $this->importedAddressCount],
                 ['Social profiles', $this->importedSocialProfileCount],
                 ['Search terms', $this->importedSearchTermCount],
-                ['Slug redirects', $this->importedRedirectCount],
                 ['Matching local non-admin user links', $this->importedMemberLinkCount],
                 ['Matching local institution affiliations', $this->importedInstitutionLinkCount],
                 ['Matching local event links', $this->importedEventLinkCount],
@@ -190,7 +186,6 @@ class ProductionSpeakerSeeder extends Seeder
             config('contacting.database.tables.social_profiles', 'social_profiles'),
             'person_search_terms',
             'person_members',
-            'slug_redirects',
             'event_involvements',
             'media',
             'institutions',
@@ -740,66 +735,6 @@ class ProductionSpeakerSeeder extends Seeder
         }
     }
 
-    private function importSlugRedirects(object $source, object $sourceSpeaker, Person $person): void
-    {
-        $redirects = $source->table('slug_redirects')
-            ->where('redirectable_type', 'speaker')
-            ->where('redirectable_id', $sourceSpeaker->id)
-            ->get();
-
-        foreach ($redirects as $redirect) {
-            $sourceSlug = (string) $redirect->source_slug;
-            $destinationSlug = (string) $person->slug;
-            $sourcePath = $this->personPath($sourceSlug);
-            $destinationPath = $this->personPath($destinationSlug);
-
-            if ($sourcePath === $destinationPath) {
-                continue;
-            }
-
-            $existing = DB::table('slug_redirects')->where('source_path', $sourcePath)->first();
-
-            if ($existing !== null
-                && ($existing->redirectable_type !== $person->getMorphClass()
-                    || (string) $existing->redirectable_id !== (string) $person->getKey())) {
-                continue;
-            }
-
-            $redirectId = $existing === null ? $redirect->id : $existing->id;
-
-            if ($existing === null && DB::table('slug_redirects')->where('id', $redirectId)->exists()) {
-                $redirectId = (string) Str::orderedUuid();
-            }
-
-            DB::table('slug_redirects')->updateOrInsert(
-                ['source_path' => $sourcePath],
-                [
-                    'id' => $redirectId,
-                    'redirectable_type' => $person->getMorphClass(),
-                    'redirectable_id' => $person->getKey(),
-                    'source_slug' => $sourceSlug,
-                    'source_path' => $sourcePath,
-                    'destination_slug' => $destinationSlug,
-                    'destination_path' => $destinationPath,
-                    'first_visited_at' => $redirect->first_visited_at,
-                    'last_redirected_at' => $redirect->last_redirected_at,
-                    'redirect_count' => $redirect->redirect_count,
-                    'created_at' => $redirect->created_at,
-                    'updated_at' => $redirect->updated_at,
-                ],
-            );
-
-            if ($existing === null) {
-                $this->importedRedirectCount++;
-            }
-        }
-    }
-
-    private function personPath(string $slug): string
-    {
-        return (string) route('persons.show', ['person' => ltrim($slug, '/')], false);
-    }
-
     private function importMemberLinks(object $source, object $sourceSpeaker, Person $person): void
     {
         $sourceMembers = $source->table('speaker_user')
@@ -882,23 +817,27 @@ class ProductionSpeakerSeeder extends Seeder
 
     private function importEventLinks(object $source, object $sourceSpeaker, Person $person): void
     {
-        $sourceEventLinks = $source->table('event_key_people')
-            ->join('events', 'event_key_people.event_id', '=', 'events.id')
-            ->where('event_key_people.speaker_id', $sourceSpeaker->id)
+        $sourceEventLinks = $source->table('event_involvements')
+            ->join('events', 'event_involvements.event_id', '=', 'events.id')
+            ->where('event_involvements.involveable_type', 'person')
+            ->where('event_involvements.involveable_id', $sourceSpeaker->id)
+            ->whereNull('event_involvements.event_occurrence_id')
+            ->whereNull('event_involvements.event_session_id')
             ->get([
                 'events.slug',
-                'event_key_people.role',
-                'event_key_people.name',
-                'event_key_people.order_column',
-                'event_key_people.is_public',
-                'event_key_people.notes',
-                'event_key_people.created_at',
-                'event_key_people.updated_at',
+                'event_involvements.role_code',
+                'event_involvements.display_name',
+                'event_involvements.sort_order',
+                'event_involvements.status',
+                'event_involvements.visibility',
+                'event_involvements.notes',
+                'event_involvements.created_at',
+                'event_involvements.updated_at',
             ]);
 
         foreach ($sourceEventLinks as $sourceEventLink) {
             $event = Event::query()->where('slug', $sourceEventLink->slug)->first();
-            $role = EventKeyPersonRole::tryFrom((string) $sourceEventLink->role);
+            $role = EventKeyPersonRole::tryFrom((string) $sourceEventLink->role_code);
 
             if (! $event instanceof Event || $role === null) {
                 $this->skippedEventLinkCount++;
@@ -908,6 +847,8 @@ class ProductionSpeakerSeeder extends Seeder
 
             $existing = EventKeyPerson::query()
                 ->where('event_id', $event->getKey())
+                ->whereNull('event_occurrence_id')
+                ->whereNull('event_session_id')
                 ->where('involveable_type', $person->getMorphClass())
                 ->where('involveable_id', $person->getKey())
                 ->where('role_code', $role->value)
@@ -917,18 +858,18 @@ class ProductionSpeakerSeeder extends Seeder
                 continue;
             }
 
-            EventKeyPerson::query()->create([
+            EventKeyPerson::query()->forceCreate([
                 'event_id' => $event->getKey(),
                 'involveable_type' => $person->getMorphClass(),
                 'involveable_id' => $person->getKey(),
                 'role_code' => $role->value,
-                'status' => 'active',
-                'visibility' => $sourceEventLink->is_public ? 'public' : 'private',
+                'status' => $sourceEventLink->status ?? 'active',
+                'visibility' => $sourceEventLink->visibility ?? 'public',
                 'prominence' => '0',
                 'is_featured' => false,
                 'is_primary' => false,
-                'sort_order' => (int) $sourceEventLink->order_column,
-                'display_name' => $sourceEventLink->name,
+                'sort_order' => (int) $sourceEventLink->sort_order,
+                'display_name' => $sourceEventLink->display_name,
                 'notes' => $sourceEventLink->notes,
                 'created_at' => $sourceEventLink->created_at,
                 'updated_at' => $sourceEventLink->updated_at,

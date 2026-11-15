@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
+use App\Features\Events\Api\EventImageCollection;
+use App\Features\Events\Api\EventImageUploads;
 use App\Mcp\Tools\Concerns\UploadsEventImage;
-use App\Models\Event;
 use App\Support\Api\Admin\AdminResourceRegistry;
-use App\Support\Mcp\EventImageUploadService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
-use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -38,12 +37,12 @@ class AdminUploadEventPosterImageTool extends AbstractAdminTool
 
     public function __construct(
         private readonly AdminResourceRegistry $registry,
-        private readonly EventImageUploadService $uploadService,
+        private readonly EventImageUploads $imageUploads,
     ) {
         $this->setMeta([
             'openai/toolInvocation/invoking' => 'Uploading event poster image...',
             'openai/toolInvocation/invoked' => 'Event poster image uploaded.',
-            'openai/note' => 'Pass {content_base64, filename} or {content_url, filename}. Required aspect ratio: 3:4 portrait.',
+            'openai/note' => 'Pass filename and exactly one of content_base64, content_url, or download_url. Required aspect ratio: 3:4 portrait.',
         ]);
     }
 
@@ -70,59 +69,43 @@ class AdminUploadEventPosterImageTool extends AbstractAdminTool
                 'has_creative_direction' => is_string($validated['creative_direction'] ?? null) && $validated['creative_direction'] !== '',
             ]);
 
-            $event = $this->resolveEvent((string) $validated['event_key']);
+            $eventId = $this->resolveEventId($this->registry, (string) $validated['event_key']);
 
             $this->logEventImageUploadTrace($traceId, 'event_resolved', [
-                'event_found' => $event instanceof Event,
-                'event_id' => $event instanceof Event ? $event->getKey() : null,
-                'event_slug' => $event instanceof Event ? $event->slug : null,
+                'event_found' => is_string($eventId),
+                'event_id' => $eventId,
             ]);
 
-            abort_unless($event instanceof Event, 404);
+            abort_unless(is_string($eventId), 404);
 
             $imageDescriptor = $this->normalizeImageDescriptor($validated['image'], $traceId);
             $this->enforceEventDescriptorHasContentSource($imageDescriptor);
 
             $this->logEventImageUploadTrace($traceId, 'descriptor_normalized', [
                 'descriptor_keys' => array_keys($imageDescriptor),
-                'has_download_url' => isset($imageDescriptor['download_url']) || isset($imageDescriptor['downloadUrl']),
-                'has_content_base64' => isset($imageDescriptor['content_base64']) || isset($imageDescriptor['contentBase64']) || isset($imageDescriptor['base64']) || isset($imageDescriptor['data']),
-                'has_file_id' => isset($imageDescriptor['file_id']) || isset($imageDescriptor['fileId']),
+                'has_download_url' => isset($imageDescriptor['download_url']),
+                'has_content_base64' => isset($imageDescriptor['content_base64']),
+                'has_file_id' => isset($imageDescriptor['file_id']),
             ]);
 
-            $media = $this->uploadService->upload(
-                event: $event,
-                collection: 'poster',
+            $result = $this->uploadEventImage(
+                uploads: $this->imageUploads,
+                eventId: $eventId,
+                collection: EventImageCollection::Poster,
                 descriptor: $imageDescriptor,
                 creativeDirection: is_string($validated['creative_direction'] ?? null) ? $validated['creative_direction'] : null,
                 traceId: $traceId,
             );
 
             $this->logEventImageUploadTrace($traceId, 'upload_completed', [
-                'media_id' => $media->getKey(),
-                'collection' => $media->collection_name,
-                'mime_type' => $media->mime_type,
-                'file_name' => $media->file_name,
+                'media_id' => $result->mediaId,
+                'collection' => $result->mediaCollection,
+                'mime_type' => $result->mimeType,
+                'file_name' => $result->fileName,
             ]);
 
-            return $this->eventImageUploadResponse($event, $media, 'poster');
+            return $this->eventImageUploadResponse($result);
         });
-    }
-
-    private function resolveEvent(string $eventKey): ?Event
-    {
-        $resourceClass = $this->registry->resolve('events');
-
-        abort_unless(is_string($resourceClass) && $this->registry->canAccessResource($resourceClass), 404);
-
-        $query = $this->registry->queryFor($resourceClass);
-        $model = $query->getModel();
-
-        $record = Str::isUuid($eventKey)
-            ? $query->where($model->qualifyColumn($model->getRouteKeyName()), $eventKey)->first()
-            : $query->where($model->qualifyColumn('slug'), $eventKey)->first();
-
-        return $record instanceof Event ? $record : null;
     }
 
     /**

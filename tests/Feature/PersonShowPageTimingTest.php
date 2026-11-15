@@ -2,10 +2,6 @@
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Events\Enums\TimingMode;
 use App\Livewire\Pages\Persons\Show;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -13,6 +9,10 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use App\Support\Location\AddressHierarchyFormatter;
@@ -413,7 +413,7 @@ it('formats federal-territory venue addresses with product state_id and no distr
     ]);
 
     $geo = createTestPackageGeography('Kuala Lumpur', 'Federal District Placeholder', 'Setiawangsa');
-    // Federal territory product shape: no district; local area in admin_area_2.
+    // Federal territory profile: no district assignment; the local-area role sits under the state.
     $address = syncPrimaryAddressForTest($venue, [
         ...$geo['address'],
         'area_assignments' => [

@@ -88,7 +88,7 @@ it('claims the outcome correction table for its single persistence writer', func
         ])
         ->and($writers)->toBe([DatabaseOutcomeCorrections::class])
         ->and($catalog['writes'][DatabaseOutcomeCorrections::class] ?? null)->toContain('table:share_outcome_corrections')
-        ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(4);
+        ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(7);
 });
 
 it('binds the outcome correction Api and resolves the root model through its morph alias', function (): void {

@@ -19,6 +19,7 @@ use App\Features\Directory\Actions\Institutions\SyncInstitutionRelationsAction;
 use App\Features\Directory\Actions\Institutions\VerifyPendingInstitutionsAction;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Models\Institution;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use Illuminate\Database\Eloquent\Model;
@@ -163,6 +164,10 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
         $deleted = 0;
 
         foreach (DirectoryModel::query('institution')->whereKey($institutionIds)->get() as $institution) {
+            if (! $institution instanceof Institution) {
+                throw new RuntimeException('The registered institution model must be the Directory institution model.');
+            }
+
             $this->deleteInstitution->handle($institution);
             $deleted++;
         }
@@ -170,11 +175,11 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
         return $deleted;
     }
 
-    private function institution(string $institutionId): Model
+    private function institution(string $institutionId): Institution
     {
         $institution = DirectoryModel::query('institution')->find($institutionId);
 
-        if (! $institution instanceof Model) {
+        if (! $institution instanceof Institution) {
             throw new RuntimeException("Institution [{$institutionId}] was not found.");
         }
 

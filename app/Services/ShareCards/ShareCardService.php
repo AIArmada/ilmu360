@@ -10,6 +10,7 @@ use App\Contracts\ShareCards\ShareCardError;
 use App\Contracts\ShareCards\ShareCardRenderer;
 use App\Contracts\ShareCards\ShareCardRenderInput;
 use App\Contracts\ShareCards\ShareCardRenderResult;
+use App\Features\Events\Api\EventShareCardCache;
 use App\Models\Event;
 use App\Support\ShareCards\PangoShareCardRenderer;
 use App\Support\ShareCards\ShareCardEventPresenter;
@@ -21,7 +22,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Throwable;
@@ -45,6 +45,7 @@ final readonly class ShareCardService
 
     public function __construct(
         private ShareCardEventPresenter $presenter,
+        private EventShareCardCache $shareCardCache,
     ) {}
 
     /**
@@ -302,18 +303,12 @@ final readonly class ShareCardService
         $this->loadCardRelations($event, $occurrence);
 
         $revision = $this->contentRevision($event, $occurrence, $locale, $displayTimezone);
-        $path = $this->cacheFilePath($revision);
-        $disk = Storage::disk((string) config('share-cards.disk', 'public'));
 
         try {
-            if ($disk->exists($path)) {
-                $cached = $disk->get($path);
+            $cached = $this->shareCardCache->read($revision);
 
-                if (is_string($cached) && $cached !== '' && str_starts_with($cached, "\x89PNG\r\n\x1a\n")) {
-                    return ['bytes' => $cached, 'revision' => $revision, 'cached' => true];
-                }
-
-                $disk->delete($path);
+            if (is_string($cached)) {
+                return ['bytes' => $cached, 'revision' => $revision, 'cached' => true];
             }
 
             $result = $this->render($event, $occurrence, $locale, $displayTimezone);
@@ -322,12 +317,7 @@ final readonly class ShareCardService
                 return ['bytes' => null, 'revision' => $revision, 'cached' => false];
             }
 
-            // Atomic publish: revision-pinned readers never observe a
-            // partial file, and concurrent renders converge on identical
-            // bytes for the same revision.
-            $tmpPath = $path.'.tmp-'.getmypid();
-            $disk->put($tmpPath, $result->pngBytes);
-            $disk->move($tmpPath, $path);
+            $this->shareCardCache->publish($revision, $result->pngBytes);
 
             return ['bytes' => $result->pngBytes, 'revision' => $revision, 'cached' => false];
         } catch (Throwable) {
@@ -337,12 +327,6 @@ final readonly class ShareCardService
             // never a stale partial publication. Source eligibility
             // (reachability, occurrence resolution, revision) resolves
             // above, outside this boundary, and still surfaces honestly.
-            try {
-                $disk->delete($path.'.tmp-'.getmypid());
-            } catch (Throwable) {
-                // Best-effort partial cleanup; the fallback below stands.
-            }
-
             return ['bytes' => null, 'revision' => $revision, 'cached' => false];
         }
     }
@@ -373,11 +357,6 @@ final readonly class ShareCardService
         } finally {
             App::setLocale($previous);
         }
-    }
-
-    public function cacheFilePath(string $revision): string
-    {
-        return 'share-cards/share-card-'.$revision.'.png';
     }
 
     public function coverFallbackUrl(Event $event): string

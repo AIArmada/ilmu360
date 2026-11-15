@@ -87,7 +87,7 @@ it('documents the public reference directory in the mobile api reference', funct
         ->toContain('| `GET` | `/references` | Public reference listing filters; default directory pages show root/standalone references')
         ->toContain('References returned by `/references` and `/references/{referenceKey}` must have `published_at IS NOT NULL` and `status IN (\'verified\', \'pending\')`')
         ->toContain('Public reference directory list items expose `display_title`, `parent_id`, `record_kind`, `edition_number`, `edition_label`, `isbn`, `language`, `language_label`, `url`, `part_type`, `part_number`, `part_label`, `is_part`, `authors`, `author_ids`, `type`, `publisher`, `publication_year`, `status`, `events_count`, `front_cover_url`, and `is_following` by default.')
-        ->toContain('Unified search accepts `search` as the canonical query parameter and `q` as a compatibility alias')
+        ->toContain('Unified search uses the `search` query parameter, for example `GET /api/v1/search?search=Kuliah`.')
         ->toContain('The `/institutions/near` alias requires either `near=lat,lng` or both `lat` and `lng`; calling it without coordinates intentionally returns a validation error.')
         ->toContain('There are no plural follow-list routes such as `/follows/persons`')
         ->toContain('Public `/events`, `/institutions`, `/institutions/near`, `/persons`, and `/references` list endpoints accept `fields=`');

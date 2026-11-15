@@ -4,11 +4,9 @@ namespace App\Support\Api\Admin;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
-use AIArmada\FilamentAddressing\Resources\AddressCountryResource;
-use App\Filament\Resources\Events\EventResource;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Data\Api\Event\EventPayloadData;
+use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Event;
@@ -145,10 +143,7 @@ class AdminResourceRegistry
         $resources = Filament::getPanel('admin')->getResources();
 
         return $this->resourcesCache = array_values(array_filter(
-            array_unique([
-                ...array_values($resources),
-                ...$this->fallbackPluginResources(),
-            ]),
+            array_values($resources),
             static fn (string $resource): bool => ! is_subclass_of($resource, ExcludedFromAdminApi::class),
         ));
     }
@@ -202,24 +197,6 @@ class AdminResourceRegistry
             || $resourceClass::canForceDeleteAny()
             || $resourceClass::canRestoreAny()
             || $resourceClass::canReorder();
-    }
-
-    /**
-     * @return list<class-string<resource>>
-     */
-    private function fallbackPluginResources(): array
-    {
-        $resources = [];
-
-        if (class_exists(AddressCountryResource::class) && config('filament-addressing.resources.countries.enabled', true)) {
-            $resources[] = AddressCountryResource::class;
-        }
-
-        if (class_exists(AddressAreaResource::class) && config('filament-addressing.resources.areas.enabled', true)) {
-            $resources[] = AddressAreaResource::class;
-        }
-
-        return $resources;
     }
 
     /**

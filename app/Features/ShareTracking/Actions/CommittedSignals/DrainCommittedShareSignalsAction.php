@@ -95,13 +95,18 @@ final class DrainCommittedShareSignalsAction implements CommittedShareSignals
     public function resetCursor(): void
     {
         $this->fenced(function (Model $cursor): void {
-            $cursor->forceFill([
+            $attributes = [
                 'last_occurred_at' => null,
                 'last_signal_event_id' => null,
                 'processed_total' => 0,
-            ])->save();
+            ];
 
-            ShareTrackingModel::signalReaderSkipQuery()
+            $cursor->forceFill($attributes);
+            ShareTrackingModel::query('share_signal_reader_cursor')
+                ->whereKey($cursor->getKey())
+                ->update($attributes);
+
+            ShareTrackingModel::query('share_signal_reader_skip')
                 ->where('reader_name', CommittedShareSignal::READER_NAME)
                 ->delete();
         });
@@ -233,7 +238,7 @@ final class DrainCommittedShareSignalsAction implements CommittedShareSignals
 
             $key = $this->semanticKeyFor($event);
 
-            if ($key !== null && ShareTrackingModel::cohortProjectionQuery()->where('business_key', $key)->exists()) {
+            if ($key !== null && ShareTrackingModel::query('share_cohort_projection')->where('business_key', $key)->exists()) {
                 return false;
             }
 
@@ -291,7 +296,7 @@ final class DrainCommittedShareSignalsAction implements CommittedShareSignals
 
             try {
                 return DB::transaction(function () use ($work): mixed {
-                    $cursor = ShareTrackingModel::signalReaderCursorQuery()
+                    $cursor = ShareTrackingModel::query('share_signal_reader_cursor')
                         ->where('reader_name', CommittedShareSignal::READER_NAME)
                         ->lockForUpdate()
                         ->first();
@@ -316,7 +321,7 @@ final class DrainCommittedShareSignalsAction implements CommittedShareSignals
     {
         $now = CarbonImmutable::now('UTC');
 
-        ShareTrackingModel::signalReaderCursorQuery()->insertOrIgnore([
+        ShareTrackingModel::query('share_signal_reader_cursor')->insertOrIgnore([
             'id' => (string) Str::uuid(),
             'reader_name' => CommittedShareSignal::READER_NAME,
             'processed_total' => 0,
@@ -357,23 +362,33 @@ final class DrainCommittedShareSignalsAction implements CommittedShareSignals
             return;
         }
 
-        $cursor->forceFill([
+        $attributes = [
             'last_occurred_at' => CarbonImmutable::parse($event->occurred_at)->setTimezone('UTC'),
             'last_signal_event_id' => (string) $event->getKey(),
             'processed_total' => ((int) $cursor->getAttribute('processed_total')) + 1,
-        ])->save();
+        ];
+
+        $cursor->forceFill($attributes);
+        ShareTrackingModel::query('share_signal_reader_cursor')
+            ->whereKey($cursor->getKey())
+            ->update($attributes);
     }
 
     private function incrementProcessedTotal(Model $cursor): void
     {
-        $cursor->forceFill([
+        $attributes = [
             'processed_total' => ((int) $cursor->getAttribute('processed_total')) + 1,
-        ])->save();
+        ];
+
+        $cursor->forceFill($attributes);
+        ShareTrackingModel::query('share_signal_reader_cursor')
+            ->whereKey($cursor->getKey())
+            ->update($attributes);
     }
 
     private function isSkipped(SignalEvent $event): bool
     {
-        return ShareTrackingModel::signalReaderSkipQuery()
+        return ShareTrackingModel::query('share_signal_reader_skip')
             ->where('reader_name', CommittedShareSignal::READER_NAME)
             ->where('signal_event_id', (string) $event->getKey())
             ->exists();
@@ -388,7 +403,7 @@ final class DrainCommittedShareSignalsAction implements CommittedShareSignals
     {
         $now = CarbonImmutable::now('UTC');
 
-        return ShareTrackingModel::signalReaderSkipQuery()->insertOrIgnore([
+        return ShareTrackingModel::query('share_signal_reader_skip')->insertOrIgnore([
             'id' => (string) Str::uuid(),
             'reader_name' => CommittedShareSignal::READER_NAME,
             'signal_event_id' => (string) $event->getKey(),
@@ -439,7 +454,7 @@ final class DrainCommittedShareSignalsAction implements CommittedShareSignals
     {
         $key = 'committed-share:'.($source->getKey());
 
-        if (ShareTrackingModel::cohortProjectionQuery()->where('business_key', $key)->exists()) {
+        if (ShareTrackingModel::query('share_cohort_projection')->where('business_key', $key)->exists()) {
             return;
         }
 
@@ -457,7 +472,7 @@ final class DrainCommittedShareSignalsAction implements CommittedShareSignals
         // PostgreSQL. The cursor fence above already serializes readers,
         // so a loser here means an operator replayed the log while a
         // drain ran — the winner's row IS the projection either way.
-        ShareTrackingModel::cohortProjectionQuery()->insertOrIgnore([
+        ShareTrackingModel::query('share_cohort_projection')->insertOrIgnore([
             'id' => (string) Str::uuid(),
             'business_key' => $key,
             'outcome' => 'committed_share',

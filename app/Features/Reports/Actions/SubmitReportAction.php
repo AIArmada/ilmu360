@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\Actions;
 
+use App\Features\Events\Api\EventModeration;
+use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\Models\Report;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaEvidence;
-use App\Platform\Reporting\ReportLifecycle;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Reports\ReportEscalation;
 use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectType;
 use App\Shared\Signals\SignalRecorder;
@@ -23,7 +23,7 @@ class SubmitReportAction
     use AsAction;
 
     public function __construct(
-        private readonly ReportEscalation $reportEscalation,
+        private readonly EventModeration $eventModeration,
         private readonly SignalRecorder $signals,
         private readonly MediaCollectionSync $mediaCollectionSync,
         private readonly ReportLifecycle $lifecycle,
@@ -99,7 +99,7 @@ class SubmitReportAction
             return;
         }
 
-        $this->reportEscalation->remoderateEvent($subject->id, 'High-risk report: '.$report->category);
+        $this->eventModeration->remoderateIfApproved($subject->id, 'High-risk report: '.$report->category);
     }
 
     private function checkEscalationThreshold(ReportSubject $subject): void
@@ -116,6 +116,6 @@ class SubmitReportAction
             return;
         }
 
-        $this->reportEscalation->remoderateEvent($subject->id, 'Escalated due to multiple reports within 24 hours.');
+        $this->eventModeration->remoderateIfApproved($subject->id, 'Escalated due to multiple reports within 24 hours.');
     }
 }

@@ -18,5 +18,6 @@ final readonly class MembershipSubject
         public ?string $publicUrl = null,
         public ?string $status = null,
         public ?string $imageUrl = null,
+        public ?string $adminUrl = null,
     ) {}
 }

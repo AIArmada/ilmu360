@@ -61,7 +61,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
         $this->putSchema($components, 'AccountSettingsFormResponse', $this->accountSettingsFormResponseSchema($components));
         $this->putSchema($components, 'AdvancedEventFormResponse', $this->advancedEventFormResponseSchema($components));
         $this->putSchema($components, 'InstitutionWorkspaceFormResponse', $this->institutionWorkspaceFormResponseSchema($components));
-        $this->putSchema($components, 'MembershipApplicationFormResponse', $this->membershipClaimFormResponseSchema($components));
+        $this->putSchema($components, 'MembershipApplicationFormResponse', $this->membershipApplicationFormResponseSchema($components));
         $this->putSchema($components, 'ContributionSuggestContextResponse', $this->contributionSuggestContextResponseSchema($components));
     }
 
@@ -107,7 +107,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
             'AccountSettings' => 'Authenticated account-settings read and update endpoints for client applications.',
             'GitHub Issue Reporting' => 'Authenticated feedback endpoints that create GitHub issues in the ilmu360 repository for maintainers to triage.',
             'InstitutionWorkspace' => 'Authenticated institution workspace endpoints for member management and institution-scoped event listings.',
-            'MembershipApplication' => 'Authenticated membership-application endpoints for listing, creating, and cancelling subject membership claims.',
+            'MembershipApplication' => 'Authenticated membership-application endpoints for listing, creating, and cancelling applications for subject membership.',
             'EventGoing' => 'Authenticated event-going endpoints for listing, reading, creating, and deleting the current user\'s going state.',
             'EventCheckIn' => 'Authenticated event self-check-in endpoints for state discovery and check-in recording.',
             'RegistrationExport' => 'Authenticated CSV export endpoints for institution event registrations.',
@@ -394,7 +394,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
         );
     }
 
-    private function membershipClaimFormResponseSchema(Components $components): Schema
+    private function membershipApplicationFormResponseSchema(Components $components): Schema
     {
         return Schema::fromType(
             (new ObjectType)

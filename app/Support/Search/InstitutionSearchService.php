@@ -3,9 +3,9 @@
 namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
+use App\Features\Directory\Api\InstitutionSearchCache;
 use App\Models\Institution;
 use App\Models\InstitutionName;
-use App\Platform\Cache\InstitutionSearchCache;
 use App\Platform\Search\FuzzySearchPolicy;
 use App\Platform\Search\TypesenseHealthCheckService;
 use App\Shared\Directory\Enums\InstitutionStatus;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class InstitutionSearchService implements PublicDiscoveryAdapter
 {
-    public function __construct(private readonly ?InstitutionSearchCache $cache = null) {}
+    public function __construct(private readonly InstitutionSearchCache $cache) {}
 
     /**
      * @param  Builder<Institution>  $query
@@ -139,14 +139,8 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
             return [];
         }
 
-        $cacheKey = sprintf(
-            'institution_search_public:%s:%s',
-            $this->publicSearchCacheVersion(),
-            md5($normalizedSearch),
-        );
-
         /** @var list<string> $ids */
-        $ids = $this->cache()->remember($cacheKey, function () use ($normalizedSearch): array {
+        $ids = $this->cache->rememberPublicSearchIds($normalizedSearch, function () use ($normalizedSearch): array {
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
@@ -213,14 +207,8 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
 
         $minimumScore = $this->minimumFuzzyScore($normalizedSearch);
 
-        $cacheKey = sprintf(
-            'institution_search_public_fuzzy:%s:%s',
-            $this->publicSearchCacheVersion(),
-            md5($normalizedSearch),
-        );
-
         /** @var list<string> $ids */
-        $ids = $this->cache()->remember($cacheKey, function () use ($minimumScore, $normalizedSearch): array {
+        $ids = $this->cache->rememberPublicFuzzySearchIds($normalizedSearch, function () use ($minimumScore, $normalizedSearch): array {
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
@@ -552,14 +540,9 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
         return (string) config('scout.driver');
     }
 
-    private function cache(): InstitutionSearchCache
-    {
-        return $this->cache ?? app(InstitutionSearchCache::class);
-    }
-
     public function bustPublicSearchCache(): void
     {
-        $this->cache()->bumpVersion();
+        $this->cache->bumpPublicSearchVersion();
     }
 
     public function normalizedSearch(string $search): ?string
@@ -567,11 +550,6 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
         $normalized = StringSimilarity::normalize($search);
 
         return $normalized === '' ? null : $normalized;
-    }
-
-    private function publicSearchCacheVersion(): int
-    {
-        return $this->cache()->version();
     }
 
     private function fuzzyScore(string $search, string $candidate): float

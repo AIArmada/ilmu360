@@ -5,8 +5,8 @@ namespace App\Features\Communications\Support\Integration;
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\CommunicationPreference;
-use App\Features\Communications\Support\Normalization\EnumMapper;
 use App\Features\Communications\Api\NotificationChannel;
+use App\Features\Communications\Support\Normalization\EnumMapper;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppPreferenceResolver implements PreferenceResolver
@@ -109,6 +109,6 @@ class AppPreferenceResolver implements PreferenceResolver
 
     private function mapChannel(string $channel): string
     {
-        return NotificationChannel::fromPackagePreferenceChannel($channel)?->value ?? $channel;
+        return NotificationChannel::fromPackagePreferenceChannel($channel)->value ?? $channel;
     }
 }

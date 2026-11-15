@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\References;
 
 use App\Features\Directory\Support\ReferencePayload;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Reference;
 
 /**
  * Apply an approved contribution payload to an existing reference.
@@ -20,7 +20,7 @@ final readonly class ApplyReferenceContributionAction
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed> Changed attributes.
      */
-    public function handle(Model $reference, array $payload): array
+    public function handle(Reference $reference, array $payload): array
     {
         $reference->fill([
             'title' => $payload['title'] ?? $reference->getAttribute('title'),

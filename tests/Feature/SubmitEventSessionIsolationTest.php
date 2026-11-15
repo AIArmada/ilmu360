@@ -12,12 +12,11 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
+use App\Features\Events\Api\EventSubmissionInput;
+use App\Features\Events\Api\EventSubmissionOrganizerKind;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Features\Prayer\Services\JakimZoneResolver;
@@ -29,6 +28,10 @@ use App\Models\Reference;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -36,6 +39,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\MediaLibrary\HasMedia;
@@ -396,6 +400,39 @@ it('rejects foreign and terminal occurrences', function () {
     ))->toThrow(ValidationException::class, 'tidak lagi menerima sesi');
 
     expect(EventSession::query()->where('event_id', $event->getKey())->exists())->toBeFalse();
+});
+
+it('reports a missing session container as an event_id validation error', function (): void {
+    $organizer = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+
+    try {
+        app(EventSubmissions::class)->persistSession(new EventSubmissionInput(
+            state: [],
+            startsAt: now()->toIso8601String(),
+            endsAt: null,
+            timezone: 'Asia/Kuala_Lumpur',
+            primaryOrganizerKind: EventSubmissionOrganizerKind::Person,
+            primaryOrganizerId: (string) $organizer->getKey(),
+            targetInstitutionId: null,
+            targetVenueId: null,
+            prayerTime: null,
+            prayerReference: null,
+            prayerOffset: null,
+            prayerDisplayText: null,
+            autoApproved: false,
+            sessionSubmission: true,
+            submitterId: null,
+            eventContainerId: (string) Str::uuid(),
+            personSlugSegments: [],
+            validationKeyPrefix: 'data.',
+        ));
+
+        $this->fail('Expected a validation error for the missing session container.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors())->toHaveKey('data.event_id');
+    }
+
+    expect(EventSession::query()->exists())->toBeFalse();
 });
 
 it('keeps no guest contacts for authenticated member session submits', function () {

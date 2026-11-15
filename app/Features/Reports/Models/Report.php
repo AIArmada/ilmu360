@@ -3,9 +3,9 @@
 namespace App\Features\Reports\Models;
 
 use AIArmada\CommerceSupport\Models\Report as BaseReport;
+use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Media\MediaEvidence;
-use App\Platform\Reporting\ReportLifecycle;
 use App\Shared\Auth\UserMorphType;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Appends;

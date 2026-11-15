@@ -14,7 +14,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibility;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\TimingMode;
 use Illuminate\Http\UploadedFile;
@@ -35,7 +35,7 @@ class CreateEventWithInitialOccurrenceAction
     public function __construct(
         private readonly MediaCollectionSync $mediaSync,
         private readonly EventAuthoring $authoring,
-        private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
+        private readonly SpaceEligibility $spaceEligibilityResolver,
         private readonly OrganizationAccess $organizationAccess,
     ) {}
 
@@ -82,11 +82,11 @@ class CreateEventWithInitialOccurrenceAction
                 ? $this->authoring->personSlugSegmentsForPersonIds([(string) $primaryOrganizer->getKey()])
                 : [];
 
-            $event = Event::query()->create([
+            $eventId = $this->authoring->createEventShell([
                 'owner_type' => $owner->getMorphClass(),
-                'owner_id' => $owner->getKey(),
+                'owner_id' => (string) $owner->getKey(),
                 'created_by_type' => $user->getMorphClass(),
-                'created_by_id' => $user->getKey(),
+                'created_by_id' => (string) $user->getKey(),
                 'title' => (string) $form['title'],
                 'slug' => $this->authoring->eventSlug(
                     (string) $form['title'],
@@ -126,6 +126,9 @@ class CreateEventWithInitialOccurrenceAction
                 ],
             ]);
 
+            /** @var Event $event */
+            $event = Event::query()->withoutOwnerScope()->findOrFail($eventId);
+
             OwnerContext::withOwner($owner, function () use ($event, $form, $categoryIds, $venueId, $spaceIds, $startsAt, $endsAt, $timezone, $primaryOrganizer): void {
                 $this->authoring->syncEventClassifications($event->getMorphClass(), (string) $event->getKey(), [
                     'event_category_ids' => $categoryIds,
@@ -159,10 +162,10 @@ class CreateEventWithInitialOccurrenceAction
                     timingMode: TimingMode::Absolute->value,
                 ));
 
-                $event->accessPolicy()->create([
-                    'registration_required' => (bool) $form['registration_required'],
-                    'walk_in_allowed' => ! (bool) $form['registration_required'],
-                ]);
+                $this->authoring->createInitialAccessPolicy(
+                    (string) $event->getKey(),
+                    (bool) $form['registration_required'],
+                );
 
                 $event->setPrimaryOrganizer($primaryOrganizer);
 

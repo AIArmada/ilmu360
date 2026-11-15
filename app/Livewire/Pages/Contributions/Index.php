@@ -7,9 +7,9 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
-use App\Features\Contributions\Api\ContributionRequestLifecycle;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Enums\MemberSubjectType;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Reports\Api\ReportPage;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;
@@ -23,7 +23,7 @@ use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Time\UserTimezoneResolver;
 use App\Platform\Ui\InteractsWithToasts;
-use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Support\Events\PublicSchedulePolicy;
@@ -68,7 +68,7 @@ class Index extends Component implements HasForms
     public array $rejectionReasons = [];
 
     /** @var array<string, mixed>|null */
-    public ?array $claimData = [];
+    public ?array $membershipApplicationData = [];
 
     public function mount(): void
     {
@@ -76,7 +76,7 @@ class Index extends Component implements HasForms
 
         $this->activeTab = $this->normalizeActiveTab($this->activeTab);
 
-        $this->claimEntryForm()->fill([
+        $this->membershipApplicationForm()->fill([
             'subject_type' => MemberSubjectType::Institution->value,
             'subject_slug' => null,
         ]);
@@ -365,7 +365,7 @@ class Index extends Component implements HasForms
     public function form(Schema $schema): Schema
     {
         return $schema
-            ->statePath('claimData')
+            ->statePath('membershipApplicationData')
             ->components([
                 Section::make(__('Claim Membership'))
                     ->description(__('Cari institusi atau penceramah yang anda urus, kemudian teruskan ke borang tuntutan.'))
@@ -387,11 +387,11 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Search by name'))
                             ->required()
                             ->searchable()
-                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->membershipClaimSearchOptions(
+                            ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->membershipApplicationSearchOptions(
                                 subjectType: $this->normalizeNullableString($get('subject_type')),
                                 search: $search,
                             ))
-                            ->getOptionLabelUsing(fn (mixed $value, Get $get): ?string => $this->membershipClaimOptionLabel(
+                            ->getOptionLabelUsing(fn (mixed $value, Get $get): ?string => $this->membershipApplicationOptionLabel(
                                 subjectType: $this->normalizeNullableString($get('subject_type')),
                                 subjectSlug: is_string($value) ? $value : null,
                             ))
@@ -419,12 +419,12 @@ class Index extends Component implements HasForms
 
     public function startMembershipApplication(): void
     {
-        $state = $this->claimEntryForm()->getState();
+        $state = $this->membershipApplicationForm()->getState();
         $subjectType = MemberSubjectType::tryFrom((string) ($state['subject_type'] ?? ''));
         $subjectSlug = is_string($state['subject_slug'] ?? null) ? $state['subject_slug'] : null;
 
-        if (! $subjectType?->isClaimable() || ! filled($subjectSlug)) {
-            $this->addError('claimData.subject_slug', __('Select a record before continuing.'));
+        if (! $subjectType?->supportsMembershipApplication() || ! filled($subjectSlug)) {
+            $this->addError('membershipApplicationData.subject_slug', __('Select a record before continuing.'));
 
             return;
         }
@@ -440,7 +440,7 @@ class Index extends Component implements HasForms
         return view('livewire.pages.contributions.index');
     }
 
-    protected function claimEntryForm(): Schema
+    protected function membershipApplicationForm(): Schema
     {
         return $this->getForm('form') ?? throw new RuntimeException('Membership claim entry form is not available.');
     }
@@ -448,7 +448,7 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function membershipClaimSearchOptions(?string $subjectType, string $search): array
+    private function membershipApplicationSearchOptions(?string $subjectType, string $search): array
     {
         return match (MemberSubjectType::tryFrom((string) $subjectType)) {
             MemberSubjectType::Institution => Institution::query()
@@ -474,7 +474,7 @@ class Index extends Component implements HasForms
         };
     }
 
-    private function membershipClaimOptionLabel(?string $subjectType, ?string $subjectSlug): ?string
+    private function membershipApplicationOptionLabel(?string $subjectType, ?string $subjectSlug): ?string
     {
         if (! filled($subjectSlug)) {
             return null;

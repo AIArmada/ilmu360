@@ -314,8 +314,8 @@ final class LocationSlugResolver
      * Shared by the directory filter components and their results children
      * so both resolve slugs through exactly the same maps.
      *
-     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, district?: ?string, subdivision?: ?string, areas?: array<string, ?string>}  $slugs
-     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string, area_ids: array<string, ?string>}
+     * @param  array{search?: ?string, country?: ?string, state?: ?string, city?: ?string, locality?: ?string, areas?: array<string, ?string>}  $slugs
+     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, area_ids: array<string, ?string>}
      */
     public function idsForSlugs(array $slugs): array
     {
@@ -335,16 +335,6 @@ final class LocationSlugResolver
             : null;
 
         $areaSlugs = is_array($slugs['areas'] ?? null) ? $slugs['areas'] : [];
-        $legacyRoles = $this->slotRolesForCountry($countryId);
-
-        if (($legacyDistrict = self::cleanSlug($slugs['district'] ?? null)) !== null && $legacyRoles[0] !== null) {
-            $areaSlugs[$legacyRoles[0]] ??= $legacyDistrict;
-        }
-
-        if (($legacySubdivision = self::cleanSlug($slugs['subdivision'] ?? null)) !== null && $legacyRoles[1] !== null) {
-            $areaSlugs[$legacyRoles[1]] ??= $legacySubdivision;
-        }
-
         $areaIds = $this->areaIdsForSlugs($countryId, $stateId, $areaSlugs);
 
         $localitySlug = self::cleanSlug($slugs['locality'] ?? null);
@@ -352,18 +342,11 @@ final class LocationSlugResolver
             ? ($this->localityMaps($stateId, $countryId, $areaIds)['slugToId'][$localitySlug] ?? null)
             : null;
 
-        $districtRole = $legacyRoles[0];
-        $subdivisionRole = $legacyRoles[1];
-        $districtId = $districtRole !== null ? ($areaIds[$districtRole] ?? null) : null;
-        $subdivisionId = $subdivisionRole !== null ? ($areaIds[$subdivisionRole] ?? null) : null;
-
         return [
             'country_id' => $countryId,
             'state_id' => $stateId,
             'city_id' => $cityId,
             'locality_id' => $localityId,
-            'district_id' => $districtId,
-            'subdivision_id' => $subdivisionId,
             'area_ids' => $areaIds,
         ];
     }

@@ -39,7 +39,17 @@ class CreateReference extends CreateRecord
             return OwnerContext::withOwner(null, function () use ($data): Model {
                 ReferenceFormSchema::validateDirectInput($data);
 
+                $hasSocialProfiles = array_key_exists('socialProfiles', $data);
+                $socialProfiles = $data['socialProfiles'] ?? null;
+                unset($data['socialProfiles']);
+
                 $referenceId = app(ReferenceWorkflow::class)->saveFromAdmin($data);
+
+                if ($hasSocialProfiles) {
+                    app(ReferenceWorkflow::class)->syncRelations($referenceId, [
+                        'social_media' => $socialProfiles,
+                    ]);
+                }
 
                 return Reference::query()->withoutOwnerScope()->findOrFail($referenceId);
             });

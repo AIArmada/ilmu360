@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Directory\Api\DirectoryAdminContract;
 use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Directory\Api\DirectoryRecordType;
@@ -9,11 +8,13 @@ use App\Features\Directory\Api\DirectoryReportSubjectProvider;
 use App\Features\Directory\Api\InstitutionSpaceLinks;
 use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Features\Directory\Api\SpaceWorkflow;
+use App\Features\Directory\Api\SubmissionEligibilitySync;
 use App\Features\Directory\Api\VenueWorkflow;
 use App\Features\Directory\Services\DirectoryReportSubjectResolver;
 use App\Features\Directory\Services\InstitutionSpaceLinkService;
 use App\Features\Directory\Services\InstitutionVenueLinkService;
 use App\Features\Directory\Services\SpaceWorkflowService;
+use App\Features\Directory\Services\SubmissionEligibilitySyncService;
 use App\Features\Directory\Services\VenueWorkflowService;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -24,28 +25,21 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Directory\DirectoryCatalog;
-use App\Shared\Directory\SubmissionEligibilitySync;
 use App\Shared\Reports\ReportSubjectResolver;
-use App\Support\Directory\EloquentDirectoryAdmin;
-use App\Support\Directory\EloquentDirectoryCatalog;
-use App\Support\Directory\EloquentDirectoryCommands;
+use App\Support\Directory\DirectoryCommandsAdapter;
 use App\Support\Directory\EloquentDirectoryReader;
 use App\Support\Reports\CompositeReportSubjectResolver;
-use App\Support\Submission\PublicSubmissionEligibilitySync;
 
-it('binds the directory seams to their interim adapters', function (): void {
-    expect(app(DirectoryCatalog::class))->toBeInstanceOf(EloquentDirectoryCatalog::class)
-        ->and(app(DirectoryReader::class))->toBeInstanceOf(EloquentDirectoryReader::class)
-        ->and(app(DirectoryCommands::class))->toBeInstanceOf(EloquentDirectoryCommands::class)
-        ->and(app(DirectoryAdminContract::class))->toBeInstanceOf(EloquentDirectoryAdmin::class)
+it('binds the directory seams to their owning implementations', function (): void {
+    expect(app(DirectoryReader::class))->toBeInstanceOf(EloquentDirectoryReader::class)
+        ->and(app(DirectoryCommands::class))->toBeInstanceOf(DirectoryCommandsAdapter::class)
         ->and(app(DirectoryReportSubjectProvider::class))->toBeInstanceOf(DirectoryReportSubjectResolver::class)
         ->and(app(VenueWorkflow::class))->toBeInstanceOf(VenueWorkflowService::class)
         ->and(app(SpaceWorkflow::class))->toBeInstanceOf(SpaceWorkflowService::class)
         ->and(app(InstitutionVenueLinks::class))->toBeInstanceOf(InstitutionVenueLinkService::class)
         ->and(app(InstitutionSpaceLinks::class))->toBeInstanceOf(InstitutionSpaceLinkService::class)
         ->and(app(ReportSubjectResolver::class))->toBeInstanceOf(CompositeReportSubjectResolver::class)
-        ->and(app(SubmissionEligibilitySync::class))->toBeInstanceOf(PublicSubmissionEligibilitySync::class);
+        ->and(app(SubmissionEligibilitySync::class))->toBeInstanceOf(SubmissionEligibilitySyncService::class);
 });
 
 it('resolves registered morph aliases and rejects unknown ones', function (): void {
@@ -72,6 +66,9 @@ it('reads directory details by id or slug and serves form options', function ():
     expect($byId?->title)->toBe('Masjid Ilmu')
         ->and($byId?->publicUrl)->toBe(route('institutions.show', $institution))
         ->and($bySlug?->id)->toBe($institutionId)
+        ->and($reader->resolveIdentifier(DirectoryRecordType::Institution, $institutionId))->toBe($institutionId)
+        ->and($reader->resolveIdentifier(DirectoryRecordType::Institution, (string) $institution->slug))->toBe($institutionId)
+        ->and($reader->resolveIdentifier(DirectoryRecordType::Institution, 'missing-record'))->toBeNull()
         ->and($personDetail?->title)->toBe($person->formatted_name)
         ->and($reader->exists(DirectoryRecordType::Institution, $institutionId))->toBeTrue()
         ->and($reader->find(DirectoryRecordType::Institution, 'missing-record'))->toBeNull();
@@ -168,34 +165,16 @@ it('applies a contribution payload without changing the record lifecycle', funct
         ->and($person->fresh()?->name)->toBe('Nama Baharu');
 });
 
-it('exposes directory admin schema, defaults and record snapshots', function (): void {
-    $institution = Institution::factory()->create(['name' => 'Masjid Admin']);
-    $admin = app(DirectoryAdminContract::class);
-
-    $schema = $admin->schema(DirectoryRecordType::Institution);
-    $defaults = $admin->defaults(DirectoryRecordType::Institution);
-    $record = $admin->record(DirectoryRecordType::Institution, (string) $institution->getKey());
-
-    expect($admin->resourceKey(DirectoryRecordType::Institution))->toBe('institutions')
-        ->and($schema->resourceKey)->toBe('institutions')
-        ->and($schema->operation)->toBe('create')
-        ->and($schema->fields)->not->toBeEmpty()
-        ->and($schema->defaults)->toBeArray()
-        ->and($defaults)->toBeArray()
-        ->and($record?->id)->toBe((string) $institution->getKey())
-        ->and($record?->attributes['name'] ?? null)->toBe('Masjid Admin');
-});
-
 it('lists current directory records as scalar options', function (): void {
     $institution = Institution::factory()->create(['name' => 'Masjid Ujian']);
     $person = Person::factory()->create(['name' => 'Ahmad Ujian']);
 
-    $catalog = app(DirectoryCatalog::class);
+    $reader = app(DirectoryReader::class);
     $institutionId = (string) $institution->getKey();
     $personId = (string) $person->getKey();
 
-    $institutions = collect($catalog->institutions())->keyBy('id');
-    $persons = collect($catalog->persons())->keyBy('id');
+    $institutions = collect($reader->options(DirectoryRecordType::Institution))->keyBy('id');
+    $persons = collect($reader->options(DirectoryRecordType::Person))->keyBy('id');
 
     expect($institutions->has($institutionId))->toBeTrue()
         ->and($institutions->get($institutionId)?->label)->toBe('Masjid Ujian')
@@ -234,4 +213,13 @@ it('keeps a deliberately locked institution locked while eligibility holds', fun
     app(SubmissionEligibilitySync::class)->syncInstitution((string) $institution->getKey());
 
     expect($institution->fresh()?->allow_public_event_submission)->toBeFalse();
+});
+
+it('ignores missing directory entities when syncing submission eligibility', function (): void {
+    $sync = app(SubmissionEligibilitySync::class);
+
+    $sync->syncInstitution('00000000-0000-0000-0000-000000000999');
+    $sync->syncPerson('00000000-0000-0000-0000-000000000999');
+
+    expect($sync)->toBeInstanceOf(SubmissionEligibilitySync::class);
 });

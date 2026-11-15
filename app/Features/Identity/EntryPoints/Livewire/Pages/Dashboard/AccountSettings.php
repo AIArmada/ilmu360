@@ -4,17 +4,17 @@ namespace App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard;
 
 use AIArmada\Events\Models\EventSubmission;
 use AIArmada\Persons\Enums\Gender;
-use App\Features\Identity\Api\AccountPreferences;
-use App\Features\Identity\Services\AccountSettingsService;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\PushDestinationManagement;
+use App\Features\Directory\Api\DirectoryReader;
+use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Services\AccountSettingsService;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;
 use App\Shared\Auth\AccountProfileUpdate;
 use App\Shared\Directory\DirectoryOption;
-use App\Shared\Directory\PrayerInstitutionCatalog;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
 use DateTimeImmutable;
@@ -544,7 +544,7 @@ class AccountSettings extends Component implements HasForms
      */
     protected function searchPrayerInstitutionOptions(string $search): array
     {
-        $options = $this->prayerInstitutionCatalog()->search($search, 50);
+        $options = $this->directoryReader()->searchPrayerInstitutions($search, 50);
 
         return collect($options)
             ->mapWithKeys(static fn (DirectoryOption $option): array => [$option->id => $option->label])
@@ -559,7 +559,7 @@ class AccountSettings extends Component implements HasForms
             return null;
         }
 
-        return $this->prayerInstitutionCatalog()->labels([$institutionId])[$institutionId] ?? null;
+        return $this->directoryReader()->prayerInstitutionLabels([$institutionId])[$institutionId] ?? null;
     }
 
     /**
@@ -574,7 +574,7 @@ class AccountSettings extends Component implements HasForms
             return [];
         }
 
-        return $this->prayerInstitutionCatalog()->labels($institutionIds);
+        return $this->directoryReader()->prayerInstitutionLabels($institutionIds);
     }
 
     /**
@@ -597,7 +597,7 @@ class AccountSettings extends Component implements HasForms
             }
         }
 
-        if (count($this->prayerInstitutionCatalog()->selectableIds($newInstitutionIds)) === count($newInstitutionIds)) {
+        if (count($this->directoryReader()->selectablePrayerInstitutionIds($newInstitutionIds)) === count($newInstitutionIds)) {
             return;
         }
 
@@ -712,9 +712,9 @@ class AccountSettings extends Component implements HasForms
         return app(AccountSettingsService::class);
     }
 
-    protected function prayerInstitutionCatalog(): PrayerInstitutionCatalog
+    protected function directoryReader(): DirectoryReader
     {
-        return app(PrayerInstitutionCatalog::class);
+        return app(DirectoryReader::class);
     }
 
     protected function accounts(): AccountDirectory

@@ -4,13 +4,15 @@ namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
 use App\Models\User;
-use App\Shared\Signals\SignalRecorder;
+use App\Shared\Auth\AccountAccess;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;
 
 class ResetUserPassword implements ResetsUserPasswords
 {
     use PasswordValidationRules;
+
+    public function __construct(private readonly AccountAccess $accounts) {}
 
     /**
      * Validate and reset the user's forgotten password.
@@ -23,15 +25,12 @@ class ResetUserPassword implements ResetsUserPasswords
             'password' => $this->passwordRules(),
         ])->validate();
 
-        $user->forceFill([
-            'password' => $input['password'],
-        ])->save();
-
-        app(SignalRecorder::class)->record(
-            eventName: 'auth.password_reset.completed',
-            eventCategory: 'auth',
-            actorId: (string) $user->getKey(),
-            request: request(),
+        $this->accounts->persistResetPassword(
+            (string) $user->getKey(),
+            $input['password'],
+            request(),
         );
+
+        $user->refresh();
     }
 }

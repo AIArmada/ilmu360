@@ -3,8 +3,10 @@
 use AIArmada\Persons\Enums\TitleUsagePosition;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleCategory;
+use App\Models\Language;
 use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
@@ -44,4 +46,27 @@ it('caches and refreshes the title catalog by version', function (): void {
         (string) $firstTitle->getKey() => 'Ustaz',
         (string) $secondTitle->getKey() => 'Ustazah',
     ]);
+});
+
+it('refreshes language options after their requested cache lifetime', function (): void {
+    $this->travelTo('2026-11-15 10:00:00');
+
+    $language = Language::query()->create([
+        'code' => 'zz-test',
+        'name' => 'First Language Label',
+    ]);
+
+    $catalog = app(SelectionCatalogCache::class);
+
+    expect($catalog->languageOptions('code', ttlSeconds: 3600)['zz-test'])->toBe('First Language Label');
+
+    DB::table('languages')
+        ->where('id', $language->getKey())
+        ->update(['name' => 'Second Language Label']);
+
+    expect($catalog->languageOptions('code', ttlSeconds: 3600)['zz-test'])->toBe('First Language Label');
+
+    $this->travel(61)->minutes();
+
+    expect($catalog->languageOptions('code', ttlSeconds: 3600)['zz-test'])->toBe('Second Language Label');
 });

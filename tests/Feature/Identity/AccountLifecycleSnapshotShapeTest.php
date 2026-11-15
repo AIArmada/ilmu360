@@ -11,7 +11,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Spatie\DeletedModels\Models\DeletedModel;
 
-it('stores migrated lifecycle state under contributor keys', function (): void {
+it('stores lifecycle state under contributor and authorization keys', function (): void {
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
     app(AccountPreferences::class)->syncPrayerInstitutions((string) $user->getKey(), PrayerType::Daily, [$institution->id]);
@@ -54,13 +54,12 @@ it('stores migrated lifecycle state under contributor keys', function (): void {
             'engagement',
             'ai',
             'communications',
-            'legacy',
+            'authorization',
             'share_tracking',
         ])
         ->and($snapshot)->not->toHaveKeys(['report_ids', 'handled_report_ids', 'social_accounts'])
         ->and($snapshot['events'])->toHaveKeys([
             'owned_event_ids',
-            'submitted_event_ids',
             'event_submission_ids',
             'verified_event_checkin_ids',
             'registration_ids',
@@ -78,12 +77,17 @@ it('stores migrated lifecycle state under contributor keys', function (): void {
         ->and($snapshot['engagement'])->toHaveKeys(['user_venue', 'event_saves', 'event_attendees', 'followings'])
         ->and($snapshot['ai'])->toHaveKey('ai_usage_logs')
         ->and($snapshot['communications'])->toHaveKeys(['notification_setting', 'notification_destinations', 'notification_inboxes'])
-        ->and($snapshot['legacy'])->toHaveKeys(['model_has_roles', 'model_has_permissions'])
+        ->and($snapshot['authorization'])->toHaveKeys(['model_has_roles', 'model_has_permissions'])
         ->and(DB::table('user_prayer_institutions')->where('user_id', $userId)->count())->toBe(1);
 
     User::restoreDeletedUser($userId);
 
     expect(DB::table('user_prayer_institutions')->where('user_id', $userId)->count())->toBe(1);
+
+    $this->assertDatabaseMissing('deleted_models', [
+        'key' => $userId,
+        'model' => (new User)->getMorphClass(),
+    ]);
 });
 
 it('orders tagged contributors by priority and key', function (): void {

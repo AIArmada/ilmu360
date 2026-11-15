@@ -1,16 +1,15 @@
 <?php
 
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
 use App\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
-use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -72,7 +71,7 @@ it('shows a danger notification when approving a conflicting request from the ad
 
     $stage = function (string $name) use ($locality): ContributionRequest {
         $institution = Institution::factory()->create(['name' => $name, 'status' => InstitutionStatus::Pending->value]);
-        SharedFormSchema::createAddressFromData($institution, $locality + ['google_place_id' => 'admin_contested_place'], allowCountryOnly: true);
+        attachTestInstitutionAddress($institution, $locality + ['google_place_id' => 'admin_contested_place']);
 
         return ContributionRequest::factory()->create([
             'type' => ContributionRequestType::Create,
@@ -191,7 +190,7 @@ it('shows a busy notice when the Maps identity lock is held during table approva
     ];
 
     $institution = Institution::factory()->create(['name' => 'Busy Lock Mosque', 'status' => InstitutionStatus::Pending->value]);
-    SharedFormSchema::createAddressFromData($institution, $locality + ['google_place_id' => 'busy_lock_place'], allowCountryOnly: true);
+    attachTestInstitutionAddress($institution, $locality + ['google_place_id' => 'busy_lock_place']);
 
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -232,7 +231,7 @@ it('shows a danger notification when approving a conflicting request from the ad
 
     $stage = function (string $name) use ($locality): ContributionRequest {
         $institution = Institution::factory()->create(['name' => $name, 'status' => InstitutionStatus::Pending->value]);
-        SharedFormSchema::createAddressFromData($institution, $locality + ['google_place_id' => 'admin_view_contested_place'], allowCountryOnly: true);
+        attachTestInstitutionAddress($institution, $locality + ['google_place_id' => 'admin_view_contested_place']);
 
         return ContributionRequest::factory()->create([
             'type' => ContributionRequestType::Create,

@@ -3,12 +3,12 @@
 namespace App\Features\Directory\Actions\Institutions;
 
 use AIArmada\Addressing\Support\LocationSlugSegments;
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Directory\Support\DirectoryModel;
 use App\Platform\Location\AddressAssignments;
-use App\Platform\Routing\SyncSlugRedirectAction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -18,7 +18,7 @@ class GenerateInstitutionSlugAction
     use AsAction;
 
     public function __construct(
-        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
+        private readonly SlugRedirectRecorder $slugRedirectRecorder,
     ) {}
 
     public function syncInstitutionSlugsForName(string $name, ?string $exceptInstitutionId = null): bool
@@ -47,7 +47,7 @@ class GenerateInstitutionSlugAction
 
         $slug = $this->forInstitution($institution);
 
-        return CanonicalSlug::persist($institution, $slug, $this->syncSlugRedirectAction);
+        return CanonicalSlug::persist($institution, $slug, $this->slugRedirectRecorder);
     }
 
     /**

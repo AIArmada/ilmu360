@@ -8,6 +8,8 @@ use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
+use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create;
+use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index;
 use App\Features\Membership\Services\MembershipApplicationsService;
 use App\Features\Membership\Services\MembershipAuthorizationService;
 use App\Features\Membership\Services\MembershipCommandsService;
@@ -17,6 +19,7 @@ use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipDirectory;
+use Livewire\Livewire;
 
 /**
  * Membership owns member behaviour, member pivots, applications and
@@ -43,12 +46,9 @@ use App\Shared\Membership\MembershipDirectory;
  * flows and intentionally do not send the app invitation email (recorded
  * invitation-email asymmetry).
  *
- * M5 moved the membership web transport here: application pages and invitation
- * acceptance now register in Routes/web.php with the same URLs, names and
- * web/auth middleware. The Livewire page classes and the member API controller
- * remain root adapters because they compose root models, the root
- * MemberSubjectType UI mapping and the root membership presenter; member MCP
- * tools stay root as well.
+ * Membership HTTP and Livewire entrypoints register from this feature and use
+ * its public application API. MCP tools remain app-level transport adapters;
+ * their application reads, writes and role catalogs cross through Membership APIs.
  */
 final class FeatureServiceProvider extends FeatureModule
 {
@@ -63,5 +63,13 @@ final class FeatureServiceProvider extends FeatureModule
         $this->app->tag([
             MembershipAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        Livewire::component('pages.membership-applications.create', Create::class);
+        Livewire::component('pages.membership-applications.index', Index::class);
     }
 }

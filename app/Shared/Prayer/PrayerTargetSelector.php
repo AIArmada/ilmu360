@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Shared\Prayer;
 
-use App\Models\Institution;
-use App\Models\Person;
 use App\Shared\Events\Enums\EventFormat;
 use BackedEnum;
 
@@ -23,9 +21,9 @@ final class PrayerTargetSelector
     /**
      * @return array{0: string|null, 1: string|null}
      */
-    public static function forOnline(Institution|Person|null $organizer): array
+    public static function forOnline(?string $organizerKind, ?string $organizerId): array
     {
-        return [$organizer instanceof Institution ? (string) $organizer->getKey() : null, null];
+        return [$organizerKind === 'institution' ? $organizerId : null, null];
     }
 
     /**
@@ -33,14 +31,15 @@ final class PrayerTargetSelector
      */
     public static function forSave(
         mixed $eventFormat,
-        Institution|Person|null $organizer,
+        ?string $organizerKind,
+        ?string $organizerId,
         ?string $institutionId,
         ?string $venueId,
     ): array {
         $format = $eventFormat instanceof BackedEnum ? $eventFormat->value : $eventFormat;
 
         if ($format === EventFormat::Online->value) {
-            return self::forOnline($organizer);
+            return self::forOnline($organizerKind, $organizerId);
         }
 
         return [$institutionId, $venueId];

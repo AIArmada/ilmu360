@@ -89,6 +89,8 @@ it('keeps the admin MCP guide aligned with the live admin write-capable resource
         ->toContain('## Validate-only preview behavior')
         ->toContain('`apply_defaults=true` is preview-only')
         ->toContain('omitted or `null` preserves the current relationship set; `[]` detaches all')
+        ->toContain('`person_keys` and `reference_keys` have presence-sensitive full-sync semantics')
+        ->not->toContain('speaker_keys')
         ->not->toContain('docs-member-mcp-guide')
         ->not->toContain('member-list-contribution-requests')
         ->not->toContain('member-update-record');
@@ -113,4 +115,26 @@ it('keeps the member MCP guide aligned with the live member write-capable resour
         ->not->toContain('docs-admin-mcp-guide')
         ->not->toContain('admin-moderate-event')
         ->not->toContain('admin-triage-report');
+});
+
+it('documents the canonical MCP membership and file descriptor contracts', function (): void {
+    $documents = collect([
+        'docs/ilmu360_mcp_guide.md',
+        'docs/ilmu360_mcp_admin_agent_guide.md',
+        'docs/ilmu360_mcp_member_agent_guide.md',
+        'docs/ilmu360_mcp_tool_examples.md',
+        'docs/CHATGPT_FILE_PARAMS_INTEGRATION.md',
+    ])->map(fn (string $path): string => file_get_contents(dirname(__DIR__, 2).'/'.$path) ?: '')->implode("\n");
+
+    expect($documents)
+        ->toContain('member-submit-membership-application')
+        ->toContain('admin-review-membership-application')
+        ->toContain('json_file_descriptor')
+        ->toContain('exactly_one_of')
+        ->not->toContain('membership-claim')
+        ->not->toContain('member-submit-membership-claim')
+        ->not->toContain('json_base64_descriptor')
+        ->not->toContain('Accepted aliases')
+        ->not->toContain('contentBase64')
+        ->not->toContain('downloadUrl');
 });

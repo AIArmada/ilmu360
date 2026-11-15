@@ -17,9 +17,9 @@ use App\Shared\Prayer\PrayerOffset;
 /**
  * Persists one admin/advanced event save without moderation.
  *
- * Moderation stays in the root SaveAdminEventAction adapter until the
- * lifecycle slice moves it; this action owns the event, schedule,
- * classification, key-person and relation writes.
+ * This action owns event, schedule, classification, key-person and relation
+ * writes. The admin entrypoint applies the requested initial moderation
+ * status through the Events moderation API after persistence commits.
  */
 final readonly class PersistEventAuthoringAction
 {
@@ -27,6 +27,7 @@ final readonly class PersistEventAuthoringAction
         private AdminEventInputPreparer $inputPreparer,
         private AdminEventScheduleResolver $scheduleResolver,
         private AdminEventRelationsSynchronizer $relationsSynchronizer,
+        private SyncEventOrganizerAction $syncEventOrganizer,
     ) {}
 
     /**
@@ -83,7 +84,12 @@ final readonly class PersistEventAuthoringAction
             prayerCountry: $schedule['prayer_country'],
         );
 
-        $event->setPrimaryOrganizer($input['organizer_id'] !== null ? $input['primary_organizer'] : null);
+        $this->syncEventOrganizer->handle(
+            (string) $event->getKey(),
+            $input['primary_organizer_kind'],
+            $input['organizer_id'],
+        );
+        $event->unsetRelation('primaryOrganizerInvolvement');
 
         $this->relationsSynchronizer->sync($event, $state, $data, $creating);
 

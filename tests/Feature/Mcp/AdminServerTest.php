@@ -11,17 +11,8 @@ use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventAgeGroup;
 use App\Enums\EventChangeSeverity;
-use App\Shared\Events\Enums\EventChangeType;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
-use App\Shared\Events\Enums\TimingMode;
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Features\Reports\Models\Report;
@@ -69,8 +60,17 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use App\Shared\Directory\Enums\InstitutionStatus;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
@@ -236,6 +236,20 @@ it('reviews membership applications through the admin MCP workflow tool', functi
         ->tool(AdminReviewMembershipApplicationTool::class, [
             'record_key' => $application->getKey(),
             'action' => 'approve',
+            'granted_role' => 'viewer',
+        ])
+        ->assertStructuredContent(fn ($json) => $json
+            ->where('error.code', 'validation_error')
+            ->where('error.details.errors.granted_role.0', fn ($message): bool => is_string($message) && $message !== '')
+            ->etc());
+
+    expect($application->fresh()?->status->value)->toBe('pending')
+        ->and($institution->fresh()->members()->whereKey($applicant->getKey())->exists())->toBeFalse();
+
+    AdminServer::actingAs($admin)
+        ->tool(AdminReviewMembershipApplicationTool::class, [
+            'record_key' => $application->getKey(),
+            'action' => 'approve',
             'granted_role' => 'admin',
             'reviewer_note' => 'Approved through admin MCP.',
         ])
@@ -265,9 +279,9 @@ it('exposes application review workflow tools for membership applications on adm
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.focus_actions.recommended_keys.0', 'get_membership_claim_review_schema')
-            ->where('data.focus_actions.actions', fn ($actions): bool => data_get(collect($actions)->firstWhere('key', 'get_membership_claim_review_schema'), 'tool') === 'admin-get-membership-application-review-schema')
-            ->where('data.focus_actions.actions', fn ($actions): bool => data_get(collect($actions)->firstWhere('key', 'review_membership_claim'), 'tool') === 'admin-review-membership-application')
+            ->where('data.focus_actions.recommended_keys.0', 'get_membership_application_review_schema')
+            ->where('data.focus_actions.actions', fn ($actions): bool => data_get(collect($actions)->firstWhere('key', 'get_membership_application_review_schema'), 'tool') === 'admin-get-membership-application-review-schema')
+            ->where('data.focus_actions.actions', fn ($actions): bool => data_get(collect($actions)->firstWhere('key', 'review_membership_application'), 'tool') === 'admin-review-membership-application')
             ->etc());
 });
 
@@ -1676,7 +1690,7 @@ it('returns write schema for supported resources and rejects unknown resources',
             ->where('data.schema.endpoint', null)
             ->where('data.schema.content_type', 'application/json')
             ->where('data.schema.media_uploads_supported', true)
-            ->where('data.schema.media_upload_transport', 'json_base64_descriptor_or_download_url')
+            ->where('data.schema.media_upload_transport', 'json_file_descriptor')
             ->where('data.schema.unsupported_fields', [])
             ->where('data.schema.fields', fn ($fields): bool => collect($fields)
                 ->pluck('name')
@@ -1684,6 +1698,9 @@ it('returns write schema for supported resources and rejects unknown resources',
                 ->isEmpty())
             ->where('data.schema.fields', fn ($fields): bool => data_get(collect($fields)->firstWhere('name', 'avatar'), 'mcp_upload.shape') === 'file_descriptor'
                 && data_get(collect($fields)->firstWhere('name', 'gallery'), 'mcp_upload.shape') === 'array<file_descriptor>'
+                && data_get(collect($fields)->firstWhere('name', 'avatar'), 'mcp_upload.transport') === 'json_file_descriptor'
+                && data_get(collect($fields)->firstWhere('name', 'avatar'), 'mcp_upload.required_fields') === ['filename']
+                && data_get(collect($fields)->firstWhere('name', 'avatar'), 'mcp_upload.exactly_one_of') === ['content_base64', 'content_url', 'download_url']
                 && data_get(collect($fields)->firstWhere('name', 'gallery'), 'mcp_upload.accepted_mime_types.0') === 'image/jpeg')
             ->etc());
 
@@ -1699,8 +1716,8 @@ it('returns write schema for supported resources and rejects unknown resources',
             ->where('data.schema.tool', 'admin-create-event')
             ->where('data.schema.tool_arguments.primary_organizer_key', 'route_key')
             ->where('data.schema.tool_arguments.institution_key', 'route_key')
-            ->where('data.schema.mcp_only_semantics.route_key_aliases.person_keys', 'resolves to persons')
-            ->where('data.schema.mcp_only_semantics.update_relation_arrays.empty_array', 'detach all related records for that alias')
+            ->where('data.schema.mcp_only_semantics.route_keys.person_keys', 'resolves to persons')
+            ->where('data.schema.mcp_only_semantics.update_relation_arrays.empty_array', 'detach all related records for that field')
             ->etc());
 
     AdminServer::actingAs($admin)
@@ -1954,8 +1971,8 @@ it('creates and updates persons through MCP write tools', function () {
                     && data_get($fieldMap->get('address.country_id'), 'required_when_parent_present_on_update') === true
                     && data_get($fieldMap->get('language_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
                     && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false
+                    && in_array('x', data_get($fieldMap->get('social_media'), 'input_normalization.handle_platforms', []), true)
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases') === null
                     && data_get($fieldMap->get('name'), 'required') === true
                     && data_get($fieldMap->get('gender'), 'allowed_values') !== null;
             })
@@ -2070,8 +2087,8 @@ it('creates and updates institutions through MCP write tools', function () {
                     && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && $contactItemFields->has('type')
                     && $contactItemFields->has('value')
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
+                    && in_array('x', data_get($fieldMap->get('social_media'), 'input_normalization.handle_platforms', []), true)
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases') === null;
             })
             ->etc());
 
@@ -2124,8 +2141,8 @@ it('surfaces venue and reference update semantics through admin MCP write schema
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'delete_existing_address'
                     && data_get($fieldMap->get('facilities'), 'input_normalization.kind') === 'facility_codes_to_relation'
                     && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
+                    && in_array('x', data_get($fieldMap->get('social_media'), 'input_normalization.handle_platforms', []), true)
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases') === null;
             })
             ->etc());
 
@@ -2145,8 +2162,8 @@ it('surfaces venue and reference update semantics through admin MCP write schema
                     && data_get($fieldMap->get('author_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
                     && data_get($fieldMap->get('publication_year'), 'normalization.empty_string_at_mutation_layer') === 'null'
                     && data_get($fieldMap->get('social_media'), 'collection_semantics.submitted_array') === 'replace_collection'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
+                    && in_array('x', data_get($fieldMap->get('social_media'), 'input_normalization.handle_platforms', []), true)
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases') === null;
             })
             ->etc());
 });
@@ -2223,7 +2240,8 @@ it('surfaces event series and donation channel update semantics through admin MC
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
 
-                return data_get($fieldMap->get('donatable_type'), 'accepted_aliases.events') === (string) (new Event)->getMorphClass()
+                return data_get($fieldMap->get('donatable_type'), 'mutation_semantics') === 'replace_scalar_with_canonical_owner_type'
+                    && data_get($fieldMap->get('donatable_type'), 'accepted_aliases') === null
                     && data_get($fieldMap->get('method'), 'switch_clears_fields.ewallet') === ['bank_code', 'bank_name', 'account_number', 'duitnow_type', 'duitnow_value']
                     && data_get($fieldMap->get('label'), 'clear_semantics.explicit_null') === 'clear_to_null'
                     && data_get($fieldMap->get('reference_note'), 'normalization.empty_string_at_mutation_layer') === 'null';
@@ -2958,22 +2976,24 @@ it('denies non-admin users from admin MCP tools', function () {
         ->assertHasErrors(['Forbidden.']);
 });
 
-it('serves an authenticated event stream compatibility endpoint for /mcp/admin', function () {
-    $admin = adminMcpUser('super_admin');
-    $token = $admin->createToken('mcp-http-test', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
+it('registers only the Streamable HTTP methods for admin and member MCP endpoints', function () {
+    foreach (['/mcp/admin', '/mcp/member'] as $endpoint) {
+        $this->get($endpoint)
+            ->assertMethodNotAllowed()
+            ->assertHeader('Allow', 'POST');
 
-    $response = $this->withToken($token)
-        ->get('/mcp/admin');
+        $this->head($endpoint)
+            ->assertMethodNotAllowed()
+            ->assertHeader('Allow', 'POST');
 
-    $response->assertOk();
-    expect($response->headers->get('content-type'))->toContain('text/event-stream');
-    expect($response->streamedContent())->toContain(': keep-alive');
+        $this->delete($endpoint)
+            ->assertMethodNotAllowed()
+            ->assertHeader('Allow', 'POST');
+    }
 });
 
-it('returns a bearer-auth challenge for unauthenticated MCP stream requests', function () {
-    $response = $this->withHeaders([
-        'Accept' => 'text/event-stream',
-    ])->get('/mcp/admin');
+it('returns a bearer-auth challenge for unauthenticated admin MCP requests', function () {
+    $response = $this->postJson('/mcp/admin', []);
 
     $response->assertUnauthorized();
     $response->assertHeader('WWW-Authenticate');
@@ -3033,18 +3053,6 @@ it('only registers OAuth clients for allowed redirect domains and schemes', func
         'redirect_uris' => ['cursor://mcp-callback'],
     ])->assertStatus(400)
         ->assertJsonPath('error', 'invalid_redirect_uri');
-});
-
-it('serves the admin MCP stream for Passport-authenticated admin users', function () {
-    $admin = adminMcpUser('super_admin');
-
-    Passport::actingAs(adminPassportUser($admin), ['mcp:use']);
-
-    $response = $this->get('/mcp/admin');
-
-    $response->assertOk();
-    expect($response->headers->get('content-type'))->toContain('text/event-stream');
-    expect($response->streamedContent())->toContain(': keep-alive');
 });
 
 it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-authenticated admins', function () {
@@ -3205,7 +3213,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         ->toContain('Preview-only helper')
         ->toContain('ignored for persisted creates');
     expect((string) data_get($tools->get('admin-update-event'), 'description'))
-        ->toContain('MCP-only event wrapper')
+        ->toContain('MCP event tool')
         ->toContain('pass [] to detach all')
         ->toContain('pass null to preserve');
     expect((string) data_get($tools->get('admin-update-event'), 'inputSchema.properties.person_keys.description'))
@@ -3246,15 +3254,15 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         ->toContain('bug', 'docs_mismatch', 'proposal', 'feature_request', 'parameter_change', 'other');
 });
 
-it('rejects Passport-authenticated users without admin access on the admin MCP stream endpoint', function () {
+it('rejects Passport-authenticated users without admin access on the admin MCP endpoint', function () {
     $user = User::factory()->create();
 
     Passport::actingAs(adminPassportUser($user), ['mcp:use']);
 
-    $this->get('/mcp/admin')->assertForbidden();
+    $this->postJson('/mcp/admin', [])->assertForbidden();
 });
 
-it('rejects member-scoped tokens on the admin MCP stream endpoint even for dual-scope users', function () {
+it('rejects member-scoped tokens on the admin MCP endpoint even for dual-scope users', function () {
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -3265,7 +3273,7 @@ it('rejects member-scoped tokens on the admin MCP stream endpoint even for dual-
     $token = $admin->createToken('mcp-member-only', [McpTokenManager::MEMBER_ABILITY])->plainTextToken;
 
     $this->withToken($token)
-        ->get('/mcp/admin')
+        ->postJson('/mcp/admin', [])
         ->assertForbidden();
 });
 

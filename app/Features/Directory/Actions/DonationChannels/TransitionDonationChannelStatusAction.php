@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\DonationChannels;
 
 use App\Features\Directory\Support\DirectoryModel;
+use App\Models\DonationChannel;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Model;
 use LogicException;
 
 /**
@@ -15,7 +15,7 @@ use LogicException;
  */
 final readonly class TransitionDonationChannelStatusAction
 {
-    public function handle(Model $channel, DonationChannelStatus $status): Model
+    public function handle(DonationChannel $channel, DonationChannelStatus $status): DonationChannel
     {
         DirectoryModel::assert($channel, 'donation_channel');
 
@@ -54,7 +54,7 @@ final readonly class TransitionDonationChannelStatusAction
         return $channel;
     }
 
-    private function applyStatusTimestamp(Model $channel, DonationChannelStatus $status, CarbonImmutable $at, bool $overwrite = false): void
+    private function applyStatusTimestamp(DonationChannel $channel, DonationChannelStatus $status, CarbonImmutable $at, bool $overwrite = false): void
     {
         $attribute = match ($status) {
             DonationChannelStatus::Verified => 'verified_at',

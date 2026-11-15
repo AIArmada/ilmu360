@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Admin;
 
 use App\Features\Membership\Api\MembershipApplications;
-use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
-use App\Models\MembershipApplication;
 use App\Models\User;
-use App\Support\Api\Admin\AdminResourceRegistry;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
+use Illuminate\Validation\Rule;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -34,38 +32,43 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
 
     public function __construct(
         private readonly MembershipApplications $membershipApplications,
-        private readonly AdminResourceRegistry $registry,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
     {
         return $this->structuredResponse(function () use ($request): array {
             $actor = $this->authorizeAdmin($request);
+            $requiresGrantedRole = ($request->all()['action'] ?? null) === 'approve';
 
             $validated = $this->validateArguments($request, [
                 'record_key' => ['required', 'string'],
-                'action' => ['required', 'string'],
-                'granted_role' => ['sometimes', 'nullable', 'string'],
-                'reviewer_note' => ['sometimes', 'nullable', 'string'],
+                'action' => ['required', 'string', Rule::in(['approve', 'reject'])],
+                'granted_role' => [
+                    Rule::requiredIf($requiresGrantedRole),
+                    'nullable',
+                    'string',
+                    Rule::in(array_keys($this->membershipApplications->reviewRoleOptions())),
+                ],
+                'reviewer_note' => ['sometimes', 'nullable', 'string', 'max:2000'],
             ]);
 
-            /** @var MembershipApplication $application */
-            $application = $this->registry->resolveRecord(MembershipApplicationResource::class, (string) $validated['record_key']);
+            $application = $this->membershipApplications->find((string) $validated['record_key']);
+            abort_unless($application !== null, 404);
             $note = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
 
             $detail = match ((string) $validated['action']) {
                 'approve' => $this->membershipApplications->approve(
-                    (string) $application->getKey(),
+                    $application->application->id,
                     (string) $actor->getKey(),
                     (string) ($validated['granted_role'] ?? ''),
                     $note,
                 ),
                 'reject' => $this->membershipApplications->reject(
-                    (string) $application->getKey(),
+                    $application->application->id,
                     (string) $actor->getKey(),
                     $note,
                 ),
-                default => throw new \InvalidArgumentException('Unsupported membership-application review action.'),
+                default => throw new \LogicException('Validated membership-application action is unsupported.'),
             };
 
             return [
@@ -88,7 +91,7 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
         return [
             'record_key' => $schema->string()->required()->min(1),
             'action' => $schema->string()->required()->enum(['approve', 'reject']),
-            'granted_role' => $schema->string()->nullable()->enum(['owner', 'admin', 'editor']),
+            'granted_role' => $schema->string()->nullable()->enum(array_keys($this->membershipApplications->reviewRoleOptions())),
             'reviewer_note' => $schema->string()->nullable(),
         ];
     }

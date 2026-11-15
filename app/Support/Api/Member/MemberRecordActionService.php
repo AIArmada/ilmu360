@@ -187,7 +187,7 @@ final readonly class MemberRecordActionService
     {
         $notes = [
             'Use the record route_key returned here when chaining member-scoped MCP calls.',
-            'Contribution-request queues and membership claims remain dedicated member workflow tools rather than record-specific actions on this surface.',
+            'Contribution-request queues and membership applications remain dedicated member workflow tools rather than record-specific actions on this surface.',
         ];
 
         if ($this->hasAction($actions, 'get_update_schema')) {

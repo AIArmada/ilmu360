@@ -16,7 +16,7 @@ final readonly class InstitutionDirectoryQuery
     public function __construct(private InstitutionSearchService $searchService) {}
 
     /**
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @param  list<string>  $followingInstitutionIds
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
      * @return LengthAwarePaginator<int, Institution>
@@ -69,7 +69,7 @@ final readonly class InstitutionDirectoryQuery
     }
 
     /**
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @param  list<string>  $followingInstitutionIds
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
      * @return LengthAwarePaginator<int, Institution>
@@ -114,7 +114,7 @@ final readonly class InstitutionDirectoryQuery
     }
 
     /**
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @param  list<string>  $followingInstitutionIds
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
      * @return LengthAwarePaginator<int, Institution>
@@ -151,7 +151,7 @@ final readonly class InstitutionDirectoryQuery
     }
 
     /**
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @param  list<string>  $followingInstitutionIds
      * @return Builder<Institution>
      */
@@ -172,7 +172,7 @@ final readonly class InstitutionDirectoryQuery
     }
 
     /**
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @param  list<string>  $followingInstitutionIds
      * @return Builder<Institution>
      */
@@ -204,7 +204,7 @@ final readonly class InstitutionDirectoryQuery
 
     /**
      * @param  Builder<Institution>  $query
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @return Builder<Institution>
      */
     private function applyLocationScope(Builder $query, array $locationIds): Builder
@@ -215,8 +215,6 @@ final readonly class InstitutionDirectoryQuery
         $localityId = $locationIds['locality_id'] ?? null;
         $areaIds = $locationIds['area_ids'] ?? [];
 
-        // district_id/subdivision_id are legacy aliases folded into area_ids
-        // by LocationSlugResolver::idsForSlugs(); only area_ids is applied.
         if ($countryId === null && $stateId === null && $cityId === null && $localityId === null && ! array_filter($areaIds)) {
             return $query;
         }
@@ -356,7 +354,7 @@ final readonly class InstitutionDirectoryQuery
 
     /**
      * @param  list<string>  $orderedIds
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @param  list<string>  $followingInstitutionIds
      * @return list<string>
      */
@@ -399,7 +397,7 @@ final readonly class InstitutionDirectoryQuery
 
     /**
      * @param  list<string>  $orderedIds
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @param  list<string>  $followingInstitutionIds
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
      * @return LengthAwarePaginator<int, Institution>
@@ -433,7 +431,7 @@ final readonly class InstitutionDirectoryQuery
 
     /**
      * @param  list<string>  $orderedIds
-     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, district_id?: ?string, subdivision_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
      * @param  list<string>  $followingInstitutionIds
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
      * @return LengthAwarePaginator<int, Institution>

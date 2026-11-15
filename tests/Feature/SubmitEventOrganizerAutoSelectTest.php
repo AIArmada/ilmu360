@@ -1,11 +1,11 @@
 <?php
 
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Person;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
@@ -108,5 +108,5 @@ it('uses the organizer person slug when no explicit persons are selected', funct
         ->assertRedirect(route('submit-event.success'));
 
     expect(submittedOccurrenceByTitle('Organizer Fallback Submit Event')->slug)
-        ->toBe(sprintf('organizer-fallback-submit-event-%s-%s', $fixtures['person']->slug, $expectedSuffix));
+        ->toBe(sprintf('%s-%s', $fixtures['person']->slug, $expectedSuffix));
 });

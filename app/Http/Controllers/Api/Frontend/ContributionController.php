@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Platform\Http\FrontendController;
 use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
@@ -18,9 +17,9 @@ use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestActio
 use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
 use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Actions\Institutions\InferInstitutionTypeAction;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
@@ -29,6 +28,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Platform\Http\FrontendController;
 use App\Platform\Location\DiscoverWebsiteSocialProfilesAction;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\GooglePlaceIdentity;
@@ -36,7 +36,7 @@ use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use App\Platform\Media\MediaCollectionSync;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Services\ContributionEntityMutationService;
-use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use App\Support\Submission\ContributionSubjectPresenter;
@@ -313,8 +313,10 @@ class ContributionController extends FrontendController
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', Rule::in(array_column(Gender::cases(), 'value'))],
             'bio' => ['nullable'],
-            'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
-            'institution_position' => ['nullable', 'string', 'max:255'],
+            'institutions' => ['nullable', 'array'],
+            'institutions.*.institution_id' => ['required', 'uuid', 'exists:institutions,id'],
+            'institutions.*.position' => ['nullable', 'string', 'max:255'],
+            'institutions.*.is_primary' => ['nullable', 'boolean'],
             'address' => ['required', 'array'],
             'address.country_id' => ['required', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
             'address.state_id' => ['prohibited'],
@@ -432,7 +434,10 @@ class ContributionController extends FrontendController
                     : [],
                 'subject_presentation' => $contributionSubjectPresenter->present($entity),
                 'can_direct_edit' => $canDirectEdit,
-                'pending_update_blocked' => $findEntityPendingContributionRequestAction->handle($entity) instanceof ContributionRequest,
+                'pending_update_blocked' => $findEntityPendingContributionRequestAction->handle(
+                    $context['entity_type'],
+                    $context['entity_id'],
+                ) instanceof ContributionRequest,
                 'latest_pending_request' => ($latestPendingRequest = $findUserPendingContributionRequestAction->handle($user, $entity)) instanceof ContributionRequest
                     ? $this->contributionRequestData($latestPendingRequest, $user)
                     : null,
@@ -502,7 +507,10 @@ class ContributionController extends FrontendController
 
         abort_unless($user->can('view', $entity), 403);
 
-        $ensureNoPendingContributionRequestAction->handle($entity);
+        $ensureNoPendingContributionRequestAction->handle(
+            $context['entity_type'],
+            $context['entity_id'],
+        );
 
         $uploadedFiles = array_keys($request->allFiles());
 

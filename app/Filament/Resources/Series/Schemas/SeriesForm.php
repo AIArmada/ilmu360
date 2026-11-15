@@ -46,6 +46,8 @@ class SeriesForm
                         Select::make('languages')
                             ->placeholder(__('Pilih bahasa'))
                             ->relationship('languages', 'name')
+                            ->saveRelationshipsUsing(null)
+                            ->dehydrated()
                             ->multiple()
                             ->preload()
                             ->searchable()

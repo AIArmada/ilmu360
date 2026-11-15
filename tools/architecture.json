@@ -1,35 +1,140 @@
 {
   "schema": 2,
   "discovery": "native",
+  "root_store_writers": {
+    "App\\Console\\Commands\\MigrateMediaToNewStructure": {
+      "adapter": "filesystem",
+      "resource": "store:infrastructure.media-library-files",
+      "reason": "The root media maintenance command moves files in configured media storage.",
+      "expires": "2027-06-30"
+    },
+    "App\\Filament\\Pages\\ShareAnalytics": {
+      "adapter": "cache",
+      "resource": "store:infrastructure.share-analytics-dashboard",
+      "reason": "The root Filament page caches its assembled ShareTracking analytics report.",
+      "expires": "2027-06-30"
+    },
+    "App\\Platform\\Cache\\CacheVersionStore": {
+      "adapter": "cache",
+      "resource": "store:infrastructure.cache-versions",
+      "reason": "The platform cache version store keeps root infrastructure invalidation counters.",
+      "expires": "2027-06-30"
+    },
+    "App\\Platform\\Cache\\VersionedCache": {
+      "adapter": "cache",
+      "resource": "store:infrastructure.versioned-cache",
+      "reason": "The platform versioned cache wraps generic root cache operations outside feature stores.",
+      "expires": "2027-06-30"
+    },
+    "App\\Platform\\Media\\MediaUrlGenerator": {
+      "adapter": "cache",
+      "resource": "store:infrastructure.media-url-cache",
+      "reason": "The platform media URL generator caches infrastructure URL resolutions.",
+      "expires": "2027-06-30"
+    },
+    "App\\Platform\\Search\\TypesenseHealthCheckService": {
+      "adapter": "cache",
+      "resource": "store:infrastructure.typesense-health",
+      "reason": "The platform health check caches search-service reachability state.",
+      "expires": "2027-06-30"
+    },
+    "App\\Support\\ApiDocumentation\\ApiDocumentationDocumentResolver": {
+      "adapter": "cache",
+      "resource": "store:infrastructure.api-documentation-cache",
+      "reason": "The root API documentation resolver caches source-derived OpenAPI documents.",
+      "expires": "2027-06-30"
+    }
+  },
   "exceptions": [
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/Support/Directory/DirectoryAccountLifecycleContributor.php",
-      "target": "table:venues",
-      "reason": "Account lifecycle detach/restore keeps verifier links until Directory exposes a lifecycle API.",
-      "owner": "Directory",
+      "rule": "architecture.writeLocation",
+      "file": "app/Platform/Auditing/EloquentAuditRecorder.php",
+      "target": "table:unknown",
+      "model": "App\\Models\\Audit",
+      "reason": "Owen's configured audits table and lifecycle remain package-owned; this exact Platform adapter records the Registration export audit through the canonical app Audit model.",
+      "owner": "Platform",
       "expires": "2027-06-30"
     },
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/Registration/Actions/ConfirmOfflineAdmissionAction.php",
-      "target": "table:unknown",
+      "target": "table:orders",
+      "model": "AIArmada\\Orders\\Models\\Order",
       "reason": "Order metadata is written through the package Order model; orders remain package-canonical.",
       "owner": "Registration",
       "expires": "2027-06-30"
     },
     {
       "rule": "architecture.writeLocation",
+      "file": "app/Models/Concerns/HasUserRestoration.php",
+      "target": "table:unknown",
+      "model": "Laravel\\Sanctum\\PersonalAccessToken",
+      "model_provider": "sanctum",
+      "relation": "tokens",
+      "relation_owner": "App\\Models\\User",
+      "reason": "Identity revokes the user's configured Sanctum tokens through the package relation; token storage remains Sanctum-owned.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Platform/Auth/EloquentAccountAccess.php",
+      "target": "table:unknown",
+      "model": "Laravel\\Sanctum\\PersonalAccessToken",
+      "model_provider": "sanctum",
+      "relation": "currentAccessToken",
+      "relation_owner": "App\\Models\\User",
+      "reason": "Identity's Laravel authentication adapter revokes the current token returned by Sanctum's currentAccessToken accessor; token storage remains Sanctum-owned.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Platform/Auth/EloquentAccountSettingsStore.php",
+      "target": "table:unknown",
+      "model": "Laravel\\Sanctum\\PersonalAccessToken",
+      "model_provider": "sanctum",
+      "relation": "tokens",
+      "relation_owner": "App\\Models\\User",
+      "reason": "Identity's account-settings adapter revokes a user's tokens through Sanctum's canonical relation; token storage remains Sanctum-owned.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Support/Mcp/McpTokenManager.php",
+      "target": "table:unknown",
+      "model": "Laravel\\Sanctum\\PersonalAccessToken",
+      "model_provider": "sanctum",
+      "relation": "tokens",
+      "relation_owner": "App\\Models\\User",
+      "reason": "Identity's MCP token integration revokes an ability-scoped token selected from the user's Sanctum relation; token storage remains Sanctum-owned.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Models/Concerns/HasUserRestoration.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "reason": "Identity restores the user's validated member affiliate profile through the canonical Affiliates model; affiliate storage remains package-owned.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
       "file": "app/Features/Registration/Actions/PrepareAdmissionCheckoutAction.php",
       "target": "table:unknown",
-      "reason": "Checkout session payment data is written through the package CheckoutSession model.",
+      "model": "AIArmada\\Checkout\\Models\\CheckoutSession",
+      "reason": "Registration stores its event-specific payment payload on the package CheckoutSession returned by the Checkout contract; Checkout owns the session table and exposes no update operation for this payload.",
       "owner": "Registration",
       "expires": "2027-06-30"
     },
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/Registration/Actions/ProcessAdmissionRefundAction.php",
-      "target": "table:unknown",
+      "target": "table:order_refunds",
+      "model": "AIArmada\\Orders\\Models\\OrderRefund",
       "reason": "Provider refund correlation metadata is written through the package OrderRefund model.",
       "owner": "Registration",
       "expires": "2027-06-30"
@@ -37,9 +142,551 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/Registration/Listeners/CompletePendingRefundOnPaymentRefunded.php",
-      "target": "table:unknown",
+      "target": "table:order_refunds",
+      "model": "AIArmada\\Orders\\Models\\OrderRefund",
       "reason": "Provider refund completion metadata is written through the package OrderRefund model.",
       "owner": "Registration",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Directory/Actions/Persons/SyncPersonTitleAssignmentsAction.php",
+      "target": "table:title_assignments",
+      "model": "AIArmada\\Persons\\Models\\TitleAssignment",
+      "reason": "The Persons package owns title assignments and exposes no assignment mutation action; this exact Directory action synchronizes them.",
+      "owner": "Directory",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Actions/DeletePushDestinationAction.php",
+      "target": "table:communication_destinations",
+      "model": "AIArmada\\Communications\\Models\\CommunicationDestination",
+      "reason": "The Communications package owns destination storage; this feature action performs the documented account-scoped delete through its canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Actions/EnsureNotificationPreferencesAction.php",
+      "target": "table:communication_preferences",
+      "model": "AIArmada\\Communications\\Models\\CommunicationPreference",
+      "reason": "The Communications package owns preference storage; this feature action creates its documented preference rows through the canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Actions/RemovePushDestinationAction.php",
+      "target": "table:communication_destinations",
+      "model": "AIArmada\\Communications\\Models\\CommunicationDestination",
+      "reason": "The Communications package owns destination storage; this feature action performs the documented account-scoped removal through its canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Actions/SaveNotificationPreferencesAction.php",
+      "target": "table:communication_preferences",
+      "model": "AIArmada\\Communications\\Models\\CommunicationPreference",
+      "reason": "The Communications package owns preference storage; this feature action updates the documented account preference through the canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Actions/SyncNotificationPreferenceAction.php",
+      "target": "table:communication_preferences",
+      "model": "AIArmada\\Communications\\Models\\CommunicationPreference",
+      "reason": "The Communications package owns preference storage; this feature action synchronizes scoped preference rows through the canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Actions/SyncPushDestinationDetailsAction.php",
+      "target": "table:communication_destinations",
+      "model": "AIArmada\\Communications\\Models\\CommunicationDestination",
+      "reason": "The Communications package owns destination storage; this feature action updates an account destination through the canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Actions/SyncSystemEmailDestinationAction.php",
+      "target": "table:communication_destinations",
+      "model": "AIArmada\\Communications\\Models\\CommunicationDestination",
+      "reason": "The Communications package owns destination storage; this feature action synchronizes the verified account email through the canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Actions/UpdateNotificationLocaleAction.php",
+      "target": "table:communication_preferences",
+      "model": "AIArmada\\Communications\\Models\\CommunicationPreference",
+      "reason": "The Communications package owns preference storage; this feature action updates the locale through the canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Contributors/CommunicationsAccountLifecycleContributor.php",
+      "target": "table:communication_preferences",
+      "model": "AIArmada\\Communications\\Models\\CommunicationPreference",
+      "reason": "The Communications package owns preference storage; this feature contributor snapshots and restores the documented base preference row.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Contributors/CommunicationsAccountLifecycleContributor.php",
+      "target": "table:communication_destinations",
+      "model": "AIArmada\\Communications\\Models\\CommunicationDestination",
+      "reason": "The Communications package owns destination storage; this feature contributor snapshots, removes, and restores account destinations.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Contributors/CommunicationsAccountLifecycleContributor.php",
+      "target": "table:notification_inboxes",
+      "model": "AIArmada\\Communications\\Models\\NotificationInbox",
+      "reason": "The Communications package owns inbox storage; this feature contributor snapshots, removes, and restores account inbox rows.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Services/ManagedNotificationDeliveryService.php",
+      "target": "table:communication_attempts",
+      "model": "AIArmada\\Communications\\Models\\CommunicationAttempt",
+      "reason": "The Communications package owns delivery attempts; this feature service settles the documented fenced external send outcome through its canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Support/Delivery/GuardedDeliverySend.php",
+      "target": "table:communication_attempts",
+      "model": "AIArmada\\Communications\\Models\\CommunicationAttempt",
+      "reason": "The Communications package owns delivery attempts; this feature support class writes the fenced channel outcome through its canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Support/Delivery/GuardedDeliverySend.php",
+      "target": "table:communication_deliveries",
+      "model": "AIArmada\\Communications\\Models\\CommunicationDelivery",
+      "reason": "The Communications package owns deliveries; this feature support class updates the documented channel delivery fence through its canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Communications/Support/Delivery/GuardedDeliverySend.php",
+      "target": "table:communications",
+      "model": "AIArmada\\Communications\\Models\\Communication",
+      "reason": "The Communications package owns communications; this feature support class updates the documented channel delivery fence through its canonical model.",
+      "owner": "Communications",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Engagement/Actions/DeleteEventEngagementAction.php",
+      "target": "table:bookmarks",
+      "model": "AIArmada\\Engagement\\Models\\Bookmark",
+      "reason": "Engagement removes event bookmarks through the canonical package Bookmark model; the package owns its configured table.",
+      "owner": "Engagement",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Engagement/Actions/DeleteEventEngagementAction.php",
+      "target": "table:responses",
+      "model": "AIArmada\\Engagement\\Models\\Response",
+      "reason": "Engagement removes event responses through the canonical package Response model; the package owns its configured table.",
+      "owner": "Engagement",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Engagement/Contributors/EngagementAccountLifecycleContributor.php",
+      "target": "table:bookmarks",
+      "model": "AIArmada\\Engagement\\Models\\Bookmark",
+      "reason": "Engagement restores and detaches account bookmarks through the canonical package Bookmark model; the package owns its configured table.",
+      "owner": "Engagement",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Engagement/Contributors/EngagementAccountLifecycleContributor.php",
+      "target": "table:follows",
+      "model": "AIArmada\\Engagement\\Models\\Follow",
+      "reason": "Engagement restores, snapshots, and detaches account follows through the canonical package Follow model; the package owns its configured table.",
+      "owner": "Engagement",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Engagement/Contributors/EngagementAccountLifecycleContributor.php",
+      "target": "table:responses",
+      "model": "AIArmada\\Engagement\\Models\\Response",
+      "reason": "Engagement snapshots and detaches account responses through the canonical package Response model; the package owns its configured table.",
+      "owner": "Engagement",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/Actions/Authoring/ConfigureEventAdmissionAction.php",
+      "target": "table:ticket_ticket_type_seating_options",
+      "model": "AIArmada\\Ticketing\\Models\\TicketTypeSeatingOption",
+      "reason": "Events admission setup writes the package TicketTypeSeatingOption model, whose configured application default is the package-canonical ticket_ticket_type_seating_options table.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/Actions/Delete/CleanupEventAction.php",
+      "target": "table:event_updates",
+      "model": "App\\Models\\EventChangeAnnouncement",
+      "relation": "changeAnnouncements",
+      "relation_owner": "App\\Models\\Event",
+      "reason": "The E5a event deletion workflow removes its change announcements before deleting the event; EventChangeAnnouncement remains the app wrapper over the package EventUpdate table.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/Actions/Authoring/CreateEventChangeAnnouncementAction.php",
+      "target": "table:event_updates",
+      "model": "AIArmada\\Events\\Models\\EventUpdate",
+      "reason": "Events persists published change announcements through the canonical package EventUpdate model; the event_updates table remains package-owned and unclaimed by app features.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/Actions/Submission/CompleteEventSubmissionWritesAction.php",
+      "target": "table:contact_methods",
+      "model": "AIArmada\\Contacting\\Models\\ContactMethod",
+      "relation": "contactMethods",
+      "relation_owner": "App\\Models\\EventSubmission",
+      "reason": "E2b records guest submitter contacts on the event submission through the Contacting package relation; Contacting remains the canonical owner.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/LandingAttribution/CreateLandingAttributionAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "reason": "ShareTracking creates the landing-attribution payload through the canonical Affiliates model; Affiliates exposes no mutation action for this application-specific shape and owns its dynamically configured table.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/LandingAttribution/TouchPassiveNavigationAttributionAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "reason": "ShareTracking refreshes only the passive-navigation timestamps through the canonical Affiliates model; Affiliates exposes no API for this operation and owns its dynamically configured table.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/MemberProfiles/EnsureMemberAffiliateProfileAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "reason": "ShareTracking creates and refreshes canonical marked member profiles through the Affiliates model, preserving the locked user identity, eligibility, active status, share purpose, activation timestamp, contact email, metadata merge and deterministic code.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/OutboundAttribution/CreateOutboundShareAttributionAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "reason": "ShareTracking creates or reuses outbound-share attributions through the canonical Affiliates model; the action owns this application-specific firstOrCreate shape and Affiliates owns its dynamically configured table.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/Touchpoints/RecordOutboundShareTouchpointAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+      "reason": "ShareTracking records outbound-share touchpoints through the canonical Affiliates model; Affiliates exposes no mutation action for this application-specific payload and owns its dynamically configured table.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/Touchpoints/RecordVisitTouchpointAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+      "reason": "ShareTracking records visit touchpoints through the canonical Affiliates model; Affiliates exposes no mutation action for this application-specific payload and owns its dynamically configured table.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
+      "target": "table:affiliate_balances",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateBalance",
+      "relation": "balances",
+      "relation_owner": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "reason": "ShareTracking removes balances through Affiliate::balances() only after the anonymous profile passes retention and financial-history checks.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
+      "target": "table:affiliate_links",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateLink",
+      "reason": "ShareTracking removes only tracked short links belonging to an abandoned guest profile after detaching their managed Links rows; the Affiliates table remains package-owned.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "reason": "ShareTracking prunes only re-locked, marked anonymous profiles that pass the held retention and financial-history checks through the canonical Affiliates model.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "reason": "ShareTracking removes attributions only for pruned anonymous profiles through the canonical Affiliates model, allowing its configured model deletion behavior to run.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateCredential",
+      "reason": "ShareTracking deletes credentials belonging to anonymous profiles only after the profile passes the held retention and eligibility checks.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateOwnershipCapability",
+      "reason": "ShareTracking deletes claim capabilities only for anonymous profiles that pass the held retention and eligibility checks through the canonical Affiliates model.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+      "reason": "ShareTracking deletes touchpoints belonging only to anonymous profiles that pass the held retention and eligibility checks through the canonical Affiliates model.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateBalance",
+      "relation": "balances",
+      "relation_owner": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "reason": "The root account-restoration path removes balances through Affiliate::balances() only when no financial obligations require retaining the profile.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "reason": "The root ShareTracking package gateway creates guest Affiliate rows with the required active status, share purpose and metadata, and activation timestamp before issuing credentials and claim capabilities atomically; Affiliates exposes no composite provisioning API and the table remains package-owned.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "reason": "The root account-restoration path deletes the user's Affiliate only after financial conversions and other monetary obligations are resolved; Affiliate remains package-owned.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateLink",
+      "reason": "The root ShareTracking gateway retains tracked-link reuse, redirect, and account-cleanup behavior, including destination snapshots, touch times, click counts, deactivation, and deletion; the dynamically configured table remains package-owned.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "reason": "The root ShareTracking gateway removes unreferenced attributions during account cleanup and expires preserved attribution facts through the canonical Affiliates model; the package owns this dynamically configured table.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateConversion",
+      "relation": "conversions",
+      "relation_owner": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "reason": "The root account-restoration ShareTracking path removes only nonmonetary conversions and preserves rows with financial obligations through the canonical Affiliates model.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateCredential",
+      "reason": "The root ShareTracking package gateway records valid guest-credential use before downstream link authorization, revokes credentials when profiles are sealed, and deletes them during safe profile cleanup; the package owns this dynamically configured table.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateOwnershipCapability",
+      "reason": "The root ShareTracking package gateway removes ownership capabilities during profile cleanup through the canonical Affiliates model; the package owns this dynamically configured table.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+      "reason": "The root account-restoration ShareTracking path deletes only unreferenced touchpoints while preserving conversion references through the canonical Affiliates model.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Platform/Directory/EntityRelationSync.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Addressing\\Models\\Address",
+      "reason": "This shared Directory relation adapter creates, updates, and deletes canonical Address models because Addressing exposes area-assignment synchronization but no address-record persistence action; address storage remains package-owned.",
+      "owner": "Directory",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/Models/Registration.php",
+      "target": "table:event_registrations",
+      "model": "App\\Models\\Registration",
+      "reason": "The root Registration model keeps transactional vendor deletion behind its app child-deletion hook.",
+      "owner": "Registration",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/Models/Space.php",
+      "target": "table:venue_spaces",
+      "model": "App\\Models\\Space",
+      "reason": "The root Space model preserves package model identity, its deletion guard, and atomic Directory-owned institution-link cleanup.",
+      "owner": "Directory",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/Models/Venue.php",
+      "target": "table:venues",
+      "model": "App\\Models\\Venue",
+      "reason": "The root Venue model preserves package model identity and atomic Directory-owned institution-link cleanup.",
+      "owner": "Directory",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/States/EventStatus/Transitions/ApproveEvent.php",
+      "target": "table:events",
+      "model": "App\\Models\\Event",
+      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/States/EventStatus/Transitions/CancelEvent.php",
+      "target": "table:events",
+      "model": "App\\Models\\Event",
+      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/States/EventStatus/Transitions/ReconsiderEvent.php",
+      "target": "table:events",
+      "model": "App\\Models\\Event",
+      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/States/EventStatus/Transitions/RejectEvent.php",
+      "target": "table:events",
+      "model": "App\\Models\\Event",
+      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/States/EventStatus/Transitions/RemoderateEvent.php",
+      "target": "table:events",
+      "model": "App\\Models\\Event",
+      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/States/EventStatus/Transitions/RequestChanges.php",
+      "target": "table:events",
+      "model": "App\\Models\\Event",
+      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/States/EventStatus/Transitions/RevertToDraft.php",
+      "target": "table:events",
+      "model": "App\\Models\\Event",
+      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "owner": "Events",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.foreignWrite",
+      "file": "app/States/EventStatus/Transitions/SubmitForModeration.php",
+      "target": "table:events",
+      "model": "App\\Models\\Event",
+      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "owner": "Events",
       "expires": "2027-06-30"
     }
   ]

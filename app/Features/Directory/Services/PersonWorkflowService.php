@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Directory\Services;
 
 use App\Features\Directory\Actions\Persons\ApplyPersonContributionAction;
-use App\Features\Directory\Actions\Persons\BackfillPersonSlugsAction;
 use App\Features\Directory\Actions\Persons\ChangePersonStatusAction;
 use App\Features\Directory\Actions\Persons\CreatePersonAction;
 use App\Features\Directory\Actions\Persons\DeletePersonAction;
@@ -21,6 +20,7 @@ use App\Features\Directory\Actions\Persons\SyncPersonSearchProjectionAction;
 use App\Features\Directory\Actions\Persons\VerifyPendingPersonsAction;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Models\Person;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,7 +42,6 @@ final readonly class PersonWorkflowService implements PersonWorkflow
         private DetachPersonVerifierAction $detachVerifier,
         private RestorePersonVerifierAction $restoreVerifier,
         private GeneratePersonSlugAction $generatePersonSlug,
-        private BackfillPersonSlugsAction $backfillPersonSlugs,
         private ReorderFeaturedPersonsAction $reorderFeaturedPersons,
         private SyncPersonNamesAction $syncPersonNames,
         private SyncPersonAffiliationsAction $syncPersonAffiliations,
@@ -204,11 +203,6 @@ final readonly class PersonWorkflowService implements PersonWorkflow
         return $this->generatePersonSlug->handle($name, $payload, $ignorePersonId);
     }
 
-    public function backfillSlugs(): array
-    {
-        return $this->backfillPersonSlugs->handle();
-    }
-
     public function reorderFeatured(array $order): void
     {
         $this->reorderFeaturedPersons->handle($order);
@@ -235,6 +229,10 @@ final readonly class PersonWorkflowService implements PersonWorkflow
         $deleted = 0;
 
         foreach (DirectoryModel::query('person')->whereKey($personIds)->get() as $person) {
+            if (! $person instanceof Person) {
+                throw new RuntimeException('The registered person model must be the Directory person model.');
+            }
+
             $this->deletePerson->handle($person);
             $deleted++;
         }
@@ -242,11 +240,11 @@ final readonly class PersonWorkflowService implements PersonWorkflow
         return $deleted;
     }
 
-    private function person(string $personId): Model
+    private function person(string $personId): Person
     {
         $person = DirectoryModel::query('person')->find($personId);
 
-        if (! $person instanceof Model) {
+        if (! $person instanceof Person) {
             throw new RuntimeException("Person [{$personId}] was not found.");
         }
 

@@ -150,7 +150,7 @@ The application has ~51 models organized into these domains:
 - **Directory**: `Institution`, `Speaker`, `Venue`, `Space`, `Reference`
 - **Geography**: `Country`, `State`, `City`, `District`, `Subdistrict`, `Address`
 - **Taxonomy**: `Tag` (Spatie), `Inspiration`, `MediaLink`, `SocialMedia`, `Contact`
-- **Moderation**: `ModerationReview`, `ContributionRequest`, `MembershipClaim`, `Report`
+- **Moderation**: `ModerationReview`, `ContributionRequest`, `MembershipApplication`, `Report`
 - **Membership**: `Team`, `Membership`, `TeamInvitation`, `MemberInvitation`
 - **Notifications**: `NotificationSetting`, `NotificationRule`, `NotificationDestination`, `PendingNotification`, `NotificationMessage`, `NotificationDelivery`
 - **AI**: `AiModelPricing`, `AiUsageLog`
@@ -190,7 +190,6 @@ Passport              → OAuth routes for token issuance
 | `EnsureAdminApiAccess` | Verifies admin/super_admin role for admin API | `/api/v1/admin/*` |
 | `EnsureAdminMcpAccess` | Verifies admin MCP access | `/mcp/admin*` |
 | `EnsureMemberMcpAccess` | Verifies member MCP access | `/mcp/member*` |
-| `NormalizeMcpAcceptHeader` | Normalizes MCP Accept header for SSE | MCP routes |
 | `NormalizeApiJsonResponse` | Normalizes API JSON envelope | API routes |
 
 ### 4.6 Authentication Systems
@@ -261,8 +260,8 @@ Passport              → OAuth routes for token issuance
 | GET/LW | `/sumbangan/institusi/baru` | `contributions.submit-institution` | SubmitInstitution | web, auth | Auth |
 | GET/LW | `/sumbangan/penceramah/baru` | `contributions.submit-speaker` | SubmitSpeaker | web, auth | Auth |
 | GET/LW | `/sumbangan/{subjectType}/berjaya` | `contributions.submission-success` | ⚡submission-success SFC | web, auth | Auth |
-| GET/LW | `/tuntutan-keahlian` | `membership-claims.index` | MembershipClaims\Index | web, auth | Auth |
-| GET/LW | `/tuntut-keahlian/{subjectType}/{subjectId}` | `membership-claims.create` | MembershipClaims\Create | web, auth | Auth |
+| GET/LW | `/permohonan-keahlian` | `membership-applications.index` | MembershipApplications\Index | web, auth | Auth |
+| GET/LW | `/pohon-keahlian/{subjectType}/{subjectId}` | `membership-applications.create` | MembershipApplications\Create | web, auth | Auth |
 | GET/LW | `/sumbangan/{subjectType}/{subjectId}/kemas-kini` | `contributions.suggest-update` | SuggestUpdate | web, auth | Auth |
 | GET/LW | `/lapor/{subjectType}/{subjectId}` | `reports.create` | Reports\Create | web, auth | Auth |
 | POST | `/majlis/{event:slug}/daftar` | `events.register` | EventsController@register | throttle:registration, ResolvePublicSlugRedirect | Guest+ |
@@ -312,7 +311,7 @@ Passport              → OAuth routes for token issuance
 | GET | `/api/v1/catalogs/submit-speakers` | `api.client.catalogs.submit-speakers` | CatalogController@submitSpeakers | — |
 | GET | `/api/v1/catalogs/venues` | `api.client.catalogs.venues` | CatalogController@venues | — |
 | GET | `/api/v1/catalogs/spaces` | `api.client.catalogs.spaces` | CatalogController@spaces | — |
-| GET | `/api/v1/catalogs/membership-claim-subjects/{subjectType}` | `api.client.catalogs.membership-claim-subjects` | CatalogController@membershipClaimSubjects | — |
+| GET | `/api/v1/catalogs/membership-application-subjects/{subjectType}` | `api.client.catalogs.membership-application-subjects` | CatalogController@membershipApplicationSubjects | — |
 | GET | `/api/v1/catalogs/prayer-institutions` | `api.client.catalogs.prayer-institutions` | CatalogController@prayerInstitutions | — |
 | GET | `/api/v1/search` | `api.client.search.index` | SearchController@search | — |
 | GET | `/api/v1/share/payload` | `api.client.share.payload` | ShareController@payload | throttle:share-tracking |
@@ -346,7 +345,7 @@ Passport              → OAuth routes for token issuance
 | GET | `/api/v1/forms/account-settings` | `api.client.forms.account-settings` | ManifestController@accountSettings |
 | GET | `/api/v1/forms/advanced-events` | `api.client.forms.advanced-events` | ManifestController@advancedEvent |
 | GET | `/api/v1/forms/institution-workspace` | `api.client.forms.institution-workspace` | ManifestController@institutionWorkspace |
-| GET | `/api/v1/forms/membership-claims/{subjectType}` | `api.client.forms.membership-claims` | ManifestController@membershipClaim |
+| GET | `/api/v1/forms/membership-applications/{subjectType}` | `api.client.forms.membership-applications` | ManifestController@membershipApplication |
 | GET | `/api/v1/forms/contributions/{subjectType}/{subject}/suggest` | `api.client.forms.contributions.suggest` | ContributionController@suggestContext |
 | GET | `/api/v1/catalogs/institution-roles` | `api.client.catalogs.institution-roles` | CatalogController@institutionRoles |
 | GET | `/api/v1/account-settings` | `api.client.account-settings.show` | AccountSettingsController@show |
@@ -362,9 +361,9 @@ Passport              → OAuth routes for token issuance
 | POST | `/api/v1/contributions/{requestId}/approve` | `api.client.contributions.approve` | ContributionController@approve |
 | POST | `/api/v1/contributions/{requestId}/reject` | `api.client.contributions.reject` | ContributionController@reject |
 | POST | `/api/v1/contributions/{requestId}/cancel` | `api.client.contributions.cancel` | ContributionController@cancel |
-| GET | `/api/v1/membership-claims` | `api.client.membership-claims.index` | MembershipClaimController@index |
-| POST | `/api/v1/membership-claims/{subjectType}/{subject}` | `api.client.membership-claims.store` | MembershipClaimController@store |
-| DELETE | `/api/v1/membership-claims/{claimId}` | `api.client.membership-claims.cancel` | MembershipClaimController@cancel |
+| GET | `/api/v1/membership-applications` | `api.client.membership-applications.index` | App\Features\Membership\EntryPoints\Http\MembershipApplicationController@index |
+| POST | `/api/v1/membership-applications/{subjectType}/{subject}` | `api.client.membership-applications.store` | App\Features\Membership\EntryPoints\Http\MembershipApplicationController@store |
+| DELETE | `/api/v1/membership-applications/{applicationId}` | `api.client.membership-applications.cancel` | App\Features\Membership\EntryPoints\Http\MembershipApplicationController@cancel |
 | POST | `/api/v1/advanced-events` | `api.client.advanced-events.store` | AdvancedEventController@store |
 | GET | `/api/v1/follows/{type}/{subject}` | `api.client.follows.show` | FollowController@show |
 | POST | `/api/v1/follows/{type}/{subject}` | `api.client.follows.store` | FollowController@store |
@@ -388,15 +387,15 @@ Passport              → OAuth routes for token issuance
 | PUT | `/api/v1/events/{event}/saved` | `api.events.saved.update` | EventSaveController@store |
 | DELETE | `/api/v1/events/{event}/saved` | `api.events.saved.destroy` | EventSaveController@destroy |
 | GET | `/api/v1/events/{event}/registrations/export` | `api.registrations.export` | RegistrationExportController@export |
-| GET | `/api/v1/notifications` | `api.notifications.index` | NotificationMessageController@index |
-| POST | `/api/v1/notifications/{message}/read` | `api.notifications.read` | NotificationMessageController@read |
-| POST | `/api/v1/notifications/read-all` | `api.notifications.read-all` | NotificationMessageController@readAll |
-| GET | `/api/v1/notification-settings/catalog` | `api.notification-settings.catalog` | NotificationSettingsController@catalog |
-| GET | `/api/v1/notification-settings` | `api.notification-settings.show` | NotificationSettingsController@show |
-| PUT | `/api/v1/notification-settings` | `api.notification-settings.update` | NotificationSettingsController@update |
-| POST | `/api/v1/notification-destinations/push` | `api.notification-destinations.push.store` | NotificationDestinationController@storePush |
-| PUT | `/api/v1/notification-destinations/push/{installation}` | `api.notification-destinations.push.update` | NotificationDestinationController@updatePush |
-| DELETE | `/api/v1/notification-destinations/push/{installation}` | `api.notification-destinations.push.destroy` | NotificationDestinationController@destroyPush |
+| GET | `/api/v1/notifications` | `api.notifications.index` | App\Features\Communications\EntryPoints\Http\NotificationMessageController@index |
+| POST | `/api/v1/notifications/{message}/read` | `api.notifications.read` | App\Features\Communications\EntryPoints\Http\NotificationMessageController@read |
+| POST | `/api/v1/notifications/read-all` | `api.notifications.read-all` | App\Features\Communications\EntryPoints\Http\NotificationMessageController@readAll |
+| GET | `/api/v1/notification-settings/catalog` | `api.notification-settings.catalog` | App\Features\Communications\EntryPoints\Http\NotificationSettingsController@catalog |
+| GET | `/api/v1/notification-settings` | `api.notification-settings.show` | App\Features\Communications\EntryPoints\Http\NotificationSettingsController@show |
+| PUT | `/api/v1/notification-settings` | `api.notification-settings.update` | App\Features\Communications\EntryPoints\Http\NotificationSettingsController@update |
+| POST | `/api/v1/notification-destinations/push` | `api.notification-destinations.push.store` | App\Features\Communications\EntryPoints\Http\NotificationDestinationController@storePush |
+| PUT | `/api/v1/notification-destinations/push/{installation}` | `api.notification-destinations.push.update` | App\Features\Communications\EntryPoints\Http\NotificationDestinationController@updatePush |
+| DELETE | `/api/v1/notification-destinations/push/{installation}` | `api.notification-destinations.push.destroy` | App\Features\Communications\EntryPoints\Http\NotificationDestinationController@destroyPush |
 
 ##### Admin API (`/api/v1/admin`, auth:sanctum + EnsureAdminApiAccess)
 
@@ -420,8 +419,8 @@ Passport              → OAuth routes for token issuance
 | POST | `/api/v1/admin/reports/{recordKey}/triage` | AdminReportTriageController@triage |
 | GET | `/api/v1/admin/contribution-requests/{recordKey}/review-schema` | AdminContributionRequestReviewController@schema |
 | POST | `/api/v1/admin/contribution-requests/{recordKey}/review` | AdminContributionRequestReviewController@review |
-| GET | `/api/v1/admin/membership-claims/{recordKey}/review-schema` | AdminMembershipClaimReviewController@schema |
-| POST | `/api/v1/admin/membership-claims/{recordKey}/review` | AdminMembershipClaimReviewController@review |
+| GET | `/api/v1/admin/membership-applications/{recordKey}/review-schema` | Membership\EntryPoints\Http\MembershipApplicationReviewController@schema |
+| POST | `/api/v1/admin/membership-applications/{recordKey}/review` | Membership\EntryPoints\Http\MembershipApplicationReviewController@review |
 | GET | `/api/v1/admin/{resourceKey}/{recordKey}/relations/{relation}` | AdminResourceController@relatedRecords |
 | GET | `/api/v1/admin/{resourceKey}/{recordKey}` | AdminResourceController@showRecord |
 | PUT | `/api/v1/admin/{resourceKey}/{recordKey}` | AdminResourceController@updateRecord |
@@ -430,12 +429,9 @@ Passport              → OAuth routes for token issuance
 
 | Method | URI | Handler | Middleware | Auth |
 |--------|-----|---------|------------|------|
-| Any | `/mcp/admin` (SSE Web) | AdminServer | NormalizeMcpAcceptHeader, auth:sanctum,api, EnsureAdminMcpAccess | Auth |
-| Any | `/mcp/member` (SSE Web) | MemberServer | NormalizeMcpAcceptHeader, auth:sanctum,api, EnsureMemberMcpAccess | Auth |
-| GET | `/mcp/admin` (SSE Stream) | AdminMcpController@stream | NormalizeMcpAcceptHeader, auth:sanctum,api, AddWwwAuthenticateHeader, EnsureAdminMcpAccess | Auth |
-| DELETE | `/mcp/admin` | AdminMcpController@destroy | Same as above | Auth |
-| GET | `/mcp/member` (SSE Stream) | MemberMcpController@stream | NormalizeMcpAcceptHeader, auth:sanctum,api, AddWwwAuthenticateHeader, EnsureMemberMcpAccess | Auth |
-| DELETE | `/mcp/member` | MemberMcpController@destroy | Same as above | Auth |
+| POST | `/mcp/admin` | Laravel MCP Streamable HTTP | Package validation, `auth:sanctum,api`, EnsureAdminMcpAccess | Auth |
+| POST | `/mcp/member` | Laravel MCP Streamable HTTP | Package validation, `auth:sanctum,api`, EnsureMemberMcpAccess | Auth |
+| GET/HEAD, DELETE | `/mcp/admin`, `/mcp/member` | Laravel MCP method rejection | Allow: POST | None |
 | Any | `/oauth/mcp/*` (OAuth) | Passport OAuth | Standard web middleware | Web |
 | Local | `ilmu360-admin-local` (CLI) | AdminServer | None (local only) | None |
 | Local | `ilmu360-member-local` (CLI) | MemberServer | None (local only) | None |
@@ -601,7 +597,7 @@ Passport              → OAuth routes for token issuance
 
 ### 7.3 Authenticated Application Routes
 
-*Architecturally complete — Dashboard, account settings, contributions, reports, membership claims, saved searches. All traced through Livewire components with identified middleware, models, and auth boundaries.*
+*Architecturally complete — Dashboard, account settings, contributions, reports, membership applications, saved searches. All traced through Livewire components with identified middleware, models, and auth boundaries.*
 
 ---
 
@@ -657,8 +653,7 @@ Passport              → OAuth routes for token issuance
 | `event_settings` | `EventSettings` | Event-level settings/config |
 | `event_submissions` | `EventSubmission` | Queued event submissions |
 | `event_change_announcements` | `EventChangeAnnouncement` | Change/cancellation notices |
-| `event_key_people` | `EventKeyPerson` | Speaker/person roles on events |
-| `event_key_person_pivot` | `EventKeyPersonPivot` | Pivot for key people <-> events |
+| `event_involvements` | `EventKeyPerson`, `EventKeyPersonPivot` | Event/person roles scoped to events, occurrences, and sessions |
 | `event_users` | `EventUser` | Event-user engagements |
 | `event_series` | `EventSeries` | Series <-> events pivot |
 | `series` | `Series` | Event series/groups |
@@ -703,7 +698,7 @@ Passport              → OAuth routes for token issuance
 |-------|-------|---------|
 | `moderation_reviews` | `ModerationReview` | Event moderation reviews |
 | `contribution_requests` | `ContributionRequest` | User contribution requests |
-| `membership_claims` | `MembershipClaim` | Membership claims |
+| `membership_applications` | `MembershipApplication` | Membership applications |
 | `reports` | `Report` | User reports |
 
 ### 10.7 Membership
@@ -821,11 +816,6 @@ Passport              → OAuth routes for token issuance
 
 | Job | Queue | Tries | Unique | Trigger |
 |-----|-------|-------|--------|---------|
-| `BackfillEventSlugs` | default | 1 | Yes (3600s) | Artisan command |
-| `BackfillInstitutionSlugs` | default | 1 | Yes (3600s) | Artisan command |
-| `BackfillSpeakerSlugs` | default | 1 | Yes (3600s) | Artisan command |
-| `BackfillReferenceSlugs` | default | 1 | Yes (3600s) | Artisan command |
-| `BackfillVenueSlugs` | default | 1 | No | Artisan command |
 | `DispatchEventReminderNotifications` | default | Horizon:3 | No | Schedule (15min) |
 | `DispatchNotificationDigests` | default | Horizon:3 | No | Schedule (15min) |
 | `EscalatePendingEvents` | default | Horizon:3 | No | Schedule (hourly) |
@@ -879,7 +869,7 @@ Passport              → OAuth routes for token issuance
 
 ### Filament Panel Authorization
 
-**Admin panel**: Requires `auth` middleware, then FilamentAuthz handles role-based access (super_admin, admin, moderator roles). Some resources are restricted (MembershipClaims, ContributionRequests: super_admin/admin/moderator only).
+**Admin panel**: Requires `auth` middleware, then FilamentAuthz handles role-based access (super_admin, admin, moderator roles). Some resources are restricted (MembershipApplications, ContributionRequests: super_admin/admin/moderator only).
 
 **Ahli panel**: Requires `auth` middleware. Resources are scoped to records the user is a member of or has permissions on.
 
@@ -925,7 +915,7 @@ Passport              → OAuth routes for token issuance
 
 ### [MEDIUM] 21.1 Transaction Safety Gaps
 
-**Affected routes**: All authenticated web routes: SubmitInstitution, SubmitSpeaker, ShowInvitation::accept, MembershipClaims::submit, SuggestUpdate (direct edit path), Reports::submit, AccountSettings::saveAccountSettings, CreateAdvanced
+**Affected routes**: All authenticated web routes: SubmitInstitution, SubmitSpeaker, ShowInvitation::accept, MembershipApplications::submit, SuggestUpdate (direct edit path), Reports::submit, AccountSettings::saveAccountSettings, CreateAdvanced
 
 **Observation**: Multiple write-heavy operations perform multi-table writes without database transactions. If a failure occurs midway, partial writes can leave the application in an inconsistent state:
 - SubmitInstitution: Institution creation + relations + contribution_request + media
@@ -1095,9 +1085,7 @@ Passport              → OAuth routes for token issuance
 
 ## 24. Missing, Dead, or Unreachable Functionality
 
-1. **`BackfillVenueSlugs` lacks cache busting**: This job does NOT bust any cache after completion, unlike all other backfill jobs. Potentially incomplete.
-
-2. **`SubmitInstitution` and `SubmitSpeaker` no `canSubmitDirectoryFeedback` call**: Unlike membership claims and reports, these contribution creation endpoints do not check the user's ban status. If `canSubmitDirectoryFeedback` is meant to be universal, this is a gap.
+2. **`SubmitInstitution` and `SubmitSpeaker` no `canSubmitDirectoryFeedback` call**: Unlike membership applications and reports, these contribution creation endpoints do not check the user's ban status. If `canSubmitDirectoryFeedback` is meant to be universal, this is a gap.
 
 3. **`CreateAdvanced` organizer_id not re-validated on submit**: The membership options are set at mount time. If a malicious user submits a different organizer_id not in their allowed options, the action accepts it without re-verifying ownership.
 
@@ -1138,8 +1126,6 @@ Passport              → OAuth routes for token issuance
 7. **Add success flash messages to silent redirects** (Finding 21.8): Ensure SuggestUpdate, Reports::submit show success feedback.
 
 8. **Conditional is_following subquery** (Finding 22.3): Only include when `following` filter is active.
-
-9. **BackfillVenueSlugs cache busting** (Finding 24.1): Add cache invalidation to match other backfill jobs.
 
 ---
 

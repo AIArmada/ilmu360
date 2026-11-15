@@ -351,7 +351,7 @@ it('gates the Malaysian locality filter on the district where districts own loca
 
     $test->call('selectGroupedSubdivisionLocality', 'locality:'.$localTown->slug)
         ->assertSet('locality', (string) $localTown->slug)
-        ->call('selectGroupedSubdivisionLocality', 'subdivision:'.$geo['subdistrict']->slug)
+        ->call('selectGroupedSubdivisionLocality', 'area:'.$geo['subdistrict']->slug)
         ->assertSet('areas.administrative_subdivision', (string) $geo['subdistrict']->slug)
         ->assertSet('locality', null)
         ->set('areas.administrative_district', (string) $otherDistrict->slug)

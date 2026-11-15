@@ -5,14 +5,14 @@ namespace App\Observers;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Directory\Api\PublicDirectoryCacheVersions;
 use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Platform\Cache\PublicDirectoryCacheVersion;
-use App\Platform\Cache\PublicListingsCache;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Platform\Routing\SyncSlugRedirectAction;
+use App\Services\PublicListingsCache;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
@@ -25,8 +25,8 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         protected EventAuthoring $eventAuthoring,
         protected PersonWorkflow $personWorkflow,
         protected ReferenceWorkflow $referenceWorkflow,
-        protected SyncSlugRedirectAction $syncSlugRedirectAction,
-        protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
+        protected SlugRedirectCommands $slugRedirectCommands,
+        protected PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
         protected PublicListingsCache $publicListingsCache,
         protected PersonSearchService $personSearchService,
         protected ReferenceSearchService $referenceSearchService,
@@ -65,19 +65,19 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
 
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpPerson();
+        $this->publicDirectoryCacheVersions->bumpPerson();
     }
 
     public function deleted(Person $person): void
     {
-        $this->syncSlugRedirectAction->purgeForModel($person);
+        $this->slugRedirectCommands->purge($person->getMorphClass(), (string) $person->getKey());
         $this->personWorkflow->syncSlugsForName($person->name);
         $this->eventAuthoring->syncEventSlugsForPersonId((string) $person->getKey());
         $this->eventAuthoring->syncEventSlugsForPersonName($person->name);
         $this->personSearchService->purgePersonRecord($person);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpPerson();
+        $this->publicDirectoryCacheVersions->bumpPerson();
     }
 
     private function reindexAuthoredReferences(Person $person): void

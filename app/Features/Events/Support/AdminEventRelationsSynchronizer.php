@@ -5,8 +5,8 @@ namespace App\Features\Events\Support;
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Actions\Authoring\SyncEventAdminRelationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
+use App\Features\Events\Actions\Authoring\SyncEventSeatMapsAction;
 use App\Platform\Media\MediaCollectionSync;
-use App\Platform\Seating\SeatMapAssignments;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 
@@ -16,7 +16,7 @@ final readonly class AdminEventRelationsSynchronizer
         private SyncEventResourceRelationsAction $syncEventResourceRelationsAction,
         private SyncEventAdminRelationsAction $syncAdminRelations,
         private MediaCollectionSync $mediaSyncService,
-        private SeatMapAssignments $seatMapAssignments,
+        private SyncEventSeatMapsAction $seatMapAssignments,
     ) {}
 
     /**
@@ -119,7 +119,7 @@ final readonly class AdminEventRelationsSynchronizer
 
         $seatMapIds = $this->normalizeStringArray($state['seat_map_ids'] ?? []);
 
-        $this->seatMapAssignments->sync($event, $seatMapIds);
+        $this->seatMapAssignments->handle($event, $seatMapIds);
     }
 
     private function shouldClearMediaCollection(mixed $value): bool

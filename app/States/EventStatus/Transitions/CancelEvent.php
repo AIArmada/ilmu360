@@ -41,7 +41,7 @@ class CancelEvent extends Transition implements HasColor, HasIcon, HasLabel
 
         return DB::transaction(function () use ($moderator): Event {
             OwnerContext::withOwner(null, fn () => ModerationReview::create([
-                'actionable_type' => Event::class,
+                'actionable_type' => $this->event->getMorphClass(),
                 'actionable_id' => $this->event->id,
                 'actioned_by_type' => (new User)->getMorphClass(),
                 'actioned_by_id' => $moderator->id,

@@ -5,8 +5,8 @@ declare(strict_types=1);
 use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
 use App\Features\Ai\FeatureServiceProvider as AiServiceProvider;
-use App\Features\Community\FeatureServiceProvider as CommunityServiceProvider;
 use App\Features\Communications\FeatureServiceProvider as CommunicationsServiceProvider;
+use App\Features\Community\FeatureServiceProvider as CommunityServiceProvider;
 use App\Features\Contributions\FeatureServiceProvider as ContributionsServiceProvider;
 use App\Features\Directory\FeatureServiceProvider as DirectoryServiceProvider;
 use App\Features\Discovery\FeatureServiceProvider as DiscoveryServiceProvider;
@@ -16,6 +16,7 @@ use App\Features\Feedback\FeatureServiceProvider as FeedbackServiceProvider;
 use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
 use App\Features\Identity\FeatureServiceProvider as IdentityServiceProvider;
 use App\Features\Inspirations\FeatureServiceProvider as InspirationsServiceProvider;
+use App\Features\Mcp\FeatureServiceProvider as McpFeatureServiceProvider;
 use App\Features\Membership\FeatureServiceProvider as MembershipServiceProvider;
 use App\Features\Organizations\FeatureServiceProvider as OrganizationsServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
@@ -24,6 +25,7 @@ use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
 use App\Features\Rewards\FeatureServiceProvider as RewardsServiceProvider;
 use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
 use App\Features\ShareTracking\FeatureServiceProvider as ShareTrackingServiceProvider;
+use App\Features\SlugRedirects\FeatureServiceProvider as SlugRedirectsServiceProvider;
 use App\Providers\AdminRegistryServiceProvider;
 use App\Providers\ApiDocumentationServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -56,12 +58,14 @@ return [
     IdentityServiceProvider::class,
     InspirationsServiceProvider::class,
     MembershipServiceProvider::class,
+    McpFeatureServiceProvider::class,
     OrganizationsServiceProvider::class,
     FeatureServiceProvider::class,
     RegistrationServiceProvider::class,
     ReportsServiceProvider::class,
     RewardsServiceProvider::class,
     SavedSearchesServiceProvider::class,
+    SlugRedirectsServiceProvider::class,
     ShareTrackingServiceProvider::class,
     BlazeServiceProvider::class,
     FilamentPhoneInputServiceProvider::class,

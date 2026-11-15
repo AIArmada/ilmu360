@@ -5,11 +5,13 @@ use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Directory\Actions\Institutions\AddInstitutionVenueLinkAction;
+use App\Features\Directory\Actions\Institutions\DeleteInstitutionAction;
+use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Features\Directory\Actions\Institutions\RemoveInstitutionVenueLinkAction;
+use App\Features\Directory\Actions\Institutions\SaveInstitutionAction;
 use App\Features\Directory\Actions\Institutions\SetInstitutionVenuePrimaryAction;
 use App\Features\Directory\Actions\Institutions\SyncInstitutionVenuesAction;
-use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Features\Directory\Actions\Institutions\SaveInstitutionAction;
+use App\Features\Directory\Actions\Venues\DeleteVenueAction;
 use App\Models\DonationChannel;
 use App\Models\Event as EventModel;
 use App\Models\Institution;
@@ -24,12 +26,12 @@ use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Directory\InstitutionFacilities;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 
 uses(RefreshDatabase::class);
 
@@ -425,7 +427,7 @@ it('manages individual institution venue links through named actions', function 
         ->toBe([(string) $venue->getKey()]);
 });
 
-it('demotes the previous primary when a pivot row is saved directly', function (): void {
+it('demotes the previous primary through the Directory link action', function (): void {
     $institution = Institution::factory()->create();
     $venue = Venue::factory()->create();
     $otherVenue = Venue::factory()->create();
@@ -436,12 +438,7 @@ it('demotes the previous primary when a pivot row is saved directly', function (
         ['venue_id' => (string) $otherVenue->getKey(), 'role' => InstitutionVenueRole::Operated],
     ]);
 
-    $pivot = InstitutionVenue::query()
-        ->where('institution_id', $institutionId)
-        ->where('venue_id', (string) $otherVenue->getKey())
-        ->firstOrFail();
-    $pivot->is_primary = true;
-    $pivot->save();
+    app(SetInstitutionVenuePrimaryAction::class)->handle($institutionId, (string) $otherVenue->getKey());
 
     expect(InstitutionVenue::query()->where('institution_id', $institutionId)->where('is_primary', true)->pluck('venue_id')->all())
         ->toBe([(string) $otherVenue->getKey()]);
@@ -457,14 +454,14 @@ it('cleans up institution venue links when either side is deleted', function ():
         ['venue_id' => (string) $otherVenue->getKey(), 'role' => InstitutionVenueRole::Preferred],
     ]);
 
-    $venue->delete();
+    app(DeleteVenueAction::class)->handle($venue);
 
     expect(InstitutionVenue::query()->where('institution_id', $institution->getKey())->count())->toBe(1);
 
     $space = Space::factory()->create();
     $institution->spaces()->attach($space);
 
-    $institution->delete();
+    app(DeleteInstitutionAction::class)->handle($institution);
 
     expect(InstitutionVenue::query()->where('institution_id', $institution->getKey())->count())->toBe(0)
         ->and(DB::table('institution_space')->where('institution_id', $institution->getKey())->count())->toBe(0);
@@ -579,7 +576,7 @@ it('rejects invalid app space venue references and reparenting while facilities 
     expect($bareSpace->refresh()->venue_id)->toBe((string) $otherVenue->getKey());
 });
 
-it('keeps the old primary when a direct primary attach fails', function (): void {
+it('rejects direct primary attach and preserves the existing primary', function (): void {
     $institution = Institution::factory()->create();
     $venue = Venue::factory()->create();
 
@@ -587,10 +584,10 @@ it('keeps the old primary when a direct primary attach fails', function (): void
         ['venue_id' => (string) $venue->getKey(), 'role' => InstitutionVenueRole::Operated, 'is_primary' => true],
     ]);
 
-    // The duplicate-link unique index rejects the insert after the demote,
-    // so without an atomic pivot save the old primary would be lost.
+    // Relation writes are rejected; Directory remains the only writer for
+    // institution venue links.
     expect(fn () => $institution->venues()->attach((string) $venue->getKey(), ['role' => 'operated', 'is_primary' => true]))
-        ->toThrow(QueryException::class);
+        ->toThrow(LogicException::class);
 
     $links = InstitutionVenue::query()->where('institution_id', $institution->getKey())->get();
 
@@ -617,7 +614,8 @@ it('rolls back the institution delete when exclusion recording fails', function 
         }
     });
 
-    expect(fn () => $institution->delete())->toThrow(RuntimeException::class);
+    expect(fn () => app(DeleteInstitutionAction::class)->handle($institution))
+        ->toThrow(RuntimeException::class);
 
     expect(Institution::query()->whereKey($targetId)->exists())->toBeTrue()
         ->and(InstitutionImportExclusion::query()->count())->toBe(0)

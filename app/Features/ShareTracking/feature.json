@@ -23,5 +23,14 @@
     "table:share_source_attribution_receipts": [
       "App\\Features\\ShareTracking\\Persistence\\DatabaseSourceAttributionReceipts"
     ]
+  },
+  "aliases": {
+    "share_browser_selection": "table:share_browser_selections",
+    "share_cohort_projection": "table:share_cohort_projections",
+    "share_effect_receipt": "table:share_effect_receipts",
+    "share_outcome_correction": "table:share_outcome_corrections",
+    "share_signal_reader_cursor": "table:share_signal_reader_cursors",
+    "share_signal_reader_skip": "table:share_signal_reader_skips",
+    "share_source_attribution_receipt": "table:share_source_attribution_receipts"
   }
 }

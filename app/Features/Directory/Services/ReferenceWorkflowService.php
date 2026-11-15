@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Features\Directory\Services;
 
 use App\Features\Directory\Actions\References\ApplyReferenceContributionAction;
-use App\Features\Directory\Actions\References\BackfillReferenceSlugsAction;
 use App\Features\Directory\Actions\References\ChangeReferenceStatusAction;
 use App\Features\Directory\Actions\References\CreateReferenceAction;
 use App\Features\Directory\Actions\References\DeleteReferenceAction;
+use App\Features\Directory\Actions\References\DetachReferenceVerifierAction;
 use App\Features\Directory\Actions\References\GenerateReferenceSlugAction;
+use App\Features\Directory\Actions\References\RestoreReferenceVerifierAction;
 use App\Features\Directory\Actions\References\SaveReferenceAction;
 use App\Features\Directory\Actions\References\SyncReferenceContributorsAction;
 use App\Features\Directory\Actions\References\SyncReferenceHierarchyAction;
@@ -18,7 +19,7 @@ use App\Features\Directory\Actions\References\SyncReferenceRelationsAction;
 use App\Features\Directory\Actions\References\SyncReferenceSearchIndexAction;
 use App\Features\Directory\Api\ReferenceWorkflow;
 use App\Features\Directory\Support\DirectoryModel;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Reference;
 use RuntimeException;
 
 /**
@@ -33,12 +34,13 @@ final readonly class ReferenceWorkflowService implements ReferenceWorkflow
         private DeleteReferenceAction $deleteReference,
         private ChangeReferenceStatusAction $changeReferenceStatus,
         private GenerateReferenceSlugAction $generateReferenceSlug,
-        private BackfillReferenceSlugsAction $backfillReferenceSlugs,
         private SyncReferenceHierarchyAction $syncReferenceHierarchy,
         private SyncReferenceContributorsAction $syncReferenceContributors,
         private SyncReferenceRelationsAction $syncReferenceRelations,
         private SyncReferenceMediaAction $syncReferenceMedia,
         private SyncReferenceSearchIndexAction $syncReferenceSearchIndex,
+        private DetachReferenceVerifierAction $detachReferenceVerifier,
+        private RestoreReferenceVerifierAction $restoreReferenceVerifier,
     ) {}
 
     public function createFromContribution(array $payload): string
@@ -98,7 +100,7 @@ final readonly class ReferenceWorkflowService implements ReferenceWorkflow
         $deleted = 0;
 
         foreach (DirectoryModel::referenceQuery()->whereKey($referenceIds)->get() as $reference) {
-            if (! $reference instanceof Model) {
+            if (! $reference instanceof Reference) {
                 continue;
             }
 
@@ -129,11 +131,6 @@ final readonly class ReferenceWorkflowService implements ReferenceWorkflow
         $this->syncReferenceHierarchy->handle($this->reference($referenceId), $changedAttributes);
     }
 
-    public function backfillSlugs(): array
-    {
-        return $this->backfillReferenceSlugs->handle();
-    }
-
     public function syncSearchRecord(string $referenceId): void
     {
         $this->syncReferenceSearchIndex->syncRecord($this->reference($referenceId));
@@ -149,11 +146,21 @@ final readonly class ReferenceWorkflowService implements ReferenceWorkflow
         return $this->syncReferenceSearchIndex->reindexAll($chunkSize);
     }
 
-    private function reference(string $referenceId): Model
+    public function detachVerifier(string $accountId): void
+    {
+        $this->detachReferenceVerifier->handle($accountId);
+    }
+
+    public function restoreVerifier(string $accountId, array $referenceIds): void
+    {
+        $this->restoreReferenceVerifier->handle($accountId, $referenceIds);
+    }
+
+    private function reference(string $referenceId): Reference
     {
         $reference = DirectoryModel::referenceQuery()->find($referenceId);
 
-        if (! $reference instanceof Model) {
+        if (! $reference instanceof Reference) {
             throw new RuntimeException("Reference [{$referenceId}] was not found.");
         }
 

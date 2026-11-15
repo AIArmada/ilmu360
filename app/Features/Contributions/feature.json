@@ -2,6 +2,9 @@
   "schema": 2,
   "name": "Contributions",
   "owns": {
+    "store:verified-institution-maps-selections": [
+      "App\\Features\\Contributions\\Persistence\\CacheVerifiedInstitutionMapsSelections"
+    ],
     "table:contribution_requests": [
       "App\\Features\\Contributions\\Actions\\ApproveContributionRequestAction",
       "App\\Features\\Contributions\\Actions\\CancelContributionRequestAction",

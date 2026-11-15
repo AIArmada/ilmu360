@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 // Real-driver proof for the canonical member-creation collision path.
 //
-// AffiliatesShareTrackingService::createCanonicalAffiliateForUser runs the
-// insert in a nested DB::transaction (savepoint) so a unique violation rolls
+// The ShareTracking member-profile action runs the insert in a nested
+// DB::transaction (savepoint) so a unique violation rolls
 // back to the savepoint only and the caller's outer transaction stays usable
 // for the winner requery. These tests prove that construct through the
 // actual public workflow - AffiliatesShareTrackingService::createOrReuseLink with
@@ -117,7 +117,11 @@ function wp1RealCollisionCase(TestCase $testCase): void
         $cleanProfile = app(AffiliatesShareTrackingService::class)->findAffiliateForUser($cleanUser);
 
         expect($cleanProfile)->not->toBeNull()
-            ->and(ShareTrackingProfile::isMarkedMemberFor($cleanProfile, $cleanUser))->toBeTrue();
+            ->and(ShareTrackingProfile::isMarkedMemberForOwner(
+                $cleanProfile,
+                $cleanUser->getMorphClass(),
+                (string) $cleanUser->getKey(),
+            ))->toBeTrue();
     } finally {
         RealDriverFixture::restoreDatabase($previous, Wp1RealDriverHarness::WORKER_CONNECTION);
         RealDriverFixture::dropDatabase($database);
@@ -159,7 +163,11 @@ function wp1RealRaceCase(TestCase $testCase): void
 
         $winner = $profiles->first();
 
-        expect(ShareTrackingProfile::isMarkedMemberFor($winner, $user))->toBeTrue()
+        expect(ShareTrackingProfile::isMarkedMemberForOwner(
+            $winner,
+            $user->getMorphClass(),
+            (string) $user->getKey(),
+        ))->toBeTrue()
             ->and(AffiliateLink::query()->where('affiliate_id', $winner->id)->count())->toBe(1)
             ->and((string) AffiliateLink::query()->where('affiliate_id', $winner->id)->value('id'))
             ->toBe((string) $first['link_id']);

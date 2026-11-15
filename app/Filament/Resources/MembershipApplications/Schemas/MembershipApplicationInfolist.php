@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\MembershipApplications\Schemas;
 
 use App\Filament\Resources\Authz\UserResource;
+use App\Filament\Resources\MembershipApplications\Support\MembershipApplicationAdminPresenter;
 use App\Models\MembershipApplication;
-use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -33,28 +33,28 @@ class MembershipApplicationInfolist
                                                 TextEntry::make('subject_type')
                                                     ->label('Subject')
                                                     ->badge()
-                                                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationPresenter::labelForSubject($state)),
+                                                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationAdminPresenter::labelForSubject($state)),
                                                 TextEntry::make('status')
                                                     ->label('Status')
                                                     ->badge()
-                                                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationPresenter::labelForStatus($state))
-                                                    ->color(fn (mixed $state): string => MembershipApplicationPresenter::statusColor($state)),
+                                                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationAdminPresenter::labelForStatus($state))
+                                                    ->color(fn (mixed $state): string => MembershipApplicationAdminPresenter::statusColor($state)),
                                                 TextEntry::make('subject_summary')
                                                     ->label('Record')
-                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::subjectTitle($record))
-                                                    ->url(fn (MembershipApplication $record): ?string => MembershipApplicationPresenter::subjectAdminUrl($record))
+                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationAdminPresenter::subjectTitle($record))
+                                                    ->url(fn (MembershipApplication $record): ?string => MembershipApplicationAdminPresenter::subjectAdminUrl($record))
                                                     ->openUrlInNewTab(),
                                                 TextEntry::make('granted_role')
                                                     ->label('Granted Role')
-                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::roleLabel($record))
+                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationAdminPresenter::roleLabel($record))
                                                     ->placeholder('-'),
                                                 TextEntry::make('applied_role')
                                                     ->label('Applied Role')
-                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::appliedRoleLabel($record))
+                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationAdminPresenter::appliedRoleLabel($record))
                                                     ->placeholder('-'),
                                                 TextEntry::make('relationship')
                                                     ->label('Relationship')
-                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::relationshipLabel($record))
+                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationAdminPresenter::relationshipLabel($record))
                                                     ->placeholder('-'),
                                                 TextEntry::make('applicant.name')
                                                     ->label('Applicant')
@@ -112,10 +112,10 @@ class MembershipApplicationInfolist
                                         TextEntry::make('evidence_preview')
                                             ->label('Evidence Preview')
                                             ->html()
-                                            ->state(fn (MembershipApplication $record): HtmlString => MembershipApplicationPresenter::evidencePreviewHtml($record, 16)),
+                                            ->state(fn (MembershipApplication $record): HtmlString => MembershipApplicationAdminPresenter::evidencePreviewHtml($record, 16)),
                                         TextEntry::make('evidence_links')
                                             ->label('Files')
-                                            ->state(fn (MembershipApplication $record) => MembershipApplicationPresenter::evidenceLinks($record))
+                                            ->state(fn (MembershipApplication $record) => MembershipApplicationAdminPresenter::evidenceLinks($record))
                                             ->html()
                                             ->columnSpanFull(),
                                     ]),

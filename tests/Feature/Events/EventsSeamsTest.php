@@ -29,7 +29,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('binds the events seams to their interim adapters', function (): void {
+it('binds the events seams to their current implementations', function (): void {
     expect(app(GuestSubmissionClaims::class))->toBeInstanceOf(ClaimGuestSubmissionsAction::class)
         ->and(app(EventDeletion::class))->toBeInstanceOf(CleanupEventAction::class)
         ->and(app(EventSubmissions::class))->toBeInstanceOf(EventSubmissionsService::class)

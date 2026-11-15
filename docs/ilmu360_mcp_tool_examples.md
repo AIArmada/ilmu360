@@ -245,7 +245,7 @@ Keyword `query` expands to related institution, speaker/key-person, and referenc
 
 ### Write media descriptors
 
-Fetch the write schema first and follow the field-specific `mcp_upload`, `accepted_mime_types`, `max_file_size_kb`, and `max_files` metadata. Single-file fields use one descriptor object. Multi-file fields use an array of descriptor objects. Descriptors support `content_base64`, `content_url`, or ChatGPT `download_url` / `file_id` parameters.
+Fetch the write schema first and follow the field-specific `mcp_upload`, `accepted_mime_types`, `max_file_size_kb`, and `max_files` metadata. Single-file fields use one descriptor object. Multi-file fields use an array of descriptor objects. Descriptors use `filename`, optional `mime_type`, and exactly one of `content_base64`, `content_url`, or `download_url`. Standalone event image uploads also accept `file_id` metadata.
 
 For event media writes, ratio checks are server-enforced on every write surface: `cover` must be `16:9` and `poster` must be `3:4`.
 
@@ -306,7 +306,6 @@ For event media writes, ratio checks are server-enforced on every write surface:
           "filename": "lecture-hall.webp",
           "mime_type": "image/webp",
           "download_url": "https://api.openai.com/files/file_id/content",
-          "file_id": "file_12345"
         }
       ]
     },
@@ -345,7 +344,7 @@ Fetch the live schema first so the client sees the current enum values and allow
 
 ### Update a single event
 
-Use `admin-update-event` to update an existing event identified by slug or UUID. Specify only the fields you want to change; omitted optional fields preserve the current value. `speaker_keys` and `reference_keys` are MCP-only route-key aliases for the underlying `speakers` and `references` UUID arrays. On update, they are presence-sensitive full syncs: omit or pass `null` to leave unchanged, pass `[]` to detach all, or pass a non-empty array to replace all.
+Use `admin-update-event` to update an existing event identified by slug or UUID. Specify only the fields you want to change; omitted optional fields preserve the current value. `person_keys` and `reference_keys` accept person and reference slugs or UUIDs. On update, these route-key fields are presence-sensitive full syncs: omit or pass `null` to leave unchanged, pass `[]` to detach all, or pass a non-empty array to replace all.
 
 ```json
 {
@@ -356,7 +355,7 @@ Use `admin-update-event` to update an existing event identified by slug or UUID.
     "event_date": "2026-05-13",
     "prayer_time": "after_maghrib",
     "venue_key": "masjid-wilayah-persekutuan",
-    "speaker_keys": ["ahmad-fauzi-my", "ustaz-zaharuddin"],
+    "person_keys": ["ahmad-fauzi-my", "ustaz-zaharuddin"],
     "validate_only": true
   }
 }
@@ -369,7 +368,7 @@ To intentionally detach all speakers and references, send the empty arrays expli
   "tool": "admin-update-event",
   "arguments": {
     "event_key": "weekly-kuliah-selasa",
-    "speaker_keys": [],
+    "person_keys": [],
     "reference_keys": []
   }
 }
@@ -392,7 +391,7 @@ Use `admin-batch-create-events` to create up to 50 events in one call. Each item
         "prayer_time": "after_maghrib",
         "event_format": "physical",
         "institution_key": "masjid-wilayah-persekutuan",
-        "speaker_keys": ["ahmad-fauzi-my"]
+        "person_keys": ["ahmad-fauzi-my"]
       },
       {
         "external_row_id": "row-2",
@@ -401,7 +400,7 @@ Use `admin-batch-create-events` to create up to 50 events in one call. Each item
         "prayer_time": "after_isyak",
         "event_format": "physical",
         "institution_key": "masjid-wilayah-persekutuan",
-        "speaker_keys": ["ustaz-zaharuddin"]
+        "person_keys": ["ustaz-zaharuddin"]
       }
     ]
   }
@@ -412,7 +411,7 @@ Each result in `data.results` has a `status` of `created`, `validation_failed`, 
 
 ### Batch update events
 
-Use `admin-batch-update-events` to update up to 50 existing events in one call. Each item must include `event_key` (slug or UUID). Omitted optional fields preserve the current value. `speaker_keys` and `reference_keys` use the same update semantics as `admin-update-event`: omit or `null` preserves, `[]` detaches all, non-empty arrays replace all.
+Use `admin-batch-update-events` to update up to 50 existing events in one call. Each item must include `event_key` (slug or UUID). Omitted optional fields preserve the current value. `person_keys` and `reference_keys` use the same update semantics as `admin-update-event`: omit or `null` preserves, `[]` detaches all, non-empty arrays replace all.
 
 ```json
 {
@@ -692,17 +691,16 @@ Keyword `query` also expands to institution, speaker/key-person, and reference m
 
 ```json
 {
-  "tool": "member-submit-membership-claim",
+  "tool": "member-submit-membership-application",
   "arguments": {
-    "subject_type": "speaker",
-    "subject_id": "019d5cb5-7de1-7055-a4d3-b57ab007331e",
+    "subject_type": "person",
+    "subject": "019d5cb5-7de1-7055-a4d3-b57ab007331e",
     "justification": "I am authorized to represent this speaker.",
     "evidence": [
       {
         "filename": "authorization-letter.pdf",
         "mime_type": "application/pdf",
-        "download_url": "https://api.openai.com/files/file_id/content",
-        "file_id": "file_xyz"
+        "download_url": "https://api.openai.com/files/file_id/content"
       }
     ]
   }

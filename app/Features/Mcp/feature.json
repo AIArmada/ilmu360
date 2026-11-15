@@ -1,0 +1,9 @@
+{
+  "schema": 2,
+  "name": "Mcp",
+  "owns": {
+    "store:mcp-documentation-preflight": [
+      "App\\Features\\Mcp\\Persistence\\McpDocumentationPreflightCacheStore"
+    ]
+  }
+}

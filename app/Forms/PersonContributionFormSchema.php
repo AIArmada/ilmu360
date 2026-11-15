@@ -6,7 +6,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
-use App\Forms\Components\Select as QuickAddSelect;
+use App\Forms\Components\Select as SelectWithCloseOnSelect;
 use App\Models\Institution;
 use App\Shared\Cache\SelectionCatalogCache;
 use App\Support\Language\MalaysiaLanguageCatalog;
@@ -34,7 +34,6 @@ class PersonContributionFormSchema
         ?bool $showCountryField = null,
         bool $includeAlternativeNames = true,
         bool $useTitleMultiSelect = false,
-        bool $useInstitutionRepeater = false,
         bool $splitProfileSections = false,
         ?string $defaultCountryId = null,
         bool $requireCountryField = false,
@@ -282,69 +281,49 @@ class PersonContributionFormSchema
             ]);
         }
 
-        $institutionFields = $useInstitutionRepeater
-            ? [
-                Repeater::make('institutions')
-                    ->label(__('Institutions'))
-                    ->helperText(__('Add institutions associated with this speaker.'))
-                    ->schema([
-                        Hidden::make('id'),
-                        Hidden::make('institution_name')->dehydrated(false),
-                        QuickAddSelect::make('institution_id')
-                            ->label(__('Institution'))
-                            ->helperText(__('Search for and select the associated institution.'))
-                            ->searchable()
-                            ->options(fn (): array => self::institutionSearchOptions(''))
-                            ->preload()
-                            ->getSearchResultsUsing(fn (string $search): array => self::institutionSearchOptions($search))
-                            ->getOptionLabelUsing(fn (string $value): ?string => self::institutionLabels([$value])[$value] ?? null)
-                            ->getOptionLabelsUsing(fn (array $values): array => self::institutionLabels($values))
-                            ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                            ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema))
-                            ->required()
-                            ->native(false),
-                        TextInput::make('position')
-                            ->label(__('Position'))
-                            ->maxLength(255)
-                            ->placeholder(__('e.g., Imam, Mudir, Committee Member')),
-                        Toggle::make('is_primary')
-                            ->label(__('Primary institution'))
-                            ->helperText(__('Mark the speaker\'s main institution.'))
-                            ->fixIndistinctState()
-                            ->default(false),
-                    ])
-                    ->columns(2)
-                    ->defaultItems(0)
-                    ->addActionLabel(__('Add institution'))
-                    ->itemLabel(fn (array $state): ?string => is_string($state['institution_name'] ?? null)
-                        ? $state['institution_name']
-                        : (isset($state['institution_id']) ? (string) $state['institution_id'] : null))
-                    ->columnSpanFull(),
-            ]
-            : [
-                QuickAddSelect::make('institution_id')
-                    ->label(__('Affiliated Institution'))
-                    ->searchable()
-                    ->options(fn (): array => self::institutionSearchOptions(''))
-                    ->preload()
-                    ->getSearchResultsUsing(fn (string $search): array => self::institutionSearchOptions($search))
-                    ->getOptionLabelUsing(fn (string $value): ?string => self::institutionLabels([$value])[$value] ?? null)
-                    ->getOptionLabelsUsing(fn (array $values): array => self::institutionLabels($values))
-                    ->closeOnSelect()
-                    ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                    ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema))
-                    ->native(false),
-                TextInput::make('institution_position')
-                    ->label(__('Position'))
-                    ->maxLength(255)
-                    ->placeholder(__('e.g., Imam, Mudir, Committee Member'))
-                    ->visibleJs("Boolean(\$get('institution_id'))"),
-            ];
+        $institutionFields = [
+            Repeater::make('institutions')
+                ->label(__('Institutions'))
+                ->helperText(__('Add institutions associated with this speaker.'))
+                ->schema([
+                    Hidden::make('id'),
+                    Hidden::make('institution_name')->dehydrated(false),
+                    SelectWithCloseOnSelect::make('institution_id')
+                        ->label(__('Institution'))
+                        ->helperText(__('Search for and select the associated institution.'))
+                        ->searchable()
+                        ->options(fn (): array => self::institutionSearchOptions(''))
+                        ->preload()
+                        ->getSearchResultsUsing(fn (string $search): array => self::institutionSearchOptions($search))
+                        ->getOptionLabelUsing(fn (string $value): ?string => self::institutionLabels([$value])[$value] ?? null)
+                        ->getOptionLabelsUsing(fn (array $values): array => self::institutionLabels($values))
+                        ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
+                        ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema))
+                        ->required()
+                        ->native(false),
+                    TextInput::make('position')
+                        ->label(__('Position'))
+                        ->maxLength(255)
+                        ->placeholder(__('e.g., Imam, Mudir, Committee Member')),
+                    Toggle::make('is_primary')
+                        ->label(__('Primary institution'))
+                        ->helperText(__('Mark the speaker\'s main institution.'))
+                        ->fixIndistinctState()
+                        ->default(false),
+                ])
+                ->columns(2)
+                ->defaultItems(0)
+                ->addActionLabel(__('Add institution'))
+                ->itemLabel(fn (array $state): ?string => is_string($state['institution_name'] ?? null)
+                    ? $state['institution_name']
+                    : (isset($state['institution_id']) ? (string) $state['institution_id'] : null))
+                ->columnSpanFull(),
+        ];
 
         array_splice($components, 2, 0, [
-            Section::make($useInstitutionRepeater ? __('Institusi Berafiliasi') : __('Affiliated Institution'))
+            Section::make(__('Affiliated Institution'))
                 ->schema($institutionFields)
-                ->columns($useInstitutionRepeater ? 1 : 2),
+                ->columns(1),
         ]);
 
         return $components;

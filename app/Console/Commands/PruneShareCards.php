@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Features\Events\Api\EventShareCardCache;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 
 #[Description('Prune stale generated share-card files. Safe at any time: card URLs are revision-pinned and regenerate on demand.')]
 #[Signature('app:prune-share-cards
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
                             {--dry-run : Show what would be deleted without deleting}')]
 class PruneShareCards extends Command
 {
-    public function handle(): int
+    public function handle(EventShareCardCache $shareCardCache): int
     {
         $days = $this->option('days') !== null
             ? (int) $this->option('days')
@@ -29,7 +29,6 @@ class PruneShareCards extends Command
         }
 
         $dryRun = (bool) $this->option('dry-run');
-        $disk = Storage::disk((string) config('share-cards.disk', 'public'));
         $threshold = Carbon::now()->subDays($days)->getTimestamp();
 
         $this->info("Pruning share-card files older than {$days} days...");
@@ -38,35 +37,17 @@ class PruneShareCards extends Command
             $this->warn('DRY RUN — no files will be deleted.');
         }
 
-        $pruned = 0;
+        $prunedFiles = $shareCardCache->pruneOlderThan($threshold, $dryRun);
 
-        foreach ($disk->files('share-cards') as $file) {
-            // Crashed renders leave share-card-<rev>.tmp-<pid> partials
-            // (no .png suffix); they prune under the same threshold,
-            // which no live render can outlast.
-            $isCard = str_ends_with($file, '.png');
-            $isStaleTmp = str_contains($file, '.tmp-');
-
-            if (! $isCard && ! $isStaleTmp) {
-                continue;
-            }
-
-            $modified = $disk->lastModified($file);
-
-            if ($modified > $threshold) {
-                continue;
-            }
-
-            if ($dryRun) {
+        if ($dryRun) {
+            foreach ($prunedFiles->files as $file) {
                 $this->line("Would delete: {$file}");
-            } else {
-                $disk->delete($file);
             }
-
-            $pruned++;
         }
 
-        $this->info($dryRun ? "Would prune {$pruned} share-card file(s)." : "Pruned {$pruned} share-card file(s).");
+        $this->info($dryRun
+            ? "Would prune {$prunedFiles->count()} share-card file(s)."
+            : "Pruned {$prunedFiles->count()} share-card file(s).");
 
         return self::SUCCESS;
     }

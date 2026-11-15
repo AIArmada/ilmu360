@@ -2,7 +2,8 @@
 
 namespace App\Actions\Slugs;
 
-use App\Models\SlugRedirect;
+use App\Features\SlugRedirects\Api\SlugRedirectLookup;
+use App\Features\SlugRedirects\Api\SlugRedirectMatch;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -14,10 +15,11 @@ final readonly class ResolvePublicSlugAction
     public function __construct(
         private PublicSlugRegistry $publicSlugRegistry,
         private SlugOrUuidResolver $slugOrUuidResolver,
+        private SlugRedirectLookup $slugRedirectLookup,
     ) {}
 
     /**
-     * @return array{model: Model, redirect_to: string|null, slug_redirect: SlugRedirect|null}
+     * @return array{model: Model, redirect_to: string|null, slug_redirect_id: string|null}
      */
     public function handle(string $parameter, string $value): array
     {
@@ -28,28 +30,26 @@ final readonly class ResolvePublicSlugAction
             return [
                 'model' => $resolvedModel,
                 'redirect_to' => null,
-                'slug_redirect' => null,
+                'slug_redirect_id' => null,
             ];
         }
 
         $sourcePath = $this->publicSlugRegistry->pathForParameter($parameter, $value);
 
         if ($sourcePath !== null) {
-            $slugRedirect = SlugRedirect::query()
-                ->with('redirectable')
-                ->where('source_path', $sourcePath)
-                ->first();
-
-            $redirectable = $slugRedirect?->redirectable;
+            $slugRedirect = $this->slugRedirectLookup->findBySourcePath($sourcePath);
+            $redirectable = $slugRedirect instanceof SlugRedirectMatch
+                ? $this->resolveRedirectable($slugRedirect)
+                : null;
             $redirectTo = $redirectable instanceof Model
                 ? $this->publicSlugRegistry->pathForModel($redirectable)
                 : null;
 
-            if ($slugRedirect instanceof SlugRedirect && $redirectable instanceof Model && $redirectTo !== null) {
+            if ($slugRedirect instanceof SlugRedirectMatch && $redirectable instanceof Model && $redirectTo !== null) {
                 return [
                     'model' => $redirectable,
                     'redirect_to' => $redirectTo,
-                    'slug_redirect' => $slugRedirect,
+                    'slug_redirect_id' => $slugRedirect->id,
                 ];
             }
         }
@@ -70,6 +70,19 @@ final readonly class ResolvePublicSlugAction
             $model->qualifyColumn('slug'),
             $value,
         );
+    }
+
+    private function resolveRedirectable(SlugRedirectMatch $slugRedirect): ?Model
+    {
+        $resource = $this->publicSlugRegistry->resourceForType($slugRedirect->redirectableType);
+
+        if (! $resource instanceof PublicSlugResource) {
+            return null;
+        }
+
+        $redirectable = $resource->modelClass::query()->find($slugRedirect->redirectableId);
+
+        return $redirectable instanceof Model ? $redirectable : null;
     }
 
     private function throwNotFound(?PublicSlugResource $resource, string $value): never

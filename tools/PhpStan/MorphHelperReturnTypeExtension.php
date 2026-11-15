@@ -6,6 +6,7 @@ namespace Tools\PhpStan;
 
 use App\Features\Directory\Support\DirectoryModel;
 use App\Features\Events\Support\EventModel;
+use App\Features\Rewards\Support\RewardsModel;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\StaticCall;
 use PHPStan\Analyser\Scope;
@@ -54,6 +55,9 @@ final class MorphHelperReturnTypeExtension implements DynamicStaticMethodReturnT
             'reference' => 'reference',
             'venue' => 'venue',
             'space' => 'space',
+        ],
+        RewardsModel::class => [
+            'digestSlot' => 'reward_digest_slot',
         ],
     ];
 

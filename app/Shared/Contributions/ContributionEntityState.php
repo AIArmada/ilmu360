@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Shared\Contributions;
 
-use Illuminate\Database\Eloquent\Model;
-
 /**
  * Current contribution state projected from an entity.
  *
@@ -20,5 +18,5 @@ interface ContributionEntityState
     /**
      * @return array<string, mixed>
      */
-    public function stateFor(Model $entity): array;
+    public function stateFor(string $entityType, string $entityId): array;
 }

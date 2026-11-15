@@ -28,6 +28,19 @@ interface MediaCollectionSync
     public function syncSingle(HasMedia $model, ?UploadedFile $file, string $collection): void;
 
     /**
+     * Replace a single-file collection and return the stored media item.
+     *
+     * @param  array<string, mixed>  $customProperties
+     */
+    public function storeSingle(
+        HasMedia $model,
+        UploadedFile $file,
+        string $collection,
+        ?string $name = null,
+        array $customProperties = [],
+    ): Media;
+
+    /**
      * @param  array<int, UploadedFile>|null  $files
      */
     public function syncMultiple(HasMedia $model, ?array $files, string $collection, bool $replace = false): void;

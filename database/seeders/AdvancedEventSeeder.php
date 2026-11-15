@@ -11,18 +11,18 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
-use App\Shared\Events\EventCategoryCatalog;
+use App\Features\Events\Api\EventAuthoring;
+use App\Models\Event;
+use App\Models\Institution;
+use App\Models\Person;
+use App\Services\PrayerTimeExpressionResolver;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\Enums\TimingMode;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Features\Events\Services\EventKeyPersonSyncService;
-use App\Services\PrayerTimeExpressionResolver;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonInterface;
@@ -368,7 +368,7 @@ class AdvancedEventSeeder extends Seeder
                     ];
                 }
 
-                app(EventKeyPersonSyncService::class)->sync($event, $selected, $otherKeyPeople);
+                app(EventAuthoring::class)->syncEventKeyPeople((string) $event->getKey(), $selected, $otherKeyPeople);
             }
         });
 

@@ -8,7 +8,7 @@ use App\Features\Registration\Api\AdmissionFacts;
 use App\Platform\Models\MorphModelResolver;
 
 /**
- * Interim admission facts while the models remain at their root namespace.
+ * Read-side admission facts from the package registration records.
  *
  * Resolution goes through the stable morph alias so the feature never imports
  * the root model class. The query keeps the model's owner scope, matching the

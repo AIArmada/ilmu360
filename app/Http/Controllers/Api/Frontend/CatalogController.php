@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Platform\Http\FrontendController;
 use App\Enums\MemberSubjectType;
+use App\Platform\Http\FrontendController;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Api\Frontend\FrontendCatalogService;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -196,16 +196,16 @@ class CatalogController extends FrontendController
     }
 
     #[Endpoint(
-        title: 'List membership-claim subjects',
-        description: 'Returns claimable public subjects for the requested membership-claim subject type, optionally filtered by `q`.',
+        title: 'List membership-application subjects',
+        description: 'Returns public subjects that support membership applications for the requested subject type, optionally filtered by `q`.',
     )]
-    public function membershipClaimSubjects(string $subjectType, Request $request): JsonResponse
+    public function membershipApplicationSubjects(string $subjectType, Request $request): JsonResponse
     {
-        $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
-        abort_unless($resolvedSubjectType?->isClaimable(), 404);
+        $resolvedSubjectType = MemberSubjectType::fromPublicRouteSegment($subjectType);
+        abort_unless($resolvedSubjectType?->supportsMembershipApplication(), 404);
 
         return response()->json([
-            'data' => $this->catalogs->membershipClaimSubjects(
+            'data' => $this->catalogs->membershipApplicationSubjects(
                 $resolvedSubjectType,
                 $request->string('q')->toString(),
             ),

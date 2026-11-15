@@ -6,7 +6,8 @@ namespace App\Features\Directory\Actions\Persons;
 
 use AIArmada\Persons\Enums\AffiliationType;
 use App\Features\Directory\Support\DirectoryModel;
-use App\Shared\Auditing\RecordsCustomAuditDifferences;
+use App\Models\Affiliation;
+use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -22,7 +23,7 @@ final readonly class SyncPersonAffiliationsAction
     /**
      * @param  mixed  $institutionsPayload  List of affiliation rows.
      */
-    public function handle(Model $person, mixed $institutionsPayload): void
+    public function handle(Person $person, mixed $institutionsPayload): void
     {
         $beforeAffiliations = $this->auditState($person);
         $current = $this->affiliationsQuery($person)->get();
@@ -111,82 +112,9 @@ final readonly class SyncPersonAffiliationsAction
     }
 
     /**
-     * Preserve the legacy single-affiliation payload used by older forms.
-     *
-     * @param  array<string, mixed>  $payload
-     */
-    public function syncSingle(Model $person, array $payload): void
-    {
-        $institutionId = array_key_exists('institution_id', $payload)
-            ? $this->normalizeOptionalString($payload['institution_id'])
-            : null;
-        $institutionPosition = array_key_exists('institution_position', $payload)
-            ? $this->normalizeOptionalString($payload['institution_position'])
-            : null;
-
-        if ($institutionId === null && $institutionPosition === null) {
-            return;
-        }
-
-        $beforeAffiliations = $this->auditState($person);
-        $currentAffiliation = $this->currentAffiliation($person);
-        $currentInstitutionId = $currentAffiliation instanceof Model
-            ? (string) $currentAffiliation->getAttribute('institution_id')
-            : null;
-
-        $institutionId = array_key_exists('institution_id', $payload)
-            ? $this->normalizeOptionalString($payload['institution_id'])
-            : $currentInstitutionId;
-
-        if ($institutionId === null) {
-            if ($currentAffiliation instanceof Model) {
-                $this->affiliationsQuery($person)
-                    ->where('institution_id', $currentAffiliation->getAttribute('institution_id'))
-                    ->delete();
-            }
-
-            $this->recordAudit($person, $beforeAffiliations);
-
-            return;
-        }
-
-        $position = array_key_exists('institution_position', $payload)
-            ? $this->normalizeOptionalString($payload['institution_position'])
-            : $this->normalizeOptionalString($currentAffiliation?->getAttribute('position'));
-
-        if ($currentAffiliation instanceof Model && (string) $currentAffiliation->getAttribute('institution_id') !== $institutionId) {
-            $this->affiliationsQuery($person)
-                ->where('institution_id', $currentAffiliation->getAttribute('institution_id'))
-                ->delete();
-        }
-
-        $this->affiliationsQuery($person)
-            ->where('institution_id', '!=', $institutionId)
-            ->update(['is_primary' => false, 'updated_at' => now()]);
-
-        $existing = $this->affiliationsQuery($person)
-            ->where('institution_id', $institutionId)
-            ->first();
-
-        if ($existing instanceof Model) {
-            $existing->update([
-                'position' => $position,
-                'is_primary' => true,
-            ]);
-        } else {
-            $this->affiliationsQuery($person)->create($this->affiliationAttributes($person, $institutionId, [
-                'position' => $position,
-                'is_primary' => true,
-            ]));
-        }
-
-        $this->recordAudit($person, $beforeAffiliations);
-    }
-
-    /**
      * @param  array<string, mixed>  $attributes
      */
-    public function attach(Model $person, string $institutionId, array $attributes): string
+    public function attach(Person $person, string $institutionId, array $attributes): string
     {
         $isPrimary = (bool) ($attributes['is_primary'] ?? false);
 
@@ -202,11 +130,11 @@ final readonly class SyncPersonAffiliationsAction
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function update(Model $person, string $affiliationId, array $attributes): void
+    public function update(Person $person, string $affiliationId, array $attributes): void
     {
         $affiliation = $this->affiliationsQuery($person)->find($affiliationId);
 
-        if (! $affiliation instanceof Model) {
+        if (! $affiliation instanceof Affiliation) {
             return;
         }
 
@@ -216,13 +144,13 @@ final readonly class SyncPersonAffiliationsAction
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function updateForInstitution(Model $person, string $institutionId, array $attributes): void
+    public function updateForInstitution(Person $person, string $institutionId, array $attributes): void
     {
         $affiliation = $this->affiliationsQuery($person)
             ->where('institution_id', $institutionId)
             ->first();
 
-        if ($affiliation instanceof Model) {
+        if ($affiliation instanceof Affiliation) {
             $this->updateRecord($person, $affiliation, $attributes);
 
             return;
@@ -234,7 +162,7 @@ final readonly class SyncPersonAffiliationsAction
     /**
      * @param  list<string>  $institutionIds
      */
-    public function detach(Model $person, array $institutionIds): int
+    public function detach(Person $person, array $institutionIds): int
     {
         if ($institutionIds === []) {
             return 0;
@@ -248,7 +176,7 @@ final readonly class SyncPersonAffiliationsAction
     /**
      * @param  list<string>  $affiliationIds
      */
-    public function deleteRecords(Model $person, array $affiliationIds): int
+    public function deleteRecords(Person $person, array $affiliationIds): int
     {
         if ($affiliationIds === []) {
             return 0;
@@ -262,7 +190,7 @@ final readonly class SyncPersonAffiliationsAction
     /**
      * @param  array<string, mixed>  $attributes
      */
-    private function updateRecord(Model $person, Model $affiliation, array $attributes): void
+    private function updateRecord(Person $person, Affiliation $affiliation, array $attributes): void
     {
         if ((bool) ($attributes['is_primary'] ?? false)) {
             $this->affiliationsQuery($person)
@@ -282,7 +210,7 @@ final readonly class SyncPersonAffiliationsAction
      * @param  array<string, mixed>  $attributes
      * @return array<string, mixed>
      */
-    private function affiliationAttributes(Model $person, string $institutionId, array $attributes, ?Model $existing = null): array
+    private function affiliationAttributes(Person $person, string $institutionId, array $attributes, ?Affiliation $existing = null): array
     {
         $type = $attributes['affiliation_type'] ?? $existing?->getAttribute('affiliation_type') ?? AffiliationType::Member;
 
@@ -301,29 +229,19 @@ final readonly class SyncPersonAffiliationsAction
     }
 
     /**
-     * @return Builder<\App\Models\Affiliation>
+     * @return Builder<Affiliation>
      */
-    private function affiliationsQuery(Model $person): Builder
+    private function affiliationsQuery(Person $person): Builder
     {
         return DirectoryModel::query('affiliation')
             ->where('affiliatable_id', $person->getKey())
             ->where('affiliatable_type', $person->getMorphClass());
     }
 
-    private function currentAffiliation(Model $person): ?Model
-    {
-        $affiliation = $this->affiliationsQuery($person)
-            ->orderByDesc('is_primary')
-            ->orderBy('institution_id')
-            ->first();
-
-        return $affiliation instanceof Model ? $affiliation : null;
-    }
-
     /**
      * @return list<array{id: string, name: string, position: ?string, is_primary: bool}>
      */
-    private function auditState(Model $person): array
+    private function auditState(Person $person): array
     {
         $institutionNames = DirectoryModel::query('institution')
             ->whereKey(
@@ -360,11 +278,11 @@ final readonly class SyncPersonAffiliationsAction
     /**
      * @param  list<array{id: string, name: string, position: ?string, is_primary: bool}>  $beforeAffiliations
      */
-    private function recordAudit(Model $person, array $beforeAffiliations): void
+    private function recordAudit(Person $person, array $beforeAffiliations): void
     {
         $afterAffiliations = $this->auditState($person);
 
-        if ($beforeAffiliations === $afterAffiliations || ! $person instanceof RecordsCustomAuditDifferences) {
+        if ($beforeAffiliations === $afterAffiliations) {
             return;
         }
 

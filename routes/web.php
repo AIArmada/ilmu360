@@ -1,7 +1,5 @@
 <?php
 
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Http\Controllers\Api\RegistrationExportController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;
 use App\Http\Controllers\Public\EventCheckoutResultController;
@@ -34,6 +32,7 @@ use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Livewire\Pages\Events\Checkout as EventCheckout;
 use App\Livewire\Pages\Events\Refund as EventRefund;
 use App\Livewire\Pages\SubmitEvent\Create;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
@@ -134,8 +133,6 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/dashboard/majlis/{event}/peserta', EventParticipants::class)->name('dashboard.events.participants');
     Route::livewire('/dashboard/majlis/{event}/kemasukan', EventOfflineAdmissions::class)->name('dashboard.events.offline-admissions');
     Route::livewire('/dashboard/majlis/{event}/bayaran-balik', EventRefunds::class)->name('dashboard.events.refunds');
-    Route::get('/dashboard/majlis/{event}/peserta/export', [RegistrationExportController::class, 'export'])
-        ->name('dashboard.events.participants.export');
     Route::livewire('/majlis/{event:slug}/pendaftaran/{registration}/refund', EventRefund::class)
         ->middleware('verified')
         ->name('events.registration.refund');

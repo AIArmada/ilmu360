@@ -101,7 +101,7 @@ it('matches complete geographic searches nearby and falls back to text for incom
     config(['scout.driver' => 'database']);
     $this->travelTo('2026-04-01 00:00:00');
     $institution = Institution::factory()->create();
-    syncPrimaryAddressForTest($institution, ['lat' => 3.1390, 'lng' => 101.6869]);
+    syncPrimaryAddressForTest($institution, ['latitude' => 3.1390, 'longitude' => 101.6869]);
     $event = Event::factory()->for($institution)->create([
         'default_venue_id' => null,
         'status' => 'approved', 'visibility' => 'public',

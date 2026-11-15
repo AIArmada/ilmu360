@@ -47,8 +47,10 @@ it('filters venues down the Indonesian cascade with provider labels', function (
     get('/tempat?'.http_build_query([
         'country_id' => $indonesiaId,
         'state_id' => (string) $province->getKey(),
-        'district_id' => (string) $bandung->getKey(),
-        'subdivision_id' => (string) $cimahi->getKey(),
+        'areas' => [
+            'regency' => (string) $bandung->getKey(),
+            'district' => (string) $cimahi->getKey(),
+        ],
     ]))
         ->assertSuccessful()
         ->assertSee((string) $province->getKey(), false)
@@ -98,8 +100,10 @@ it('filters venues down the Singapore cascade without a state row', function ():
 
     get('/tempat?'.http_build_query([
         'country_id' => $singaporeId,
-        'district_id' => (string) $central->getKey(),
-        'subdivision_id' => (string) $bishan->getKey(),
+        'areas' => [
+            'region' => (string) $central->getKey(),
+            'planning_area' => (string) $bishan->getKey(),
+        ],
     ]))
         ->assertSuccessful()
         ->assertSee('Kawasan Perancangan')
@@ -120,8 +124,10 @@ it('keeps the Malaysian venue cascade filtering by district and subdivision', fu
     get('/tempat?'.http_build_query([
         'country_id' => (string) $shown['country']->getKey(),
         'state_id' => (string) $shown['state']->getKey(),
-        'district_id' => (string) $shown['district']->getKey(),
-        'subdivision_id' => (string) $shown['subdistrict']->getKey(),
+        'areas' => [
+            'administrative_district' => (string) $shown['district']->getKey(),
+            'administrative_subdivision' => (string) $shown['subdistrict']->getKey(),
+        ],
     ]))
         ->assertSuccessful()
         ->assertSee('Daerah')

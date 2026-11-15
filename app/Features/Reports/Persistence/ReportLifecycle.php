@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\Persistence;
 
-use App\Platform\Reporting\ReportLifecycle as ReportLifecycleContract;
+use App\Features\Reports\Contracts\ReportLifecycle as ReportLifecycleContract;
+use App\Features\Reports\Models\Report;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 use LogicException;
 
@@ -23,7 +23,7 @@ final class ReportLifecycle implements ReportLifecycleContract
     /**
      * Set the initial open state before persistence.
      */
-    public function initialize(Model $report, string $status): void
+    public function initialize(Report $report, string $status): void
     {
         if ($report->exists) {
             throw new LogicException('An existing report must use transitionStatus().');
@@ -43,7 +43,7 @@ final class ReportLifecycle implements ReportLifecycleContract
     /**
      * Validate and timestamp a caller-provided state before the first save.
      */
-    public function preparePersistedStatus(Model $report, string $status): void
+    public function preparePersistedStatus(Report $report, string $status): void
     {
         $this->assertValidStatus($status);
 
@@ -56,7 +56,7 @@ final class ReportLifecycle implements ReportLifecycleContract
     /**
      * Transition the report and record the matching lifecycle timestamp.
      */
-    public function transition(Model $report, string $status): void
+    public function transition(Report $report, string $status): void
     {
         if (! $report->exists) {
             throw new LogicException('A new report must use initializeStatus().');
@@ -88,22 +88,22 @@ final class ReportLifecycle implements ReportLifecycleContract
         $this->persist($report);
     }
 
-    public function persist(Model $report): void
+    public function persist(Report $report): void
     {
         $report->save();
     }
 
-    public function delete(Model $report): void
+    public function delete(Report $report): void
     {
         $report->delete();
     }
 
-    public function detachReporter(Model $report, string $reporterId): void
+    public function detachReporter(Report $report, string $reporterId): void
     {
         $report->newQuery()->where('reporter_id', $reporterId)->update(['reporter_id' => null]);
     }
 
-    public function detachHandler(Model $report, string $handlerId): void
+    public function detachHandler(Report $report, string $handlerId): void
     {
         $report->newQuery()->where('handled_by', $handlerId)->update(['handled_by' => null]);
     }
@@ -111,7 +111,7 @@ final class ReportLifecycle implements ReportLifecycleContract
     /**
      * @param  list<string>  $reportIds
      */
-    public function restoreReporterLinks(Model $report, string $reporterId, array $reportIds): void
+    public function restoreReporterLinks(Report $report, string $reporterId, array $reportIds): void
     {
         if ($reportIds === []) {
             return;
@@ -126,7 +126,7 @@ final class ReportLifecycle implements ReportLifecycleContract
     /**
      * @param  list<string>  $reportIds
      */
-    public function restoreHandlerLinks(Model $report, string $handlerId, array $reportIds): void
+    public function restoreHandlerLinks(Report $report, string $handlerId, array $reportIds): void
     {
         if ($reportIds === []) {
             return;
@@ -138,7 +138,7 @@ final class ReportLifecycle implements ReportLifecycleContract
             ->update(['handled_by' => $handlerId]);
     }
 
-    private function initializeLastStateChangeAt(Model $report, CarbonImmutable $now): void
+    private function initializeLastStateChangeAt(Report $report, CarbonImmutable $now): void
     {
         if ($report->getAttribute('last_state_change_at') === null) {
             $report->setAttribute('last_state_change_at', $now);
@@ -170,7 +170,7 @@ final class ReportLifecycle implements ReportLifecycleContract
         return is_string($status) && in_array($status, $this->validStatuses(), true) ? $status : null;
     }
 
-    private function applyStatusTimestamp(Model $report, string $status, CarbonImmutable $at, bool $overwrite = false): void
+    private function applyStatusTimestamp(Report $report, string $status, CarbonImmutable $at, bool $overwrite = false): void
     {
         $attribute = match ($status) {
             self::STATUS_OPEN => 'reported_at',

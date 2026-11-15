@@ -11,6 +11,44 @@ namespace App\Features\Events\Api;
  * interface while the Event model and transport layers remain conventional.
  * Every method takes scalar identifiers or plain arrays; no Eloquent models
  * cross this boundary.
+ *
+ * @phpstan-type EventShellAttributes array{
+ *     owner_type: string,
+ *     owner_id: string,
+ *     created_by_type: string,
+ *     created_by_id: string,
+ *     title: string,
+ *     slug: string,
+ *     description: string|null,
+ *     timezone: string,
+ *     institution_id: string|null,
+ *     default_venue_id: string|null,
+ *     gender: string|null,
+ *     age_group: array<int, string>|string|null,
+ *     children_allowed: bool|int|string|null,
+ *     is_muslim_only: bool|int|string|null,
+ *     delivery_mode: string,
+ *     event_url: string|null,
+ *     live_url: string|null,
+ *     visibility: string,
+ *     registration_mode: string,
+ *     status: string,
+ *     metadata: array<string, mixed>
+ * }
+ * @phpstan-type EventChangeAnnouncementAttributes array{
+ *     event_id: string,
+ *     replacement_event_id: string|null,
+ *     created_by_type: string,
+ *     created_by_id: string,
+ *     update_type: string,
+ *     severity: string,
+ *     message: string,
+ *     title: string,
+ *     notes: string|null,
+ *     metadata: array{changed_fields: list<string>, before_snapshot: array<string, mixed>, after_snapshot: array<string, mixed>},
+ *     published_at: string,
+ *     visibility: string
+ * }
  */
 interface EventAuthoring
 {
@@ -18,6 +56,33 @@ interface EventAuthoring
      * @param  array<string, mixed>  $data
      */
     public function saveAdminEvent(array $data, ?string $eventId = null): AdminEventSaveResult;
+
+    /**
+     * Create an event shell using the configured Event model and return its ID.
+     *
+     * @param  EventShellAttributes  $attributes
+     */
+    public function createEventShell(array $attributes): string;
+
+    /**
+     * Create the initial event-level admission policy.
+     */
+    public function createInitialAccessPolicy(string $eventId, bool $registrationRequired): void;
+
+    /**
+     * Apply the event and occurrence mutations included in a published change announcement.
+     *
+     * @param  array<string, mixed>  $changes
+     * @return list<string> Changed fields.
+     */
+    public function applyChangeAnnouncementMutations(string $eventId, string $type, array $changes): array;
+
+    /**
+     * Persist a published change announcement through the package EventUpdate model.
+     *
+     * @param  EventChangeAnnouncementAttributes  $attributes
+     */
+    public function createChangeAnnouncement(array $attributes): string;
 
     /**
      * Apply a normalized contribution payload to an existing event.
@@ -70,9 +135,10 @@ interface EventAuthoring
 
     /**
      * @param  list<mixed>  $personIds
+     * @param  'institution'|'person'|null  $organizerKind
      * @return list<string>
      */
-    public function personSlugSegmentsForState(array $personIds, ?string $organizerId): array;
+    public function personSlugSegmentsForState(array $personIds, ?string $organizerKind, ?string $organizerId): array;
 
     /**
      * @param  array<string, mixed>  $state

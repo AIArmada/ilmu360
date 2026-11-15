@@ -32,14 +32,14 @@ final readonly class EloquentScopedMembershipRoleStore implements ScopedMembersh
 
     public function detach(string $accountId): void
     {
-        $this->deleteScopedPermissionRows('model_has_roles', $accountId);
-        $this->deleteScopedPermissionRows('model_has_permissions', $accountId);
+        $this->deleteScopedRoleRows($accountId);
+        $this->deleteScopedPermissionRows($accountId);
     }
 
     public function restore(array $snapshot): void
     {
-        $this->restoreScopedPermissionRows('model_has_roles', $snapshot['scoped_roles'] ?? []);
-        $this->restoreScopedPermissionRows('model_has_permissions', $snapshot['scoped_permissions'] ?? []);
+        $this->restoreScopedRoleRows($snapshot['scoped_roles'] ?? []);
+        $this->restoreScopedPermissionRows($snapshot['scoped_permissions'] ?? []);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -59,21 +59,41 @@ final readonly class EloquentScopedMembershipRoleStore implements ScopedMembersh
             ->all();
     }
 
-    private function deleteScopedPermissionRows(string $tableKey, string $accountId): void
+    private function deleteScopedRoleRows(string $accountId): void
     {
-        DB::table($this->permissionTable($tableKey))
+        DB::table((string) (config('permission.table_names.model_has_roles') ?: 'model_has_roles'))
             ->where($this->permissionModelKeyName(), $accountId)
             ->where('model_type', $this->userMorphType->morphClass())
             ->whereNotNull($this->permissionTeamKey())
             ->delete();
     }
 
-    private function restoreScopedPermissionRows(string $tableKey, mixed $rows): void
+    private function deleteScopedPermissionRows(string $accountId): void
+    {
+        DB::table((string) (config('permission.table_names.model_has_permissions') ?: 'model_has_permissions'))
+            ->where($this->permissionModelKeyName(), $accountId)
+            ->where('model_type', $this->userMorphType->morphClass())
+            ->whereNotNull($this->permissionTeamKey())
+            ->delete();
+    }
+
+    private function restoreScopedRoleRows(mixed $rows): void
     {
         $records = $this->rows($rows);
 
         if ($records !== []) {
-            DB::table($this->permissionTable($tableKey))->insertOrIgnore($records);
+            DB::table((string) (config('permission.table_names.model_has_roles') ?: 'model_has_roles'))
+                ->insertOrIgnore($records);
+        }
+    }
+
+    private function restoreScopedPermissionRows(mixed $rows): void
+    {
+        $records = $this->rows($rows);
+
+        if ($records !== []) {
+            DB::table((string) (config('permission.table_names.model_has_permissions') ?: 'model_has_permissions'))
+                ->insertOrIgnore($records);
         }
     }
 

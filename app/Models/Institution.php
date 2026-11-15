@@ -12,8 +12,6 @@ use AIArmada\Events\Enums\FacilityAvailability;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Traits\HasMembers;
-use App\Features\Directory\Api\InstitutionSpaceLinks;
-use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Models\Concerns\HasDonationChannels;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
@@ -214,29 +212,6 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
         if (($source !== null) !== ($externalRef !== null)) {
             throw new InvalidArgumentException('The institution source and external ref must be set together.');
         }
-    }
-
-    /**
-     * Delete the row atomically with its snapshot, import exclusion, and
-     * bridge links: ordinary Model::delete() opens no transaction of its own,
-     * so without this wrapper a failed exclusion insert would leave the
-     * institution deleted and unprotected.
-     */
-    #[\Override]
-    public function delete(): ?bool
-    {
-        return $this->getConnection()->transaction(function (): ?bool {
-            $deleted = parent::delete();
-
-            if ($deleted) {
-                $institutionId = (string) $this->getKey();
-
-                app(InstitutionVenueLinks::class)->deleteForInstitution($institutionId);
-                app(InstitutionSpaceLinks::class)->deleteForInstitution($institutionId);
-            }
-
-            return $deleted;
-        });
     }
 
     public function shouldBeSearchable(): bool

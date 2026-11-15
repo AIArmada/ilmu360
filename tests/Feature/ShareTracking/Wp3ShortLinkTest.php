@@ -309,15 +309,20 @@ it('falls back to a safe direct attributed URL when the managed row is missing',
         ->and($payload['url'])->not->toContain('/k/');
 });
 
-it('never mints a second tracked row on reuse', function (): void {
+it('syncs the managed destination on reuse without minting a second tracked row', function (): void {
     $url = route('events.index');
     $service = app(AffiliatesShareTrackingService::class);
 
     $first = $service->createOrReuseLink($this->sharer, $url, 'Majlis', 'web');
+    $affiliateLink = AffiliateLink::query()->findOrFail($first->id);
+    $tracked = $affiliateLink->trackedLink()->firstOrFail();
+    $tracked->update(['destination_url' => route('share.unavailable')]);
+
     $second = $service->createOrReuseLink($this->sharer, $url, 'Majlis', 'web');
 
     expect($second->id)->toBe($first->id)
-        ->and(Link::query()->withoutOwnerScope()->count())->toBe(1);
+        ->and(Link::query()->withoutOwnerScope()->count())->toBe(1)
+        ->and($tracked->fresh()->destination_url)->toBe($affiliateLink->destination_url);
 });
 
 it('refuses share targets carrying the claim capability', function (): void {

@@ -6,8 +6,9 @@ namespace App\Features\Directory\Actions\Persons;
 
 use App\Features\Directory\Api\PersonSubmissionAccess;
 use App\Features\Directory\Api\PersonSubmissionEligibility;
-use App\Features\Directory\Persistence\PersonSubmissionCache;
+use App\Features\Directory\Api\PersonSubmissionOptionsCache;
 use App\Features\Directory\Support\DirectoryModel;
+use App\Models\Person;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
@@ -28,7 +29,7 @@ final readonly class PersonSubmissionAccessAction implements PersonSubmissionAcc
     public function __construct(
         private MembershipDirectory $memberships,
         private AccountDirectory $accounts,
-        private PersonSubmissionCache $cache,
+        private PersonSubmissionOptionsCache $cache,
     ) {}
 
     public function eligibility(string $personId): PersonSubmissionEligibility
@@ -55,7 +56,7 @@ final readonly class PersonSubmissionAccessAction implements PersonSubmissionAcc
             'public_submission_locked_by' => $actorId,
         ])->save();
 
-        $this->cache->forget();
+        $this->cache->forgetGuestPersonOptions();
     }
 
     public function unlock(string $personId, string $actorId): void
@@ -68,7 +69,7 @@ final readonly class PersonSubmissionAccessAction implements PersonSubmissionAcc
             'allow_public_event_submission' => true,
         ])->save();
 
-        $this->cache->forget();
+        $this->cache->forgetGuestPersonOptions();
     }
 
     public function reopenIfIneligible(string $personId): bool
@@ -87,7 +88,7 @@ final readonly class PersonSubmissionAccessAction implements PersonSubmissionAcc
             'allow_public_event_submission' => true,
         ])->save();
 
-        $this->cache->forget();
+        $this->cache->forgetGuestPersonOptions();
 
         return true;
     }
@@ -128,7 +129,7 @@ final readonly class PersonSubmissionAccessAction implements PersonSubmissionAcc
         return $reopened;
     }
 
-    private function eligibilityFor(Model $person): PersonSubmissionEligibility
+    private function eligibilityFor(Person $person): PersonSubmissionEligibility
     {
         $person->loadMissing('members');
 
@@ -168,11 +169,11 @@ final readonly class PersonSubmissionAccessAction implements PersonSubmissionAcc
         ]);
     }
 
-    private function person(string $personId): Model
+    private function person(string $personId): Person
     {
         $person = DirectoryModel::query('person')->find($personId);
 
-        if (! $person instanceof Model) {
+        if (! $person instanceof Person) {
             throw new RuntimeException("Person [{$personId}] was not found.");
         }
 

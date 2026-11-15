@@ -67,6 +67,10 @@ final class PushDestinationService implements PushDestinationManagement
     /**
      * @return list<PushDestinationSnapshot>
      */
+    /**
+     * @param  iterable<int, CommunicationDestination>  $destinations
+     * @return list<PushDestinationSnapshot>
+     */
     private function snapshots(iterable $destinations): array
     {
         $snapshots = [];

@@ -4,9 +4,9 @@ use AIArmada\Authz\Models\Role;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\CreateEventTerm;
 use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\EditEventTerm;
-use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Filament\Resources\EventTerms\TermDomainMappingExtension;
+use App\Features\Events\Actions\Authoring\SyncEventTermDomainMappingAction;
 use App\Models\User;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use Livewire\Livewire;
 
@@ -59,7 +59,7 @@ it('hydrates existing domain mapping on the edit form', function () {
 
     $agamaId = (string) submitEventTerm('domain')->id;
     $term = submitEventTerm('discipline');
-    TermDomainMappingExtension::syncDomainMapping($term, [$agamaId]);
+    app(SyncEventTermDomainMappingAction::class)->handle($term, [$agamaId]);
 
     Livewire::test(EditEventTerm::class, ['record' => $term->getKey()])
         ->assertFormFieldVisible('domain_ids')
@@ -71,7 +71,7 @@ it('persists domain mapping into term metadata', function () {
     $pendidikan = submitEventTerm('domain');
     $term = submitEventTerm('discipline');
 
-    TermDomainMappingExtension::syncDomainMapping($term, [(string) $agama->id, (string) $pendidikan->id]);
+    app(SyncEventTermDomainMappingAction::class)->handle($term, [(string) $agama->id, (string) $pendidikan->id]);
 
     expect($term->fresh()->metadata)->toBe(['domain_ids' => [(string) $agama->id, (string) $pendidikan->id]]);
 });
@@ -81,7 +81,7 @@ it('clears the mapping key when no domains are selected', function () {
     $term->metadata = ['domain_ids' => ['some-id'], 'other' => 'kept'];
     $term->save();
 
-    TermDomainMappingExtension::syncDomainMapping($term, []);
+    app(SyncEventTermDomainMappingAction::class)->handle($term, []);
 
     expect($term->fresh()->metadata)->toBe(['other' => 'kept']);
 });
@@ -91,7 +91,7 @@ it('stores null metadata when clearing the only mapping key', function () {
     $term->metadata = ['domain_ids' => ['some-id']];
     $term->save();
 
-    TermDomainMappingExtension::syncDomainMapping($term, []);
+    app(SyncEventTermDomainMappingAction::class)->handle($term, []);
 
     expect($term->fresh()->metadata)->toBeNull();
 });
@@ -101,12 +101,12 @@ it('filters discipline options by the selected domain', function () {
     $pendidikan = submitEventTerm('domain');
 
     $agamaOnly = submitEventTerm('discipline');
-    TermDomainMappingExtension::syncDomainMapping($agamaOnly, [(string) $agama->id]);
+    app(SyncEventTermDomainMappingAction::class)->handle($agamaOnly, [(string) $agama->id]);
 
     $global = submitEventTerm('discipline');
 
     $pendidikanOnly = submitEventTerm('discipline');
-    TermDomainMappingExtension::syncDomainMapping($pendidikanOnly, [(string) $pendidikan->id]);
+    app(SyncEventTermDomainMappingAction::class)->handle($pendidikanOnly, [(string) $pendidikan->id]);
 
     $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Discipline, (string) $agama->id);
 
@@ -128,12 +128,12 @@ it('filters issue options by the selected domain', function () {
     $pendidikan = submitEventTerm('domain');
 
     $agamaOnly = submitEventTerm('issue');
-    TermDomainMappingExtension::syncDomainMapping($agamaOnly, [(string) $agama->id]);
+    app(SyncEventTermDomainMappingAction::class)->handle($agamaOnly, [(string) $agama->id]);
 
     $global = submitEventTerm('issue');
 
     $pendidikanOnly = submitEventTerm('issue');
-    TermDomainMappingExtension::syncDomainMapping($pendidikanOnly, [(string) $pendidikan->id]);
+    app(SyncEventTermDomainMappingAction::class)->handle($pendidikanOnly, [(string) $pendidikan->id]);
 
     $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Issue, (string) $agama->id);
 

@@ -4,65 +4,41 @@ declare(strict_types=1);
 
 namespace App\Actions\Events\Submission;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSubmissionLog;
 use AIArmada\Events\States\EventModerationStatus\Approved as SubmissionApproved;
 use AIArmada\Events\States\EventModerationStatus\Pending as SubmissionPending;
 use AIArmada\Events\States\EventModerationStatus\Rejected as SubmissionRejected;
-use AIArmada\Events\States\OccurrenceStatus\Archived;
-use AIArmada\Events\States\OccurrenceStatus\Scheduled;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\Events\Api\EventSubmissions;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
 use App\Notifications\EventOccurrenceReviewedNotification;
-use App\Shared\Signals\SignalRecorder;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\Signals\SignalRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Validation\ValidationException;
 
 final readonly class ModerateEventOccurrenceSubmissionAction
 {
     public function __construct(
         private ReverseShareOutcomeAction $reverseShareOutcome,
         private SignalRecorder $signals,
+        private EventSubmissions $eventSubmissions,
     ) {}
 
     public function approve(EventSubmission $submission, User $moderator, ?string $note = null): void
     {
         [$submission, $event, $occurrence] = DB::transaction(function () use ($submission, $moderator, $note): array {
-            [$submission, $event, $occurrence] = $this->lockedSubmission($submission);
-            $this->assertPendingForApprovedParent($submission, $event, $occurrence);
-
-            if ((string) $occurrence->status !== EventOccurrence::DRAFT) {
-                throw ValidationException::withMessages([
-                    'submission' => __('This occurrence is no longer awaiting review.'),
-                ]);
-            }
-
-            $requestedVisibility = data_get(
-                $occurrence->metadata,
-                'public_submission.requested_visibility',
-                $event->visibility instanceof \BackedEnum ? $event->visibility->value : (string) $event->visibility,
+            $result = $this->eventSubmissions->approveOccurrenceSubmission(
+                (string) $submission->getKey(),
+                $moderator->getMorphClass(),
+                (string) $moderator->getKey(),
+                $note,
             );
-            $visibility = in_array($requestedVisibility, [Event::PUBLIC, Event::UNLISTED, Event::PRIVATE], true)
-                ? $requestedVisibility
-                : Event::PUBLIC;
 
-            $occurrence->status->transitionTo(Scheduled::class);
-            $occurrence->forceFill(['visibility' => $visibility])->save();
-            $submission->status->transitionTo(SubmissionApproved::class);
-            $submission->forceFill([
-                'reviewed_at' => now(),
-                'review_notes' => $note,
-            ])->save();
-
-            $this->recordReview($submission, $event, $occurrence, $moderator, 'occurrence_approved', $note);
-
-            return [$submission, $event, $occurrence];
+            return $this->rehydrateModerationModels($result);
         });
 
         $this->recordOccurrenceModerationSignal(
@@ -82,32 +58,21 @@ final readonly class ModerateEventOccurrenceSubmissionAction
     public function reject(EventSubmission $submission, User $moderator, string $reason, string $note): void
     {
         [$submission, $event, $occurrence] = DB::transaction(function () use ($submission, $moderator, $reason, $note): array {
-            [$submission, $event, $occurrence] = $this->lockedSubmission($submission);
-            $this->assertPendingForApprovedParent($submission, $event, $occurrence);
+            $result = $this->eventSubmissions->rejectOccurrenceSubmission(
+                (string) $submission->getKey(),
+                $moderator->getMorphClass(),
+                (string) $moderator->getKey(),
+                $reason,
+                $note,
+            );
 
-            if ((string) $occurrence->status !== EventOccurrence::DRAFT) {
-                throw ValidationException::withMessages([
-                    'submission' => __('This occurrence is no longer awaiting review.'),
-                ]);
-            }
-
-            $occurrence->status->transitionTo(Archived::class);
-            $occurrence->forceFill(['status_reason' => $note])->save();
-            $submission->status->transitionTo(SubmissionRejected::class);
-            $submission->forceFill([
-                'reviewed_at' => now(),
-                'review_reason' => $reason,
-                'review_notes' => $note,
-            ])->save();
-
-            $this->recordReview($submission, $event, $occurrence, $moderator, 'occurrence_rejected', $note, $reason);
             $this->reverseShareOutcome->handle(
-                ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
+                ShareOutcomeBusinessKey::eventSubmission($result['submission_id']),
                 'submission_rejected',
                 $moderator,
             );
 
-            return [$submission, $event, $occurrence];
+            return $this->rehydrateModerationModels($result);
         });
 
         $this->recordOccurrenceModerationSignal(
@@ -156,77 +121,19 @@ final readonly class ModerateEventOccurrenceSubmissionAction
     }
 
     /**
+     * @param  array{event_id: string, submission_id: string, occurrence_id: string}  $result
      * @return array{EventSubmission, Event, EventOccurrence}
      */
-    private function lockedSubmission(EventSubmission $submission): array
+    private function rehydrateModerationModels(array $result): array
     {
-        $lockedSubmission = EventSubmission::query()
-            ->whereKey($submission->getKey())
-            ->lockForUpdate()
-            ->first();
+        /** @var EventSubmission $submission */
+        $submission = EventSubmission::query()->whereKey($result['submission_id'])->firstOrFail();
+        /** @var Event $event */
+        $event = Event::query()->whereKey($result['event_id'])->firstOrFail();
+        /** @var EventOccurrence $occurrence */
+        $occurrence = EventOccurrence::query()->whereKey($result['occurrence_id'])->firstOrFail();
 
-        if (! $lockedSubmission instanceof EventSubmission) {
-            throw ValidationException::withMessages([
-                'submission' => __('This submission is no longer available.'),
-            ]);
-        }
-
-        $event = Event::query()
-            ->whereKey($lockedSubmission->event_id)
-            ->lockForUpdate()
-            ->first();
-        $occurrence = EventOccurrence::query()
-            ->whereKey($lockedSubmission->event_occurrence_id)
-            ->lockForUpdate()
-            ->first();
-
-        if (! $event instanceof Event || ! $occurrence instanceof EventOccurrence) {
-            throw ValidationException::withMessages([
-                'submission' => __('The event occurrence for this submission is no longer available.'),
-            ]);
-        }
-
-        return [$lockedSubmission, $event, $occurrence];
-    }
-
-    private function assertPendingForApprovedParent(
-        EventSubmission $submission,
-        Event $event,
-        EventOccurrence $occurrence,
-    ): void {
-        if (
-            (string) $submission->status !== SubmissionPending::name()
-            || $submission->event_session_id !== null
-            || (string) $occurrence->event_id !== (string) $event->getKey()
-            || (string) $event->status !== 'approved'
-        ) {
-            throw ValidationException::withMessages([
-                'submission' => __('This submission is not awaiting occurrence review.'),
-            ]);
-        }
-    }
-
-    private function recordReview(
-        EventSubmission $submission,
-        Event $event,
-        EventOccurrence $occurrence,
-        User $moderator,
-        string $action,
-        ?string $note,
-        ?string $reason = null,
-    ): void {
-        OwnerContext::withOwner(null, fn (): EventSubmissionLog => EventSubmissionLog::query()->create([
-            'event_submission_id' => $submission->getKey(),
-            'action' => $action,
-            'performed_by_type' => $moderator->getMorphClass(),
-            'performed_by_id' => $moderator->getKey(),
-            'notes' => $note,
-            'metadata' => array_filter([
-                'event_id' => (string) $event->getKey(),
-                'event_occurrence_id' => (string) $occurrence->getKey(),
-                'reason_code' => $reason,
-            ], static fn (mixed $value): bool => $value !== null),
-        ]));
+        return [$submission, $event, $occurrence];
     }
 
     private function notifySubmitter(

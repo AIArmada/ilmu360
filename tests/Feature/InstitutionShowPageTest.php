@@ -4,11 +4,6 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Contracts\ShareTrackingContract;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Events\Enums\TimingMode;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Affiliation;
@@ -20,6 +15,11 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionType;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use Illuminate\Http\UploadedFile;
@@ -410,8 +410,10 @@ it('renders institution event cards with localized prayer timing stacked person 
     syncPrimaryAddressForTest($institution, [
         'country_id' => (string) $malaysia->getKey(),
         'state_id' => (string) $geo['state']->getKey(),
-        'administrative_district_id' => (string) $geo['district']->getKey(),
-        'administrative_subdivision_id' => (string) $geo['subdistrict']->getKey(),
+        'area_assignments' => [
+            'administrative_district' => (string) $geo['district']->getKey(),
+            'administrative_subdivision' => (string) $geo['subdistrict']->getKey(),
+        ],
     ]);
 
     try {
@@ -975,8 +977,9 @@ it('hides event card locations on the institution event list but keeps them on t
 
     syncPrimaryAddressForTest($venue, [
         'state_id' => (string) $geography['state']->getKey(),
-        'administrative_district_id' => null,
-        'administrative_subdivision_id' => (string) $geography['subdistrict']->getKey(),
+        'area_assignments' => [
+            'administrative_subdivision' => (string) $geography['subdistrict']->getKey(),
+        ],
         'city' => 'Setiawangsa',
         'state' => 'Kuala Lumpur',
     ]);

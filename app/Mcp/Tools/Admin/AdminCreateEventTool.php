@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Admin;
 
 use App\Enums\RegistrationScope;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Space;
-use App\Models\Venue;
+use App\Features\Directory\Api\DirectoryReader;
+use App\Features\Directory\Api\DirectoryRecordType;
+use App\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -36,6 +34,8 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld(false)]
 class AdminCreateEventTool extends AbstractAdminWriteTool
 {
+    use DefinesMcpFileDescriptorSchema;
+
     #[\Override]
     protected string $name = 'admin-create-event';
 
@@ -43,10 +43,11 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
     protected string $title = 'Create Event';
 
     #[\Override]
-    protected string $description = 'Use this MCP-only event wrapper to create a new event, optionally with cover, poster, or gallery images in the same request. It resolves organizer, location, persons, and references by human-readable route keys before calling the shared admin event create path. person_keys/reference_keys are route-key aliases for the underlying persons/references UUID arrays. apply_defaults is only honored together with validate_only=true for preview/autofill feedback and is ignored for persisted creates. Do not use to update an existing event; use admin-update-event instead.';
+    protected string $description = 'Use this MCP event tool to create a new event, optionally with cover, poster, or gallery images in the same request. It resolves organizer, location, persons, and references by human-readable route keys before calling the shared admin event create path. person_keys and reference_keys accept route keys (slugs or UUIDs) and resolve into persons and references. apply_defaults is only honored together with validate_only=true for preview/autofill feedback and is ignored for persisted creates. Do not use to update an existing event; use admin-update-event instead.';
 
     public function __construct(
         private readonly AdminResourceService $resourceService,
+        private readonly DirectoryReader $directoryReader,
     ) {}
 
     public function handle(Request $request): Generator
@@ -129,8 +130,6 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
             );
 
             $payload = $this->buildEventPayload($validated);
-            $this->enforceEventMediaDescriptorsHaveContentSource($payload);
-
             $this->ensureDestructiveMediaClearFlagsAreUnsupported($payload);
 
             $normalizedMediaPayload = $this->normalizeMcpMediaPayload($payload, $schemaResponse);
@@ -190,6 +189,7 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
             $payload['primary_organizer_id'] = $this->resolvePrimaryOrganizerIdentifier(
                 field: 'primary_organizer_key',
                 key: $primaryOrganizerKey,
+                directoryReader: $this->directoryReader,
             );
         }
 
@@ -198,7 +198,8 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
         if ($institutionKey !== null) {
             $payload['institution_id'] = $this->resolveRecordIdentifier(
                 field: 'institution_key',
-                modelClass: Institution::class,
+                type: DirectoryRecordType::Institution,
+                directoryReader: $this->directoryReader,
                 key: $institutionKey,
             );
         }
@@ -208,7 +209,8 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
         if ($venueKey !== null) {
             $payload['venue_id'] = $this->resolveRecordIdentifier(
                 field: 'venue_key',
-                modelClass: Venue::class,
+                type: DirectoryRecordType::Venue,
+                directoryReader: $this->directoryReader,
                 key: $venueKey,
             );
         }
@@ -218,7 +220,8 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
         if ($spaceKey !== null) {
             $payload['space_id'] = $this->resolveRecordIdentifier(
                 field: 'space_key',
-                modelClass: Space::class,
+                type: DirectoryRecordType::Space,
+                directoryReader: $this->directoryReader,
                 key: $spaceKey,
             );
         }
@@ -235,7 +238,8 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
             $payload['persons'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
                     field: 'person_keys',
-                    modelClass: Person::class,
+                    type: DirectoryRecordType::Person,
+                    directoryReader: $this->directoryReader,
                     key: $key,
                 ),
                 $personKeys,
@@ -254,7 +258,8 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
             $payload['references'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
                     field: 'reference_keys',
-                    modelClass: Reference::class,
+                    type: DirectoryRecordType::Reference,
+                    directoryReader: $this->directoryReader,
                     key: $key,
                 ),
                 $referenceKeys,
@@ -292,8 +297,8 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),
-            'person_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying persons UUID array. On create, omit/null/[] all mean no persons; event types that require a person will fail validation if this resolves to an empty list. Pass person slugs/UUIDs to attach those persons in payload order. Required for event types that mandate a person: kuliah_ceramah, kelas_kursus, bengkel_latihan, seminar_persidangan, forum_diskusi.'),
-            'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying references UUID array. On create, omit/null/[] all mean no references. Pass reference slugs/UUIDs to link those references.'),
+            'person_keys' => $schema->array()->items($schema->string())->nullable()->description('Person route keys (slugs or UUIDs). On create, omit/null/[] all mean no persons; event types that require a person will fail validation if this resolves to an empty list. Pass person route keys to attach those persons in payload order. Required for event types that mandate a person: kuliah_ceramah, kelas_kursus, bengkel_latihan, seminar_persidangan, forum_diskusi.'),
+            'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('Reference route keys (slugs or UUIDs). On create, omit/null/[] all mean no references. Pass reference route keys to link those references.'),
             'languages' => $schema->array()->items($schema->string())->nullable()->description('Array of language record UUIDs for the event language(s). Use admin-list-records on the languages resource to discover available IDs.'),
             'domain_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of domain event-term UUIDs (max 3).'),
             'discipline_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of discipline event-term UUIDs.'),
@@ -310,26 +315,14 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
                 ])
             )->nullable()->description('Optional non-speaker key people (moderators, khatib, imam, bilal, PIC, etc.).'),
             'series' => $schema->array()->items($schema->string())->nullable()->description('Array of series UUIDs to link the event to.'),
-            'cover' => $schema->object([
-                'filename' => $schema->string()->required(),
-                'content_base64' => $schema->string()->nullable(),
-                'content_url' => $schema->string()->nullable(),
-                'mime_type' => $schema->string()->nullable(),
-            ])->nullable()->description('Optional event cover image descriptor (16:9). Pass {content_base64, filename} or {content_url, filename}.'),
-            'poster' => $schema->object([
-                'filename' => $schema->string()->required(),
-                'content_base64' => $schema->string()->nullable(),
-                'content_url' => $schema->string()->nullable(),
-                'mime_type' => $schema->string()->nullable(),
-            ])->nullable()->description('Optional event poster image descriptor (3:4). Pass {content_base64, filename} or {content_url, filename}.'),
-            'gallery' => $schema->array()->items(
-                $schema->object([
-                    'filename' => $schema->string()->required(),
-                    'content_base64' => $schema->string()->nullable(),
-                    'content_url' => $schema->string()->nullable(),
-                    'mime_type' => $schema->string()->nullable(),
-                ])
-            )->nullable()->description('Optional gallery image descriptors (max 10 items).'),
+            'cover' => $this->fileDescriptorSchema($schema)
+                ->nullable()
+                ->description('Optional event cover image descriptor (16:9). Pass filename and exactly one content source.'),
+            'poster' => $this->fileDescriptorSchema($schema)
+                ->nullable()
+                ->description('Optional event poster image descriptor (3:4). Pass filename and exactly one content source.'),
+            'gallery' => $schema->array()->items($this->fileDescriptorSchema($schema))
+                ->nullable()->description('Optional gallery image descriptors (max 10 items).'),
             'status' => $schema->string()->default('draft')->enum(['draft', 'pending', 'approved']),
             'registration_required' => $schema->boolean()->default(false),
             'registration_mode' => $schema->string()->default(RegistrationScope::Event->value)->enum($this->enumValues(RegistrationScope::class)),
@@ -349,82 +342,10 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
         $tool['_meta'] = array_merge(
             is_array($tool['_meta'] ?? null) ? $tool['_meta'] : [],
             [
-                'openai/note' => 'You may send event fields and image descriptors together in one call. For media fields cover/poster/gallery pass {content_base64, filename} or {content_url, filename}.',
+                'openai/note' => 'You may send event fields and image descriptors together in one call. For cover, poster, and gallery descriptors, pass filename and exactly one of content_base64, content_url, or download_url.',
             ],
         );
 
         return $tool;
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function enforceEventMediaDescriptorsHaveContentSource(array $payload): void
-    {
-        $this->enforceDescriptorFieldHasContentSource($payload, 'cover');
-        $this->enforceDescriptorFieldHasContentSource($payload, 'poster');
-
-        $gallery = $payload['gallery'] ?? null;
-
-        if (! is_array($gallery)) {
-            return;
-        }
-
-        foreach ($gallery as $index => $descriptor) {
-            if (! is_array($descriptor)) {
-                continue;
-            }
-
-            $this->assertDescriptorHasContentSource(
-                descriptor: $descriptor,
-                field: "gallery.{$index}",
-            );
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function enforceDescriptorFieldHasContentSource(array $payload, string $field): void
-    {
-        $descriptor = $payload[$field] ?? null;
-
-        if (! is_array($descriptor)) {
-            return;
-        }
-
-        $this->assertDescriptorHasContentSource(
-            descriptor: $descriptor,
-            field: $field,
-        );
-    }
-
-    /**
-     * @param  array<string, mixed>  $descriptor
-     */
-    private function assertDescriptorHasContentSource(array $descriptor, string $field): void
-    {
-        $base64Value = $descriptor['content_base64']
-            ?? $descriptor['contentBase64']
-            ?? $descriptor['base64']
-            ?? $descriptor['data']
-            ?? null;
-
-        $contentUrl = $descriptor['content_url']
-            ?? $descriptor['contentUrl']
-            ?? $descriptor['url']
-            ?? null;
-
-        if (is_string($base64Value) && trim($base64Value) !== '') {
-            return;
-        }
-
-        if (is_string($contentUrl) && trim($contentUrl) !== '') {
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            $field => ['Event media uploads require either content_base64 or content_url.'],
-        ]);
     }
 }

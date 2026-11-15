@@ -3,13 +3,13 @@
 use AIArmada\Events\Models\EventAttendance;
 use AIArmada\Events\Models\EventRegistrationItem;
 use AIArmada\Ticketing\Models\TicketType;
+use App\Models\Audit;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-use OwenIt\Auditing\Models\Audit;
 
 test('registration export streams csv and writes audit metadata', function () {
     $user = User::factory()->create();
@@ -39,6 +39,13 @@ test('registration export streams csv and writes audit metadata', function () {
             'status' => 'confirmed',
         ]);
 
+    Registration::factory()
+        ->withPrimaryParticipant('Cancelled Registrant', 'cancelled@example.com', '0100000000')
+        ->create([
+            'event_id' => $event->id,
+            'status' => 'cancelled',
+        ]);
+
     Sanctum::actingAs($user);
 
     Gate::shouldReceive('denies')
@@ -60,7 +67,8 @@ test('registration export streams csv and writes audit metadata', function () {
         ->and($csv)->toContain('Attendee User')
         ->and($csv)->toContain('attendee@example.com')
         ->and($csv)->toContain('Guest Registrant')
-        ->and($csv)->toContain('guest@example.com');
+        ->and($csv)->toContain('guest@example.com')
+        ->and($csv)->not->toContain('Cancelled Registrant');
 
     $audit = Audit::query()
         ->where('event', 'export_registrations')
@@ -68,6 +76,9 @@ test('registration export streams csv and writes audit metadata', function () {
 
     expect($audit)->not->toBeNull()
         ->and($audit->auditable_id)->toBe($event->id)
+        ->and($audit->auditable_type)->toBe(Event::class)
+        ->and($audit->user_type)->toBe(User::class)
+        ->and((string) $audit->user_id)->toBe((string) $user->id)
         ->and((int) data_get($audit->new_values, 'count'))->toBe(2);
 });
 

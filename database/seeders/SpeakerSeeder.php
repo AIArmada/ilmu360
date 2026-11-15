@@ -17,6 +17,7 @@ use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Enums\SpeakerStatus;
 use App\Models\Person;
+use App\Support\Persons\PersonBioContent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -24,7 +25,7 @@ use RuntimeException;
 
 /**
  * Seeds the production speakers (and their names, titles, addresses, social
- * profiles, search terms, slug redirects, and avatar media metadata) from
+ * profiles, search terms, and avatar media metadata) from
  * data embedded in this file. No connection to the production database is
  * required.
  *
@@ -86,7 +87,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['al', 'azahar', 'hadrami', 'hashim', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 4,
                 'uuid' => '7df7abd0-110e-4977-bb25-03d48283613b',
@@ -129,7 +129,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['fathullah', 'ishak', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 116,
                 'uuid' => '1cd2b0b4-462d-414d-85a6-e579b5efa97a',
@@ -182,35 +181,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['guru', 'haji', 'joll', 'muhadir', 'tuan', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019da56b-fc84-730b-8b8e-f9041e48b80a',
-                    'source_slug' => 'tuan-guru-ustaz-muhadir-hj-joll-my',
-                    'first_visited_at' => '2026-04-06 14:37:09',
-                    'last_redirected_at' => '2026-05-07 12:31:44',
-                    'redirect_count' => 2,
-                    'created_at' => '2026-04-19 11:06:50',
-                    'updated_at' => '2026-05-07 12:31:44',
-                ],
-                [
-                    'id' => '019da8c4-9b2a-72f1-a98b-cb28d050f7c7',
-                    'source_slug' => 'tuan-guru-ustaz-saiffil-fariz-my',
-                    'first_visited_at' => '2026-04-20 02:41:17',
-                    'last_redirected_at' => '2026-04-20 02:42:36',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-04-20 02:42:30',
-                    'updated_at' => '2026-04-20 02:43:10',
-                ],
-                [
-                    'id' => '019da8c5-39b9-731a-862e-62ea70245e5d',
-                    'source_slug' => 'tuan-guru-ustaz-ustaz-muhadir-haji-joll-my',
-                    'first_visited_at' => '2026-04-20 02:42:36',
-                    'last_redirected_at' => '2026-04-20 02:43:14',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-04-20 02:43:10',
-                    'updated_at' => '2026-04-20 02:43:14',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 42,
                 'uuid' => 'a7bbafae-f9e3-4ca3-93eb-4daf929c2f16',
@@ -253,7 +223,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['dato', 'elias', 'kazim', 'mohammad', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 5,
                 'uuid' => 'a548fe7c-4f23-485a-968d-e0b55f763013',
@@ -296,7 +265,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['al', 'bindany', 'hashim', 'hazri', 'mohd', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 43,
                 'uuid' => 'f50ac9be-77fe-4ef1-b417-06d60ae7125f',
@@ -339,7 +307,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['hj', 'johari', 'mohd', 'som', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 10,
                 'uuid' => '7b68c28c-15f5-47dd-b035-542025336787',
@@ -382,7 +349,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ahmad', 'hj', 'shukri', 'ustaz', 'yusoff'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 40,
                 'uuid' => 'd876f085-467f-4d62-8b5c-737ff24cf164',
@@ -425,7 +391,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['dr', 'hapiz', 'madya', 'mahaiyadin', 'mohd', 'prof'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 26,
                 'uuid' => '792bb25b-af26-4460-be31-af96a5b61733',
@@ -468,7 +433,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['dr', 'hashim', 'hj', 'ikmal', 'ustaz', 'zaidi'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 21,
                 'uuid' => '994e58b8-5e2a-4390-86c8-cf8405d311d7',
@@ -511,7 +475,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['at', 'daud', 'shahrizan', 'turabi', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 29,
                 'uuid' => '494d3c34-6187-4273-90c3-9f850212d75a',
@@ -554,7 +517,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['azian', 'hj', 'man', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 12,
                 'uuid' => '85867495-78d7-4381-95b0-84d97152c664',
@@ -597,7 +559,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['al', 'habib', 'khered', 'najmuddin', 'othman'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 28,
                 'uuid' => 'd1021e2b-4f51-4c2f-a03d-aedf4bc98fe5',
@@ -640,7 +601,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['hj', 'jais', 'kamos', 'mat', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 25,
                 'uuid' => '46fd4872-f5ef-4dfe-80ec-eae20a6ab6df',
@@ -683,7 +643,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['akiti', 'al', 'ayman', 'dato', 'dr', 'madya', 'prof'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 19,
                 'uuid' => 'd92b9cc7-f287-49ba-8393-cb03ebc79d16',
@@ -726,7 +685,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['al', 'khafiz', 'mohd', 'tohfah', 'ustaz', 'yamani'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 24,
                 'uuid' => 'f51fbf24-e803-4d74-8d44-6ee525753bdc',
@@ -769,7 +727,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['mohamed', 'roslan', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 38,
                 'uuid' => '0ce669f2-67b5-4643-9c34-badef9bbdcfe',
@@ -812,7 +769,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abd', 'dato', 'hj', 'mohd', 'setia', 'tamyes', 'wahid'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 27,
                 'uuid' => 'f4459474-9aac-4ddd-800d-5cbf3671f4c4',
@@ -855,7 +811,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ashari', 'ikhwan', 'khairul', 'mohamad', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 31,
                 'uuid' => '75e80b44-0a5b-46c1-9c0c-35c9928f10b1',
@@ -898,7 +853,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['indera', 'mohd', 'shahid', 'shahril', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 9,
                 'uuid' => 'b6a0ba5a-11ea-489f-919d-d0ec1840bc5c',
@@ -941,7 +895,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abd', 'baba', 'bukhari', 'rahman', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 14,
                 'uuid' => 'eade4d2c-a509-467d-af00-9abac3688b23',
@@ -984,7 +937,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abidin', 'abu', 'al', 'ali', 'bakar', 'dr', 'habib', 'hamid', 'zaenal'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 45,
                 'uuid' => '96834665-091d-44fd-a70f-2933c97a82c5',
@@ -1027,7 +979,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abd', 'ahmad', 'dr', 'faisal', 'hamid', 'prof'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 20,
                 'uuid' => '93bbc083-87f1-47e1-a112-74b87900d11e',
@@ -1070,17 +1021,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['al', 'maulana', 'mazahiri', 'tahir', 'wan'],
-            'redirects' => [
-                [
-                    'id' => '019da8e1-a8b3-7357-b1f6-b5d1cd50ad2c',
-                    'source_slug' => 'maulana-wan-tahir-al-mazahir-my',
-                    'first_visited_at' => '2026-04-20 03:14:05',
-                    'last_redirected_at' => null,
-                    'redirect_count' => 0,
-                    'created_at' => '2026-04-20 03:14:14',
-                    'updated_at' => '2026-04-20 03:14:14',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 41,
                 'uuid' => '5f5d6f6e-486a-4fff-a8d7-4e89a29b8a91',
@@ -1123,7 +1063,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ashraf', 'muhammad', 'osman', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 17,
                 'uuid' => 'c91fb75e-0c2e-46c3-8cac-1c99a341b25d',
@@ -1166,17 +1105,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['al', 'iqbal', 'jauhari', 'ustaz', 'zain'],
-            'redirects' => [
-                [
-                    'id' => '019db0e3-c25a-729e-b827-fc84f475e841',
-                    'source_slug' => 'ustaz-iqbal-zain-al-jauhar-my',
-                    'first_visited_at' => '2026-04-21 16:33:19',
-                    'last_redirected_at' => null,
-                    'redirect_count' => 0,
-                    'created_at' => '2026-04-21 16:33:29',
-                    'updated_at' => '2026-04-21 16:33:29',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 8,
                 'uuid' => 'd4582d71-eb66-4e09-8f7b-2d5555f61c66',
@@ -1219,7 +1147,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['haiyon', 'khairuddin', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 30,
                 'uuid' => 'f68a2677-e379-4c6b-b3c4-d4bf097747dd',
@@ -1262,7 +1189,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['bakri', 'dr', 'mat', 'nik', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 37,
                 'uuid' => '7e57a5c1-04cd-4ba4-a2ce-efd4d4bd6fb4',
@@ -1305,7 +1231,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ahmad', 'engku', 'fadzil', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 13,
                 'uuid' => '551bca42-f763-4292-a4c1-7b73ddf97a90',
@@ -1348,7 +1273,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['dr', 'khafidz', 'mohd', 'soroni', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 23,
                 'uuid' => '5ddb2da9-1c2e-459e-9b07-250a67e708af',
@@ -1391,7 +1315,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['dr', 'hamzah', 'maqari', 'othman', 'syeikhul', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 39,
                 'uuid' => 'b94fe112-f35d-4bd6-9052-8d2b659a649c',
@@ -1434,7 +1357,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['anhar', 'dato', 'dr', 'hj', 'opir', 'setia'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 32,
                 'uuid' => '6e352298-7c29-4cbc-9895-847c52d82f23',
@@ -1477,7 +1399,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abd', 'hj', 'karim', 'mohd', 'ustaz', 'zhafran'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 7,
                 'uuid' => '094071c9-fe3e-4be4-b408-b7674e97c606',
@@ -1520,7 +1441,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['jaafar', 'sidek', 'ustaz', 'zaifullah'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 35,
                 'uuid' => '47781b64-08c7-4f87-84fc-c7f8a6787343',
@@ -1563,7 +1483,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['baba', 'guru', 'ismail', 'sepanjang', 'tuan'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 11,
                 'uuid' => 'f8a1270e-786a-42a0-b947-5a1cf7befdc0',
@@ -1606,7 +1525,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ali', 'shukri', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 18,
                 'uuid' => '9c9513da-abf1-4b3e-b1c4-76585992177f',
@@ -1649,7 +1567,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abdul', 'al', 'joofre', 'kadir', 'syed', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 33,
                 'uuid' => '92f9f684-113e-44ee-9ca2-d04f1cd9546b',
@@ -1692,7 +1609,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['mohamed', 'ramli', 'razali', 'ustaz', 'zul'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 6,
                 'uuid' => '589cbd2f-ab0a-4fb0-9bca-0e5f987b8d7c',
@@ -1735,7 +1651,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['kesiangan', 'khairul', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 167,
                 'uuid' => 'bd728733-186e-454c-b232-d550c8980f40',
@@ -1778,7 +1693,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ariffin', 'mohd', 'ramdzan', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 109,
                 'uuid' => '2a18ed64-4782-49b6-8e27-901bcf7d4b6a',
@@ -1831,7 +1745,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['ahmad', 'al', 'hadrami', 'shahdan', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 111,
                 'uuid' => '1677f4bb-119f-4adf-8ccb-6ec5d5d84687',
@@ -1884,7 +1797,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['abdullah', 'akib', 'mohd', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 112,
                 'uuid' => 'c8b015f2-d1db-453c-9e74-9830ee71fe2d',
@@ -1927,7 +1839,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['azhar', 'idrus', 'ustaz', 'zamrul'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 76,
                 'uuid' => '3395e5ba-55fd-4d15-8d64-f7d83d8205b3',
@@ -1980,7 +1891,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['fazrul', 'ismail', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 96,
                 'uuid' => '64694a41-27ee-41c3-9103-8b67ed84d37a',
@@ -2023,7 +1933,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ariff', 'dato', 'dr', 'hj', 'izhar', 'kashim', 'mohd', 'prof'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 70,
                 'uuid' => 'de36ebad-51e7-46ca-9b89-cad327589387',
@@ -2066,7 +1975,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ahmad', 'basri', 'hamid', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 47,
                 'uuid' => 'b79285b1-f98d-418e-a4ee-e577cd72da84',
@@ -2109,7 +2017,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['mahfuz', 'muhammad', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 57,
                 'uuid' => 'd0841822-ffa5-4f18-91da-0417ad5930ab',
@@ -2152,7 +2059,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abd', 'jalil', 'mohd', 'ustaz', 'zukry'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 117,
                 'uuid' => '33a16884-28aa-4aef-b344-c805d20c2abe',
@@ -2195,7 +2101,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['fitry', 'kassa', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 85,
                 'uuid' => '0bbd7581-5bfa-4428-8fe5-81f6297926c7',
@@ -2248,7 +2153,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['al', 'jauhari', 'ramli', 'rusydi', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 89,
                 'uuid' => 'aa0f691f-3c0d-44ad-816c-34a33ce2d55d',
@@ -2301,7 +2205,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['adli', 'hassan', 'imam', 'muda', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 81,
                 'uuid' => '94e78821-6e3f-440a-9aff-825162f19d3a',
@@ -2344,7 +2247,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abidin', 'hj', 'ustaz', 'zainal', 'zamri'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 73,
                 'uuid' => 'abce6c05-ed70-43f8-8891-648a4bb2ac73',
@@ -2387,7 +2289,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ali', 'tirmizi', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 160,
                 'uuid' => 'cc8b39e8-6b91-49c8-a9a2-28bc9245d286',
@@ -2440,7 +2341,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['alauddin', 'badli', 'dato', 'dr', 'hj', 'shah', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 75,
                 'uuid' => '869a7ff9-dc62-4ddb-9b5f-689531b0aaa7',
@@ -2493,7 +2393,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['biyajid', 'daniyal', 'don', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 77,
                 'uuid' => 'd582c29a-b8f7-4cfa-85fb-6cb09d81a2ca',
@@ -2536,17 +2435,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['datuk', 'dr', 'musa', 'norhafizah', 'ustazah'],
-            'redirects' => [
-                [
-                    'id' => '019dee74-ddd7-7314-abdb-0bc77d9c34f3',
-                    'source_slug' => 'datuk-ustazah-dr-norhafizah-hasan-my',
-                    'first_visited_at' => '2026-05-03 04:56:10',
-                    'last_redirected_at' => null,
-                    'redirect_count' => 0,
-                    'created_at' => '2026-05-03 15:28:49',
-                    'updated_at' => '2026-05-03 15:28:49',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 63,
                 'uuid' => 'a074b2d1-74eb-4910-99d6-7fca25933d84',
@@ -2599,7 +2487,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['amri', 'debat', 'ismail', 'syamsul', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 51,
                 'uuid' => '3097216b-7b79-469d-9648-78f90f401a52',
@@ -2642,7 +2529,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ab', 'jamil', 'razak', 'sabran', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 61,
                 'uuid' => '9f699f78-fc8b-4598-a11c-23294d05a9d3',
@@ -2685,7 +2571,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['aizuddin', 'al', 'anuar', 'mohamad', 'syami', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 59,
                 'uuid' => 'fdbbdb4a-1f86-40be-aa82-93b1201b1911',
@@ -2728,7 +2613,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['azizi', 'mohd', 'ustaz', 'yaacob'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 55,
                 'uuid' => 'e310a561-0507-49a9-98ea-532cf2297cb1',
@@ -2771,7 +2655,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['muhammad', 'rahmat', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 92,
                 'uuid' => '2de730f0-293f-480c-a89b-145853f94697',
@@ -2814,7 +2697,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abdul', 'mohd', 'rahim', 'suhaimi', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 84,
                 'uuid' => '54cd0964-186a-44d1-87d5-995a0c2a4ddd',
@@ -2857,7 +2739,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['amirul', 'ashraff', 'dr', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 155,
                 'uuid' => 'b7abc7c8-b8e5-42ea-ba81-9546e1cfc9c6',
@@ -2900,7 +2781,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['hamzah', 'hj', 'mohd', 'suffian', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 156,
                 'uuid' => '4e0e63f6-5e2b-4172-ad08-8af61ed1da7e',
@@ -2943,7 +2823,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['mohd', 'razalli', 'syuhud', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 86,
                 'uuid' => 'd719df28-b594-4588-894d-515d81821f25',
@@ -2986,7 +2865,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['juoi', 'mohamad', 'pahrol', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 60,
                 'uuid' => 'cbf721f8-244e-4931-8d8e-cf28fd97cd42',
@@ -3029,7 +2907,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['samsuddin', 'shahruddin', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 95,
                 'uuid' => 'feafb554-0c94-4f85-be64-7345cc31ddb3',
@@ -3072,7 +2949,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abdul', 'khairul', 'razak', 'razikin', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 115,
                 'uuid' => '239da1f9-8ba7-479f-9ad2-58044a73ed51',
@@ -3115,7 +2991,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abu', 'bakar', 'hafiz', 'mohd', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 110,
                 'uuid' => '9a2929e1-b134-4ed6-93ae-f7fb85d3cf72',
@@ -3168,7 +3043,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['abdullah', 'bin', 'dato', 'dr', 'farid', 'madya', 'mohd', 'prof', 'ravi'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 97,
                 'uuid' => '7304712d-bc80-4ae2-98c6-98477d0ebdf7',
@@ -3211,7 +3085,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ramli', 'sidom', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 79,
                 'uuid' => '1af8c76b-0bd8-4cd0-b8ca-e40b67d90517',
@@ -3254,7 +3127,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ali', 'aryf', 'mohd', 'muhammad', 'ustaz', 'zaki'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 114,
                 'uuid' => '0e22ee1f-d1fb-46c1-9902-01e78dc2e052',
@@ -3297,7 +3169,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abd', 'hanafi', 'rahman', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 99,
                 'uuid' => 'c0a12d49-a1c4-4b21-93d2-36292e333ada',
@@ -3340,17 +3211,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ibrahim', 'ustaz', 'zakaria'],
-            'redirects' => [
-                [
-                    'id' => '019db0eb-c61f-7238-ba90-cece6a9fea29',
-                    'source_slug' => 'ustaz-ibrahim-zakariya-my',
-                    'first_visited_at' => '2026-04-21 16:37:57',
-                    'last_redirected_at' => '2026-04-21 16:42:37',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-04-21 16:42:14',
-                    'updated_at' => '2026-04-21 16:42:37',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 80,
                 'uuid' => '75b5089e-0931-42db-baeb-734f0911baf6',
@@ -3393,7 +3253,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['daruzzaman', 'mohamad', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 72,
                 'uuid' => 'e6410cc5-d993-41e1-9d9d-1901711d9c9b',
@@ -3436,7 +3295,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['amir', 'ashraf', 'hamzah', 'muhammad', 'nabil', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 74,
                 'uuid' => 'ce56a2b5-b8e1-4564-97d3-0db8fce5169b',
@@ -3479,7 +3337,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abidin', 'mohd', 'riduan', 'ustaz', 'zainal'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 100,
                 'uuid' => 'ffa8b8dd-48a9-4933-b7a7-7e4eb5b3966e',
@@ -3541,7 +3398,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['abdul', 'al', 'fatani', 'karim', 'makki', 'omar', 'syeikh'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 93,
                 'uuid' => 'a4e48523-0c00-4161-ad8d-082249ff10cc',
@@ -3584,7 +3440,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['otut', 'saifudin', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 71,
                 'uuid' => 'a3bd2dc4-b6f7-4fca-83ee-ffd7ee81de4d',
@@ -3627,7 +3482,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ghazali', 'omar', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 98,
                 'uuid' => 'ebe2d48d-a04f-4fee-9179-2c160cda258d',
@@ -3670,7 +3524,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['saad', 'salleh', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 78,
                 'uuid' => 'c0597bb2-9d52-47ea-9506-ff215167fe68',
@@ -3713,7 +3566,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['asmuni', 'fauzi', 'muhammad', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 69,
                 'uuid' => '2434b648-576f-471b-9eae-ddc8ee19eca4',
@@ -3756,7 +3608,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abdel', 'ali', 'magid', 'mohaimen', 'sayed', 'syeikh'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 58,
                 'uuid' => '676ad9ad-13c6-45d2-840f-0a9afc89ff59',
@@ -3799,7 +3650,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['firdaus', 'subhi', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 56,
                 'uuid' => '2c4f4bb9-50e0-449e-adab-d3c71e68b1fe',
@@ -3888,7 +3738,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['da', 'dai', 'fuad', 'i', 'mokhtar', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 113,
                 'uuid' => '93b43ca7-26ee-463e-8a9b-e05af2797a55',
@@ -3931,7 +3780,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['muhammad', 'shahbudin', 'shahir', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 62,
                 'uuid' => 'f5ab1e3b-7715-410b-a0ed-39c7c298c75f',
@@ -3974,7 +3822,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['speaker', 'test'],
-            'redirects' => [],
         ],
         [
             'id' => '019d8688-d3b7-7268-adcc-276b2a60602b',
@@ -4000,7 +3847,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['fariz', 'saiffil'],
-            'redirects' => [],
         ],
         [
             'id' => '019da653-9d24-70ea-8591-adc55931ec41',
@@ -4026,17 +3872,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['hamad', 'norzaidan', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019db0bd-3171-73e0-9996-087835be14be',
-                    'source_slug' => 'ustaz-norzaidan-bin-hamad-my',
-                    'first_visited_at' => '2026-04-21 15:48:19',
-                    'last_redirected_at' => null,
-                    'redirect_count' => 0,
-                    'created_at' => '2026-04-21 15:51:22',
-                    'updated_at' => '2026-04-21 15:51:22',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 172,
                 'uuid' => '22ab19ea-1dfe-4f08-85f2-7af1572d9297',
@@ -4079,17 +3914,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abdul', 'dr', 'lc', 'ma', 'prof', 'somad', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019dec41-3eae-7399-9417-139328fa9480',
-                    'source_slug' => 'prof-ustaz-dr-ustaz-abdul-somad-ma-lc-my',
-                    'first_visited_at' => '2026-05-03 05:11:57',
-                    'last_redirected_at' => '2026-05-03 05:13:43',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-03 05:13:12',
-                    'updated_at' => '2026-05-03 05:13:43',
-                ],
-            ],
         ],
         [
             'id' => '019dee26-e9fd-7253-b934-28e3a983e22a',
@@ -4115,7 +3939,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abidin', 'afzal', 'ahmad', 'zainal'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 185,
                 'uuid' => '7ea93b7f-3a3f-4714-aa4c-73727dc5243a',
@@ -4158,7 +3981,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['ahmad', 'basri', 'ustaz'],
-            'redirects' => [],
         ],
         [
             'id' => '019dee7a-f838-736e-9115-e12b88519f31',
@@ -4184,7 +4006,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['al', 'jauhari', 'nabil', 'ustaz', 'zain'],
-            'redirects' => [],
         ],
         [
             'id' => '019dee7b-6aaa-7123-b9eb-9418f704d381',
@@ -4210,17 +4031,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abdul', 'aziz', 'hafizullah', 'hj', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019df116-e7b7-7213-98af-7bfeca285e33',
-                    'source_slug' => 'ustaz-hafizullah-abd-aziz-my',
-                    'first_visited_at' => '2026-05-04 03:41:59',
-                    'last_redirected_at' => '2026-05-04 03:45:06',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-04 03:45:03',
-                    'updated_at' => '2026-05-04 03:45:06',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 192,
                 'uuid' => '05e1f6da-8e92-4f6c-b1ff-6dfffaf8b175',
@@ -4263,7 +4073,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['bin', 'dato', 'dr', 'idris', 'jafri', 'muhaddis'],
-            'redirects' => [],
         ],
         [
             'id' => '019dee7d-42ef-7272-be97-abadb6934452',
@@ -4289,7 +4098,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['amri', 'bin', 'mohd', 'ustaz', 'zaid'],
-            'redirects' => [],
         ],
         [
             'id' => '019dee7d-cb9c-72ed-aaf2-5484c9f3e0b8',
@@ -4315,7 +4123,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['mohd', 'suffian', 'ustaz'],
-            'redirects' => [],
         ],
         [
             'id' => '019dee7e-5191-7243-9aa4-36edab5988bb',
@@ -4341,17 +4148,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['maslori', 'pu', 'salman'],
-            'redirects' => [
-                [
-                    'id' => '019df10f-9fe8-718a-b397-1d310425a615',
-                    'source_slug' => 'ustaz-salman-my',
-                    'first_visited_at' => '2026-05-04 03:22:50',
-                    'last_redirected_at' => '2026-05-04 03:37:09',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-04 03:37:06',
-                    'updated_at' => '2026-05-04 03:37:09',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 191,
                 'uuid' => '63e9632a-8cee-4c60-b770-882dbfecf9da',
@@ -4394,17 +4190,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['dr', 'ellias', 'mohd', 'sobri', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019df100-16c1-700d-ab26-ccfa238130ed',
-                    'source_slug' => 'dr-dr-mohd-sobri-ellias-my',
-                    'first_visited_at' => '2026-05-04 03:17:36',
-                    'last_redirected_at' => '2026-05-04 03:20:09',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-04 03:20:08',
-                    'updated_at' => '2026-05-04 03:20:09',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 190,
                 'uuid' => 'ae427257-ebe1-47b5-9e8c-179b20501977',
@@ -4457,17 +4242,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['abu', 'bakar', 'hj', 'jafri', 'mahmoodi', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019df0fd-0227-7360-b17f-1946ab0dcfbd',
-                    'source_slug' => 'ustaz-jeffry-my',
-                    'first_visited_at' => '2026-05-04 03:11:21',
-                    'last_redirected_at' => '2026-05-04 03:16:48',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-04 03:16:46',
-                    'updated_at' => '2026-05-04 03:16:48',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 189,
                 'uuid' => '2cf46746-99a7-48f0-b55e-1be9220210a5',
@@ -4510,17 +4284,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['da', 'dai', 'hakin', 'i', 'luqman', 'muhammad', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019df0f7-1453-7157-a833-ef643a7379cf',
-                    'source_slug' => 'dai-muhammad-luqman-hakin-my',
-                    'first_visited_at' => '2026-05-04 03:08:05',
-                    'last_redirected_at' => '2026-05-04 03:10:19',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-04 03:10:17',
-                    'updated_at' => '2026-05-04 03:10:19',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 188,
                 'uuid' => '69d76a0c-f351-4686-aa5b-63a771c85714',
@@ -4573,7 +4336,6 @@ class SpeakerSeeder extends Seeder
                 ],
             ],
             'search_terms' => ['abd', 'azmi', 'hamid', 'hj', 'mohd', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 187,
                 'uuid' => '02fc4263-c685-4c69-8c35-b8b5cd4d73fc',
@@ -4616,17 +4378,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abu', 'bakar', 'hasnol', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019df0f1-813b-70fc-a672-76bb44cd31f1',
-                    'source_slug' => 'hasnol-abu-bakar-my',
-                    'first_visited_at' => '2026-05-04 03:00:07',
-                    'last_redirected_at' => '2026-05-04 03:04:14',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-04 03:04:12',
-                    'updated_at' => '2026-05-04 03:04:14',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 186,
                 'uuid' => '0a24e13e-15e4-4c4a-a429-8ff28a9065a3',
@@ -4669,7 +4420,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['din', 'mat', 'noraini', 'ustazah'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 215,
                 'uuid' => 'dd531c6f-49bb-43a0-a26e-9548cf45f226',
@@ -4712,7 +4462,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['kasim', 'uda', 'ustaz'],
-            'redirects' => [],
             'avatar' => [
                 'source_media_id' => 214,
                 'uuid' => '38c0f6ac-2dc9-48ab-87fb-39efee7bf779',
@@ -4755,17 +4504,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['abdul', 'hafidz', 'halim', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019dfc2a-fcfa-70e2-a27a-7dee83c232fc',
-                    'source_slug' => 'ustaz-halim-hapiz-my',
-                    'first_visited_at' => '2026-05-06 07:17:08',
-                    'last_redirected_at' => '2026-05-06 07:22:50',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-06 07:22:48',
-                    'updated_at' => '2026-05-06 07:22:50',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 234,
                 'uuid' => '371041fe-4080-419e-9801-dcf00240a02e',
@@ -4808,17 +4546,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['amin', 'fahmi', 'mohamed', 'muhammad', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019dfc2f-2549-710a-9e5b-988623d2903c',
-                    'source_slug' => 'ustaz-fahmi-amin-my',
-                    'first_visited_at' => '2026-05-06 07:22:57',
-                    'last_redirected_at' => '2026-05-06 07:27:23',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-06 07:27:21',
-                    'updated_at' => '2026-05-06 07:27:23',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 235,
                 'uuid' => '6877c937-e6dd-4a58-80eb-656ad6b66923',
@@ -4861,17 +4588,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['jidin', 'mat', 'mohammad', 'rizal', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019dfc23-ba16-72ac-be6d-7b36ed24bcfa',
-                    'source_slug' => 'ustaz-rizal-mat-jidin-my',
-                    'first_visited_at' => '2026-05-06 07:13:28',
-                    'last_redirected_at' => '2026-05-06 07:14:54',
-                    'redirect_count' => 1,
-                    'created_at' => '2026-05-06 07:14:53',
-                    'updated_at' => '2026-05-06 07:14:54',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 232,
                 'uuid' => 'f9b29326-4004-4f70-aa54-8981f66ec157',
@@ -4914,17 +4630,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['akhbar', 'jaffri', 'mohamad', 'tariq', 'ustaz'],
-            'redirects' => [
-                [
-                    'id' => '019dfc25-a80e-7314-9f3d-94de8cea836f',
-                    'source_slug' => 'ustaz-tariq-jaffri-my',
-                    'first_visited_at' => '2026-05-06 07:15:44',
-                    'last_redirected_at' => null,
-                    'redirect_count' => 0,
-                    'created_at' => '2026-05-06 07:16:59',
-                    'updated_at' => '2026-05-06 07:16:59',
-                ],
-            ],
             'avatar' => [
                 'source_media_id' => 233,
                 'uuid' => '3f204dc5-c949-4017-82f5-8bccf1cbb77a',
@@ -4967,7 +4672,6 @@ class SpeakerSeeder extends Seeder
             ],
             'socials' => [],
             'search_terms' => ['isa', 'jeffry', 'mat', 'ustaz'],
-            'redirects' => [],
         ],
     ];
 
@@ -4978,8 +4682,6 @@ class SpeakerSeeder extends Seeder
     private int $createdSocialProfileCount = 0;
 
     private int $createdSearchTermCount = 0;
-
-    private int $createdRedirectCount = 0;
 
     private int $createdMediaCount = 0;
 
@@ -5002,7 +4704,6 @@ class SpeakerSeeder extends Seeder
                     $this->importAddress($speaker, $person);
                     $this->importSocialProfiles($speaker, $person);
                     $this->importSearchTerms($speaker, $person);
-                    $this->importSlugRedirects($speaker, $person);
                     $this->importAvatar($speaker, $person);
                 }
             });
@@ -5015,7 +4716,6 @@ class SpeakerSeeder extends Seeder
                 ['Addresses created', $this->createdAddressCount],
                 ['Social profiles created', $this->createdSocialProfileCount],
                 ['Search terms created', $this->createdSearchTermCount],
-                ['Slug redirects created', $this->createdRedirectCount],
                 ['Avatar media records created (files stay on S3)', $this->createdMediaCount],
                 ['Addresses skipped (country not seeded)', $this->skippedAddressCount],
                 ['Social profiles skipped (unsupported platform)', $this->skippedSocialPlatformCount],
@@ -5399,64 +5099,6 @@ class SpeakerSeeder extends Seeder
     }
 
     /**
-     * @param  array<string, mixed>  $speaker
-     */
-    private function importSlugRedirects(array $speaker, Person $person): void
-    {
-        foreach ($speaker['redirects'] as $redirect) {
-            $sourceSlug = (string) $redirect['source_slug'];
-            $destinationSlug = (string) $person->slug;
-            $sourcePath = $this->personPath($sourceSlug);
-            $destinationPath = $this->personPath($destinationSlug);
-
-            if ($sourcePath === $destinationPath) {
-                continue;
-            }
-
-            $existing = DB::table('slug_redirects')->where('source_path', $sourcePath)->first();
-
-            if ($existing !== null
-                && ($existing->redirectable_type !== $person->getMorphClass()
-                    || (string) $existing->redirectable_id !== (string) $person->getKey())) {
-                continue;
-            }
-
-            $redirectId = $existing === null ? $redirect['id'] : $existing->id;
-
-            if ($existing === null && DB::table('slug_redirects')->where('id', $redirectId)->exists()) {
-                $redirectId = (string) Str::orderedUuid();
-            }
-
-            DB::table('slug_redirects')->updateOrInsert(
-                ['source_path' => $sourcePath],
-                [
-                    'id' => $redirectId,
-                    'redirectable_type' => $person->getMorphClass(),
-                    'redirectable_id' => $person->getKey(),
-                    'source_slug' => $sourceSlug,
-                    'source_path' => $sourcePath,
-                    'destination_slug' => $destinationSlug,
-                    'destination_path' => $destinationPath,
-                    'first_visited_at' => $redirect['first_visited_at'],
-                    'last_redirected_at' => $redirect['last_redirected_at'],
-                    'redirect_count' => $redirect['redirect_count'],
-                    'created_at' => $redirect['created_at'],
-                    'updated_at' => $redirect['updated_at'],
-                ],
-            );
-
-            if ($existing === null) {
-                $this->createdRedirectCount++;
-            }
-        }
-    }
-
-    private function personPath(string $slug): string
-    {
-        return (string) route('persons.show', ['person' => ltrim($slug, '/')], false);
-    }
-
-    /**
      * Import the avatar media row as metadata only; the file itself stays on
      * the production S3 bucket.
      *
@@ -5513,7 +5155,7 @@ class SpeakerSeeder extends Seeder
     }
 
     /**
-     * @return array<string, string>|null
+     * @return array<string, mixed>|null
      */
     private function normalizedBio(mixed $bio): ?array
     {
@@ -5521,6 +5163,6 @@ class SpeakerSeeder extends Seeder
             return null;
         }
 
-        return ['ms' => $bio];
+        return PersonBioContent::plainTextToRichContent($bio);
     }
 }

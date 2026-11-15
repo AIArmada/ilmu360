@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 use AIArmada\Authz\Models\Role;
+use App\Models\Institution;
+use App\Models\Person;
+use App\Models\User;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -179,8 +179,8 @@ it('resolves nearby institution joins against the configured addressing tables',
     ]);
     syncPrimaryAddressForTest($institution, [
         'country_id' => (string) $geo['country']->getKey(),
-        'lat' => 3.1390,
-        'lng' => 101.6869,
+        'latitude' => 3.1390,
+        'longitude' => 101.6869,
     ]);
 
     $names = collect($this->getJson('/api/v1/institutions?lat=3.1390&lng=101.6869&radius_km=12&per_page=10')

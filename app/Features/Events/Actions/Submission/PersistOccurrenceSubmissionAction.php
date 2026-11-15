@@ -17,12 +17,10 @@ use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\HardcodedPrayerFallback;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
-use Spatie\MediaLibrary\HasMedia;
 
 final readonly class PersistOccurrenceSubmissionAction
 {
@@ -36,14 +34,12 @@ final readonly class PersistOccurrenceSubmissionAction
 
     /**
      * @param  array{key: string, institution_id: string, category_ids: list<string>, prayer_slot: string, title: string}|null  $groupIdentity
-     * @param  (callable(HasMedia): void)|null  $persistRelationships
      */
     public function handle(
         PackageEvent $event,
         ValidatedEventSubmission $submission,
         bool $pendingReview,
         ?array $groupIdentity = null,
-        ?callable $persistRelationships = null,
     ): EventOccurrence {
         $state = $submission->state;
         $requestedVisibility = $this->enumValue($state['visibility'] ?? EventVisibility::Public->value);
@@ -75,10 +71,6 @@ final readonly class PersistOccurrenceSubmissionAction
         ]);
 
         $this->persistOccurrenceDetails($event, $occurrence, $submission);
-
-        if ($persistRelationships !== null) {
-            $persistRelationships($occurrence);
-        }
 
         return $occurrence;
     }

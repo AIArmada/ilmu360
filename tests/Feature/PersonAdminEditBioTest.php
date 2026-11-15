@@ -17,7 +17,7 @@ function createAdminPersonEditor(): User
     return $administrator;
 }
 
-it('renders the edit page for a person with a legacy locale-map biography', function () {
+it('renders the edit page for a person with a rich biography', function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
@@ -25,7 +25,14 @@ it('renders the edit page for a person with a legacy locale-map biography', func
 
     $person = Person::factory()->create([
         'bio' => [
-            'ms' => "Al-Fadhil Ustaz contoh berasal dari Slim River.\n\nBeliau aktif menyampaikan ceramah.",
+            'type' => 'doc',
+            'content' => [[
+                'type' => 'paragraph',
+                'content' => [[
+                    'type' => 'text',
+                    'text' => 'Al-Fadhil Ustaz contoh berasal dari Slim River.',
+                ]],
+            ]],
         ],
     ]);
 
@@ -36,14 +43,23 @@ it('renders the edit page for a person with a legacy locale-map biography', func
     });
 });
 
-it('hydrates a legacy locale-map biography into the rich editor', function () {
+it('hydrates the canonical biography document into the rich editor', function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
     $administrator = createAdminPersonEditor();
 
     $person = Person::factory()->create([
-        'bio' => ['ms' => 'Al-Fadhil Ustaz contoh berasal dari Slim River.'],
+        'bio' => [
+            'type' => 'doc',
+            'content' => [[
+                'type' => 'paragraph',
+                'content' => [[
+                    'type' => 'text',
+                    'text' => 'Al-Fadhil Ustaz contoh berasal dari Slim River.',
+                ]],
+            ]],
+        ],
     ]);
 
     OwnerContext::withOwner(null, function () use ($administrator, $person): void {

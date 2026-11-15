@@ -6,11 +6,11 @@ namespace App\Features\Directory\Actions\Persons;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\LocationSlugSegments;
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Directory\Support\DirectoryModel;
-use App\Platform\Routing\SyncSlugRedirectAction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -24,7 +24,7 @@ class GeneratePersonSlugAction
     use AsAction;
 
     public function __construct(
-        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
+        private readonly SlugRedirectRecorder $slugRedirectRecorder,
     ) {}
 
     public function syncPersonSlugsForName(string $name): bool
@@ -47,7 +47,7 @@ class GeneratePersonSlugAction
     {
         $slug = $this->forPerson($person);
 
-        return CanonicalSlug::persist($person, $slug, $this->syncSlugRedirectAction);
+        return CanonicalSlug::persist($person, $slug, $this->slugRedirectRecorder);
     }
 
     /**
@@ -80,7 +80,7 @@ class GeneratePersonSlugAction
             (string) $person->getKey(),
         );
 
-        return CanonicalSlug::persist($person, $slug, $this->syncSlugRedirectAction);
+        return CanonicalSlug::persist($person, $slug, $this->slugRedirectRecorder);
     }
 
     /**

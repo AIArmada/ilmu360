@@ -12,6 +12,8 @@ interface AccountSettingsStore
 {
     public function updateProfile(string $accountId, AccountProfileUpdate $update): void;
 
+    public function updateTimezone(string $accountId, string $timezone): void;
+
     /**
      * Administrative update including verification timestamps.
      *

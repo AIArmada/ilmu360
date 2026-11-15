@@ -8,13 +8,14 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Features\SavedSearches\Models\SavedSearch;
 use App\Features\Communications\EntryPoints\Livewire\NotificationsIndex;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Event;
 use App\Models\User;
 use App\Platform\Telemetry\ProductSignalSchemaRegistry;
+use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Mockery\MockInterface;
@@ -135,6 +136,7 @@ it('records a signals event when a password reset completes', function () {
 
     expect($signalEvent)->not->toBeNull();
     expect($signalEvent?->identity?->external_id)->toBe($user->id);
+    expect(Hash::check('ResetPassword123!', (string) $user->password))->toBeTrue();
 });
 
 it('records a signals event when email verification completes', function () {

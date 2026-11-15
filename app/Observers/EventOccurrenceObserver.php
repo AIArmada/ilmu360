@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Events\Api\EventDeletionScope;
 use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
-use App\Platform\Cache\PublicListingsCache;
+use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
 
@@ -15,6 +16,7 @@ final readonly class EventOccurrenceObserver implements ShouldHandleEventsAfterC
 {
     public function __construct(
         private PublicListingsCache $publicListingsCache,
+        private EventDeletionScope $eventDeletionScope,
     ) {}
 
     public function saved(EventOccurrence $occurrence): void
@@ -27,6 +29,10 @@ final readonly class EventOccurrenceObserver implements ShouldHandleEventsAfterC
 
     public function deleting(EventOccurrence $occurrence): void
     {
+        if ($this->eventDeletionScope->isDeleting((string) $occurrence->event_id)) {
+            return;
+        }
+
         $event = Event::query()->find($occurrence->event_id);
 
         if (! $event instanceof Event || $event->published_at === null) {

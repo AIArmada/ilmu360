@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Admin;
 
 use App\Enums\RegistrationScope;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Space;
-use App\Models\Venue;
+use App\Features\Directory\Api\DirectoryReader;
+use App\Features\Directory\Api\DirectoryRecordType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -42,10 +39,11 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
     protected string $title = 'Batch Create Events';
 
     #[\Override]
-    protected string $description = 'Use this MCP-only event wrapper to create multiple events in one request. Each item uses the same field contract as admin-create-event and resolves organizer, location, persons, and references by route keys before calling the shared admin event create path. Items are processed independently; the response contains a per-row result with status created, validation_failed, unresolved_key, or error. Set validate_only=true to preview all rows without persisting. apply_defaults is only honored together with validate_only=true for preview/autofill feedback; it is ignored for real creates, so persisted rows must explicitly include the values the caller wants to write. Include external_row_id per item for idempotency tracking and safe retries after interruption. Maximum 50 events per batch.';
+    protected string $description = 'Use this MCP event tool to create multiple events in one request. Each item uses the same field contract as admin-create-event and resolves organizer, location, persons, and references by route keys before calling the shared admin event create path. Items are processed independently; the response contains a per-row result with status created, validation_failed, unresolved_key, or error. Set validate_only=true to preview all rows without persisting. apply_defaults is only honored together with validate_only=true for preview/autofill feedback; it is ignored for real creates, so persisted rows must explicitly include the values the caller wants to write. Include external_row_id per item for idempotency tracking and safe retries after interruption. Maximum 50 events per batch.';
 
     public function __construct(
         private readonly AdminResourceService $resourceService,
+        private readonly DirectoryReader $directoryReader,
     ) {}
 
     public function handle(Request $request): Generator
@@ -200,6 +198,7 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
             $payload['primary_organizer_id'] = $this->resolvePrimaryOrganizerIdentifier(
                 field: 'primary_organizer_key',
                 key: $primaryOrganizerKey,
+                directoryReader: $this->directoryReader,
             );
         }
 
@@ -208,7 +207,8 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
         if ($institutionKey !== null) {
             $payload['institution_id'] = $this->resolveRecordIdentifier(
                 field: 'institution_key',
-                modelClass: Institution::class,
+                type: DirectoryRecordType::Institution,
+                directoryReader: $this->directoryReader,
                 key: $institutionKey,
             );
         }
@@ -218,7 +218,8 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
         if ($venueKey !== null) {
             $payload['venue_id'] = $this->resolveRecordIdentifier(
                 field: 'venue_key',
-                modelClass: Venue::class,
+                type: DirectoryRecordType::Venue,
+                directoryReader: $this->directoryReader,
                 key: $venueKey,
             );
         }
@@ -228,7 +229,8 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
         if ($spaceKey !== null) {
             $payload['space_id'] = $this->resolveRecordIdentifier(
                 field: 'space_key',
-                modelClass: Space::class,
+                type: DirectoryRecordType::Space,
+                directoryReader: $this->directoryReader,
                 key: $spaceKey,
             );
         }
@@ -245,7 +247,8 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
             $payload['persons'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
                     field: 'person_keys',
-                    modelClass: Person::class,
+                    type: DirectoryRecordType::Person,
+                    directoryReader: $this->directoryReader,
                     key: $key,
                 ),
                 $personKeys,
@@ -264,7 +267,8 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
             $payload['references'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
                     field: 'reference_keys',
-                    modelClass: Reference::class,
+                    type: DirectoryRecordType::Reference,
+                    directoryReader: $this->directoryReader,
                     key: $key,
                 ),
                 $referenceKeys,
@@ -307,8 +311,8 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),
-            'person_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying persons UUID array. On create, omit/null/[] all mean no persons; event types that require a person will fail validation if this resolves to an empty list. Pass person slugs/UUIDs to attach those persons in payload order.'),
-            'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying references UUID array. On create, omit/null/[] all mean no references. Pass reference slugs/UUIDs to link those references.'),
+            'person_keys' => $schema->array()->items($schema->string())->nullable()->description('Person route keys (slugs or UUIDs). On create, omit/null/[] all mean no persons; event types that require a person will fail validation if this resolves to an empty list. Pass person route keys to attach those persons in payload order.'),
+            'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('Reference route keys (slugs or UUIDs). On create, omit/null/[] all mean no references. Pass reference route keys to link those references.'),
             'languages' => $schema->array()->items($schema->string())->nullable(),
             'domain_tags' => $schema->array()->items($schema->string())->nullable(),
             'discipline_tags' => $schema->array()->items($schema->string())->nullable(),

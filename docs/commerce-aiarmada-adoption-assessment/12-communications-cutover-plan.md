@@ -63,7 +63,7 @@ The package ships its own `NotificationFamily`, `NotificationPriority`, `Notific
 **Consumers to update**:
 - `app/Livewire/Pages/Dashboard/NotificationsIndex.php` — main inbox page
 - `app/Livewire/Pages/Dashboard/UserDashboard.php` — recent notifications widget
-- `app/Http/Controllers/Api/NotificationMessageController.php` — inbox API
+- `app/Features/Communications/EntryPoints/Http/NotificationMessageController.php` — inbox API
 - `app/Actions/Notifications/MarkNotificationMessageReadAction.php`
 - `app/Actions/Notifications/MarkAllNotificationMessagesReadAction.php`
 - `app/Models/User.php` — `notificationMessages()` relationship → `notificationInbox()` morphMany to `notification_inboxes`

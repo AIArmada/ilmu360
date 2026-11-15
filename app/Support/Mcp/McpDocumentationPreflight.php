@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\Mcp;
 
+use App\Features\Mcp\Api\McpDocumentationAudience;
+use App\Features\Mcp\Api\McpDocumentationPreflightState;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Support\Facades\Cache;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -18,7 +19,7 @@ class McpDocumentationPreflight
 
     public const GUIDE_RESOURCE_URI = 'file://docs/ilmu360_mcp_admin_agent_guide.md';
 
-    private const string CACHE_KEY_PREFIX = 'mcp:documentation-preflight:admin:';
+    public function __construct(private readonly McpDocumentationPreflightState $preflightState) {}
 
     public function shouldBlockOperationalToolCall(Request $request, string $toolName, ?Transport $transport = null): bool
     {
@@ -35,14 +36,12 @@ class McpDocumentationPreflight
 
     public function markGuideInContext(Request|string|null $request): void
     {
-        foreach ($this->contextKeys($request) as $contextKey) {
-            Cache::put($this->cacheKey($contextKey), true, now()->addHours(12));
-        }
+        $this->preflightState->markGuideSeen(McpDocumentationAudience::Admin, $this->contextKeys($request));
     }
 
     public function hasGuideInContext(Request|string|null $request): bool
     {
-        return array_any($this->contextKeys($request), fn ($contextKey) => Cache::get($this->cacheKey($contextKey), false) === true);
+        return $this->preflightState->hasGuideBeenSeen(McpDocumentationAudience::Admin, $this->contextKeys($request));
     }
 
     public function isDocumentationTool(string $toolName): bool
@@ -180,10 +179,5 @@ class McpDocumentationPreflight
         }
 
         return sprintf('user:%s:%s', strtolower($user::class), $identifier);
-    }
-
-    private function cacheKey(string $sessionId): string
-    {
-        return self::CACHE_KEY_PREFIX.$sessionId;
     }
 }

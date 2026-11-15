@@ -13,7 +13,7 @@ use App\Models\Series;
 use App\Models\Venue;
 use App\Shared\Cache\SelectionCatalogCache;
 use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -779,11 +779,7 @@ class EventContributionFormSchema
             return [];
         }
 
-        return app(SpaceEligibilityResolver::class)->institutionQuery($institutionId)
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return app(SpaceEligibility::class)->institutionOptions($institutionId, activeOnly: true);
     }
 
     /**
@@ -795,11 +791,7 @@ class EventContributionFormSchema
             return [];
         }
 
-        return app(SpaceEligibilityResolver::class)->venueQuery($venueId)
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return app(SpaceEligibility::class)->venueOptions($venueId, activeOnly: true);
     }
 
     private static function shouldShowLocationSection(mixed $organizerType, mixed $eventFormat): bool

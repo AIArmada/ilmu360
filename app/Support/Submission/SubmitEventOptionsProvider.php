@@ -8,6 +8,9 @@ use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Features\Directory\Api\InstitutionSubmissionOptionsCache;
+use App\Features\Directory\Api\PersonSubmissionOptionsCache;
+use App\Features\Events\Api\EventSubmissionOptionsCache;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
@@ -17,13 +20,11 @@ use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Shared\Submission\EntitySubmissionAccess;
-use App\Shared\Submission\SubmissionOptionsCache;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -36,7 +37,11 @@ use Illuminate\Support\Str;
  */
 final class SubmitEventOptionsProvider
 {
-    public function __construct(private readonly SubmissionOptionsCache $optionsCache) {}
+    public function __construct(
+        private readonly InstitutionSubmissionOptionsCache $institutionSubmissionOptionsCache,
+        private readonly EventSubmissionOptionsCache $submissionOptionsCache,
+        private readonly PersonSubmissionOptionsCache $personSubmissionOptionsCache,
+    ) {}
 
     /** @var array<string, array<string, string>> Request-only option memo, never shared across requests. */
     private array $optionMemo = [];
@@ -69,7 +74,7 @@ final class SubmitEventOptionsProvider
         // cross-user membership leakage.
         return $this->optionMemo[$memoKey] = $submitter instanceof User
             ? $load()
-            : Cache::remember($this->optionsCache->institutionOptionsKey($countryId), 60, $load);
+            : $this->institutionSubmissionOptionsCache->rememberGuestOptions($countryId, $load);
     }
 
     /**
@@ -94,7 +99,7 @@ final class SubmitEventOptionsProvider
 
         return $this->optionMemo[$memoKey] = $submitter instanceof User
             ? $load()
-            : Cache::remember('submit_persons', 60, $load);
+            : $this->personSubmissionOptionsCache->rememberGuestPersonOptions($load);
     }
 
     /**
@@ -102,9 +107,8 @@ final class SubmitEventOptionsProvider
      */
     public function venueOptions(?string $countryId = null): array
     {
-        return Cache::remember(
-            $this->submitCacheKey('submit_venues_'.($countryId ?? 'all')),
-            60,
+        return $this->submissionOptionsCache->rememberVenueOptions(
+            $countryId,
             fn (): array => app(EntitySubmissionAccess::class)->venueQuery($countryId)
                 ->orderBy('name')
                 ->pluck('name', 'id')
@@ -142,7 +146,7 @@ final class SubmitEventOptionsProvider
      */
     public function tagOptions(EventTaxonomyCode $type, string $cachePrefix): array
     {
-        return Cache::remember($this->submitCacheKey($cachePrefix.'_'.app()->getLocale()), 60, function () use ($type): array {
+        return $this->submissionOptionsCache->rememberTaxonomyTagOptions($cachePrefix, app()->getLocale(), function () use ($type): array {
             $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->value('id');
 
             if ($taxonomyId === null) {
@@ -249,7 +253,7 @@ final class SubmitEventOptionsProvider
      */
     public function speakerRequiredCategoryIds(): array
     {
-        return Cache::remember('submit_event_client_progress_configuration', 300, function (): array {
+        $configuration = $this->submissionOptionsCache->rememberClientProgressConfiguration(function (): array {
             $categoryCatalog = app(EventCategoryCatalog::class);
             $speakerRequiredCategoryIds = collect($categoryCatalog->options())
                 ->keys()
@@ -264,7 +268,9 @@ final class SubmitEventOptionsProvider
             return [
                 'speaker_required_category_ids' => $speakerRequiredCategoryIds,
             ];
-        })['speaker_required_category_ids'];
+        });
+
+        return $configuration['speaker_required_category_ids'];
     }
 
     public function defaultSubmissionCountryId(): ?string
@@ -279,7 +285,7 @@ final class SubmitEventOptionsProvider
      */
     public function multiTimezoneCountryIds(): array
     {
-        return Cache::remember($this->submitCacheKey('submit_diverging_timezone_countries'), 300, function (): array {
+        return $this->submissionOptionsCache->rememberMultiTimezoneCountryIds(function (): array {
             $catalog = app(SubmissionTimingPolicy::class)->countryTimezoneCatalog();
             $multi = [];
 
@@ -308,10 +314,5 @@ final class SubmitEventOptionsProvider
             ->value('id');
 
         return is_string($termId) ? $termId : null;
-    }
-
-    private function submitCacheKey(string $key): string
-    {
-        return "{$key}_safe_v2";
     }
 }

@@ -17,11 +17,10 @@ use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibility;
 use App\Shared\Submission\EntitySubmissionAccess;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Search\InstitutionSearchService;
@@ -35,7 +34,7 @@ class FrontendCatalogService
     public function __construct(
         private readonly InstitutionSearchService $institutionSearchService,
         private readonly PersonSearchService $personSearchService,
-        private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
+        private readonly SpaceEligibility $spaceEligibilityResolver,
     ) {}
 
     /**
@@ -433,27 +432,20 @@ class FrontendCatalogService
      */
     public function spaces(?string $institutionId = null): array
     {
-        $query = is_string($institutionId) && $institutionId !== ''
-            ? $this->spaceEligibilityResolver->institutionQuery($institutionId)
-            : $this->spaceEligibilityResolver->catalogQuery();
+        $options = is_string($institutionId) && $institutionId !== ''
+            ? $this->spaceEligibilityResolver->institutionOptions($institutionId, activeOnly: true)
+            : $this->spaceEligibilityResolver->catalogOptions(activeOnly: true);
 
-        $query
-            ->where('status', 'active')
-            ->orderBy('name');
-
-        return $query
-            ->get(['id', 'name'])
-            ->map(fn (Space $space): array => [
-                'id' => (string) $space->id,
-                'label' => (string) $space->name,
-            ])
+        return collect($options)
+            ->map(static fn (string $label, string $id): array => ['id' => $id, 'label' => $label])
+            ->values()
             ->all();
     }
 
     /**
      * @return list<array{id: string, label: string}>
      */
-    public function membershipClaimSubjects(MemberSubjectType $subjectType, string $search): array
+    public function membershipApplicationSubjects(MemberSubjectType $subjectType, string $search): array
     {
         return match ($subjectType) {
             MemberSubjectType::Institution => Institution::query()

@@ -39,10 +39,13 @@ class SubmitContributionUpdateRequestAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $this->pendingRequests->ensureNoPending($lockedEntity);
+            $lockedEntityMetadata = ContributionEntityMetadata::for($lockedEntity);
+            $entityType = $lockedEntityMetadata['entity_type'];
+            $entityId = $lockedEntityMetadata['entity_id'];
+            $this->pendingRequests->ensureNoPending($entityType, $entityId);
 
             $originalData = array_intersect_key(
-                $this->entityState->stateFor($lockedEntity),
+                $this->entityState->stateFor($entityType, $entityId),
                 $proposedData,
             );
 

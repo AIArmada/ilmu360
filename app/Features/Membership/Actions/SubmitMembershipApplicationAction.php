@@ -75,7 +75,7 @@ final readonly class SubmitMembershipApplicationAction
         if ($subjectType === MembershipSubjectType::Institution || $subjectType === MembershipSubjectType::Person) {
             foreach ($this->membershipDirectory->members($subjectType, $subjectId) as $member) {
                 if ($member->accountId === $accountId) {
-                    throw new RuntimeException('membership_claim_already_member');
+                    throw new RuntimeException('membership_application_already_member');
                 }
             }
         }
@@ -88,7 +88,7 @@ final readonly class SubmitMembershipApplicationAction
             ->where('applicant_id', $accountId)
             ->where('status', ApplicationStatus::Pending->value)
             ->exists()) {
-            throw new RuntimeException('membership_claim_duplicate_pending');
+            throw new RuntimeException('membership_application_duplicate_pending');
         }
 
         $email = $account->getAttribute('email');
@@ -110,7 +110,7 @@ final readonly class SubmitMembershipApplicationAction
                     ->orWhere('expires_at', '>', now());
             })
             ->exists()) {
-            throw new RuntimeException('membership_claim_pending_invitation');
+            throw new RuntimeException('membership_application_pending_invitation');
         }
     }
 

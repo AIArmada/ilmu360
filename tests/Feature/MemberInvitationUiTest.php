@@ -3,6 +3,7 @@
 use AIArmada\Membership\Actions\InviteMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Directory\Actions\Institutions\DeleteInstitutionAction;
 use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;
 use App\Livewire\Pages\Membership\ShowInvitation;
@@ -240,7 +241,7 @@ it('shows invalid messaging when the invited subject no longer exists', function
     ]);
     $invitation->issue($rawToken)->save();
 
-    $institution->delete();
+    app(DeleteInstitutionAction::class)->handle($institution);
 
     Livewire::actingAs($invitee)
         ->test(ShowInvitation::class, [

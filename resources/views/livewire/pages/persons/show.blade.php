@@ -1,11 +1,12 @@
 @php
     $personShareImageUrl = $person->public_avatar_url;
     $metaBioIsTiptap = is_array($person->bio) && ($person->bio['type'] ?? null) === 'doc' && isset($person->bio['content']) && is_array($person->bio['content']);
-    $metaBioRaw = $metaBioIsTiptap ? '' : (is_array($person->bio) ? (data_get($person->bio, app()->getLocale()) ?: data_get($person->bio, 'ms') ?: data_get($person->bio, 'en') ?: '') : (string) $person->bio);
     try {
-        $metaBioText = $metaBioIsTiptap ? trim(\Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)->toText() ?? '') : trim(strip_tags((string) $metaBioRaw));
+        $metaBioText = $metaBioIsTiptap
+            ? trim(\Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)->toText() ?? '')
+            : '';
     } catch (\Throwable) {
-        $metaBioText = trim(strip_tags((string) $metaBioRaw));
+        $metaBioText = '';
     }
     $metaDescription = \Illuminate\Support\Str::limit($metaBioText !== '' ? $metaBioText : __('Lihat profil, biodata, dan jadual majlis oleh :name di :app.', ['name' => $person->formatted_name, 'app' => config('app.name')]), 160);
 @endphp
@@ -19,11 +20,10 @@
 
 @php
     $bioIsTiptap = is_array($person->bio) && ($person->bio['type'] ?? null) === 'doc' && isset($person->bio['content']) && is_array($person->bio['content']);
-    $bioLocaleText = $bioIsTiptap ? '' : (is_array($person->bio) ? (data_get($person->bio, app()->getLocale()) ?: data_get($person->bio, 'ms') ?: data_get($person->bio, 'en') ?: (array_is_list($person->bio) ? implode("\n\n", collect($person->bio)->map(fn ($entry) => is_string($entry) ? $entry : ($entry['text'] ?? ''))->filter(fn ($v) => is_string($v) && trim($v) !== '')->values()->all()) : collect($person->bio)->first(fn ($v) => is_string($v) && trim($v) !== ''))) : (string) $person->bio);
     $bioRenderer = $bioIsTiptap
         ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)
         : null;
-    $bioText = $bioIsTiptap ? trim($bioRenderer?->toText() ?? '') : trim(strip_tags((string) $bioLocaleText));
+    $bioText = trim($bioRenderer?->toText() ?? '');
     $locationString = \App\Support\Location\AddressHierarchyFormatter::format($person->primaryAddress());
     $upcomingEvents = $this->upcomingEvents;
     $savedEventIds = $this->savedEventIds;

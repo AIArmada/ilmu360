@@ -102,7 +102,7 @@ class MemberUpdateRecordTool extends AbstractMemberWriteTool
         $tool['_meta'] = array_merge(
             is_array($tool['_meta'] ?? null) ? $tool['_meta'] : [],
             [
-                'openai/note' => 'Media file descriptors are accepted inside payload for media-capable resources. Pass {content_base64, filename} or {content_url, filename}.',
+                'openai/note' => 'Media file descriptors are accepted inside payload for media-capable resources. Pass filename and exactly one of content_base64, content_url, or download_url.',
             ],
         );
 

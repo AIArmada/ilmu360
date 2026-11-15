@@ -24,7 +24,7 @@ final class DatabaseSourceReceiptReader implements SourceReceiptReader
      */
     public function keysBetween(DateTimeImmutable $from, DateTimeImmutable $to): iterable
     {
-        $receipts = ShareTrackingModel::sourceReceiptQuery()
+        $receipts = ShareTrackingModel::query('share_source_attribution_receipt')
             ->where('namespace', ShareOutcomeBusinessKey::NAMESPACE)
             ->whereBetween('occurred_at', [$from, $to])
             ->orderBy('occurred_at')

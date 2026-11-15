@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\DonationChannels;
 
 use App\Features\Directory\Support\DirectoryModel;
+use App\Models\DonationChannel;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\DonationChannelStatus;
@@ -13,7 +14,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
-use Spatie\MediaLibrary\HasMedia;
 
 final readonly class SaveDonationChannelAction
 {
@@ -27,15 +27,19 @@ final readonly class SaveDonationChannelAction
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, ?Model $donationChannel = null): Model
+    public function handle(array $data, ?DonationChannel $donationChannel = null): DonationChannel
     {
-        $creating = ! $donationChannel instanceof Model;
+        $creating = $donationChannel === null;
 
-        if (! $creating) {
+        if ($donationChannel instanceof DonationChannel) {
             DirectoryModel::assert($donationChannel, 'donation_channel');
         }
 
         $donationChannel ??= DirectoryModel::new('donation_channel');
+
+        if (! $donationChannel instanceof DonationChannel) {
+            throw new RuntimeException('The registered donation channel model must extend the Directory donation channel model.');
+        }
 
         $owner = $this->normalizeOwner(
             $data['donatable_type'] ?? $donationChannel->getAttribute('donatable_type'),
@@ -67,10 +71,6 @@ final readonly class SaveDonationChannelAction
             $this->transitionStatus->handle($donationChannel, $status);
         }
 
-        if (! $donationChannel instanceof HasMedia) {
-            throw new RuntimeException('Donation channels must support media.');
-        }
-
         if (($data['clear_qr'] ?? false) === true) {
             $this->mediaSyncService->clearCollection($donationChannel, 'qr');
         }
@@ -88,7 +88,7 @@ final readonly class SaveDonationChannelAction
      * @param  array<string, mixed>  $data
      * @return array<string, string|null>
      */
-    private function methodAttributes(string $method, array $data, Model $donationChannel): array
+    private function methodAttributes(string $method, array $data, DonationChannel $donationChannel): array
     {
         return match ($method) {
             'bank_account' => [

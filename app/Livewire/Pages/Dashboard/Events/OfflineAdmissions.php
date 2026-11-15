@@ -20,7 +20,7 @@ use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Events\Enums\OfflineAdmissionPaymentMethod;
-use App\Support\Events\ParticipantIdentity;
+use App\Shared\Events\ParticipantIdentity;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -313,7 +313,7 @@ final class OfflineAdmissions extends Component
         $orderIds = $registrations->pluck('external_order_id')->filter()->map(static fn (mixed $id): string => (string) $id)->values();
 
         /** @var Collection<string, Order> $orders */
-        $orders = OwnerContext::withOwner(null, fn(): Collection => collect(Order::query()->whereIn('id', $orderIds->all())->get())
+        $orders = OwnerContext::withOwner(null, fn (): Collection => collect(Order::query()->whereIn('id', $orderIds->all())->get())
             ->keyBy(static fn (Order $order): string => (string) $order->getKey()));
 
         /** @var Collection<int, array<string, mixed>> $admissions */
@@ -621,7 +621,7 @@ final class OfflineAdmissions extends Component
 
         $ticketEvent = EventTicketScope::event($ticket);
 
-        if (!$ticketEvent instanceof \AIArmada\Events\Models\Event || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
+        if (! $ticketEvent instanceof \AIArmada\Events\Models\Event || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
             return null;
         }
 

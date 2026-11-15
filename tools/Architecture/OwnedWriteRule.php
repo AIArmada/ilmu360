@@ -44,19 +44,33 @@ final class OwnedWriteRule implements Rule
     /** @var list<string> */
     private const WRITE_RULES = [self::FOREIGN_WRITE, self::WRITE_LOCATION];
 
-    /** @var array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>} */
+    /**
+     * @var array{
+     *     features: array<string, string>,
+     *     owners: array<string, string>,
+     *     writes: array<string, list<string>>,
+     *     aliases: array<string, array<string, string>>,
+     *     rootStoreWriters: array<string, array{adapter: 'cache'|'filesystem'|'redis', resource: string, reason: string, expires: string}>
+     * }
+     */
     private array $catalog;
 
-    /** @var array<string, array<string, array<string, true>>> Rule, project-relative file, target. */
+    /** @var array<string, array<string, array<string, array<string, true>>>> Rule, project-relative file, target, model. */
     private array $writeExceptions = [];
 
-    /** @var array<class-string, string|null> */
+    /** @var array<string, array{adapter: 'cache'|'filesystem'|'redis', resource: string, reason: string, expires: string}> */
+    private array $rootStoreWriterDeclarations = [];
+
+    /** @var array<string, string|null> */
     private array $modelResources = [];
+
+    /** @var array<string, string|null> */
+    private array $configuredTables = [];
 
     public function __construct(private readonly ReflectionProvider $reflectionProvider, private readonly string $projectRoot)
     {
-        $this->catalog = FeatureCatalog::load($projectRoot);
         $this->writeExceptions = $this->loadWriteExceptions($projectRoot);
+        $this->catalog = FeatureCatalog::load($projectRoot, $this->rootStoreWriterDeclarations);
     }
 
     public function getNodeType(): string
@@ -79,6 +93,8 @@ final class OwnedWriteRule implements Rule
         } else {
             $type = $scope->getType($node->var);
         }
+        $storeAdapters = $this->storeAdapterFamilies($type);
+        $storeAdapter = count($storeAdapters) === 1 ? $storeAdapters[0] : null;
 
         $db = ['save', 'savequietly', 'saveorfail', 'push', 'pushquietly', 'create', 'createquietly', 'forcecreate', 'forcecreatequietly',
             'update', 'updatequietly', 'updateorcreate', 'firstorcreate', 'createorfirst', 'incrementorcreate',
@@ -95,9 +111,7 @@ final class OwnedWriteRule implements Rule
         $database = $this->isA($type, [Model::class, Builder::class,
             Relation::class, \Illuminate\Database\Query\Builder::class,
             ConnectionInterface::class, DB::class]);
-        $store = $this->isA($type, [Repository::class, Store::class,
-            Filesystem::class, Connection::class,
-            Cache::class, Storage::class, Redis::class]);
+        $store = $storeAdapters !== [];
         if ((! $database || ! in_array($method, $db, true)) && (! $store || ! in_array($method, $stores, true))) {
             return [];
         }
@@ -105,53 +119,116 @@ final class OwnedWriteRule implements Rule
         $file = str_replace('\\', '/', realpath($scope->getFile()) ?: $scope->getFile());
         $root = rtrim(str_replace('\\', '/', realpath($this->projectRoot) ?: $this->projectRoot), '/');
         $relative = str_starts_with($file, $root.'/') ? substr($file, strlen($root) + 1) : $file;
+        $exceptionFile = $relative;
+        if ($scope->isInTrait()) {
+            $traitFile = $scope->getTraitReflection()->getFileName();
+
+            if ($traitFile !== null) {
+                $traitFile = str_replace('\\', '/', realpath($traitFile) ?: $traitFile);
+                $exceptionFile = str_starts_with($traitFile, $root.'/')
+                    ? substr($traitFile, strlen($root) + 1)
+                    : $traitFile;
+            }
+        }
+
         if ($this->isNonRuntimePath($relative)) {
             return [];
         }
         $feature = preg_match('~^app/Features/([^/]+)/~', $relative, $match) ? $match[1] : null;
         $class = $scope->getClassReflection()?->getName();
-        $resources = $class === null ? [] : ($this->catalog['writes'][$class] ?? []);
-        $resource = $database ? $this->tableResource($node, $feature) : null;
-        $resource ??= $this->aliasResource($node, $feature);
-        $modelClasses = $type->getObjectClassNames();
+        $writerResources = $class === null ? [] : ($this->catalog['writes'][$class] ?? []);
+        $rootStoreWriter = $class === null ? null : ($this->catalog['rootStoreWriters'][$class] ?? null);
+        if ($rootStoreWriter !== null && $rootStoreWriter['adapter'] === $storeAdapter) {
+            $writerResources[] = $rootStoreWriter['resource'];
+        }
+        $resources = $database ? $this->tableResources($node, $feature, $scope) : [];
+        $aliasResource = $this->aliasResource($node, $feature, $scope);
+        if ($aliasResource !== null) {
+            $resources[] = $aliasResource;
+        }
+        if ($store && count($writerResources) === 1 && str_starts_with($writerResources[0], 'store:')) {
+            $resources[] = $writerResources[0];
+        }
+        $modelClasses = array_values(array_filter(
+            $type->getObjectClassNames(),
+            fn (string $model): bool => $this->isA(new ObjectType($model), [Model::class]),
+        ));
         $relatedTypes = [
             $type->getTemplateType(Builder::class, 'TModel'),
             $type->getTemplateType(Relation::class, 'TRelatedModel'),
         ];
         foreach ($relatedTypes as $relatedType) {
             foreach ($relatedType->getObjectClassNames() as $model) {
-                $modelClasses[] = $model;
-            }
-        }
-        foreach ($modelClasses as $model) {
-            if ($this->isA(new ObjectType($model), [Model::class])) {
-                $resource ??= $this->modelResource($model);
-            }
-        }
-        $owner = $resource === null ? null : ($this->catalog['owners'][$resource] ?? null);
-        // Application infrastructure outside feature ownership is outside this rule's scope.
-        if ($feature === null && $owner === null) {
-            return [];
-        }
-        if ($resource !== null && $owner !== null && $owner !== $feature) {
-            return $this->violation("{$resource} belongs to {$owner}; call its public API.", self::FOREIGN_WRITE, $relative, $resource);
-        }
-        if ($resource !== null && ! in_array($resource, $resources, true)) {
-            return $this->violation("{$class} is not a declared write action for {$resource}; register it under the owning feature or delegate to one.", self::WRITE_LOCATION, $relative, $resource);
-        }
-        if ($resource === null) {
-            $prefix = $database ? 'table:' : 'store:';
-            $allowed = array_filter($resources, static fn (string $value): bool => str_starts_with($value, $prefix));
-            if ($allowed === []) {
-                // Unresolvable keys have no table/store identity; exceptions name the storage category.
-                return $this->violation('Storage mutations belong in a named owning-feature Actions/Persistence/Contributors class listed in feature.json.', self::WRITE_LOCATION, $relative, $prefix.'unknown');
+                if ($this->isA(new ObjectType($model), [Model::class])) {
+                    $modelClasses[] = $model;
+                }
             }
         }
 
-        return [];
+        if ($node instanceof Node\Expr\StaticCall
+            && $node->class instanceof Node\Name
+            && strtolower($node->class->toString()) === 'parent') {
+            $contextClass = $scope->getClassReflection()?->getName();
+
+            if ($contextClass !== null && $this->isA(new ObjectType($contextClass), [Model::class])) {
+                $modelClasses = [$contextClass];
+            }
+        }
+
+        $modelClasses = array_values(array_unique($modelClasses));
+        foreach ($modelClasses as $model) {
+            $resource = $this->modelResource($model, $feature);
+
+            if ($resource !== null) {
+                $resources[] = $resource;
+            }
+        }
+        $resources = array_values(array_unique($resources));
+
+        if ($resources !== []) {
+            $errors = [];
+
+            foreach ($resources as $resource) {
+                $owner = $this->catalog['owners'][$resource] ?? null;
+
+                // Application infrastructure outside feature ownership is outside this rule's scope.
+                if ($feature === null && $owner === null) {
+                    continue;
+                }
+                if ($owner !== null && $owner !== $feature) {
+                    array_push($errors, ...$this->violation("{$resource} belongs to {$owner}; call its public API.", self::FOREIGN_WRITE, $exceptionFile, $resource, $modelClasses));
+
+                    continue;
+                }
+                if (! in_array($resource, $writerResources, true)) {
+                    array_push($errors, ...$this->violation(
+                        "{$class} is not a declared write action for {$resource}; register it under the owning feature or delegate to one.",
+                        self::WRITE_LOCATION,
+                        $exceptionFile,
+                        $resource,
+                        $modelClasses,
+                    ));
+                }
+            }
+
+            return $errors;
+        }
+
+        $prefix = $database ? 'table:' : 'store:';
+        $receiverTypes = $modelClasses === [] ? 'none' : implode(', ', $modelClasses);
+
+        // A writer's ownership of one resource cannot authorize an
+        // unresolved mutation against every other resource.
+        return $this->violation(
+            "Cannot resolve {$prefix}unknown from receiver model types [{$receiverTypes}]; storage mutations belong in a named owning-feature Actions/Persistence/Contributors class listed in feature.json.",
+            self::WRITE_LOCATION,
+            $exceptionFile,
+            $prefix.'unknown',
+            $modelClasses,
+        );
     }
 
-    /** @return array<string, array<string, array<string, true>>> */
+    /** @return array<string, array<string, array<string, array<string, true>>>> */
     private function loadWriteExceptions(string $root): array
     {
         $path = rtrim(str_replace('\\', '/', $root), '/').'/tools/architecture.json';
@@ -175,6 +252,39 @@ final class OwnedWriteRule implements Rule
             throw new RuntimeException("Invalid {$path} schema.");
         }
 
+        if (! is_array($config['root_store_writers'] ?? null)) {
+            throw new RuntimeException("Invalid {$path} root store writer registry.");
+        }
+
+        foreach ($config['root_store_writers'] as $class => $writer) {
+            if (! is_string($class) || ! is_array($writer)) {
+                throw new RuntimeException("Invalid {$path} root store writer entry.");
+            }
+
+            if (array_is_list($writer)
+                || array_diff(array_keys($writer), ['adapter', 'resource', 'reason', 'expires']) !== []
+                || array_diff(['adapter', 'resource', 'reason', 'expires'], array_keys($writer)) !== []) {
+                throw new RuntimeException("Invalid {$path} root store writer entry.");
+            }
+
+            $adapter = $writer['adapter'] ?? null;
+            $resource = $writer['resource'] ?? null;
+            $reason = $writer['reason'] ?? null;
+            $expires = $writer['expires'] ?? null;
+
+            if (! is_string($adapter) || ! in_array($adapter, ['cache', 'filesystem', 'redis'], true)
+                || ! is_string($resource) || ! is_string($reason) || ! is_string($expires)) {
+                throw new RuntimeException("Invalid {$path} root store writer entry.");
+            }
+
+            $this->rootStoreWriterDeclarations[$class] = [
+                'adapter' => $adapter,
+                'resource' => $resource,
+                'reason' => $reason,
+                'expires' => $expires,
+            ];
+        }
+
         $declared = $config['exceptions'] ?? null;
         if (! is_array($declared)) {
             throw new RuntimeException("Invalid {$path} exceptions.");
@@ -191,15 +301,25 @@ final class OwnedWriteRule implements Rule
             $this->exceptionField($exception, 'reason', $path);
             $this->exceptionField($exception, 'owner', $path);
             $expires = $this->exceptionField($exception, 'expires', $path);
+            $model = $exception['model'] ?? null;
             if (! in_array($rule, self::EXCEPTION_RULES, true) || strpbrk($file.$target, '*?') !== false) {
                 throw new RuntimeException("Invalid {$path} exception: allowed rule and exact file/target (no wildcard) required.");
+            }
+            if (str_starts_with($target, 'table:')
+                && (! is_string($model) || ! preg_match('/^[A-Za-z_][A-Za-z0-9_\\\\]*$/D', $model))) {
+                throw new RuntimeException("Table write exceptions require an exact model class: {$file} {$target}");
+            }
+            if ($target === 'store:unknown') {
+                throw new RuntimeException("Unknown store exceptions are not allowed: {$file} {$target}");
             }
             $date = DateTimeImmutable::createFromFormat('!Y-m-d', $expires);
             if (! $date || $date->format('Y-m-d') !== $expires || $expires < gmdate('Y-m-d')) {
                 throw new RuntimeException("Invalid/expired exception: {$file} {$target}");
             }
             if (in_array($rule, self::WRITE_RULES, true)) {
-                $exceptions[$rule][$file][$target] = true;
+                if (is_string($model)) {
+                    $exceptions[$rule][$file][$target][$model] = true;
+                }
             }
         }
 
@@ -217,10 +337,14 @@ final class OwnedWriteRule implements Rule
         return $value;
     }
 
-    /** @return list<IdentifierRuleError> */
-    private function violation(string $message, string $identifier, string $file, string $target): array
+    /**
+     * @param  list<string>  $modelClasses
+     * @return list<IdentifierRuleError>
+     */
+    private function violation(string $message, string $identifier, string $file, string $target, array $modelClasses = []): array
     {
-        if (isset($this->writeExceptions[$identifier][$file][$target])) {
+        $exceptionModels = $this->writeExceptions[$identifier][$file][$target] ?? [];
+        if (count($modelClasses) === 1 && isset($exceptionModels[$modelClasses[0]])) {
             return [];
         }
 
@@ -250,28 +374,70 @@ final class OwnedWriteRule implements Rule
         return false;
     }
 
-    private function tableResource(Node\Expr $node, ?string $feature = null): ?string
+    /** @return list<'cache'|'filesystem'|'redis'> */
+    private function storeAdapterFamilies(Type $type): array
+    {
+        $families = [];
+
+        if ($this->isA($type, [Repository::class, Store::class, Cache::class])) {
+            $families[] = 'cache';
+        }
+
+        if ($this->isA($type, [Filesystem::class, Storage::class])) {
+            $families[] = 'filesystem';
+        }
+
+        if ($this->isA($type, [Connection::class, Redis::class])) {
+            $families[] = 'redis';
+        }
+
+        return $families;
+    }
+
+    /** @return list<string> */
+    private function tableResources(Node\Expr $node, ?string $feature, Scope $scope): array
     {
         while ($node instanceof Node\Expr\MethodCall || $node instanceof Node\Expr\NullsafeMethodCall || $node instanceof Node\Expr\StaticCall) {
             if ($node->name instanceof Node\Identifier && in_array(strtolower($node->name->toString()), ['table', 'from'], true)
-                && isset($node->args[0]) && $node->args[0]->value instanceof Node\Scalar\String_) {
-                return 'table:'.$node->args[0]->value->value;
+                && isset($node->args[0]) && $node->args[0]->value instanceof Node\Expr) {
+                $tables = $this->tableArguments($node->args[0]->value, $scope);
+
+                if ($tables !== []) {
+                    return array_map(static fn (string $table): string => 'table:'.$table, $tables);
+                }
             }
             if ($node instanceof Node\Expr\StaticCall) {
                 // Chained alias writes, e.g. DirectoryModel::query('institution')->where(...)->delete().
-                $aliasResource = $this->aliasResource($node, $feature);
+                $aliasResource = $this->aliasResource($node, $feature, $scope);
                 if ($aliasResource !== null) {
-                    return $aliasResource;
+                    return [$aliasResource];
                 }
                 break;
             }
             $node = $node->var;
         }
 
-        return null;
+        return [];
     }
 
-    private function aliasResource(Node\Expr $node, ?string $feature): ?string
+    /** @return list<string> */
+    private function tableArguments(Node\Expr $expression, Scope $scope): array
+    {
+        $literal = $this->literalTable($expression);
+
+        if ($literal !== null) {
+            return [$literal];
+        }
+
+        $constantStrings = $scope->getType($expression)->getConstantStrings();
+
+        return array_values(array_unique(array_map(
+            static fn (\PHPStan\Type\Constant\ConstantStringType $table): string => $table->getValue(),
+            $constantStrings,
+        )));
+    }
+
+    private function aliasResource(Node\Expr $node, ?string $feature, Scope $scope): ?string
     {
         if ($feature === null || ! $node instanceof Node\Expr\StaticCall) {
             return null;
@@ -282,7 +448,10 @@ final class OwnedWriteRule implements Rule
         if (! in_array(strtolower($node->name->toString()), ['query', 'new'], true)) {
             return null;
         }
-        if (! str_ends_with($node->class->toString(), 'DirectoryModel')) {
+        $class = $scope->resolveName($node->class);
+
+        if (! str_starts_with($class, 'App\\Features\\'.$feature.'\\Support\\')
+            || ! str_ends_with($class, 'Model')) {
             return null;
         }
         $argument = $node->args[0]->value ?? null;
@@ -293,34 +462,179 @@ final class OwnedWriteRule implements Rule
         return $this->catalog['aliases'][$feature][$argument->value] ?? null;
     }
 
-    private function modelResource(string $model): ?string
+    private function modelResource(string $model, ?string $feature): ?string
     {
-        if (array_key_exists($model, $this->modelResources)) {
-            return $this->modelResources[$model];
+        $cacheKey = ($feature ?? '').'|'.$model;
+
+        if (array_key_exists($cacheKey, $this->modelResources)) {
+            return $this->modelResources[$cacheKey];
         }
-        $this->modelResources[$model] = null;
+        $this->modelResources[$cacheKey] = null;
+
         if (! $this->reflectionProvider->hasClass($model)) {
             return null;
         }
-        $file = $this->reflectionProvider->getClass($model)->getFileName();
-        if ($file === null || ! is_file($file)) {
-            return null;
-        }
-        $ast = (new ParserFactory)->createForNewestSupportedVersion()->parse(file_get_contents($file)) ?? [];
-        foreach ((new NodeFinder)->findInstanceOf($ast, Node\Stmt\Class_::class) as $class) {
-            if ($class->name?->toString() !== substr($model, strrpos($model, '\\') + 1)) {
-                continue;
-            }
-            foreach ($class->getProperties() as $property) {
-                foreach ($property->props as $prop) {
-                    if ($prop->name->toString() === 'table' && $prop->default instanceof Node\Scalar\String_) {
-                        return $this->modelResources[$model] = 'table:'.$prop->default->value;
+
+        $class = $this->reflectionProvider->getClass($model);
+
+        while ($class !== null) {
+            $file = $class->getFileName();
+
+            if ($file !== null && is_file($file)) {
+                $source = file_get_contents($file);
+                $ast = $source === false
+                    ? []
+                    : ((new ParserFactory)->createForNewestSupportedVersion()->parse($source) ?? []);
+
+                foreach ((new NodeFinder)->findInstanceOf($ast, Node\Stmt\Class_::class) as $classNode) {
+                    if ($classNode->name?->toString() !== substr($class->getName(), strrpos($class->getName(), '\\') + 1)) {
+                        continue;
+                    }
+
+                    foreach ($classNode->getProperties() as $property) {
+                        foreach ($property->props as $prop) {
+                            if ($prop->name->toString() === 'table' && $prop->default instanceof Node\Scalar\String_) {
+                                return $this->modelResources[$cacheKey] = 'table:'.$prop->default->value;
+                            }
+                        }
+                    }
+
+                    foreach ($classNode->getMethods() as $method) {
+                        if (strtolower($method->name->toString()) !== 'gettable') {
+                            continue;
+                        }
+
+                        foreach ($method->stmts ?? [] as $statement) {
+                            if ($statement instanceof Node\Stmt\Return_ && $statement->expr instanceof Node\Expr) {
+                                $table = $this->literalTable($statement->expr);
+
+                                if ($table !== null) {
+                                    return $this->modelResources[$cacheKey] = 'table:'.$table;
+                                }
+                            }
+                        }
                     }
                 }
             }
+
+            $class = $class->getParentClass();
         }
 
         return null;
+    }
+
+    private function literalTable(Node\Expr $expression): ?string
+    {
+        if ($expression instanceof Node\Scalar\String_) {
+            return $expression->value;
+        }
+
+        if ($expression instanceof Node\Expr\Cast\String_) {
+            return $this->literalTable($expression->expr);
+        }
+
+        if ($expression instanceof Node\Expr\Ternary
+            && $expression->if === null
+            && $expression->cond instanceof Node\Expr\FuncCall
+            && $expression->cond->name instanceof Node\Name
+            && strtolower($expression->cond->name->toString()) === 'config'
+        ) {
+            return $this->literalTable($expression->cond) ?? $this->literalTable($expression->else);
+        }
+
+        if (! $expression instanceof Node\Expr\FuncCall || ! $expression->name instanceof Node\Name) {
+            return null;
+        }
+
+        $function = strtolower($expression->name->toString());
+
+        if ($function === 'env') {
+            $default = $expression->args[1]->value ?? null;
+
+            return $default instanceof Node\Expr ? $this->literalTable($default) : null;
+        }
+
+        if ($function !== 'config') {
+            return null;
+        }
+
+        $key = $expression->args[0]->value ?? null;
+
+        if ($key instanceof Node\Scalar\String_) {
+            $configured = $this->configuredTable($key->value);
+
+            if ($configured !== null) {
+                return $configured;
+            }
+        }
+
+        $default = $expression->args[1]->value ?? null;
+
+        return $default instanceof Node\Expr ? $this->literalTable($default) : null;
+    }
+
+    private function configuredTable(string $key): ?string
+    {
+        if (array_key_exists($key, $this->configuredTables)) {
+            return $this->configuredTables[$key];
+        }
+
+        $this->configuredTables[$key] = null;
+        $segments = explode('.', $key);
+        $configFile = array_shift($segments);
+
+        if (! is_string($configFile) || ! preg_match('/^[A-Za-z0-9_-]+$/D', $configFile) || $segments === []) {
+            return null;
+        }
+
+        $path = rtrim(str_replace('\\', '/', $this->projectRoot), '/').'/config/'.$configFile.'.php';
+
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $source = file_get_contents($path);
+
+        if ($source === false) {
+            return null;
+        }
+
+        $ast = (new ParserFactory)->createForNewestSupportedVersion()->parse($source) ?? [];
+        $value = null;
+
+        foreach ($ast as $node) {
+            if ($node instanceof Node\Stmt\Return_ && $node->expr instanceof Node\Expr) {
+                $value = $node->expr;
+
+                break;
+            }
+        }
+
+        foreach ($segments as $segment) {
+            if (! $value instanceof Node\Expr\Array_) {
+                return null;
+            }
+
+            $next = null;
+
+            foreach ($value->items as $item) {
+                if ($item instanceof Node\Expr\ArrayItem
+                    && $item->key instanceof Node\Scalar\String_
+                    && $item->key->value === $segment) {
+                    $next = $item->value;
+
+                    break;
+                }
+            }
+
+            if (! $next instanceof Node\Expr) {
+                return null;
+            }
+
+            $value = $next;
+        }
+
+        return $this->configuredTables[$key] = $this->literalTable($value);
     }
 
     private function error(string $message, string $identifier): IdentifierRuleError

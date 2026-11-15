@@ -42,7 +42,6 @@ class InstitutionForm
                             ->required()
                             ->maxLength(255),
                         Repeater::make('names')
-                            ->relationship()
                             ->schema([
                                 Select::make('name_type')
                                     ->options(InstitutionNameType::class)
@@ -107,6 +106,8 @@ class InstitutionForm
                     ->components([
                         Repeater::make('contactMethods')
                             ->relationship()
+                            ->saveRelationshipsUsing(null)
+                            ->dehydrated()
                             ->schema([
                                 Select::make('type')
                                     ->options(ContactMethodType::options())
@@ -195,6 +196,8 @@ class InstitutionForm
                     ->components([
                         Repeater::make('socialProfiles')
                             ->relationship()
+                            ->saveRelationshipsUsing(null)
+                            ->dehydrated()
                             ->schema([
                                 Select::make('platform')
                                     ->options(SocialPlatform::options())

@@ -173,6 +173,9 @@ final readonly class CancelRewardDigestAction
         $this->communications->cancelBeforeSend($communicationId, 'digest-correction');
     }
 
+    /**
+     * @param  \App\Models\RewardDigestSlot  $slot
+     */
     private function markCancelled(Model $slot, string $reason, CarbonImmutable $now): void
     {
         $payload = (array) ($slot->getAttribute('payload') ?? []);

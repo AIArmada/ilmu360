@@ -13,9 +13,10 @@ use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction
 use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
 use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
+use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
+use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Directory\Api\DirectoryContributionMedia;
-use App\Platform\Concurrency\MapsIdentityLock;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\EventContributionFormSchema;
 use App\Forms\InstitutionContributionFormSchema;
 use App\Forms\PersonContributionFormSchema;
@@ -28,10 +29,12 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Platform\Location\GooglePlaceIdentity;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Signals\SignalRecorder;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use App\Support\Location\GooglePlacesConfiguration;
@@ -51,7 +54,6 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -200,7 +202,10 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     #[Computed]
     public function pendingUpdateRequest(): ?ContributionRequest
     {
-        return app(FindEntityPendingContributionRequestAction::class)->handle($this->entity);
+        return app(FindEntityPendingContributionRequestAction::class)->handle(
+            $this->entity->getMorphClass(),
+            (string) $this->entity->getKey(),
+        );
     }
 
     /**
@@ -212,6 +217,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         array $selection,
         ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
         MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
+        VerifiedInstitutionMapsSelections $verifiedMapsSelections,
     ): array {
         $this->hitMapsThrottle('select');
 
@@ -248,18 +254,14 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         $token = Str::random(48);
         $previousToken = $this->verifiedMapsSelectionToken;
         $this->verifiedMapsSelectionToken = $token;
-        Cache::put($this->verifiedMapsSelectionCacheKey($token), [
-            ...$selectionData,
-            'address' => Arr::except($selectionData['address'], ['cascade_reset_guard']),
-            'autofilled_contacts' => $merged['autofilled_contacts'],
-            'autofilled_social_profiles' => $merged['autofilled_social_profiles'],
-            'autofilled_name' => $merged['autofilled_name'],
-            'autofilled_type' => $merged['autofilled_type'],
-        ], now()->addMinutes(30));
-
-        if (is_string($previousToken) && $previousToken !== '') {
-            Cache::forget($this->verifiedMapsSelectionCacheKey($previousToken));
-        }
+        $verifiedMapsSelections->replace(
+            InstitutionMapsSelectionContext::update(),
+            session()->getId(),
+            $this->getId(),
+            $token,
+            VerifiedInstitutionMapsSelection::fromResolvedSelection($selectionData, $merged),
+            $previousToken,
+        );
 
         $user = auth()->user();
 
@@ -391,7 +393,10 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $ensureNoPendingContributionRequestAction,
                 $user,
             ): void {
-                $ensureNoPendingContributionRequestAction->handle($this->entity);
+                $ensureNoPendingContributionRequestAction->handle(
+                    $this->subjectType,
+                    (string) $this->entity->getKey(),
+                );
 
                 $formState = $this->mergeVerifiedInstitutionMapsSelection($formState);
                 $submissionState = $normalizeContributionSubmissionAction->handle($formState);
@@ -518,7 +523,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             regionOnlyAddress: true,
             includeAlternativeNames: true,
             useTitleMultiSelect: true,
-            useInstitutionRepeater: true,
             splitProfileSections: true,
             includeWazeUrlField: false,
         );
@@ -1293,7 +1297,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     /**
      * Overwrite the client-submitted Google identity block with the stored
      * values. Only keys present on the stored address are restored, so a
-     * legacy record without a resolved place never gains fabricated values.
+     * record without a resolved place never gains fabricated values.
      *
      * @param  array<string, mixed>  $formAddress
      * @return array<string, mixed>
@@ -1338,20 +1342,25 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             return null;
         }
 
-        $selection = Cache::get($this->verifiedMapsSelectionCacheKey($this->verifiedMapsSelectionToken));
-
-        return is_array($selection) ? $selection : null;
-    }
-
-    private function verifiedMapsSelectionCacheKey(?string $token): string
-    {
-        return 'institution-contribution-update:verified-maps:'.hash('sha256', session()->getId().'|'.$this->getId().'|'.($token ?? ''));
+        return app(VerifiedInstitutionMapsSelections::class)
+            ->get(
+                InstitutionMapsSelectionContext::update(),
+                session()->getId(),
+                $this->getId(),
+                $this->verifiedMapsSelectionToken,
+            )
+            ?->toArray();
     }
 
     private function clearVerifiedMapsSelection(): void
     {
         if (is_string($this->verifiedMapsSelectionToken) && $this->verifiedMapsSelectionToken !== '') {
-            Cache::forget($this->verifiedMapsSelectionCacheKey($this->verifiedMapsSelectionToken));
+            app(VerifiedInstitutionMapsSelections::class)->forget(
+                InstitutionMapsSelectionContext::update(),
+                session()->getId(),
+                $this->getId(),
+                $this->verifiedMapsSelectionToken,
+            );
         }
 
         $this->verifiedMapsSelectionToken = null;

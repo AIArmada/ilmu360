@@ -4,17 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
-use App\Shared\Events\ValidatedEventSubmission;
-use Spatie\MediaLibrary\HasMedia;
-
 /**
  * Public event-submission boundary.
  *
- * Root transport adapters (Livewire page, frontend API controller, submission
- * orchestrators) use this contract while the Event model and completion
- * side effects remain conventional. Methods take plain arrays/scalars and the
- * shared validated submission value; results expose scalar identifiers and
- * flags only, never Eloquent models.
+ * Root transport adapters use immutable scalar inputs and receive only
+ * identifiers and flags. Event and occurrence models remain inside Events.
  */
 interface EventSubmissions
 {
@@ -36,18 +30,41 @@ interface EventSubmissions
     /**
      * Persist an ordinary public submission as a parent event plus occurrence.
      *
-     * @param  (callable(HasMedia): void)|null  $persistMedia
-     * @return array{event_id: string, submission_id: string|null, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
+     * @return array{event_id: string, submission_id: string, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
      */
-    public function persistNew(ValidatedEventSubmission $input, ?callable $persistMedia = null): array;
+    public function persistNew(EventSubmissionInput $input): array;
 
     /**
      * Persist a session inside an existing event container.
      *
-     * @param  (callable(HasMedia): void)|null  $persistMedia
-     * @return array{event_id: string, submission_id: string|null, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
+     * @return array{event_id: string, submission_id: string, occurrence_id: string|null, session_id: string|null, parent_created: bool, grouped: bool, occurrence_pending_review: bool}
      */
-    public function persistSession(ValidatedEventSubmission $input, ?callable $persistMedia = null): array;
+    public function persistSession(EventSubmissionInput $input): array;
+
+    /**
+     * Approve a pending occurrence submission inside the caller's transaction.
+     *
+     * @return array{event_id: string, submission_id: string, occurrence_id: string}
+     */
+    public function approveOccurrenceSubmission(
+        string $submissionId,
+        string $performedByType,
+        string $performedById,
+        ?string $note = null,
+    ): array;
+
+    /**
+     * Reject a pending occurrence submission inside the caller's transaction.
+     *
+     * @return array{event_id: string, submission_id: string, occurrence_id: string}
+     */
+    public function rejectOccurrenceSubmission(
+        string $submissionId,
+        string $performedByType,
+        string $performedById,
+        string $reason,
+        string $note,
+    ): array;
 
     /**
      * Persist the completion writes owned by Events.

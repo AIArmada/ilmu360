@@ -3,35 +3,39 @@
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
-use App\Features\Directory\Actions\Venues\GenerateVenueSlugAction;
 use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Directory\Actions\Venues\GenerateVenueSlugAction;
 use App\Features\Directory\Api\PersonWorkflow;
-use App\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
-use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
-use App\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
-use App\Filament\Resources\SlugRedirects\Schemas\SlugRedirectForm;
+use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
+use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
+use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
+use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
+use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\Schemas\SlugRedirectForm;
+use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\SlugRedirectResource;
+use App\Features\SlugRedirects\Models\SlugRedirect;
+use App\Features\SlugRedirects\Policies\SlugRedirectPolicy;
 use App\Forms\VenueFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\SlugRedirect;
 use App\Models\User;
 use App\Models\Venue;
-use App\Platform\Routing\SyncSlugRedirectAction;
+use App\Platform\Admin\FilamentResourceRegistry;
 use App\Services\ContributionEntityMutationService;
-use App\Features\Events\Services\EventKeyPersonSyncService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 uses(RefreshDatabase::class);
 
@@ -40,6 +44,11 @@ it('registers public slug route binders during app boot', function () {
         expect(app('router')->getBindingCallback($parameter))
             ->not->toBeNull();
     }
+
+    expect(app(FilamentResourceRegistry::class)->all())
+        ->toContain(SlugRedirectResource::class)
+        ->and(Gate::getPolicyFor(SlugRedirect::class))
+        ->toBeInstanceOf(SlugRedirectPolicy::class);
 });
 
 it('creates an institution slug redirect only after the old public path has been visited', function () {
@@ -136,7 +145,7 @@ it('persists canonical slug changes through the shared slug synchronizer', funct
     $oldPath = route('references.show', $reference, false);
     recordVisitedPath($oldPath);
 
-    $didChange = CanonicalSlug::persist($reference, 'kitab-sinkron-baru', app(SyncSlugRedirectAction::class));
+    $didChange = CanonicalSlug::persist($reference, 'kitab-sinkron-baru', app(SlugRedirectRecorder::class));
 
     $reference->refresh();
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
@@ -201,7 +210,13 @@ it('creates an event slug redirect even when the old slug was never visited', fu
         ->and($redirect->destination_path)->toBe(route('events.show', $event->fresh(), false));
 
     $this->get($oldPath)
+        ->assertStatus(301)
         ->assertRedirect(route('events.show', $event->fresh()));
+
+    $redirect->refresh();
+
+    expect($redirect->redirect_count)->toBe(1)
+        ->and($redirect->last_redirected_at)->not->toBeNull();
 });
 
 it('redirects old event slugs when a related person slug changes', function () {
@@ -220,7 +235,7 @@ it('redirects old event slugs when a related person slug changes', function () {
         startsAt: Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc(),
     );
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$person->id]);
+    app(SyncEventKeyPeopleAction::class)->syncEvent($event, [$person->id]);
 
     $oldPath = route('events.show', $event->fresh(), false);
     recordVisitedPath($oldPath);
@@ -457,7 +472,7 @@ it('allows administrators to create slug redirects in the admin resource', funct
         ->and($redirect->destination_path)->toBe(route('institutions.show', $institution, false));
 });
 
-it('allows administrators to edit slug redirects in the admin resource', function () {
+it('allows administrators to edit slug redirects without changing usage metrics', function () {
     $administrator = slugRedirectAdministrator();
     $proposer = User::factory()->create();
     $geography = createSlugRedirectGeography();
@@ -468,6 +483,9 @@ it('allows administrators to edit slug redirects in the admin resource', functio
         'address' => slugRedirectAddressPayload($geography),
     ], $proposer);
 
+    $firstVisitedAt = Carbon::parse('2026-01-15 12:00:00', 'UTC');
+    $lastRedirectedAt = Carbon::parse('2026-02-18 09:30:00', 'UTC');
+
     $redirect = SlugRedirect::query()->create([
         'redirectable_type' => $institution->getMorphClass(),
         'redirectable_id' => (string) $institution->getKey(),
@@ -475,6 +493,8 @@ it('allows administrators to edit slug redirects in the admin resource', functio
         'source_path' => '/institusi/masjid-crud-asal-shah-alam-petaling-selangor-my',
         'destination_slug' => $institution->slug,
         'destination_path' => route('institutions.show', $institution, false),
+        'first_visited_at' => $firstVisitedAt,
+        'last_redirected_at' => $lastRedirectedAt,
         'redirect_count' => 1,
     ]);
 
@@ -493,7 +513,9 @@ it('allows administrators to edit slug redirects in the admin resource', functio
 
     expect($redirect->source_slug)->toBe('masjid-crud-kemaskini-shah-alam-petaling-selangor-my')
         ->and($redirect->source_path)->toBe('/institusi/masjid-crud-kemaskini-shah-alam-petaling-selangor-my')
-        ->and($redirect->redirect_count)->toBe(7)
+        ->and($redirect->redirect_count)->toBe(1)
+        ->and($redirect->first_visited_at?->toDateTimeString())->toBe($firstVisitedAt->toDateTimeString())
+        ->and($redirect->last_redirected_at?->toDateTimeString())->toBe($lastRedirectedAt->toDateTimeString())
         ->and($redirect->destination_slug)->toBe($institution->slug)
         ->and($redirect->destination_path)->toBe(route('institutions.show', $institution, false));
 });

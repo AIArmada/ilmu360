@@ -71,10 +71,10 @@ class MemberResourceService
                     'list_membership_applications' => [
                         'tool' => 'member-list-membership-applications',
                     ],
-                    'submit_membership_claim' => [
+                    'submit_membership_application' => [
                         'tool' => 'member-submit-membership-application',
                     ],
-                    'cancel_membership_claim' => [
+                    'cancel_membership_application' => [
                         'tool' => 'member-cancel-membership-application',
                     ],
                 ],
@@ -85,7 +85,7 @@ class MemberResourceService
                     'Fetch the exact update schema before every member write because required fields remain resource-specific.',
                     'Use validate_only=true to preview and normalize a member write without persisting it.',
                     'Use the relation keys returned by member resource metadata when traversing one-level related records.',
-                    'Use workflow_tools for Ahli queue flows such as contribution approvals and membership claims; resources cover scoped CRUD only.',
+                    'Use workflow_tools for Ahli queue flows such as contribution approvals and membership applications; resources cover scoped CRUD only.',
                     'Use mcp_tools for MCP clients; panel_routes are browser destinations and are not MCP call surfaces.',
                 ],
                 'resources' => array_values(array_map(

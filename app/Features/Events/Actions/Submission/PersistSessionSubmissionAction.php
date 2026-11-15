@@ -16,13 +16,11 @@ use App\Features\Events\Support\EventModel;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\ValidatedEventSubmission;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Shared\Submission\SubmissionValues;
 use BackedEnum;
 use Illuminate\Validation\ValidationException;
-use Spatie\MediaLibrary\HasMedia;
 
 final readonly class PersistSessionSubmissionAction
 {
@@ -38,10 +36,9 @@ final readonly class PersistSessionSubmissionAction
      * classifications, references, media, admission, and status
      * untouched; every relation below is scoped to the new session.
      *
-     * @param  (callable(HasMedia): void)|null  $persistRelationships
      * @return array{event: PackageEvent, session: EventSession, submission: PackageEventSubmission}
      */
-    public function handle(ValidatedEventSubmission $submission, ?callable $persistRelationships = null): array
+    public function handle(ValidatedEventSubmission $submission): array
     {
         $state = $submission->state;
 
@@ -91,11 +88,7 @@ final readonly class PersistSessionSubmissionAction
         $this->authoring->syncEventClassifications($session->getMorphClass(), (string) $session->getKey(), $state);
         $this->relationSync->syncSessionReferences($event, $occurrence, $session, $state['references'] ?? null);
 
-        if ($persistRelationships !== null) {
-            $persistRelationships($session);
-        }
-
-        $submissionData = ['submitter_name' => $state['submitter_name'] ?? $submission->submitter?->name];
+        $submissionData = ['submitter_name' => $state['submitter_name'] ?? $submission->submitter?->getAttribute('name')];
 
         if (isset($state['notes'])) {
             $submissionData['notes'] = $state['notes'];

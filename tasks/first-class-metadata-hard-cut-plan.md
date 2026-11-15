@@ -683,12 +683,12 @@ Location tasks:
 
 Key-person tasks:
 
-- Update EventKeyPersonSyncService to write display_name, role_code, visibility, and sort_order directly.
-- Delete HasEventInvolvementRole.
-- Remove metadata-backed name.
-- Stop using the app aliases role, order_column, is_public, and speaker_id inside persistence. Map form input to package fields in the action.
-- Replace metadata->name search with display_name plus the related Speaker name.
-- Eager-load involveable/speaker to avoid N+1 display queries.
+- Completed in Events: `SyncEventKeyPeopleAction` writes `display_name`, `role_code`, `visibility`, and `sort_order` directly to `event_involvements`.
+- Completed: `HasEventInvolvementRole` was removed.
+- Completed: key-person names persist in `display_name`, not metadata.
+- Completed: form and import inputs map to package fields before persistence; persistence uses `role_code`, `sort_order`, `visibility`, and `involveable_id`.
+- Completed: key-person search/display uses `display_name` plus the related Person name.
+- Completed: key-person lists eager-load involveable records for display.
 
 Acceptance:
 

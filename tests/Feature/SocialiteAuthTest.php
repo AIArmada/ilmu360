@@ -1,8 +1,8 @@
 <?php
 
 use App\Features\Identity\Models\SocialAccount;
+use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Models\User;
-use App\Shared\Auth\OAuthTransactionStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
@@ -240,12 +240,12 @@ it('loads the livewire runtime on the register page so toasts and alpine widgets
 });
 
 it('sets the verifier cookie without a domain attribute so browsers accept the __Host- prefix', function () {
-    // Cookie::make() backfills a null domain from the CookieJar default
+    // Cookie::make() applies the CookieJar default when the domain is null
     // (config session.domain in production), and any Domain attribute makes
     // browsers reject __Host- cookies outright — breaking every OAuth
     // completion with verifier_mismatch. Pin the production-like default
     // explicitly: the jar singleton resolves at boot, so a config override
-    // here would not reproduce the backfill and this would pass vacuously.
+    // here would bypass that behavior and this would pass vacuously.
     $session = config('session');
     app('cookie')->setDefaultPathAndDomain($session['path'], '.ilmu360.test', $session['secure'], $session['same_site'] ?? null);
 

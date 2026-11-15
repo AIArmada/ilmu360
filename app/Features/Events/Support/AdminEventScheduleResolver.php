@@ -43,14 +43,16 @@ final readonly class AdminEventScheduleResolver
         $recordState = $input['record_state'];
         $institutionId = $input['institution_id'];
         $venueId = $input['venue_id'];
-        $primaryOrganizer = $input['primary_organizer'];
+        $primaryOrganizerKind = $input['primary_organizer_kind'];
+        $primaryOrganizerId = $input['organizer_id'];
 
         // Prayer targets are independent of the persisted physical
         // location: online saves anchor to the organizer institution
         // through the same selector frontend submit/preview use.
         [$prayerInstitutionId, $prayerVenueId] = PrayerTargetSelector::forSave(
             $state['event_format'] ?? EventFormat::Physical->value,
-            $primaryOrganizer,
+            $primaryOrganizerKind,
+            $primaryOrganizerId,
             $institutionId,
             $venueId,
         );
@@ -178,7 +180,8 @@ final readonly class AdminEventScheduleResolver
         if ($left !== $right) {
             return false;
         }
-        return array_all(['prayer_time', 'custom_time', 'end_time', 'end_date', 'timezone', 'institution_id', 'venue_id', 'event_format', 'primary_organizer_id', 'submission_country_id'], fn($key) => $this->normalizeTimingScalar($state[$key] ?? null) === $this->normalizeTimingScalar($recordState[$key] ?? null));
+
+        return array_all(['prayer_time', 'custom_time', 'end_time', 'end_date', 'timezone', 'institution_id', 'venue_id', 'event_format', 'primary_organizer_id', 'submission_country_id'], fn ($key) => $this->normalizeTimingScalar($state[$key] ?? null) === $this->normalizeTimingScalar($recordState[$key] ?? null));
     }
 
     private function normalizeTimingScalar(mixed $value): ?string
@@ -304,7 +307,7 @@ final readonly class AdminEventScheduleResolver
      */
     private function prayerTargetsChanged(array $state, array $recordState): bool
     {
-        return array_any(['event_format', 'primary_organizer_id', 'institution_id', 'venue_id'], fn($key) => $this->normalizeTimingScalar($state[$key] ?? null) !== $this->normalizeTimingScalar($recordState[$key] ?? null));
+        return array_any(['event_format', 'primary_organizer_id', 'institution_id', 'venue_id'], fn ($key) => $this->normalizeTimingScalar($state[$key] ?? null) !== $this->normalizeTimingScalar($recordState[$key] ?? null));
     }
 
     /** @param  \App\Models\Event  $event */

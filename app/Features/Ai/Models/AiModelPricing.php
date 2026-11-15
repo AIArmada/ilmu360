@@ -11,6 +11,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
+/**
+ * @property string $provider
+ * @property string $model_pattern
+ * @property string $operation
+ * @property string|null $tier
+ * @property numeric-string|null $input_per_million
+ * @property numeric-string|null $output_per_million
+ * @property numeric-string|null $cache_write_input_per_million
+ * @property numeric-string|null $cache_read_input_per_million
+ * @property numeric-string|null $reasoning_per_million
+ * @property numeric-string|null $per_request
+ * @property numeric-string|null $per_image
+ * @property numeric-string|null $per_audio_second
+ * @property int $priority
+ */
 class AiModelPricing extends Model implements AuditableContract
 {
     #[\Override]

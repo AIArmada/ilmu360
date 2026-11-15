@@ -5,7 +5,7 @@
  *
  * Replaces dual-store PendingNotification/NotificationEngine tests after
  * communications cutover (P9-B). Product orchestration still uses
- * EventNotificationService → CommunicationManager → InboxChannel → NotificationInbox.
+ * EventNotificationService → NotificationDispatch → InboxChannel → NotificationInbox.
  */
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -13,13 +13,13 @@ use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger as PackageNotificationTrigger;
 use AIArmada\Communications\Models\NotificationInbox;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
-use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Features\Communications\Api\NotificationInboxManagement;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;

@@ -85,14 +85,14 @@ interface ReferenceWorkflow
      */
     public function syncHierarchy(string $referenceId, array $changedAttributes = []): void;
 
-    /**
-     * @return list<string>
-     */
-    public function backfillSlugs(): array;
-
     public function syncSearchRecord(string $referenceId): void;
 
     public function reindexSearchFamily(string $referenceId): void;
 
     public function reindexSearch(int $chunkSize = 100): int;
+
+    public function detachVerifier(string $accountId): void;
+
+    /** @param list<string> $referenceIds */
+    public function restoreVerifier(string $accountId, array $referenceIds): void;
 }

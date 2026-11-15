@@ -97,7 +97,7 @@ final class InferInstitutionTypeAction
         if ($primaryInstitutionType instanceof InstitutionType) {
             $nameType = $this->inferNameType($name);
 
-            if ($this->isCompatibleNameRefinement($primaryInstitutionType, $nameType)) {
+            if ($this->isNameTypeRefinement($primaryInstitutionType, $nameType)) {
                 return $nameType;
             }
 
@@ -110,7 +110,7 @@ final class InferInstitutionTypeAction
             if ($type instanceof InstitutionType) {
                 $nameType = $this->inferNameType($name);
 
-                return $this->isCompatibleNameRefinement($type, $nameType) ? $nameType : $type;
+                return $this->isNameTypeRefinement($type, $nameType) ? $nameType : $type;
             }
         }
 
@@ -128,7 +128,7 @@ final class InferInstitutionTypeAction
         return null;
     }
 
-    private function isCompatibleNameRefinement(InstitutionType $providerType, ?InstitutionType $nameType): bool
+    private function isNameTypeRefinement(InstitutionType $providerType, ?InstitutionType $nameType): bool
     {
         if (! $nameType instanceof InstitutionType) {
             return false;

@@ -42,7 +42,9 @@ interface MembershipCommands
     ): void;
 
     /**
-     * Remove every member pivot for one subject without revoking scoped roles.
+     * Remove an app-owned member pivot without revoking scoped roles.
+     *
+     * @throws \InvalidArgumentException when the subject is an Organization
      */
     public function removeAllMembers(
         MembershipSubjectType $subjectType,

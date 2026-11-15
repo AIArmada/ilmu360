@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Directory\Actions\Institutions\DeleteInstitutionAction;
 use App\Models\Institution;
 use App\Models\InstitutionImportExclusion;
 use App\Shared\Directory\Enums\InstitutionStatus;
@@ -16,7 +17,8 @@ it('records source-backed deletions as permanent exclusions', function () {
     ]);
 
     $institutionId = (string) $institution->getKey();
-    $institution->refresh()->delete();
+    $institution->refresh();
+    app(DeleteInstitutionAction::class)->handle($institution);
 
     $exclusion = InstitutionImportExclusion::forIdentity('masjid-csv', '101');
     expect($exclusion)->not()->toBeNull()
@@ -28,7 +30,7 @@ it('records source-backed deletions as permanent exclusions', function () {
 
 it('ignores deletions of rows without provenance', function () {
     $institution = Institution::factory()->create(['status' => InstitutionStatus::Verified->value]);
-    $institution->delete();
+    app(DeleteInstitutionAction::class)->handle($institution);
 
     expect(InstitutionImportExclusion::query()->count())->toBe(0);
 });

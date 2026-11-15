@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\CommerceSupport\Filament\Concerns\VerifiesRelationManagerOwnerContext;
-use AIArmada\CommerceSupport\Models\Language;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Models\Person;
+use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -19,7 +19,6 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Person names relation manager routed through the Directory workflow.
@@ -36,22 +35,6 @@ final class NamesRelationManager extends RelationManager
 
     #[\Override]
     protected static ?string $recordTitleAttribute = 'full_name';
-
-    /**
-     * @return array<string, string>
-     */
-    public static function getLanguageOptions(): array
-    {
-        /** @var array<string, string> $options */
-        $options = Cache::remember('filament-persons.languages', 3600, static function (): array {
-            /** @var array<string, string> $languages */
-            $languages = Language::query()->orderBy('name')->pluck('name', 'code')->all();
-
-            return $languages;
-        });
-
-        return $options;
-    }
 
     public function form(Schema $schema): Schema
     {
@@ -71,7 +54,7 @@ final class NamesRelationManager extends RelationManager
                     ->required()
                     ->maxLength(255),
                 Select::make('language_code')
-                    ->options(fn (): array => self::getLanguageOptions())
+                    ->options(fn (): array => app(SelectionCatalogCache::class)->languageOptions('code', ttlSeconds: 3600))
                     ->searchable()
                     ->preload()
                     ->required()

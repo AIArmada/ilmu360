@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Persons\Pages;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\PersonResource;
@@ -78,8 +77,9 @@ class EditPerson extends EditRecord
         }
 
         $actorId = auth()->id();
+        $personWorkflow = app(PersonWorkflow::class);
 
-        app(PersonWorkflow::class)->saveFromAdmin([
+        $personWorkflow->saveFromAdmin([
             ...Arr::only($data, [
                 'name',
                 'middle_name',
@@ -93,6 +93,12 @@ class EditPerson extends EditRecord
             ]),
             'address' => $address,
         ], (string) $actorId, (string) $record->getKey());
+
+        $personWorkflow->syncRelations((string) $record->getKey(), [
+            'contactMethods' => $data['contactMethods'] ?? [],
+            'social_media' => $data['socialProfiles'] ?? [],
+            'language_ids' => $data['languages'] ?? [],
+        ]);
 
         $record->refresh();
 
@@ -120,8 +126,7 @@ class EditPerson extends EditRecord
      */
     private function addressFormState(?Address $address): array
     {
-        $countryId = SharedFormSchema::normalizeLocationId($address?->country_id)
-            ?? app(AddressCountryResolver::class)->resolveId($address?->country_code);
+        $countryId = SharedFormSchema::normalizeLocationId($address?->country_id);
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $countryId,

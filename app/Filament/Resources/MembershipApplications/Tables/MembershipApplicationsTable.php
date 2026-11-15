@@ -6,9 +6,9 @@ use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
+use App\Filament\Resources\MembershipApplications\Support\MembershipApplicationAdminPresenter;
 use App\Models\MembershipApplication;
 use App\Models\User;
-use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -33,28 +33,28 @@ class MembershipApplicationsTable
                 TextColumn::make('evidence')
                     ->label('Evidence')
                     ->html()
-                    ->state(fn (MembershipApplication $record): HtmlString => MembershipApplicationPresenter::evidencePreviewHtml($record, 12)),
+                    ->state(fn (MembershipApplication $record): HtmlString => MembershipApplicationAdminPresenter::evidencePreviewHtml($record, 12)),
                 TextColumn::make('subject_type')
                     ->label('Subject')
                     ->badge()
-                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationPresenter::labelForSubject($state))
+                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationAdminPresenter::labelForSubject($state))
                     ->sortable(),
                 TextColumn::make('subject_summary')
                     ->label('Record')
-                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::subjectTitle($record))
+                    ->state(fn (MembershipApplication $record): string => MembershipApplicationAdminPresenter::subjectTitle($record))
                     ->url(fn (MembershipApplication $record): string => MembershipApplicationResource::getUrl('view', ['record' => $record])),
                 TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationPresenter::labelForStatus($state))
-                    ->color(fn (mixed $state): string => MembershipApplicationPresenter::statusColor($state))
+                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationAdminPresenter::labelForStatus($state))
+                    ->color(fn (mixed $state): string => MembershipApplicationAdminPresenter::statusColor($state))
                     ->sortable(),
                 TextColumn::make('granted_role')
                     ->label('Granted Role')
-                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::roleLabel($record))
+                    ->state(fn (MembershipApplication $record): string => MembershipApplicationAdminPresenter::roleLabel($record))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('applied_role')
                     ->label('Applied Role')
-                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::appliedRoleLabel($record))
+                    ->state(fn (MembershipApplication $record): string => MembershipApplicationAdminPresenter::appliedRoleLabel($record))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('applicant.email')
                     ->label('Claimant')
@@ -78,15 +78,15 @@ class MembershipApplicationsTable
             ->filters([
                 SelectFilter::make('status')
                     ->options([
-                        ApplicationStatus::Pending->value => MembershipApplicationPresenter::labelForStatus(ApplicationStatus::Pending),
-                        ApplicationStatus::Approved->value => MembershipApplicationPresenter::labelForStatus(ApplicationStatus::Approved),
-                        ApplicationStatus::Rejected->value => MembershipApplicationPresenter::labelForStatus(ApplicationStatus::Rejected),
-                        ApplicationStatus::Cancelled->value => MembershipApplicationPresenter::labelForStatus(ApplicationStatus::Cancelled),
+                        ApplicationStatus::Pending->value => MembershipApplicationAdminPresenter::labelForStatus(ApplicationStatus::Pending),
+                        ApplicationStatus::Approved->value => MembershipApplicationAdminPresenter::labelForStatus(ApplicationStatus::Approved),
+                        ApplicationStatus::Rejected->value => MembershipApplicationAdminPresenter::labelForStatus(ApplicationStatus::Rejected),
+                        ApplicationStatus::Cancelled->value => MembershipApplicationAdminPresenter::labelForStatus(ApplicationStatus::Cancelled),
                     ]),
                 SelectFilter::make('subject_type')
                     ->options([
-                        MemberSubjectType::Institution->value => MembershipApplicationPresenter::labelForSubject(MemberSubjectType::Institution),
-                        MemberSubjectType::Person->value => MembershipApplicationPresenter::labelForSubject(MemberSubjectType::Person),
+                        MemberSubjectType::Institution->value => MembershipApplicationAdminPresenter::labelForSubject(MemberSubjectType::Institution),
+                        MemberSubjectType::Person->value => MembershipApplicationAdminPresenter::labelForSubject(MemberSubjectType::Person),
                     ]),
             ])
             ->recordActions([
@@ -100,7 +100,7 @@ class MembershipApplicationsTable
                     ->schema(fn (MembershipApplication $record): array => [
                         Select::make('granted_role')
                             ->label('Granted Role')
-                            ->options(MembershipApplicationPresenter::approvalRoleOptions($record))
+                            ->options(MembershipApplicationAdminPresenter::approvalRoleOptions())
                             ->default($record->meta['applied_role'] ?? null)
                             ->required(),
                         Textarea::make('reviewer_note')
@@ -155,9 +155,9 @@ class MembershipApplicationsTable
                 Action::make('open_subject')
                     ->label('Open Record')
                     ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->url(fn (MembershipApplication $record): ?string => MembershipApplicationPresenter::subjectAdminUrl($record))
+                    ->url(fn (MembershipApplication $record): ?string => MembershipApplicationAdminPresenter::subjectAdminUrl($record))
                     ->openUrlInNewTab()
-                    ->visible(fn (MembershipApplication $record): bool => filled(MembershipApplicationPresenter::subjectAdminUrl($record))),
+                    ->visible(fn (MembershipApplication $record): bool => filled(MembershipApplicationAdminPresenter::subjectAdminUrl($record))),
                 ViewAction::make(),
             ])
             ->recordUrl(fn (MembershipApplication $record): string => MembershipApplicationResource::getUrl('view', ['record' => $record]))

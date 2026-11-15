@@ -45,7 +45,7 @@ it('exposes the membership claim field contract for a claimable subject type', f
 
     $this->getJson(route('api.client.forms.membership-applications', ['subjectType' => $segment]))
         ->assertOk()
-        ->assertJsonPath('data.flow', 'membership_claim')
+        ->assertJsonPath('data.flow', 'membership_application')
         ->assertJsonPath('data.auth_required', true)
         ->assertJsonPath('data.endpoint_template', '/api/v1/membership-applications/'.$segment.'/subject');
 });

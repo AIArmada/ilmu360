@@ -233,7 +233,7 @@ it('shows only needs changes events on the needs changes tab', function () {
     ]);
 
     OwnerContext::withOwner(null, fn () => $needsChangesEvent->moderationReviews()->create([
-        'actionable_type' => Event::class,
+        'actionable_type' => (new Event)->getMorphClass(),
         'actioned_by_type' => (new User)->getMorphClass(),
         'actioned_by_id' => $moderator->id,
         'type' => 'changes_requested',

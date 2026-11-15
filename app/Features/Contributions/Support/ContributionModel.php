@@ -11,7 +11,7 @@ use RuntimeException;
 
 /**
  * Runtime model access for Contributions while the models remain in the
- * legacy root namespace. Resolution goes through the registered morph aliases
+ * application root namespace. Resolution goes through the registered morph aliases
  * so the feature never imports its private model classes directly.
  */
 final class ContributionModel

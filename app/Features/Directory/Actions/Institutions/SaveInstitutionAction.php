@@ -7,6 +7,7 @@ namespace App\Features\Directory\Actions\Institutions;
 use App\Features\Directory\Api\InstitutionSubmissionAccess;
 use App\Features\Directory\Support\DirectoryModel;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Models\Institution;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Auth\AccountActor;
@@ -21,7 +22,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
-use Spatie\MediaLibrary\HasMedia;
 
 final readonly class SaveInstitutionAction
 {
@@ -40,10 +40,15 @@ final readonly class SaveInstitutionAction
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, Model&AccountActor $actor, ?Model $institution = null, string $validationErrorKey = 'allow_public_event_submission'): Model
+    public function handle(array $data, Model&AccountActor $actor, ?Institution $institution = null, string $validationErrorKey = 'allow_public_event_submission'): Institution
     {
-        $creating = ! $institution instanceof Model;
+        $creating = $institution === null;
         $institution ??= DirectoryModel::new('institution');
+
+        if (! $institution instanceof Institution) {
+            throw new RuntimeException('The registered institution model must be the Directory institution model.');
+        }
+
         $previousFacilities = $creating ? null : $this->facilitiesValue($institution->getAttribute('own_facilities'));
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];
@@ -90,7 +95,8 @@ final readonly class SaveInstitutionAction
             $attributes['slug'] = $this->generateInstitutionSlugAction->handle($attributes['name'], $address);
             $attributes['allow_public_event_submission'] = true;
 
-            $institution = DirectoryModel::query('institution')->create($attributes);
+            $institution->fill($attributes);
+            $institution->save();
             $this->membershipCommands->assignOwner(
                 MembershipSubjectType::Institution,
                 (string) $institution->getKey(),
@@ -133,7 +139,7 @@ final readonly class SaveInstitutionAction
     }
 
     private function syncPublicSubmissionToggle(
-        Model $institution,
+        Institution $institution,
         Model&AccountActor $actor,
         bool $currentPublicSubmission,
         bool $requestedPublicSubmission,
@@ -166,12 +172,8 @@ final readonly class SaveInstitutionAction
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncMedia(Model $institution, array $data): void
+    private function syncMedia(Institution $institution, array $data): void
     {
-        if (! $institution instanceof HasMedia) {
-            throw new RuntimeException('Institutions must support media.');
-        }
-
         if (($data['clear_logo'] ?? false) === true) {
             $this->mediaSyncService->clearCollection($institution, 'logo');
         }
@@ -206,7 +208,7 @@ final readonly class SaveInstitutionAction
         );
     }
 
-    private function normalizeStatus(mixed $value, Model $institution, bool $creating): InstitutionStatus
+    private function normalizeStatus(mixed $value, Institution $institution, bool $creating): InstitutionStatus
     {
         if ($value instanceof InstitutionStatus) {
             return $value;
@@ -253,7 +255,7 @@ final readonly class SaveInstitutionAction
         return $normalized === [] ? null : $normalized;
     }
 
-    private function assertSlugAvailable(string $slug, Model $institution): void
+    private function assertSlugAvailable(string $slug, Institution $institution): void
     {
         $taken = DirectoryModel::query('institution')
             ->where('slug', $slug)
@@ -270,7 +272,7 @@ final readonly class SaveInstitutionAction
     /**
      * @param  array<string, bool>|null  $previousFacilities
      */
-    private function recordFacilitiesUpdatedAfterCommit(Model $institution, ?array $previousFacilities, Model&AccountActor $actor): void
+    private function recordFacilitiesUpdatedAfterCommit(Institution $institution, ?array $previousFacilities, Model&AccountActor $actor): void
     {
         $currentFacilities = $this->facilitiesValue($institution->getAttribute('own_facilities'));
 
@@ -330,7 +332,7 @@ final readonly class SaveInstitutionAction
         return array_any(array_unique([...array_keys($previous), ...array_keys($current)]), fn ($code) => ($previous[$code] ?? null) !== ($current[$code] ?? null));
     }
 
-    private function preserveExplicitSlug(Model $institution, ?string $explicitSlug): void
+    private function preserveExplicitSlug(Institution $institution, ?string $explicitSlug): void
     {
         if ($explicitSlug === null) {
             return;
@@ -345,7 +347,7 @@ final readonly class SaveInstitutionAction
 
             $fresh = DirectoryModel::query('institution')->whereKey($institutionId)->first();
 
-            if (! $fresh instanceof Model) {
+            if (! $fresh instanceof Institution) {
                 return;
             }
 

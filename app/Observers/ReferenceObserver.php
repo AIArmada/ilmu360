@@ -3,10 +3,10 @@
 namespace App\Observers;
 
 use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Reference;
-use App\Platform\Cache\PublicListingsCache;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Platform\Routing\SyncSlugRedirectAction;
+use App\Services\PublicListingsCache;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -16,7 +16,7 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
 
     public function __construct(
         protected ReferenceWorkflow $referenceWorkflow,
-        protected SyncSlugRedirectAction $syncSlugRedirectAction,
+        protected SlugRedirectCommands $slugRedirectCommands,
         protected ReferenceSearchService $referenceSearchService,
         protected PublicListingsCache $publicListingsCache,
     ) {}
@@ -59,7 +59,7 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
 
     public function deleted(Reference $reference): void
     {
-        $this->syncSlugRedirectAction->purgeForModel($reference);
+        $this->slugRedirectCommands->purge($reference->getMorphClass(), (string) $reference->getKey());
         $this->referenceWorkflow->syncSlugsForTitle($reference->title);
         $this->referenceSearchService->bustPublicSearchCache();
         $this->publicListingsCache->bustHomepageStats();

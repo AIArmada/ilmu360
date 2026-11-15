@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Features\Directory\Actions\Venues;
 
 use AIArmada\Addressing\Support\LocationSlugSegments;
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Directory\Support\DirectoryModel;
 use App\Platform\Location\AddressAssignments;
-use App\Platform\Routing\SyncSlugRedirectAction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -23,7 +23,7 @@ class GenerateVenueSlugAction
     use AsAction;
 
     public function __construct(
-        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
+        private readonly SlugRedirectRecorder $slugRedirectRecorder,
     ) {}
 
     public function syncVenueSlugsForName(string $name): bool
@@ -46,7 +46,7 @@ class GenerateVenueSlugAction
     {
         $slug = $this->forVenue($venue);
 
-        return CanonicalSlug::persist($venue, $slug, $this->syncSlugRedirectAction);
+        return CanonicalSlug::persist($venue, $slug, $this->slugRedirectRecorder);
     }
 
     /**

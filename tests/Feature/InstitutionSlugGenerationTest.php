@@ -12,6 +12,7 @@ use App\Forms\InstitutionFormSchema;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Directory\Enums\InstitutionNameType;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -254,6 +255,45 @@ it('uses the generated geographic slug when admins create institutions in filame
         ->firstOrFail();
 
     expect($institution->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-shah-alam-selangor-my');
+});
+
+it('persists administrator supplied institution names through the Directory workflow', function (): void {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+    $geography = createInstitutionSlugGeography();
+
+    Livewire::actingAs($administrator)
+        ->test(CreateInstitution::class)
+        ->fillForm([
+            'type' => 'masjid',
+            'name' => 'Masjid Warisan Selangor',
+            'status' => 'verified',
+            'names' => [
+                ['name_type' => 'official', 'full_name' => 'Masjid Warisan Rasmi', 'language_code' => 'ms', 'is_primary' => true],
+                ['name_type' => 'nickname', 'full_name' => 'Masjid Warisan', 'language_code' => 'en', 'is_primary' => false],
+            ],
+            'contactMethods' => [],
+            'socialProfiles' => [],
+            'address.country_id' => (string) $geography['country']->getKey(),
+            'address.state_id' => (string) $geography['state']->getKey(),
+            'address.country_code' => (string) $geography['country']->iso2,
+            'address.area_assignments.administrative_district' => (string) $geography['district']->getKey(),
+            'address.area_assignments.administrative_subdivision' => (string) $geography['subdistrict']->getKey(),
+            'address.line1' => 'Persiaran Masjid',
+        ])
+        ->call('create')
+        ->assertHasNoErrors();
+
+    $institution = Institution::query()->where('name', 'Masjid Warisan Selangor')->firstOrFail();
+    $names = $institution->names()->orderBy('full_name')->get();
+
+    expect($names->pluck('full_name')->all())->toBe(['Masjid Warisan', 'Masjid Warisan Rasmi'])
+        ->and($names->firstWhere('full_name', 'Masjid Warisan Rasmi')?->name_type)->toBe(InstitutionNameType::Official)
+        ->and($names->firstWhere('full_name', 'Masjid Warisan Rasmi')?->language_code)->toBe('ms')
+        ->and($names->firstWhere('full_name', 'Masjid Warisan Rasmi')?->is_primary)->toBeTrue();
 });
 
 it('leaves imported source-backed slugs unchanged when a same-name manual institution is created', function () {

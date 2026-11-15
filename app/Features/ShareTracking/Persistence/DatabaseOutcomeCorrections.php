@@ -30,7 +30,7 @@ final class DatabaseOutcomeCorrections implements OutcomeCorrections
         ?string $actorId = null,
     ): OutcomeCorrectionSnapshot {
         try {
-            $correction = DB::transaction(static fn (): Model => ShareTrackingModel::outcomeCorrectionQuery()->create([
+            $correction = DB::transaction(static fn (): Model => ShareTrackingModel::query('share_outcome_correction')->create([
                 'conversion_id' => $conversionId,
                 'business_key' => $businessKey,
                 'reason' => $reason,
@@ -43,7 +43,7 @@ final class DatabaseOutcomeCorrections implements OutcomeCorrections
                 throw $exception;
             }
 
-            $correction = ShareTrackingModel::outcomeCorrectionQuery()
+            $correction = ShareTrackingModel::query('share_outcome_correction')
                 ->where('business_key', $businessKey)
                 ->firstOrFail();
         }

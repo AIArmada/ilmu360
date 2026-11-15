@@ -11,7 +11,6 @@ use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\Directory\Api\DirectoryContributionMedia;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
@@ -21,6 +20,7 @@ use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -896,12 +896,12 @@ it('creates an update request with a verified Maps reselect for visitors', funct
 it('blocks moving an institution onto another institution’s Google Maps place', function () {
     $geography = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');
     $claimed = Institution::factory()->create(['status' => 'verified']);
-    SharedFormSchema::createAddressFromData($claimed, [
+    attachTestInstitutionAddress($claimed, [
         'country_id' => (string) $geography['country']->getKey(),
         'google_place_id' => 'place_taken_abc',
         'google_cid' => '11885663895765773631',
         'google_maps_url' => 'https://maps.google.com/?cid=11885663895765773631',
-    ], allowCountryOnly: true);
+    ]);
 
     configureVerifiedGoogleMaps();
     fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_taken_abc', [

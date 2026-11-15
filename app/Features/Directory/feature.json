@@ -45,17 +45,28 @@
       "App\\Features\\Directory\\Actions\\DonationChannels\\DeleteDonationChannelAction"
     ],
     "store:institution-submission": [
-      "App\\Features\\Directory\\Persistence\\InstitutionSubmissionCache"
+      "App\\Features\\Directory\\Persistence\\InstitutionSubmissionOptionsCacheStore"
     ],
-    "store:person-submission": [
-      "App\\Features\\Directory\\Persistence\\PersonSubmissionCache"
+    "store:institution-search": [
+      "App\\Features\\Directory\\Persistence\\InstitutionSearchCacheStore"
+    ],
+    "store:person-submission-options": [
+      "App\\Features\\Directory\\Persistence\\PersonSubmissionOptionsCacheStore"
     ],
     "store:person-search": [
-      "App\\Features\\Directory\\Persistence\\PersonSearchCache"
+      "App\\Features\\Directory\\Persistence\\PersonSearchCacheStore"
+    ],
+    "store:reference-search": [
+      "App\\Features\\Directory\\Persistence\\ReferenceSearchCacheStore"
+    ],
+    "store:public-directory-homepage-stats": [
+      "App\\Features\\Directory\\Persistence\\PublicDirectoryStatsCacheStore"
+    ],
+    "store:public-directory-cache-versions": [
+      "App\\Features\\Directory\\Persistence\\PublicDirectoryCacheVersionStore"
     ],
     "table:persons": [
       "App\\Features\\Directory\\Actions\\Persons\\ApplyPersonContributionAction",
-      "App\\Features\\Directory\\Actions\\Persons\\BackfillPersonSlugsAction",
       "App\\Features\\Directory\\Actions\\Persons\\ChangePersonStatusAction",
       "App\\Features\\Directory\\Actions\\Persons\\CreatePersonAction",
       "App\\Features\\Directory\\Actions\\Persons\\DeletePersonAction",
@@ -70,7 +81,6 @@
       "App\\Features\\Directory\\Actions\\Persons\\SyncPersonNamesAction",
       "App\\Features\\Directory\\Actions\\Persons\\SyncPersonRelationsAction",
       "App\\Features\\Directory\\Actions\\Persons\\SyncPersonSearchProjectionAction",
-      "App\\Features\\Directory\\Actions\\Persons\\SyncPersonTitleAssignmentsAction",
       "App\\Features\\Directory\\Actions\\Persons\\VerifyPendingPersonsAction"
     ],
     "table:person_names": [
@@ -84,22 +94,24 @@
     ],
     "table:references": [
       "App\\Features\\Directory\\Actions\\References\\ApplyReferenceContributionAction",
-      "App\\Features\\Directory\\Actions\\References\\BackfillReferenceSlugsAction",
       "App\\Features\\Directory\\Actions\\References\\ChangeReferenceStatusAction",
       "App\\Features\\Directory\\Actions\\References\\DeleteReferenceAction",
       "App\\Features\\Directory\\Actions\\References\\GenerateReferenceSlugAction",
+      "App\\Features\\Directory\\Actions\\References\\DetachReferenceVerifierAction",
+      "App\\Features\\Directory\\Actions\\References\\RestoreReferenceVerifierAction",
       "App\\Features\\Directory\\Actions\\References\\SaveReferenceAction"
     ],
     "table:reference_contributors": [
       "App\\Features\\Directory\\Actions\\References\\SyncReferenceContributorsAction"
     ],
     "table:venues": [
-      "App\\Features\\Directory\\Actions\\Venues\\BackfillVenueSlugsAction",
       "App\\Features\\Directory\\Actions\\Venues\\ChangeVenueStatusAction",
       "App\\Features\\Directory\\Actions\\Venues\\ChangeVenueVisibilityAction",
       "App\\Features\\Directory\\Actions\\Venues\\CreateVenueAction",
       "App\\Features\\Directory\\Actions\\Venues\\DeleteVenueAction",
       "App\\Features\\Directory\\Actions\\Venues\\GenerateVenueSlugAction",
+      "App\\Features\\Directory\\Actions\\Venues\\DetachVenueVerifierAction",
+      "App\\Features\\Directory\\Actions\\Venues\\RestoreVenueVerifierAction",
       "App\\Features\\Directory\\Actions\\Venues\\SaveVenueAction"
     ],
     "table:venue_spaces": [

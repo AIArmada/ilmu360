@@ -13,10 +13,6 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Data\PublicScheduleLeaf;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\TimingMode;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
 use App\Models\Institution;
@@ -31,6 +27,10 @@ use App\Services\EventSearchService;
 use App\Services\PostgresEventDiscovery;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\TypesenseEventDiscovery;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerReference;
 use App\Support\Discovery\EventSearchFilterNormalizer;
@@ -1159,14 +1159,14 @@ describe('Event Search Filters', function () {
         ]))->toBe(['person_name_search' => 'Samad']);
     });
 
-    it('still honours legacy role filters arriving from a saved search', function () {
+    it('applies the imam id filter from an event search query', function () {
         $imam = Person::factory()->create([
-            'name' => 'Imam Legacy Filter',
+            'name' => 'Imam Search Filter',
             'status' => 'verified',
         ]);
 
         $matchEvent = createVisibleEventForSearch([
-            'title' => 'Kuliah Imam Legacy',
+            'title' => 'Kuliah Imam Search Filter',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -1181,7 +1181,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $otherEvent = createVisibleEventForSearch([
-            'title' => 'Kuliah Tanpa Imam Legacy',
+            'title' => 'Kuliah Tanpa Imam Search Filter',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -1190,8 +1190,8 @@ describe('Event Search Filters', function () {
 
         $this->get(eventsIndexUrl(['imam_ids' => [$imam->id]]))
             ->assertOk()
-            ->assertSee('Kuliah Imam Legacy')
-            ->assertDontSee('Kuliah Tanpa Imam Legacy');
+            ->assertSee('Kuliah Imam Search Filter')
+            ->assertDontSee('Kuliah Tanpa Imam Search Filter');
     });
 
     it('does not match reference titles in the event keyword search', function () {
@@ -2040,7 +2040,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this
-            ->withCookie('user_timezone', 'UTC')
+            ->withHeader('X-Timezone', 'UTC')
             ->get(eventsIndexUrl($query));
 
         $response->assertOk()
@@ -2077,7 +2077,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this
-            ->withCookie('user_timezone', 'UTC')
+            ->withHeader('X-Timezone', 'UTC')
             ->get(eventsIndexUrl($query));
 
         $response->assertOk()
@@ -3219,15 +3219,15 @@ describe('Event Search Filters', function () {
         $nearInstitution = Institution::factory()->create();
         $nearVenue = Venue::factory()->create();
         updatePrimaryAddressForSearch($nearVenue, [
-            'lat' => 3.1390,
-            'lng' => 101.6869,
+            'latitude' => 3.1390,
+            'longitude' => 101.6869,
         ]);
 
         $farInstitution = Institution::factory()->create();
         $farVenue = Venue::factory()->create();
         updatePrimaryAddressForSearch($farVenue, [
-            'lat' => 3.2600,
-            'lng' => 101.8600,
+            'latitude' => 3.2600,
+            'longitude' => 101.8600,
         ]);
 
         Event::factory()->for($nearVenue)->create([
@@ -3272,14 +3272,14 @@ describe('Event Search Filters', function () {
 
         $nearInstitution = Institution::factory()->create();
         updatePrimaryAddressForSearch($nearInstitution, [
-            'lat' => 3.1390,
-            'lng' => 101.6869,
+            'latitude' => 3.1390,
+            'longitude' => 101.6869,
         ]);
 
         $farInstitution = Institution::factory()->create();
         updatePrimaryAddressForSearch($farInstitution, [
-            'lat' => 3.2600,
-            'lng' => 101.8600,
+            'latitude' => 3.2600,
+            'longitude' => 101.8600,
         ]);
 
         Event::factory()->for($nearInstitution)->create([

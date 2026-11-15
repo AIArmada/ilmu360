@@ -8,17 +8,13 @@ use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
-use App\Features\Contributions\Actions\ApproveContributionRequestAction;
-use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
 use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
+use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Actions\ApproveContributionRequestAction;
+use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionCreateRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
-use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
@@ -26,6 +22,10 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Policies\ContributionRequestPolicy;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Support\Submission\ContributionSubjectPresenter;
 use Database\Seeders\PermissionSeeder;
@@ -430,7 +430,10 @@ it('keeps user pending contribution lookups separate from entity wide pending lo
     ]);
 
     $resolvedRequest = app(FindUserPendingContributionRequestAction::class)->handle($proposer, $institution);
-    $entityRequest = app(FindEntityPendingContributionRequestAction::class)->handle($institution);
+    $entityRequest = app(FindEntityPendingContributionRequestAction::class)->handle(
+        $institution->getMorphClass(),
+        (string) $institution->getKey(),
+    );
 
     expect($resolvedRequest?->is($latestRequest))->toBeTrue()
         ->and($resolvedRequest?->is($olderRequest))->toBeFalse();

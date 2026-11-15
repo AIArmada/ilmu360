@@ -91,7 +91,9 @@ class PersonForm
                                             ->relationship('languages', 'name')
                                             ->multiple()
                                             ->preload()
-                                            ->searchable(),
+                                            ->searchable()
+                                            ->saveRelationshipsUsing(null)
+                                            ->dehydrated(),
                                     ])
                                     ->columns(2),
                             ]),
@@ -209,7 +211,9 @@ class PersonForm
                                             ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForFill($data))
                                             ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForSave($data))
                                             ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForSave($data))
-                                            ->itemLabel(fn (array $state): string => SharedFormSchema::contactItemLabel($state)),
+                                            ->itemLabel(fn (array $state): string => SharedFormSchema::contactItemLabel($state))
+                                            ->saveRelationshipsUsing(null)
+                                            ->dehydrated(),
                                     ]),
                                 Section::make(__('Social Media'))
                                     ->components([
@@ -318,7 +322,9 @@ class PersonForm
                                                 }
 
                                                 return null;
-                                            }),
+                                            })
+                                            ->saveRelationshipsUsing(null)
+                                            ->dehydrated(),
                                     ]),
                             ]),
                         Tab::make(__('Status'))

@@ -143,13 +143,22 @@ it('shows district and subdistrict on the lokasi tab', function () {
     });
 });
 
-it('renders a locale-map bio on the view page without crashing', function () {
+it('renders the canonical biography on the admin view page', function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
     $administrator = createAdminPersonViewer();
     $person = Person::factory()->create([
-        'bio' => ['ms' => 'Al-Fadhil Ustaz contoh berasal dari Slim River.'],
+        'bio' => [
+            'type' => 'doc',
+            'content' => [[
+                'type' => 'paragraph',
+                'content' => [[
+                    'type' => 'text',
+                    'text' => 'Al-Fadhil Ustaz contoh berasal dari Slim River.',
+                ]],
+            ]],
+        ],
     ]);
 
     OwnerContext::withOwner(null, function () use ($administrator, $person): void {
@@ -160,10 +169,19 @@ it('renders a locale-map bio on the view page without crashing', function () {
     });
 });
 
-it('renders a locale-map bio on the public profile without crashing', function () {
+it('renders the canonical biography on the public profile', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
-        'bio' => ['ms' => 'Pendakwah contoh yang aktif menyampaikan ceramah.'],
+        'bio' => [
+            'type' => 'doc',
+            'content' => [[
+                'type' => 'paragraph',
+                'content' => [[
+                    'type' => 'text',
+                    'text' => 'Pendakwah contoh yang aktif menyampaikan ceramah.',
+                ]],
+            ]],
+        ],
     ]);
 
     $this->get(route('persons.show', $person))

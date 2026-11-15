@@ -20,18 +20,18 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\Enums\TimingMode;
+use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Platform\Cache\PublicListingsCache;
-use App\Shared\Auth\OAuthTransactionStore;
+use App\Services\PublicListingsCache;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
@@ -64,6 +64,55 @@ pest()->tia()->locally();
 function submittedOccurrenceByTitle(string $title): EventOccurrence
 {
     return EventOccurrence::query()->where('title', $title)->sole();
+}
+
+/**
+ * @param  array<string, mixed>  $data
+ */
+function attachTestInstitutionAddress(Institution $institution, array $data): void
+{
+    $defaults = [
+        'line1' => null,
+        'line2' => null,
+        'postcode' => null,
+        'country_id' => null,
+        'state_id' => null,
+        'city_id' => null,
+        'country' => null,
+        'country_code' => null,
+        'state' => null,
+        'city' => null,
+        'latitude' => null,
+        'longitude' => null,
+        'google_maps_url' => null,
+        'google_place_id' => null,
+        'google_feature_id' => null,
+        'google_cid' => null,
+        'google_entity_id' => null,
+        'formatted_address' => null,
+        'components' => [],
+        'metadata' => [],
+        'navigation_links' => [],
+        'waze_url' => null,
+    ];
+
+    foreach (['latitude', 'longitude'] as $coordinate) {
+        $value = $data[$coordinate] ?? null;
+        $defaults[$coordinate] = isset($value) && $value !== '' ? (float) $value : null;
+    }
+
+    $address = Address::factory()->create(array_intersect_key(array_replace($defaults, $data), $defaults));
+    $institution->attachAddress($address, type: 'main', isPrimary: true);
+
+    $stateId = $data['state_id'] ?? null;
+
+    app(SyncAddressAreaAssignmentsAction::class)->execute(
+        $address,
+        is_array($data['area_assignments'] ?? null) ? $data['area_assignments'] : [],
+        is_string($stateId) ? $stateId : null,
+        ['source' => 'ilmu360'],
+    );
+
 }
 
 /*
@@ -158,7 +207,7 @@ pest()->extend(TestCase::class)
         }
 
         Cache::forget('submit_languages_safe_v2');
-        Cache::forget('submit_venues_safe_v2');
+        Cache::forget('submit_venues_all_safe_v2');
 
         app(PublicListingsCache::class)->bustMajlisListing();
 
@@ -339,20 +388,6 @@ function normalizeTestAddressAttributes(array $attributes): array
 {
     $attributes['area_assignments'] ??= [];
 
-    if (array_key_exists('administrative_district_id', $attributes)) {
-        if ($attributes['administrative_district_id'] !== null && $attributes['administrative_district_id'] !== '') {
-            $attributes['area_assignments']['administrative_district'] = $attributes['administrative_district_id'];
-        }
-        unset($attributes['administrative_district_id']);
-    }
-
-    if (array_key_exists('administrative_subdivision_id', $attributes)) {
-        if ($attributes['administrative_subdivision_id'] !== null && $attributes['administrative_subdivision_id'] !== '') {
-            $attributes['area_assignments']['administrative_subdivision'] = $attributes['administrative_subdivision_id'];
-        }
-        unset($attributes['administrative_subdivision_id']);
-    }
-
     if (! array_key_exists('country_code', $attributes) || $attributes['country_code'] === null) {
         $countryId = $attributes['country_id'] ?? null;
 
@@ -364,16 +399,6 @@ function normalizeTestAddressAttributes(array $attributes): array
             }
         }
     }
-
-    if (array_key_exists('lat', $attributes) && ! array_key_exists('latitude', $attributes)) {
-        $attributes['latitude'] = $attributes['lat'];
-    }
-    unset($attributes['lat']);
-
-    if (array_key_exists('lng', $attributes) && ! array_key_exists('longitude', $attributes)) {
-        $attributes['longitude'] = $attributes['lng'];
-    }
-    unset($attributes['lng']);
 
     return $attributes;
 }

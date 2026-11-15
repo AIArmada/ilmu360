@@ -51,9 +51,9 @@ final readonly class DatabaseShareOutcomeEvidenceReader implements ShareOutcomeE
             ->first();
 
         return new ShareOutcomeEvidence(
-            outcomeCount: (int) ($totals?->outcomes ?? 0),
-            distinctSharers: (int) ($totals?->sharers ?? 0),
-            distinctParticipants: (int) ($totals?->participants ?? 0),
+            outcomeCount: (int) ($totals->outcomes ?? 0),
+            distinctSharers: (int) ($totals->sharers ?? 0),
+            distinctParticipants: (int) ($totals->participants ?? 0),
             byChannel: $this->aggregateCells($evidence, $this->channelExpression()),
             byOutcome: $this->aggregateCells($evidence, 'c.conversion_type'),
             definitionVersion: ShareMetricDefinitions::VERSION,
@@ -135,7 +135,7 @@ final readonly class DatabaseShareOutcomeEvidenceReader implements ShareOutcomeE
      * Apply the purchaser exclusion without excluding conversions that lack
      * a registration link or point to a registration that is not paid.
      *
-     * @param list<string> $paidRegistrationIds
+     * @param  list<string>  $paidRegistrationIds
      */
     private function excludePaidPurchasers(Builder $query, array $paidRegistrationIds): Builder
     {

@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 final readonly class EloquentAccountAccess implements AccountAccess
 {
@@ -74,11 +75,16 @@ final readonly class EloquentAccountAccess implements AccountAccess
 
     public function revokeCurrentToken(Authenticatable $account): void
     {
-        $token = method_exists($account, 'currentAccessToken')
-            ? $account->currentAccessToken()
-            : null;
+        if ($account instanceof User) {
+            $this->revokeCurrentTokenForUser($account);
+        }
+    }
 
-        if (is_object($token) && method_exists($token, 'delete')) {
+    private function revokeCurrentTokenForUser(User $user): void
+    {
+        $token = $user->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) {
             $token->delete();
         }
     }
@@ -93,10 +99,26 @@ final readonly class EloquentAccountAccess implements AccountAccess
         $this->user($accountId)->sendEmailVerificationNotification();
     }
 
+    public function persistResetPassword(string $accountId, string $password, ?Request $request = null): void
+    {
+        $this->persistResetPasswordForUser($this->user($accountId), $password, $request);
+    }
+
     public function resetPassword(string $accountId, string $password, ?Request $request = null): void
     {
         $user = $this->user($accountId);
 
+        $this->persistResetPasswordForUser($user, $password, $request);
+
+        $user->forceFill([
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        event(new PasswordReset($user));
+    }
+
+    private function persistResetPasswordForUser(User $user, string $password, ?Request $request): void
+    {
         $user->forceFill([
             'password' => $password,
         ])->save();
@@ -107,12 +129,6 @@ final readonly class EloquentAccountAccess implements AccountAccess
             actorId: (string) $user->getKey(),
             request: $request ?? request(),
         );
-
-        $user->forceFill([
-            'remember_token' => Str::random(60),
-        ])->save();
-
-        event(new PasswordReset($user));
     }
 
     private function resolveUser(string $login): ?User

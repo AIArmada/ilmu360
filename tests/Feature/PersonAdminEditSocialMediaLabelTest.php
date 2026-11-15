@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Filament\Resources\Persons\PersonResource;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -62,6 +63,48 @@ it('saves the person edit page when a social media row only has a username', fun
     });
 
     expect($person->fresh()->socialProfiles()->where('platform', 'facebook')->value('handle'))->toBe('atiqah');
+});
+
+it('saves person contacts, languages, and social profiles through the Directory workflow', function (): void {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+    $person = Person::factory()->create();
+    $language = Language::query()->firstWhere('code', 'ms') ?? Language::query()->create([
+        'code' => 'ms',
+        'name' => 'Malay',
+        'native' => 'Bahasa Melayu',
+        'dir' => 'ltr',
+    ]);
+
+    OwnerContext::withOwner(null, function () use ($administrator, $person, $language): void {
+        Livewire::actingAs($administrator)
+            ->test(EditPerson::class, ['record' => $person->getKey()])
+            ->fillForm([
+                'languages' => [$language->getKey()],
+                'contactMethods' => [[
+                    'type' => 'email',
+                    'label' => 'Office',
+                    'purpose' => 'general',
+                    'value' => 'office@example.test',
+                    'is_primary' => true,
+                    'is_public' => true,
+                ]],
+                'socialProfiles' => [[
+                    'platform' => 'facebook',
+                    'label' => 'Official page',
+                    'handle' => 'person-official',
+                ]],
+            ])
+            ->call('save')
+            ->assertHasNoErrors();
+    });
+
+    expect($person->fresh()->languages()->pluck('languages.id')->all())->toBe([(string) $language->getKey()])
+        ->and($person->fresh()->contactMethods()->where('type', 'email')->value('label'))->toBe('Office')
+        ->and($person->fresh()->socialProfiles()->where('platform', 'facebook')->value('label'))->toBe('Official page');
 });
 
 it('hydrates canonical state and city selections from an existing text-only address', function () {

@@ -45,8 +45,10 @@ it('allows deleting a subdistrict that is still referenced by an address and cas
     syncPrimaryAddressForTest($institution, [
         'country_id' => (string) $country->getKey(),
         'state_id' => (string) $geo['state']->getKey(),
-        'administrative_district_id' => (string) $geo['district']->getKey(),
-        'administrative_subdivision_id' => (string) $geo['subdistrict']->getKey(),
+        'area_assignments' => [
+            'administrative_district' => (string) $geo['district']->getKey(),
+            'administrative_subdivision' => (string) $geo['subdistrict']->getKey(),
+        ],
     ]);
 
     $subdistrict = $geo['subdistrict'];

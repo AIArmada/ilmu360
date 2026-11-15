@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 // Rw2a seam: the lazy, ordered source-receipt key reader that the Rewards
-// preclaim backfill consumes instead of importing the receipt model.
+// preclaim evaluation consumes instead of importing the receipt model.
 
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;

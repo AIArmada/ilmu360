@@ -23,10 +23,10 @@ use Lorisleiva\Actions\Concerns\AsAction;
 /**
  * Events-owned admission setup for an existing event.
  *
- * Writes the event/occurrence admission flags, the event access policy, the
- * occurrence ticket types and, when a ticket requires allocation, the seat map,
- * sections, seats and general-admission seating options. Ticket, seating and
- * occurrence rows stay package-canonical; Events owns the setup workflow.
+ * Writes the event and occurrence admission flags, access policy, and the
+ * app-side seating rows for a configured ticket setup. Ticket types are
+ * created by the package action; Events owns its occurrence and seating write
+ * paths while the packages continue to define those table schemas.
  */
 final readonly class ConfigureEventAdmissionAction
 {

@@ -10,37 +10,36 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventRole;
-use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
-use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
-use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\EventCategoryPolicyResolver;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\TaxonomyTerm\DisciplineTermCode;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Enums\TaxonomyTerm\IssueTermCode;
 use App\Enums\TaxonomyTerm\SourceTermCode;
-use App\Shared\Events\Enums\TimingMode;
 use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
+use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Person;
 use App\Models\Series;
 use App\Models\Venue;
-use App\Features\Events\Services\EventKeyPersonSyncService;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use Database\Seeders\Concerns\SeedsEventLocations;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -74,7 +73,6 @@ class EventSeeder extends Seeder
                 $this->seedBulkEvents();
             }
 
-            $this->backfillSeededEventRequiredFields();
         });
     }
 
@@ -505,8 +503,8 @@ class EventSeeder extends Seeder
                 }
             }
 
-            app(EventKeyPersonSyncService::class)->sync(
-                $event,
+            app(EventAuthoring::class)->syncEventKeyPeople(
+                (string) $event->getKey(),
                 $person instanceof Person ? [$person->id] : [],
             );
 
@@ -566,8 +564,8 @@ class EventSeeder extends Seeder
         }
 
         // SpeakerSeeder is the sole source of seeded persons: never create a
-        // Person here. Unresolvable names seed as personless events and the
-        // backfill assigns the institution as organizer.
+        // Person here. Unresolvable names seed as personless events with the
+        // institution assigned as organizer.
         return Person::query()->where('name', $personName)->first();
     }
 
@@ -716,109 +714,6 @@ class EventSeeder extends Seeder
         return $payload;
     }
 
-    private function backfillSeededEventRequiredFields(): void
-    {
-        Event::query()
-            ->with([
-                'persons:id',
-                'classifications',
-                'primaryOrganizerInvolvement',
-                'primaryLocation.venueSpace',
-            ])
-            ->chunk(200, function (Collection $events): void {
-                foreach ($events as $event) {
-                    $updates = [];
-
-                    $ageGroup = $event->age_group;
-                    $hasAgeGroup = $ageGroup instanceof Collection && $ageGroup->isNotEmpty();
-
-                    if (! $hasAgeGroup) {
-                        $updates['age_group'] = [EventAgeGroup::AllAges->value];
-                    }
-
-                    $hasInstitutionLocation = is_string($event->institution_id) && $event->institution_id !== '';
-                    $hasVenueLocation = is_string($event->default_venue_id) && $event->default_venue_id !== '';
-                    $hasSpace = is_string($event->primaryLocation?->venue_space_id) && $event->primaryLocation->venue_space_id !== '';
-                    $spaceId = $hasSpace ? $event->primaryLocation->venue_space_id : null;
-                    $eventFormat = $event->delivery_mode;
-                    $isOnlineEvent = $eventFormat === EventFormat::Online
-                        || (is_string($eventFormat) && $eventFormat === EventFormat::Online->value);
-
-                    // Enforce location invariant for seeded rows:
-                    // - online: no physical location fields at all.
-                    // - non-online: location is institution XOR venue, never both.
-                    if ($isOnlineEvent) {
-                        if ($hasInstitutionLocation || $hasVenueLocation || $hasSpace) {
-                            $updates['institution_id'] = null;
-                            $updates['default_venue_id'] = null;
-                            $spaceId = null;
-                        }
-                    } elseif ($hasInstitutionLocation && $hasVenueLocation) {
-                        if ($hasSpace) {
-                            // Space belongs to institution location.
-                            $updates['default_venue_id'] = null;
-                        } else {
-                            // Default conflict resolution: keep venue location.
-                            $updates['institution_id'] = null;
-                        }
-                    }
-
-                    if ($event->primaryOrganizerInvolvement === null) {
-                        $firstPerson = $event->persons->first();
-
-                        $organizer = match (true) {
-                            $firstPerson !== null => $firstPerson,
-                            ! empty($event->institution_id) => Institution::query()->find($event->institution_id),
-                            default => null,
-                        };
-
-                        if ($organizer !== null) {
-                            OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($organizer));
-                        }
-                    }
-
-                    if ($updates !== []) {
-                        $event->fill($updates)->save();
-                    }
-
-                    if (! $isOnlineEvent && $spaceId === null) {
-                        if (is_string($event->institution_id) && $event->institution_id !== '') {
-                            $institution = Institution::query()->find($event->institution_id);
-                            $spaceId = $institution instanceof Institution
-                                ? (string) $this->seededInstitutionEventSpace($institution)->getKey()
-                                : null;
-                        } elseif (is_string($event->default_venue_id) && $event->default_venue_id !== '') {
-                            $venue = Venue::query()->find($event->default_venue_id);
-                            $spaceId = $venue instanceof Venue
-                                ? (string) $this->seededVenueEventSpace($venue)->getKey()
-                                : null;
-                        }
-                    }
-
-                    $event->syncLocation($event->default_venue_id, $spaceId !== null ? [$spaceId] : []);
-
-                    $taxonomyCodes = $event->classifications
-                        ->pluck('taxonomy_code')
-                        ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
-                        ->unique()
-                        ->values();
-
-                    $hasRequiredTaxonomies = $taxonomyCodes->contains(EventTaxonomyCode::Domain->value)
-                        && $taxonomyCodes->contains(EventTaxonomyCode::Discipline->value);
-
-                    if ($hasRequiredTaxonomies) {
-                        continue;
-                    }
-
-                    app(SyncEventClassificationsAction::class)->handle($event, [
-                        'domain_tags' => [DomainTermCode::AgamaKerohanian->value],
-                        'discipline_tags' => [DisciplineTermCode::IlmuHadith->value],
-                        'source_tags' => [SourceTermCode::Hadith->value],
-                    ]);
-                }
-            });
-    }
-
     /**
      * @param  list<string>  $personIds
      */
@@ -872,6 +767,6 @@ class EventSeeder extends Seeder
             ];
         }
 
-        app(EventKeyPersonSyncService::class)->sync($event, $selectedPersonIds, $otherKeyPeople);
+        app(EventAuthoring::class)->syncEventKeyPeople((string) $event->getKey(), $selectedPersonIds, $otherKeyPeople);
     }
 }

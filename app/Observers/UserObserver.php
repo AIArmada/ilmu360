@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Features\Directory\Api\SubmissionEligibilitySync;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
-use App\Shared\Directory\SubmissionEligibilitySync;
 
 /**
  * Conventional model-event entry point for identity-owned account side effects.

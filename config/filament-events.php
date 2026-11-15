@@ -7,7 +7,6 @@ use AIArmada\FilamentSeating\RelationManagers\SeatMapsRelationManager;
 use AIArmada\FilamentTicketing\RelationManagers\TicketTypesRelationManager;
 use App\Filament\Resources\EventOccurrences\EventOccurrenceFeaturedFormExtension;
 use App\Filament\Resources\Events\EventAdminContextFormExtension;
-use App\Filament\Resources\EventTerms\TermDomainMappingExtension;
 
 return [
     'navigation' => [
@@ -32,9 +31,6 @@ return [
         ],
         'occurrence_form_extensions' => [
             EventOccurrenceFeaturedFormExtension::class,
-        ],
-        'term_form_extensions' => [
-            TermDomainMappingExtension::class,
         ],
         'event_relation_managers' => [
             TicketTypesRelationManager::class,

@@ -1,16 +1,18 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Directory\Actions\Persons\SyncPersonRelationsAction;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
@@ -213,6 +215,75 @@ it('keeps typed city text when areas are also selected', function () {
     ]);
 
     expect($payload['city'])->toBe('Typed Town');
+});
+
+it('uses only UUID country ids as country selections', function () {
+    $country = ensureTestMalaysiaCountry();
+    $countryId = (string) $country->getKey();
+
+    expect(SharedFormSchema::countrySelectionProvided(['country_code' => 'MY']))->toBeFalse()
+        ->and(SharedFormSchema::countrySelectionProvided(['country_key' => 'MY']))->toBeFalse()
+        ->and(SharedFormSchema::countrySelectionProvided(['country_id' => 123]))->toBeTrue()
+        ->and(SharedFormSchema::countrySelectionProvided(['country_id' => '  ']))->toBeFalse()
+        ->and(SharedFormSchema::normalizeCountrySelection(['country_code' => 'MY']))->toBeNull()
+        ->and(SharedFormSchema::normalizeCountrySelection(['country_key' => 'MY']))->toBeNull()
+        ->and(SharedFormSchema::normalizeCountrySelection(['country_id' => $countryId]))->toBe($countryId)
+        ->and(SharedFormSchema::normalizeLocationId(123))->toBeNull()
+        ->and(SharedFormSchema::normalizeLocationId('123'))->toBeNull();
+});
+
+it('rejects a non-uuid country selection on a sparse address update', function () {
+    $user = User::factory()->create();
+    $geo = createTestPackageGeography();
+    $institution = app(ContributionEntityMutationService::class)->createInstitution([
+        'name' => 'Masjid Negara Sedia Ada',
+        'type' => 'masjid',
+        'address' => [
+            'country_id' => (string) $geo['country']->getKey(),
+            'state_id' => (string) $geo['state']->getKey(),
+            'line1' => 'Jalan Asal',
+        ],
+    ], $user);
+
+    expect(fn () => app(ApplyDirectContributionUpdateAction::class)->handle($institution, [
+        'address' => [
+            'country_id' => 123,
+            'line1' => 'Jalan Baharu',
+        ],
+    ]))->toThrow(ValidationException::class);
+
+    expect($institution->fresh()->primaryAddress()->line1)->toBe('Jalan Asal');
+});
+
+it('does not synthesize person addresses from flat top-level address fields', function () {
+    $geo = createTestPackageGeography();
+    $person = Person::factory()->create();
+    $existingAddress = $person->primaryAddress();
+
+    if (! $existingAddress instanceof Address) {
+        throw new RuntimeException('The person fixture must have a primary address.');
+    }
+
+    $existingAddressId = (string) $existingAddress->getKey();
+    $existingCountryId = (string) $existingAddress->country_id;
+
+    app(SyncPersonRelationsAction::class)->handle($person, [
+        'country_id' => (string) $geo['country']->getKey(),
+        'country_code' => (string) $geo['country']->iso2,
+        'country_key' => (string) $geo['country']->iso2,
+        'line1' => 'Flat address payload',
+    ]);
+
+    $address = $person->fresh()->primaryAddress();
+
+    if (! $address instanceof Address) {
+        throw new RuntimeException('The person must retain its primary address.');
+    }
+
+    expect((string) $address->getKey())->toBe($existingAddressId)
+        ->and((string) $address->country_id)->toBe($existingCountryId)
+        ->and($address->line1)->toBeNull()
+        ->and($person->addresses()->count())->toBe(1);
 });
 
 it('rejects state and city keys on the region-only person api', function () {

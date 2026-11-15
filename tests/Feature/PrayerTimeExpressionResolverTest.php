@@ -3,6 +3,7 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
+use App\Features\Directory\Api\InstitutionVenueLinks;
 use App\Features\Prayer\Actions\ResolvePrayerStartClockAction;
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
@@ -14,8 +15,8 @@ use App\Models\Venue;
 use App\Services\PrayerTimeExpressionResolver;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerLocation;
+use App\Shared\Prayer\PrayerOffset;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -482,7 +483,12 @@ it('borrows the venue owner address when re-resolving unpinned session expressio
         $venue->addresses()->detach();
         $venue->unsetRelation('addresses');
     });
-    $venue->institutions()->attach($owner->getKey(), ['role' => InstitutionVenueRole::Operated, 'is_primary' => true]);
+    app(InstitutionVenueLinks::class)->add(
+        (string) $owner->getKey(),
+        (string) $venue->getKey(),
+        InstitutionVenueRole::Operated,
+        true,
+    );
 
     $event = Event::factory()->create([
         'institution_id' => $owner->getKey(),

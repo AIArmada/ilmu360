@@ -28,8 +28,10 @@ use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Affiliates\Support\IpHasher;
+use AIArmada\Affiliates\Support\Links\AffiliateLinkDestination;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
+use AIArmada\Links\Actions\UpdateLink;
 use AIArmada\Links\Models\Link;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use App\Contracts\ShareTrackingContract;
@@ -37,9 +39,22 @@ use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
+use App\Features\ShareTracking\Api\CreateLandingAttributionData;
+use App\Features\ShareTracking\Api\CreateOutboundShareAttributionData;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
+use App\Features\ShareTracking\Api\FinancialObligationReader;
+use App\Features\ShareTracking\Api\LandingAttributionReceipt;
+use App\Features\ShareTracking\Api\LandingAttributionWriter;
+use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
+use App\Features\ShareTracking\Api\OutboundShareAttributionWriter;
+use App\Features\ShareTracking\Api\OutboundShareTouchpointData;
+use App\Features\ShareTracking\Api\OutboundShareTouchpointWriter;
+use App\Features\ShareTracking\Api\PassiveNavigationAttributionWriter;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
+use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
+use App\Features\ShareTracking\Api\VisitTouchpointData;
+use App\Features\ShareTracking\Api\VisitTouchpointWriter;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
 use App\Models\Event;
 use App\Models\Institution;
@@ -53,12 +68,12 @@ use App\Models\User;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\SealedGuestIdentityException;
 use App\Support\ShareTracking\ShareProfileNotEligibleException;
 use App\Support\ShareTracking\ShareTrackingFinance;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
-use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonInterface;
 use Illuminate\Cookie\CookieValuePrefix;
 use Illuminate\Database\Eloquent\Builder;
@@ -87,9 +102,17 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         private ShareTrackingUrlService $shareTrackingUrlService,
         private CreateTrackingLink $createTrackingLink,
         private RecordAffiliateOutcome $recordAffiliateOutcome,
+        private FinancialObligationReader $financialObligations,
+        private TrackedShareLinkDetacher $trackedShareLinkDetacher,
         private BrowserSelectionWriter $browserSelections,
         private EffectReceipts $effectReceipts,
         private SourceAttributionReceipts $sourceReceipts,
+        private LandingAttributionWriter $landingAttributions,
+        private MemberAffiliateProfileWriter $memberAffiliateProfiles,
+        private OutboundShareAttributionWriter $outboundShareAttributions,
+        private OutboundShareTouchpointWriter $outboundShareTouchpoints,
+        private PassiveNavigationAttributionWriter $passiveNavigationAttributions,
+        private VisitTouchpointWriter $visitTouchpoints,
     ) {}
 
     /**
@@ -341,18 +364,18 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
 
                     $attribution = $this->createLandingAttribution($lockedLink, $request, $browserKey, $shareProvider);
 
-                    $this->browserSelections->accept($selectionId, (string) $attribution->getKey());
+                    $this->browserSelections->accept($selectionId, $attribution->attributionId);
 
-                    return $this->encodeCookieState($browserKey, (string) $attribution->cookie_value);
+                    return $this->encodeCookieState($browserKey, $attribution->cookieValue);
                 }
 
                 $attribution = $this->createLandingAttribution($lockedLink, $request, $browserKey, $shareProvider);
 
-                $this->browserSelections->accept($selectionId, (string) $attribution->getKey());
+                $this->browserSelections->accept($selectionId, $attribution->attributionId);
 
                 $this->recordVisitTouchpoint($attribution, $request, 'landing', $safeUrl);
 
-                return $this->encodeCookieState($browserKey, (string) $attribution->cookie_value);
+                return $this->encodeCookieState($browserKey, $attribution->cookieValue);
             }), 3);
         }
 
@@ -385,10 +408,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                     return $this->encodeCookieState($navigationBrowserKey, (string) $winner->cookie_value);
                 }
 
-                $winner->forceFill([
-                    'last_seen_at' => now(),
-                    'last_cookie_seen_at' => now(),
-                ])->save();
+                $this->passiveNavigationAttributions->touchPassiveNavigation((string) $winner->getKey());
 
                 $kind = $safeUrl === (string) $winner->landing_url ? 'return' : 'navigated';
                 $this->recordVisitTouchpoint($winner, $request, $kind, $safeUrl);
@@ -1146,7 +1166,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             $preservedConversionIds = $this->monetaryConversionIds($affiliate);
             $referencedLinkIds = $this->preservedConversionReferenceIds($affiliate, $preservedConversionIds, 'affiliate_link_id');
             $referencedAttributionIds = $this->preservedConversionReferenceIds($affiliate, $preservedConversionIds, 'affiliate_attribution_id');
-            $hasFinancialRecords = $preservedConversionIds !== [] || $this->affiliateHasNonConversionFinancialRecords($affiliate);
+            $hasFinancialRecords = $preservedConversionIds !== [] || $this->financialObligations->hasNonConversionFinancialRecords((string) $affiliate->getKey());
 
             $this->revokeGuestCredentials($affiliate);
 
@@ -1174,7 +1194,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             $affiliate->links()
                 ->when($referencedLinkIds !== [], fn ($query) => $query->whereNotIn('id', $referencedLinkIds))
                 ->each(function (AffiliateLink $link): ?bool {
-                    $this->detachTrackedLinkForDeletion($link);
+                    $this->trackedShareLinkDetacher->detachTrackedShareLink((string) $link->getKey());
 
                     return $link->delete();
                 });
@@ -1198,113 +1218,6 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         });
     }
 
-    /**
-     * Delete abandoned anonymous share profiles past retention.
-     *
-     * A guest profile is abandoned when no claim row exists (any claim,
-     * including a revoked one, permanently keeps the history), it has no
-     * conversion, fraud signal, or financial row, and its creation predates
-     * the retention cutoff. Links are detached first so published short URLs
-     * keep opening their public destination without credit.
-     *
-     * @return array{scanned: int, pruned: int, skipped: int}
-     */
-    public function pruneAbandonedGuestProfiles(int $retentionDays, int $limit = 1000, bool $dryRun = false): array
-    {
-        if ($retentionDays < 1) {
-            throw new InvalidArgumentException('Guest profile retention must be at least one day.');
-        }
-
-        $cutoff = now()->subDays($retentionDays);
-
-        $candidates = Affiliate::query()
-            ->withoutGlobalScope(OwnerScope::class)
-            ->whereNull('owner_type')
-            ->whereNull('owner_id')
-            ->where('purpose', ShareTrackingProfile::PURPOSE_SHARE_GUEST)
-            ->where('created_at', '<=', $cutoff)
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->limit(max(1, $limit))
-            ->get();
-
-        $pruned = 0;
-        $skipped = 0;
-
-        foreach ($candidates as $candidate) {
-            $deletable = OwnerContext::withOwner(null, fn (): ?Affiliate => DB::transaction(function () use ($candidate, $cutoff, $dryRun): ?Affiliate {
-                $affiliate = Affiliate::query()
-                    ->withoutGlobalScope(OwnerScope::class)
-                    ->whereKey($candidate->getKey())
-                    ->lockForUpdate()
-                    ->first();
-
-                if (! $affiliate instanceof Affiliate
-                    || ! ShareTrackingProfile::isMarkedGuest($affiliate)
-                    || $affiliate->created_at === null
-                    || $affiliate->created_at->greaterThan($cutoff)
-                    || ! $this->isAbandonedGuestProfile($affiliate)) {
-                    return null;
-                }
-
-                if (! $dryRun) {
-                    $this->deleteAbandonedGuestProfile($affiliate);
-                }
-
-                return $affiliate;
-            }, 3));
-
-            $deletable instanceof Affiliate ? $pruned++ : $skipped++;
-        }
-
-        return [
-            'scanned' => $candidates->count(),
-            'pruned' => $pruned,
-            'skipped' => $skipped,
-        ];
-    }
-
-    private function isAbandonedGuestProfile(Affiliate $affiliate): bool
-    {
-        if (AffiliateClaim::query()->where('affiliate_id', $affiliate->getKey())->exists()) {
-            return false;
-        }
-
-        if (AffiliateConversion::query()
-            ->withoutGlobalScope(OwnerScope::class)
-            ->where('affiliate_id', $affiliate->getKey())
-            ->exists()) {
-            return false;
-        }
-
-        if ($affiliate->fraudSignals()->exists()) {
-            return false;
-        }
-
-        return ! $this->affiliateHasNonConversionFinancialRecords($affiliate);
-    }
-
-    private function deleteAbandonedGuestProfile(Affiliate $affiliate): void
-    {
-        AffiliateCredential::query()->where('affiliate_id', $affiliate->getKey())->delete();
-        AffiliateOwnershipCapability::query()->where('affiliate_id', $affiliate->getKey())->delete();
-
-        $affiliate->links()
-            ->get()
-            ->each(function (AffiliateLink $link): void {
-                $this->detachTrackedLinkForDeletion($link);
-                $link->delete();
-            });
-
-        $affiliate->attributions()
-            ->get()
-            ->each(static fn (AffiliateAttribution $attribution): bool => (bool) $attribution->delete());
-
-        AffiliateTouchpoint::query()->where('affiliate_id', $affiliate->getKey())->delete();
-        $affiliate->balances()->delete();
-        $affiliate->delete();
-    }
-
     public function findAffiliateForUser(User $user): ?Affiliate
     {
         // Marker plus owner association. An unmarked commercial profile is
@@ -1313,7 +1226,11 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             ->where('owner_type', $user->getMorphClass())
             ->where('owner_id', $user->getKey())
             ->get()
-            ->first(fn (Affiliate $affiliate): bool => ShareTrackingProfile::isMarkedMemberFor($affiliate, $user));
+            ->first(fn (Affiliate $affiliate): bool => ShareTrackingProfile::isMarkedMemberForOwner(
+                $affiliate,
+                $user->getMorphClass(),
+                (string) $user->getKey(),
+            ));
     }
 
     /**
@@ -1444,23 +1361,6 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         }
 
         return $this->directAttributedUrlForLink($link);
-    }
-
-    private function affiliateHasNonConversionFinancialRecords(Affiliate $affiliate): bool
-    {
-        if ($affiliate->payouts()->exists()
-            || $affiliate->payoutMethods()->exists()
-            || $affiliate->payoutHolds()->exists()) {
-            return true;
-        }
-
-        return $affiliate->balances()
-            ->where(function ($query): void {
-                $query->where('holding_minor', '!=', 0)
-                    ->orWhere('available_minor', '!=', 0)
-                    ->orWhere('lifetime_earnings_minor', '!=', 0);
-            })
-            ->exists();
     }
 
     /**
@@ -1635,31 +1535,6 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             ->update(['deactivated_at' => now()]);
     }
 
-    private function detachTrackedLinkForDeletion(AffiliateLink $link): void
-    {
-        $tracked = $link->trackedLink()->first();
-
-        if (! $tracked instanceof Link) {
-            return;
-        }
-
-        // Canonical minimal public redirect: the links-managed row survives
-        // its share context with slug + destination intact, name and baked
-        // parameters scrubbed, and the subject repointed at the nil UUID.
-        // The nil subject stops the vendor delete cascade (the morph no
-        // longer matches this link) while still marking the row as a
-        // detached share redirect for the app adapter; a null subject would
-        // be indistinguishable from a commercial link. The app short route
-        // keeps serving the public destination with zero credit and no
-        // private identity; the generic /go/ route keeps its commercial
-        // lifecycle semantics (gone for a detached row) untouched.
-        $tracked->update([
-            'name' => 'Detached share redirect',
-            'parameters' => [],
-            'subject_id' => '00000000-0000-0000-0000-000000000000',
-        ]);
-    }
-
     private function createOrReuseAffiliateLink(User $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): AffiliateLink
     {
         return $this->createOrReuseAffiliateLinkForAffiliate(
@@ -1805,104 +1680,34 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         $tracked = $link->trackedLink()->first();
 
         if ($tracked instanceof Link && $tracked->destination_url !== $link->destination_url) {
-            $tracked->update(['destination_url' => $link->destination_url]);
+            UpdateLink::run(
+                $tracked,
+                ['destination_url' => $link->destination_url],
+                false,
+                AffiliateLinkDestination::allowedHosts($link->destination_url),
+            );
         }
     }
 
     private function ensureAffiliateForUser(User $user): Affiliate
     {
-        return DB::transaction(function () use ($user): Affiliate {
-            // Serialize canonical lookup+creation on the persisted User row
-            // so concurrent creators for one account elect one identity.
-            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+        $profile = $this->memberAffiliateProfiles->ensureForUser(
+            (string) $user->getKey(),
+            (string) $user->name,
+            $user->email,
+        );
 
-            $affiliate = $this->findAffiliateForUser($user);
-
-            if ($affiliate instanceof Affiliate) {
-                // A marked but suspended or disabled profile is never
-                // reactivated through share creation.
-                if (! ShareTrackingProfile::isEligibleForNewCredit($affiliate)) {
-                    throw new ShareProfileNotEligibleException('This share profile is not eligible to create new tracked links.');
-                }
-
-                $this->refreshMarkedMemberSnapshot($affiliate, $user);
-
-                return $affiliate;
-            }
-
-            return $this->createCanonicalAffiliateForUser($user);
-        });
-    }
-
-    private function refreshMarkedMemberSnapshot(Affiliate $affiliate, User $user): void
-    {
-        // Reuse refreshes the display snapshot only. Purpose, status and
-        // unrelated metadata keys are validated and preserved; no public
-        // caller can promote or demote the profile purpose.
-        $metadata = is_array($affiliate->metadata) ? $affiliate->metadata : [];
-        $metadata[ShareTrackingProfile::MARKER_KEY] = true;
-        $metadata[ShareTrackingProfile::KIND_KEY] = ShareTrackingProfile::KIND_MEMBER;
-
-        $affiliate->fill([
-            'name' => $user->name,
-            'contact_email' => $user->email,
-            'metadata' => $metadata,
-            'purpose' => ShareTrackingProfile::PURPOSE_SHARE_MEMBER,
-        ]);
-        $affiliate->save();
-    }
-
-    private function createCanonicalAffiliateForUser(User $user): Affiliate
-    {
-        try {
-            // Nested savepoint: a unique collision rolls back to the
-            // savepoint only, so the caller's outer transaction stays
-            // usable for the requery on real drivers.
-            return DB::transaction(function () use ($user): Affiliate {
-                $affiliate = new Affiliate([
-                    'code' => $this->memberAffiliateCode($user),
-                    'name' => $user->name,
-                    'description' => 'ilmu360 share-tracking affiliate profile',
-                    'status' => Active::class,
-                    'commission_type' => CommissionType::Percentage,
-                    'commission_rate' => 0,
-                    'currency' => (string) config('affiliates.currency.default', 'MYR'),
-                    'contact_email' => $user->email,
-                    'metadata' => ShareTrackingProfile::memberMetadata(),
-                    'purpose' => ShareTrackingProfile::PURPOSE_SHARE_MEMBER,
-                    'activated_at' => now(),
-                ]);
-
-                $affiliate->assignOwner($user);
-                $affiliate->save();
-
-                return $affiliate;
-            }, 1);
-        } catch (QueryException $exception) {
-            if (! $this->isUniqueViolation($exception)) {
-                throw $exception;
-            }
-
-            // A racing creator won the canonical identity: replay it after
-            // rechecking eligibility. Anything else fails explicitly; an
-            // unmarked commercial collision is never adopted or suffixed.
-            $winner = $this->findAffiliateForUser($user);
-
-            if (! $winner instanceof Affiliate) {
-                throw new InvalidArgumentException('A share profile for this account conflicts with an existing profile identity.', (int) $exception->getCode(), $exception);
-            }
-
-            if (! ShareTrackingProfile::isEligibleForNewCredit($winner)) {
-                throw new InvalidArgumentException('This share profile is not eligible to create new tracked links.', (int) $exception->getCode(), $exception);
-            }
-
-            return $winner;
+        if (! $profile->eligible) {
+            throw new ShareProfileNotEligibleException('This share profile is not eligible to create new tracked links.');
         }
-    }
 
-    private function memberAffiliateCode(User $user): string
-    {
-        return 'I360'.Str::upper(substr(hash('sha256', 'share-member-v1|'.$user->getMorphClass().'|'.$user->getKey()), 0, 12));
+        $affiliate = Affiliate::query()->whereKey($profile->affiliateId)->first();
+
+        if (! $affiliate instanceof Affiliate) {
+            throw new InvalidArgumentException('This share profile is not eligible to create new tracked links.');
+        }
+
+        return $affiliate;
     }
 
     /**
@@ -2253,7 +2058,11 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         $affiliate = $link->relationLoaded('affiliate') ? $link->affiliate : $link->affiliate()->first();
 
         if ($user instanceof User) {
-            if ($affiliate instanceof Affiliate && ShareTrackingProfile::isMarkedMemberFor($affiliate, $user)) {
+            if ($affiliate instanceof Affiliate && ShareTrackingProfile::isMarkedMemberForOwner(
+                $affiliate,
+                $user->getMorphClass(),
+                (string) $user->getKey(),
+            )) {
                 return $link;
             }
 
@@ -2599,7 +2408,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         return (string) $current->origin === $this->shareOriginForLink($lockedLink);
     }
 
-    private function createLandingAttribution(AffiliateLink $link, Request $request, string $browserKey, ?string $shareProvider): AffiliateAttribution
+    private function createLandingAttribution(AffiliateLink $link, Request $request, string $browserKey, ?string $shareProvider): LandingAttributionReceipt
     {
         $linkMetadata = $this->linkMetadata($link);
         $affiliate = $link->affiliate()->first();
@@ -2608,38 +2417,25 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             throw new LogicException('A tracked share link must belong to an affiliate.');
         }
 
-        $attribution = new AffiliateAttribution([
-            'affiliate_id' => $link->affiliate_id,
-            'affiliate_code' => (string) $affiliate->code,
-            'subject_type' => $link->subject_type,
-            'subject_key' => (string) ($linkMetadata['subject_key'] ?? $link->subject_key ?? $link->id),
-            'subject_id' => $link->subject_id,
-            'subject_instance' => 'default',
-            'subject_title_snapshot' => $link->subject_title_snapshot,
-            'cookie_value' => (string) Str::ulid(),
-            'landing_url' => $this->minimalPersistedUrl($request->fullUrl()),
-            'referrer_url' => null,
-            'user_agent' => null,
-            'ip_address' => IpHasher::hash($request->ip()),
-            'user_id' => null,
-            'first_seen_at' => now(),
-            'last_seen_at' => now(),
-            'last_cookie_seen_at' => now(),
-            'expires_at' => $this->expiryTimestamp(),
-            'affiliate_link_id' => $link->id,
-            'attribution_type' => 'landing',
-            'visitor_key' => $browserKey,
-            'channel' => $shareProvider,
-            'origin' => $this->shareOriginForLink($link),
-            'sharer_user_id' => $linkMetadata['sharer_user_id'] ?? null,
-            'metadata' => $this->sanitizedCampaignMetadata($request),
-        ]);
-
-        $attribution->owner_type = $affiliate->owner_type;
-        $attribution->owner_id = $affiliate->owner_id;
-        $attribution->save();
-
-        return $attribution;
+        return $this->landingAttributions->createLandingAttribution(new CreateLandingAttributionData(
+            affiliateId: (string) $link->affiliate_id,
+            affiliateCode: (string) $affiliate->code,
+            subjectType: $link->subject_type,
+            subjectKey: (string) ($linkMetadata['subject_key'] ?? $link->subject_key ?? $link->id),
+            subjectId: $link->subject_id,
+            subjectTitleSnapshot: $link->subject_title_snapshot,
+            cookieValue: (string) Str::ulid(),
+            landingUrl: $this->minimalPersistedUrl($request->fullUrl()),
+            ipAddressHash: IpHasher::hash($request->ip()),
+            affiliateLinkId: (string) $link->id,
+            visitorKey: $browserKey,
+            channel: $shareProvider,
+            origin: $this->shareOriginForLink($link),
+            sharerUserId: $linkMetadata['sharer_user_id'] ?? null,
+            campaignMetadata: $this->sanitizedCampaignMetadata($request),
+            ownerType: $affiliate->owner_type,
+            ownerId: $affiliate->owner_id,
+        ));
     }
 
     /**
@@ -2722,87 +2518,97 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         return $attribution;
     }
 
-    private function recordVisitTouchpoint(AffiliateAttribution $attribution, Request $request, string $kind, string $cleanUrl): AffiliateTouchpoint
+    private function recordVisitTouchpoint(AffiliateAttribution|LandingAttributionReceipt $attribution, Request $request, string $kind, string $cleanUrl): void
     {
-        $subject = $this->shareTrackingUrlService->classifyUrl($cleanUrl, (string) ($attribution->subject_title_snapshot ?: config('app.name')));
+        if ($attribution instanceof AffiliateAttribution) {
+            $attributionId = (string) $attribution->getKey();
+            $affiliateId = (string) $attribution->affiliate_id;
+            $affiliateCode = (string) $attribution->affiliate_code;
+            $source = $attribution->source;
+            $medium = $attribution->medium;
+            $campaign = $attribution->campaign;
+            $term = $attribution->term;
+            $content = $attribution->content;
+            $subjectTitleSnapshot = $attribution->subject_title_snapshot;
+            $linkId = $attribution->affiliate_link_id;
+            $visitorKey = $attribution->visitor_key;
+            $channel = $attribution->channel;
+            $origin = $attribution->origin;
+        } else {
+            $attributionId = $attribution->attributionId;
+            $affiliateId = $attribution->affiliateId;
+            $affiliateCode = $attribution->affiliateCode;
+            $source = $attribution->source;
+            $medium = $attribution->medium;
+            $campaign = $attribution->campaign;
+            $term = $attribution->term;
+            $content = $attribution->content;
+            $subjectTitleSnapshot = $attribution->subjectTitleSnapshot;
+            $linkId = $attribution->affiliateLinkId;
+            $visitorKey = $attribution->visitorKey;
+            $channel = $attribution->channel;
+            $origin = $attribution->origin;
+        }
 
-        return AffiliateTouchpoint::query()->create([
-            'affiliate_attribution_id' => $attribution->id,
-            'affiliate_id' => $attribution->affiliate_id,
-            'affiliate_code' => $attribution->affiliate_code,
-            'source' => $attribution->source,
-            'medium' => $attribution->medium,
-            'campaign' => $attribution->campaign,
-            'term' => $attribution->term,
-            'content' => $attribution->content,
-            'ip_address' => IpHasher::hash($request->ip()),
-            'user_agent' => null,
-            'touchpoint_type' => 'visit',
-            'metadata' => ['visit_kind' => $kind],
-            'affiliate_link_id' => $attribution->affiliate_link_id,
-            'visitor_key' => $attribution->visitor_key,
-            'channel' => $attribution->channel,
-            'origin' => $attribution->origin,
-            'url' => $cleanUrl,
-            'referrer_url' => null,
-            'subject_type' => $subject['subject_type'],
-            'subject_key' => $subject['subject_key'],
-            'subject_id' => $subject['subject_id'],
-            'touched_at' => now(),
-        ]);
+        $subject = $this->shareTrackingUrlService->classifyUrl($cleanUrl, (string) ($subjectTitleSnapshot ?: config('app.name')));
+
+        $this->visitTouchpoints->recordVisit(new VisitTouchpointData(
+            attributionId: $attributionId,
+            affiliateId: $affiliateId,
+            affiliateCode: $affiliateCode,
+            source: $source,
+            medium: $medium,
+            campaign: $campaign,
+            term: $term,
+            content: $content,
+            ipAddress: IpHasher::hash($request->ip()),
+            visitKind: $kind,
+            linkId: $linkId,
+            visitorKey: $visitorKey,
+            channel: $channel,
+            origin: $origin,
+            url: $cleanUrl,
+            subjectType: $subject['subject_type'],
+            subjectKey: $subject['subject_key'],
+            subjectId: $subject['subject_id'],
+        ));
     }
 
-    private function recordOutboundShare(AffiliateLink $link, ?User $user, string $provider, ?Request $request = null): AffiliateTouchpoint
+    private function recordOutboundShare(AffiliateLink $link, ?User $user, string $provider, ?Request $request = null): void
     {
         $affiliate = $link->affiliate()->first();
-        $attribution = AffiliateAttribution::query()->firstOrCreate(
-            [
-                'affiliate_id' => $link->affiliate_id,
-                'cookie_value' => null,
-                'subject_type' => $link->subject_type,
-                'subject_key' => $link->subject_key ?? 'link:'.$link->id,
-                'subject_id' => $link->subject_id,
-                'subject_instance' => $link->subject_instance ?? 'default',
-            ],
-            [
-                'affiliate_code' => (string) $affiliate?->code,
-                'user_id' => $user?->id,
-                'affiliate_link_id' => $link->id,
-                'subject_type' => $link->subject_type,
-                'subject_id' => $link->subject_id,
-                'subject_instance' => $link->subject_instance ?? 'default',
-                'subject_key' => $link->subject_key,
-                'origin' => $link->origin,
-                'subject_title_snapshot' => $link->subject_title_snapshot,
-                'attribution_type' => 'outbound_share',
-                'channel' => $provider,
-                'sharer_user_id' => $user?->id,
-                'first_seen_at' => now(),
-                'last_seen_at' => now(),
-            ],
-        );
+        $attribution = $this->outboundShareAttributions->createOutboundShareAttribution(new CreateOutboundShareAttributionData(
+            affiliateId: (string) $link->affiliate_id,
+            affiliateCode: (string) $affiliate?->code,
+            userId: $user instanceof User ? (string) $user->getKey() : null,
+            affiliateLinkId: (string) $link->getKey(),
+            subjectType: $link->subject_type,
+            lookupSubjectKey: $link->subject_key ?? 'link:'.(string) $link->getKey(),
+            subjectKey: $link->subject_key,
+            subjectId: $link->subject_id,
+            subjectInstance: $link->subject_instance ?? 'default',
+            origin: $link->origin,
+            subjectTitleSnapshot: $link->subject_title_snapshot,
+            channel: $provider,
+        ));
 
         $link->incrementClicks();
 
-        return AffiliateTouchpoint::query()->create([
-            'affiliate_attribution_id' => $attribution->id,
-            'affiliate_id' => $link->affiliate_id,
-            'affiliate_code' => (string) $affiliate?->code,
-            'ip_address' => IpHasher::hash($request?->ip()),
-            'user_agent' => null,
-            'touchpoint_type' => 'outbound_share',
-            'affiliate_link_id' => $link->id,
-            'subject_type' => $link->subject_type,
-            'subject_key' => $link->subject_key,
-            'subject_id' => $link->subject_id,
-            'subject_instance' => $link->subject_instance ?? 'default',
-            'subject_title_snapshot' => $link->subject_title_snapshot,
-            'visitor_key' => $attribution->visitor_key,
-            'channel' => $provider,
-            'origin' => $attribution->origin,
-            'referrer_url' => null,
-            'touched_at' => now()->utc(),
-        ]);
+        $this->outboundShareTouchpoints->recordOutboundShare(new OutboundShareTouchpointData(
+            attributionId: $attribution->attributionId,
+            affiliateId: (string) $link->affiliate_id,
+            affiliateCode: (string) $affiliate?->code,
+            ipAddressHash: IpHasher::hash($request?->ip()),
+            linkId: (string) $link->id,
+            subjectType: $link->subject_type,
+            subjectKey: $link->subject_key,
+            subjectId: $link->subject_id,
+            subjectInstance: $link->subject_instance ?? 'default',
+            subjectTitleSnapshot: $link->subject_title_snapshot,
+            visitorKey: $attribution->visitorKey,
+            channel: $provider,
+            origin: $attribution->origin,
+        ));
     }
 
     private function ownerForAffiliateLink(AffiliateLink $link): ?User
@@ -2937,13 +2743,6 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
     private function isBotRequest(Request $request): bool
     {
         return $this->shareTrackingUrlService->isBotRequest($request);
-    }
-
-    private function expiryTimestamp(): ?CarbonInterface
-    {
-        $ttlDays = (int) config('share-tracking.ttl_days', 30);
-
-        return $ttlDays > 0 ? now()->addDays($ttlDays) : null;
     }
 
     private function encodeCookieState(string $visitorKey, string $attributionCookie): string

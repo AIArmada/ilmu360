@@ -9,7 +9,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Shared\Directory\SpaceEligibilityResolver;
+use App\Shared\Directory\SpaceEligibility;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\OrganizerResolver;
 use App\Shared\Prayer\PrayerTargetSelector;
@@ -27,7 +27,7 @@ final class SubmissionContextResolver
 {
     public function __construct(
         private readonly SubmissionTimingPolicy $timing,
-        private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
+        private readonly SpaceEligibility $spaceEligibilityResolver,
         private readonly EntitySubmissionAccess $entitySubmissionAccess,
     ) {}
 
@@ -131,8 +131,9 @@ final class SubmissionContextResolver
         if (
             $scopedInstitution instanceof Institution
             && ! OrganizerResolver::involvementMatchesInstitution(
-                $persisted->primaryOrganizerInvolvement,
-                $scopedInstitution,
+                $persisted->primaryOrganizerInvolvement?->involveable_type,
+                $persisted->primaryOrganizerInvolvement?->involveable_id,
+                (string) $scopedInstitution->getKey(),
             )
         ) {
             throw ValidationException::withMessages([
@@ -243,7 +244,8 @@ final class SubmissionContextResolver
             return null;
         }
 
-        return OrganizerResolver::find($organizerId);
+        return Institution::query()->find($organizerId)
+            ?? Person::query()->find($organizerId);
     }
 
     /**
@@ -345,7 +347,9 @@ final class SubmissionContextResolver
         Institution|Person $primaryOrganizer,
     ): array {
         if (SubmissionValues::enumValue($validated['event_format'] ?? null) === EventFormat::Online->value) {
-            return PrayerTargetSelector::forOnline($primaryOrganizer);
+            $organizerKind = $primaryOrganizer instanceof Institution ? 'institution' : 'person';
+
+            return PrayerTargetSelector::forOnline($organizerKind, (string) $primaryOrganizer->getKey());
         }
 
         $targetInstitutionId = null;

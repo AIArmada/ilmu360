@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Actions\References;
 
+use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Directory\Support\DirectoryModel;
-use App\Platform\Routing\SyncSlugRedirectAction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -21,7 +21,7 @@ class GenerateReferenceSlugAction
     use AsAction;
 
     public function __construct(
-        private readonly SyncSlugRedirectAction $syncSlugRedirectAction,
+        private readonly SlugRedirectRecorder $slugRedirectRecorder,
     ) {}
 
     public function syncReferenceSlugsForTitle(string $title): bool
@@ -43,7 +43,7 @@ class GenerateReferenceSlugAction
     {
         $slug = $this->forReference($reference);
 
-        return CanonicalSlug::persist($reference, $slug, $this->syncSlugRedirectAction);
+        return CanonicalSlug::persist($reference, $slug, $this->slugRedirectRecorder);
     }
 
     public function handle(?string $title, ?string $ignoreReferenceId = null): string

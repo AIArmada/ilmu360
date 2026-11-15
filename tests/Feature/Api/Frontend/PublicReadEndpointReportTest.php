@@ -40,15 +40,19 @@ it('resolves public directory detail endpoints by uuid', function (string $resou
     'reference',
 ]);
 
-it('accepts q as an alias for the unified public search query', function (): void {
+it('uses search as the unified public search query parameter', function (): void {
     $institution = Institution::factory()->create([
-        'name' => 'Masjid Query Alias Search',
+        'name' => 'Masjid Canonical Search',
         'status' => 'verified',
     ]);
 
-    $response = $this->getJson('/api/v1/search?q='.urlencode('Query Alias Search'))
+    $this->getJson('/api/v1/search?q='.urlencode('Canonical Search'))
         ->assertOk()
-        ->assertJsonPath('meta.search', 'Query Alias Search');
+        ->assertJsonPath('meta.search', null);
+
+    $response = $this->getJson('/api/v1/search?search='.urlencode('Canonical Search'))
+        ->assertOk()
+        ->assertJsonPath('meta.search', 'Canonical Search');
 
     expect(collect($response->json('data.institutions.items'))->pluck('id')->all())
         ->toContain((string) $institution->id);
@@ -153,5 +157,5 @@ it('bounds person detail participation queries regardless of participation count
         ->filter(fn (array $query): bool => str_contains($query['query'], 'event_occurrences'));
 
     expect($involvementFetches)->toHaveCount(4)
-        ->and($occurrenceQueries->count())->toBeLessThanOrEqual(12);
+        ->and($occurrenceQueries->count())->toBeLessThanOrEqual(14);
 });

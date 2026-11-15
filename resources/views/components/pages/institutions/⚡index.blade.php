@@ -31,7 +31,7 @@ class extends Component
     private ?string $resolvedDefaultCountrySlug = null;
 
     /**
-     * @var array{country_id: ?string, state_id: ?string, city_id: ?string, district_id: ?string, subdivision_id: ?string, locality_id: ?string, area_ids: array<string, ?string>}|null
+     * @var array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, area_ids: array<string, ?string>}|null
      */
     private ?array $memoizedLocationIds = null;
 
@@ -50,7 +50,6 @@ class extends Component
         }
 
         $this->normalizeLocationSlugs();
-        $this->syncLegacyAreaProperties();
         $this->autoSelectSingleLocationChildren();
     }
 
@@ -76,10 +75,6 @@ class extends Component
 
     #[Url]
     public ?bool $followed_only = null;
-
-    public ?string $district = null;
-
-    public ?string $subdivision = null;
 
     /**
      * Provider-defined area slugs keyed by their assignment roles.
@@ -183,8 +178,7 @@ class extends Component
     /**
      * Merged subdivision + locality control, or null when addressing says
      * to render them separately. Values are prefixed with their kind so a
-     * pick resolves back into the right backing property. When legacy URLs
-     * carry both slugs, the subdivision wins the display slot.
+     * pick resolves into the role-keyed area map or locality filter.
      *
      * @return array{role: string, label: string, value: ?string, subdivisions: array<string, string>, localities: array<string, string>}|null
      */
@@ -217,7 +211,7 @@ class extends Component
             'role' => 'administrative_subdivision',
             'label' => $subdivision['label'].' / '.$this->localityLabel(),
             'value' => $subdivisionSlug !== null
-                ? 'subdivision:'.$subdivisionSlug
+                ? 'area:'.$subdivisionSlug
                 : ($this->locality !== null ? 'locality:'.$this->locality : null),
             'subdivisions' => $subdivision['options'],
             'localities' => $localities,
@@ -277,20 +271,22 @@ class extends Component
     #[Computed]
     public function subdistricts(): array
     {
-        // Slot 2 needs its parent: the slot-1 selection when the first slot
-        // exists, otherwise the state (federal-territory-style profiles, and
-        // provider countries whose cascade skips State entirely).
-        if ($this->districts() !== []) {
-            if (! filled($this->district)) {
-                return [];
-            }
-        } elseif (! filled($this->state)) {
+        $ids = $this->locationIds();
+        $countryId = $ids['country_id'];
+        $role = $this->locationSlugResolver()->subdivisionRoleForCountry($countryId);
+
+        if ($countryId === null || $role === null) {
             return [];
         }
 
-        $ids = $this->locationIds();
+        $parentId = $this->locationSlugResolver()->areaParentIdForRole(
+            $countryId,
+            $role,
+            $ids['state_id'],
+            $ids['area_ids'],
+        );
 
-        return $this->locationSlugResolver()->subdivisionMaps($ids['state_id'], $ids['district_id'], $ids['country_id'])['options'];
+        return $this->locationSlugResolver()->areaMapsForRole($countryId, $role, $parentId)['options'];
     }
 
     public function stateLabel(): string
@@ -364,7 +360,6 @@ class extends Component
                 if (is_string($single)) {
                     if (count($grouped['subdivisions']) === 1) {
                         $this->areas[$grouped['role']] = $single;
-                        $this->syncLegacyAreaProperties();
                     } else {
                         $this->locality = $single;
                     }
@@ -376,13 +371,16 @@ class extends Component
 
         $localities = $this->localities();
 
-        if ($localities !== []) {
-            $this->autoSelectSingleSlug('locality', $localities);
+        if (count($localities) === 1 && ! filled($this->locality)) {
+            $singleLocality = array_key_first($localities);
+
+            if (is_string($singleLocality)) {
+                $this->locality = $singleLocality;
+                $this->memoizedLocationIds = null;
+            }
 
             return;
         }
-
-        $this->syncLegacyAreaProperties();
     }
 
     /**
@@ -438,32 +436,6 @@ class extends Component
         };
     }
 
-    /**
-     * @param  array<string, string>  $options
-     */
-    private function autoSelectSingleSlug(string $property, array $options): void
-    {
-        if (count($options) !== 1 || filled($this->{$property})) {
-            return;
-        }
-
-        $value = array_key_first($options);
-
-        if (! is_string($value)) {
-            return;
-        }
-
-        match ($property) {
-            'city' => $this->city = $value,
-            'district' => $this->district = $value,
-            'subdivision' => $this->subdivision = $value,
-            'locality' => $this->locality = $value,
-            default => null,
-        };
-
-        $this->memoizedLocationIds = null;
-    }
-
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -474,8 +446,6 @@ class extends Component
         $this->state = null;
         $this->city = null;
         $this->locality = null;
-        $this->district = null;
-        $this->subdivision = null;
         $this->areas = [];
         $this->memoizedLocationIds = null;
         $this->resetPage();
@@ -485,34 +455,9 @@ class extends Component
     {
         $this->city = null;
         $this->locality = null;
-        $this->district = null;
-        $this->subdivision = null;
         $this->areas = [];
         $this->memoizedLocationIds = null;
         $this->autoSelectSingleLocationChildren();
-        $this->resetPage();
-    }
-
-    public function updatedDistrict(): void
-    {
-        $this->syncLegacyAreaPropertiesToAreas();
-        $countryId = $this->locationIds()['country_id'];
-        $districtRole = $this->locationSlugResolver()->districtRoleForCountry($countryId);
-
-        if ($districtRole !== null) {
-            $this->resetAreaDescendants($districtRole);
-        }
-
-        $this->subdivision = null;
-        $this->memoizedLocationIds = null;
-        $this->autoSelectSingleLocationChildren();
-        $this->resetPage();
-    }
-
-    public function updatedSubdivision(): void
-    {
-        $this->syncLegacyAreaPropertiesToAreas();
-        $this->memoizedLocationIds = null;
         $this->resetPage();
     }
 
@@ -522,7 +467,6 @@ class extends Component
             $this->resetAreaDescendants($key);
         }
 
-        $this->syncLegacyAreaProperties();
         $this->memoizedLocationIds = null;
         $this->autoSelectSingleLocationChildren();
         $this->resetPage();
@@ -558,14 +502,13 @@ class extends Component
         if ($kind === 'locality' && is_string($slug) && $slug !== '') {
             $this->areas[$role] = null;
             $this->locality = $slug;
-            $this->syncLegacyAreaProperties();
             $this->memoizedLocationIds = null;
             $this->resetPage();
 
             return;
         }
 
-        if ($kind === 'subdivision' && is_string($slug) && $slug !== '') {
+        if ($kind === 'area' && is_string($slug) && $slug !== '') {
             $this->areas[$role] = $slug;
             // Single-choice control: a subdivision pick always drops the
             // locality, even though addressing keeps them independent.
@@ -577,7 +520,6 @@ class extends Component
 
         $this->areas[$role] = null;
         $this->locality = null;
-        $this->syncLegacyAreaProperties();
         $this->memoizedLocationIds = null;
         $this->resetPage();
     }
@@ -602,8 +544,6 @@ class extends Component
         $this->state = null;
         $this->city = null;
         $this->locality = null;
-        $this->district = null;
-        $this->subdivision = null;
         $this->areas = [];
         $this->followed_only = null;
         $this->memoizedLocationIds = null;
@@ -611,7 +551,7 @@ class extends Component
     }
 
     /**
-     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, district_id: ?string, subdivision_id: ?string, area_ids: array<string, ?string>}
+     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, locality_id: ?string, area_ids: array<string, ?string>}
      */
     private function locationIds(): array
     {
@@ -624,8 +564,6 @@ class extends Component
             'state' => $this->state,
             'city' => $this->city,
             'locality' => $this->locality,
-            'district' => $this->district,
-            'subdivision' => $this->subdivision,
             'areas' => $this->areas,
         ]);
     }
@@ -711,8 +649,6 @@ class extends Component
         $this->state = LocationSlugResolver::cleanSlug($this->state);
         $this->city = LocationSlugResolver::cleanSlug($this->city);
         $this->locality = LocationSlugResolver::cleanSlug($this->locality);
-        $this->district = LocationSlugResolver::cleanSlug($this->district);
-        $this->subdivision = LocationSlugResolver::cleanSlug($this->subdivision);
         $this->areas = array_filter(
             array_map(
                 static fn (mixed $value): ?string => LocationSlugResolver::cleanSlug(is_string($value) ? $value : null),
@@ -739,14 +675,6 @@ class extends Component
             $this->locality = null;
         }
 
-        if ($this->district !== null && $ids['district_id'] === null) {
-            $this->district = null;
-        }
-
-        if ($this->subdivision !== null && $ids['subdivision_id'] === null) {
-            $this->subdivision = null;
-        }
-
         foreach (array_keys($this->areas) as $role) {
             if (($ids['area_ids'][$role] ?? null) === null) {
                 unset($this->areas[$role]);
@@ -754,41 +682,6 @@ class extends Component
         }
 
         $this->memoizedLocationIds = null;
-        $this->syncLegacyAreaPropertiesToAreas();
-    }
-
-    private function syncLegacyAreaPropertiesToAreas(): void
-    {
-        $countryId = $this->locationIds()['country_id'];
-        $roles = [
-            $this->locationSlugResolver()->districtRoleForCountry($countryId),
-            $this->locationSlugResolver()->subdivisionRoleForCountry($countryId),
-        ];
-
-        if ($roles[0] !== null && filled($this->district)) {
-            $this->areas[$roles[0]] = $this->district;
-        }
-
-        if ($roles[1] !== null && filled($this->subdivision)) {
-            $this->areas[$roles[1]] = $this->subdivision;
-        }
-    }
-
-    private function syncLegacyAreaProperties(): void
-    {
-        $countryId = $this->locationIds()['country_id'];
-        $roles = [
-            $this->locationSlugResolver()->districtRoleForCountry($countryId),
-            $this->locationSlugResolver()->subdivisionRoleForCountry($countryId),
-        ];
-
-        if ($roles[0] !== null) {
-            $this->district = $this->areas[$roles[0]] ?? null;
-        }
-
-        if ($roles[1] !== null) {
-            $this->subdivision = $this->areas[$roles[1]] ?? null;
-        }
     }
 
     private function resetAreaDescendants(string $role): void
@@ -1031,7 +924,7 @@ class extends Component
                                 <flux:select.option value="" :selected="$groupedSubdivisionLocality['value'] === null">{{ __('All :level', ['level' => $groupedSubdivisionLocality['label']]) }}</flux:select.option>
                                 <flux:select.group :label="$subdivisionLabel">
                                     @foreach($groupedSubdivisionLocality['subdivisions'] as $slug => $name)
-                                        <flux:select.option value="subdivision:{{ $slug }}" :selected="$groupedSubdivisionLocality['value'] === 'subdivision:'.$slug">{{ $name }}</flux:select.option>
+                                        <flux:select.option value="area:{{ $slug }}" :selected="$groupedSubdivisionLocality['value'] === 'area:'.$slug">{{ $name }}</flux:select.option>
                                     @endforeach
                                 </flux:select.group>
                                 <flux:select.group :label="$localityLabel">

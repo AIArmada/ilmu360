@@ -13,7 +13,7 @@ use App\Livewire\Pages\Events\Checkout;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use App\Support\Events\ParticipantIdentity;
+use App\Shared\Events\ParticipantIdentity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Livewire\Livewire;

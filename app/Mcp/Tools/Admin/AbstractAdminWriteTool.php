@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Directory\Api\DirectoryReader;
+use App\Features\Directory\Api\DirectoryRecordType;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceService;
 use App\Support\Api\Admin\AdminValidateOnlyRemediationPlanner;
 use App\Support\Api\Admin\AdminWriteValidationFeedback;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use App\Support\Mcp\McpFilePayloadNormalizer;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
@@ -191,13 +189,16 @@ abstract class AbstractAdminWriteTool extends AbstractAdminTool
         return $normalized !== '' ? $normalized : null;
     }
 
-    protected function resolvePrimaryOrganizerIdentifier(string $field, string $key): string
-    {
-        foreach ([Institution::class, Person::class] as $modelClass) {
-            try {
-                return $this->resolveRecordIdentifier($field, $modelClass, $key);
-            } catch (ValidationException) {
-                continue;
+    protected function resolvePrimaryOrganizerIdentifier(
+        string $field,
+        string $key,
+        DirectoryReader $directoryReader,
+    ): string {
+        foreach ([DirectoryRecordType::Institution, DirectoryRecordType::Person] as $type) {
+            $identifier = $directoryReader->resolveIdentifier($type, $key);
+
+            if ($identifier !== null) {
+                return $identifier;
             }
         }
 
@@ -206,68 +207,21 @@ abstract class AbstractAdminWriteTool extends AbstractAdminTool
         ]);
     }
 
-    /**
-     * @param  class-string<Model>  $modelClass
-     */
-    protected function resolveRecordIdentifier(string $field, string $modelClass, string $key): string
-    {
-        /** @var Model $model */
-        $model = new $modelClass;
+    protected function resolveRecordIdentifier(
+        string $field,
+        DirectoryRecordType $type,
+        string $key,
+        DirectoryReader $directoryReader,
+    ): string {
+        $identifier = $directoryReader->resolveIdentifier($type, $key);
 
-        foreach ($this->lookupColumns($model) as $column) {
-            if (! $this->canLookupWithValue($model, $column, $key)) {
-                continue;
-            }
-
-            $record = $modelClass::query()->where($column, $key)->first();
-
-            if ($record instanceof Model) {
-                return (string) $record->getKey();
-            }
+        if ($identifier !== null) {
+            return $identifier;
         }
 
         throw ValidationException::withMessages([
             $field => __('The selected record key is invalid.'),
         ]);
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function lookupColumns(Model $model): array
-    {
-        $columns = [];
-
-        if (in_array('slug', $model->getFillable(), true)) {
-            $columns[] = 'slug';
-        }
-
-        foreach ([$model->getRouteKeyName(), $model->getKeyName()] as $column) {
-            if (! in_array($column, $columns, true)) {
-                $columns[] = $column;
-            }
-        }
-
-        return $columns;
-    }
-
-    protected function canLookupWithValue(Model $model, string $column, string $value): bool
-    {
-        $keyName = $model->getKeyName();
-
-        if ($column !== $keyName) {
-            return true;
-        }
-
-        if ($model->getKeyType() === 'int') {
-            return ctype_digit($value);
-        }
-
-        if ($keyName === 'id') {
-            return Str::isUuid($value) || Str::isUlid($value);
-        }
-
-        return true;
     }
 
     /**
