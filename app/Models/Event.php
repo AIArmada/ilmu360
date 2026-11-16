@@ -427,28 +427,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     }
 
     /**
-     * Resolve application occurrences so direct deletion validates the
-     * registration subtree before vendor-owned deletion hooks execute.
-     *
-     * @return HasMany<EventOccurrence, $this>
-     */
-    #[\Override]
-    public function occurrences(): HasMany
-    {
-        return $this->hasMany(EventOccurrence::class);
-    }
-
-    /** @return HasOne<EventOccurrence, $this> */
-    #[\Override]
-    public function primaryOccurrence(): HasOne
-    {
-        return $this->hasOne(EventOccurrence::class)
-            ->orderBy('starts_at')
-            ->orderBy('created_at')
-            ->orderBy('id');
-    }
-
-    /**
      * The nearest upcoming public date for a parent event. Grouped public
      * submissions use this as their date projection; their parent stays
      * dateless.
