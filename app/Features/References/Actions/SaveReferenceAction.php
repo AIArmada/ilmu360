@@ -57,6 +57,7 @@ final readonly class SaveReferenceAction
 
         $creating = ! $reference instanceof Model || ! $reference->exists;
         $reference ??= new Reference;
+        /** @var Reference $reference */
         $reference = MorphModelResolver::assert($reference, 'reference');
         $status = array_key_exists('status', $data)
             ? (string) $data['status']
