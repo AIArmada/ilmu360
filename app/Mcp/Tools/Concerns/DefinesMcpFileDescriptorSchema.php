@@ -29,7 +29,7 @@ trait DefinesMcpFileDescriptorSchema
             ];
 
             if ($supportsFileId) {
-                $properties['file_id'] = $schema->string()->nullable()->min(1)
+                $properties['file_id'] = $schema->string()->min(1)
                     ->description('ChatGPT file identifier stored as upload metadata.');
             }
 

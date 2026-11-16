@@ -209,7 +209,7 @@ it('uploads and stores an admin event cover via content_url descriptor', functio
     expect($event->fresh()->getFirstMedia('cover'))->toBeInstanceOf(Media::class);
 });
 
-it('rejects an invalid image descriptor (neither array nor valid JSON object)', function (): void {
+it('rejects invalid image descriptor strings consistently', function (): void {
     $admin = eventImageGenerationAdminUser();
     [$event] = eventImageGenerationEventFixture();
 
@@ -218,7 +218,7 @@ it('rejects an invalid image descriptor (neither array nor valid JSON object)', 
             'event_key' => $event->slug,
             'image' => 'not-valid-json',
         ])
-        ->assertSee('The image must be a valid file descriptor object');
+        ->assertSee('The image must be a file descriptor object.');
 });
 
 it('rejects event upload descriptors without content source', function (): void {

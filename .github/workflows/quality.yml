@@ -251,9 +251,16 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
           coverage: none
           tools: composer:v2
+
+      - name: Install Share Cards renderer runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends pango1.0-tools fontconfig
+          command -v pango-view
+          php -r 'if (!extension_loaded("gd")) exit(1);'
 
       - name: Get Composer cache directory
         id: composer-cache

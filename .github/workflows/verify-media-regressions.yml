@@ -1,0 +1,84 @@
+name: Focused Media and Reference PostgreSQL Verification
+on:
+  push:
+    branches: [refactor]
+    paths:
+      - '.github/workflows/verify-media-regressions.yml'
+      - '.github/workflows/quality.yml'
+      - 'app/Mcp/Tools/Concerns/DefinesMcpFileDescriptorSchema.php'
+      - 'app/Mcp/Tools/Concerns/UploadsEventImage.php'
+      - 'app/Models/Reference.php'
+      - 'tests/Feature/Mcp/EventImageGenerationToolTest.php'
+      - 'tests/Feature/Api/Frontend/FrontendApiParityTest.php'
+      - 'tests/Feature/ShareCards/Wp3ShareCardTest.php'
+permissions:
+  contents: read
+concurrency:
+  group: focused-media-ref-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Obtain sibling Commerce sources
+        run: |
+          git clone --depth 1 https://github.com/AIArmada/commerce.git ../commerce
+          test -f ../commerce/packages/commerce-support/composer.json
+      - name: Setup PHP 8.5 with GD
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
+          coverage: none
+          tools: composer:v2
+      - name: Install Pango and fontconfig
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends pango1.0-tools fontconfig
+          command -v pango-view
+          pango-view --version
+          php -r 'if (!extension_loaded("gd")) exit(1);'
+      - name: Install Composer dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          composer install --no-interaction --no-progress --prefer-dist
+      - name: MCP image upload contract
+        run: vendor/bin/pest --compact tests/Feature/Mcp/EventImageGenerationToolTest.php
+      - name: Share Cards PNG rendering
+        run: vendor/bin/pest --compact tests/Feature/ShareCards/Wp3ShareCardTest.php
+      - name: Reference API PostgreSQL behavior
+        run: vendor/bin/pest --compact tests/Feature/Api/Frontend/FrontendApiParityTest.php
+      - name: Reference contributor family PostgreSQL
+        run: vendor/bin/pest --compact tests/Feature/ReferenceFamilyTest.php

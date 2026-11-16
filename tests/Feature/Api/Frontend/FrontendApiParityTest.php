@@ -2518,7 +2518,7 @@ it('falls back to the original front cover url in reference directory serializat
             parent::__construct();
 
             $this->forceFill([
-                'id' => 'reference-fallback-id',
+                'id' => '00000000-0000-7000-8000-000000000003',
                 'slug' => 'reference-cover-fallback',
                 'title' => 'Reference Cover Fallback',
                 'parent_id' => null,
