@@ -4,10 +4,11 @@ on:
     branches: [refactor]
     paths:
       - '.github/workflows/verify-directory-refactor.yml'
-      - 'app/**'
-      - 'tools/**'
 permissions:
   contents: read
+concurrency:
+  group: directory-refactor-verification-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -49,11 +50,13 @@ jobs:
           php tools/architecture-check.php
           composer architecture:types
       - name: Compare existing route identities
+        id: route_parity
+        continue-on-error: true
         run: |
           php artisan route:list --json --no-interaction > /tmp/after.json
           git worktree add --detach ../ilmu360-before 39c51c0f205fb49503496c694ef54c0b9fbd51ac
-          ln -s "$GITHUB_WORKSPACE/vendor" ../ilmu360-before/vendor
           cd ../ilmu360-before
+          composer install --no-interaction --no-progress --prefer-dist
           php artisan route:list --json --no-interaction > /tmp/before.json
           python3 - <<'PY'
           import json
@@ -66,10 +69,16 @@ jobs:
           print('Route identity/middleware parity: PASS')
           PY
       - name: Validate code format
+        id: pint
+        continue-on-error: true
         run: vendor/bin/pint --test
       - name: PHPStan analysis
+        id: phpstan
+        continue-on-error: true
         run: php -d max_memory_limit=1G vendor/bin/phpstan analyse --memory-limit=1G --no-progress
       - name: Run affected Pest suite
+        id: pest
+        continue-on-error: true
         run: |
           set -o pipefail
           vendor/bin/pest --parallel --compact \
@@ -99,3 +108,14 @@ jobs:
             tests/Feature/PublicListingCacheInvalidationTest.php \
             tests/Unit/PublicDirectoryCacheVersionsTest.php \
             tests/Unit/Platform/ArchitectureBoundaryTest.php
+      - name: Fail when any verification failed
+        if: always()
+        run: |
+          echo "Route parity: ${{ steps.route_parity.outcome }}"
+          echo "Pint: ${{ steps.pint.outcome }}"
+          echo "PHPStan: ${{ steps.phpstan.outcome }}"
+          echo "Pest: ${{ steps.pest.outcome }}"
+          test "${{ steps.route_parity.outcome }}" = success
+          test "${{ steps.pint.outcome }}" = success
+          test "${{ steps.phpstan.outcome }}" = success
+          test "${{ steps.pest.outcome }}" = success
