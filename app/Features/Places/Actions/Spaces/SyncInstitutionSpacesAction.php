@@ -105,7 +105,7 @@ final readonly class SyncInstitutionSpacesAction
      * @param  Collection<int, \App\Models\Institution>  $before
      * @param  Collection<int, \App\Models\Institution>  $after
      */
-    private function recordInstitutionAudit(Model $space, Collection $before, Collection $after): void
+    private function recordInstitutionAudit(Space $space, Collection $before, Collection $after): void
     {
         $space = MorphModelResolver::assert($space, 'space');
         $beforeIds = $before->modelKeys();
