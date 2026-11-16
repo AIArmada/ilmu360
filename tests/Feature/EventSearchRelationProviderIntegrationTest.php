@@ -20,8 +20,10 @@ it('makes PostgreSQL discovery consume the injected relation provider', function
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'published_at' => now(),
+        'published_at' => now()->subDay(),
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHours(2),
+        'timing_mode' => 'absolute',
     ]);
     $criteria = app(EventDiscoveryCriteriaFactory::class)->fromSearch(null, [], 20, 'time');
 
@@ -51,7 +53,14 @@ it('makes Typesense discovery consume the injected relation provider', function 
     config()->set('scout.driver', 'database');
 
     $provider = new RecordingEventSearchRelationProvider;
-    $event = Event::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHours(2),
+        'timing_mode' => 'absolute',
+    ]);
     $criteria = app(EventDiscoveryCriteriaFactory::class)->fromSearch(null, [], 20, 'time');
 
     $discovery = new TypesenseEventDiscovery(

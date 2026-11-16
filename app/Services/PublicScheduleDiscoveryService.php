@@ -196,7 +196,7 @@ final readonly class PublicScheduleDiscoveryService
         $occurrenceTable = (new EventOccurrence)->getTable();
 
         return $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
-            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.status', 'approved')
             ->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds, $occurrenceTable): void {
                 $query->whereHas(
                     'occurrences',
