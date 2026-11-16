@@ -15,6 +15,16 @@ use Tests\TestCase;
 pest()->extend(TestCase::class);
 
 it('bumps owner listing versions independently', function (): void {
+    // This unit test only exercises independent cache bumps; the Events
+    // fingerprint integration is exercised separately with its table below.
+    app()->instance(EventInvolvementFingerprint::class, new class implements EventInvolvementFingerprint
+    {
+        public function current(): string
+        {
+            return '0|';
+        }
+    });
+
     $institutions = app(InstitutionListingCacheVersion::class);
     $persons = app(PersonListingCacheVersion::class);
     $institutionBefore = $institutions->current()['version'];
