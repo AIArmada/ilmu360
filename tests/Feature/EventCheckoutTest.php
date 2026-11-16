@@ -241,7 +241,7 @@ it('fulfills a free ticket through the Commerce checkout pipeline', function ():
         ->and(OwnerContext::withOwner(null, fn (): int => $registration?->passes()->count() ?? 0))->toBe(1);
 });
 
-it('treats a ticket without inventory levels as unlimited inventory', function (): void {
+it('rejects a ticket with no allocated inventory rather than overselling it', function (): void {
     $event = checkoutEvent();
     $ticket = $event->ticketTypes()->create([
         'name' => 'Unlimited Admission',
@@ -265,9 +265,9 @@ it('treats a ticket without inventory levels as unlimited inventory', function (
         ]])
         ->set('agreementAccepted', true)
         ->call('submit')
-        ->assertRedirect();
+        ->assertHasErrors('checkout');
 
-    expect(Registration::query()->where('event_id', $event->getKey())->exists())->toBeTrue();
+    expect(Registration::query()->where('event_id', $event->getKey())->exists())->toBeFalse();
 });
 
 it('validates and records participant answers from event registration questions', function (): void {

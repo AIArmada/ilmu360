@@ -7,6 +7,7 @@ use AIArmada\Signals\Models\SignalSession;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Signals\SignalsServiceProvider;
 use App\Models\Event;
+use App\Models\Venue;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
@@ -61,15 +62,18 @@ it('renders the inline signal event hooks used by the package tracker', function
 });
 
 it('renders event detail conversion tracking hooks', function () {
+    $venue = Venue::factory()->create();
     $event = Event::factory()->create([
-        'delivery_mode' => 'online',
+        'delivery_mode' => 'hybrid',
         'institution_id' => null,
+        'default_venue_id' => $venue->getKey(),
         'live_url' => 'https://example.test/live',
         'starts_at' => now()->addWeek(),
         'status' => 'approved',
         'visibility' => 'public',
-        'published_at' => now(),
+        'published_at' => now()->subDay(),
     ]);
+    $event->syncLocation((string) $venue->getKey());
 
     // The check-in hook only renders for events with registration, which
     // the factory draws for 30% of events. Pin it so this test is not a
