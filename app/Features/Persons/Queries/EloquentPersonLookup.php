@@ -34,7 +34,6 @@ final readonly class EloquentPersonLookup implements PersonLookup
         $fallback = (string) $entity->getKey();
         $status = $entity->getAttribute('status');
         $status = $status instanceof BackedEnum ? (string) $status->value : (filled($status) ? (string) $status : null);
-        $entity->getAttribute('type');
         $slug = $entity->getAttribute('slug');
         $image = $entity->public_main_url;
 
