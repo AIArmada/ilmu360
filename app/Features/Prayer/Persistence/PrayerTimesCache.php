@@ -243,7 +243,19 @@ final class PrayerTimesCache
             $store = $this->store()->getStore();
 
             if ($store instanceof LockProvider) {
-                $store->lock("prayer:lock:zone-merge:{$country}:{$zone}:{$yearMonth}", 10)->block(5, $write);
+                $lock = $store->lock("prayer:lock:zone-merge:{$country}:{$zone}:{$yearMonth}", 10);
+
+                // A contended write is safely retried by the next refresh.
+                // Never spin while another writer owns the merge lock:
+                // Laravel's blocking sleep loop can exhaust PHP memory in
+                // long-lived test processes and delay public prayer reads.
+                if ($lock->get()) {
+                    try {
+                        $write();
+                    } finally {
+                        $lock->release();
+                    }
+                }
             } else {
                 $write();
             }
