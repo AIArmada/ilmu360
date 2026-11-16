@@ -6,7 +6,7 @@ namespace App\Features\Places\Actions\Spaces;
 
 use App\Models\Space;
 
-use App\Models\Institution;
+use App\Platform\Models\MorphModelResolver;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -60,7 +60,9 @@ final readonly class AttachInstitutionSpaceAction
                 ]);
             }
 
-            $institution = Institution::query()
+            $institutionModel = MorphModelResolver::resolve('institution');
+
+            $institution = $institutionModel::query()
                 ->whereKey($institutionId)
                 ->lockForUpdate()
                 ->first();
