@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
-use RuntimeException;
 
 final readonly class SaveDonationChannelAction
 {
@@ -35,10 +34,6 @@ final readonly class SaveDonationChannelAction
         }
 
         $donationChannel ??= new DonationChannel;
-
-        if (! $donationChannel instanceof DonationChannel) {
-            throw new RuntimeException('The registered donation channel model must extend the Directory donation channel model.');
-        }
 
         $owner = $this->normalizeOwner(
             $data['donatable_type'] ?? $donationChannel->getAttribute('donatable_type'),
