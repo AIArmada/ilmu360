@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
-use RuntimeException;
 
 /**
  * Save a person through the admin/API form path.
@@ -44,10 +43,6 @@ final readonly class SavePersonAction
     ): Person {
         $creating = $person === null;
         $person ??= new Person;
-
-        if (! $person instanceof Person) {
-            throw new RuntimeException('The registered person model must be the Directory person model.');
-        }
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];
         $addressProvided = array_key_exists('address', $data) && is_array($data['address'] ?? null);
