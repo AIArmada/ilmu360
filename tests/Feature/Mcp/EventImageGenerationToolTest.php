@@ -274,9 +274,11 @@ it('exposes mutating and open-world metadata for event image upload tools', func
         $posterVariants = data_get($eventToolSchema, 'inputSchema.properties.poster.anyOf');
         $galleryVariants = data_get($eventToolSchema, 'inputSchema.properties.gallery.items.anyOf');
 
-        expect($coverVariants)->toHaveCount(3)
-            ->and($posterVariants)->toHaveCount(3)
+        expect($coverVariants)->toHaveCount(4)
+            ->and($posterVariants)->toHaveCount(4)
             ->and($galleryVariants)->toHaveCount(3)
+            ->and($coverVariants[3]['type'] ?? null)->toBe('null')
+            ->and($posterVariants[3]['type'] ?? null)->toBe('null')
             ->and($coverVariants[2]['properties']['download_url']['type'] ?? null)->toBe('string')
             ->and($posterVariants[2]['properties']['download_url']['type'] ?? null)->toBe('string')
             ->and($galleryVariants[2]['properties']['download_url']['type'] ?? null)->toBe('string')

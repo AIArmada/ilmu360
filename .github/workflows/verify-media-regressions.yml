@@ -75,10 +75,30 @@ jobs:
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
           composer install --no-interaction --no-progress --prefer-dist
       - name: MCP image upload contract
+        id: mcp
+        continue-on-error: true
         run: vendor/bin/pest --compact tests/Feature/Mcp/EventImageGenerationToolTest.php
       - name: Share Cards PNG rendering
+        id: share_cards
+        continue-on-error: true
         run: vendor/bin/pest --compact tests/Feature/ShareCards/Wp3ShareCardTest.php
       - name: Reference API PostgreSQL behavior
+        id: reference_api
+        continue-on-error: true
         run: vendor/bin/pest --compact tests/Feature/Api/Frontend/FrontendApiParityTest.php
       - name: Reference contributor family PostgreSQL
+        id: reference_family
+        continue-on-error: true
         run: vendor/bin/pest --compact tests/Feature/ReferenceFamilyTest.php
+
+      - name: Enforce all media and reference regression gates
+        if: always()
+        run: |
+          echo "MCP: ${{ steps.mcp.outcome }}"
+          echo "Share Cards: ${{ steps.share_cards.outcome }}"
+          echo "Reference API (PostgreSQL): ${{ steps.reference_api.outcome }}"
+          echo "Reference family (PostgreSQL): ${{ steps.reference_family.outcome }}"
+          test "${{ steps.mcp.outcome }}" = success
+          test "${{ steps.share_cards.outcome }}" = success
+          test "${{ steps.reference_api.outcome }}" = success
+          test "${{ steps.reference_family.outcome }}" = success
