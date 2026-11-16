@@ -6,7 +6,7 @@ namespace App\Features\Institutions\Actions;
 
 use App\Models\Institution;
 
-use App\Models\Venue;
+use App\Platform\Models\MorphModelResolver;
 
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Database\Eloquent\Model;
@@ -57,7 +57,9 @@ final readonly class AddInstitutionVenueLinkAction
                 ]);
             }
 
-            $venue = Venue::query()
+            $venueModel = MorphModelResolver::resolve('venue');
+
+            $venue = $venueModel::query()
                 ->whereKey($venueId)
                 ->lockForUpdate()
                 ->first();
