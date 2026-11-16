@@ -1,0 +1,104 @@
+name: Verify Remaining Refactor Regressions
+on:
+  push:
+    branches: [refactor]
+    paths:
+      - '.github/workflows/verify-final-regressions.yml'
+      - 'app/View/Components/EventJsonLd.php'
+      - 'tests/Feature/FilamentEventResourceTest.php'
+      - 'app/Features/Registration/Actions/ConfirmOfflineAdmissionAction.php'
+      - 'app/Features/Registration/Actions/IssueOfflineAdmissionAction.php'
+permissions:
+  contents: read
+concurrency:
+  group: refactor-final-regressions-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Obtain sibling Commerce sources
+        run: |
+          git clone --depth 1 https://github.com/AIArmada/commerce.git ../commerce
+          test -f ../commerce/packages/commerce-support/composer.json
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
+          coverage: none
+          tools: composer:v2
+      - name: Install dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          composer install --no-interaction --no-progress --prefer-dist
+      - name: Verify EventJsonLd with package Venue
+        id: venue
+        continue-on-error: true
+        run: |
+          vendor/bin/pest --compact tests/Feature/SignalsIntegrationTest.php
+          vendor/bin/pest --compact tests/Feature/EventShowPageTest.php
+      - name: Verify Filament event location editing
+        id: filament
+        continue-on-error: true
+        run: vendor/bin/pest --compact tests/Feature/FilamentEventResourceTest.php
+      - name: Probe offline registration state without repository changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for path in ('app/Features/Registration/Actions/IssueOfflineAdmissionAction.php','app/Features/Registration/Actions/ConfirmOfflineAdmissionAction.php'):
+              f=Path(path)
+              s=f.read_text()
+              before="            $result['passes'] = $this->issuePasses->handle($registration);"
+              if s.count(before)!=1: raise RuntimeError(path)
+              report="""            $statusRow = DB::table('event_registrations')->where('id', $registration->getKey())->first(['status', 'payment_status']);
+            fwrite(STDERR, "OFFLINE PROBE [".__CLASS__."] after paid sync: ".json_encode(["orderPaid" => $result["order"]->isPaid(), "modelStatus" => $registration->status->getValue(), "persistedStatus" => $statusRow?->status, "paymentStatus" => $statusRow?->payment_status])."\\n");
+"""
+              s=s.replace(before,report+before)
+              f.write_text(s)
+          PY
+      - name: Verify offline admissions
+        id: offline
+        continue-on-error: true
+        run: vendor/bin/pest --compact tests/Feature/EventOfflineAdmissionsTest.php
+      - name: Enforce gates
+        if: always()
+        run: |
+          echo "Venue: ${{ steps.venue.outcome }}"
+          echo "Filament: ${{ steps.filament.outcome }}"
+          echo "Offline admissions: ${{ steps.offline.outcome }}"
+          test "${{ steps.venue.outcome }}" = success
+          test "${{ steps.filament.outcome }}" = success
+          test "${{ steps.offline.outcome }}" = success

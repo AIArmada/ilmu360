@@ -252,6 +252,7 @@ it('syncs the event primary location when the admin form changes the venue', fun
             ->test(EditEvent::class, ['record' => $event->getRouteKey()])
             ->fillForm([
                 'venue_id' => $newVenue->getKey(),
+                'prayer_time' => EventPrayerTime::LainWaktu->value,
                 'gender' => EventGenderRestriction::All->value,
                 'age_group' => [EventAgeGroup::AllAges->value],
             ])

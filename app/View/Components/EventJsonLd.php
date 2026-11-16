@@ -8,7 +8,7 @@ use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Models\Venue;
+use AIArmada\Events\Models\Venue;
 use App\Shared\Events\Enums\EventChangeType;
 use Carbon\CarbonInterface;
 use Illuminate\View\Component;
