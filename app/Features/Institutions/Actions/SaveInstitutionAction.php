@@ -20,7 +20,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
-use RuntimeException;
 
 final readonly class SaveInstitutionAction
 {
@@ -43,10 +42,6 @@ final readonly class SaveInstitutionAction
     {
         $creating = $institution === null;
         $institution ??= new Institution;
-
-        if (! $institution instanceof Institution) {
-            throw new RuntimeException('The registered institution model must be the Directory institution model.');
-        }
 
         $previousFacilities = $creating ? null : $this->facilitiesValue($institution->getAttribute('own_facilities'));
 
