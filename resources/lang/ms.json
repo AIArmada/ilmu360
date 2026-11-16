@@ -1932,5 +1932,7 @@
   "Totals retain historical activity whose original page link is no longer available. Page breakdowns cover links in your library.": "Jumlah keseluruhan mengekalkan aktiviti terdahulu walaupun pautan halaman asal tidak lagi tersedia. Pecahan halaman meliputi pautan dalam pustaka anda.",
   "Link counts include prepared links, even if no share action has been recorded.": "Bilangan pautan termasuk pautan yang telah disediakan, walaupun tiada tindakan perkongsian direkodkan.",
   "This institution was already submitted and is awaiting review. Please wait for the review instead of creating a new record.": "Institusi ini telah disumbangkan dan sedang menunggu semakan. Sila tunggu semakan selesai dan bukannya mencipta rekod baharu.",
-  "Cannot approve this request because another institution or pending submission already claims the same Google Maps place or name and locality. Reject the conflicting submission first.": "Permintaan ini tidak boleh diluluskan kerana institusi atau sumbangan lain yang belum disemak telah menuntut tempat Google Maps atau nama dan lokaliti yang sama. Tolak sumbangan yang bercanggah terlebih dahulu."
+  "Cannot approve this request because another institution or pending submission already claims the same Google Maps place or name and locality. Reject the conflicting submission first.": "Permintaan ini tidak boleh diluluskan kerana institusi atau sumbangan lain yang belum disemak telah menuntut tempat Google Maps atau nama dan lokaliti yang sama. Tolak sumbangan yang bercanggah terlebih dahulu.",
+  "app-feedback.title": "Maklum Balas",
+  "Mobile navigation": "Navigasi mudah alih"
 }

@@ -194,7 +194,9 @@ test('registration export applies operational filters without exporting protecte
         'attendance' => 'attended',
         'agreement' => 'accepted',
     ]);
-    $csv = $this->get($url)->streamedContent();
+    $response = $this->get($url);
+    $response->assertOk();
+    $csv = $response->streamedContent();
 
     expect($csv)->toContain('Filtered Target')
         ->and($csv)->not->toContain('Excluded Target')
@@ -223,7 +225,9 @@ test('registration export treats percent signs in search terms literally', funct
         ->with('exportRegistrations', Mockery::type(Event::class))
         ->andReturnFalse();
 
-    $csv = $this->get(route('api.registrations.export', $event).'?q=%25')->streamedContent();
+    $response = $this->get(route('api.registrations.export', $event).'?q=%25');
+    $response->assertOk();
+    $csv = $response->streamedContent();
 
     expect($csv)->toContain('Literal % Participant')
         ->and($csv)->not->toContain('Ordinary Participant');

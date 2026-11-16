@@ -146,7 +146,7 @@ class RegistrationExportController
                 $this->whereEscapedLike($searchQuery, 'external_order_id', $term, 'or');
                 $searchQuery->orWhereHas('participants', function (Builder $participantQuery) use ($identityHash, $term): void {
                     $this->whereEscapedLike($participantQuery, 'name', $term);
-                    $this->whereEscapedLike($participantQuery, 'metadata', '"lookup_hash":"'.$identityHash.'"', 'or');
+                    $this->whereEscapedLike($participantQuery, 'metadata', $identityHash, 'or');
                     $participantQuery->orWhereHas('contactMethods', function (Builder $contactQuery) use ($term): Builder {
                         $this->whereEscapedLike($contactQuery, 'value', $term);
                         $this->whereEscapedLike($contactQuery, 'normalized_value', $term, 'or');
@@ -279,7 +279,7 @@ class RegistrationExportController
         $wrappedColumn = $query->getQuery()->getGrammar()->wrap($column);
 
         return $query->whereRaw(
-            "{$wrappedColumn} LIKE ? ESCAPE ?",
+            "CAST({$wrappedColumn} AS TEXT) LIKE ? ESCAPE ?",
             ['%'.$escapedTerm.'%', '\\'],
             $boolean,
         );

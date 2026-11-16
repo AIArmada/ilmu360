@@ -7,6 +7,7 @@ namespace App\Features\Registration\Actions;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Actions\CreateRegistrationsFromOrderAction;
 use AIArmada\Events\Actions\IssueEventRegistrationPassesAction;
+use AIArmada\Events\Actions\SyncEventOrderRegistrationsAction;
 use AIArmada\Events\Models\Event;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventRegistration;
@@ -46,6 +47,7 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
         private OrderServiceInterface $orders,
         private CreateRegistrationsFromOrderAction $registrations,
         private IssueEventRegistrationPassesAction $issuePasses,
+        private SyncEventOrderRegistrationsAction $syncOrderRegistrations,
         private ParticipationAttribution $attribution,
         private ConfirmOfflineAdmissionAction $confirmAdmission,
     ) {}
@@ -290,6 +292,15 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
 
         /** @var array{order: Order, registration: EventRegistration, passes: Collection<int, Pass>} $result */
         if ($paymentState === 'confirmed') {
+            // The offline flow must settle the registration synchronously:
+            // queued OrderPaid fulfillment is not guaranteed to run yet.
+            $this->syncOrderRegistrations->handle(
+                orderId: (string) $result['order']->getKey(),
+                orderType: Order::class,
+                eventType: 'paid',
+                registrationIds: [(string) $result['registration']->getKey()],
+            );
+
             $registration = $result['registration']->fresh(['participants', 'items', 'passes']);
 
             if (! $registration instanceof $registrationClass) {
