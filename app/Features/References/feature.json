@@ -1,0 +1,28 @@
+{
+  "schema": 2,
+  "name": "References",
+  "owns": {
+    "store:reference-search": [
+      "App\\Features\\References\\Persistence\\ReferenceSearchCacheStore"
+    ],
+    "table:references": [
+      "App\\Features\\References\\Actions\\ApplyReferenceContributionAction",
+      "App\\Features\\References\\Actions\\ChangeReferenceStatusAction",
+      "App\\Features\\References\\Actions\\DeleteReferenceAction",
+      "App\\Features\\References\\Actions\\GenerateReferenceSlugAction",
+      "App\\Features\\References\\Actions\\DetachReferenceVerifierAction",
+      "App\\Features\\References\\Actions\\RestoreReferenceVerifierAction",
+      "App\\Features\\References\\Actions\\SaveReferenceAction"
+    ],
+    "table:reference_contributors": [
+      "App\\Features\\References\\Actions\\SyncReferenceContributorsAction"
+    ],
+    "store:reference-homepage-stats": [
+      "App\\Features\\References\\Persistence\\ReferenceHomepageStatsCacheStore"
+    ]
+  },
+  "aliases": {
+    "reference": "table:references",
+    "reference_contributor": "table:reference_contributors"
+  }
+}

@@ -5,7 +5,7 @@ namespace App\Services;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Data\EventDiscoveryCriteria;
 use App\Data\EventDiscoveryCriteriaFactory;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\Events\Api\EventSearchCache;
 use App\Models\Event;
 use App\Platform\Search\TypesenseHealthCheckService;

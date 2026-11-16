@@ -11,7 +11,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\Title;
 use App\Enums\SpeakerStatus;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Models\User;
 use Database\Seeders\Concerns\SeedsPackageAddresses;

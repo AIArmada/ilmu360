@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Directory\Actions\DonationChannels\SaveDonationChannelAction;
+use App\Features\DonationChannels\Actions\SaveDonationChannelAction;
 use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;

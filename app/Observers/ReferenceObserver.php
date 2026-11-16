@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Reference;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;

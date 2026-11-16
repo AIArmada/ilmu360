@@ -8,7 +8,7 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\Events\Support\EventModel;
 use App\Shared\Submission\SubmissionValues;
 use Illuminate\Support\Str;

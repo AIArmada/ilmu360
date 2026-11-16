@@ -1,0 +1,32 @@
+{
+  "schema": 2,
+  "name": "Places",
+  "owns": {
+    "table:institution_space": [
+      "App\\Features\\Places\\Actions\\Spaces\\AttachInstitutionSpaceAction",
+      "App\\Features\\Places\\Actions\\Spaces\\DetachInstitutionSpaceAction",
+      "App\\Features\\Places\\Actions\\Spaces\\SyncInstitutionSpacesAction"
+    ],
+    "table:venues": [
+      "App\\Features\\Places\\Actions\\Venues\\ChangeVenueStatusAction",
+      "App\\Features\\Places\\Actions\\Venues\\CreateVenueAction",
+      "App\\Features\\Places\\Actions\\Venues\\DeleteVenueAction",
+      "App\\Features\\Places\\Actions\\Venues\\GenerateVenueSlugAction",
+      "App\\Features\\Places\\Actions\\Venues\\DetachVenueVerifierAction",
+      "App\\Features\\Places\\Actions\\Venues\\RestoreVenueVerifierAction",
+      "App\\Features\\Places\\Actions\\Venues\\SaveVenueAction"
+    ],
+    "table:venue_spaces": [
+      "App\\Features\\Places\\Actions\\Spaces\\DeleteSpaceAction",
+      "App\\Features\\Places\\Actions\\Spaces\\SaveSpaceAction"
+    ],
+    "table:venue_facilities": [
+      "App\\Features\\Places\\Actions\\Venues\\SyncVenueFacilitiesAction"
+    ]
+  },
+  "aliases": {
+    "institution_space": "table:institution_space",
+    "venue": "table:venues",
+    "space": "table:venue_spaces"
+  }
+}

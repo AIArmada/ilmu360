@@ -16,7 +16,7 @@ use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
-use App\Features\Directory\Api\DirectoryContributionMedia;
+use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Forms\EventContributionFormSchema;
 use App\Forms\InstitutionContributionFormSchema;
 use App\Forms\PersonContributionFormSchema;
@@ -369,7 +369,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             // missing temporary files, and anything persisted first would
             // strand partial state that blocks the contributor from retrying.
             $rawDonationRows = $this->data['donation_channels'] ?? null;
-            app(DirectoryContributionMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
+            app(DonationQrMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
 
             $formState = $this->contributionForm()->getState();
             $donationQrUploads = SharedFormSchema::rekeyDonationRowsByRawKeys(
@@ -424,7 +424,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     }
 
                     if ($donationQrUploads !== []) {
-                        app(DirectoryContributionMedia::class)->attachDonationQrUploads(
+                        app(DonationQrMedia::class)->attachDonationQrUploads(
                             $this->entity,
                             $submittedDonationRows,
                             $donationQrUploads,
@@ -1078,7 +1078,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function stageDonationQrUploads(ContributionRequest $request, array $submittedRows, array $uploads): void
     {
-        $media = app(DirectoryContributionMedia::class);
+        $media = app(DonationQrMedia::class);
         $failed = [];
 
         foreach ($uploads as $index => $file) {

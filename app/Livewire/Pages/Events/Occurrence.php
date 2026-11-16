@@ -6,7 +6,7 @@ namespace App\Livewire\Pages\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Services\PublicScheduleDiscoveryService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;

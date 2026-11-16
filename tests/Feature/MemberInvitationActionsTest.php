@@ -2,7 +2,7 @@
 
 use AIArmada\Membership\Actions\RevokeInvitationAction;
 use App\Enums\MemberSubjectType;
-use App\Features\Directory\Actions\Institutions\DeleteInstitutionAction;
+use App\Features\Institutions\Actions\DeleteInstitutionAction;
 use App\Features\Membership\Actions\AcceptSubjectMemberInvitation;
 use App\Features\Membership\Actions\InviteSubjectMember;
 use App\Models\Institution;

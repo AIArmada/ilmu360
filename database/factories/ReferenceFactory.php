@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Person;
 use App\Models\Reference;

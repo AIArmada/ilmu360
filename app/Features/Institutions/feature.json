@@ -1,0 +1,52 @@
+{
+  "schema": 2,
+  "name": "Institutions",
+  "owns": {
+    "table:institutions": [
+      "App\\Features\\Institutions\\Actions\\ApplyInstitutionContributionAction",
+      "App\\Features\\Institutions\\Actions\\CreateInstitutionAction",
+      "App\\Features\\Institutions\\Actions\\FlagStaleInactiveInstitutionsAction",
+      "App\\Features\\Institutions\\Actions\\GenerateInstitutionSlugAction",
+      "App\\Features\\Institutions\\Actions\\SaveInstitutionAction",
+      "App\\Features\\Institutions\\Actions\\VerifyPendingInstitutionsAction",
+      "App\\Features\\Institutions\\Actions\\InstitutionSubmissionAccessAction",
+      "App\\Features\\Institutions\\Actions\\ChangeInstitutionStatusAction",
+      "App\\Features\\Institutions\\Actions\\DetachInstitutionVerifierAction",
+      "App\\Features\\Institutions\\Actions\\RestoreInstitutionVerifierAction",
+      "App\\Features\\Institutions\\Actions\\DeleteInstitutionAction"
+    ],
+    "table:institution_names": [
+      "App\\Features\\Institutions\\Actions\\EnforceSinglePrimaryInstitutionNameAction",
+      "App\\Features\\Institutions\\Actions\\SyncInstitutionNamesAction"
+    ],
+    "table:institution_import_exclusions": [
+      "App\\Features\\Institutions\\Actions\\RecordInstitutionImportExclusionAction"
+    ],
+    "table:institution_venue": [
+      "App\\Features\\Institutions\\Actions\\AddInstitutionVenueLinkAction",
+      "App\\Features\\Institutions\\Actions\\DeleteInstitutionVenueLinksAction",
+      "App\\Features\\Institutions\\Actions\\DemoteInstitutionVenuePrimaryAction",
+      "App\\Features\\Institutions\\Actions\\RemoveInstitutionVenueLinkAction",
+      "App\\Features\\Institutions\\Actions\\SetInstitutionVenuePrimaryAction",
+      "App\\Features\\Institutions\\Actions\\SyncInstitutionVenuesAction"
+    ],
+    "store:institution-submission": [
+      "App\\Features\\Institutions\\Persistence\\InstitutionSubmissionOptionsCacheStore"
+    ],
+    "store:institution-search": [
+      "App\\Features\\Institutions\\Persistence\\InstitutionSearchCacheStore"
+    ],
+    "store:institution-homepage-stats": [
+      "App\\Features\\Institutions\\Persistence\\InstitutionHomepageStatsCacheStore"
+    ],
+    "store:institution-listing-cache-version": [
+      "App\\Features\\Institutions\\Persistence\\InstitutionListingCacheVersionStore"
+    ]
+  },
+  "aliases": {
+    "institution": "table:institutions",
+    "institution_name": "table:institution_names",
+    "institution_import_exclusion": "table:institution_import_exclusions",
+    "institution_venue": "table:institution_venue"
+  }
+}

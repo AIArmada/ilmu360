@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Features\Directory\Api\DirectoryReader;
-use App\Features\Directory\Api\DirectoryRecordType;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceService;
 use App\Support\Api\Admin\AdminValidateOnlyRemediationPlanner;
@@ -192,14 +190,13 @@ abstract class AbstractAdminWriteTool extends AbstractAdminTool
     protected function resolvePrimaryOrganizerIdentifier(
         string $field,
         string $key,
-        DirectoryReader $directoryReader,
+        callable $institutionLookup,
+        callable $personLookup,
     ): string {
-        foreach ([DirectoryRecordType::Institution, DirectoryRecordType::Person] as $type) {
-            $identifier = $directoryReader->resolveIdentifier($type, $key);
+        $identifier = $institutionLookup($key) ?? $personLookup($key);
 
-            if ($identifier !== null) {
-                return $identifier;
-            }
+        if ($identifier !== null) {
+            return $identifier;
         }
 
         throw ValidationException::withMessages([
@@ -207,13 +204,13 @@ abstract class AbstractAdminWriteTool extends AbstractAdminTool
         ]);
     }
 
+    /** @param callable(string): ?string $lookup */
     protected function resolveRecordIdentifier(
         string $field,
-        DirectoryRecordType $type,
+        callable $lookup,
         string $key,
-        DirectoryReader $directoryReader,
     ): string {
-        $identifier = $directoryReader->resolveIdentifier($type, $key);
+        $identifier = $lookup($key);
 
         if ($identifier !== null) {
             return $identifier;

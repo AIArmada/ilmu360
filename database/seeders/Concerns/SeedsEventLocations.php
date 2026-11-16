@@ -3,7 +3,7 @@
 namespace Database\Seeders\Concerns;
 
 use App\Shared\Events\Enums\EventFormat;
-use App\Features\Directory\Api\InstitutionSpaceLinks;
+use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Space;

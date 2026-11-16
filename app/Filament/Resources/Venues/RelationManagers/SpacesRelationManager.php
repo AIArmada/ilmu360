@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Venues\RelationManagers;
 
-use App\Features\Directory\Api\SpaceWorkflow;
+use App\Features\Places\Api\SpaceWorkflow;
 use App\Filament\Resources\Spaces\Schemas\SpaceForm;
 use App\Models\Space;
 use Filament\Actions\CreateAction;

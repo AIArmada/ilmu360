@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Institutions\Pages;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;

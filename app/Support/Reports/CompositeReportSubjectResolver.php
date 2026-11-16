@@ -4,25 +4,26 @@ declare(strict_types=1);
 
 namespace App\Support\Reports;
 
-use App\Features\Directory\Api\DirectoryReportSubjectProvider;
+use App\Features\DonationChannels\Api\DonationChannelLookup;
 use App\Features\Events\Api\EventReportSubjectProvider;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectPresentation;
 use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Reports\ReportSubjectType;
 use InvalidArgumentException;
 
-/**
- * Reports composition over feature-owned report subject providers.
- *
- * Directory supplies its four resource types; Events supplies the event
- * subject through its own public provider.
- */
+/** Application adapter composing independently-owned report subjects. */
 final readonly class CompositeReportSubjectResolver implements ReportSubjectResolver
 {
     public function __construct(
-        private DirectoryReportSubjectProvider $directorySubjects,
-        private EventReportSubjectProvider $eventSubjects,
+        private InstitutionLookup $institutions,
+        private PersonLookup $persons,
+        private ReferenceLookup $references,
+        private DonationChannelLookup $donationChannels,
+        private EventReportSubjectProvider $events,
     ) {}
 
     public function validKeys(): array
@@ -32,45 +33,71 @@ final readonly class CompositeReportSubjectResolver implements ReportSubjectReso
 
     public function label(string $typeKey): string
     {
-        return $this->providerFor($this->type($typeKey))->label($typeKey);
+        return match ($this->type($typeKey)) {
+            ReportSubjectType::Institution => __('Institution'),
+            ReportSubjectType::Person => __('Speaker'),
+            ReportSubjectType::Reference => __('Reference'),
+            ReportSubjectType::DonationChannel => __('Donation Channel'),
+            ReportSubjectType::Event => $this->events->label($typeKey),
+        };
     }
 
     public function exists(string $typeKey, string $entityId): bool
     {
         $type = ReportSubjectType::tryFrom($typeKey);
-
-        return $type instanceof ReportSubjectType
-            && $this->providerFor($type)->exists($typeKey, $entityId);
+        return $type instanceof ReportSubjectType && $entityId !== ''
+            && $this->find($typeKey, $entityId) instanceof ReportSubject;
     }
 
     public function find(string $typeKey, string $entityId): ?ReportSubject
     {
         $type = ReportSubjectType::tryFrom($typeKey);
+        if (! $type instanceof ReportSubjectType || trim($entityId) === '') {
+            return null;
+        }
 
-        return $type instanceof ReportSubjectType
-            ? $this->providerFor($type)->find($typeKey, $entityId)
-            : null;
+        return match ($type) {
+            ReportSubjectType::Institution => $this->institutions->findReportSubject($entityId),
+            ReportSubjectType::Person => $this->persons->findReportSubject($entityId),
+            ReportSubjectType::Reference => $this->references->findReportSubject($entityId),
+            ReportSubjectType::DonationChannel => $this->donationChannels->findReportSubject($entityId),
+            ReportSubjectType::Event => $this->events->find($typeKey, $entityId),
+        };
     }
 
     public function resolve(string $typeKey, string $identifier): ?ReportSubject
     {
         $type = ReportSubjectType::tryFrom($typeKey);
+        if (! $type instanceof ReportSubjectType || trim($identifier) === '') {
+            return null;
+        }
 
-        return $type instanceof ReportSubjectType
-            ? $this->providerFor($type)->resolve($typeKey, $identifier)
-            : null;
+        return match ($type) {
+            ReportSubjectType::Institution => $this->institutions->resolveReportSubject($identifier),
+            ReportSubjectType::Person => $this->persons->resolveReportSubject($identifier),
+            ReportSubjectType::Reference => $this->references->resolveReportSubject($identifier),
+            ReportSubjectType::DonationChannel => $this->donationChannels->resolveReportSubject($identifier),
+            ReportSubjectType::Event => $this->events->resolve($typeKey, $identifier),
+        };
     }
 
     public function presentation(ReportSubject $subject): ReportSubjectPresentation
     {
-        return $this->providerFor($subject->type)->presentation($subject);
-    }
+        if ($subject->type === ReportSubjectType::Event) {
+            return $this->events->presentation($subject);
+        }
 
-    private function providerFor(ReportSubjectType $type): ReportSubjectResolver
-    {
-        return $type === ReportSubjectType::Event
-            ? $this->eventSubjects
-            : $this->directorySubjects;
+        $redirectUrl = $subject->publicUrl;
+        if ($redirectUrl === null) {
+            throw new InvalidArgumentException("Report subject [{$subject->type->value}] has no public URL.");
+        }
+
+        return new ReportSubjectPresentation(
+            subjectLabel: $subject->label,
+            subjectTitle: $subject->title,
+            redirectUrl: $redirectUrl,
+            profileImageUrl: $subject->imageUrl,
+        );
     }
 
     private function type(string $typeKey): ReportSubjectType

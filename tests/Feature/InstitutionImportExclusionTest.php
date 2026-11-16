@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Directory\Actions\Institutions\DeleteInstitutionAction;
+use App\Features\Institutions\Actions\DeleteInstitutionAction;
 use App\Models\Institution;
 use App\Models\InstitutionImportExclusion;
 use App\Shared\Directory\Enums\InstitutionStatus;

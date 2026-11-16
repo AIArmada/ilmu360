@@ -8,7 +8,7 @@ namespace App\Shared\Membership;
  * Read boundary for membership subjects used by account, application and
  * invitation surfaces.
  *
- * The implementation resolves Directory records through the Directory reader,
+ * The implementation resolves records through their owner lookup contracts,
  * organizations through the Organizations access boundary and events through
  * their registered morph alias, so callers never query foreign models.
  */
@@ -26,6 +26,9 @@ interface MembershipSubjectCatalog
     ): array;
 
     public function find(MembershipSubjectType $subjectType, string $subjectId): ?MembershipSubject;
+
+    /** Resolve UUID or public slug without loading membership presentation. */
+    public function resolveIdentifier(MembershipSubjectType $subjectType, string $identifier): ?string;
 
     public function exists(MembershipSubjectType $subjectType, string $subjectId): bool;
 }

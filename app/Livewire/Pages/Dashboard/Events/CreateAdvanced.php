@@ -18,7 +18,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Shared\Cache\SelectionCatalogCache;
-use App\Shared\Directory\SpaceEligibility;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

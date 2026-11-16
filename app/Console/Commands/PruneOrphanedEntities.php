@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Features\Directory\Api\InstitutionWorkflow;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Features\Directory\Api\VenueWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Places\Api\VenueWorkflow;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;

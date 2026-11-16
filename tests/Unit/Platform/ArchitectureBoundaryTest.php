@@ -95,9 +95,9 @@ PHP);
 });
 
 it('accepts parent delete only from the exact declared root model', function (): void {
-    $deleteSpace = $this->project->writer('Directory', 'DeleteSpace');
-    $deleteVenue = $this->project->writer('Directory', 'DeleteVenue');
-    $this->project->feature('Directory', [
+    $deleteSpace = $this->project->writer('Places', 'DeleteSpace');
+    $deleteVenue = $this->project->writer('Places', 'DeleteVenue');
+    $this->project->feature('Places', [
         'table:venue_spaces' => [$deleteSpace],
         'table:venues' => [$deleteVenue],
     ]);
@@ -136,7 +136,7 @@ PHP);
             'target' => 'table:venue_spaces',
             'model' => 'App\\Models\\Space',
             'reason' => 'The exact root model preserves its owner-scoped delete lifecycle.',
-            'owner' => 'Directory',
+            'owner' => 'Places',
             'expires' => '2999-12-31',
         ],
         [
@@ -145,7 +145,7 @@ PHP);
             'target' => 'table:venues',
             'model' => 'App\\Models\\Venue',
             'reason' => 'The exact root model preserves its owner-scoped delete lifecycle.',
-            'owner' => 'Directory',
+            'owner' => 'Places',
             'expires' => '2999-12-31',
         ],
     ]);

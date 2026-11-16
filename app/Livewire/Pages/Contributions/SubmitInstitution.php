@@ -9,7 +9,7 @@ use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
-use App\Features\Directory\Api\DirectoryContributionMedia;
+use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Forms\InstitutionContributionFormSchema;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
@@ -252,7 +252,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
             // missing temporary files, and the create wraps persistence in a
             // transaction that would strand orphaned media files on disk.
             $rawDonationRows = $this->data['donation_channels'] ?? null;
-            app(DirectoryContributionMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
+            app(DonationQrMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
 
             $state = $this->contributionForm()->getState();
             $donationQrUploads = SharedFormSchema::rekeyDonationRowsByRawKeys(
@@ -296,7 +296,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                         $this->contributionForm()->model($institution)->saveRelationships();
 
                         if ($donationQrUploads !== []) {
-                            app(DirectoryContributionMedia::class)->attachDonationQrUploads(
+                            app(DonationQrMedia::class)->attachDonationQrUploads(
                                 $institution,
                                 $submittedDonationRows,
                                 $donationQrUploads,

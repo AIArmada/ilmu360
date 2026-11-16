@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Filament\Resources\Persons\Pages\ListPersons;
 use App\Filament\Resources\Persons\PersonResource;

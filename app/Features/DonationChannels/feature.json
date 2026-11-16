@@ -1,0 +1,18 @@
+{
+  "schema": 2,
+  "name": "DonationChannels",
+  "owns": {
+    "table:donation_channels": [
+      "App\\Features\\DonationChannels\\Actions\\DemoteDefaultDonationChannelsAction",
+      "App\\Features\\DonationChannels\\Actions\\SaveDonationChannelAction",
+      "App\\Features\\DonationChannels\\Actions\\TransitionDonationChannelStatusAction",
+      "App\\Features\\DonationChannels\\Actions\\SyncInstitutionDonationChannelsAction",
+      "App\\Features\\DonationChannels\\Actions\\DetachDonationChannelVerifierAction",
+      "App\\Features\\DonationChannels\\Actions\\RestoreDonationChannelVerifierAction",
+      "App\\Features\\DonationChannels\\Actions\\DeleteDonationChannelAction"
+    ]
+  },
+  "aliases": {
+    "donation_channel": "table:donation_channels"
+  }
+}

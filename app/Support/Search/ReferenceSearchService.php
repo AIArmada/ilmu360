@@ -4,7 +4,7 @@ namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\References\Enums\ReferenceContributorRole;
-use App\Features\Directory\Api\ReferenceSearchCache;
+use App\Features\References\Api\ReferenceSearchCache;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Search\FuzzySearchPolicy;

@@ -4,7 +4,7 @@ namespace App\Features\Events\Support;
 
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
-use App\Shared\Directory\SpaceEligibility;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

@@ -3,10 +3,10 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
-use App\Features\Directory\Api\InstitutionSearchCache;
-use App\Features\Directory\Api\PersonSearchCache;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Features\Directory\Api\ReferenceSearchCache;
+use App\Features\Institutions\Api\InstitutionSearchCache;
+use App\Features\Persons\Api\PersonSearchCache;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\References\Api\ReferenceSearchCache;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;

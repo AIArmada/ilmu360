@@ -8,7 +8,7 @@ use AIArmada\Events\Enums\ScheduleKind;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleFromInputAction;
 use App\Features\Events\Api\EventScheduleInput;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Directory\SpaceEligibility;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\PrayerOffset;
 use BackedEnum;

@@ -3,7 +3,7 @@
 use AIArmada\Membership\Actions\InviteMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Directory\Actions\Institutions\DeleteInstitutionAction;
+use App\Features\Institutions\Actions\DeleteInstitutionAction;
 use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;
 use App\Livewire\Pages\Membership\ShowInvitation;

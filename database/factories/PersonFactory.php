@@ -15,7 +15,7 @@ use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Enums\SpeakerStatus;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Models\Affiliation;
 use App\Models\Institution;
 use App\Models\Language;

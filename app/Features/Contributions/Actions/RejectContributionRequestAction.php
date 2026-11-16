@@ -3,9 +3,9 @@
 namespace App\Features\Contributions\Actions;
 
 use App\Features\Contributions\Support\ContributionModel;
-use App\Features\Directory\Api\InstitutionWorkflow;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;

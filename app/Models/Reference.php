@@ -11,7 +11,7 @@ use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Models\Reference as PackageReference;
 use AIArmada\References\Models\ReferenceContributor;
 use App\Enums\MemberSubjectType;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
 use App\Shared\Directory\Enums\ReferencePartType;

@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Institutions\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Institution;
 use App\Models\User;

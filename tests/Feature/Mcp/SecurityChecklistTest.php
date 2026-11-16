@@ -4,7 +4,7 @@ use AIArmada\Authz\Models\Role;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Events\Models\VenueSpace;
-use App\Features\Directory\Actions\Venues\SaveVenueAction;
+use App\Features\Places\Actions\Venues\SaveVenueAction;
 use App\Forms\SharedFormSchema;
 use App\Mcp\Servers\AdminServer;
 use App\Mcp\Servers\MemberServer;

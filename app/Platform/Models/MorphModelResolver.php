@@ -31,6 +31,27 @@ final class MorphModelResolver
     }
 
     /**
+     * Preserve the runtime morph identity check used by owner actions accepting
+     * package models through generic Eloquent entry points.
+     *
+     * @template TModel of Model
+     * @param  TModel  $model
+     * @return TModel
+     */
+    public static function assert(Model $model, string $alias): Model
+    {
+        if ($model->getMorphClass() !== $alias) {
+            throw new RuntimeException(sprintf(
+                'Expected a [%s] record, got [%s].',
+                $alias,
+                $model->getMorphClass(),
+            ));
+        }
+
+        return $model;
+    }
+
+    /**
      * @return class-string<Model>|null
      */
     public static function tryResolve(string $alias): ?string

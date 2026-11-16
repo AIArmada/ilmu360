@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Institutions\Actions;
+
+use App\Models\Institution;
+
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Remove one institution↔venue link without touching either side's row.
+ */
+final readonly class RemoveInstitutionVenueLinkAction
+{
+    public function handle(string $institutionId, string $venueId): void
+    {
+        DB::transaction(function () use ($institutionId, $venueId): void {
+            Institution::query()
+                ->whereKey($institutionId)
+                ->lockForUpdate()
+                ->first();
+
+            DB::table('institution_venue')
+                ->where('institution_id', $institutionId)
+                ->where('venue_id', $venueId)
+                ->delete();
+        });
+    }
+}

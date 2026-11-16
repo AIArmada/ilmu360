@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Admin;
 
 use App\Enums\RegistrationScope;
-use App\Features\Directory\Api\DirectoryReader;
-use App\Features\Directory\Api\DirectoryRecordType;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Places\Api\PlaceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -43,7 +45,10 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
 
     public function __construct(
         private readonly AdminResourceService $resourceService,
-        private readonly DirectoryReader $directoryReader,
+        private readonly InstitutionLookup $institutionLookup,
+        private readonly PersonLookup $personLookup,
+        private readonly PlaceLookup $placeLookup,
+        private readonly ReferenceLookup $referenceLookup,
     ) {}
 
     public function handle(Request $request): Generator
@@ -213,7 +218,8 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
                 ? $this->resolvePrimaryOrganizerIdentifier(
                     field: 'primary_organizer_key',
                     key: $primaryOrganizerKey,
-                    directoryReader: $this->directoryReader,
+                    institutionLookup: $this->institutionLookup->resolveIdentifier(...),
+                    personLookup: $this->personLookup->resolveIdentifier(...),
                 )
                 : null;
         }
@@ -223,8 +229,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
         if ($institutionKey !== null) {
             $payload['institution_id'] = $this->resolveRecordIdentifier(
                 field: 'institution_key',
-                type: DirectoryRecordType::Institution,
-                directoryReader: $this->directoryReader,
+                lookup: $this->institutionLookup->resolveIdentifier(...),
                 key: $institutionKey,
             );
         }
@@ -234,8 +239,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
         if ($venueKey !== null) {
             $payload['venue_id'] = $this->resolveRecordIdentifier(
                 field: 'venue_key',
-                type: DirectoryRecordType::Venue,
-                directoryReader: $this->directoryReader,
+                lookup: $this->placeLookup->resolveVenueIdentifier(...),
                 key: $venueKey,
             );
         }
@@ -245,8 +249,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
         if ($spaceKey !== null) {
             $payload['space_id'] = $this->resolveRecordIdentifier(
                 field: 'space_key',
-                type: DirectoryRecordType::Space,
-                directoryReader: $this->directoryReader,
+                lookup: $this->placeLookup->resolveSpaceIdentifier(...),
                 key: $spaceKey,
             );
         }
@@ -263,8 +266,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             $payload['persons'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
                     field: 'person_keys',
-                    type: DirectoryRecordType::Person,
-                    directoryReader: $this->directoryReader,
+                    lookup: $this->personLookup->resolveIdentifier(...),
                     key: $key,
                 ),
                 $personKeys,
@@ -283,8 +285,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             $payload['references'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
                     field: 'reference_keys',
-                    type: DirectoryRecordType::Reference,
-                    directoryReader: $this->directoryReader,
+                    lookup: $this->referenceLookup->resolveIdentifier(...),
                     key: $key,
                 ),
                 $referenceKeys,

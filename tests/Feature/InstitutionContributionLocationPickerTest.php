@@ -10,7 +10,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
-use App\Features\Directory\Api\DirectoryContributionMedia;
+use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
@@ -797,11 +797,11 @@ it('handles donation QR uploads stored under Filament file keys', function () {
 
     expect(SharedFormSchema::collectDonationQrUploads($keyedRows))->toHaveCount(1);
 
-    app(DirectoryContributionMedia::class)->assertDonationQrUploadsFresh($keyedRows);
+    app(DonationQrMedia::class)->assertDonationQrUploadsFresh($keyedRows);
 
     Storage::disk('tmp-for-tests')->deleteDirectory('livewire-tmp');
 
-    expect(fn () => app(DirectoryContributionMedia::class)->assertDonationQrUploadsFresh($keyedRows))
+    expect(fn () => app(DonationQrMedia::class)->assertDonationQrUploadsFresh($keyedRows))
         ->toThrow(ValidationException::class);
 });
 

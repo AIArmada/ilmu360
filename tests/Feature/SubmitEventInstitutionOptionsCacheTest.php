@@ -1,8 +1,8 @@
 <?php
 
-use App\Features\Directory\Api\InstitutionSubmissionAccess;
-use App\Features\Directory\Api\InstitutionSubmissionOptionsCache;
-use App\Features\Directory\Api\PersonSubmissionAccess;
+use App\Features\Institutions\Api\InstitutionSubmissionAccess;
+use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
+use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;

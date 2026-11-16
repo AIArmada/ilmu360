@@ -3,8 +3,8 @@
 namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
-use App\Features\Directory\Api\PersonSearchCache;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonSearchCache;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Platform\Search\FuzzySearchPolicy;
 use App\Platform\Search\TypesenseHealthCheckService;

@@ -3,7 +3,7 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Features\Directory\Api\InstitutionVenueLinks;
+use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Prayer\Actions\ResolvePrayerStartClockAction;
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Persistence\PrayerTimesCache;

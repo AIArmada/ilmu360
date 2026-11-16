@@ -1,3 +1,19 @@
+# Directory feature split to domain owners (2026-11-16)
+
+- [x] Split `app/Features/Directory` into `Institutions`, `Persons`, `References`, `Places` and `DonationChannels` with schema-2 manifests and a single provider registration per owner.
+- [x] Keep Filament Directory navigation grouping, existing resource routes and morph aliases; preserve storage schema and persisted lifecycle snapshot field names.
+- [x] Replace Directory reader, lifecycle coordinator, donation QR media, report resolver, counts and public cache versions with owning feature APIs and consumer-level composition.
+- [x] Remove retired Directory provider/classes and update PHPStan helper registration, ownership exceptions, and focused seams.
+- [ ] Complete executable Laravel verification on an environment with vendor dependencies (Pint, architecture checker, PHPStan, route parity, selected parallel Pest tests and authenticated Filament smoke). The provided GitHub CI on the baseline revision `39c51c0f` fails during Composer install because `../commerce/packages/commerce-support` is not present; this prevents attributing subsequent CI failures to this refactor.
+
+## Scope and verification evidence
+
+- Owner count expected: 26 feature directories (22 baseline minus Directory plus five dedicated owners).
+- Institution/venue pivot writer: Institutions; institution/space pivot writer: Places. Donation Channels own institution form channel writes and staged QR handling.
+- Root `App\Models`, morph aliases, original migrations and resource Filament pages remain canonical and unchanged in identity.
+- Source-level checks: PHP lint performed on PHP 8.4 where possible; original PHP 8.5 `#[\Override]` property usage cannot be linted on 8.4. `git diff --check` and old-identifier searches are required before merging.
+- No database or external services were written by this refactor task.
+
 # Architecture migration range audit (2026-11-16)
 
 - [x] Resolve the inclusive commit range and trace migration changes against the active plan and dated evidence.

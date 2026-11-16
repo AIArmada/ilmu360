@@ -3,7 +3,7 @@
 namespace App\Forms;
 
 use AIArmada\Persons\Enums\Gender;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Models\Person;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;

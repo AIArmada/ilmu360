@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Directory\Queries\ReferenceResourceSearchAdapter;
+use App\Features\References\Queries\ReferenceResourceSearchAdapter;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;

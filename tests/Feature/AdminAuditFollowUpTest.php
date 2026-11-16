@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Filament\Resources\Series\Pages\EditSeries;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Models\Affiliation;

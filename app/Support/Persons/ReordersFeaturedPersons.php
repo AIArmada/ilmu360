@@ -2,7 +2,7 @@
 
 namespace App\Support\Persons;
 
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 
 trait ReordersFeaturedPersons
 {

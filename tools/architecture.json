@@ -149,11 +149,11 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/Directory/Actions/Persons/SyncPersonTitleAssignmentsAction.php",
+      "file": "app/Features/Persons/Actions/SyncPersonTitleAssignmentsAction.php",
       "target": "table:title_assignments",
       "model": "AIArmada\\Persons\\Models\\TitleAssignment",
-      "reason": "The Persons package owns title assignments and exposes no assignment mutation action; this exact Directory action synchronizes them.",
-      "owner": "Directory",
+      "reason": "The Persons package owns title assignments and has no assignment mutation action; this exact Persons action synchronizes them.",
+      "owner": "Persons",
       "expires": "2027-06-30"
     },
     {
@@ -585,8 +585,8 @@
       "file": "app/Platform/Directory/EntityRelationSync.php",
       "target": "table:unknown",
       "model": "AIArmada\\Addressing\\Models\\Address",
-      "reason": "This shared Directory relation adapter creates, updates, and deletes canonical Address models because Addressing exposes area-assignment synchronization but no address-record persistence action; address storage remains package-owned.",
-      "owner": "Directory",
+      "reason": "This generic Platform entity relation adapter creates, updates and deletes canonical Address models because Addressing exposes area-assignment synchronization but not address-record persistence.",
+      "owner": "Platform",
       "expires": "2027-06-30"
     },
     {
@@ -603,8 +603,8 @@
       "file": "app/Models/Space.php",
       "target": "table:venue_spaces",
       "model": "App\\Models\\Space",
-      "reason": "The root Space model preserves package model identity, its deletion guard, and atomic Directory-owned institution-link cleanup.",
-      "owner": "Directory",
+      "reason": "The root Space model preserves package model identity, its deletion guard, and atomic owner-scoped institution-link cleanup.",
+      "owner": "Places",
       "expires": "2027-06-30"
     },
     {
@@ -612,8 +612,8 @@
       "file": "app/Models/Venue.php",
       "target": "table:venues",
       "model": "App\\Models\\Venue",
-      "reason": "The root Venue model preserves package model identity and atomic Directory-owned institution-link cleanup.",
-      "owner": "Directory",
+      "reason": "The root Venue model preserves package model identity and atomic owner-scoped institution-link cleanup.",
+      "owner": "Places",
       "expires": "2027-06-30"
     },
     {

@@ -3,15 +3,18 @@
 namespace App\Features\Contributions\Actions;
 
 use App\Features\Contributions\Support\ContributionModel;
-use App\Features\Directory\Api\DirectoryContributionMedia;
-use App\Features\Directory\Api\InstitutionWorkflow;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\DonationChannels\Api\DonationQrMedia;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Platform\Concurrency\MapsIdentityLock;
+use App\Platform\Media\MediaCollectionSync;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use App\Platform\Location\AddressAssignments;
 use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
@@ -33,7 +36,8 @@ class ApproveContributionRequestAction
 
     public function __construct(
         private readonly EventModeration $eventModeration,
-        private readonly DirectoryContributionMedia $directoryContributionMedia,
+        private readonly DonationQrMedia $donationQrMedia,
+        private readonly MediaCollectionSync $mediaCollectionSync,
         private readonly EventAuthoring $eventAuthoring,
         private readonly EventMedia $eventMedia,
         private readonly ContributionRequestNotifier $contributionRequestNotifications,
@@ -375,7 +379,22 @@ class ApproveContributionRequestAction
             default => ContributionModel::assert($entity, 'reference'),
         };
 
-        $this->directoryContributionMedia->applyStagedMedia($directoryEntity, $staged);
+        $this->mediaCollectionSync->applyStagedMedia(
+            $directoryEntity,
+            $staged,
+            fn (Media $media): bool => $this->applySpecialStagedMedia($directoryEntity, $media),
+        );
+    }
+
+    private function applySpecialStagedMedia(HasMedia $entity, Media $media): bool
+    {
+        if ((string) $media->getCustomProperty('contribution_field', 'cover') !== 'donation_qr') {
+            return false;
+        }
+
+        $this->donationQrMedia->attachStagedDonationQr($entity, $media);
+
+        return true;
     }
 
     /**

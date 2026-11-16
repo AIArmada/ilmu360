@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Features\Directory\Actions\Persons\SyncPersonSearchProjectionAction;
-use App\Features\Directory\Api\PersonSearchCache;
-use App\Features\Directory\Persistence\PersonSearchCacheStore;
+use App\Features\Persons\Actions\SyncPersonSearchProjectionAction;
+use App\Features\Persons\Api\PersonSearchCache;
+use App\Features\Persons\Persistence\PersonSearchCacheStore;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Support\Facades\Cache;
 

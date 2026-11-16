@@ -4,7 +4,7 @@ namespace App\Models;
 
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Events\Models\VenueSpace;
-use App\Features\Directory\Api\InstitutionSpaceLinks;
+use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\SpaceFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;

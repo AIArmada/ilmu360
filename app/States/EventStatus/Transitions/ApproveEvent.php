@@ -3,10 +3,10 @@
 namespace App\States\EventStatus\Transitions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Directory\Api\InstitutionWorkflow;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Features\Directory\Api\ReferenceWorkflow;
-use App\Features\Directory\Api\VenueWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
+use App\Features\Places\Api\VenueWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\ModerationReview;

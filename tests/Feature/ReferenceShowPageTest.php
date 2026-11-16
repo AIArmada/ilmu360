@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Person;

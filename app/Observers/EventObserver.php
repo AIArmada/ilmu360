@@ -5,7 +5,8 @@ namespace App\Observers;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Directory\Api\PublicDirectoryCacheVersions;
+use App\Features\Institutions\Api\InstitutionListingCacheVersion;
+use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Jobs\RenderShareCardJob;
@@ -22,7 +23,8 @@ class EventObserver implements ShouldHandleEventsAfterCommit
         protected EventAuthoring $eventAuthoring,
         protected SlugRedirectRecorder $slugRedirectRecorder,
         protected SlugRedirectCommands $slugRedirectCommands,
-        protected PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
+        protected InstitutionListingCacheVersion $institutionCacheVersion,
+        protected PersonListingCacheVersion $personCacheVersion,
         protected PublicListingsCache $publicListingsCache
     ) {}
 
@@ -48,7 +50,8 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     {
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersions->bumpForEvent();
+        $this->institutionCacheVersion->bump();
+        $this->personCacheVersion->bump();
 
         if ($event->isPubliclyReachable()) {
             RenderShareCardJob::prewarmForEvent($event->getKey());
@@ -59,7 +62,8 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     {
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersions->bumpForEvent();
+        $this->institutionCacheVersion->bump();
+        $this->personCacheVersion->bump();
 
         if ($event->wasChanged('slug')) {
             /**
@@ -138,6 +142,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
         $this->eventAuthoring->syncEventSlugsForTitle($event->title);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersions->bumpForEvent();
+        $this->institutionCacheVersion->bump();
+        $this->personCacheVersion->bump();
     }
 }

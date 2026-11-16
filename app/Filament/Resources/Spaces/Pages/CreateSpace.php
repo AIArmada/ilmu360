@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Spaces\Pages;
 
 use AIArmada\FilamentCommerceSupport\Concerns\AuditsRelatedStateChanges;
-use App\Features\Directory\Api\SpaceWorkflow;
+use App\Features\Places\Api\SpaceWorkflow;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Models\Institution;
 use App\Models\Space;

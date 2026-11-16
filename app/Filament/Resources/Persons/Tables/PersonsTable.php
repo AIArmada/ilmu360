@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Persons\Tables;
 
 use AIArmada\FilamentPersons\Resources\PersonResource\Tables\PersonsTable as PackagePersonsTable;
 use App\Enums\SpeakerStatus;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;

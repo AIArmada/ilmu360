@@ -4,7 +4,7 @@ namespace App\Forms;
 
 use AIArmada\Persons\Enums\Gender;
 use App\Enums\SpeakerStatus;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;

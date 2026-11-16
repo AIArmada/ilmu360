@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\DonationChannels\Pages;
 
-use App\Features\Directory\Api\DonationChannelWorkflow;
+use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Models\DonationChannel;
 use Filament\Actions\DeleteAction;

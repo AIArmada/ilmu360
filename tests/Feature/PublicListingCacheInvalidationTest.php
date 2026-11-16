@@ -1,6 +1,8 @@
 <?php
 
-use App\Features\Directory\Api\PublicDirectoryStats;
+use App\Features\Persons\Api\PersonHomepageStats;
+use App\Features\Institutions\Api\InstitutionHomepageStats;
+use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\Events\Api\EventHomepageStats;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
@@ -101,9 +103,9 @@ it('reads homepage counts through their feature-owned caches', function (): void
     $referenceCount = Reference::active()->root()->count('id');
 
     expect(app(EventHomepageStats::class)->activeEventCount())->toBe($eventCount)
-        ->and(app(PublicDirectoryStats::class)->activePersonCount())->toBe($personCount)
-        ->and(app(PublicDirectoryStats::class)->activeInstitutionCount())->toBe($institutionCount)
-        ->and(app(PublicDirectoryStats::class)->rootReferenceCount())->toBe($referenceCount)
+        ->and(app(PersonHomepageStats::class)->activePersonCount())->toBe($personCount)
+        ->and(app(InstitutionHomepageStats::class)->activeInstitutionCount())->toBe($institutionCount)
+        ->and(app(ReferenceHomepageStats::class)->rootReferenceCount())->toBe($referenceCount)
         ->and(Cache::has('home.stats.events.active'))->toBeTrue()
         ->and(Cache::has('home.stats.persons.active'))->toBeTrue()
         ->and(Cache::has('home.stats.institutions.active'))->toBeTrue()

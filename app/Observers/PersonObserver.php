@@ -4,9 +4,9 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Features\Directory\Api\PublicDirectoryCacheVersions;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Person;
@@ -26,7 +26,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         protected PersonWorkflow $personWorkflow,
         protected ReferenceWorkflow $referenceWorkflow,
         protected SlugRedirectCommands $slugRedirectCommands,
-        protected PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
+        protected PersonListingCacheVersion $personCacheVersion,
         protected PublicListingsCache $publicListingsCache,
         protected PersonSearchService $personSearchService,
         protected ReferenceSearchService $referenceSearchService,
@@ -65,7 +65,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
 
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersions->bumpPerson();
+        $this->personCacheVersion->bump();
     }
 
     public function deleted(Person $person): void
@@ -77,7 +77,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         $this->personSearchService->purgePersonRecord($person);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersions->bumpPerson();
+        $this->personCacheVersion->bump();
     }
 
     private function reindexAuthoredReferences(Person $person): void

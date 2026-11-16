@@ -6,7 +6,7 @@ namespace App\Filament\Resources\Persons\Pages;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;

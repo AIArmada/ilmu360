@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
-use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Models\Institution;
 
 /**

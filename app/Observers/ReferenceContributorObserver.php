@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\References\Models\ReferenceContributor;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Services\PublicListingsCache;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;

@@ -1,6 +1,8 @@
 <?php
 
-use App\Features\Directory\Api\PublicDirectoryStats;
+use App\Features\Persons\Api\PersonHomepageStats;
+use App\Features\Institutions\Api\InstitutionHomepageStats;
+use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\Events\Api\EventHomepageStats;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -15,19 +17,19 @@ new class extends Component {
     #[Computed]
     public function persons(): int
     {
-        return app(PublicDirectoryStats::class)->activePersonCount();
+        return app(PersonHomepageStats::class)->activePersonCount();
     }
 
     #[Computed]
     public function institutions(): int
     {
-        return app(PublicDirectoryStats::class)->activeInstitutionCount();
+        return app(InstitutionHomepageStats::class)->activeInstitutionCount();
     }
 
     #[Computed]
     public function references(): int
     {
-        return app(PublicDirectoryStats::class)->rootReferenceCount();
+        return app(ReferenceHomepageStats::class)->rootReferenceCount();
     }
 };
 ?>

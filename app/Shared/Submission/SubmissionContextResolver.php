@@ -9,7 +9,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Shared\Directory\SpaceEligibility;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\OrganizerResolver;
 use App\Shared\Prayer\PrayerTargetSelector;

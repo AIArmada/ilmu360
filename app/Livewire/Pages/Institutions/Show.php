@@ -9,7 +9,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Engagement\FollowSubjectAction;
 use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Data\PublicScheduleLeaf;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Livewire\Concerns\TogglesEventGoing;

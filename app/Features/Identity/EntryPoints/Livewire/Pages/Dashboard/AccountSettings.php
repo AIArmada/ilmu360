@@ -6,7 +6,7 @@ use AIArmada\Events\Models\EventSubmission;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\PushDestinationManagement;
-use App\Features\Directory\Api\DirectoryReader;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Services\AccountSettingsService;
 use App\Platform\Ui\InteractsWithToasts;
@@ -712,9 +712,9 @@ class AccountSettings extends Component implements HasForms
         return app(AccountSettingsService::class);
     }
 
-    protected function directoryReader(): DirectoryReader
+    protected function directoryReader(): InstitutionLookup
     {
-        return app(DirectoryReader::class);
+        return app(InstitutionLookup::class);
     }
 
     protected function accounts(): AccountDirectory

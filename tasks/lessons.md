@@ -1,3 +1,4 @@
+- A Filament sidebar navigation group can span independently owned feature modules. Navigation grouping is presentation metadata: it must not be used to justify a catch-all `app/Features/Directory` runtime domain or its storage ownership. Move each writer and its consumers to the owning feature, preserving routes and persisted aliases.
 # Lessons
 
 - User correction (2026-11-14, architecture migration hard cuts): do not add backward-compatibility behavior, legacy paths, data backfills, or superseded leftovers. Define one current contract, cut all current callers over, and delete the old implementation in the same slice. Do not retain old values through aliases or fallback maps; keep only identifiers that remain part of the active contract.

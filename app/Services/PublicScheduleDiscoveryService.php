@@ -11,7 +11,7 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Data\PublicScheduleLeaf;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\Person;

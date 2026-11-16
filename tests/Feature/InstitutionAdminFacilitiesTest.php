@@ -7,7 +7,7 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Features\Directory\Actions\Institutions\SyncInstitutionVenuesAction;
+use App\Features\Institutions\Actions\SyncInstitutionVenuesAction;
 use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Models\Institution;
 use App\Models\User;

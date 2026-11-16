@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\DonationChannels\Tables;
 
-use App\Features\Directory\Api\DonationChannelWorkflow;
+use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Institution;

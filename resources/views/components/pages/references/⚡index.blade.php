@@ -4,7 +4,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Engagement\FollowSubjectAction;
 use App\Actions\Engagement\UnfollowSubjectAction;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Models\User;

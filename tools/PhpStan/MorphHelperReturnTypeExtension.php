@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tools\PhpStan;
 
-use App\Features\Directory\Support\DirectoryModel;
 use App\Features\Events\Support\EventModel;
 use App\Features\Rewards\Support\RewardsModel;
 use PhpParser\Node\Expr;
@@ -20,7 +19,7 @@ use PHPStan\Type\Type;
 /**
  * Types the morph-alias helper facades used by feature actions.
  *
- * EventModel/DirectoryModel intentionally expose root models through stable
+ * EventModel and other model helpers intentionally expose root models through stable
  * aliases without importing them. This extension recovers the literal alias
  * at each call site so Larastan can resolve scopes, relations and properties.
  */
@@ -43,18 +42,6 @@ final class MorphHelperReturnTypeExtension implements DynamicStaticMethodReturnT
             'space' => 'space',
             'language' => 'language',
             'user' => 'user',
-        ],
-        DirectoryModel::class => [
-            'institution' => 'institution',
-            'institutionName' => 'institution_name',
-            'importExclusion' => 'institution_import_exclusion',
-            'donationChannel' => 'donation_channel',
-            'person' => 'person',
-            'personName' => 'person_name',
-            'affiliation' => 'affiliation',
-            'reference' => 'reference',
-            'venue' => 'venue',
-            'space' => 'space',
         ],
         RewardsModel::class => [
             'digestSlot' => 'reward_digest_slot',
@@ -106,13 +93,6 @@ final class MorphHelperReturnTypeExtension implements DynamicStaticMethodReturnT
             $modelClass = $this->literalAliasClass($arguments[1]->value ?? null, $scope);
 
             return $modelClass === null ? null : new ObjectType($modelClass);
-        }
-
-        if ($method === 'referenceQuery' && $this->helperClass === DirectoryModel::class) {
-            return new GenericObjectType(
-                \Illuminate\Database\Eloquent\Builder::class,
-                [new ObjectType(MorphModelResolverReturnTypeExtension::MORPH_MODELS['reference'])],
-            );
         }
 
         $alias = self::ALIAS_GETTERS[$this->helperClass][$method] ?? null;

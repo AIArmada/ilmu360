@@ -7,7 +7,7 @@ use App\Data\Api\Frontend\Search\ReferenceListData;
 use App\Enums\SpeakerStatus;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Filament\Resources\References\Pages\CreateReference;
 use App\Filament\Resources\References\Pages\EditReference;
 use App\Forms\ReferenceAuthorFormSchema;

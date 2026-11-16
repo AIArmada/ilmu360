@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Features\Directory\Api\DonationChannelWorkflow;
+use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Reporting\ReportModelClass;
 use App\Shared\Directory\Enums\DonationChannelStatus;

@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
-use App\Features\Directory\Api\DirectoryReader;
-use App\Features\Directory\Api\DirectoryRecordType;
+use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
@@ -46,7 +45,7 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
     public function __construct(
         private readonly MembershipApplications $membershipApplications,
         private readonly McpFilePayloadNormalizer $filePayloadNormalizer,
-        private readonly DirectoryReader $directoryReader,
+        private readonly MembershipSubjectCatalog $subjectCatalog,
         private readonly StagedUploadFactory $stagedUploadFactory,
     ) {}
 
@@ -65,10 +64,7 @@ class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
             $resolvedSubjectType = MembershipApplicationSubjectType::tryFrom((string) $validated['subject_type']);
             abort_unless($resolvedSubjectType instanceof MembershipApplicationSubjectType, 400);
 
-            $directoryRecordType = DirectoryRecordType::tryFrom($resolvedSubjectType->value);
-            abort_unless($directoryRecordType instanceof DirectoryRecordType, 400);
-
-            $subjectId = $this->directoryReader->resolveIdentifier($directoryRecordType, (string) $validated['subject']);
+            $subjectId = $this->subjectCatalog->resolveIdentifier($resolvedSubjectType->membershipSubjectType(), (string) $validated['subject']);
             abort_unless(is_string($subjectId), 404);
 
             $normalizedMediaPayload = $this->filePayloadNormalizer->normalize($validated, [

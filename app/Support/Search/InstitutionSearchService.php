@@ -3,7 +3,7 @@
 namespace App\Support\Search;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
-use App\Features\Directory\Api\InstitutionSearchCache;
+use App\Features\Institutions\Api\InstitutionSearchCache;
 use App\Models\Institution;
 use App\Models\InstitutionName;
 use App\Platform\Search\FuzzySearchPolicy;

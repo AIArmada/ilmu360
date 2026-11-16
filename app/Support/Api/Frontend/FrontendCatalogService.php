@@ -20,7 +20,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Directory\SpaceEligibility;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Submission\EntitySubmissionAccess;
 use App\Support\Location\LocationSlugResolver;
 use App\Support\Search\InstitutionSearchService;

@@ -3,7 +3,7 @@
 namespace App\Forms;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use App\Features\Directory\Api\VenueWorkflow;
+use App\Features\Places\Api\VenueWorkflow;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\VenueType;
 use App\Support\Location\GooglePlacesConfiguration;

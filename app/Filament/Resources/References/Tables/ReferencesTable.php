@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\References\Tables;
 
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Models\Reference;
 use App\Shared\Directory\Enums\ReferenceType;
 use Filament\Actions\BulkActionGroup;

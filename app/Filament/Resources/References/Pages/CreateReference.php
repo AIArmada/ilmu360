@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\References\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Forms\ReferenceFormSchema;
 use App\Models\Reference;

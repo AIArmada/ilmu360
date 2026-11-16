@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Forms\PersonFormSchema;

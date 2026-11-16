@@ -15,7 +15,7 @@ use App\Data\Api\EventRegistration\EventRegistrationData;
 use App\Data\Api\EventRegistration\EventRegistrationStatusData;
 use App\Data\Api\EventSave\EventSaveStateData;
 use App\Data\Api\Frontend\Search\EventListData;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceState;
 use App\Http\Controllers\Controller;
 use App\Models\Event;

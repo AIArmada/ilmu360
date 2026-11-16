@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Features\Directory\Api\InstitutionWorkflow;
-use App\Features\Directory\Api\PublicDirectoryCacheVersions;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Institution;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
@@ -18,7 +18,7 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         protected InstitutionWorkflow $institutionWorkflow,
         protected SlugRedirectCommands $slugRedirectCommands,
-        protected PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
+        protected InstitutionListingCacheVersion $institutionCacheVersion,
         protected PublicListingsCache $publicListingsCache,
         protected InstitutionSearchService $institutionSearchService,
     ) {}
@@ -46,7 +46,7 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
 
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersions->bumpInstitution();
+        $this->institutionCacheVersion->bump();
         $this->institutionSearchService->bustPublicSearchCache();
     }
 
@@ -58,7 +58,7 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
         $this->institutionWorkflow->syncSlugsForName($institution->name);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersions->bumpInstitution();
+        $this->institutionCacheVersion->bump();
         $this->institutionSearchService->bustPublicSearchCache();
     }
 }

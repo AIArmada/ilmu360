@@ -7,7 +7,7 @@ use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
-use App\Features\Directory\Api\InstitutionVenueLinks;
+use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Directory\Enums\VenueType;

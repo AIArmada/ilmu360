@@ -7,11 +7,11 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AffiliationType;
-use App\Features\Directory\Api\InstitutionSearchCache;
-use App\Features\Directory\Api\PersonSearchCache;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Features\Directory\Api\PublicDirectoryCacheVersions;
-use App\Features\Directory\Api\ReferenceSearchCache;
+use App\Features\Institutions\Api\InstitutionSearchCache;
+use App\Features\Persons\Api\PersonSearchCache;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Http\Controllers\Api\Frontend\SearchController;
@@ -2732,7 +2732,7 @@ it('bumps the person directory cache version when person records change', functi
         ->json('meta.cache.version');
 
     $person->update(['name' => 'Person Cache Version Updated']);
-    app(PublicDirectoryCacheVersions::class)->bumpPerson();
+    app(PersonListingCacheVersion::class)->bump();
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
         ->assertOk()

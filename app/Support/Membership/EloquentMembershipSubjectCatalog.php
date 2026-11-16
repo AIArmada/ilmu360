@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\Membership;
 
-use App\Features\Directory\Api\DirectoryDetail;
-use App\Features\Directory\Api\DirectoryReader;
-use App\Features\Directory\Api\DirectoryRecordType;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
 use App\Platform\Models\MorphModelResolver;
@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Membership subject catalog root adapter.
  *
- * Directory records resolve through the Directory public reader, organizations
+ * Owner lookup contracts resolve institution, person and reference records; organizations
  * through the Organizations access boundary and events through their registered
  * morph alias. The catalog contract stays in Shared while this implementation
  * stays at the root adapter, so it intentionally imports no App\Models classes.
@@ -28,7 +28,9 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
 {
     public function __construct(
         private MembershipDirectory $memberships,
-        private DirectoryReader $directory,
+        private InstitutionLookup $institutions,
+        private PersonLookup $persons,
+        private ReferenceLookup $references,
         private OrganizationAccess $organizations,
     ) {}
 
@@ -59,9 +61,9 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
     public function find(MembershipSubjectType $subjectType, string $subjectId): ?MembershipSubject
     {
         return match ($subjectType) {
-            MembershipSubjectType::Institution => $this->fromDirectory(DirectoryRecordType::Institution, $subjectId),
-            MembershipSubjectType::Person => $this->fromDirectory(DirectoryRecordType::Person, $subjectId),
-            MembershipSubjectType::Reference => $this->fromDirectory(DirectoryRecordType::Reference, $subjectId),
+            MembershipSubjectType::Institution => $this->fromSummary($subjectType, $this->institutions->find($subjectId)),
+            MembershipSubjectType::Person => $this->fromSummary($subjectType, $this->persons->find($subjectId)),
+            MembershipSubjectType::Reference => $this->fromSummary($subjectType, $this->references->find($subjectId)),
             MembershipSubjectType::Organization => $this->fromOrganization($subjectId),
             MembershipSubjectType::Event => $this->fromEvent($subjectId),
         };
@@ -72,16 +74,33 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
         return $this->find($subjectType, $subjectId) instanceof MembershipSubject;
     }
 
-    private function fromDirectory(DirectoryRecordType $recordType, string $subjectId): ?MembershipSubject
+    public function resolveIdentifier(MembershipSubjectType $subjectType, string $identifier): ?string
     {
-        $detail = $this->directory->find($recordType, $subjectId);
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
 
-        if (! $detail instanceof DirectoryDetail) {
+        return match ($subjectType) {
+            MembershipSubjectType::Institution => $this->institutions->resolveIdentifier($identifier),
+            MembershipSubjectType::Person => $this->persons->resolveIdentifier($identifier),
+            MembershipSubjectType::Reference => $this->references->resolveIdentifier($identifier),
+            MembershipSubjectType::Organization => $this->organizations->find($identifier)?->id,
+            MembershipSubjectType::Event => $this->fromEvent($identifier)?->id,
+        };
+    }
+
+    /**
+     * @param  \App\Features\Institutions\Api\InstitutionSummary|\App\Features\Persons\Api\PersonSummary|\App\Features\References\Api\ReferenceSummary|null  $detail
+     */
+    private function fromSummary(MembershipSubjectType $subjectType, mixed $detail): ?MembershipSubject
+    {
+        if ($detail === null) {
             return null;
         }
 
         return new MembershipSubject(
-            type: MembershipSubjectType::from($recordType->value),
+            type: $subjectType,
             id: $detail->id,
             label: $detail->title,
             publicUrl: $detail->publicUrl,

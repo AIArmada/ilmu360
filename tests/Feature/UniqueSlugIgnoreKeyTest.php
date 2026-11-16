@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\UniqueSlug;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Models\Reference;
 
 it('treats an empty ignore key as null when building a unique slug', function (): void {

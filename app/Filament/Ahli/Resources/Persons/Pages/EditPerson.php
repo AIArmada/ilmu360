@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Ahli\Resources\Persons\Pages;
 
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Filament\Ahli\Resources\Persons\PersonResource;
 use App\Support\Persons\PersonBioContent;
 use Filament\Resources\Pages\EditRecord;

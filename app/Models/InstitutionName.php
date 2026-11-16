@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;

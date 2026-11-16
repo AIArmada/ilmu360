@@ -8,7 +8,11 @@ use App\Features\Ai\FeatureServiceProvider as AiServiceProvider;
 use App\Features\Communications\FeatureServiceProvider as CommunicationsServiceProvider;
 use App\Features\Community\FeatureServiceProvider as CommunityServiceProvider;
 use App\Features\Contributions\FeatureServiceProvider as ContributionsServiceProvider;
-use App\Features\Directory\FeatureServiceProvider as DirectoryServiceProvider;
+use App\Features\DonationChannels\FeatureServiceProvider as DonationChannelsServiceProvider;
+use App\Features\Institutions\FeatureServiceProvider as InstitutionsServiceProvider;
+use App\Features\Persons\FeatureServiceProvider as PersonsServiceProvider;
+use App\Features\Places\FeatureServiceProvider as PlacesServiceProvider;
+use App\Features\References\FeatureServiceProvider as ReferencesServiceProvider;
 use App\Features\Discovery\FeatureServiceProvider as DiscoveryServiceProvider;
 use App\Features\Engagement\FeatureServiceProvider as EngagementServiceProvider;
 use App\Features\Events\FeatureServiceProvider as EventsServiceProvider;
@@ -49,7 +53,11 @@ return [
     CommunityServiceProvider::class,
     CommunicationsServiceProvider::class,
     ContributionsServiceProvider::class,
-    DirectoryServiceProvider::class,
+    ReferencesServiceProvider::class,
+    PersonsServiceProvider::class,
+    DonationChannelsServiceProvider::class,
+    InstitutionsServiceProvider::class,
+    PlacesServiceProvider::class,
     DiscoveryServiceProvider::class,
     EngagementServiceProvider::class,
     EventsServiceProvider::class,

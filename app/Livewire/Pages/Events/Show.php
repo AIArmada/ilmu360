@@ -15,7 +15,7 @@ use App\Actions\Engagement\RemoveEventGoingAction;
 use App\Actions\Engagement\SaveEventAction;
 use App\Actions\Engagement\UnsaveEventAction;
 use App\Data\PublicScheduleLeaf;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
 use App\Models\Event;

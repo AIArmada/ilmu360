@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Institution;
 use App\Models\Person;

@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Features\Directory\Api\PublicDirectoryCacheVersions;
+use App\Features\Institutions\Api\InstitutionListingCacheVersion;
+use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Events\Api\EventInvolvementFingerprint;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
@@ -13,34 +14,30 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-it('bumps the directory version for configured media morph types', function (string $modelType, string $versionKey): void {
-    $versions = app(PublicDirectoryCacheVersions::class);
-    $before = Cache::get($versionKey);
+it('bumps owner listing versions independently', function (): void {
+    $institutions = app(InstitutionListingCacheVersion::class);
+    $persons = app(PersonListingCacheVersion::class);
+    $institutionBefore = $institutions->current()['version'];
+    $personBefore = $persons->current()['version'];
 
-    $versions->bumpForMediaType($modelType);
+    $institutions->bump();
+    expect($institutions->current()['version'])->not->toBe($institutionBefore)
+        ->and($persons->current()['version'])->toBe($personBefore);
 
-    expect(Cache::get($versionKey))->toBeString()->not->toBe($before);
-})->with([
-    'institution alias' => ['institution', 'public_directory:institutions:version:v1'],
-    'person alias' => ['person', 'public_directory:persons:version:v1'],
-]);
-
-it('does not bump directory versions for unrelated media types', function (): void {
-    app(PublicDirectoryCacheVersions::class)->bumpForMediaType('event');
-
-    expect(Cache::has('public_directory:institutions:version:v1'))->toBeFalse()
-        ->and(Cache::has('public_directory:persons:version:v1'))->toBeFalse();
+    $persons->bump();
+    expect($persons->current()['version'])->not->toBe($personBefore);
 });
 
-it('bumps all matching directory versions for addressable morph types', function (): void {
-    app(PublicDirectoryCacheVersions::class)->bumpForAddressableTypes(['institution', 'person', 'event']);
+it('uses unchanged persistent version keys', function (): void {
+    app(InstitutionListingCacheVersion::class)->bump();
+    app(PersonListingCacheVersion::class)->bump();
 
     expect(Cache::get('public_directory:institutions:version:v1'))->toBeString()
         ->and(Cache::get('public_directory:persons:version:v1'))->toBeString();
 });
 
 it('composes the person version with the Events-owned involvement fingerprint', function (): void {
-    $versions = app(PublicDirectoryCacheVersions::class);
+    $versions = app(PersonListingCacheVersion::class);
     $table = (string) config('events.database.tables.event_involvements', 'event_involvements');
 
     Schema::create($table, function (Blueprint $blueprint): void {
@@ -49,7 +46,7 @@ it('composes the person version with the Events-owned involvement fingerprint', 
     });
 
     try {
-        $emptyPersonVersion = $versions->person()['version'];
+        $emptyPersonVersion = $versions->current()['version'];
         $baseVersion = Cache::get('public_directory:persons:version:v1');
 
         expect($emptyPersonVersion)->toBe($baseVersion.'|0|');
@@ -62,7 +59,7 @@ it('composes the person version with the Events-owned involvement fingerprint', 
 
         $latestUpdate = (string) DB::table($table)->max('updated_at');
         $fingerprint = app(EventInvolvementFingerprint::class)->current();
-        $personVersion = $versions->person()['version'];
+        $personVersion = $versions->current()['version'];
 
         expect($fingerprint)->toBe('1|'.$latestUpdate)
             ->and($personVersion)->toBe($baseVersion.'|1|'.$latestUpdate);

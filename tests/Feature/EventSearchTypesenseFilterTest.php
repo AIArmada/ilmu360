@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Data\EventDiscoveryCriteriaFactory;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Services\TypesenseEventDiscovery;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;

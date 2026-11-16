@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\EntryPoints\Http;
 
-use App\Features\Directory\Api\DirectoryReader;
-use App\Features\Directory\Api\DirectoryRecordType;
+use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipApplicationDetail;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;
@@ -54,7 +53,7 @@ class MembershipApplicationController extends FrontendController
         string $subject,
         Request $request,
         MembershipApplications $membershipApplications,
-        DirectoryReader $directoryReader,
+        MembershipSubjectCatalog $subjectCatalog,
         StagedUploadFactory $stagedUploadFactory,
     ): JsonResponse {
         $resolvedSubjectType = MembershipApplicationSubjectType::fromPublicRouteSegment($subjectType);
@@ -75,10 +74,7 @@ class MembershipApplicationController extends FrontendController
             'evidence.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', "max:{$maxUploadSizeKb}"],
         ]);
 
-        $directoryRecordType = DirectoryRecordType::tryFrom($resolvedSubjectType->value);
-        abort_unless($directoryRecordType instanceof DirectoryRecordType, 404);
-
-        $subjectId = $directoryReader->resolveIdentifier($directoryRecordType, $subject);
+        $subjectId = $subjectCatalog->resolveIdentifier($resolvedSubjectType->membershipSubjectType(), $subject);
         abort_unless(is_string($subjectId), 404);
 
         try {

@@ -406,7 +406,7 @@ final class OwnedWriteRule implements Rule
                 }
             }
             if ($node instanceof Node\Expr\StaticCall) {
-                // Chained alias writes, e.g. DirectoryModel::query('institution')->where(...)->delete().
+                // Chained alias writes, e.g. a morph model helper query followed by ->where(...)->delete().
                 $aliasResource = $this->aliasResource($node, $feature, $scope);
                 if ($aliasResource !== null) {
                     return [$aliasResource];

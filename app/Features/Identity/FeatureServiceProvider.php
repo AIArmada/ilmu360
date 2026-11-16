@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Identity;
 
 use App\Features\Identity\Api\AccountAdministration;
+use App\Features\Identity\Api\AccountSubmissionEligibility;
+use App\Features\Identity\Services\AccountSubmissionEligibilityService;
+use App\Features\Identity\Contributors\VerificationAttributionContributor;
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\SignupAttributions;
@@ -29,6 +32,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(AccountSubmissionEligibility::class, AccountSubmissionEligibilityService::class);
         $this->app->bind(AccountPreferences::class, AccountPreferencesService::class);
         $this->app->bind(SignupAttributions::class, SignupAttributionsService::class);
         $this->app->bind(SignupAttributionWorkflow::class, SignupAttributionWorkflowService::class);
@@ -39,6 +43,7 @@ class FeatureServiceProvider extends FeatureModule
             IdentityAccountLifecycleContributor::class,
             ReportsAccountLifecycleContributor::class,
             SavedSearchesAccountLifecycleContributor::class,
+            VerificationAttributionContributor::class,
         ], AccountLifecycleContributor::TAG);
 
         $this->app->bind(AccountLifecycle::class, static fn (Application $app): AccountLifecycleCoordinator => new AccountLifecycleCoordinator(

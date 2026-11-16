@@ -5,10 +5,11 @@ namespace App\Observers;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use App\Features\Directory\Api\InstitutionWorkflow;
-use App\Features\Directory\Api\PersonWorkflow;
-use App\Features\Directory\Api\PublicDirectoryCacheVersions;
-use App\Features\Directory\Api\VenueWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Institutions\Api\InstitutionListingCacheVersion;
+use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Models\Institution;
@@ -25,7 +26,8 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
         protected InstitutionWorkflow $institutionWorkflow,
         protected PersonWorkflow $personWorkflow,
         protected VenueWorkflow $venueWorkflow,
-        protected PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
+        protected InstitutionListingCacheVersion $institutionCacheVersion,
+        protected PersonListingCacheVersion $personCacheVersion,
         protected PublicListingsCache $publicListingsCache,
         protected AddressCountryResolver $addressingCountryResolver,
     ) {}
@@ -101,7 +103,13 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
             ->values()
             ->all();
 
-        $this->publicDirectoryCacheVersions->bumpForAddressableTypes($addressableMorphTypes);
+        if (in_array('institution', $addressableMorphTypes, true)) {
+            $this->institutionCacheVersion->bump();
+        }
+
+        if (in_array('person', $addressableMorphTypes, true)) {
+            $this->personCacheVersion->bump();
+        }
     }
 
     private function syncSearchableModel(Institution|Person $model): void

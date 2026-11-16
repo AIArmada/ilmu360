@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Directory\Api\DirectoryContributionMedia;
+use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Services\EventMediaService;
 use App\Models\ContributionRequest;
@@ -103,7 +103,7 @@ it('applies staged single and gallery media with the exact platform chain', func
         ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
 });
 
-it('delegates staged donation QR media to the directory boundary and discards it', function (): void {
+it('delegates staged donation QR media to the DonationChannels boundary and discards it', function (): void {
     $institution = Institution::factory()->create(['status' => 'verified']);
     $event = Event::factory()->for($institution)->create();
 
@@ -122,13 +122,13 @@ it('delegates staged donation QR media to the directory boundary and discards it
         'is_single' => true,
     ]);
 
-    $directoryMedia = app(DirectoryContributionMedia::class);
+    $donationMedia = app(DonationQrMedia::class);
 
-    $this->mock(DirectoryContributionMedia::class, function ($mock) use ($event, $staged, $directoryMedia): void {
+    $this->mock(DonationQrMedia::class, function ($mock) use ($event, $staged, $donationMedia): void {
         $mock->shouldReceive('attachStagedDonationQr')
             ->once()
             ->withArgs(fn (HasMedia $entity, Media $media): bool => $entity->is($event) && $media->is($staged))
-            ->andReturnUsing(fn (HasMedia $entity, Media $media) => $directoryMedia->attachStagedDonationQr($entity, $media));
+            ->andReturnUsing(fn (HasMedia $entity, Media $media) => $donationMedia->attachStagedDonationQr($entity, $media));
     });
 
     app(EventMedia::class)->applyStagedMedia($event, [$staged]);

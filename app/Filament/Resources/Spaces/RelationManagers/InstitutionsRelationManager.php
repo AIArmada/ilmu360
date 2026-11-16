@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Spaces\RelationManagers;
 
-use App\Features\Directory\Api\InstitutionSpaceLinks;
+use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;

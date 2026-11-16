@@ -2,7 +2,7 @@
 
 namespace App\Features\Identity\EntryPoints\Http;
 
-use App\Features\Directory\Api\DirectoryReader;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\EntryPoints\Http\Data\AccountProfileData;
 use App\Features\Identity\Services\AccountSettingsService;
@@ -28,7 +28,7 @@ class AccountSettingsController extends Controller
         private readonly AccountSettingsService $accountSettings,
         private readonly AccountPreferences $accountPreferences,
         private readonly AccountDirectory $accounts,
-        private readonly DirectoryReader $directoryReader,
+        private readonly InstitutionLookup $directoryReader,
     ) {}
 
     #[Endpoint(

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Spaces\Tables;
 
-use App\Features\Directory\Api\SpaceWorkflow;
+use App\Features\Places\Api\SpaceWorkflow;
 use App\Filament\Resources\Spaces\SpaceResource;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
-use App\Features\Directory\Api\SubmissionEligibilitySync;
+use App\Features\Identity\Api\AccountSubmissionEligibility;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
 
@@ -17,7 +17,7 @@ use App\Models\User;
 final readonly class UserObserver
 {
     public function __construct(
-        private SubmissionEligibilitySync $submissionEligibilitySync,
+        private AccountSubmissionEligibility $submissionEligibilitySync,
         private SignupAttributionWorkflow $signupAttribution,
     ) {}
 

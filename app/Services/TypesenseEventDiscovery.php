@@ -7,7 +7,7 @@ namespace App\Services;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Contracts\EventDiscoveryAdapter;
 use App\Data\EventDiscoveryCriteria;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Events\EventCategoryCatalog;

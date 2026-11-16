@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Institutions\Api;
+
+use Closure;
+
+/**
+ * Public institution-search cache boundary.
+ */
+interface InstitutionSearchCache
+{
+    /**
+     * @param  Closure(): list<string>  $resolve
+     * @return list<string>
+     */
+    public function rememberPublicSearchIds(string $normalizedSearch, Closure $resolve): array;
+
+    /**
+     * @param  Closure(): list<string>  $resolve
+     * @return list<string>
+     */
+    public function rememberPublicFuzzySearchIds(string $normalizedSearch, Closure $resolve): array;
+
+    public function bumpPublicSearchVersion(): void;
+}

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Persons\Pages;
 
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Person;
 use Filament\Resources\Pages\CreateRecord;

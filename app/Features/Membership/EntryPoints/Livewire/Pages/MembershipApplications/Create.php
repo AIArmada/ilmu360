@@ -6,9 +6,10 @@ namespace App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplicati
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Directory\Api\DirectoryDetail;
-use App\Features\Directory\Api\DirectoryReader;
-use App\Features\Directory\Api\DirectoryRecordType;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionSummary;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\PersonSummary;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Features\Membership\Api\MembershipApplications;
@@ -75,7 +76,8 @@ class Create extends Component implements HasForms
     public function mount(
         string $subjectType,
         string $subjectId,
-        DirectoryReader $directoryReader,
+        InstitutionLookup $institutions,
+        PersonLookup $persons,
     ): void {
         $resolvedSubjectType = MembershipApplicationSubjectType::fromPublicRouteSegment($subjectType);
 
@@ -89,10 +91,10 @@ class Create extends Component implements HasForms
         }
 
         $this->subjectType = $resolvedSubjectType->value;
-        $subject = $this->resolveSubject($resolvedSubjectType, $subjectId, $directoryReader);
+        $subject = $this->resolveSubject($resolvedSubjectType, $subjectId, $institutions, $persons);
         $this->subjectId = $subject->id;
         $this->subjectSlug = $subject->slug;
-        $this->institutionTypeValue = $subject->institutionType;
+        $this->institutionTypeValue = $subject instanceof InstitutionSummary ? $subject->institutionType : null;
         $this->context = $this->resolveSubjectPresentation($resolvedSubjectType, $subject);
 
         if ($this->shouldRedirectToCanonicalSubjectUrl($resolvedSubjectType, $subjectId)) {
@@ -332,19 +334,19 @@ class Create extends Component implements HasForms
     private function resolveSubject(
         MembershipApplicationSubjectType $subjectType,
         string $subjectId,
-        DirectoryReader $directoryReader,
-    ): DirectoryDetail {
-        $directoryRecordType = DirectoryRecordType::tryFrom($subjectType->value);
-        abort_unless($directoryRecordType instanceof DirectoryRecordType, 404);
-
-        return $directoryReader->find($directoryRecordType, $subjectId)
-            ?? abort(404);
+        InstitutionLookup $institutions,
+        PersonLookup $persons,
+    ): InstitutionSummary|PersonSummary {
+        return match ($subjectType) {
+            MembershipApplicationSubjectType::Institution => $institutions->find($subjectId) ?? abort(404),
+            MembershipApplicationSubjectType::Person => $persons->find($subjectId) ?? abort(404),
+        };
     }
 
     /**
      * @return array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string, profile_image_url: string|null}
      */
-    private function resolveSubjectPresentation(MembershipApplicationSubjectType $subjectType, DirectoryDetail $subject): array
+    private function resolveSubjectPresentation(MembershipApplicationSubjectType $subjectType, InstitutionSummary|PersonSummary $subject): array
     {
         return [
             'subject_label' => $subjectType->membershipSubjectType()->label(),

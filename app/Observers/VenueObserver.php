@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Features\Directory\Api\VenueWorkflow;
+use App\Features\Places\Api\VenueWorkflow;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Venue;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;

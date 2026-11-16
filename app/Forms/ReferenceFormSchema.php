@@ -4,7 +4,7 @@ namespace App\Forms;
 
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
-use App\Features\Directory\Api\ReferenceWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Models\Reference;
 use App\Models\User;
 use App\Shared\Cache\SelectionCatalogCache;

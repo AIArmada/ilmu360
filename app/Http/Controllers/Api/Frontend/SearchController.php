@@ -18,8 +18,9 @@ use App\Data\Api\Frontend\Search\ReferenceDetailData;
 use App\Data\Api\Frontend\Search\ReferenceListData;
 use App\Data\Api\Frontend\Search\SeriesDetailData;
 use App\Data\Api\Frontend\Search\VenueDetailData;
-use App\Features\Directory\Api\PublicDirectoryCacheVersions;
-use App\Features\Directory\Api\ReferenceQueries;
+use App\Features\Institutions\Api\InstitutionListingCacheVersion;
+use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\References\Api\ReferenceQueries;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -139,7 +140,8 @@ class SearchController extends FrontendController
         private readonly InstitutionSearchService $institutionSearchService,
         private readonly ReferenceSearchService $referenceSearchService,
         private readonly PersonSearchService $personSearchService,
-        private readonly PublicDirectoryCacheVersions $publicDirectoryCacheVersions,
+        private readonly InstitutionListingCacheVersion $institutionListingCacheVersion,
+        PersonListingCacheVersion $personListingCacheVersion,
         private readonly SearchRequestNormalizer $searchRequestNormalizer,
         private readonly SearchPayloadTransformer $searchPayloadTransformer,
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
@@ -1234,7 +1236,7 @@ class SearchController extends FrontendController
      */
     private function institutionDirectoryCacheData(): array
     {
-        return $this->publicDirectoryCacheVersions->institution();
+        return $this->institutionListingCacheVersion->current();
     }
 
     /**
@@ -1242,7 +1244,7 @@ class SearchController extends FrontendController
      */
     private function personDirectoryCacheData(): array
     {
-        return $this->publicDirectoryCacheVersions->person();
+        return $this->personListingCacheVersion->current();
     }
 
     /**

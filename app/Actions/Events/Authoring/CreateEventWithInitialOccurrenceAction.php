@@ -14,7 +14,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Directory\SpaceEligibility;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\TimingMode;
 use Illuminate\Http\UploadedFile;

@@ -14,7 +14,7 @@ use App\Enums\TaxonomyTerm\DisciplineTermCode;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Enums\TaxonomyTerm\IssueTermCode;
 use App\Enums\TaxonomyTerm\SourceTermCode;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;

@@ -7,7 +7,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Directory\Api\InstitutionVenueLinks;
+use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Models\Institution;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionVenueRole;

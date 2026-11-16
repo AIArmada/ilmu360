@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\CommerceSupport\Filament\Concerns\VerifiesRelationManagerOwnerContext;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Models\Person;
 use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Actions\CreateAction;

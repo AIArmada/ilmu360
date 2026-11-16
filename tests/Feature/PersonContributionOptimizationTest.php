@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Persons\Models\Title;
-use App\Features\Directory\Api\InstitutionWorkflow;
-use App\Features\Directory\Api\PersonWorkflow;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Forms\InstitutionFormSchema;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Models\Institution;

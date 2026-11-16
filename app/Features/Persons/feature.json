@@ -1,0 +1,50 @@
+{
+  "schema": 2,
+  "name": "Persons",
+  "owns": {
+    "store:person-submission-options": [
+      "App\\Features\\Persons\\Persistence\\PersonSubmissionOptionsCacheStore"
+    ],
+    "store:person-search": [
+      "App\\Features\\Persons\\Persistence\\PersonSearchCacheStore"
+    ],
+    "table:persons": [
+      "App\\Features\\Persons\\Actions\\ApplyPersonContributionAction",
+      "App\\Features\\Persons\\Actions\\ChangePersonStatusAction",
+      "App\\Features\\Persons\\Actions\\CreatePersonAction",
+      "App\\Features\\Persons\\Actions\\DeletePersonAction",
+      "App\\Features\\Persons\\Actions\\DetachPersonVerifierAction",
+      "App\\Features\\Persons\\Actions\\GeneratePersonSlugAction",
+      "App\\Features\\Persons\\Actions\\PersonSubmissionAccessAction",
+      "App\\Features\\Persons\\Actions\\ReorderFeaturedPersonsAction",
+      "App\\Features\\Persons\\Actions\\RestorePersonVerifierAction",
+      "App\\Features\\Persons\\Actions\\SavePersonAction",
+      "App\\Features\\Persons\\Actions\\SyncPersonAffiliationsAction",
+      "App\\Features\\Persons\\Actions\\SyncPersonMediaAction",
+      "App\\Features\\Persons\\Actions\\SyncPersonNamesAction",
+      "App\\Features\\Persons\\Actions\\SyncPersonRelationsAction",
+      "App\\Features\\Persons\\Actions\\SyncPersonSearchProjectionAction",
+      "App\\Features\\Persons\\Actions\\VerifyPendingPersonsAction"
+    ],
+    "table:person_names": [
+      "App\\Features\\Persons\\Actions\\SyncPersonNamesAction"
+    ],
+    "table:person_search_terms": [
+      "App\\Features\\Persons\\Actions\\SyncPersonSearchProjectionAction"
+    ],
+    "table:affiliations": [
+      "App\\Features\\Persons\\Actions\\SyncPersonAffiliationsAction"
+    ],
+    "store:person-homepage-stats": [
+      "App\\Features\\Persons\\Persistence\\PersonHomepageStatsCacheStore"
+    ],
+    "store:person-listing-cache-version": [
+      "App\\Features\\Persons\\Persistence\\PersonListingCacheVersionStore"
+    ]
+  },
+  "aliases": {
+    "person": "table:persons",
+    "person_name": "table:person_names",
+    "affiliation": "table:affiliations"
+  }
+}
