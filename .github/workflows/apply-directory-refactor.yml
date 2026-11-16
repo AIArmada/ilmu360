@@ -67,7 +67,7 @@ jobs:
           git diff --cached --check
           while IFS= read -r file; do
             php -l "$file" >/dev/null || exit 1
-          done < <(git diff --cached --name-only --diff-filter=ACMR -- '*.php')
+          done < <(git -c core.quotepath=false diff --cached --name-only --diff-filter=ACMR -- '*.php')
           echo 'PHP lint passed for changed PHP files'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
