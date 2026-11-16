@@ -1,6 +1,7 @@
 @props([
     'shareData' => [],
     'shareLinks' => [],
+    'shareCardUrl' => null,
     'copyMessage' => __('Link copied to clipboard!'),
     'copyPrompt' => __('Copy this link:'),
 ])
@@ -149,6 +150,16 @@
                 {{ __('Copy Link') }}
             </button>
         </div>
+
+        @if (is_string($shareCardUrl) && $shareCardUrl !== '')
+            <a
+                href="{{ $shareCardUrl.'&download=1' }}"
+                data-signal-event="share.card_downloaded"
+                class="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 transition hover:border-emerald-500 hover:bg-emerald-100"
+            >
+                {{ __('Muat turun kad perkongsian') }}
+            </a>
+        @endif
 
         <div
             x-show="copied"

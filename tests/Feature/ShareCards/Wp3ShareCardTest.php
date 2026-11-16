@@ -812,7 +812,7 @@ it('renders share-card meta urls escaped exactly once for browser parsing', func
     foreach (['og:image', 'og:image:secure_url', 'twitter:image'] as $property) {
         $pattern = '/<meta\s[^>]*?(?:property|name)="'.preg_quote($property, '/').'"[^>]*?content="([^"]*)"/';
 
-        expect($html)->toMatch($pattern);
+        expect(preg_match($pattern, $html, $matches))->toBe(1);
 
         $content = $matches[1];
 
@@ -834,7 +834,7 @@ it('renders share-card meta urls escaped exactly once for browser parsing', func
             ->and($query)->not->toHaveKey('amp;occurrence');
     }
 
-    expect($html)->toMatch('/<meta\s[^>]*?property="og:url"[^>]*?content="([^"]*)"/');
+    expect(preg_match('/<meta\s[^>]*?property="og:url"[^>]*?content="([^"]*)"/', $html, $urlMatches))->toBe(1);
 
     $ogUrl = html_entity_decode($urlMatches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 

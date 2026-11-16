@@ -748,7 +748,7 @@
                 </section>
 
                 <section id="event-share-panel" aria-label="{{ __('Kongsi majlis') }}">
-                    <x-share-panel :share-data="[
+                    <x-share-panel :share-card-url="$shareCardOg['url'] ?? null" :share-data="[
                         'title' => $event->title,
                         'text' => \Illuminate\Support\Str::limit($event->description_text, 100),
                         'url' => $eventShareUrl,
