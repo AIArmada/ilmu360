@@ -414,11 +414,11 @@ it('normalizes backed enums and collections while keeping malformed data for the
         ->and($normalized['event_category_ids'])->toBe([$categoryId])
         ->and($normalized['persons'])->toBe([$personId])
         ->and($normalized['domain_tags'])->toBe([EventFormat::Online->value])
-        ->and(fn() => app(ValidateEventSubmissionInputAction::class)->handle([
-        'title' => 'Direct Validator Check',
-        'event_category_ids' => [$categoryId],
-        'event_format' => 'bogus',
-    ]))->toThrow(ValidationException::class);
+        ->and(fn () => app(ValidateEventSubmissionInputAction::class)->handle([
+            'title' => 'Direct Validator Check',
+            'event_category_ids' => [$categoryId],
+            'event_format' => 'bogus',
+        ]))->toThrow(ValidationException::class);
 });
 
 it('reports unprefixed keys without a prefix and prefixed keys with one', function () {

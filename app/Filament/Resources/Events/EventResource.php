@@ -252,7 +252,7 @@ final class EventResource extends Resource
                     ->action(function (Event $record): void {
                         app(EventLifecycleWorkflow::class)->publish($record);
                     })
-                    ->visible(fn (?Event $record): bool => $record instanceof \App\Models\Event && in_array((string) $record->status, ['draft', 'pending', 'pending_review', 'needs_changes'], true))
+                    ->visible(fn (?Event $record): bool => $record instanceof Event && in_array((string) $record->status, ['draft', 'pending', 'pending_review', 'needs_changes'], true))
                     ->requiresConfirmation(),
                 Action::make('archive')
                     ->label('Archive')
@@ -261,7 +261,7 @@ final class EventResource extends Resource
                     ->action(function (Event $record): void {
                         app(EventLifecycleWorkflow::class)->archive($record);
                     })
-                    ->visible(fn (?Event $record): bool => $record instanceof \App\Models\Event && (string) $record->status === 'approved')
+                    ->visible(fn (?Event $record): bool => $record instanceof Event && (string) $record->status === 'approved')
                     ->requiresConfirmation(),
                 Action::make('cancel')
                     ->label('Cancel')
@@ -273,7 +273,7 @@ final class EventResource extends Resource
                     ->action(function (array $data, Event $record): void {
                         app(EventLifecycleWorkflow::class)->cancel($record, $data['reason']);
                     })
-                    ->visible(fn (?Event $record): bool => $record instanceof \App\Models\Event && ! in_array((string) $record->status, ['cancelled', 'completed', 'archived'], true))
+                    ->visible(fn (?Event $record): bool => $record instanceof Event && ! in_array((string) $record->status, ['cancelled', 'completed', 'archived'], true))
                     ->requiresConfirmation(),
                 Action::make('clone')
                     ->label('Clone')

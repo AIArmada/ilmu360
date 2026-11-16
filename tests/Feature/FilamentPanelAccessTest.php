@@ -8,7 +8,6 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use Filament\Panel;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 

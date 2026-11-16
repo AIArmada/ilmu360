@@ -56,8 +56,8 @@ it('rejects a claim when the applicant is already a member', function () {
     ))
         ->toThrow(RuntimeException::class, 'membership_application_already_member')
         ->and(MembershipApplication::query()
-        ->where('subject_id', $person->getKey())
-        ->where('applicant_id', $claimant->getKey())->exists())->toBeFalse();
+            ->where('subject_id', $person->getKey())
+            ->where('applicant_id', $claimant->getKey())->exists())->toBeFalse();
 });
 
 it('rejects a second pending claim for the same subject and applicant', function () {
@@ -80,8 +80,8 @@ it('rejects a second pending claim for the same subject and applicant', function
     ))
         ->toThrow(RuntimeException::class, 'membership_application_duplicate_pending')
         ->and(MembershipApplication::query()
-        ->where('subject_id', $person->getKey())
-        ->where('applicant_id', $claimant->getKey())->count())->toBe(1);
+            ->where('subject_id', $person->getKey())
+            ->where('applicant_id', $claimant->getKey())->count())->toBe(1);
 });
 
 it('rejects a claim while a matching invitation is still pending', function () {
@@ -106,8 +106,8 @@ it('rejects a claim while a matching invitation is still pending', function () {
     ))
         ->toThrow(RuntimeException::class, 'membership_application_pending_invitation')
         ->and(MembershipApplication::query()
-        ->where('subject_id', $institution->getKey())
-        ->where('applicant_id', $claimant->getKey())->exists())->toBeFalse();
+            ->where('subject_id', $institution->getKey())
+            ->where('applicant_id', $claimant->getKey())->exists())->toBeFalse();
 });
 
 it('approves a claim and grants editor membership', function () {

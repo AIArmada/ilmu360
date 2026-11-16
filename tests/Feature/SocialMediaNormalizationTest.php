@@ -3,7 +3,6 @@
 use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Models\Institution;
 use App\Models\Person;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('extracts instagram username from full profile url and resolves canonical url', function () {
     $person = Person::factory()->create();

@@ -107,7 +107,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
     #[\Override]
     public function delete(): ?bool
     {
-        return DB::transaction(fn(): ?bool => parent::delete());
+        return DB::transaction(fn (): ?bool => parent::delete());
     }
 
     #[\Override]

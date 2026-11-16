@@ -13,7 +13,6 @@ use App\Models\Registration;
 use App\Models\User;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Database\Eloquent\MassAssignmentException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('keeps report lifecycle fields behind transitionStatus', function (): void {
     $person = Person::factory()->create(['status' => 'verified']);

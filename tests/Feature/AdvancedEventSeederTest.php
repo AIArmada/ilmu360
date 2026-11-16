@@ -13,7 +13,6 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use Database\Seeders\AdvancedEventSeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Database\Seeders\EventSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('seeds package occurrences sessions roles and prayer expressions', function (): void {
     $this->seed(FoundationSeeder::class);

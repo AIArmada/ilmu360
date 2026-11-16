@@ -952,7 +952,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function hasNewMedia(): bool
     {
-        return array_any($this->actionableDirectEditMediaFields(), fn($field) => $this->newMediaUuids($field) !== []);
+        return array_any($this->actionableDirectEditMediaFields(), fn ($field) => $this->newMediaUuids($field) !== []);
     }
 
     private function directEditMediaFieldChanged(string $field): bool
@@ -1126,7 +1126,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     private function visitorMediaFileSaver(): Closure
     {
         return function (SpatieMediaLibraryFileUpload $component, TemporaryUploadedFile $file, ?Model $record): ?string {
-            if (!$record instanceof \Illuminate\Database\Eloquent\Model || ! method_exists($record, 'addMediaFromString')) {
+            if (! $record instanceof Model || ! method_exists($record, 'addMediaFromString')) {
                 return $file;
             }
 

@@ -204,10 +204,10 @@ it("never resends mail after acceptance plus recording crash on {$mailLabel}", f
             ->and(CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->whereNull('responded_at')->whereNull('failed_at')->count())->toBe(1)
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
-            ->and(fn() => CancelRewardDigestAction::run(
-            $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
-            CarbonImmutable::parse('2026-06-23T08:05:00Z'),
-        ))->toThrow(InvalidArgumentException::class, 'in flight');
+            ->and(fn () => CancelRewardDigestAction::run(
+                $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
+                CarbonImmutable::parse('2026-06-23T08:05:00Z'),
+            ))->toThrow(InvalidArgumentException::class, 'in flight');
 
         app()->bind(CommunicationRecorder::class, CommunicationRecorderService::class);
 
@@ -311,10 +311,10 @@ it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$m
             ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
-            ->and(fn() => CancelRewardDigestAction::run(
-            $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
-            CarbonImmutable::parse('2026-06-23T08:05:00Z'),
-        ))->toThrow(InvalidArgumentException::class, 'in flight');
+            ->and(fn () => CancelRewardDigestAction::run(
+                $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
+                CarbonImmutable::parse('2026-06-23T08:05:00Z'),
+            ))->toThrow(InvalidArgumentException::class, 'in flight');
 
         $held = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T08:30:00Z'));
 
@@ -433,10 +433,10 @@ it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLab
             ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
-            ->and(fn() => CancelRewardDigestAction::run(
-            $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
-            CarbonImmutable::parse('2026-06-23T08:05:00Z'),
-        ))->toThrow(InvalidArgumentException::class, 'in flight');
+            ->and(fn () => CancelRewardDigestAction::run(
+                $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
+                CarbonImmutable::parse('2026-06-23T08:05:00Z'),
+            ))->toThrow(InvalidArgumentException::class, 'in flight');
 
         $held = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T08:30:00Z'));
 
@@ -561,10 +561,10 @@ it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailL
             ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
-            ->and(fn() => CancelRewardDigestAction::run(
-            $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
-            CarbonImmutable::parse('2026-06-23T08:05:00Z'),
-        ))->toThrow(InvalidArgumentException::class, 'in flight');
+            ->and(fn () => CancelRewardDigestAction::run(
+                $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
+                CarbonImmutable::parse('2026-06-23T08:05:00Z'),
+            ))->toThrow(InvalidArgumentException::class, 'in flight');
 
         $held = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T08:30:00Z'));
 
@@ -691,10 +691,10 @@ it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}"
             ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
             ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
-            ->and(fn() => CancelRewardDigestAction::run(
-            $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
-            CarbonImmutable::parse('2026-06-23T08:05:00Z'),
-        ))->toThrow(InvalidArgumentException::class, 'in flight');
+            ->and(fn () => CancelRewardDigestAction::run(
+                $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
+                CarbonImmutable::parse('2026-06-23T08:05:00Z'),
+            ))->toThrow(InvalidArgumentException::class, 'in flight');
 
         $held = DispatchDueRewardDigestsAction::run(50, CarbonImmutable::parse('2026-06-23T08:30:00Z'));
 

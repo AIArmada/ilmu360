@@ -11,7 +11,6 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
 use App\Support\Events\PublicScheduleSlug;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {

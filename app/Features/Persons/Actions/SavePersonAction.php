@@ -41,7 +41,7 @@ final readonly class SavePersonAction
         string $validationErrorKey = 'allow_public_event_submission',
         bool $assignOwner = true,
     ): Person {
-        $creating = !$person instanceof \App\Models\Person;
+        $creating = ! $person instanceof Person;
         $person ??= new Person;
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];

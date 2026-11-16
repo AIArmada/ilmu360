@@ -247,11 +247,11 @@ it('exposes mutating and open-world metadata for event image upload tools', func
         'openWorldHint' => true,
     ])
         ->and($memberTool['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => false,
-        'idempotentHint' => false,
-        'destructiveHint' => true,
-        'openWorldHint' => true,
-    ]);
+            'readOnlyHint' => false,
+            'idempotentHint' => false,
+            'destructiveHint' => true,
+            'openWorldHint' => true,
+        ]);
 
     $imageVariants = data_get($adminTool, 'inputSchema.properties.image.anyOf');
 

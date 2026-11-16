@@ -89,7 +89,7 @@ class PublishEventChangeAnnouncementAction
 
             $announcementId = app(EventAuthoring::class)->createChangeAnnouncement([
                 'event_id' => (string) $event->getKey(),
-                'replacement_event_id' => $replacementEvent instanceof \App\Models\Event ? (string) $replacementEvent->getKey() : null,
+                'replacement_event_id' => $replacementEvent instanceof Event ? (string) $replacementEvent->getKey() : null,
                 'created_by_type' => $actor->getMorphClass(),
                 'created_by_id' => (string) $actor->getKey(),
                 'update_type' => $type->value,

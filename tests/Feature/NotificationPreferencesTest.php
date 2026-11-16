@@ -6,7 +6,6 @@ use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
 it('returns the notification settings catalog and bootstrapped user state', function () {

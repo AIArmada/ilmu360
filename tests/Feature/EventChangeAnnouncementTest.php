@@ -23,7 +23,6 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
@@ -75,9 +74,9 @@ it('publishes cancellation announcements and notifies committed users only once'
         ->and($notification->data['meta']['event_change_announcement_id'] ?? null)->toBe($announcement->id)
         ->and($notification->data['meta']['replacement_event_id'] ?? null)->toBeNull()
         ->and(NotificationInbox::query()
-        ->where('recipient_id', $follower->id)
-        ->where('recipient_type', $follower->getMorphClass())
-        ->get()->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['meta']['fingerprint'] ?? null) === 'event-change:'.$announcement->id))->toBeFalse();
+            ->where('recipient_id', $follower->id)
+            ->where('recipient_type', $follower->getMorphClass())
+            ->get()->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['meta']['fingerprint'] ?? null) === 'event-change:'.$announcement->id))->toBeFalse();
 });
 
 it('publishes repeat cancellation notices without reapplying occurrence transitions', function () {
@@ -193,25 +192,25 @@ it('rejects invalid venue and space selections in change announcements', functio
         ],
         notify: false,
     ))->toThrow(ValidationException::class)
-        ->and(fn() => app(PublishEventChangeAnnouncementAction::class)->handle(
-        event: $event,
-        actor: $administrator,
-        type: EventChangeType::LocationChanged,
-        publicMessage: 'The event location changed.',
-        changes: [
-            'venue_id' => (string) $targetVenue->getKey(),
-            'space_ids' => [(string) $foreignSpace->getKey()],
-        ],
-        notify: false,
-    ))->toThrow(ValidationException::class)
-        ->and(fn() => app(PublishEventChangeAnnouncementAction::class)->handle(
-        event: $event,
-        actor: $administrator,
-        type: EventChangeType::LocationChanged,
-        publicMessage: 'The event location changed.',
-        changes: ['space_ids' => [123]],
-        notify: false,
-    ))->toThrow(ValidationException::class)
+        ->and(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+            event: $event,
+            actor: $administrator,
+            type: EventChangeType::LocationChanged,
+            publicMessage: 'The event location changed.',
+            changes: [
+                'venue_id' => (string) $targetVenue->getKey(),
+                'space_ids' => [(string) $foreignSpace->getKey()],
+            ],
+            notify: false,
+        ))->toThrow(ValidationException::class)
+        ->and(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+            event: $event,
+            actor: $administrator,
+            type: EventChangeType::LocationChanged,
+            publicMessage: 'The event location changed.',
+            changes: ['space_ids' => [123]],
+            notify: false,
+        ))->toThrow(ValidationException::class)
         ->and(EventChangeAnnouncement::query()->where('event_id', $event->getKey())->exists())->toBeFalse()
         ->and($event->fresh()->institution_id)->toBe($event->institution_id)
         ->and($event->fresh()->default_venue_id)->toBeNull()
@@ -466,8 +465,8 @@ it('rejects replacement chains that would loop back to the original event', func
         notify: false,
     ))->toThrow(ValidationException::class)
         ->and(EventChangeAnnouncement::query()
-        ->where('event_id', $replacement->id)
-        ->where('replacement_event_id', $original->id)->exists())->toBeFalse();
+            ->where('event_id', $replacement->id)
+            ->where('replacement_event_id', $original->id)->exists())->toBeFalse();
 });
 
 it('rejects replacement events that are not publicly reachable', function () {

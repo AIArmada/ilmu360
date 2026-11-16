@@ -13,7 +13,6 @@ use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedExcept
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Contracts\Cache\LockTimeoutException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;

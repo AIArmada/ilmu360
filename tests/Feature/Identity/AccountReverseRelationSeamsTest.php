@@ -24,7 +24,6 @@ use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('serves membership, engagement and event facts without user reverse relations', function (): void {
     $user = User::factory()->create();

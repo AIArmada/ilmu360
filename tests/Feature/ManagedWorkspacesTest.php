@@ -30,7 +30,6 @@ use App\Support\Api\Member\MemberResourceRegistry;
 use App\Support\Authz\MemberPermissionGate;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -496,8 +495,8 @@ it('lets a person owner remove an admin while protecting the owner from admins',
 
     expect($person->fresh()->members()->whereKey($owner->getKey())->exists())->toBeTrue()
         ->and(function () use ($person, $owner): void {
-        app(RemoveMemberAction::class)->handle($person, $owner);
-    })->toThrow(AuthorizationException::class);
+            app(RemoveMemberAction::class)->handle($person, $owner);
+        })->toThrow(AuthorizationException::class);
 });
 
 it('lets a person owner transfer ownership to an existing member', function (): void {

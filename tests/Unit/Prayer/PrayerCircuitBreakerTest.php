@@ -33,14 +33,14 @@ it('opens after consecutive failures and short-circuits without HTTP', function 
         $this->fail('Expected ProviderUnavailable.');
     })->toThrow(ProviderUnavailable::class)
         ->and(function () use ($provider, $query) {
-        $provider->dailyPrayers($query);
-        $this->fail('Expected ProviderUnavailable.');
-    })->toThrow(ProviderUnavailable::class)
+            $provider->dailyPrayers($query);
+            $this->fail('Expected ProviderUnavailable.');
+        })->toThrow(ProviderUnavailable::class)
         ->and(app(PrayerCircuitBreaker::class)->state('aladhan'))->toBe(['failures' => 2, 'open' => true])
         ->and(function () use ($provider, $query) {
-        $provider->dailyPrayers($query);
-        $this->fail('Expected an open-circuit ProviderUnavailable.');
-    })->toThrow(ProviderUnavailable::class, 'Aladhan circuit is open.');
+            $provider->dailyPrayers($query);
+            $this->fail('Expected an open-circuit ProviderUnavailable.');
+        })->toThrow(ProviderUnavailable::class, 'Aladhan circuit is open.');
 
     Http::assertSentCount(2);
 });
@@ -54,9 +54,9 @@ it('counts auth failures toward the open circuit', function (int $status) {
         $this->fail("Expected ProviderUnavailable for HTTP {$status}.");
     })->toThrow(ProviderUnavailable::class)
         ->and(function () use ($provider, $query, $status) {
-        $provider->dailyPrayers($query);
-        $this->fail("Expected ProviderUnavailable for HTTP {$status}.");
-    })->toThrow(ProviderUnavailable::class)
+            $provider->dailyPrayers($query);
+            $this->fail("Expected ProviderUnavailable for HTTP {$status}.");
+        })->toThrow(ProviderUnavailable::class)
         ->and(app(PrayerCircuitBreaker::class)->state('aladhan'))->toBe(['failures' => 2, 'open' => true]);
 })->with([401, 403]);
 

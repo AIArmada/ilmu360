@@ -4,7 +4,6 @@ use AIArmada\Contacting\Models\SocialProfile;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 test('institution can have social media', function () {
     $institution = Institution::factory()->create();

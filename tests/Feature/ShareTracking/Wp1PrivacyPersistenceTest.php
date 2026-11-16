@@ -9,7 +9,6 @@ use AIArmada\Affiliates\Support\IpHasher;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 

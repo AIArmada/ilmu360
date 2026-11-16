@@ -8,7 +8,6 @@ use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\EventCategoryCatalog;
 use Database\Seeders\AIArmada\FoundationSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\seed;
 
@@ -91,7 +90,7 @@ it('links discipline terms to the religious domain for cascade filtering', funct
 
     expect($religiousId)->not->toBeNull();
 
-    $countUnder = (static fn(?string $domainId): int => EventTerm::query()
+    $countUnder = (static fn (?string $domainId): int => EventTerm::query()
         ->where('event_taxonomy_id', EventTaxonomy::query()->where('code', 'discipline')->value('id'))
         ->where('is_active', true)
         ->where(function ($query) use ($domainId): void {

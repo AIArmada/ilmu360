@@ -26,7 +26,6 @@ use App\Shared\Auth\SignupAttributionContext;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 
 function signupAttributionRecordFor(User $user): SignupAttribution

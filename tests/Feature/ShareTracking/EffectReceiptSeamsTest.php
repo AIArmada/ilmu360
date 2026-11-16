@@ -10,7 +10,6 @@ use App\Models\ShareEffectReceipt;
 use App\Platform\FeatureCatalog;
 use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
 function effectReceiptBusinessKey(): string

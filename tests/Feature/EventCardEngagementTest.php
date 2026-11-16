@@ -5,7 +5,6 @@ use App\Livewire\Components\EventCardEngagement;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\PublicScheduleDiscoveryService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 function engagementCardParameters(Event $event): array

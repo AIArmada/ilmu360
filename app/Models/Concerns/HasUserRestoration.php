@@ -98,7 +98,7 @@ trait HasUserRestoration
     public static function restoreDeletedUser(mixed $key): self
     {
         /** @var self $restoredUser */
-        $restoredUser = DB::transaction(static fn(): Model => self::restore($key, static function (Model $restoredModel, DeletedModel $deletedModel): void {
+        $restoredUser = DB::transaction(static fn (): Model => self::restore($key, static function (Model $restoredModel, DeletedModel $deletedModel): void {
             unset($deletedModel);
 
             unset($restoredModel->deleted_relations_snapshot);

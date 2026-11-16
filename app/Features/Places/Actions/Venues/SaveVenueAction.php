@@ -32,7 +32,7 @@ final readonly class SaveVenueAction
      */
     public function handle(array $data, ?Venue $venue = null): Venue
     {
-        $creating = !$venue instanceof \App\Models\Venue;
+        $creating = ! $venue instanceof Venue;
         $venue ??= new Venue;
 
         if (! $creating) {

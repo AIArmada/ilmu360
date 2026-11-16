@@ -19,7 +19,6 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
 /**

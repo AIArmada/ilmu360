@@ -21,7 +21,6 @@ use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Support\Authz\MemberRoleCatalog;
 use Filament\Tables\Enums\PaginationMode;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;

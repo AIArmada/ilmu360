@@ -1258,7 +1258,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     {
         if ($this->isGroupedSubmission()) {
             $maxEffectiveEnd = collect($this->eligibleOccurrenceEnds())
-                ->reduce(fn (?CarbonInterface $max, CarbonInterface $effectiveEnd): CarbonInterface => !$max instanceof \Carbon\CarbonInterface || $effectiveEnd->greaterThan($max) ? $effectiveEnd : $max);
+                ->reduce(fn (?CarbonInterface $max, CarbonInterface $effectiveEnd): CarbonInterface => ! $max instanceof CarbonInterface || $effectiveEnd->greaterThan($max) ? $effectiveEnd : $max);
 
             if ($maxEffectiveEnd instanceof CarbonInterface) {
                 return $maxEffectiveEnd;

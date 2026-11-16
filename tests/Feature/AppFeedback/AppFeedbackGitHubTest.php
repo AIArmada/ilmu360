@@ -42,7 +42,7 @@ function fakeGitHubReporter(bool $fail = false, ?Closure $duringCreate = null): 
         {
             $this->calls[] = ['title' => $title, 'body' => $body];
 
-            if ($this->duringCreate instanceof \Closure) {
+            if ($this->duringCreate instanceof Closure) {
                 ($this->duringCreate)();
             }
 

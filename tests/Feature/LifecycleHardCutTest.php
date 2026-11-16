@@ -25,7 +25,6 @@ use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\Pending;
 use App\States\EventStatus\Transitions\CancelEvent;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 
 it('sets cancelled_at when cancelling an event', function () {

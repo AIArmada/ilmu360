@@ -21,7 +21,6 @@ use App\Support\Api\Admin\AdminResourceRegistry;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -136,7 +135,7 @@ it('publishes a fixed month behind dual thresholds with per-cell dual gating', f
 
     expect((string) $again->getKey())->toBe((string) $release->getKey())
         ->and(CommunityRelease::query()->where('release_key', 'community:2026-05')->count())->toBe(1)
-        ->and(fn() => $release->forceFill(['sharer_count' => 99])->save())->toThrow(LogicException::class, 'immutable');
+        ->and(fn () => $release->forceFill(['sharer_count' => 99])->save())->toThrow(LogicException::class, 'immutable');
 
     // Below-threshold months refuse with honest insufficient-data.
     expect(fn () => PublishCommunityReleaseAction::run(

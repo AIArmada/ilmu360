@@ -115,7 +115,7 @@ final readonly class ReverseShareOutcomeAction
                 conversionId: (string) $conversion->getKey(),
                 reason: $reason,
                 actorType: $actor?->getMorphClass(),
-                actorId: $actor instanceof \App\Models\User ? (string) $actor->getKey() : null,
+                actorId: $actor instanceof User ? (string) $actor->getKey() : null,
             );
 
             return ShareOutcomeCorrection::query()->findOrFail($correction->id);

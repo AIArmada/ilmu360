@@ -50,9 +50,9 @@ it('rejects invalid hierarchy changes without orphaning children', function (): 
 
     expect(fn () => $edition->update(['record_kind' => 'part', 'part_type' => 'jilid', 'part_number' => '3']))
         ->toThrow(ValidationException::class)
-        ->and(fn() => $work->update(['type' => 'article']))->toThrow(ValidationException::class)
-        ->and(fn() => Reference::factory()->edition()->create(['parent_id' => $part->id]))->toThrow(ValidationException::class)
-        ->and(fn() => Reference::factory()->part()->create(['parent_id' => $part->id]))->toThrow(ValidationException::class);
+        ->and(fn () => $work->update(['type' => 'article']))->toThrow(ValidationException::class)
+        ->and(fn () => Reference::factory()->edition()->create(['parent_id' => $part->id]))->toThrow(ValidationException::class)
+        ->and(fn () => Reference::factory()->part()->create(['parent_id' => $part->id]))->toThrow(ValidationException::class);
 });
 
 it('persists bibliographic fields with normalized valid ISBNs through the save boundary', function (string $isbn, string $normalized): void {
@@ -116,7 +116,7 @@ it('refreshes part search identities after edition metadata changes', function (
     $edition->update(['edition_label' => 'Edisi Baharu']);
 
     $engine = Mockery::mock(NullEngine::class)->makePartial();
-    $engine->shouldReceive('update')->once()->withArgs(fn($models): bool => $models->count() === 1
+    $engine->shouldReceive('update')->once()->withArgs(fn ($models): bool => $models->count() === 1
         && $models->first()->getKey() === $part->getKey()
         && str_contains($models->first()->toSearchableArray()['display_title'], 'Edisi Baharu'));
     app(EngineManager::class)->extend('reference-test', fn () => $engine);

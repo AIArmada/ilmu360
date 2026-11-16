@@ -13,7 +13,6 @@ use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 /** @return array{event: Event, ticket: TicketType} */

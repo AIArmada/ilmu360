@@ -7,7 +7,6 @@ use App\Models\Institution;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationManager;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('removes the ahli workspace wrapper and makes events the ahli navigation anchor', function () {
     app()->setLocale('en');

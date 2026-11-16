@@ -3,7 +3,6 @@
 use App\Features\Identity\Models\SocialAccount;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -27,10 +26,10 @@ it('redirects to google with the account chooser prompt when the provider is con
     expect($location)
         ->toContain('https://accounts.google.com/o/oauth2/auth')
         ->and($query)->toMatchArray([
-        'client_id' => 'google-client-id',
-        'redirect_uri' => 'https://ilmu360.test/oauth/google/callback',
-        'prompt' => 'select_account',
-    ])
+            'client_id' => 'google-client-id',
+            'redirect_uri' => 'https://ilmu360.test/oauth/google/callback',
+            'prompt' => 'select_account',
+        ])
         ->and($query['state'] ?? null)->toBeString()
         ->toHaveLength(64);
     $response->assertCookie(OAuthTransactionStore::VERIFIER_COOKIE);

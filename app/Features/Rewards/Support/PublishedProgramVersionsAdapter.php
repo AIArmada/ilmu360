@@ -29,7 +29,7 @@ final readonly class PublishedProgramVersionsAdapter implements PublishedProgram
 
         $version = $this->resolver->resolve($program);
 
-        if (!$version instanceof \AIArmada\Rewards\Models\RewardProgramVersion) {
+        if (! $version instanceof \AIArmada\Rewards\Models\RewardProgramVersion) {
             return null;
         }
 

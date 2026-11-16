@@ -155,11 +155,11 @@ it('rejects duplicate series slugs in the authoring boundary', function (): void
         'slug' => 'taken-series',
         'visibility' => 'public',
     ]))->toThrow(ValidationException::class)
-        ->and(fn(): string => app(SeriesAuthoring::class)->save([
-        'title' => (string) $existing->title,
-        'slug' => 'other-series',
-        'visibility' => 'public',
-    ], (string) $existing->getKey()))->toThrow(ValidationException::class);
+        ->and(fn (): string => app(SeriesAuthoring::class)->save([
+            'title' => (string) $existing->title,
+            'slug' => 'other-series',
+            'visibility' => 'public',
+        ], (string) $existing->getKey()))->toThrow(ValidationException::class);
 
     $sameId = app(SeriesAuthoring::class)->save([
         'title' => (string) $existing->title,

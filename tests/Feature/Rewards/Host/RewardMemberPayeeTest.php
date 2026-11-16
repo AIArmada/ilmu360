@@ -9,7 +9,6 @@ use AIArmada\Rewards\Enums\RewardPayeeStatus;
 use AIArmada\Rewards\Models\RewardPayee;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -150,7 +149,7 @@ it('prohibits self-verification, self-rejection, and registering for someone els
     expect(fn () => VerifyRewardPayeeAction::run(
         'user', $memberId, 'bank_transfer', 'op-ref-7', 'Desk 7', 'user', $memberId, 'staff',
     ))->toThrow(InvalidArgumentException::class, 'self-verification')
-        ->and(fn() => RejectRewardPayeeAction::run($pending, 'user', $memberId, 'staff', 'No.'))->toThrow(InvalidArgumentException::class, 'self-decision');
+        ->and(fn () => RejectRewardPayeeAction::run($pending, 'user', $memberId, 'staff', 'No.'))->toThrow(InvalidArgumentException::class, 'self-decision');
 
     $other = User::factory()->create();
 

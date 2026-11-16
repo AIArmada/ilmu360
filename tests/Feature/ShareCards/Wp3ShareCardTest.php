@@ -19,7 +19,6 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Support\ShareCards\PangoShareCardRenderer;
 use App\Support\ShareCards\ShareCardEventPresenter;
 use Illuminate\Filesystem\FilesystemAdapter;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;

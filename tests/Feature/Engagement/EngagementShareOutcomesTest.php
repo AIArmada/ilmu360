@@ -53,7 +53,7 @@ it('records bookmark outcomes with the event save business key and the caller me
 
     $tracking->shouldReceive('recordOutcome')
         ->once()
-        ->withArgs(fn(ShareOutcomeType $type, string $businessKey, ?Model $subject, ?User $actor, ?Request $receivedRequest, array $receivedMetadata, ?CarbonImmutable $receivedOccurredAt): bool => $type === ShareOutcomeType::EventSave
+        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?Model $subject, ?User $actor, ?Request $receivedRequest, array $receivedMetadata, ?CarbonImmutable $receivedOccurredAt): bool => $type === ShareOutcomeType::EventSave
             && $businessKey === ShareOutcomeBusinessKey::eventSave($bookmarkId)
             && $subject instanceof Event
             && $subject->is($event)

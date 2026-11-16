@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\MassAssignmentException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
 use Laravel\Fortify\Fortify;

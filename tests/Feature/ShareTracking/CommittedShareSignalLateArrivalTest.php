@@ -17,7 +17,6 @@ use App\Models\ShareCohortProjection;
 use App\Models\User;
 use App\Support\Share\CommittedShareSignalProducer;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 

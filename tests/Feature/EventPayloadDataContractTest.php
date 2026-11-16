@@ -2,7 +2,6 @@
 
 use App\Data\Api\Event\EventPayloadData;
 use App\Models\Event;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('keeps the stable event payload fields serialized at the API boundary', function () {
     $event = Event::factory()->featured()->create([

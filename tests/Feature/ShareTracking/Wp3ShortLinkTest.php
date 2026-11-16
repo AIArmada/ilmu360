@@ -15,7 +15,6 @@ use AIArmada\Links\Models\LinkClick;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 beforeEach(function (): void {
     $this->sharer = User::factory()->create([

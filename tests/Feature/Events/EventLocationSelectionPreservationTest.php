@@ -5,7 +5,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Space;
 use App\Models\Venue;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('keeps venue-change replace semantics for event-level spaces', function (): void {
     $institution = Institution::factory()->create();

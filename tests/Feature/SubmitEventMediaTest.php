@@ -108,10 +108,10 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
         ->and($event->getMedia('gallery'))->toHaveCount(2)
         ->and($event->classifications()->count())->toBe(3)
         ->and($event->slug)->toBe(sprintf(
-        'test-event-media-upload-%s-%s',
-        implode('-', $personSlugSegments),
-        $expectedSuffix,
-    ))
+            'test-event-media-upload-%s-%s',
+            implode('-', $personSlugSegments),
+            $expectedSuffix,
+        ))
         ->and((float) $posterDimensions[0] / (float) $posterDimensions[1])->toBe(0.75);
 });
 

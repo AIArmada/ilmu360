@@ -140,7 +140,7 @@ it('rejects root store writers without exact class and store metadata', function
     ],
     'unexpected metadata field' => [
         'App\\Platform\\Cache\\CacheWriter',
-        ['adapter' => 'cache', 'resource' => 'store:infrastructure.cache', 'reason' => 'A root cache writer.', 'expires' => '2999-12-31', 'model' => \App\Models\User::class],
+        ['adapter' => 'cache', 'resource' => 'store:infrastructure.cache', 'reason' => 'A root cache writer.', 'expires' => '2999-12-31', 'model' => App\Models\User::class],
         null,
         'must declare adapter, resource, reason and expires',
     ],

@@ -168,12 +168,12 @@ test('future facts are excluded from user and link measurements even later on th
         'total_outcomes' => 1,
     ])
         ->and($analytics->summaryForLink($linkData))->toMatchArray([
-        'outbound_shares' => 1,
-        'visits' => 1,
-        'distinct_browsers' => 1,
-        'signups' => 1,
-        'outcomes' => 1,
-    ])
+            'outbound_shares' => 1,
+            'visits' => 1,
+            'distinct_browsers' => 1,
+            'signups' => 1,
+            'outcomes' => 1,
+        ])
         ->and($analytics->linksForUser($user)->first()->visitsCount)->toBe(1)
         ->and($analytics->providerBreakdownForUser($user)->sum('visits'))->toBe(1)
         ->and($analytics->providerBreakdownForLink($linkData)->sum('visits'))->toBe(1)
@@ -205,15 +205,15 @@ test('link detail excludes foreign affiliate facts incorrectly pointing at an ow
 
     expect($analytics->summaryForUser($user)['total_outcomes'])->toBe(0)
         ->and($analytics->summaryForLink($linkData))->toBe([
-        'outbound_shares' => 0,
-        'visits' => 0,
-        'distinct_browsers' => 0,
-        'outcomes' => 0,
-        'signups' => 0,
-        'event_registrations' => 0,
-        'event_checkins' => 0,
-        'event_submissions' => 0,
-    ])
+            'outbound_shares' => 0,
+            'visits' => 0,
+            'distinct_browsers' => 0,
+            'outcomes' => 0,
+            'signups' => 0,
+            'event_registrations' => 0,
+            'event_checkins' => 0,
+            'event_submissions' => 0,
+        ])
         ->and($analytics->providerBreakdownForLink($linkData))->toBeEmpty()
         ->and($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('visits'))->toBe(0)
         ->and($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('outcomes'))->toBe(0)

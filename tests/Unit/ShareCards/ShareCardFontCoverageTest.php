@@ -299,7 +299,7 @@ it('covers every matrix title character in at least one vendored font', function
         if ($codepoint === false || $codepoint <= 0x20) {
             continue;
         }
-        $held = array_any($files, fn($file) => shareCardFontHasGlyph(shareCardFontsDir().'/'.$file, $codepoint));
+        $held = array_any($files, fn ($file) => shareCardFontHasGlyph(shareCardFontsDir().'/'.$file, $codepoint));
 
         if (! $held) {
             $missing[] = sprintf('U+%04X', $codepoint);

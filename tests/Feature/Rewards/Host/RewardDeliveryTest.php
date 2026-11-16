@@ -19,7 +19,6 @@ use App\Support\Share\ShareMetricReader;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Laravel\Sanctum\Sanctum;
@@ -76,8 +75,8 @@ it('summarizes share metrics with viewer-local bounds and freshness', function (
     expect($cohorts['status'])->toBe('active')
         ->and($cohorts['maturity_days'])->toBe(ShareCohortAuthority::MATURITY_DAYS)
         ->and($cohorts['cohorts'])->toHaveCount(1)
-        ->and(fn() => (new ShareMetricReader)->summarize('Mars/Olympus', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31')))->toThrow(InvalidArgumentException::class, 'timezone')
-        ->and(fn() => (new ShareMetricReader)->summarize('UTC', CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-12-31')))->toThrow(InvalidArgumentException::class, 'bound');
+        ->and(fn () => (new ShareMetricReader)->summarize('Mars/Olympus', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31')))->toThrow(InvalidArgumentException::class, 'timezone')
+        ->and(fn () => (new ShareMetricReader)->summarize('UTC', CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-12-31')))->toThrow(InvalidArgumentException::class, 'bound');
 });
 
 it('drains committed-share signals to projections through the operations command', function () {

@@ -5,7 +5,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Registration;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
 it('allows viewer members to list and view registrations in their institution scope', function () {

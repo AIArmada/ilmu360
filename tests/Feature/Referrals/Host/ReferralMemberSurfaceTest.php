@@ -11,7 +11,6 @@ use AIArmada\Signals\Models\SignalEvent;
 use App\Livewire\Pages\Dashboard\ReferralMemberIndex;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 

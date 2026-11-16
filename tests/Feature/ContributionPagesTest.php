@@ -69,7 +69,7 @@ function giveContributionPagesInstitutionMapsPlace(Institution $institution, str
 {
     $address = $institution->primaryAddress();
 
-    if (!$address instanceof \AIArmada\Addressing\Models\Address) {
+    if (! $address instanceof AIArmada\Addressing\Models\Address) {
         return;
     }
 

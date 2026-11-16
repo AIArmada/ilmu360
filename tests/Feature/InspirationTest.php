@@ -354,18 +354,18 @@ it('normalizes and revalidates inspiration input through the save action', funct
 
     expect($inspiration->title)->toBe('Direct Save Title')
         ->and($inspiration->source)->toBeNull()
-        ->and(fn() => $action->handle([
-        'category' => 'invalid_category',
-        'locale' => 'ms',
-        'title' => 'Invalid category',
-        'content' => 'Content.',
-    ]))->toThrow(ValidationException::class)
-        ->and(fn() => $action->handle([
-        'category' => InspirationCategory::QuranQuote->value,
-        'locale' => 'invalid_locale',
-        'title' => 'Invalid locale',
-        'content' => 'Content.',
-    ]))->toThrow(ValidationException::class);
+        ->and(fn () => $action->handle([
+            'category' => 'invalid_category',
+            'locale' => 'ms',
+            'title' => 'Invalid category',
+            'content' => 'Content.',
+        ]))->toThrow(ValidationException::class)
+        ->and(fn () => $action->handle([
+            'category' => InspirationCategory::QuranQuote->value,
+            'locale' => 'invalid_locale',
+            'title' => 'Invalid locale',
+            'content' => 'Content.',
+        ]))->toThrow(ValidationException::class);
 });
 
 it('denies bulk inspiration deletion to moderators and preserves the records', function () {

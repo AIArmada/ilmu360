@@ -2,7 +2,6 @@
 
 use App\Models\Event;
 use App\Models\Institution;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('persists the event location institution as a native column', function () {
     $institution = Institution::factory()->create();

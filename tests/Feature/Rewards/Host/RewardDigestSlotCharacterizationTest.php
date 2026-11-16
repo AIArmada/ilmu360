@@ -15,7 +15,6 @@ use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestActio
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;

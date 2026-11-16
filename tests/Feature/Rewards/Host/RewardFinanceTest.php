@@ -21,7 +21,6 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Support\ManualRewardPayoutExecutor;
 use AIArmada\Rewards\Support\RewardBudgetLedger;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
@@ -97,17 +96,17 @@ it('treats a verified bank destination as cash readiness and approves the award'
 
     expect($assessment->ready)->toBeFalse()
         ->and($assessment->blockers)->toContain('payee-unverified')
-        ->and(fn() => new TransitionRewardAwardAction(
-        app(RewardFinancialReadinessChecker::class),
-        $reader,
-    )->handle(
-        $result->award,
-        RewardAwardStatus::Approved,
-        'user',
-        $staff,
-        'staff',
-        'policy-ok',
-    ))->toThrow(InvalidArgumentException::class, 'payee-unverified');
+        ->and(fn () => new TransitionRewardAwardAction(
+            app(RewardFinancialReadinessChecker::class),
+            $reader,
+        )->handle(
+            $result->award,
+            RewardAwardStatus::Approved,
+            'user',
+            $staff,
+            'staff',
+            'policy-ok',
+        ))->toThrow(InvalidArgumentException::class, 'payee-unverified');
 
     RegisterRewardPayeeAction::run(
         'user',

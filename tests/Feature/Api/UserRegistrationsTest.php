@@ -5,7 +5,6 @@ use App\Models\Institution;
 use App\Models\Registration;
 use App\Models\User;
 use App\Models\Venue;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
 test('authenticated user can list own registrations', function () {

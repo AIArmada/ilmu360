@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
 it('omits market switching markup', function () {
     $response = $this->withSession(['locale' => 'en'])
         ->get(route('about'));

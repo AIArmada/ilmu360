@@ -4,7 +4,6 @@ use App\Features\Identity\Actions\AuthenticateApiUserAction;
 use App\Features\Identity\Actions\ResolveSocialiteUserAction;
 use App\Features\Identity\Models\SocialAccount;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -49,8 +48,8 @@ it('creates a new user when no social account or user exists', function () {
         ->and($result['profile']->emailVerified)->toBeTrue()
         ->and($result['created_account'])->toBeTrue()
         ->and(SocialAccount::query()
-        ->where('provider', 'google')
-        ->where('provider_id', 'google-456')->exists())->toBeTrue();
+            ->where('provider', 'google')
+            ->where('provider_id', 'google-456')->exists())->toBeTrue();
 });
 
 it('links existing user by email when social account is new', function () {
@@ -70,8 +69,8 @@ it('links existing user by email when social account is new', function () {
     expect($result['profile']->id)->toBe((string) $user->getKey())
         ->and($result['created_account'])->toBeFalse()
         ->and(SocialAccount::query()
-        ->where('user_id', $user->id)
-        ->where('provider', 'google')->exists())->toBeTrue();
+            ->where('user_id', $user->id)
+            ->where('provider', 'google')->exists())->toBeTrue();
 });
 
 it('does not link an unverified provider email to an existing user', function () {
@@ -93,8 +92,8 @@ it('does not link an unverified provider email to an existing user', function ()
         ->and($result['profile']->emailVerified)->toBeFalse()
         ->and($result['created_account'])->toBeTrue()
         ->and(SocialAccount::query()
-        ->where('user_id', $victim->id)
-        ->where('provider', 'google')->exists())->toBeFalse();
+            ->where('user_id', $victim->id)
+            ->where('provider', 'google')->exists())->toBeFalse();
 });
 
 it('accepts the Google provider verified_email claim', function () {

@@ -1066,13 +1066,13 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
         ->and($tools->keys()->all())->not->toContain('admin-list-resources', 'admin-list-records', 'member-read-debug-log')
         ->and($tools->keys()->all())->not->toContain('member-delete-record', 'member-delete', 'member-remove-record')
         ->and($tools->get('search')['securitySchemes'] ?? [])->toContainEqual([
-        'type' => 'oauth2',
-        'scopes' => ['mcp:use'],
-    ])
+            'type' => 'oauth2',
+            'scopes' => ['mcp:use'],
+        ])
         ->and($tools->get('fetch')['securitySchemes'] ?? [])->toContainEqual([
-        'type' => 'oauth2',
-        'scopes' => ['mcp:use'],
-    ])
+            'type' => 'oauth2',
+            'scopes' => ['mcp:use'],
+        ])
         ->and($tools->get('fetch')['description'] ?? '')->toContain('not a url or file:// resource URI')
         ->and(data_get($tools->get('fetch'), 'inputSchema.properties.id.description'))->toContain('Do not pass the document url')
         ->and(data_get($tools->get('search'), 'outputSchema.type'))->toBe('object')
@@ -1086,9 +1086,9 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
         ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.required'))->toBe(['description', 'mime_type', 'resource_uri', 'relative_path', 'last_modified'])
         ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.properties.last_modified.format'))->toBe('date-time')
         ->and($tools->get('member-list-resources')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => true,
-        'idempotentHint' => true,
-    ]);
+            'readOnlyHint' => true,
+            'idempotentHint' => true,
+        ]);
 
     $readOnlyTools = $tools->filter(fn (array $tool): bool => data_get($tool, 'annotations.readOnlyHint') === true);
 
@@ -1096,29 +1096,29 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
         ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.destructiveHint') === false))->toBeTrue()
         ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.openWorldHint') === false))->toBeTrue()
         ->and($tools->get('member-list-related-records')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => true,
-        'idempotentHint' => true,
-        'destructiveHint' => false,
-        'openWorldHint' => false,
-    ])
+            'readOnlyHint' => true,
+            'idempotentHint' => true,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ])
         ->and($tools->get('member-get-write-schema')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => true,
-        'idempotentHint' => true,
-        'destructiveHint' => false,
-        'openWorldHint' => false,
-    ])
+            'readOnlyHint' => true,
+            'idempotentHint' => true,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ])
         ->and($tools->get('member-update-record')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => false,
-        'idempotentHint' => false,
-        'destructiveHint' => false,
-        'openWorldHint' => false,
-    ])
+            'readOnlyHint' => false,
+            'idempotentHint' => false,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ])
         ->and($tools->get('member-create-github-issue')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => false,
-        'idempotentHint' => false,
-        'destructiveHint' => false,
-        'openWorldHint' => true,
-    ])
+            'readOnlyHint' => false,
+            'idempotentHint' => false,
+            'destructiveHint' => false,
+            'openWorldHint' => true,
+        ])
         ->and(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.type'))->toBe('array')
         ->and(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.minItems'))->toBe(1)
         ->and(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.maxItems'))->toBe(8);
@@ -1484,16 +1484,16 @@ it('lists and reads the documentation routing prompt through the member MCP serv
 
     expect($prompts->keys()->all())->toContain('documentation-tool-routing')
         ->and($prompts->get('documentation-tool-routing'))->toMatchArray([
-        'title' => 'Documentation Tool Routing',
-        'description' => 'Short guidance for deciding when to use the verified member documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.',
-        'arguments' => [
-            [
-                'name' => 'topic',
-                'description' => 'Optional focus area such as crud, auth, media uploads, runtime records, entity selection, search, or fetch.',
-                'required' => false,
+            'title' => 'Documentation Tool Routing',
+            'description' => 'Short guidance for deciding when to use the verified member documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.',
+            'arguments' => [
+                [
+                    'name' => 'topic',
+                    'description' => 'Optional focus area such as crud, auth, media uploads, runtime records, entity selection, search, or fetch.',
+                    'required' => false,
+                ],
             ],
-        ],
-    ]);
+        ]);
 
     $getPrompt = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
@@ -1569,9 +1569,9 @@ it('lists and reads verified documentation resources through the member MCP serv
     expect($resources->keys()->all())->toContain('docs-member-mcp-guide')
         ->and($resources->keys()->all())->not->toContain('docs-crud-capability-matrix')
         ->and($resources->get('docs-member-mcp-guide'))->toMatchArray([
-        'uri' => 'file://docs/ilmu360_mcp_member_agent_guide.md',
-        'mimeType' => 'text/markdown',
-    ]);
+            'uri' => 'file://docs/ilmu360_mcp_member_agent_guide.md',
+            'mimeType' => 'text/markdown',
+        ]);
 });
 
 /**

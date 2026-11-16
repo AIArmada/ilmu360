@@ -118,7 +118,7 @@ it('locks context identity props against client-side updates', function () {
 
     expect(fn () => Livewire::actingAs($user)->test(Create::class)->set('scopedInstitutionId', $institution->id))
         ->toThrow(CannotUpdateLockedPropertyException::class)
-        ->and(fn() => Livewire::actingAs($user)->test(Create::class)->set('eventId', (string) Str::uuid()))->toThrow(CannotUpdateLockedPropertyException::class);
+        ->and(fn () => Livewire::actingAs($user)->test(Create::class)->set('eventId', (string) Str::uuid()))->toThrow(CannotUpdateLockedPropertyException::class);
 });
 
 it('rejects session submissions to events the user cannot update', function () {

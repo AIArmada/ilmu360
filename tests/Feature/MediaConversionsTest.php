@@ -99,8 +99,8 @@ it('defines accepted MIME types for Event cover and poster collections', functio
 
     expect(fn () => $event->addMedia(UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'))
         ->toMediaCollection('cover'))->toThrow(FileUnacceptableForCollection::class)
-        ->and(fn() => $event->addMedia(UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'))
-        ->toMediaCollection('poster'))->toThrow(FileUnacceptableForCollection::class);
+        ->and(fn () => $event->addMedia(UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'))
+            ->toMediaCollection('poster'))->toThrow(FileUnacceptableForCollection::class);
 });
 
 it('returns fallback URL when Event has no poster', function () {

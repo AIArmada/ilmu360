@@ -41,7 +41,6 @@ use App\Models\Registration;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\DeletedModels\Models\DeletedModel;

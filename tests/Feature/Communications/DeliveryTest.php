@@ -214,11 +214,11 @@ it('rejects external delivery results without a complete frozen fence', function
             (string) $attempt->getKey(),
         )))->toBeFalse()
             ->and(DB::transaction(fn (): bool => app(DeliveryFencing::class)->recordExternalFailure(
-            (string) $communication->getKey(),
-            (string) $delivery->getKey(),
-            (string) $attempt->getKey(),
-            'verified non-delivery',
-        )))->toBeFalse();
+                (string) $communication->getKey(),
+                (string) $delivery->getKey(),
+                (string) $attempt->getKey(),
+                'verified non-delivery',
+            )))->toBeFalse();
 
         $this->assertDatabaseHas('communication_deliveries', [
             'id' => $delivery->getKey(),

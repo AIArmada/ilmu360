@@ -255,7 +255,7 @@ final class Participants extends Component
         }
 
         try {
-            $updatedCount = OwnerContext::withOwner(null, fn(): int => DB::transaction(function () use (
+            $updatedCount = OwnerContext::withOwner(null, fn (): int => DB::transaction(function () use (
                 $attendanceStatus,
                 $event,
                 $participantIds,

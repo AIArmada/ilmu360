@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Notifications\Auth\VerifyEmailNotification;
 use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\TextInput;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
@@ -222,10 +221,10 @@ it('updates account settings and resets verification when contact details change
         ->and($user->email_verified_at)->toBeNull()
         ->and($user->phone_verified_at)->toBeNull()
         ->and(CommunicationDestination::query()
-        ->where('recipient_type', $user->getMorphClass())
-        ->where('recipient_id', $user->id)
-        ->where('channel', 'email')
-        ->pluck('address')->all())->toBe(['updated@example.test']);
+            ->where('recipient_type', $user->getMorphClass())
+            ->where('recipient_id', $user->id)
+            ->where('channel', 'email')
+            ->pluck('address')->all())->toBe(['updated@example.test']);
 
     $newDestination = CommunicationDestination::query()
         ->where('recipient_type', $user->getMorphClass())

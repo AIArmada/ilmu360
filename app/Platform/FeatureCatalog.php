@@ -143,7 +143,7 @@ final class FeatureCatalog
             if (isset($writes[$class])) {
                 throw new RuntimeException("Root store writer collides with feature writer: {$class}");
             }
-            $isAllowedNamespace = array_any(self::ROOT_STORE_WRITER_PREFIXES, fn($prefix) => str_starts_with($class, $prefix));
+            $isAllowedNamespace = array_any(self::ROOT_STORE_WRITER_PREFIXES, fn ($prefix) => str_starts_with($class, $prefix));
 
             if (! $isAllowedNamespace) {
                 throw new RuntimeException("Root store writer must use an allowlisted non-feature namespace: {$class}");

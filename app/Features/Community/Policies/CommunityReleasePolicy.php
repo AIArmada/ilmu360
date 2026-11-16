@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Community\Policies;
 
-use App\Features\Community\Models\CommunityRelease;
 use App\Shared\Auth\AccountActor;
 
 /**

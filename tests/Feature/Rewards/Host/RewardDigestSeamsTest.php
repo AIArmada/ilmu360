@@ -20,7 +20,6 @@ use App\Features\Rewards\Support\RewardsModel;
 use App\Models\RewardDigestSlot;
 use App\Platform\FeatureCatalog;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;

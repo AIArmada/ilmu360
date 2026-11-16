@@ -40,7 +40,6 @@ use AIArmada\Rewards\Support\RewardBudgetLedger;
 use App\Features\Rewards\Support\RewardMemberPresenter;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
@@ -170,10 +169,10 @@ it('refuses allocation without a recorded source and replays retries on same ter
     expect($entries)->toHaveCount(1)
         ->and((string) $replayed->getKey())->toBe((string) $entries->first()->getKey())
         ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['funded'])->toBe(1000)
-        ->and(fn() => RecordRewardFundingAction::run(
-        $program, 'MYR', 600, 'TREASURY-fa-nosrc',
-        'user', $funder, 'staff', null, CarbonImmutable::parse('2026-06-03T00:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'already bound to different terms');
+        ->and(fn () => RecordRewardFundingAction::run(
+            $program, 'MYR', 600, 'TREASURY-fa-nosrc',
+            'user', $funder, 'staff', null, CarbonImmutable::parse('2026-06-03T00:00:00Z'),
+        ))->toThrow(InvalidArgumentException::class, 'already bound to different terms');
 });
 
 it('reserves earned held awards at the evaluation boundary', function () {

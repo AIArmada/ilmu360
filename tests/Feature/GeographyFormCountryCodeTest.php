@@ -3,7 +3,6 @@
 use AIArmada\Addressing\Actions\SaveAddressAreaAction;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use App\Support\Api\Admin\AdminResourceMutationService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('does not expose manual country code editing in the package-native address area schema', function () {
     $schema = app(AdminResourceMutationService::class)->schema(

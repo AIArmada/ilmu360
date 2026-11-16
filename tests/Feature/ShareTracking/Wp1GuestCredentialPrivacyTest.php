@@ -6,7 +6,6 @@ use AIArmada\Communications\Contracts\PayloadRedactor;
 use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use App\Models\Event;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 beforeEach(function (): void {

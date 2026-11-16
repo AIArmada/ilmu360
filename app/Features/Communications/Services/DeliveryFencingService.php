@@ -119,6 +119,7 @@ final readonly class DeliveryFencingService implements DeliveryFencing
         ], true)) {
             return true;
         }
+
         return array_any([
             'accepted_at',
             'sent_at',
@@ -134,6 +135,6 @@ final readonly class DeliveryFencingService implements DeliveryFencing
             'unsubscribed_at',
             'bounced_at',
             'complained_at',
-        ], fn($timestamp) => $delivery->{$timestamp} !== null);
+        ], fn ($timestamp) => $delivery->{$timestamp} !== null);
     }
 }

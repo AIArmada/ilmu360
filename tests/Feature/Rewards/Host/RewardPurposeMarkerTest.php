@@ -6,7 +6,6 @@ use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('marks guest share profiles with the neutral purpose', function (): void {
     $response = test()->getJson(route('share.payload', [

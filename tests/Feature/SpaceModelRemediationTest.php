@@ -18,7 +18,6 @@ use App\Policies\SpacePolicy;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -46,10 +45,10 @@ it('enforces catalog and owner-scoped space eligibility for every selected id', 
         ->not->toContain((string) $venueSpace->getKey())
         ->and(array_keys($resolver->institutionOptions((string) $institution->getKey())))->toContain((string) $catalog->getKey(), (string) $institutionSpace->getKey())->not->toContain((string) $otherInstitutionSpace->getKey(), (string) $venueSpace->getKey())
         ->and(array_keys($resolver->venueOptions((string) $venue->getKey())))->toContain((string) $catalog->getKey(), (string) $venueSpace->getKey())->not->toContain((string) $otherVenueSpace->getKey())
-        ->and(fn(): mixed => $resolver->validateVenueSelection((string) $venue->getKey(), [
-        (string) $venueSpace->getKey(),
-        (string) $otherVenueSpace->getKey(),
-    ]))->toThrow(ValidationException::class);
+        ->and(fn (): mixed => $resolver->validateVenueSelection((string) $venue->getKey(), [
+            (string) $venueSpace->getKey(),
+            (string) $otherVenueSpace->getKey(),
+        ]))->toThrow(ValidationException::class);
 });
 
 it('uses scoped slug uniqueness and stores venue ownership', function (): void {
@@ -72,11 +71,11 @@ it('uses scoped slug uniqueness and stores venue ownership', function (): void {
     expect($catalog->venue_id)->toBeNull()
         ->and($owned->venue_id)->toBe((string) $venue->getKey())
         ->and($otherOwned->venue_id)->toBe((string) $otherVenue->getKey())
-        ->and(fn(): mixed => $action->handle([
-        'name' => 'Duplicate Venue Hall',
-        'slug' => 'shared-hall',
-        'venue_id' => $venue->getKey(),
-    ]))->toThrow(ValidationException::class);
+        ->and(fn (): mixed => $action->handle([
+            'name' => 'Duplicate Venue Hall',
+            'slug' => 'shared-hall',
+            'venue_id' => $venue->getKey(),
+        ]))->toThrow(ValidationException::class);
 });
 
 it('uses seeded taxonomy and preserves space names on event locations', function (): void {
@@ -125,12 +124,12 @@ it('rejects inactive taxonomy codes and institution links on venue-owned spaces'
         'slug' => 'invalid-type',
         'space_type' => 'hall',
     ]))->toThrow(ValidationException::class)
-        ->and(fn(): mixed => $action->handle([
-        'name' => 'Venue Institution Space',
-        'slug' => 'venue-institution-space',
-        'venue_id' => (string) $venue->getKey(),
-        'institutions' => [(string) $institution->getKey()],
-    ]))->toThrow(ValidationException::class);
+        ->and(fn (): mixed => $action->handle([
+            'name' => 'Venue Institution Space',
+            'slug' => 'venue-institution-space',
+            'venue_id' => (string) $venue->getKey(),
+            'institutions' => [(string) $institution->getKey()],
+        ]))->toThrow(ValidationException::class);
 });
 
 it('uses institution pivot capacity overrides in event payloads', function (): void {
@@ -309,7 +308,7 @@ it('blocks deletion of spaces referenced by event locations', function (): void 
     $policy = new SpacePolicy;
 
     expect($policy->delete($user, $space))->toBeFalse()
-        ->and(fn(): bool => (bool) $space->delete())->toThrow(ValidationException::class);
+        ->and(fn (): bool => (bool) $space->delete())->toThrow(ValidationException::class);
 
     $unreferenced = Space::factory()->create(['slug' => Str::slug('unreferenced-space').'-'.Str::random(5)]);
 

@@ -340,7 +340,7 @@ function withGlobalOwnerContext(callable $callback): mixed
 
 function ensureTestLivewireOwnerContext(): void
 {
-    if (OwnerContext::hasOverride() || OwnerContext::resolve() instanceof \Illuminate\Database\Eloquent\Model) {
+    if (OwnerContext::hasOverride() || OwnerContext::resolve() instanceof Model) {
         return;
     }
 
@@ -623,7 +623,7 @@ function prayerCompleteMonth(string $yearMonth, string $source = 'jakim:v2/WLY01
 
 function refreshUmmahMonthPayload(): array
 {
-    $day = (fn(string $date): array => [
+    $day = (fn (string $date): array => [
         'date' => $date,
         'prayer_times' => [
             'imsak' => '05:30', 'fajr' => '05:40', 'sunrise' => '06:58', 'dhuhr' => '12:59',

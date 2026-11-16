@@ -583,5 +583,5 @@ it('still requires a choice when a mapped country links divergent zones', functi
         ->and($policy->defaultSubmissionTimezone($countryId))->toBeNull()
         ->and($policy->previewSubmissionTimezone($countryId))->toBe(config('app.timezone', 'UTC'))
         ->and($policy->resolveSubmissionTimezone($countryId, 'Pacific/Auckland'))->toBe('Pacific/Auckland')
-        ->and(fn() => $policy->resolveSubmissionTimezone($countryId))->toThrow(ValidationException::class);
+        ->and(fn () => $policy->resolveSubmissionTimezone($countryId))->toThrow(ValidationException::class);
 });

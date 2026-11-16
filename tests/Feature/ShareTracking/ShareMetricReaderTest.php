@@ -25,7 +25,6 @@ use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -340,8 +339,8 @@ it('withholds measurements before the reporting start and rejects bad input', fu
 
     expect($unknown['totals']['recorded_shares'])->toBe(0)
         ->and($unknown['scope'])->toBe('member')
-        ->and(fn() => (new ShareMetricReader)->summarize('Mars/Olympus', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31')))->toThrow(InvalidArgumentException::class, 'timezone')
-        ->and(fn() => (new ShareMetricReader)->summarize('UTC', CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-12-31')))->toThrow(InvalidArgumentException::class, 'bound');
+        ->and(fn () => (new ShareMetricReader)->summarize('Mars/Olympus', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31')))->toThrow(InvalidArgumentException::class, 'timezone')
+        ->and(fn () => (new ShareMetricReader)->summarize('UTC', CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-12-31')))->toThrow(InvalidArgumentException::class, 'bound');
 });
 
 it('excludes facts before the canonical reporting start', function (): void {

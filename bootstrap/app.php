@@ -60,7 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(static fn (Request $request): bool => ApiResponseFactory::isApiRequest($request) || $request->expectsJson());
 
-        $exceptions->render(static fn(NoCurrentOwnerException $exception): JsonResponse => response()->json([
+        $exceptions->render(static fn (NoCurrentOwnerException $exception): JsonResponse => response()->json([
             'message' => $exception->getMessage(),
             'error' => [
                 'code' => 'forbidden',

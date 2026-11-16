@@ -15,7 +15,6 @@ use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Auth\WelcomeNotification;
 use App\Notifications\EventEscalationNotification;
 use App\Notifications\EventSubmittedNotification;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('routes mail notifications through the user email address and tracks destination verification', function () {
     $user = User::factory()->create([

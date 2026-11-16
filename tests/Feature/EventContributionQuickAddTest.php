@@ -12,7 +12,6 @@ use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
  * @param  array<int, mixed>  $components

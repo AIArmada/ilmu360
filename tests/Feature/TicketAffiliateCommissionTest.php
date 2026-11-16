@@ -246,7 +246,7 @@ it('records one pending conversion per paid registration from the frozen commerc
         ->and($conversions)->toHaveCount(2);
 
     foreach ($conversions as $conversion) {
-        expect($conversion->status)->toBeInstanceOf(\AIArmada\Affiliates\States\PendingConversion::class)
+        expect($conversion->status)->toBeInstanceOf(AIArmada\Affiliates\States\PendingConversion::class)
             ->and($conversion->subtotal_minor)->toBeIn([4500, 4501])
             ->and($conversion->value_minor)->toBe($conversion->subtotal_minor)
             ->and($conversion->commission_minor)->toBe((int) round($conversion->subtotal_minor * 0.1))
@@ -372,7 +372,7 @@ it('reverses ticket commissions for cancelled, rejected and refunded registratio
             ->firstOrFail();
 
         expect($conversion->reversed_at)->not->toBeNull()
-            ->and($conversion->status)->toBeInstanceOf(\AIArmada\Affiliates\States\ReversedConversion::class);
+            ->and($conversion->status)->toBeInstanceOf(ReversedConversion::class);
     }
 });
 

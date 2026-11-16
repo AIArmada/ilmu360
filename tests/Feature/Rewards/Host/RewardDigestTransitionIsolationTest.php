@@ -21,7 +21,6 @@ use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Models\RewardAward;
 use App\Models\RewardDigestSlot;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;

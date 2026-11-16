@@ -9,7 +9,6 @@ use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 function tarawihFilterEvent(string $title, ?PrayerReference $reference, PrayerOffset $offset, string $label): Event
 {

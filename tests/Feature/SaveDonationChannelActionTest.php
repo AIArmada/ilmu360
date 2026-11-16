@@ -5,7 +5,6 @@ use App\Models\DonationChannel;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Shared\Directory\Enums\DonationChannelStatus;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 

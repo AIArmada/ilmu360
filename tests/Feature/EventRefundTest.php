@@ -16,7 +16,6 @@ use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
 beforeEach(function (): void {
@@ -290,7 +289,7 @@ it('uses the provider refund id when several admissions share the same payment',
         ]),
     ]);
 
-    $refunds = $registrations->values()->map(fn(Registration $registration, int $index): mixed => $order->refunds()->create([
+    $refunds = $registrations->values()->map(fn (Registration $registration, int $index): mixed => $order->refunds()->create([
         'payment_id' => $payment->getKey(),
         'gateway' => 'cashier',
         'transaction_id' => 'event-refund-'.$registration->getKey(),

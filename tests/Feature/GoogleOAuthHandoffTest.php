@@ -6,7 +6,6 @@ use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Models\EventSubmission;
 use App\Models\User;
 use App\Shared\Auth\SocialiteProviderConfiguration;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;

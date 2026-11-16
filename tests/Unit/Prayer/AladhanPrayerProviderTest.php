@@ -61,7 +61,7 @@ it('parses Aladhan timings in the query timezone into UTC anchors', function () 
         ->and($dto->source)->toBe('aladhan:17/Shafi')
         ->and($dto->date)->toBe('2026-10-15');
 
-    Http::assertSent(fn($request) => str_ends_with(strtok($request->url(), '?'), '/timings/15-10-2026')
+    Http::assertSent(fn ($request) => str_ends_with(strtok($request->url(), '?'), '/timings/15-10-2026')
         && (int) $request['method'] === 17
         && (int) $request['school'] === 0);
 });
@@ -71,7 +71,7 @@ it('uses the Hanafi school when the madhab requires it', function () {
 
     app(AladhanPrayerProvider::class)->dailyPrayers(aladhanQuery('Hanafi'));
 
-    Http::assertSent(fn($request) => (int) $request['school'] === 1);
+    Http::assertSent(fn ($request) => (int) $request['school'] === 1);
 });
 
 it('strips timezone suffixes from timing strings', function () {

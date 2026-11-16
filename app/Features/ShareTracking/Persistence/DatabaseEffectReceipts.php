@@ -310,7 +310,7 @@ final class DatabaseEffectReceipts implements EffectReceipts
 
     private function isTerminal(?ShareEffectStatus $status): bool
     {
-        return $status instanceof \App\Shared\ShareTracking\ShareEffectStatus && in_array($status, [
+        return $status instanceof ShareEffectStatus && in_array($status, [
             ShareEffectStatus::Succeeded,
             ShareEffectStatus::Failed,
             ShareEffectStatus::Cancelled,

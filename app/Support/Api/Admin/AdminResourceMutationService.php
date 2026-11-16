@@ -768,9 +768,9 @@ class AdminResourceMutationService
      */
     private function saveDonationChannel(array $validated, User $actor, ?DonationChannel $record = null): DonationChannel
     {
-        Gate::forUser($actor)->authorize($record instanceof \App\Models\DonationChannel ? 'update' : 'create', $record ?? DonationChannel::class);
+        Gate::forUser($actor)->authorize($record instanceof DonationChannel ? 'update' : 'create', $record ?? DonationChannel::class);
 
-        $recordId = $record instanceof \App\Models\DonationChannel ? (string) $record->getKey() : null;
+        $recordId = $record instanceof DonationChannel ? (string) $record->getKey() : null;
         $channelId = $this->donationChannels->save($validated, $recordId);
 
         return DonationChannel::query()->findOrFail($channelId);

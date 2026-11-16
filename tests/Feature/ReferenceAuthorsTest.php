@@ -95,11 +95,11 @@ it('rejects unknown and non-visible author ids', function (): void {
         'author_ids' => [(string) $rejected->getKey()],
         'status' => 'verified',
     ]))->toThrow(ValidationException::class)
-        ->and(fn(): Reference => saveReferenceForTest([
-        'title' => 'Bad Author Work',
-        'author_ids' => ['00000000-0000-0000-0000-000000000000'],
-        'status' => 'verified',
-    ]))->toThrow(ValidationException::class);
+        ->and(fn (): Reference => saveReferenceForTest([
+            'title' => 'Bad Author Work',
+            'author_ids' => ['00000000-0000-0000-0000-000000000000'],
+            'status' => 'verified',
+        ]))->toThrow(ValidationException::class);
 });
 
 it('inherits effective authors from the root work without storing child links', function (): void {
@@ -222,11 +222,11 @@ it('validates reference language codes against the languages catalog', function 
     ], $reference);
 
     expect($cleared->language)->toBeNull()
-        ->and(fn(): Reference => saveReferenceForTest([
-        'title' => 'Bad Language Work',
-        'language' => 'xx',
-        'status' => 'verified',
-    ]))->toThrow(ValidationException::class);
+        ->and(fn (): Reference => saveReferenceForTest([
+            'title' => 'Bad Language Work',
+            'language' => 'xx',
+            'status' => 'verified',
+        ]))->toThrow(ValidationException::class);
 });
 
 it('validates language codes on the direct model path without language aliases', function (): void {
@@ -238,11 +238,11 @@ it('validates language codes on the direct model path without language aliases',
     ]);
 
     expect($reference->language)->toBe('ar')
-        ->and(fn(): mixed => $reference->update(['language' => 'xx']))->toThrow(ValidationException::class)
-        ->and(fn(): mixed => Reference::factory()->create([
-        'title' => 'Direct Model Bad Language',
-        'language' => 'xx',
-    ]))->toThrow(ValidationException::class);
+        ->and(fn (): mixed => $reference->update(['language' => 'xx']))->toThrow(ValidationException::class)
+        ->and(fn (): mixed => Reference::factory()->create([
+            'title' => 'Direct Model Bad Language',
+            'language' => 'xx',
+        ]))->toThrow(ValidationException::class);
 
     $reference->update(['language' => '   ']);
 
@@ -426,13 +426,13 @@ it('validates quick-created author identity without inventing name or gender', f
         'name' => '   ',
         'gender' => 'male',
     ]))->toThrow(ValidationException::class)
-        ->and(fn(): string => ReferenceAuthorFormSchema::quickCreateUsing([
-        'name' => str_repeat('a', 256),
-    ]))->toThrow(ValidationException::class)
-        ->and(fn(): string => ReferenceAuthorFormSchema::quickCreateUsing([
-        'name' => 'Invalid Gender Author',
-        'gender' => 'unknown',
-    ]))->toThrow(ValidationException::class);
+        ->and(fn (): string => ReferenceAuthorFormSchema::quickCreateUsing([
+            'name' => str_repeat('a', 256),
+        ]))->toThrow(ValidationException::class)
+        ->and(fn (): string => ReferenceAuthorFormSchema::quickCreateUsing([
+            'name' => 'Invalid Gender Author',
+            'gender' => 'unknown',
+        ]))->toThrow(ValidationException::class);
 
     $authorId = ReferenceAuthorFormSchema::quickCreateUsing([
         'name' => '  Trimmed Author  ',

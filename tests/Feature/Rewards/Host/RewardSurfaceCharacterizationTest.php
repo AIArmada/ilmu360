@@ -44,7 +44,6 @@ use App\Models\User;
 use App\Platform\FeatureCatalog;
 use App\Platform\FeatureModule;
 use App\Support\Api\Admin\AdminResourceMutationService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Sanctum\Sanctum;
@@ -88,9 +87,9 @@ it('discovers the Rewards feature with the digest-slot claim and registers its p
         'name' => 'Rewards',
         'owns' => [
             'table:reward_digest_slots' => [
-                \App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction::class,
-                \App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction::class,
-                \App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction::class,
+                App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction::class,
+                App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction::class,
+                App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction::class,
             ],
         ],
     ]);

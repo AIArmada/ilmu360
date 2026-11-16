@@ -3,7 +3,6 @@
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use App\Models\Event;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 it('toggles event saves via livewire actions', function () {

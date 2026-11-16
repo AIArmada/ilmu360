@@ -10,7 +10,6 @@ use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
 function rw2aSourceReceipt(

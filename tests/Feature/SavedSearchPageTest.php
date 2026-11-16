@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Location\VisitorCountryResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 function savedSearchTerm(string $name): EventTerm

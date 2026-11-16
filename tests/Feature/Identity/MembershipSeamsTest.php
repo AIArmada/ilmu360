@@ -312,13 +312,13 @@ it('writes the invitation lifecycle through the invitation boundary', function (
         ->and($invited->role)->toBe('admin')
         ->and($invited->isValid)->toBeTrue()
         ->and($invitations->pendingExistsForEmail(MembershipSubjectType::Institution, $institutionId, 'BOUNDARY-INVITEE@example.com'))->toBeTrue()
-        ->and(fn() => $invitations->invite(
-        MembershipSubjectType::Institution,
-        $institutionId,
-        'boundary-invitee@example.com',
-        'viewer',
-        (string) $inviter->getKey(),
-    ))->toThrow(ValidationException::class);
+        ->and(fn () => $invitations->invite(
+            MembershipSubjectType::Institution,
+            $institutionId,
+            'boundary-invitee@example.com',
+            'viewer',
+            (string) $inviter->getKey(),
+        ))->toThrow(ValidationException::class);
 
     $accepted = $invitations->accept($invited->id, (string) $invitee->getKey());
 

@@ -3,7 +3,6 @@
 use App\Livewire\Pages\Events\Index;
 use App\Models\Institution;
 use Filament\Forms\Components\Select;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 function dietInstitutionSelectField($component): Select

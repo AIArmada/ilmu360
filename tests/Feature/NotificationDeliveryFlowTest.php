@@ -21,7 +21,6 @@ use App\Models\Person;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 
 it('writes package notification inboxes when a public approved future event is published for followers', function () {

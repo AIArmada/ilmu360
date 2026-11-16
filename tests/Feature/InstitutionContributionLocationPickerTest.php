@@ -23,7 +23,6 @@ use App\Services\ContributionEntityMutationService;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Contracts\Cache\LockTimeoutException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Testing\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -138,7 +137,7 @@ function giveInstitutionStoredMapsPlace(Institution $institution, string $placeI
 {
     $address = $institution->primaryAddress();
 
-    if (!$address instanceof \AIArmada\Addressing\Models\Address) {
+    if (! $address instanceof AIArmada\Addressing\Models\Address) {
         return;
     }
 
@@ -1470,9 +1469,9 @@ it('maps dehydrated donation row indices back to raw repeater keys', function ()
         'uuid-row-2' => ['recipient' => 'Tabung B'],
     ])))->toBe(['uuid-row-1', 'uuid-row-2'])
         ->and(array_keys(SharedFormSchema::rekeyDonationRowsByRawKeys($dehydrated, [
-        ['recipient' => 'Tabung A'],
-        ['recipient' => 'Tabung B'],
-    ])))->toBe([0, 1]);
+            ['recipient' => 'Tabung A'],
+            ['recipient' => 'Tabung B'],
+        ])))->toBe([0, 1]);
 });
 
 it('requires an e-wallet handle or QR payload when submitting donations', function () {

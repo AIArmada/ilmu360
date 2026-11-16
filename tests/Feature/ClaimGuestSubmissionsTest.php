@@ -6,7 +6,6 @@ use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Models\EventSubmission;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;

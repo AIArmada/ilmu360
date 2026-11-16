@@ -230,20 +230,20 @@ it('computes approval and event overview dashboard stats from the intended datas
         ],
     ])
         ->and(collect($overviewStats)->map(fn (Stat $stat): array => [
-        'label' => (string) $stat->getLabel(),
-        'value' => (int) $stat->getValue(),
-    ])->all())->toBe([
-        [
-            'label' => 'Upcoming Events',
-            'value' => 2,
-        ],
-        [
-            'label' => 'Past Events',
-            'value' => 1,
-        ],
-        [
-            'label' => 'Featured Occurrences',
-            'value' => 1,
-        ],
-    ]);
+            'label' => (string) $stat->getLabel(),
+            'value' => (int) $stat->getValue(),
+        ])->all())->toBe([
+            [
+                'label' => 'Upcoming Events',
+                'value' => 2,
+            ],
+            [
+                'label' => 'Past Events',
+                'value' => 1,
+            ],
+            [
+                'label' => 'Featured Occurrences',
+                'value' => 1,
+            ],
+        ]);
 });

@@ -15,7 +15,6 @@ use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Models\User;
 use App\Shared\Auth\SignupAttributionSource as SharedSignupAttributionSource;
 use App\Shared\Auth\SignupAttributionSourceResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;

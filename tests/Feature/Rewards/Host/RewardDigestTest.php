@@ -595,9 +595,9 @@ it('refuses cancellation after delivery and during ambiguous flight', function (
     DispatchDueRewardDigestsAction::run(50, $slot->due_at->addMinutes(5));
 
     expect($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENT)
-        ->and(fn() => CancelRewardDigestAction::run(
-        $slot->refresh(), 'too-late', 'user', $staff, 'staff', true, CarbonImmutable::parse('2026-06-15T12:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'already sent');
+        ->and(fn () => CancelRewardDigestAction::run(
+            $slot->refresh(), 'too-late', 'user', $staff, 'staff', true, CarbonImmutable::parse('2026-06-15T12:00:00Z'),
+        ))->toThrow(InvalidArgumentException::class, 'already sent');
 });
 
 it('requeues failed sends bounded, then cancels as delivery-failed', function () {

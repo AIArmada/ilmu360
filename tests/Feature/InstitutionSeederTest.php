@@ -27,7 +27,6 @@ use Database\Seeders\SpeakerSeeder;
 use Database\Seeders\UserSeeder;
 use Database\Seeders\VenueSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('runs the full demo seeding pipeline in the expected order', function () {
 

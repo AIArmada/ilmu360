@@ -18,7 +18,6 @@ use App\Shared\Prayer\PrayerReference;
 use App\Shared\Submission\SubmissionContextResolver;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;

@@ -224,8 +224,8 @@ it('rejects update requests when any supported entity already has a pending requ
         ['title' => 'Updated title'],
     ))->toThrow(ValidationException::class)
         ->and(ContributionRequest::query()
-        ->where('entity_type', $entity->getMorphClass())
-        ->where('entity_id', $entity->getKey())->count())->toBe(1);
+            ->where('entity_type', $entity->getMorphClass())
+            ->where('entity_id', $entity->getKey())->count())->toBe(1);
 })->with([
     'speaker' => ContributionSubjectType::Person,
     'institution' => ContributionSubjectType::Institution,
@@ -560,7 +560,7 @@ it('resolves reviewable contribution requests through the action layer', functio
     $resolvedRequest = app(ResolveReviewableContributionRequestAction::class)->handle($owner, $request->id);
 
     expect($resolvedRequest->is($request))->toBeTrue()
-        ->and(fn() => app(ResolveReviewableContributionRequestAction::class)->handle($stranger, $request->id))->toThrow(HttpException::class);
+        ->and(fn () => app(ResolveReviewableContributionRequestAction::class)->handle($stranger, $request->id))->toThrow(HttpException::class);
 });
 
 it('resolves only the proposer owned contribution request for cancel flows', function () {
@@ -574,5 +574,5 @@ it('resolves only the proposer owned contribution request for cancel flows', fun
     $resolvedRequest = app(ResolveOwnContributionRequestAction::class)->handle($owner, $request->id);
 
     expect($resolvedRequest->is($request))->toBeTrue()
-        ->and(fn() => app(ResolveOwnContributionRequestAction::class)->handle($stranger, $request->id))->toThrow(ModelNotFoundException::class);
+        ->and(fn () => app(ResolveOwnContributionRequestAction::class)->handle($stranger, $request->id))->toThrow(ModelNotFoundException::class);
 });

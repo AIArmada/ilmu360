@@ -26,7 +26,6 @@ use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Directory\InstitutionFacilities;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -92,7 +91,7 @@ it('deactivates donation channels with the inactive timestamp and rejects invali
     expect($channel->status)->toBe(DonationChannelStatus::Inactive)
         ->and($channel->inactive_at)->not->toBeNull()
         ->and($channel->getCasts()['status'])->toBe(DonationChannelStatus::class)
-        ->and(fn() => $channel->transitionStatus('bogus'))->toThrow(TypeError::class);
+        ->and(fn () => $channel->transitionStatus('bogus'))->toThrow(TypeError::class);
 });
 
 it('keeps institution provenance immutable after create', function (): void {
@@ -200,7 +199,7 @@ it('saves omits and clears facilities through the save institution action', func
     SaveInstitutionAction::run(['name' => 'Renamed Institution', 'facilities' => null], $actor, $institution->fresh());
 
     expect($institution->fresh()->facilities)->toBeNull()
-        ->and(fn() => SaveInstitutionAction::run(['name' => 'Renamed Institution', 'facilities' => ['bogus' => true]], $actor, $institution->fresh()))->toThrow(ValidationException::class);
+        ->and(fn () => SaveInstitutionAction::run(['name' => 'Renamed Institution', 'facilities' => ['bogus' => true]], $actor, $institution->fresh()))->toThrow(ValidationException::class);
 });
 
 it('emits no facilities signal when facilities are omitted from the save', function (): void {
@@ -255,7 +254,7 @@ it('rejects unknown facility keys and non boolean values at the model boundary',
     expect(InstitutionFacilities::validate(['parking' => true, 'air_conditioning' => false]))->toBeEmpty()
         ->and(InstitutionFacilities::validate(['bogus' => true]))->not->toBeEmpty()
         ->and(InstitutionFacilities::validate(['parking' => 'yes']))->not->toBeEmpty()
-        ->and(fn() => Institution::factory()->create(['facilities' => ['bogus' => true]]))->toThrow(InvalidArgumentException::class);
+        ->and(fn () => Institution::factory()->create(['facilities' => ['bogus' => true]]))->toThrow(InvalidArgumentException::class);
 });
 
 it('merges effective facilities from operated venues and active spaces only', function (): void {
@@ -360,13 +359,13 @@ it('validates institution venue links and keeps one primary per role', function 
     expect(fn () => SyncInstitutionVenuesAction::run($institution, [
         ['venue_id' => (string) $venue->getKey(), 'role' => 'bogus'],
     ]))->toThrow(ValidationException::class)
-        ->and(fn() => SyncInstitutionVenuesAction::run($institution, [
-        ['venue_id' => 'not-a-uuid', 'role' => InstitutionVenueRole::Operated],
-    ]))->toThrow(ValidationException::class)
-        ->and(fn() => SyncInstitutionVenuesAction::run($institution, [
-        ['venue_id' => (string) $venue->getKey(), 'role' => InstitutionVenueRole::Operated, 'is_primary' => true],
-        ['venue_id' => (string) $other->getKey(), 'role' => InstitutionVenueRole::Operated, 'is_primary' => true],
-    ]))->toThrow(ValidationException::class);
+        ->and(fn () => SyncInstitutionVenuesAction::run($institution, [
+            ['venue_id' => 'not-a-uuid', 'role' => InstitutionVenueRole::Operated],
+        ]))->toThrow(ValidationException::class)
+        ->and(fn () => SyncInstitutionVenuesAction::run($institution, [
+            ['venue_id' => (string) $venue->getKey(), 'role' => InstitutionVenueRole::Operated, 'is_primary' => true],
+            ['venue_id' => (string) $other->getKey(), 'role' => InstitutionVenueRole::Operated, 'is_primary' => true],
+        ]))->toThrow(ValidationException::class);
 
     SyncInstitutionVenuesAction::run($institution, [
         ['venue_id' => (string) $venue->getKey(), 'role' => 'operated', 'is_primary' => true],
@@ -534,7 +533,7 @@ it('rejects invalid app space venue references and reparenting while facilities 
 
     expect(fn () => Space::factory()->create(['venue_id' => (string) Str::uuid()]))
         ->toThrow(InvalidArgumentException::class)
-        ->and(fn() => Space::factory()->create(['venue_id' => 'not-a-uuid']))->toThrow(InvalidArgumentException::class);
+        ->and(fn () => Space::factory()->create(['venue_id' => 'not-a-uuid']))->toThrow(InvalidArgumentException::class);
 
     $space = Space::factory()->create(['venue_id' => $venue->getKey()]);
 

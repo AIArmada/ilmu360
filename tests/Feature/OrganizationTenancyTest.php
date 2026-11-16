@@ -8,7 +8,6 @@ use AIArmada\Organizations\Actions\CreateOrganizationAction;
 use AIArmada\Organizations\Actions\MakeOrganizationPublicAction;
 use AIArmada\Organizations\Models\Organization;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
 it('creates a private organization through the authenticated API', function (): void {

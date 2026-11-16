@@ -2,7 +2,6 @@
 
 use App\Models\MembershipApplication;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('restores the membership application applicant and reviewer attribution', function (): void {
     $user = User::factory()->create();

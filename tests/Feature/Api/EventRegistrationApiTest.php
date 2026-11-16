@@ -7,7 +7,6 @@ use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use App\Shared\Events\Enums\EventVisibility;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
 function registrationReadyEvent(array $eventOverrides = []): Event

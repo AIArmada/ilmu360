@@ -17,7 +17,6 @@ use App\Support\Rewards\ActivityRewardSourceFactReader;
 use App\Support\Rewards\ReferralRewardSourceFactReader;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
 it('maps both referral reward sides to the live accepted registration fact', function (): void {

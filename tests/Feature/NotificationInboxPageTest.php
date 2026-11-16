@@ -6,7 +6,6 @@ use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Features\Communications\EntryPoints\Livewire\NotificationsIndex;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 it('renders the notifications inbox for authenticated users', function () {
@@ -133,7 +132,7 @@ it('filters unread notifications and marks them as read in the inbox component',
 it('filters by the inbox family stored on the notification row', function () {
     $user = User::factory()->create();
 
-    $makeNotification = (fn(NotificationFamily $family, string $title): NotificationInbox => createTestRecord(NotificationInbox::class, [
+    $makeNotification = (fn (NotificationFamily $family, string $title): NotificationInbox => createTestRecord(NotificationInbox::class, [
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->getKey(),
         'family' => $family->value,

@@ -86,7 +86,7 @@ final class Checkout extends Component
 
             $ticketEvent = EventTicketScope::event($ticketType);
 
-            if (!$ticketEvent instanceof \AIArmada\Events\Models\Event || $ticketEvent->isNot($event)) {
+            if (! $ticketEvent instanceof \AIArmada\Events\Models\Event || $ticketEvent->isNot($event)) {
                 abort(404);
             }
 
@@ -204,7 +204,7 @@ final class Checkout extends Component
                 $ticket,
                 $user,
             ): void {
-                if (!$ticket instanceof \AIArmada\Ticketing\Models\TicketType) {
+                if (! $ticket instanceof TicketType) {
                     $result = $admissions->registerFree(
                         eventId: (string) $event->getKey(),
                         participants: $participants,
@@ -302,7 +302,7 @@ final class Checkout extends Component
             'ticket' => $this->ticketType,
             'minimumQuantity' => $this->minimumQuantity(),
             'maximumQuantity' => $this->maximumQuantity(),
-            'isDirectFreeRegistration' => !$this->ticketType instanceof \AIArmada\Ticketing\Models\TicketType,
+            'isDirectFreeRegistration' => ! $this->ticketType instanceof TicketType,
             'ticketPrice' => $this->ticketType instanceof TicketType ? (int) ($this->ticketType->price ?? 0) : 0,
             'participantIdentityType' => $this->participantIdentityType(),
             'participantIdentityLabel' => $this->participantIdentityLabel(),
@@ -397,7 +397,7 @@ final class Checkout extends Component
 
         $ticketEvent = EventTicketScope::event($ticket);
 
-        if (!$ticketEvent instanceof \AIArmada\Events\Models\Event || $ticketEvent->isNot($event)) {
+        if (! $ticketEvent instanceof \AIArmada\Events\Models\Event || $ticketEvent->isNot($event)) {
             throw new \InvalidArgumentException('The selected ticket does not belong to this event.');
         }
 

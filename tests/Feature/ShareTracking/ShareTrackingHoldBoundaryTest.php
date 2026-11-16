@@ -13,7 +13,6 @@ use App\Support\Share\ShareMetricReader;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('keeps the analytics readers as documented root adapters', function (string $class, string $relativePath): void {
     $file = new ReflectionClass($class)->getFileName();
@@ -88,6 +87,6 @@ it('freezes cohort projection identity and allows only observed to participated'
 
     expect(fn () => $projection->fresh()?->forceFill(['stage' => ShareCohortProjection::STAGE_PARTICIPATED])->save())
         ->not->toThrow(LogicException::class)
-        ->and(fn() => $projection->fresh()?->forceFill(['stage' => ShareCohortProjection::STAGE_OBSERVED])->save())->toThrow(LogicException::class, 'Share cohort projection stages move observed -> participated only.')
-        ->and(fn() => $projection->fresh()?->delete())->toThrow(LogicException::class, 'Share cohort projections cannot be deleted.');
+        ->and(fn () => $projection->fresh()?->forceFill(['stage' => ShareCohortProjection::STAGE_OBSERVED])->save())->toThrow(LogicException::class, 'Share cohort projection stages move observed -> participated only.')
+        ->and(fn () => $projection->fresh()?->delete())->toThrow(LogicException::class, 'Share cohort projections cannot be deleted.');
 });

@@ -514,7 +514,7 @@ it('refuses concurrent over-reservation beyond capacity on real drivers', functi
             'user', $staff, 'staff',
         );
 
-        $slotPayload = (fn(string $member, string $key): array => [
+        $slotPayload = (fn (string $member, string $key): array => [
             'recipient_type' => 'user',
             'recipient_id' => $member,
             'family_key' => $program->family_key,
@@ -605,7 +605,7 @@ it('refuses a raced same-key cross-recipient redeem on real drivers', function (
             'user', $staff, 'staff',
         );
 
-        $slotPayload = (fn(string $member): array => [
+        $slotPayload = (fn (string $member): array => [
             'recipient_type' => 'user',
             'recipient_id' => $member,
             'family_key' => $program->family_key,

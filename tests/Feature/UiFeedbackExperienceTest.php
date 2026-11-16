@@ -2,7 +2,6 @@
 
 use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearchesIndex;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 

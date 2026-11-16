@@ -2,7 +2,6 @@
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Models\Event;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('filters occurrences through the canonical featured scope', function () {
     $featured = Event::factory()->create();

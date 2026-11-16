@@ -4,7 +4,6 @@ use App\Features\Reports\Models\Report;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Reference;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('filters active references to verified and pending status', function () {
     $verified = Reference::factory()->verified()->create();

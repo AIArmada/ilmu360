@@ -19,7 +19,6 @@ use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 

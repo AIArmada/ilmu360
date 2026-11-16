@@ -2,7 +2,6 @@
 
 use App\Enums\SpeakerStatus;
 use App\Models\Person;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('shows the first five eligible featured speakers in curated order', function () {
     $featured = collect([

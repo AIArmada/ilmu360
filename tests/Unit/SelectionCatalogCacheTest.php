@@ -42,9 +42,9 @@ it('caches and refreshes the title catalog by version', function (): void {
 
     expect($catalog->titleOptions())->toHaveKey((string) $secondTitle->getKey())
         ->and($catalog->titleSearchOptions('ust'))->toMatchArray([
-        (string) $firstTitle->getKey() => 'Ustaz',
-        (string) $secondTitle->getKey() => 'Ustazah',
-    ]);
+            (string) $firstTitle->getKey() => 'Ustaz',
+            (string) $secondTitle->getKey() => 'Ustazah',
+        ]);
 });
 
 it('refreshes language options after their requested cache lifetime', function (): void {

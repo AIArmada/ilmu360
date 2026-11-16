@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Institution;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('allows deleting an unused country record', function () {
     $country = ensureTestMalaysiaCountry();

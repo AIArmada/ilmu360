@@ -389,12 +389,12 @@ it('rejects foreign and terminal occurrences', function () {
         submitter: $owner,
         eventContainer: $event,
     ))->toThrow(ValidationException::class, 'bukan milik majlis ini')
-        ->and(fn() => app(SubmitFrontendEventAction::class)->handle(
-        state: submitSessionPayload($this->domainTag, $this->disciplineTag, $base + ['event_occurrence_id' => (string) $cancelledOccurrence->getKey()]),
-        request: submitSessionRequest(),
-        submitter: $owner,
-        eventContainer: $event,
-    ))->toThrow(ValidationException::class, 'tidak lagi menerima sesi')
+        ->and(fn () => app(SubmitFrontendEventAction::class)->handle(
+            state: submitSessionPayload($this->domainTag, $this->disciplineTag, $base + ['event_occurrence_id' => (string) $cancelledOccurrence->getKey()]),
+            request: submitSessionRequest(),
+            submitter: $owner,
+            eventContainer: $event,
+        ))->toThrow(ValidationException::class, 'tidak lagi menerima sesi')
         ->and(EventSession::query()->where('event_id', $event->getKey())->exists())->toBeFalse();
 });
 

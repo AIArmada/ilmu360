@@ -7,7 +7,6 @@ use AIArmada\Events\Models\EventTermPolicy;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
 use Database\Seeders\AIArmada\FoundationSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -25,8 +24,8 @@ it('seeds a flat activity-first event category vocabulary', function (): void {
         ->and(EventTerm::query()->where('code', 'ilmu')->exists())->toBeFalse()
         ->and(EventTerm::query()->where('code', 'kelas_daurah')->exists())->toBeFalse()
         ->and(EventTerm::query()
-        ->where('event_taxonomy_id', $lecture->event_taxonomy_id)
-        ->whereNull('parent_id')->count())->toBe(8);
+            ->where('event_taxonomy_id', $lecture->event_taxonomy_id)
+            ->whereNull('parent_id')->count())->toBe(8);
 });
 
 it('applies activity policies to the new category terms', function (): void {

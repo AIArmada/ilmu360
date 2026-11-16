@@ -90,7 +90,7 @@ it('parses daily datetimes offset-aware into UTC anchors', function () {
         ->and($dto->timezoneUsed)->toBe('Asia/Kuala_Lumpur')
         ->and($dto->date)->toBe('2026-10-15');
 
-    Http::assertSent(fn($request) => str_ends_with(strtok($request->url(), '?'), '/api/prayer-times')
+    Http::assertSent(fn ($request) => str_ends_with(strtok($request->url(), '?'), '/api/prayer-times')
         && $request['method'] === 'malaysia'
         && $request['madhab'] === 'Shafi'
         && $request['timezone'] === 'Asia/Kuala_Lumpur'
@@ -153,7 +153,7 @@ it('parses month bulk into date-keyed DTOs', function () {
         ->and($days['2026-10-15']->source)->toBe('ummah:malaysia/Shafi')
         ->and($days['2026-10-15']->timeFor('fajr')?->setTimezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('05:40');
 
-    Http::assertSent(fn($request) => str_ends_with(strtok($request->url(), '?'), '/api/prayer-times/month')
+    Http::assertSent(fn ($request) => str_ends_with(strtok($request->url(), '?'), '/api/prayer-times/month')
         && (int) $request['month'] === 10
         && (int) $request['year'] === 2026);
 });
@@ -193,7 +193,7 @@ it('sends the API key as a header and never as a query param', function () {
 
     app(UmmahPrayerProvider::class)->dailyPrayers(ummahQuery());
 
-    Http::assertSent(fn($request) => $request->hasHeader('X-API-Key', 'test-key-123')
+    Http::assertSent(fn ($request) => $request->hasHeader('X-API-Key', 'test-key-123')
         && ! isset($request['apikey']));
 });
 
@@ -203,7 +203,7 @@ it('resolves the method from the per-country table when the query omits it', fun
     $query = new PrayerQuery('MY', '2026-10-15', 'Asia/Kuala_Lumpur', 3.1390, 101.6869);
     app(UmmahPrayerProvider::class)->dailyPrayers($query);
 
-    Http::assertSent(fn($request) => $request['method'] === 'malaysia' && $request['madhab'] === 'Shafi');
+    Http::assertSent(fn ($request) => $request['method'] === 'malaysia' && $request['madhab'] === 'Shafi');
 });
 
 it('skips day rows outside the queried month', function () {

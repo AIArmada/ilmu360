@@ -241,12 +241,12 @@ it('uses the Google Place ID when a CID is unavailable', function () {
             'google_place_id' => mb_strtolower('ChIJ_verified_place_without_cid'),
         ],
     ]))->not->toThrow(ValidationException::class)
-        ->and(fn() => EnsureUniqueContributionCreateAction::run(ContributionSubjectType::Institution, [
-        'name' => 'Another unrelated name',
-        'address' => [
-            'google_place_id' => 'ChIJ_verified_place_without_cid',
-        ],
-    ]))->toThrow(ValidationException::class);
+        ->and(fn () => EnsureUniqueContributionCreateAction::run(ContributionSubjectType::Institution, [
+            'name' => 'Another unrelated name',
+            'address' => [
+                'google_place_id' => 'ChIJ_verified_place_without_cid',
+            ],
+        ]))->toThrow(ValidationException::class);
 });
 
 it('supports fuzzy search with minor institution name typos', function () {

@@ -104,7 +104,7 @@ if (! function_exists('shareCardPngChunkTypes')) {
     {
         $types = [];
 
-        if (!str_starts_with($bytes, "\x89PNG\r\n\x1A\n")) {
+        if (! str_starts_with($bytes, "\x89PNG\r\n\x1A\n")) {
             return $types;
         }
 

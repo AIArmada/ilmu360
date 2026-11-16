@@ -3,7 +3,6 @@
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Scout\Jobs\MakeSearchable;
 

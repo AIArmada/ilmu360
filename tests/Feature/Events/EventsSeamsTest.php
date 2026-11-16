@@ -25,7 +25,6 @@ use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Events\EventModerationAdapter;
 use App\Support\Reports\CompositeReportSubjectResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('binds the events seams to their current implementations', function (): void {
     expect(app(GuestSubmissionClaims::class))->toBeInstanceOf(ClaimGuestSubmissionsAction::class)

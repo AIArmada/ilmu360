@@ -7,7 +7,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Venue;
 use App\Support\Events\EventDetailPresenter;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 

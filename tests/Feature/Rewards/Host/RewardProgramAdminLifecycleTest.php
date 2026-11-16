@@ -26,7 +26,6 @@ use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
@@ -69,7 +68,7 @@ it('runs a staff-managed funded programme through explicit enrolment and a direc
 
     $ready = TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Ready);
     expect($ready->status)->toBe(RewardProgramStatus::Ready)
-        ->and(fn() => TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active))->toThrow(InvalidArgumentException::class, 'no-confirmed-funding:MYR')
+        ->and(fn () => TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active))->toThrow(InvalidArgumentException::class, 'no-confirmed-funding:MYR')
         ->and($program->refresh()->status)->toBe(RewardProgramStatus::Ready);
 
     $sourceRef = 'SLICE3-'.$family;

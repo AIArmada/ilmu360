@@ -19,7 +19,6 @@ use App\Shared\Directory\InstitutionFacilities;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Forms\Components\CheckboxList;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 beforeEach(function (): void {

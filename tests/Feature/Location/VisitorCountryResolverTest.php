@@ -5,7 +5,6 @@ declare(strict_types=1);
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Livewire\Pages\Events\Index;
 use App\Support\Location\VisitorCountryResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 

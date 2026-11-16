@@ -237,5 +237,5 @@ it('rejects a duplicate pending invitation for the same subject and email', func
         now()->addWeek(),
     ))->toThrow(ValidationException::class)
         ->and(MemberInvitation::query()
-        ->where('subject_id', $institution->getKey())->count())->toBe(1);
+            ->where('subject_id', $institution->getKey())->count())->toBe(1);
 });

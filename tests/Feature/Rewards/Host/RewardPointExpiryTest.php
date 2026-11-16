@@ -10,7 +10,6 @@ use AIArmada\Rewards\Models\RewardPointLot;
 use AIArmada\Rewards\Support\RewardPointLedger;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 

@@ -46,7 +46,6 @@ use Akaunting\Money\Currency;
 use Akaunting\Money\Money;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
@@ -107,9 +106,9 @@ it('creates and retires catalog items with frozen terms', function () {
 
     expect($item->status)->toBe(RewardBenefitItemStatus::Active)
         ->and(RewardBenefitStockLedger::balances($item)['available'])->toBe(10)
-        ->and(fn() => CreateRewardBenefitItemAction::run(
-        $program, 'bad-both', 'Bad', ['x'], 100, 'pts', true, 10, 'user', $staff, 'staff',
-    ))->toThrow(InvalidArgumentException::class, 'either a point cost or direct entitlement');
+        ->and(fn () => CreateRewardBenefitItemAction::run(
+            $program, 'bad-both', 'Bad', ['x'], 100, 'pts', true, 10, 'user', $staff, 'staff',
+        ))->toThrow(InvalidArgumentException::class, 'either a point cost or direct entitlement');
 
     $retired = RetireRewardBenefitItemAction::run($item, 'user', $staff, 'staff', 'season-over');
 
@@ -145,10 +144,10 @@ it('redeems, fulfills, and consumes a point-funded benefit exactly', function ()
     );
 
     expect((string) $replay->getKey())->toBe((string) $grant->getKey())
-        ->and(fn() => RedeemRewardBenefitAction::run(
-        'user', $memberId, $program->family_key, $item, 4, 'red-002', 'manual',
-        'user', $memberId, 'member', null, CarbonImmutable::parse('2026-06-15T01:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => RedeemRewardBenefitAction::run(
+            'user', $memberId, $program->family_key, $item, 4, 'red-002', 'manual',
+            'user', $memberId, 'member', null, CarbonImmutable::parse('2026-06-15T01:00:00Z'),
+        ))->toThrow(InvalidArgumentException::class)
         ->and(benefitBalances($memberId, $program->family_key)['reserved'])->toBe(400);
 
     $issued = FulfillRewardBenefitAction::run(

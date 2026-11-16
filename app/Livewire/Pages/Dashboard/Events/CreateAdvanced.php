@@ -1320,7 +1320,7 @@ class CreateAdvanced extends Component implements HasForms
 
     protected function ticketStateHasSeating(mixed $value): bool
     {
-        return array_any((array) $value, fn($ticket) => is_array($ticket)
+        return array_any((array) $value, fn ($ticket) => is_array($ticket)
         && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value);
     }
 

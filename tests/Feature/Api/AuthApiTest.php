@@ -8,7 +8,6 @@ use App\Features\Identity\Api\PrayerType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;

@@ -395,7 +395,7 @@ final readonly class SubmissionContextResolver
         string $validationKeyPrefix,
     ): ?string {
         $raw = $validated['event_occurrence_id'] ?? null;
-        $hasSelection = $raw !== null && (!is_string($raw) || trim($raw) !== '');
+        $hasSelection = $raw !== null && (! is_string($raw) || trim($raw) !== '');
 
         if (! $eventContainer instanceof Event) {
             if ($hasSelection) {

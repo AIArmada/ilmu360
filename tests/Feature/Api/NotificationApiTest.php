@@ -9,7 +9,6 @@ use AIArmada\Communications\Models\NotificationInbox;
 use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Features\Communications\Api\NotificationInboxMessageSnapshot;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
 it('registers a push destination through the api', function () {

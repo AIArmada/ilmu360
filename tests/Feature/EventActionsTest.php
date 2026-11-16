@@ -19,7 +19,6 @@ use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Support\Api\Frontend\FrontendFormContractService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
 beforeEach(function () {

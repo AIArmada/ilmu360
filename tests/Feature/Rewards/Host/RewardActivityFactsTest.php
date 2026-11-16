@@ -38,7 +38,6 @@ use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Support\Rewards\ActivityRewardSourceFactReader;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
@@ -437,10 +436,10 @@ it('awards the participant and sharer once each for attributed registration and 
     expect(activityAwardCounts($registrationShareKey, $actor, $sharer))->toBe(['participant' => 1, 'sharer' => 1])
         ->and(activityAwardCounts($checkinShareKey, $actor, $sharer))->toBe(['participant' => 1, 'sharer' => 1])
         ->and(RewardAward::query()
-        ->whereIn('source_business_key', [$registrationShareKey, $checkinShareKey])
-        ->where('recipient_id', (string) $actor->getKey())
-        ->where('beneficiary_role', RewardBeneficiaryRole::Participant->value)
-        ->where('component', RewardComponent::Points->value)->count())->toBe(2);
+            ->whereIn('source_business_key', [$registrationShareKey, $checkinShareKey])
+            ->where('recipient_id', (string) $actor->getKey())
+            ->where('beneficiary_role', RewardBeneficiaryRole::Participant->value)
+            ->where('component', RewardComponent::Points->value)->count())->toBe(2);
 });
 
 it('rejects cancelled registrations and reverses an award when a source is cancelled later', function (): void {
@@ -679,10 +678,10 @@ it('evaluates eligible preclaim signup facts for both the sharer and participant
     expect($participantAward->amount_snapshot['points'])->toBe(2)
         ->and($sharerAward->amount_snapshot['points'])->toBe(3)
         ->and(RewardAward::query()
-        ->where('program_id', $program->getKey())
-        ->where('source_business_key', ShareOutcomeBusinessKey::signup((string) $member->getKey()))
-        ->where('recipient_id', (string) $member->getKey())
-        ->where('beneficiary_role', RewardBeneficiaryRole::Sharer->value)->exists())->toBeFalse();
+            ->where('program_id', $program->getKey())
+            ->where('source_business_key', ShareOutcomeBusinessKey::signup((string) $member->getKey()))
+            ->where('recipient_id', (string) $member->getKey())
+            ->where('beneficiary_role', RewardBeneficiaryRole::Sharer->value)->exists())->toBeFalse();
 });
 
 it('excludes preclaim facts outside the lookback and applies the daily cap across prior outcomes', function (): void {

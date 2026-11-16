@@ -3125,13 +3125,13 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         ->and($tools->keys()->all())->not->toContain('member-list-resources', 'member-list-records')
         ->and($tools->keys()->all())->not->toContain('admin-delete-record', 'admin-delete', 'admin-remove-record')
         ->and($tools->get('search')['securitySchemes'] ?? [])->toContainEqual([
-        'type' => 'oauth2',
-        'scopes' => ['mcp:use'],
-    ])
+            'type' => 'oauth2',
+            'scopes' => ['mcp:use'],
+        ])
         ->and($tools->get('fetch')['securitySchemes'] ?? [])->toContainEqual([
-        'type' => 'oauth2',
-        'scopes' => ['mcp:use'],
-    ])
+            'type' => 'oauth2',
+            'scopes' => ['mcp:use'],
+        ])
         ->and($tools->get('fetch')['description'] ?? '')->toContain('not a url or file:// resource URI')
         ->and(data_get($tools->get('fetch'), 'inputSchema.properties.id.description'))->toContain('Do not pass the document url')
         ->and(data_get($tools->get('search'), 'outputSchema.type'))->toBe('object')
@@ -3145,9 +3145,9 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.required'))->toBe(['description', 'mime_type', 'resource_uri', 'relative_path', 'last_modified'])
         ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.properties.last_modified.format'))->toBe('date-time')
         ->and($tools->get('admin-list-resources')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => true,
-        'idempotentHint' => true,
-    ]);
+            'readOnlyHint' => true,
+            'idempotentHint' => true,
+        ]);
 
     $readOnlyTools = $tools->filter(fn (array $tool): bool => data_get($tool, 'annotations.readOnlyHint') === true);
 
@@ -3156,29 +3156,29 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.openWorldHint') === false))->toBeTrue()
         ->and(collect((array) data_get($tools->get('admin-list-records'), 'inputSchema.properties.filters.type'))->contains('object'))->toBeTrue()
         ->and($tools->get('admin-get-write-schema')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => true,
-        'idempotentHint' => true,
-        'destructiveHint' => false,
-        'openWorldHint' => false,
-    ])
+            'readOnlyHint' => true,
+            'idempotentHint' => true,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ])
         ->and($tools->get('admin-get-event-moderation-schema')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => true,
-        'idempotentHint' => true,
-        'destructiveHint' => false,
-        'openWorldHint' => false,
-    ])
+            'readOnlyHint' => true,
+            'idempotentHint' => true,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ])
         ->and($tools->get('admin-create-record')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => false,
-        'idempotentHint' => false,
-        'destructiveHint' => false,
-        'openWorldHint' => false,
-    ])
+            'readOnlyHint' => false,
+            'idempotentHint' => false,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ])
         ->and($tools->get('admin-create-event')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => false,
-        'idempotentHint' => false,
-        'destructiveHint' => false,
-        'openWorldHint' => false,
-    ])
+            'readOnlyHint' => false,
+            'idempotentHint' => false,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ])
         ->and(data_get($tools->get('admin-create-event'), 'title'))->toBe('Create Event')
         ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('title'))->toBeTrue()
         ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_date'))->toBeTrue()
@@ -3214,11 +3214,11 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         ->and(collect((array) data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.required'))->contains('record_key'))->toBeTrue()
         ->and(collect((array) data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.required'))->contains('payload'))->toBeTrue()
         ->and($tools->get('admin-create-github-issue')['annotations'] ?? [])->toMatchArray([
-        'readOnlyHint' => false,
-        'idempotentHint' => false,
-        'destructiveHint' => false,
-        'openWorldHint' => true,
-    ]);
+            'readOnlyHint' => false,
+            'idempotentHint' => false,
+            'destructiveHint' => false,
+            'openWorldHint' => true,
+        ]);
 
     $githubIssueCategorySchema = data_get($tools->get('admin-create-github-issue'), 'inputSchema.properties.category');
 
@@ -3640,16 +3640,16 @@ it('lists and reads the documentation routing prompt through the admin MCP serve
 
     expect($prompts->keys()->all())->toContain('documentation-tool-routing')
         ->and($prompts->get('documentation-tool-routing'))->toMatchArray([
-        'title' => 'Documentation Tool Routing',
-        'description' => 'Short guidance for deciding when to use the verified admin documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.',
-        'arguments' => [
-            [
-                'name' => 'topic',
-                'description' => 'Optional focus area such as crud, auth, media uploads, runtime records, entity selection, search, or fetch.',
-                'required' => false,
+            'title' => 'Documentation Tool Routing',
+            'description' => 'Short guidance for deciding when to use the verified admin documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.',
+            'arguments' => [
+                [
+                    'name' => 'topic',
+                    'description' => 'Optional focus area such as crud, auth, media uploads, runtime records, entity selection, search, or fetch.',
+                    'required' => false,
+                ],
             ],
-        ],
-    ]);
+        ]);
 
     $getPrompt = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3724,9 +3724,9 @@ it('lists and reads verified documentation resources through the admin MCP serve
     expect($resources->keys()->all())->toContain('docs-admin-mcp-guide')
         ->and($resources->keys()->all())->not->toContain('docs-crud-capability-matrix')
         ->and($resources->get('docs-admin-mcp-guide'))->toMatchArray([
-        'uri' => 'file://docs/ilmu360_mcp_admin_agent_guide.md',
-        'mimeType' => 'text/markdown',
-    ]);
+            'uri' => 'file://docs/ilmu360_mcp_admin_agent_guide.md',
+            'mimeType' => 'text/markdown',
+        ]);
 });
 
 function ensureMcpMalaysiaCountryExists(): string

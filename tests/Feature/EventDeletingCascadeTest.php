@@ -21,7 +21,6 @@ use App\Models\ModerationReview;
 use App\Models\Person;
 use App\Models\Registration;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Str;
@@ -215,7 +214,7 @@ it('rejects event deletion before cleanup when a registration tree crosses event
     $registrationIds = [(string) $registration->getKey(), (string) $foreignChild->getKey()];
 
     expect(fn () => $event->delete())->toThrow(LogicException::class)
-        ->and(fn() => $event->primaryOccurrence?->delete())->toThrow(Illuminate\Validation\ValidationException::class)
+        ->and(fn () => $event->primaryOccurrence?->delete())->toThrow(Illuminate\Validation\ValidationException::class)
         ->and(DB::table('events')->where('id', $eventId)->exists())->toBeTrue()
         ->and(DB::table('event_members')->where('event_id', $eventId)->where('user_id', $user->getKey())->exists())->toBeTrue()
         ->and(DB::table('event_registrations')->whereIn('id', $registrationIds)->count())->toBe(2)

@@ -27,7 +27,6 @@ use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -424,8 +423,8 @@ it('stores only credential verifiers and honors expiry and revocation', function
         ->and($record->fresh()->status)->toBe('revoked')
         ->and($record->fresh()->revoked_at)->not->toBeNull()
         ->and(AffiliateCredential::query()->whereKey($record->getKey())->where('status', 'active')->update([
-        'status' => 'revoked', 'revoked_at' => now(),
-    ]))->toBe(0);
+            'status' => 'revoked', 'revoked_at' => now(),
+        ]))->toBe(0);
 
     $this->withHeader($header, $credential)
         ->postJson(route('share.track'), [
@@ -940,7 +939,7 @@ it('requires a matching owner context before creating a member profile', functio
 
     expect(fn () => OwnerContext::withOwner(null, $ensureProfile))
         ->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.')
-        ->and(fn() => OwnerContext::withOwner($otherUser, $ensureProfile))->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.')
+        ->and(fn () => OwnerContext::withOwner($otherUser, $ensureProfile))->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.')
         ->and(Affiliate::query()->count())->toBe($affiliateCount);
 });
 

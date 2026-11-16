@@ -17,7 +17,6 @@ use App\Platform\Models\MorphModelResolver;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 
 it('declares the owned table literally on the root model', function (): void {
@@ -76,7 +75,7 @@ it('binds the reader through the feature Api and resolves ownership', function (
 
     expect($contractFile)->toEndWith('app/Features/Contributions/Api/ContributionRequestReader.php')
         ->and($implementationFile)->toEndWith('app/Features/Contributions/Queries/EloquentContributionRequestReader.php')
-        ->and((string) file_get_contents((string) $implementationFile))->not->toContain(\App\Models\ContributionRequest::class);
+        ->and((string) file_get_contents((string) $implementationFile))->not->toContain(ContributionRequest::class);
 });
 
 it('discovers the feature manifest with its request table claim', function (): void {

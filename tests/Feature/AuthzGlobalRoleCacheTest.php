@@ -4,7 +4,6 @@ use AIArmada\Authz\Models\Role;
 use AIArmada\Authz\Support\UserRoleChecker;
 use AIArmada\CommerceSupport\Support\FilamentPermission;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;

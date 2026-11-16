@@ -55,10 +55,10 @@ it('uses explicit Labuan coordinates during fallback instead of Kuala Lumpur', f
         ->and($preview['exact'])->toBeTrue();
 
     // Labuan town coordinates — never the KL country default.
-    Http::assertSent(fn($request) => str_contains($request->url(), 'ummahapi.com')
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'ummahapi.com')
         && (float) $request['lat'] === 5.28
         && (float) $request['lng'] === 115.24);
-    Http::assertNotSent(fn($request) => str_contains($request->url(), 'ummahapi.com')
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), 'ummahapi.com')
         && (float) $request['lat'] === 3.139
         && (float) $request['lng'] === 101.6869);
 });

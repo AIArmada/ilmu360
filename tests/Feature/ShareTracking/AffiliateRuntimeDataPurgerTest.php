@@ -12,7 +12,6 @@ use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 function wp1MarkedShareAffiliate(User $user, string $code): Affiliate
 {

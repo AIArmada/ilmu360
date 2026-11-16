@@ -40,7 +40,6 @@ use App\Shared\ShareTracking\ParticipationAttribution;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Support\ShareTracking\ShareTrackingParticipationAttribution;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Str;

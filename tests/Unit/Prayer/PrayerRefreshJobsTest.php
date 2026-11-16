@@ -67,7 +67,7 @@ it('falls through to Ummah monthly when the mirror fails', function () {
     expect($days['2026-10-15']?->source)->toBe('ummah:malaysia/Shafi')
         ->and($days['2026-10-15']?->zoneOrCell)->toBe('WLY01');
 
-    Http::assertSent(fn($request) => str_contains($request->url(), 'ummahapi.com')
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'ummahapi.com')
         && (float) $request['lat'] === 3.1390
         && (float) $request['lng'] === 101.6869);
 });
@@ -142,7 +142,7 @@ it('warms shared zone months with the canonical country timezone, ignoring stale
         'timezone' => 'America/New_York',
     ])->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
-    Http::assertSent(fn($request) => str_contains($request->url(), '/prayer-times/month')
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/prayer-times/month')
         && $request['timezone'] === 'Asia/Kuala_Lumpur');
 
     $days = app(PrayerTimesCache::class)->getMonthly('WLY01', '2026-10', 'MY');
@@ -168,7 +168,7 @@ it('warms a second zoned country with its own configured timezone', function () 
         'timezone' => 'America/New_York',
     ])->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
-    Http::assertSent(fn($request) => str_contains($request->url(), '/prayer-times/month')
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/prayer-times/month')
         && $request['timezone'] === 'Asia/Jakarta');
 
     expect(app(PrayerTimesCache::class)->getMonthly('WLY01', '2026-10', 'YY')['2026-10-15']?->source)

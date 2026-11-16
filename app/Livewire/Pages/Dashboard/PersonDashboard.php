@@ -230,7 +230,7 @@ final class PersonDashboard extends Component
         $invitation = $membershipInvitations->find($invitationId);
 
         abort_unless(
-            $invitation instanceof \App\Features\Membership\Api\MembershipInvitationDetail
+            $invitation instanceof MembershipInvitationDetail
             && $invitation->subjectType === MembershipSubjectType::Person
             && $invitation->subjectId === (string) $person->getKey(),
             404,

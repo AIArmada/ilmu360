@@ -37,7 +37,7 @@ class RegistrationExportController
     {
         $eventContext = $this->registrationExportAccess->resolve((string) $event->getKey());
 
-        if (!$eventContext instanceof \App\Features\Events\Api\RegistrationExportContext) {
+        if (! $eventContext instanceof \App\Features\Events\Api\RegistrationExportContext) {
             abort(404);
         }
 

@@ -7,7 +7,6 @@ use AIArmada\Communications\Contracts\PayloadRedactor;
 use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 
 beforeEach(function (): void {

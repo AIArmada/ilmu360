@@ -13,7 +13,6 @@ use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Support\ShareTracking\ShareTrackingFinance;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 

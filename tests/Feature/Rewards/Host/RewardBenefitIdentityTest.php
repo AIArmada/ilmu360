@@ -35,7 +35,6 @@ use Akaunting\Money\Currency;
 use Akaunting\Money\Money;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -132,7 +131,7 @@ it('refuses same-key redemptions with changed item, quantity, adapter, or family
         'user', $member, 'member', null, CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
 
-    $replay = (fn(string $key, $tryItem, int $qty, string $adapter, string $family) => function () use ($member, $key, $tryItem, $qty, $adapter, $family): void {
+    $replay = (fn (string $key, $tryItem, int $qty, string $adapter, string $family) => function () use ($member, $key, $tryItem, $qty, $adapter, $family): void {
         RedeemRewardBenefitAction::run(
             'user', $member, $family, $tryItem, $qty, $key, $adapter,
             'user', $member, 'member', null, CarbonImmutable::parse('2026-06-15T01:00:00Z'),
@@ -352,10 +351,10 @@ it('refuses usage recording after revocation expires the coupon', function () {
     );
 
     expect($revoked->status)->toBe(RewardBenefitGrantStatus::Revoked)
-        ->and(fn() => RecordVoucherUsage::run(
-        (string) $issued->external_ref, new Money(2000, new Currency('MYR')), 'reward-benefit',
-        ['idempotency_key' => 'late-use-1'], $member,
-    ))->toThrow(VoucherExpiredException::class);
+        ->and(fn () => RecordVoucherUsage::run(
+            (string) $issued->external_ref, new Money(2000, new Currency('MYR')), 'reward-benefit',
+            ['idempotency_key' => 'late-use-1'], $member,
+        ))->toThrow(VoucherExpiredException::class);
 });
 
 it('records manual recalls through the reachable action and refuses replays', function () {
@@ -384,9 +383,9 @@ it('records manual recalls through the reachable action and refuses replays', fu
     );
 
     expect($recorded->evidence['recall_reference'])->toBe('RECALL-9')
-        ->and(fn() => RecordRewardBenefitRecallAction::run(
-        $recorded->refresh(), 'RECALL-10', 'user', $operator, 'staff', CarbonImmutable::parse('2026-06-16T02:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'already recorded');
+        ->and(fn () => RecordRewardBenefitRecallAction::run(
+            $recorded->refresh(), 'RECALL-10', 'user', $operator, 'staff', CarbonImmutable::parse('2026-06-16T02:00:00Z'),
+        ))->toThrow(InvalidArgumentException::class, 'already recorded');
 
     $revoked = RevokeRewardBenefitGrantAction::run(
         $recorded->refresh(), 'user', $operator, 'staff', 'seat-recalled', CarbonImmutable::parse('2026-06-16T03:00:00Z'),
@@ -463,9 +462,9 @@ it('restores exactly once when cancel races nothing but replays the key', functi
     );
 
     expect($cancelled->status)->toBe(RewardBenefitGrantStatus::Revoked)
-        ->and(fn() => CancelRewardBenefitGrantAction::run(
-        $cancelled->refresh(), 'user', $member, 'member', 'again', CarbonImmutable::parse('2026-06-15T02:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'Only reserved grants');
+        ->and(fn () => CancelRewardBenefitGrantAction::run(
+            $cancelled->refresh(), 'user', $member, 'member', 'again', CarbonImmutable::parse('2026-06-15T02:00:00Z'),
+        ))->toThrow(InvalidArgumentException::class, 'Only reserved grants');
 
     $buckets = RewardPointLedger::balancesFor('user', $member, $program->family_key, 'pts', CarbonImmutable::parse('2026-07-01T00:00:00Z'));
 

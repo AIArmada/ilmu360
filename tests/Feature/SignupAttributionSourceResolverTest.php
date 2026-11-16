@@ -20,7 +20,6 @@ use App\Shared\Auth\SignupAttributionSource;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use App\Support\Auth\AffiliateSignupAttributionSourceResolver;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 

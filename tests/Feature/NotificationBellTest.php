@@ -8,7 +8,6 @@ use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Features\Communications\EntryPoints\Livewire\NotificationBell;
 use App\Features\Communications\EntryPoints\Livewire\NotificationsIndex;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
