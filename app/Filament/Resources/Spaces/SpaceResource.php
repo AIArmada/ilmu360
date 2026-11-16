@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Spaces;
 
-use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
 use AIArmada\FilamentEvents\Resources\VenueSpaceResource;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\Spaces\Pages\CreateSpace;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Filament\Resources\Spaces\Pages\ListSpaces;

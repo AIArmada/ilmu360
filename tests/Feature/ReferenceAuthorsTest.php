@@ -3,11 +3,11 @@
 use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Models\ReferenceContributor;
 use AIArmada\Signals\Models\SignalEvent;
+use App\Data\Api\Frontend\Search\ReferenceListData;
+use App\Enums\SpeakerStatus;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
 use App\Features\Directory\Api\ReferenceWorkflow;
-use App\Data\Api\Frontend\Search\ReferenceListData;
-use App\Enums\SpeakerStatus;
 use App\Filament\Resources\References\Pages\CreateReference;
 use App\Filament\Resources\References\Pages\EditReference;
 use App\Forms\ReferenceAuthorFormSchema;
@@ -15,7 +15,6 @@ use App\Forms\ReferenceFormSchema;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use App\Services\ContributionEntityMutationService;
 use App\Support\Search\ReferenceSearchService;
 use Database\Seeders\LanguageSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -631,11 +630,13 @@ it('preserves authors when the admin payload omits them', function (): void {
         'status' => 'verified',
     ]);
 
-    app(ContributionEntityMutationService::class)->syncReferenceRelations($reference, []);
+    $workflow = app(ReferenceWorkflow::class);
+    $referenceId = (string) $reference->getKey();
+    $workflow->syncRelations($referenceId, []);
 
     expect($reference->fresh()->authorIdsValue())->toBe([(string) $author->getKey()]);
 
-    app(ContributionEntityMutationService::class)->syncReferenceRelations($reference, ['author_ids' => null]);
+    $workflow->syncRelations($referenceId, ['author_ids' => null]);
 
     expect($reference->fresh()->authorIdsValue())->toBe([]);
 });

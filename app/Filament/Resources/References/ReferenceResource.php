@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\References;
 
-use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\References\Pages\CreateReference;
 use App\Filament\Resources\References\Pages\EditReference;
 use App\Filament\Resources\References\Pages\ListReferences;

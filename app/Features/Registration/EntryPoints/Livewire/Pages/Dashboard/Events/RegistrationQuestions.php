@@ -204,7 +204,7 @@ final class RegistrationQuestions extends Component
     {
         $event = $this->selectedEvent();
 
-        return view('livewire.pages.dashboard.events.registration-questions', [
+        return view('registration::livewire.pages.dashboard.events.registration-questions', [
             'event' => $event,
             'questions' => $this->questions($event),
             'questionTypes' => EventRegistrationQuestionType::options(),

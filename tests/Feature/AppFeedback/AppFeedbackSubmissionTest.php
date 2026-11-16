@@ -1,7 +1,7 @@
 <?php
 
 use App\Features\Feedback\Actions\SubmitAppFeedbackAction;
-use App\Features\Feedback\EntryPoints\Livewire\Pages\AppFeedback\Index;
+use App\Features\Feedback\EntryPoints\Livewire\Pages\AppFeedbackIndex;
 use App\Features\Feedback\Enums\AppFeedbackCategory;
 use App\Features\Feedback\Enums\AppFeedbackStatus;
 use App\Features\Feedback\Models\AppFeedback;
@@ -39,7 +39,7 @@ it('lets members edit the related page link', function () {
 
     $this->actingAs(User::factory()->create());
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->assertFormFieldExists('page_url', fn (TextInput $field): bool => ! $field->isReadOnly())
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
@@ -57,7 +57,7 @@ it('prefills the related page from the dari path', function () {
     $this->actingAs(User::factory()->create());
 
     Livewire::withQueryParams(['dari' => 'tambah-majlis'])
-        ->test(Index::class)
+        ->test(AppFeedbackIndex::class)
         ->assertSet('data.page_url', 'https://ilmu360.test/tambah-majlis');
 });
 
@@ -81,7 +81,7 @@ it('stores structured bug details without concatenation', function () {
 
     $this->actingAs($user);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
             'title' => 'Butang simpan gagal',
@@ -97,7 +97,7 @@ it('stores structured bug details without concatenation', function () {
 it('switches the optional questions to match the selected category', function (AppFeedbackCategory $category, bool $hasProblem, bool $hasSuggestion) {
     $this->actingAs(User::factory()->create());
 
-    $component = Livewire::test(Index::class)
+    $component = Livewire::test(AppFeedbackIndex::class)
         ->assertFormFieldExists('category', fn (Select $field): bool => $field->isLive())
         ->assertFormFieldVisible('details.steps')
         ->set('data.category', $category->value)
@@ -150,7 +150,7 @@ it('submits app feedback with the reporter and initial status', function () {
 
     $this->actingAs($user);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
             'title' => 'Butang simpan tidak berfungsi',
@@ -184,7 +184,7 @@ it('notifies global maintainers about a new submission', function () {
 
     $this->actingAs($user);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::FeatureRequest->value,
             'title' => 'Tambah penapis mengikut negeri',
@@ -215,7 +215,7 @@ it('validates required feedback fields', function () {
 
     $this->actingAs($user);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
             'title' => '',
@@ -231,7 +231,7 @@ it('rejects whitespace-only feedback content', function () {
 
     $this->actingAs($user);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
             'title' => '     ',
@@ -270,7 +270,7 @@ it('shows a friendly error when a blocked user submits the form', function () {
 
     $this->actingAs($user);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
             'title' => 'Ujian sekatan borang',
@@ -390,7 +390,7 @@ it('stores evidence on the private app feedback disk', function () {
 
     $this->actingAs($user);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
             'title' => 'Ujian lampiran',
@@ -441,7 +441,7 @@ it('serves image evidence inline for preview', function () {
 
     $this->actingAs($user);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
             'title' => 'Ujian pratonton',
@@ -515,7 +515,7 @@ it('does not expose evidence to other users or moderators', function () {
 
     $this->actingAs($owner);
 
-    Livewire::test(Index::class)
+    Livewire::test(AppFeedbackIndex::class)
         ->fillForm([
             'category' => AppFeedbackCategory::Bug->value,
             'title' => 'Ujian privasi lampiran',

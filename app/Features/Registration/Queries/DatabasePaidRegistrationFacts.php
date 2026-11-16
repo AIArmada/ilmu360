@@ -6,18 +6,19 @@ namespace App\Features\Registration\Queries;
 
 use App\Features\Registration\Api\PaidRegistrationFacts as PaidRegistrationFactsContract;
 use App\Platform\Models\MorphModelResolver;
+use Illuminate\Support\Str;
 
 final readonly class DatabasePaidRegistrationFacts implements PaidRegistrationFactsContract
 {
     /**
-     * @param list<string> $registrationIds
+     * @param  list<string>  $registrationIds
      * @return list<string>
      */
     public function paidRegistrationIds(array $registrationIds): array
     {
         $ids = array_values(array_unique(array_filter(
             $registrationIds,
-            static fn (string $id): bool => $id !== '',
+            Str::isUuid(...),
         )));
         $paid = [];
         $registration = MorphModelResolver::resolve('registration');

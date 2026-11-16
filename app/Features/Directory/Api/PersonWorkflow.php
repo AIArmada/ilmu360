@@ -62,8 +62,6 @@ interface PersonWorkflow
      */
     public function syncRelations(string $personId, array $payload): void;
 
-    public function syncNames(string $personId, mixed $names): void;
-
     /**
      * @param  array<string, mixed>  $attributes
      */

@@ -31,7 +31,6 @@ final readonly class FixtureProject
     {
         $this->write('tools/architecture.json', json_encode([
             'schema' => 2,
-            'discovery' => 'native',
             'root_store_writers' => $rootStoreWriters,
             'exceptions' => $exceptions,
         ], JSON_THROW_ON_ERROR));

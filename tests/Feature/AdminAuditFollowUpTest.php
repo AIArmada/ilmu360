@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Filament\Resources\Series\Pages\EditSeries;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Models\Affiliation;
@@ -11,7 +12,6 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Platform\Auditing\AuditValuePresenter;
-use App\Services\ContributionEntityMutationService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
@@ -235,7 +235,7 @@ it('records person affiliation sync audits on auditable subjects', function () {
 
     $this->actingAs($administrator);
 
-    app(ContributionEntityMutationService::class)->syncPersonRelations($person, [
+    app(PersonWorkflow::class)->syncRelations((string) $person->getKey(), [
         'institutions' => [
             ['institution_id' => $newInstitution->id, 'position' => 'Mudir', 'is_primary' => true],
             ['institution_id' => $secondaryInstitution->id, 'position' => 'Advisor', 'is_primary' => false],
@@ -293,7 +293,7 @@ it('records person affiliation pivot updates when the institution is already att
 
     $this->actingAs($administrator);
 
-    app(ContributionEntityMutationService::class)->syncPersonRelations($person, [
+    app(PersonWorkflow::class)->syncRelations((string) $person->getKey(), [
         'institutions' => [[
             'institution_id' => $institution->id,
             'position' => 'Mudir',

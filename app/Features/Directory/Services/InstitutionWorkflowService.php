@@ -14,7 +14,6 @@ use App\Features\Directory\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Features\Directory\Actions\Institutions\RecordInstitutionImportExclusionAction;
 use App\Features\Directory\Actions\Institutions\RestoreInstitutionVerifierAction;
 use App\Features\Directory\Actions\Institutions\SaveInstitutionAction;
-use App\Features\Directory\Actions\Institutions\SyncInstitutionNamesAction;
 use App\Features\Directory\Actions\Institutions\SyncInstitutionRelationsAction;
 use App\Features\Directory\Actions\Institutions\VerifyPendingInstitutionsAction;
 use App\Features\Directory\Api\InstitutionWorkflow;
@@ -34,7 +33,6 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
         private AccountDirectory $accounts,
         private CreateInstitutionAction $createInstitution,
         private ApplyInstitutionContributionAction $applyInstitutionContribution,
-        private SyncInstitutionNamesAction $syncInstitutionNames,
         private SyncInstitutionRelationsAction $syncInstitutionRelations,
         private VerifyPendingInstitutionsAction $verifyPending,
         private GenerateInstitutionSlugAction $generateInstitutionSlug,
@@ -104,11 +102,6 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
     public function syncRelations(string $institutionId, array $payload): void
     {
         $this->syncInstitutionRelations->handle($this->institution($institutionId), $payload);
-    }
-
-    public function syncNames(string $institutionId, array $names): void
-    {
-        $this->syncInstitutionNames->handle($this->institution($institutionId), $names);
     }
 
     public function verifyPending(array $institutionIds): void

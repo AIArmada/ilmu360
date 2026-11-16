@@ -2,9 +2,6 @@
 
 return [
     'menu' => 'Notifikasi',
-    'actions' => [
-        'open' => 'Buka notifikasi',
-    ],
     'flash' => [
         'updated' => 'Tetapan notifikasi telah dikemas kini.',
         'device_removed' => 'Peranti telah dibuang.',
@@ -19,7 +16,6 @@ return [
         'greeting' => 'Salam sejahtera :name,',
         'generic_recipient' => 'anda',
         'occurred_at' => 'Berlaku pada: :datetime',
-        'footer' => 'Anda menerima mesej ini kerana tetapan notifikasi anda membenarkan kemas kini ini.',
     ],
     'auth' => [
         'actions' => [

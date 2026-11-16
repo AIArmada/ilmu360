@@ -179,18 +179,6 @@ it('loads the stats component', function () {
         ->assertDontSee('Cakupan Lokasi');
 });
 
-it('loads the tonight events component when events exist', function () {
-    // Create an event for tonight
-    Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'starts_at' => now()->addHours(2),
-    ]);
-
-    Livewire::test('home.tonight-events')
-        ->assertSee('Malam Ini');
-});
-
 it('renders the canonical homepage interval shortcuts', function () {
     $response = $this->get('/');
 
@@ -211,187 +199,71 @@ it('renders the canonical homepage interval shortcuts', function () {
         ->assertDontSee('date=weekend', false);
 });
 
-it('loads the featured events component with upcoming events', function () {
-    // Create an event for this week
-    Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'starts_at' => now()->addDays(3),
-    ]);
+it('shows featured homepage cards with a 16:9 placeholder and the date below it', function () {
+    $this->freezeTime();
 
-    Livewire::test('home.featured-events')
-        ->assertSee('Majlis Pilihan');
-});
-
-it('uses a 16:9 placeholder aspect ratio on featured home cards without posters', function () {
-    Event::factory()->create([
+    Event::factory()->featured()->create([
         'title' => 'Majlis Pilihan Tanpa Poster',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
     ]);
 
-    Livewire::test('home.featured-events')
+    $this->get(route('home'))
+        ->assertSuccessful()
+        ->assertSee('Pilihan Majlis Minggu Ini')
         ->assertSee('Majlis Pilihan Tanpa Poster')
-        ->assertSee('data-cover-aspect="16:9"', false);
-});
-
-it('renders the featured homepage card date badge below the poster image', function () {
-    Event::factory()->create([
-        'title' => 'Majlis Pilihan Dengan Tarikh Bawah',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'starts_at' => now()->addDays(3),
-    ]);
-
-    Livewire::test('home.featured-events')
-        ->assertSee('Majlis Pilihan Dengan Tarikh Bawah')
-        ->assertSee('data-testid="homepage-featured-card-meta-row"', false)
-        ->assertSee('data-testid="homepage-featured-card-date-badge"', false)
         ->assertSeeInOrder([
-            'data-cover-aspect=',
-            'data-testid="homepage-featured-card-meta-row"',
-            'data-testid="homepage-featured-card-title-link"',
+            'data-cover-aspect="16:9"',
+            'data-testid="event-card-date-badge"',
+            'data-testid="event-card-approval-badge"',
         ], false);
 });
 
-it('loads the upcoming events component', function () {
-    Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'starts_at' => now()->addDays(1),
+it('builds homepage date shortcut ranges in the viewer timezone after local midnight', function () {
+    config(['app.default_user_timezone' => 'UTC']);
+    $this->travelTo(Carbon::parse('2026-04-16 18:00:00', 'UTC'));
+    $viewer = User::factory()->create(['timezone' => 'Asia/Kuala_Lumpur']);
+
+    $ranges = Livewire::actingAs($viewer)->test('pages.home')->instance()->eventDateLinks();
+
+    expect($ranges['today'])->toBe([
+        'starts_after' => '2026-04-17',
+        'starts_before' => '2026-04-17',
+        'time_scope' => 'all',
+    ])->and($ranges['malam_ini'])->toBe([
+        'starts_after' => '2026-04-17',
+        'starts_before' => '2026-04-17',
+        'time_scope' => 'all',
+    ])->and($ranges['tomorrow'])->toBe([
+        'starts_after' => '2026-04-18',
+        'starts_before' => '2026-04-18',
+        'time_scope' => 'all',
     ]);
-
-    Livewire::test('home.upcoming-events')
-        ->assertSee('Majlis Akan Datang');
 });
 
-it('groups homepage date filter counts by the viewer local date', function () {
-    $userTimezone = 'Asia/Kuala_Lumpur';
-    $originalAppTimezone = config('app.timezone');
-    $originalDefaultTimezone = date_default_timezone_get();
-
-    config(['app.timezone' => 'UTC']);
-    date_default_timezone_set('UTC');
-    Carbon::setTestNow(Carbon::create(2026, 4, 16, 18, 0, 0, 'UTC'));
-
-    try {
-        Event::factory()->create([
-            'title' => 'Local Today Event',
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => Carbon::create(2026, 4, 16, 16, 30, 0, 'UTC'),
-        ]);
-
-        Event::factory()->create([
-            'title' => 'Previous Local Day Event',
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => Carbon::create(2026, 4, 16, 15, 30, 0, 'UTC'),
-        ]);
-
-        Event::factory()->create([
-            'title' => 'Local Tomorrow Event',
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now(),
-            'starts_at' => Carbon::create(2026, 4, 17, 16, 30, 0, 'UTC'),
-        ]);
-
-        $dates = Livewire::withCookie('user_timezone', $userTimezone)
-            ->test('home.date-filter')
-            ->instance()
-            ->upcomingDates;
-
-        $today = $dates->first(fn (array $dateItem): bool => $dateItem['date']->format('Y-m-d') === '2026-04-17');
-        $tomorrow = $dates->first(fn (array $dateItem): bool => $dateItem['date']->format('Y-m-d') === '2026-04-18');
-
-        expect($today)->not->toBeNull()
-            ->and($tomorrow)->not->toBeNull()
-            ->and($today['count'])->toBe(1)
-            ->and($tomorrow['count'])->toBe(1);
-    } finally {
-        Carbon::setTestNow();
-        config(['app.timezone' => $originalAppTimezone]);
-        date_default_timezone_set($originalDefaultTimezone);
-    }
-});
-
-it('uses canonical date range query parameters in homepage date components', function () {
-    Carbon::setTestNow(Carbon::create(2026, 4, 16, 10, 0, 0, 'UTC'));
-
-    Livewire::test('home.tonight-events')
-        ->assertSee(route('events.index', [
-            'starts_after' => '2026-04-16',
-            'starts_before' => '2026-04-16',
-            'time_scope' => 'all',
-        ]))
-        ->assertDontSee('date=today', false);
-
-    Livewire::test('home.date-filter')
-        ->assertSee(route('events.index', [
-            'starts_after' => '2026-04-16',
-            'starts_before' => '2026-04-16',
-            'time_scope' => 'all',
-        ]))
-        ->assertSee(route('events.index', [
-            'starts_after' => '2026-04-17',
-            'starts_before' => '2026-04-17',
-            'time_scope' => 'all',
-        ]))
-        ->assertDontSee('date=', false);
-
-    Carbon::setTestNow();
-});
-
-it('renders the attached book title across homepage event components without parentheses', function () {
-    Carbon::setTestNow(Carbon::create(2026, 4, 7, 18, 0, 0));
+it('renders the attached book title on featured homepage cards without parentheses', function () {
+    $this->freezeTime();
 
     $bookReference = Reference::factory()->create([
         'title' => 'Riyadhus Solihin',
         'type' => ReferenceType::Book->value,
     ]);
 
-    $featuredEvent = Event::factory()->create([
+    $featuredEvent = Event::factory()->featured()->create([
         'title' => 'Kuliah Kitab Pilihan',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDay(),
     ]);
 
-    $tonightEvent = Event::factory()->create([
-        'title' => 'Kuliah Kitab Malam Ini',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'starts_at' => now()->addHours(2),
-    ]);
-
     $featuredEvent->references()->attach($bookReference->id);
-    $tonightEvent->references()->attach($bookReference->id);
 
-    Livewire::test('home.featured-events')
+    $this->get(route('home'))
+        ->assertSuccessful()
         ->assertSee('Kuliah Kitab Pilihan')
-        ->assertSee('Riyadhus Solihin')
+        ->assertSeeInOrder(['data-testid="event-card-kitab"', 'Riyadhus Solihin'], false)
         ->assertDontSee('(Riyadhus Solihin)');
-
-    Livewire::test('home.upcoming-events')
-        ->assertSee('Kuliah Kitab Pilihan')
-        ->assertSee('Riyadhus Solihin')
-        ->assertDontSee('(Riyadhus Solihin)');
-
-    Livewire::test('home.tonight-events')
-        ->assertSee('Kuliah Kitab Malam Ini')
-        ->assertSee('Riyadhus Solihin')
-        ->assertDontSee('(Riyadhus Solihin)');
-
-    Livewire::test('home.upcoming-prayer-events')
-        ->assertSee('Kuliah Kitab Malam Ini')
-        ->assertSee('Riyadhus Solihin')
-        ->assertDontSee('(Riyadhus Solihin)');
-
-    Carbon::setTestNow();
 });
 
 it('lists every speaker name below the location on the featured homepage cards', function () {

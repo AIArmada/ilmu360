@@ -286,22 +286,30 @@ it('rejects an exception after its private dependency has been removed', functio
 });
 
 it('accepts owned-write exceptions only when the exact file still performs the declared write', function (): void {
+    $this->project->write('app/External/PackageOrder.php', <<<'PHP'
+<?php
+namespace Fixture\Package;
+class PackageOrder extends \Illuminate\Database\Eloquent\Model
+{
+    protected $table = 'orders';
+}
+PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
-use Illuminate\Support\Facades\DB;
+use Fixture\Package\PackageOrder;
 class Charge
 {
-    public function handle(): void { DB::table('orders')->insert(['id' => 'order']); }
+    public function handle(): void { PackageOrder::query()->create(['id' => 'order']); }
 }
 PHP);
     $this->project->write('app/Features/Orders/EntryPoints/Unregistered.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\EntryPoints;
-use Illuminate\Support\Facades\DB;
+use Fixture\Package\PackageOrder;
 class Unregistered
 {
-    public function handle(): void { DB::table('orders')->update(['name' => 'Changed']); }
+    public function handle(PackageOrder $order): void { $order->update(['name' => 'Changed']); }
 }
 PHP);
     $this->project->configure([
@@ -309,7 +317,7 @@ PHP);
             'rule' => 'architecture.foreignWrite',
             'file' => 'app/Features/Billing/Actions/Charge.php',
             'target' => 'table:orders',
-            'model' => 'App\\Features\\Orders\\Models\\Order',
+            'model' => 'Fixture\\Package\\PackageOrder',
             'reason' => 'Documented cross-feature write consumed by the owned-write rule.',
             'owner' => 'Billing',
             'expires' => '2999-12-31',
@@ -318,7 +326,7 @@ PHP);
             'rule' => 'architecture.writeLocation',
             'file' => 'app/Features/Orders/EntryPoints/Unregistered.php',
             'target' => 'table:orders',
-            'model' => 'App\\Features\\Orders\\Models\\Order',
+            'model' => 'Fixture\\Package\\PackageOrder',
             'reason' => 'Documented unregistered write consumed by the owned-write rule.',
             'owner' => 'Orders',
             'expires' => '2999-12-31',
@@ -329,6 +337,21 @@ PHP);
 
     expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
         ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
+
+    $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
+<?php
+namespace App\Features\Billing\Actions;
+use Illuminate\Support\Facades\DB;
+class Charge
+{
+    public function handle(): void { DB::table('orders')->insert(['id' => 'order']); }
+}
+PHP);
+
+    $result = $this->project->check();
+
+    expect($result['exitCode'])->toBe(2)
+        ->and($result['stderr'])->toContain('Remove stale exception: app/Features/Billing/Actions/Charge.php table:orders');
 });
 
 it('accepts an exact table exception when its package model remains in the writer', function (): void {

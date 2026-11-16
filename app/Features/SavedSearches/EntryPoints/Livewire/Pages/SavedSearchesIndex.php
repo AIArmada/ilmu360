@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearches;
+namespace App\Features\SavedSearches\EntryPoints\Livewire\Pages;
 
 use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
@@ -26,7 +26,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-class Index extends Component
+class SavedSearchesIndex extends Component
 {
     use InteractsWithToasts;
 
@@ -205,7 +205,7 @@ class Index extends Component
 
     public function render(): View
     {
-        return view('livewire.pages.saved-searches.index');
+        return view('savedsearches::livewire.pages.saved-searches.index');
     }
 
     /**

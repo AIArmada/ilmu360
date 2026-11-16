@@ -183,7 +183,7 @@
                             <p class="mt-2 whitespace-pre-line text-sm leading-6 text-emerald-950">{{ $selected->resolution_note }}</p>
                         </div>
                     @endif
-                    @include('livewire.pages.app-feedback.partials.thread', ['feedback' => $selected])
+                    @include('feedback::livewire.pages.app-feedback.partials.thread', ['feedback' => $selected])
                 </article>
             @endif
 
@@ -255,7 +255,7 @@
                                 </ul>
                             </div>
                         @endif
-                        @include('livewire.pages.app-feedback.partials.thread', ['feedback' => $feedback])
+                        @include('feedback::livewire.pages.app-feedback.partials.thread', ['feedback' => $feedback])
                     </article>
                 @empty
                     <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">

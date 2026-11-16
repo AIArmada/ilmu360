@@ -1,12 +1,13 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Directory\Api\DirectoryCommands;
 use App\Features\Directory\Api\DirectoryReader;
 use App\Features\Directory\Api\DirectoryRecordType;
 use App\Features\Directory\Api\DirectoryReportSubjectProvider;
 use App\Features\Directory\Api\InstitutionSpaceLinks;
 use App\Features\Directory\Api\InstitutionVenueLinks;
+use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\SpaceWorkflow;
 use App\Features\Directory\Api\SubmissionEligibilitySync;
 use App\Features\Directory\Api\VenueWorkflow;
@@ -25,14 +26,14 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Reports\ReportSubjectResolver;
-use App\Support\Directory\DirectoryCommandsAdapter;
+use App\Support\Api\Frontend\FrontendCatalogService;
 use App\Support\Directory\EloquentDirectoryReader;
 use App\Support\Reports\CompositeReportSubjectResolver;
 
 it('binds the directory seams to their owning implementations', function (): void {
     expect(app(DirectoryReader::class))->toBeInstanceOf(EloquentDirectoryReader::class)
-        ->and(app(DirectoryCommands::class))->toBeInstanceOf(DirectoryCommandsAdapter::class)
         ->and(app(DirectoryReportSubjectProvider::class))->toBeInstanceOf(DirectoryReportSubjectResolver::class)
         ->and(app(VenueWorkflow::class))->toBeInstanceOf(VenueWorkflowService::class)
         ->and(app(SpaceWorkflow::class))->toBeInstanceOf(SpaceWorkflowService::class)
@@ -73,13 +74,13 @@ it('reads directory details by id or slug and serves form options', function ():
         ->and($reader->exists(DirectoryRecordType::Institution, $institutionId))->toBeTrue()
         ->and($reader->find(DirectoryRecordType::Institution, 'missing-record'))->toBeNull();
 
-    $options = collect($reader->options(DirectoryRecordType::Institution, 'Masjid Ilmu'))->keyBy('id');
+    $options = collect(app(FrontendCatalogService::class)->submitInstitutions(null, 'Masjid Ilmu'))->keyBy('id');
 
     expect($options->has($institutionId))->toBeTrue()
-        ->and($options->get($institutionId)?->label)->toBe($institution->display_name);
+        ->and($options->get($institutionId)['label'] ?? null)->toBe($institution->display_name);
 });
 
-it('reads reference details and options through the directory reader', function (): void {
+it('reads reference details by slug and finds the reference in the form catalog', function (): void {
     $reference = Reference::factory()->create([
         'title' => 'Kitab Seam',
         'slug' => 'kitab-seam',
@@ -88,7 +89,7 @@ it('reads reference details and options through the directory reader', function 
 
     $reader = app(DirectoryReader::class);
     $detail = $reader->find(DirectoryRecordType::Reference, (string) $reference->slug);
-    $options = collect($reader->options(DirectoryRecordType::Reference, 'Kitab Seam'))->keyBy('id');
+    $options = collect(app(FrontendCatalogService::class)->references('Kitab Seam'))->keyBy('id');
 
     expect($detail?->id)->toBe((string) $reference->getKey())
         ->and($detail?->title)->toBe($reference->displayTitle())
@@ -118,68 +119,53 @@ it('composes directory and event report subjects without importing models', func
         ->and($resolver->find('unknown_subject', 'id'))->toBeNull();
 });
 
-it('writes directory records through the command boundary', function (): void {
+it('creates, updates, verifies and deletes institutions through their owner workflow', function (): void {
     $actor = User::factory()->create();
-    $commands = app(DirectoryCommands::class);
+    $workflow = app(InstitutionWorkflow::class);
 
-    $created = $commands->create(DirectoryRecordType::Institution, [
+    $id = $workflow->saveFromAdmin([
         'name' => 'Masjid Perintah',
         'type' => 'masjid',
     ], (string) $actor->getKey());
+    expect(Institution::query()->findOrFail($id)->name)->toBe('Masjid Perintah');
 
-    $updated = $commands->update(
-        DirectoryRecordType::Institution,
-        $created->id,
-        ['name' => 'Masjid Diperbaharui'],
-        (string) $actor->getKey(),
-    );
+    $workflow->saveFromAdmin(['name' => 'Masjid Diperbaharui'], (string) $actor->getKey(), $id);
+    expect(Institution::query()->findOrFail($id)->name)->toBe('Masjid Diperbaharui');
 
-    $verified = $commands->changeStatus(
-        DirectoryRecordType::Institution,
-        $created->id,
-        'verified',
-        (string) $actor->getKey(),
-    );
+    $workflow->changeStatus($id, InstitutionStatus::Verified->value);
+    expect(Institution::query()->findOrFail($id)->status)->toBe(InstitutionStatus::Verified);
 
-    expect($created->type)->toBe(DirectoryRecordType::Institution)
-        ->and($updated->title)->toContain('Masjid Diperbaharui')
-        ->and($verified->status)->toBe('verified');
+    $workflow->delete([$id]);
 
-    $commands->syncRelations(DirectoryRecordType::Institution, $created->id, []);
-
-    $commands->delete(DirectoryRecordType::Institution, $created->id, (string) $actor->getKey());
-
-    expect(Institution::query()->find($created->id))->toBeNull();
+    expect(Institution::query()->find($id))->toBeNull();
 });
 
 it('applies a contribution payload without changing the record lifecycle', function (): void {
     $person = Person::factory()->create(['name' => 'Nama Asal']);
 
-    $changes = app(DirectoryCommands::class)->apply(
-        DirectoryRecordType::Person,
-        (string) $person->getKey(),
-        ['name' => 'Nama Baharu'],
-    );
+    $status = $person->status;
+    $changes = app(PersonWorkflow::class)->applyContribution((string) $person->getKey(), ['name' => 'Nama Baharu']);
 
     expect($changes)->toHaveKey('name')
-        ->and($person->fresh()?->name)->toBe('Nama Baharu');
+        ->and($person->refresh()->name)->toBe('Nama Baharu')
+        ->and($person->status)->toBe($status);
 });
 
 it('lists current directory records as scalar options', function (): void {
     $institution = Institution::factory()->create(['name' => 'Masjid Ujian']);
     $person = Person::factory()->create(['name' => 'Ahmad Ujian']);
 
-    $reader = app(DirectoryReader::class);
+    $catalogs = app(FrontendCatalogService::class);
     $institutionId = (string) $institution->getKey();
     $personId = (string) $person->getKey();
 
-    $institutions = collect($reader->options(DirectoryRecordType::Institution))->keyBy('id');
-    $persons = collect($reader->options(DirectoryRecordType::Person))->keyBy('id');
+    $institutions = collect($catalogs->submitInstitutions(null))->keyBy('id');
+    $persons = collect($catalogs->submitPersons(null))->keyBy('id');
 
     expect($institutions->has($institutionId))->toBeTrue()
-        ->and($institutions->get($institutionId)?->label)->toBe('Masjid Ujian')
+        ->and($institutions->get($institutionId)['label'] ?? null)->toBe('Masjid Ujian')
         ->and($persons->has($personId))->toBeTrue()
-        ->and($persons->get($personId)?->label)->toBe('Ahmad Ujian');
+        ->and($persons->get($personId)['label'] ?? null)->toBe('Ahmad Ujian');
 });
 
 it('syncs locked directory entities for the account when eligibility fails', function (): void {

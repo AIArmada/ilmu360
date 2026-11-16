@@ -118,11 +118,6 @@ final readonly class PersonWorkflowService implements PersonWorkflow
         $this->syncPersonRelations->handle($this->person($personId), $payload);
     }
 
-    public function syncNames(string $personId, mixed $names): void
-    {
-        $this->syncPersonNames->handle($this->person($personId), $names);
-    }
-
     public function attachAffiliation(string $personId, string $institutionId, array $attributes): string
     {
         return $this->syncPersonAffiliations->attach($this->person($personId), $institutionId, $attributes);

@@ -254,7 +254,7 @@ Passport              → OAuth routes for token issuance
 | GET/LW | `/dashboard/institusi/senarai-majlis` | `dashboard.institutions.events` | InstitutionDashboard | web, auth | Auth |
 | GET/LW | `/dashboard/institusi/tambah-majlis` | `dashboard.institutions.submit-event` | Submit\Event\Create | web, auth | Auth |
 | GET/LW | `/dashboard/majlis/cipta-lanjutan` | `dashboard.events.create-advanced` | CreateAdvanced | web, auth | Auth |
-| GET/LW | `/carian-tersimpan` | `saved-searches.index` | SavedSearches\Index | web, auth | Auth |
+| GET/LW | `/carian-tersimpan` | `saved-searches.index` | SavedSearchesIndex | web, auth | Auth |
 | GET/LW | `/jemputan-ahli/{token}` | `member-invitations.show` | Membership\ShowInvitation | web, auth | Auth |
 | GET/LW | `/sumbangan` | `contributions.index` | Contributions\Index | web, auth | Auth |
 | GET/LW | `/sumbangan/institusi/baru` | `contributions.submit-institution` | SubmitInstitution | web, auth | Auth |
@@ -787,7 +787,7 @@ Passport              → OAuth routes for token issuance
 
 | Listener | Event | Registration | Type | Side effects |
 |----------|-------|-------------|------|-------------|
-| `RecordAiUsage` | 7 AI events | `AppServiceProvider::boot()` via `EventFacade::listen()` | Sync | Writes `ai_usage_logs` |
+| `RecordAiUsage` | 7 AI events | `Ai\FeatureServiceProvider::boot()` via `EventFacade::listen()` | Sync | Writes `ai_usage_logs` |
 | `SendRegisteredUserEmails` | `Registered` | Auto-discovered | Sync | Sends `WelcomeNotification` (queued mail) |
 | `RecordVerifiedEmail` | `Verified` | Auto-discovered | Sync | Records email verified in ProductSignals |
 | `RecordNotificationSent` | `NotificationSent` | Auto-discovered by Laravel | Sync | Logs delivery per channel |
@@ -1175,13 +1175,13 @@ Passport              → OAuth routes for token issuance
 
 | Event | Listener | Source |
 |-------|----------|--------|
-| `AgentPrompted` | `RecordAiUsage` | `AppServiceProvider::boot()` |
-| `AgentStreamed` | `RecordAiUsage` | `AppServiceProvider::boot()` |
-| `ImageGenerated` | `RecordAiUsage` | `AppServiceProvider::boot()` |
-| `TranscriptionGenerated` | `RecordAiUsage` | `AppServiceProvider::boot()` |
-| `EmbeddingsGenerated` | `RecordAiUsage` | `AppServiceProvider::boot()` |
-| `Reranked` | `RecordAiUsage` | `AppServiceProvider::boot()` |
-| `AudioGenerated` | `RecordAiUsage` | `AppServiceProvider::boot()` |
+| `AgentPrompted` | `RecordAiUsage` | `Ai\FeatureServiceProvider::boot()` |
+| `AgentStreamed` | `RecordAiUsage` | `Ai\FeatureServiceProvider::boot()` |
+| `ImageGenerated` | `RecordAiUsage` | `Ai\FeatureServiceProvider::boot()` |
+| `TranscriptionGenerated` | `RecordAiUsage` | `Ai\FeatureServiceProvider::boot()` |
+| `EmbeddingsGenerated` | `RecordAiUsage` | `Ai\FeatureServiceProvider::boot()` |
+| `Reranked` | `RecordAiUsage` | `Ai\FeatureServiceProvider::boot()` |
+| `AudioGenerated` | `RecordAiUsage` | `Ai\FeatureServiceProvider::boot()` |
 | `Registered` | `SendRegisteredUserEmails` | Auto-discovery |
 | `Verified` | `RecordVerifiedEmail` | Auto-discovery |
 | `NotificationSent` | `RecordNotificationSent` | Auto-discovery |

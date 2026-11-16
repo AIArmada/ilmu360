@@ -150,7 +150,7 @@ new class extends Component {};
                     {{ session('event_container_id') ? __('Add Another Session') : __('Submit Another Event') }}
                 </a>
                 @if(session('event_container_id'))
-                    <a href="{{ \AIArmada\FilamentEvents\Resources\EventResource::getUrl('view', ['record' => session('event_container_id')], panel: 'ahli') }}"
+                    <a href="{{ \App\Filament\Resources\Events\EventResource::getUrl('view', ['record' => session('event_container_id')], panel: 'ahli') }}"
                         class="inline-flex h-12 items-center justify-center rounded-xl bg-white border border-emerald-200 px-6 font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors">
                         {{ __('Back to Event') }}
                     </a>

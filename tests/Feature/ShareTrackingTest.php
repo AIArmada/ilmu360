@@ -12,6 +12,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentAffiliates\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
 use App\Actions\Fortify\CreateNewUser;
+use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearchesIndex;
 use App\Livewire\Pages\Dashboard\DakwahIndex;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
@@ -998,7 +999,7 @@ test('saved-search creation is attributed after a shared search landing', functi
 
     Livewire::withCookie(config('share-tracking.cookie.name'), $cookie?->getValue())
         ->actingAs($visitor)
-        ->test('pages.saved-searches.index')
+        ->test(SavedSearchesIndex::class)
         ->set('name', 'Fiqh Alerts')
         ->set('query', 'fiqh')
         ->set('notify', 'daily')

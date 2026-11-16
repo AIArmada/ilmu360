@@ -20,6 +20,8 @@ final readonly class ReportSnapshot
         public ?string $handledBy,
         public ?CarbonImmutable $reportedAt,
         public ?CarbonImmutable $createdAt,
-        public ?string $entityTitle = null,
+        public ?string $entityTitle,
+        public string $entityLabel,
+        public string $categoryLabel,
     ) {}
 }

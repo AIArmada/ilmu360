@@ -159,13 +159,6 @@ interface EventAuthoring
     public function syncEventReferences(string $eventId, array $referenceIds): void;
 
     /**
-     * Replace the event-level series selection.
-     *
-     * @param  list<string>  $seriesIds
-     */
-    public function syncEventSeries(string $eventId, array $seriesIds): void;
-
-    /**
      * @param  list<string>  $personIds
      * @param  list<array<string, mixed>>  $otherKeyPeople
      */

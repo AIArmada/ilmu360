@@ -1,14 +1,15 @@
 <?php
 
 use AIArmada\Persons\Models\Title;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Directory\Api\InstitutionWorkflow;
+use App\Features\Directory\Api\PersonWorkflow;
 use App\Forms\InstitutionFormSchema;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Models\Institution;
 use App\Models\InstitutionName;
 use App\Models\Person;
 use App\Models\User;
-use App\Services\ContributionEntityMutationService;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\DB;
@@ -123,23 +124,25 @@ it('keeps person institution primary toggles exclusive during live updates', fun
         ->assertSet('data.institutions.1.is_primary', true);
 });
 
-it('normalizes duplicate primary person names in the mutation service', function (): void {
+it('normalizes duplicate primary person names when applying a contribution', function (): void {
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    app(ContributionEntityMutationService::class)->syncPersonNames($person, [
-        [
-            'name_type' => 'display',
-            'full_name' => 'First Name',
-            'language_code' => 'ms',
-            'is_primary' => true,
-        ],
-        [
-            'name_type' => 'nickname',
-            'full_name' => 'Second Name',
-            'language_code' => 'ms',
-            'is_primary' => true,
+    app(PersonWorkflow::class)->applyContribution((string) $person->getKey(), [
+        'names' => [
+            [
+                'name_type' => 'display',
+                'full_name' => 'First Name',
+                'language_code' => 'ms',
+                'is_primary' => true,
+            ],
+            [
+                'name_type' => 'nickname',
+                'full_name' => 'Second Name',
+                'language_code' => 'ms',
+                'is_primary' => true,
+            ],
         ],
     ]);
 
@@ -164,7 +167,7 @@ it('keeps institution names exclusive across quick-create and contribution saves
 
     $institution = Institution::factory()->create();
 
-    app(ContributionEntityMutationService::class)->syncInstitutionNames($institution, [
+    app(InstitutionWorkflow::class)->applyContribution((string) $institution->getKey(), [
         'names' => [
             ['full_name' => 'Primary Name', 'name_type' => InstitutionNameType::Nickname, 'language_code' => 'ms', 'is_primary' => true],
             ['full_name' => 'Duplicate Name', 'name_type' => InstitutionNameType::Nickname, 'language_code' => 'ms', 'is_primary' => true],

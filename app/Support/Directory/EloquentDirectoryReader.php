@@ -18,13 +18,11 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
-use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\DirectoryOption;
 use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Support\Api\Frontend\FrontendCatalogService;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 
@@ -35,7 +33,6 @@ final readonly class EloquentDirectoryReader implements DirectoryReader
 {
     public function __construct(
         private SlugOrUuidResolver $slugOrUuidResolver,
-        private FrontendCatalogService $catalogs,
     ) {}
 
     public function exists(DirectoryRecordType $type, string $identifier): bool
@@ -67,32 +64,6 @@ final readonly class EloquentDirectoryReader implements DirectoryReader
         $model = $this->query($type, $identifier);
 
         return $model instanceof Model ? $this->detail($type, $model) : null;
-    }
-
-    public function options(
-        DirectoryRecordType $type,
-        ?string $search = null,
-        int $limit = 50,
-        ?string $accountId = null,
-        ?string $institutionId = null,
-    ): array {
-        $limit = max(1, $limit);
-        $options = match ($type) {
-            DirectoryRecordType::Institution => $this->catalogs->submitInstitutions($this->account($accountId), $search, $limit),
-            DirectoryRecordType::Person => $this->catalogs->submitPersons($this->account($accountId), $search, $limit),
-            DirectoryRecordType::Reference => $this->catalogs->references($search, $limit),
-            DirectoryRecordType::Venue => $this->catalogs->venues($search, $limit),
-            DirectoryRecordType::Space => array_slice($this->catalogs->spaces($institutionId), 0, $limit),
-            DirectoryRecordType::DonationChannel => $this->donationChannelOptions($search, $limit),
-        };
-
-        return array_map(
-            static fn (array $option): DirectoryOption => new DirectoryOption(
-                id: (string) $option['id'],
-                label: (string) $option['label'],
-            ),
-            $options,
-        );
     }
 
     public function searchPrayerInstitutions(string $search, int $limit = 50): array
@@ -305,42 +276,5 @@ final readonly class EloquentDirectoryReader implements DirectoryReader
         };
 
         return is_string($url) && $url !== '' ? $url : null;
-    }
-
-    private function account(?string $accountId): ?User
-    {
-        if ($accountId === null || $accountId === '') {
-            return null;
-        }
-
-        $account = User::query()->find($accountId);
-
-        return $account instanceof User ? $account : null;
-    }
-
-    /**
-     * @return list<array{id: string, label: string}>
-     */
-    private function donationChannelOptions(?string $search, int $limit): array
-    {
-        $query = DonationChannel::query()->orderBy('label');
-        $normalizedSearch = trim((string) $search);
-
-        if ($normalizedSearch !== '') {
-            $query->where(function ($channelQuery) use ($normalizedSearch): void {
-                $channelQuery
-                    ->whereLike('label', '%'.$normalizedSearch.'%')
-                    ->orWhereLike('recipient', '%'.$normalizedSearch.'%');
-            });
-        }
-
-        return $query
-            ->limit($limit)
-            ->get(['id', 'label', 'account_name'])
-            ->map(static fn (DonationChannel $channel): array => [
-                'id' => (string) $channel->id,
-                'label' => (string) ($channel->label ?: $channel->account_name ?: $channel->getKey()),
-            ])
-            ->all();
     }
 }

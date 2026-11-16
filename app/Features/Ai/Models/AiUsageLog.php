@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use RuntimeException;
 
 class AiUsageLog extends Model
 {
@@ -59,4 +61,15 @@ class AiUsageLog extends Model
         ];
     }
 
+    /** @return BelongsTo<Model, $this> */
+    public function user(): BelongsTo
+    {
+        $model = config('auth.providers.users.model');
+
+        if (! is_string($model) || ! is_a($model, Model::class, true)) {
+            throw new RuntimeException('The users auth provider must reference an Eloquent model.');
+        }
+
+        return $this->belongsTo($model, 'user_id');
+    }
 }

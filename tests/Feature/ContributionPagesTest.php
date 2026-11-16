@@ -2079,7 +2079,7 @@ it('renders contribution requests and event submissions without approval control
         ->assertSee(__('Speakers: :names', ['names' => $person->formatted_name]))
         ->assertSee(__('References: :names', ['names' => $reference->title]))
         ->assertSee(__('Report Submission'))
-        ->assertSee($reportInstitution->name)
+        ->assertSeeInOrder([__('Institution'), $reportInstitution->name, __('Wrong information')])
         ->assertDontSee(__('Pending Approvals'))
         ->assertDontSee(__('Approve'))
         ->assertDontSee(__('Reject'));

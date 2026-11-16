@@ -50,8 +50,7 @@ $parser = (new ParserFactory)->createForNewestSupportedVersion();
 try {
     $config = json_decode(file_get_contents($root.'/tools/architecture.json'), true, 512, JSON_THROW_ON_ERROR);
     if (($config['schema'] ?? null) !== 2 || ! is_array($config['exceptions'] ?? null)
-        || ! is_array($config['root_store_writers'] ?? null)
-        || ! in_array($config['discovery'] ?? null, ['native', 'auto'], true)) {
+        || ! is_array($config['root_store_writers'] ?? null)) {
         throw new RuntimeException('Invalid tools/architecture.json schema.');
     }
     $catalog = FeatureCatalog::load($root, $config['root_store_writers']);

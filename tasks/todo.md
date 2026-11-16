@@ -1,3 +1,14 @@
+# Architecture migration range audit (2026-11-16)
+
+- [x] Resolve the inclusive commit range and trace migration changes against the active plan and dated evidence.
+- [x] Check migrated callers, ownership declarations, and entrypoints for behavioral regressions and superseded paths.
+- [x] Fix confirmed findings at their current owners and remove unused migration code and declarations.
+- [x] Verify affected behavior, architecture, PHPStan, route parity, and the final diff. Update the migration checkpoint and record the evidence.
+
+## Review
+
+The two affected Pest selections pass all 462 tests. Ownership PHPStan, architecture, route parity, Pint and the frontend build pass. See the [migration audit evidence](agent-architecture-migration-history.md#range-audit-follow-up-2026-11-16).
+
 # Review — recent canonical event involvement import fix (2026-11-14)
 
 - [x] Review the recent seeder, PHPStan baseline, regression, and documentation changes against repository standards and the migration hard-cut requirements.

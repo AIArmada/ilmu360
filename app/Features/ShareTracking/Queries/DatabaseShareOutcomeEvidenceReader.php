@@ -144,23 +144,17 @@ final readonly class DatabaseShareOutcomeEvidenceReader implements ShareOutcomeE
         }
 
         $registrationExpression = self::metadataRegistrationIdExpression();
-        $placeholders = implode(', ', array_fill(0, count($paidRegistrationIds), '?'));
+        $paidRegistrations = match (DB::getDriverName()) {
+            'pgsql' => 'SELECT value FROM jsonb_array_elements_text(CAST(? AS jsonb))',
+            'sqlite' => 'SELECT value FROM json_each(?)',
+            default => throw new InvalidArgumentException('Community releases support only sqlite and pgsql drivers.'),
+        };
+        $paidIdsJson = json_encode($paidRegistrationIds, JSON_THROW_ON_ERROR);
 
-        return $query->where(static function (Builder $either) use (
-            $paidRegistrationIds,
-            $placeholders,
-            $registrationExpression,
-        ): void {
-            $either->where('c.conversion_type', '!=', ShareOutcomeType::EventRegistration->value)
-                ->orWhere(static function (Builder $registration) use (
-                    $paidRegistrationIds,
-                    $placeholders,
-                    $registrationExpression,
-                ): void {
-                    $registration->whereRaw("{$registrationExpression} IS NULL")
-                        ->orWhereRaw("{$registrationExpression} NOT IN ({$placeholders})", $paidRegistrationIds);
-                });
-        });
+        return $query->where(static fn (Builder $eligible): Builder => $eligible
+            ->where('c.conversion_type', '!=', ShareOutcomeType::EventRegistration->value)
+            ->orWhereRaw("{$registrationExpression} IS NULL")
+            ->orWhereRaw("{$registrationExpression} NOT IN ({$paidRegistrations})", [$paidIdsJson]));
     }
 
     /**

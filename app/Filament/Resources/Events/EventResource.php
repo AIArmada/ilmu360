@@ -18,14 +18,15 @@ use AIArmada\FilamentEvents\Resources\EventResource\RelationManagers\Occurrences
 use AIArmada\FilamentEvents\Resources\EventResource\RelationManagers\RegistrationsRelationManager;
 use AIArmada\FilamentEvents\Resources\EventResource\RelationManagers\SessionsRelationManager;
 use AIArmada\Ticketing\Enums\PricingMode;
+use App\Features\Events\Api\EventAuthoring;
 use App\Filament\Resources\Events\Pages\CreateEvent;
 use App\Filament\Resources\Events\Pages\EditEvent;
 use App\Filament\Resources\Events\Pages\ListEvents;
 use App\Filament\Resources\Events\Pages\ViewEvent;
-use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
+use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ExportAction;
@@ -37,14 +38,13 @@ use Filament\Infolists\Components\CodeEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
-use Filament\Support\Contracts\HasColor;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Contracts\HasColor;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use BackedEnum;
 use UnitEnum;
 
 final class EventResource extends Resource
@@ -53,9 +53,9 @@ final class EventResource extends Resource
 
     protected static ?string $slug = 'events';
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-calendar';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calendar';
 
-    public static function getNavigationGroup(): string | UnitEnum | null
+    public static function getNavigationGroup(): string|UnitEnum|null
     {
         $group = config('filament-events.navigation.group');
 
@@ -159,6 +159,7 @@ final class EventResource extends Resource
                             ->formatStateUsing(fn (mixed $state): string => self::extractString($state)),
                         TextEntry::make('event_format')
                             ->badge()
+                            ->state(fn (Event $record): ?string => $record->delivery_mode)
                             ->formatStateUsing(fn (mixed $state): string => self::eventFormatLabel($state)),
                         TextEntry::make('published_at')->dateTime(),
                         TextEntry::make('cancelled_at')->dateTime(),
@@ -190,7 +191,7 @@ final class EventResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (mixed $state): string | array | null => $state instanceof HasColor ? $state->getColor() : 'gray'),
+                    ->color(fn (mixed $state): string|array|null => $state instanceof HasColor ? $state->getColor() : 'gray'),
                 Tables\Columns\TextColumn::make('visibility')
                     ->badge()
                     ->formatStateUsing(fn (mixed $state): string => self::extractString($state))
@@ -202,6 +203,7 @@ final class EventResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('event_format')
                     ->badge()
+                    ->state(fn (Event $record): ?string => $record->delivery_mode)
                     ->formatStateUsing(fn (mixed $state): string => self::eventFormatLabel($state))
                     ->color(fn (mixed $state): string => match (self::extractString($state)) {
                         'physical' => 'info',
@@ -229,6 +231,7 @@ final class EventResource extends Resource
                 Tables\Filters\SelectFilter::make('visibility')
                     ->options(self::eventVisibilityOptions()),
                 Tables\Filters\SelectFilter::make('event_format')
+                    ->attribute('delivery_mode')
                     ->options(self::eventFormatOptions()),
             ])
             ->headerActions([
@@ -352,7 +355,7 @@ final class EventResource extends Resource
      */
     private static function eventStatusOptions(): array
     {
-        $modelClass = static::getModel();
+        $modelClass = self::getModel();
         $statusCast = app($modelClass)->getCasts()['status'] ?? null;
 
         if ($statusCast === null) {

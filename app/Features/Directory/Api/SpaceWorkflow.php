@@ -27,8 +27,4 @@ interface SpaceWorkflow
      * @param  list<string>  $spaceIds
      */
     public function delete(array $spaceIds): int;
-
-    public function changeStatus(string $spaceId, string $status): void;
-
-    public function changeVisibility(string $spaceId, string $visibility): void;
 }

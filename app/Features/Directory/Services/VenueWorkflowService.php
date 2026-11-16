@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Features\Directory\Services;
 
 use App\Features\Directory\Actions\Venues\ChangeVenueStatusAction;
-use App\Features\Directory\Actions\Venues\ChangeVenueVisibilityAction;
 use App\Features\Directory\Actions\Venues\CreateVenueAction;
 use App\Features\Directory\Actions\Venues\DeleteVenueAction;
 use App\Features\Directory\Actions\Venues\DetachVenueVerifierAction;
 use App\Features\Directory\Actions\Venues\GenerateVenueSlugAction;
 use App\Features\Directory\Actions\Venues\RestoreVenueVerifierAction;
 use App\Features\Directory\Actions\Venues\SaveVenueAction;
-use App\Features\Directory\Actions\Venues\SyncVenueRelationsAction;
 use App\Features\Directory\Api\VenueWorkflow;
 use App\Features\Directory\Support\DirectoryModel;
 use App\Models\Venue;
@@ -28,9 +26,7 @@ final readonly class VenueWorkflowService implements VenueWorkflow
         private SaveVenueAction $saveVenue,
         private DeleteVenueAction $deleteVenue,
         private ChangeVenueStatusAction $changeVenueStatus,
-        private ChangeVenueVisibilityAction $changeVenueVisibility,
         private GenerateVenueSlugAction $generateVenueSlug,
-        private SyncVenueRelationsAction $syncVenueRelations,
         private DetachVenueVerifierAction $detachVenueVerifier,
         private RestoreVenueVerifierAction $restoreVenueVerifier,
     ) {}
@@ -66,16 +62,6 @@ final readonly class VenueWorkflowService implements VenueWorkflow
     public function changeStatus(string $venueId, string $status): void
     {
         $this->changeVenueStatus->handle($venueId, $status);
-    }
-
-    public function changeVisibility(string $venueId, string $visibility): void
-    {
-        $this->changeVenueVisibility->handle($venueId, $visibility);
-    }
-
-    public function syncRelations(string $venueId, array $payload): void
-    {
-        $this->syncVenueRelations->handle($this->venue($venueId), $payload);
     }
 
     public function syncSlug(string $venueId): bool

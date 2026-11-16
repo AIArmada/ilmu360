@@ -71,7 +71,6 @@ function configureRootStoreWriterDeclarations(FixtureProject $project, array $ro
 {
     $project->write('tools/architecture.json', json_encode([
         'schema' => 2,
-        'discovery' => 'native',
         'root_store_writers' => $rootStoreWriters,
         'exceptions' => [],
     ], JSON_THROW_ON_ERROR));

@@ -3,7 +3,6 @@
 namespace App\Features\Ai\EntryPoints\Filament\Resources\AiUsageLogs\Tables;
 
 use App\Features\Ai\Models\AiUsageLog;
-use App\Shared\Auth\AccountDirectory;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -120,14 +119,9 @@ class AiUsageLogsTable
                     )
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('user_id')
+                TextColumn::make('user.email')
                     ->label('User')
                     ->placeholder('Guest/System')
-                    ->formatStateUsing(
-                        fn (?string $state): ?string => $state === null
-                            ? null
-                            : app(AccountDirectory::class)->profile($state)?->email
-                    )
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('invocation_id')

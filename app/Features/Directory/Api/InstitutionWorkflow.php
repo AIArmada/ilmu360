@@ -55,11 +55,6 @@ interface InstitutionWorkflow
     public function syncRelations(string $institutionId, array $payload): void;
 
     /**
-     * @param  list<array<string, mixed>>  $names
-     */
-    public function syncNames(string $institutionId, array $names): void;
-
-    /**
      * @param  list<string>  $institutionIds
      */
     public function verifyPending(array $institutionIds): void;

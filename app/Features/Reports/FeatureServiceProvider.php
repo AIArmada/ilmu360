@@ -10,7 +10,6 @@ use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
-use App\Features\Reports\EntryPoints\Livewire\Pages\Reports\Create;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Persistence\ReportLifecycle as ReportLifecycleImplementation;
 use App\Features\Reports\Policies\ReportPolicy;
@@ -22,7 +21,6 @@ use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
-use Livewire\Livewire;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -43,7 +41,5 @@ class FeatureServiceProvider extends FeatureModule
 
         Gate::policy(Report::class, ReportPolicy::class);
         Relation::morphMap(['report' => Report::class]);
-
-        Livewire::component('pages.reports.create', Create::class);
     }
 }

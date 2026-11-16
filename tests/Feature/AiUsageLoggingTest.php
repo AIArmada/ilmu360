@@ -1,7 +1,13 @@
 <?php
 
+use App\Features\Ai\EntryPoints\Filament\Resources\AiUsageLogs\Pages\ListAiUsageLogs;
 use App\Features\Ai\Models\AiModelPricing;
 use App\Features\Ai\Models\AiUsageLog;
+use App\Models\User;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
+use Filament\Facades\Filament;
+use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Gateway\Gateway;
 use Laravel\Ai\Contracts\Providers\EmbeddingProvider;
@@ -16,6 +22,7 @@ use Laravel\Ai\Responses\Data\Meta;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\Data\Usage;
 use Laravel\Ai\Responses\EmbeddingsResponse;
+use Livewire\Livewire;
 
 it('records token usage and cost for prompted agents using pricing catalog', function () {
     config()->set('ai.usage_tracking.enabled', true);
@@ -233,4 +240,50 @@ it('does not record usage logs when ai usage tracking is disabled', function () 
     ));
 
     expect(AiUsageLog::query()->count())->toBe(0);
+});
+
+it('loads the accounts for the AI usage log user column in one query', function (): void {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+    Filament::setCurrentPanel('admin');
+
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+    $accounts = User::factory()->count(2)->create();
+
+    foreach ($accounts as $account) {
+        AiUsageLog::query()->create([
+            'invocation_id' => 'inv-'.(string) $account->getKey(),
+            'operation' => 'agent_prompt',
+            'user_id' => $account->getKey(),
+        ]);
+    }
+
+    $table = Livewire::actingAs($administrator)->test(ListAiUsageLogs::class);
+    $columns = collect($table->get('tableColumns'))
+        ->map(function (array $column): array {
+            if ($column['label'] === 'User') {
+                $column['isToggled'] = true;
+            }
+
+            return $column;
+        })
+        ->all();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    try {
+        $table->call('applyTableColumnManager', $columns)->assertSee($accounts->pluck('email')->all());
+
+        $accountIds = $accounts->modelKeys();
+        $accountQueries = collect(DB::getQueryLog())->filter(
+            fn (array $query): bool => in_array($accountIds[0], $query['bindings'], true)
+                || in_array($accountIds[1], $query['bindings'], true),
+        );
+
+        expect($accountQueries)->toHaveCount(1);
+    } finally {
+        DB::disableQueryLog();
+    }
 });

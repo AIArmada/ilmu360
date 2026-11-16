@@ -5,10 +5,10 @@ namespace App\Services\Notifications;
 use AIArmada\Events\Models\EventSubmission;
 use App\Enums\EventChangeSeverity;
 use App\Features\Communications\Api\InAppNotificationPayload;
-use App\Features\Communications\Api\NotificationDispatch;
-use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationCatalog;
+use App\Features\Communications\Api\NotificationDispatch;
+use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -897,7 +897,7 @@ class EventNotificationService
                 titleKey: $titleKey,
                 titleParams: ['title' => $event->title],
                 bodyKey: $bodyKey,
-            bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
+                bodyParams: ['timing' => $this->messageRenderer->eventTimingToken($event->starts_at?->toIso8601String(), $event->timezone)],
                 actionUrl: route('events.show', $event),
                 entityType: Event::class,
                 entityId: $event->id,
@@ -954,7 +954,7 @@ class EventNotificationService
                     meta: $meta,
                 );
 
-                $this->notificationDispatch->sendInAppToAccount((string) $user->getKey(), $payload);
+                $this->notificationDispatch->sendInAppToAccount($user, $payload);
             });
     }
 

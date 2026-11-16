@@ -1064,3 +1064,13 @@ DeepSeek/Muse were unavailable under the configured access; this completion uses
 ## Final audit checkpoint (2026-11-15)
 
 The reviewed migration delta above was committed as **`dc6a6991`** (`refactor: complete agent architecture migration audit`), based on Events E4b `d56c7027`. This completion commit contains the architecture changes, focused regressions, ownership manifests and final audit records. Workspace skill edits from the prior global skill installation, the unrelated Composer lock refresh, and regenerated Filament vendor assets were deliberately preserved outside the migration commit. No dependency update was included.
+
+## Range audit follow-up (2026-11-16)
+
+Verified the audit changes in the `refactor` worktree at `3e643064`. Event contribution approval uses the canonical language writer and shares its audited reference and series writers with admin authoring. Admin event listings use the current delivery-mode field, and related-event actions resolve the registered app resource. AI usage rows load their accounts together. Community evidence preserves free and unlinked registrations and excludes recorded purchasers with one aggregate query binding. Feedback, Saved Searches, Reports and Registration Questions resolve their feature-owned Blade views. Removed unused Directory commands, the unused notification mail path, obsolete home components and the unused architecture discovery setting.
+
+Updated the architecture regression fixture to exercise both foreign and unregistered writes through the exact declared model. It also checks that a raw write to the same table does not keep the model-specific exception active. The application ownership checks and exception policy were left intact.
+
+- Affected Pest selections passed **431 tests / 2,683 assertions** and **31 tests / 130 assertions**. The run used SQLite, fresh compiled-view paths and serial Pest with browser integration disabled because the environment denied the browser runner's local socket bind. Logs are `/tmp/ilmu360-migration-resume-pest.log` and `/tmp/ilmu360-migration-resume-surfaces.log`.
+- The uncached route identity comparison matches all **750** routes. The route cache contains **748** routes, with only the two Scramble documentation closures absent. The four moved Livewire route entries match in both snapshots.
+- The architecture scanner reports **0 violations across 22 features**. Level 6 PHPStan with ownership enforcement reports **0 errors**. Pint, Vite and `git diff --check` passed. Graphify rebuilt its graph and reported partial extraction for `ArchitectureBoundaryTest.php`, which passed PHP lint and Pest.

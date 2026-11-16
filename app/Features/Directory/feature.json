@@ -106,7 +106,6 @@
     ],
     "table:venues": [
       "App\\Features\\Directory\\Actions\\Venues\\ChangeVenueStatusAction",
-      "App\\Features\\Directory\\Actions\\Venues\\ChangeVenueVisibilityAction",
       "App\\Features\\Directory\\Actions\\Venues\\CreateVenueAction",
       "App\\Features\\Directory\\Actions\\Venues\\DeleteVenueAction",
       "App\\Features\\Directory\\Actions\\Venues\\GenerateVenueSlugAction",
@@ -115,8 +114,6 @@
       "App\\Features\\Directory\\Actions\\Venues\\SaveVenueAction"
     ],
     "table:venue_spaces": [
-      "App\\Features\\Directory\\Actions\\Spaces\\ChangeSpaceStatusAction",
-      "App\\Features\\Directory\\Actions\\Spaces\\ChangeSpaceVisibilityAction",
       "App\\Features\\Directory\\Actions\\Spaces\\DeleteSpaceAction",
       "App\\Features\\Directory\\Actions\\Spaces\\SaveSpaceAction"
     ],

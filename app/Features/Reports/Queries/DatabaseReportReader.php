@@ -4,15 +4,23 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\Queries;
 
+use App\Features\Reports\Actions\ResolveReportCategoryOptionsAction;
 use App\Features\Reports\Api\ReportPage;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Support\ReportPresenter;
+use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
-final class DatabaseReportReader implements ReportReader
+final readonly class DatabaseReportReader implements ReportReader
 {
+    public function __construct(
+        private ReportSubjectResolver $subjects,
+        private ResolveReportCategoryOptionsAction $categories,
+    ) {}
+
     public function find(string $reportId): ?ReportSnapshot
     {
         $report = $this->query()->find($reportId);
@@ -108,11 +116,14 @@ final class DatabaseReportReader implements ReportReader
 
     private function snapshot(Report $report): ReportSnapshot
     {
+        $entityType = (string) $report->entity_type;
+        $category = (string) $report->category;
+
         return new ReportSnapshot(
             id: (string) $report->getKey(),
-            entityType: (string) $report->entity_type,
+            entityType: $entityType,
             entityId: (string) $report->entity_id,
-            category: (string) $report->category,
+            category: $category,
             description: $report->description,
             status: (string) $report->getAttribute('status'),
             resolutionNote: $report->resolution_note,
@@ -121,6 +132,8 @@ final class DatabaseReportReader implements ReportReader
             reportedAt: $report->reported_at,
             createdAt: $report->created_at?->toImmutable(),
             entityTitle: ReportPresenter::entityTitle($report),
+            entityLabel: $this->subjects->label($entityType),
+            categoryLabel: $this->categories->handle($entityType)[$category] ?? Str::headline($category),
         );
     }
 }

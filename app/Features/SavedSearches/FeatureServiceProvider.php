@@ -11,7 +11,6 @@ use App\Features\SavedSearches\Api\DeleteSavedSearchWithAttributionReversal;
 use App\Features\SavedSearches\Api\SavedSearchCommands as SavedSearchCommandsContract;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
-use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearches\Index;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Features\SavedSearches\Policies\SavedSearchPolicy;
 use App\Features\SavedSearches\Queries\DatabaseSavedSearchReader;
@@ -20,7 +19,6 @@ use App\Platform\FeatureModule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
-use Livewire\Livewire;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -41,7 +39,5 @@ class FeatureServiceProvider extends FeatureModule
 
         Route::bind('savedSearch', static fn (string $id): SavedSearchSnapshot => app(SavedSearchReader::class)->find($id)
             ?? throw (new ModelNotFoundException)->setModel(SavedSearch::class, [$id]));
-
-        Livewire::component('pages.saved-searches.index', Index::class);
     }
 }

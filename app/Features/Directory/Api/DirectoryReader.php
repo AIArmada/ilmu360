@@ -24,21 +24,6 @@ interface DirectoryReader
     public function find(DirectoryRecordType $type, string $identifier): ?DirectoryDetail;
 
     /**
-     * Selectable options for form pickers.
-     *
-     * @param  string|null  $accountId  Submitted-by account scope for institutions and speakers.
-     * @param  string|null  $institutionId  Institution scope for spaces.
-     * @return list<DirectoryOption>
-     */
-    public function options(
-        DirectoryRecordType $type,
-        ?string $search = null,
-        int $limit = 50,
-        ?string $accountId = null,
-        ?string $institutionId = null,
-    ): array;
-
-    /**
      * @return list<DirectoryOption>
      */
     public function searchPrayerInstitutions(string $search, int $limit = 50): array;

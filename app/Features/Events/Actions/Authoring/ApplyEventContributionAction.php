@@ -28,6 +28,7 @@ final readonly class ApplyEventContributionAction
 {
     public function __construct(
         private SyncEventScheduleFromInputAction $syncSchedule,
+        private SyncEventAssociationsAction $syncAssociations,
         private SyncEventKeyPeopleAction $syncKeyPeople,
         private SyncEventClassificationsAction $syncClassifications,
         private SpaceEligibility $spaceEligibilityResolver,
@@ -180,18 +181,17 @@ final readonly class ApplyEventContributionAction
 
         if (array_key_exists('language_ids', $payload)) {
             $languageIds = $this->normalizeStringArray($payload['language_ids']);
-            $event->auditSync('languages', $languageIds, true, ['languages.id', 'languages.name']);
+            $event->syncLanguages($languageIds);
         }
 
         if (array_key_exists('reference_ids', $payload)) {
             $referenceIds = $this->normalizeStringArray($payload['reference_ids']);
-            $event->auditSync('references', $referenceIds, true, ['references.id', 'references.title']);
+            $this->syncAssociations->syncReferences($event, $referenceIds);
         }
 
         if (array_key_exists('series_ids', $payload)) {
             $seriesIds = $this->normalizeStringArray($payload['series_ids']);
-            $series = EventModel::new('series');
-            $event->auditSync('series', $seriesIds, true, [$series->qualifyColumn('id'), $series->qualifyColumn('title')]);
+            $this->syncAssociations->syncSeries($event, $seriesIds);
         }
 
         if (

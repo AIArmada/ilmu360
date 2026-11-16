@@ -16,7 +16,6 @@ use App\Features\Events\Actions\Authoring\CreateInitialEventAccessPolicyAction;
 use App\Features\Events\Actions\Authoring\EnsureEventTaxonomyTermAction;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Features\Events\Actions\Authoring\PersistEventAuthoringAction;
-use App\Features\Events\Actions\Authoring\SyncEventAdminRelationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Features\Events\Actions\Authoring\SyncEventLanguagesAction;
@@ -57,7 +56,6 @@ final readonly class EventAuthoringService implements EventAuthoring
         private SyncEventScheduleFromInputAction $syncScheduleFromInput,
         private SyncEventLanguagesAction $syncLanguages,
         private SyncEventOrganizerAction $syncOrganizer,
-        private SyncEventAdminRelationsAction $syncAdminRelations,
         private ApplyEventContributionAction $applyEventContribution,
         private EnsureEventTaxonomyTermAction $ensureTaxonomyTerm,
         private AdminEventFormStateBuilder $formState,
@@ -186,11 +184,6 @@ final readonly class EventAuthoringService implements EventAuthoring
         $event = EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
 
         $this->submissionRelations->syncEventReferences($event, $referenceIds);
-    }
-
-    public function syncEventSeries(string $eventId, array $seriesIds): void
-    {
-        $this->syncAdminRelations->syncSeries($this->resolveEvent($eventId), $seriesIds);
     }
 
     public function syncEventKeyPeople(string $eventId, array $personIds = [], array $otherKeyPeople = []): void

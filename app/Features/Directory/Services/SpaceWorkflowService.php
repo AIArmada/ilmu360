@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Directory\Services;
 
-use App\Features\Directory\Actions\Spaces\ChangeSpaceStatusAction;
-use App\Features\Directory\Actions\Spaces\ChangeSpaceVisibilityAction;
 use App\Features\Directory\Actions\Spaces\DeleteSpaceAction;
 use App\Features\Directory\Actions\Spaces\SaveSpaceAction;
 use App\Features\Directory\Api\SpaceWorkflow;
@@ -21,8 +19,6 @@ final readonly class SpaceWorkflowService implements SpaceWorkflow
     public function __construct(
         private SaveSpaceAction $saveSpace,
         private DeleteSpaceAction $deleteSpace,
-        private ChangeSpaceStatusAction $changeSpaceStatus,
-        private ChangeSpaceVisibilityAction $changeSpaceVisibility,
     ) {}
 
     public function saveFromAdmin(array $payload, ?string $spaceId = null): string
@@ -46,16 +42,6 @@ final readonly class SpaceWorkflowService implements SpaceWorkflow
         }
 
         return $deleted;
-    }
-
-    public function changeStatus(string $spaceId, string $status): void
-    {
-        $this->changeSpaceStatus->handle($spaceId, $status);
-    }
-
-    public function changeVisibility(string $spaceId, string $visibility): void
-    {
-        $this->changeSpaceVisibility->handle($spaceId, $visibility);
     }
 
     private function space(string $spaceId): Model

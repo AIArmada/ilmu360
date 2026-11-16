@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearchesIndex;
 use Illuminate\Support\Facades\Route;
 
-// Feature-owned web routes (FeatureModule auto-loads this file). The Livewire
-// alias 'pages.saved-searches.index' is registered explicitly in
-// FeatureServiceProvider so the existing string alias keeps resolving.
 Route::middleware(['web', 'auth'])->group(function (): void {
-    Route::livewire('/carian-tersimpan', 'pages.saved-searches.index')
+    Route::livewire('/carian-tersimpan', SavedSearchesIndex::class)
         ->name('saved-searches.index');
 });

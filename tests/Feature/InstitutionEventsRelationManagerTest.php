@@ -6,6 +6,7 @@ use App\Filament\Resources\Institutions\RelationManagers\EventsRelationManager;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Shared\Events\Enums\EventFormat;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
@@ -30,13 +31,22 @@ it('renders the institution events relation manager table', function () {
     $institution = Institution::factory()->create();
     $event = Event::factory()->create([
         'institution_id' => $institution->getKey(),
+        'delivery_mode' => EventFormat::Online->value,
     ]);
+    $physicalEvent = Event::factory()->create([
+        'institution_id' => $institution->getKey(),
+        'delivery_mode' => EventFormat::Physical->value,
+    ]);
+    $unrelatedEvent = Event::factory()->create(['delivery_mode' => EventFormat::Online->value]);
 
     Livewire::actingAs($administrator)
         ->test(EventsRelationManager::class, [
             'ownerRecord' => $institution,
             'pageClass' => EditInstitution::class,
         ])
+        ->assertCanSeeTableRecords([$event, $physicalEvent])
+        ->assertTableColumnFormattedStateSet('event_format', __('Online'), $event)
+        ->filterTable('event_format', EventFormat::Online)
         ->assertCanSeeTableRecords([$event])
-        ->assertCanNotSeeTableRecords([Event::factory()->create()]);
+        ->assertCanNotSeeTableRecords([$physicalEvent, $unrelatedEvent]);
 });

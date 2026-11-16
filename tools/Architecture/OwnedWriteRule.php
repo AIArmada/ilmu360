@@ -247,8 +247,7 @@ final class OwnedWriteRule implements Rule
             throw new RuntimeException("Invalid {$path}: {$exception->getMessage()}", 0, $exception);
         }
 
-        if (! is_array($config) || ($config['schema'] ?? null) !== 2
-            || ! in_array($config['discovery'] ?? null, ['native', 'auto'], true)) {
+        if (! is_array($config) || ($config['schema'] ?? null) !== 2) {
             throw new RuntimeException("Invalid {$path} schema.");
         }
 

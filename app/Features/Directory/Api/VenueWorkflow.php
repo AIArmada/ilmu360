@@ -35,13 +35,6 @@ interface VenueWorkflow
 
     public function changeStatus(string $venueId, string $status): void;
 
-    public function changeVisibility(string $venueId, string $visibility): void;
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    public function syncRelations(string $venueId, array $payload): void;
-
     public function syncSlug(string $venueId): bool;
 
     public function syncSlugsForName(string $name): bool;

@@ -11,7 +11,6 @@ abstract class FeatureModule extends ServiceProvider
 {
     public function boot(): void
     {
-        // Native provider registration and optional automatic discovery share validation.
         FeatureCatalog::load($this->app->basePath());
         $root = dirname(new ReflectionClass($this)->getFileName());
 

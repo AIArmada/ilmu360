@@ -20,8 +20,7 @@
     ],
     "table:event_series_items": [
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction",
-      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventAssociationsAction"
     ],
     "table:event_series": [
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
@@ -50,10 +49,9 @@
       "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
     ],
     "table:event_references": [
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventAdminRelationsAction",
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventAssociationsAction",
       "App\\Features\\Events\\Actions\\Submission\\SubmissionRelationSync",
-      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction",
-      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
     ],
     "table:event_locations": [
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventLocationsAction",
@@ -95,8 +93,7 @@
       "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction"
     ],
     "table:event_languages": [
-      "App\\Features\\Events\\Actions\\Authoring\\SyncEventLanguagesAction",
-      "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction"
+      "App\\Features\\Events\\Actions\\Authoring\\SyncEventLanguagesAction"
     ],
     "table:event_submissions": [
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",

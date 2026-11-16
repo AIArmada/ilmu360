@@ -25,8 +25,6 @@
     $eventStatusLabel = static fn (object|string $status): string => method_exists($status, 'getLabel')
         ? $status->getLabel()
         : str(class_basename($status))->headline()->toString();
-    $reportEntityMetadata = app(\App\Features\Reports\Actions\ResolveReportEntityMetadataAction::class);
-    $reportCategoryOptions = app(\App\Features\Reports\Actions\ResolveReportCategoryOptionsAction::class);
 @endphp
 
 @section('title', __('My Contributions') . ' - ' . config('app.name'))
@@ -493,12 +491,6 @@
 
                     <div class="space-y-3">
                         @forelse($myReports as $report)
-                            @php
-                                $reportEntityLabel = $reportEntityMetadata->handle($report->entityType)['label'];
-                                $reportCategoryLabel = $reportCategoryOptions->handle($report->entityType)[$report->category] ?? str($report->category)->headline()->toString();
-                                $reportTitle = $report->entityTitle;
-                            @endphp
-
                             <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                                 <div class="space-y-2">
                                     <div class="flex flex-wrap items-center gap-2">
@@ -506,14 +498,14 @@
                                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass((string) $report->status) }}">
                                             {{ $statusLabel($report->status) }}
                                         </span>
-                                        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{{ $reportEntityLabel }}</span>
+                                        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{{ $report->entityLabel }}</span>
                                     </div>
 
-                                    <p class="text-base font-semibold text-slate-900">{{ $reportTitle }}</p>
+                                    <p class="text-base font-semibold text-slate-900">{{ $report->entityTitle }}</p>
 
                                     <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $report->createdAt?->diffForHumans()]) }}</p>
 
-                                    <p class="text-sm leading-6 text-slate-700">{{ $reportCategoryLabel }}</p>
+                                    <p class="text-sm leading-6 text-slate-700">{{ $report->categoryLabel }}</p>
 
                                     @if(filled($report->description))
                                         <p class="text-sm leading-6 text-slate-600">{{ $report->description }}</p>

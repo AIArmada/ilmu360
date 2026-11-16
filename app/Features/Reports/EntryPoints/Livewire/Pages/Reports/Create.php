@@ -16,6 +16,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -152,6 +153,11 @@ class Create extends Component implements HasForms
         }
 
         $this->redirect($this->context['redirect_url'], navigate: true);
+    }
+
+    public function render(): View
+    {
+        return view('reports::livewire.pages.reports.create');
     }
 
     public function rendering(object $view): void

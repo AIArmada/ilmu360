@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Series;
 
-use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\Series\Pages\CreateSeries;
 use App\Filament\Resources\Series\Pages\EditSeries;
 use App\Filament\Resources\Series\Pages\ListSeries;

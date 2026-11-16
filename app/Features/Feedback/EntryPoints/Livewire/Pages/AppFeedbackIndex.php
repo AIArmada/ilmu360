@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Feedback\EntryPoints\Livewire\Pages\AppFeedback;
+namespace App\Features\Feedback\EntryPoints\Livewire\Pages;
 
 use App\Features\Feedback\Actions\PostAppFeedbackMessageAction;
 use App\Features\Feedback\Actions\SubmitAppFeedbackAction;
@@ -39,7 +39,7 @@ use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 #[Title('Maklum Balas')]
-class Index extends Component implements HasForms
+class AppFeedbackIndex extends Component implements HasForms
 {
     use InteractsWithForms;
     use InteractsWithToasts;
@@ -282,7 +282,7 @@ class Index extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.pages.app-feedback.index', [
+        return view('feedback::livewire.pages.app-feedback.index', [
             'canSubmit' => Gate::allows('create', AppFeedback::class),
         ]);
     }

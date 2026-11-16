@@ -18,8 +18,7 @@ use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Enums\RegistrationScope;
-use App\Features\Directory\Api\DirectoryCommands;
-use App\Features\Directory\Api\DirectoryRecordType;
+use App\Features\Directory\Api\DonationChannelWorkflow;
 use App\Features\Directory\Api\InstitutionWorkflow;
 use App\Features\Directory\Api\PersonWorkflow;
 use App\Features\Directory\Api\ReferenceWorkflow;
@@ -70,6 +69,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
@@ -83,7 +83,7 @@ class AdminResourceMutationService
         private readonly InspirationAdminContract $inspirationAdmin,
         private readonly ReportAdminContract $reportAdmin,
         private readonly SaveAddressAreaAction $saveAddressAreaAction,
-        private readonly DirectoryCommands $directoryCommands,
+        private readonly DonationChannelWorkflow $donationChannels,
         private readonly SaveAdminEventAction $saveAdminEventAction,
         private readonly EventAuthoring $eventAuthoring,
         private readonly InstitutionWorkflow $institutionWorkflow,
@@ -404,7 +404,7 @@ class AdminResourceMutationService
 
         return match ($resourceClass) {
             AddressAreaResource::class => $this->saveAddressAreaAction->handle($validated),
-            DonationChannelResource::class => DonationChannel::query()->findOrFail($this->directoryCommands->create(DirectoryRecordType::DonationChannel, $validated, (string) $actor->getKey())->id),
+            DonationChannelResource::class => $this->saveDonationChannel($validated, $actor),
             EventResource::class => $this->saveAdminEventAction->handle($validated, $actor),
             InstitutionResource::class => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey())),
             ReferenceResource::class => Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($validated)),
@@ -441,7 +441,7 @@ class AdminResourceMutationService
                 ? $this->saveAddressAreaAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected address area record.'),
             DonationChannelResource::class => $record instanceof DonationChannel
-                ? DonationChannel::query()->findOrFail($this->directoryCommands->update(DirectoryRecordType::DonationChannel, (string) $record->getKey(), $validated, (string) $actor->getKey())->id)
+                ? $this->saveDonationChannel($validated, $actor, $record)
                 : throw new \RuntimeException('Expected donation channel record.'),
             EventResource::class => $record instanceof Event
                 ? $this->saveAdminEventAction->handle($validated, $actor, $record)
@@ -761,6 +761,19 @@ class AdminResourceMutationService
     private function recordKey(Model $record): string
     {
         return (string) $record->getRouteKey();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function saveDonationChannel(array $validated, User $actor, ?DonationChannel $record = null): DonationChannel
+    {
+        Gate::forUser($actor)->authorize($record === null ? 'create' : 'update', $record ?? DonationChannel::class);
+
+        $recordId = $record === null ? null : (string) $record->getKey();
+        $channelId = $this->donationChannels->save($validated, $recordId);
+
+        return DonationChannel::query()->findOrFail($channelId);
     }
 
     /**

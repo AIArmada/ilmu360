@@ -16,15 +16,16 @@ use App\Features\Community\Queries\CommunityReleaseReader;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use App\Support\Api\Admin\AdminResourceRegistry;
 use App\Shared\ShareTracking\ShareTrackingProfile;
+use App\Support\Api\Admin\AdminResourceRegistry;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
-use Filament\Facades\Filament;
-use Laravel\Sanctum\Sanctum;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -655,7 +656,7 @@ it('hides unknown, corrupt, staff, and purchaser rows from every proven count an
         ->assertSee('proven-only');
 });
 
-it('includes free event registrations while excluding paid purchaser linkage', function () {
+it('includes free and unlinked registrations while excluding purchasers with bounded query bindings', function () {
     $affiliate = communityAffiliate('community-r8-purchaser');
     $staff = communityStaff();
 
@@ -677,16 +678,61 @@ it('includes free event registrations while excluding paid purchaser linkage', f
         'metadata' => ['registration_id' => (string) $freeRegistration->getKey()],
     ]);
 
-    $release = PublishCommunityReleaseAction::run(
-        '2026-05', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-06-10T00:00:00Z'),
-    );
+    communityCleanPair($affiliate, type: 'event_registration');
 
-    expect($release->sharer_count)->toBe(11)
-        ->and($release->participant_count)->toBe(11)
-        ->and($release->cells['total_outcomes'])->toBe(11)
-        ->and($release->cells['by_channel'])->toBe(['link' => 11])
+    communityConversion($affiliate, [
+        'sharer_user_id' => (string) User::factory()->create()->getKey(),
+        'actor_user_id' => (string) User::factory()->create()->getKey(),
+        'conversion_type' => 'event_registration',
+        'metadata' => ['registration_id' => 'not-a-registration-uuid'],
+    ]);
+
+    $paidRegistrationIds = Registration::factory()->count(2)->create([
+        'event_id' => $event->getKey(),
+        'total_amount' => 1000,
+        'payment_status' => 'paid',
+    ])->modelKeys();
+
+    foreach ($paidRegistrationIds as $registrationId) {
+        communityConversion($affiliate, [
+            'sharer_user_id' => (string) User::factory()->create()->getKey(),
+            'actor_user_id' => (string) User::factory()->create()->getKey(),
+            'conversion_type' => 'event_registration',
+            'metadata' => ['registration_id' => (string) $registrationId],
+        ]);
+    }
+
+    DB::enableQueryLog();
+
+    try {
+        $release = PublishCommunityReleaseAction::run(
+            '2026-05', 'user', (string) $staff->getKey(), CarbonImmutable::parse('2026-06-10T00:00:00Z'),
+        );
+        $queries = DB::getQueryLog();
+    } finally {
+        DB::disableQueryLog();
+        DB::flushQueryLog();
+    }
+
+    expect($release->sharer_count)->toBe(13)
+        ->and($release->participant_count)->toBe(13)
+        ->and($release->cells['total_outcomes'])->toBe(13)
+        ->and($release->cells['by_channel'])->toBe(['link' => 13])
         ->and($release->cells['by_outcome'])->toBeNull()
         ->and($release->cells['suppressed'])->toBe(['by_outcome']);
+
+    $aggregateQueries = array_filter($queries, static fn (array $query): bool => str_contains($query['query'], 'COUNT(DISTINCT c.sharer_user_id)'));
+    expect($aggregateQueries)->not->toBeEmpty();
+
+    foreach ($aggregateQueries as $query) {
+        $paidBindings = array_values(array_filter(
+            $query['bindings'],
+            static fn (mixed $binding): bool => is_string($binding) && Str::contains($binding, $paidRegistrationIds),
+        ));
+
+        expect($paidBindings)->toHaveCount(1);
+        expect(json_decode($paidBindings[0], true, flags: JSON_THROW_ON_ERROR))->toEqualCanonicalizing($paidRegistrationIds);
+    }
 });
 
 it('never lets repeated events satisfy the distinct-person threshold', function () {

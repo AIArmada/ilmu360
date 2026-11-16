@@ -27,6 +27,7 @@ use App\Models\Institution;
 use App\Models\InstitutionName;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Location\AddressAssignments;
@@ -375,7 +376,7 @@ class ContributionEntityMutationService implements ContributionEntityState
                 'reference_ids' => ['sometimes', 'array'],
                 'reference_ids.*' => ['uuid', 'exists:references,id'],
                 'series_ids' => ['sometimes', 'array'],
-                'series_ids.*' => ['uuid', 'exists:series,id'],
+                'series_ids.*' => ['uuid', Rule::exists(Series::class, 'id')],
                 'person_ids' => ['sometimes', 'array'],
                 'person_ids.*' => ['uuid', 'exists:persons,id'],
                 'other_key_people' => ['sometimes', 'array'],
@@ -590,7 +591,7 @@ class ContributionEntityMutationService implements ContributionEntityState
             'series',
             'classifications',
             'keyPeople.person',
-            'languages:id,event_id',
+            'languages:id,event_id,event_occurrence_id,event_session_id,language_code',
             'primaryOccurrence',
             'primaryOrganizerInvolvement',
             'primaryLocation',
@@ -687,49 +688,6 @@ class ContributionEntityMutationService implements ContributionEntityState
             'contactMethods' => $this->contactMethodsState($venue->contactMethods),
             'social_media' => $this->socialMediaState($venue->socialProfiles),
         ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    public function syncInstitutionNames(Institution $institution, array $payload): void
-    {
-        $names = $payload['names'] ?? null;
-
-        if (! is_array($names)) {
-            return;
-        }
-
-        $this->institutionWorkflow->syncNames((string) $institution->getKey(), $names);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    public function syncInstitutionRelations(Institution $institution, array $payload): void
-    {
-        $this->institutionWorkflow->syncRelations((string) $institution->getKey(), $payload);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    public function syncPersonRelations(Person $person, array $payload): void
-    {
-        $this->personWorkflow->syncRelations((string) $person->getKey(), $payload);
-    }
-
-    public function syncPersonNames(Person $person, mixed $namesPayload): void
-    {
-        $this->personWorkflow->syncNames((string) $person->getKey(), $namesPayload);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    public function syncReferenceRelations(Reference $reference, array $payload): void
-    {
-        $this->referenceWorkflow->syncRelations((string) $reference->getKey(), $payload);
     }
 
     /**

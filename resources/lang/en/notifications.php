@@ -2,9 +2,6 @@
 
 return [
     'menu' => 'Notifications',
-    'actions' => [
-        'open' => 'Open notification',
-    ],
     'flash' => [
         'updated' => 'Notification settings updated.',
         'device_removed' => 'Device removed.',
@@ -19,7 +16,6 @@ return [
         'greeting' => 'Hello :name,',
         'generic_recipient' => 'there',
         'occurred_at' => 'Occurred at: :datetime',
-        'footer' => 'You are receiving this because your notification settings allow this update.',
     ],
     'auth' => [
         'actions' => [

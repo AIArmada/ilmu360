@@ -1,26 +1,26 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\FilamentEvents\Resources\EventResource as PackageEventResource;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\FilamentEvents\Resources\EventOccurrenceResource;
-use App\Filament\Resources\Events\EventResource;
-use App\Filament\Resources\Events\Pages\CreateEvent;
-use App\Filament\Resources\Events\Pages\EditEvent;
+use AIArmada\FilamentEvents\Resources\EventResource as PackageEventResource;
 use AIArmada\FilamentEvents\Resources\EventSessionResource;
 use AIArmada\FilamentSeating\RelationManagers\SeatMapsRelationManager;
 use AIArmada\FilamentTicketing\RelationManagers\TicketTypesRelationManager;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Prayer\EventPrayerTime;
+use App\Filament\Resources\Events\EventResource;
+use App\Filament\Resources\Events\Pages\CreateEvent;
+use App\Filament\Resources\Events\Pages\EditEvent;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -163,7 +163,7 @@ it('exposes edit access from the events list and view page', function (): void {
     $administrator = User::factory()->create();
     $administrator->assignRole('super_admin');
 
-    $event = Event::factory()->create();
+    $event = Event::factory()->create(['delivery_mode' => EventFormat::Online->value]);
 
     $table = EventResource::table(Table::make(Mockery::mock(HasTable::class)));
     $editAction = collect($table->getRecordActions())
@@ -182,6 +182,7 @@ it('exposes edit access from the events list and view page', function (): void {
     $this->actingAs($administrator)
         ->get(EventResource::getUrl('view', ['record' => $event], panel: 'admin'))
         ->assertSuccessful()
+        ->assertSee(__('Online'))
         ->assertSee(EventResource::getUrl('edit', ['record' => $event], panel: 'admin'), false);
 });
 

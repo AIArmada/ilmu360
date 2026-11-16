@@ -2,10 +2,10 @@
 
 namespace App\Services\Notifications;
 
-use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\InAppNotificationPayload;
 use App\Features\Communications\Api\NotificationCatalog;
 use App\Features\Communications\Api\NotificationDispatch;
+use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Models\ContributionRequest;
@@ -168,7 +168,7 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
             meta: $data->meta,
         );
 
-        $this->notificationDispatch->sendInAppToAccount((string) $user->getKey(), $payload);
+        $this->notificationDispatch->sendInAppToAccount($user, $payload);
     }
 
     private function supportsCreateSubmissionNotifications(ContributionRequest $request): bool

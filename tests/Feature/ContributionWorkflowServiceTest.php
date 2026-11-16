@@ -1,20 +1,21 @@
 <?php
 
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
-use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\Contributions\Actions\CancelContributionRequestAction;
+use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionCreateRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Models\Series;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Support\Authz\MemberPermissionGate;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -258,7 +259,7 @@ it('applies structured institution updates through approval', function () {
         ->and($institution->socialProfiles->pluck('sort_order')->all())->toEqual([1, 2]);
 });
 
-it('applies structured event participant and reference updates through approval', function () {
+it('applies structured event associations and languages through approval', function () {
     $this->seed(EventRoleSeeder::class);
 
     $proposer = User::factory()->create();
@@ -267,19 +268,25 @@ it('applies structured event participant and reference updates through approval'
         'status' => 'approved',
         'visibility' => 'public',
     ]);
+    $malayId = languageId('ms');
+    $arabicId = languageId('ar');
+    expect($malayId)->not->toBeNull();
+    expect($arabicId)->not->toBeNull();
+    $event->syncLanguages([$malayId]);
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->create([
         'status' => 'verified',
     ]);
+    $series = Series::factory()->create();
 
-    $request = app(SubmitContributionUpdateRequestAction::class)->handle(
-        $event,
-        $proposer,
+    $payload = validator(
         [
             'title' => 'Kuliah Terkini',
+            'language_ids' => [$arabicId],
             'reference_ids' => [$reference->id],
+            'series_ids' => [$series->id],
             'person_ids' => [$person->id],
             'other_key_people' => [[
                 'role_code' => 'moderator',
@@ -287,13 +294,18 @@ it('applies structured event participant and reference updates through approval'
                 'visibility' => 'public',
             ]],
         ],
-    );
+        app(ContributionEntityMutationService::class)->updateRulesFor($event),
+    )->validate();
+    $request = app(SubmitContributionUpdateRequestAction::class)->handle($event, $proposer, $payload);
 
     app(ApproveContributionRequestAction::class)->handle($request, $reviewer, 'Approved event update.');
 
     $event->refresh();
 
     expect($event->title)->toBe('Kuliah Terkini')
+        ->and($request->refresh()->original_data['language_ids'])->toBe([$malayId])
+        ->and($event->languages()->pluck('language_code')->all())->toBe(['ar'])
+        ->and($event->series()->whereKey($series->id)->exists())->toBeTrue()
         ->and($event->references()->whereKey($reference->id)->exists())->toBeTrue()
         ->and($event->keyPeople()
             ->where('involveable_type', (new Person)->getMorphClass())

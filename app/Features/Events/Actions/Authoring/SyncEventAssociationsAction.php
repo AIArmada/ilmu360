@@ -7,10 +7,7 @@ namespace App\Features\Events\Actions\Authoring;
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Support\EventModel;
 
-/**
- * Writes the admin relation pivots owned by the event authoring flow.
- */
-final readonly class SyncEventAdminRelationsAction
+final readonly class SyncEventAssociationsAction
 {
     /**
      * @param  \App\Models\Event  $event

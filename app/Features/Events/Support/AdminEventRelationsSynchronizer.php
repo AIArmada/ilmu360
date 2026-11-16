@@ -3,7 +3,7 @@
 namespace App\Features\Events\Support;
 
 use AIArmada\Events\Models\Event as PackageEvent;
-use App\Features\Events\Actions\Authoring\SyncEventAdminRelationsAction;
+use App\Features\Events\Actions\Authoring\SyncEventAssociationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventSeatMapsAction;
 use App\Platform\Media\MediaCollectionSync;
@@ -14,7 +14,7 @@ final readonly class AdminEventRelationsSynchronizer
 {
     public function __construct(
         private SyncEventResourceRelationsAction $syncEventResourceRelationsAction,
-        private SyncEventAdminRelationsAction $syncAdminRelations,
+        private SyncEventAssociationsAction $syncAssociations,
         private MediaCollectionSync $mediaSyncService,
         private SyncEventSeatMapsAction $seatMapAssignments,
     ) {}
@@ -50,7 +50,7 @@ final readonly class AdminEventRelationsSynchronizer
 
         $referenceIds = $this->normalizeStringArray($state['references'] ?? []);
 
-        $this->syncAdminRelations->syncReferences($event, $referenceIds);
+        $this->syncAssociations->syncReferences($event, $referenceIds);
     }
 
     /**
@@ -65,7 +65,7 @@ final readonly class AdminEventRelationsSynchronizer
 
         $seriesIds = $this->normalizeStringArray($state['series'] ?? []);
 
-        $this->syncAdminRelations->syncSeries($event, $seriesIds);
+        $this->syncAssociations->syncSeries($event, $seriesIds);
     }
 
     /**

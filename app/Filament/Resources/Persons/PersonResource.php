@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Persons;
 
-use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager;
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\NamesRelationManager as PackageNamesRelationManager;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Filament\Resources\Persons\Pages\ListPersons;
