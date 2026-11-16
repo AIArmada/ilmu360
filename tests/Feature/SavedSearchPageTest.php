@@ -74,7 +74,7 @@ it('opens saved searches with the advanced filter panel closed', function () {
     $matches = [];
 
     if (preg_match($pattern, $html, $matches) !== 1) {
-        throw new \RuntimeException('The saved search link is missing.');
+        throw new RuntimeException('The saved search link is missing.');
     }
 
     $url = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
