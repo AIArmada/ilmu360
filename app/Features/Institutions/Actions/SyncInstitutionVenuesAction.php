@@ -6,8 +6,6 @@ namespace App\Features\Institutions\Actions;
 
 use App\Models\Institution;
 
-use App\Models\Venue;
-
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Database\Eloquent\Model;
@@ -153,7 +151,8 @@ final class SyncInstitutionVenuesAction
         }
 
         if ($seenVenues !== []) {
-            $existingIds = Venue::query()
+            $venueModel = MorphModelResolver::resolve('venue');
+            $existingIds = $venueModel::query()
                 ->whereKey($seenVenues)
                 ->pluck('id')
                 ->all();
