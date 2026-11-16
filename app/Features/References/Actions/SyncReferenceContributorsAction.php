@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\References\Actions;
 
-use App\Models\Person;
-
 use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Models\ReferenceContributor;
 use App\Features\References\Support\ReferencePayload;
+use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -42,7 +41,7 @@ final readonly class SyncReferenceContributorsAction
             return;
         }
 
-        $personClass = Person::class;
+        $personClass = MorphModelResolver::resolve('person');
 
         $reference->syncContributors(
             ReferenceContributorRole::Author,
