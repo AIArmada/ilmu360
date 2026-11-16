@@ -31,8 +31,6 @@ class EventOccurrence extends PackageEventOccurrence
         $eventId = (string) $this->event_id;
 
         if (! app(EventDeletionScope::class)->isDeleting($eventId)) {
-            app(EventRegistrationDeletion::class)->assertEventRegistrationsCanBeDeleted($eventId);
-
             $event = Event::query()->find($eventId);
 
             if ($event instanceof Event
@@ -42,6 +40,8 @@ class EventOccurrence extends PackageEventOccurrence
                     'occurrences' => __('A published event must have at least one occurrence.'),
                 ]);
             }
+
+            app(EventRegistrationDeletion::class)->assertEventRegistrationsCanBeDeleted($eventId);
         }
 
         return DB::transaction(fn (): ?bool => parent::delete());
