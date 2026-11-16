@@ -12,7 +12,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
-use RuntimeException;
 
 /**
  * Create or update a venue through the owning Directory feature.
@@ -35,10 +34,6 @@ final readonly class SaveVenueAction
     {
         $creating = $venue === null;
         $venue ??= new Venue;
-
-        if (! $venue instanceof Venue) {
-            throw new RuntimeException('The registered venue model must be the Directory venue model.');
-        }
 
         if (! $creating) {
             MorphModelResolver::assert($venue, 'venue');
