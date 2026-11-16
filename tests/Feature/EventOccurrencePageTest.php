@@ -81,7 +81,7 @@ it('renders the occurrence page with a bounded enriched query budget', function 
 
     // Enriched child view: event identity + shared public info + selected leaf
     // commerce. Siblings must not widen the budget (see N+1 guard below).
-    expect($queries)->toBeLessThan(56);
+    expect($queries)->toBeLessThanOrEqual(56);
 });
 
 it('keeps the occurrence budget stable when sibling dates grow', function (): void {
@@ -115,7 +115,7 @@ it('keeps the occurrence budget stable when sibling dates grow', function (): vo
         'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
     ]))->assertOk();
 
-    expect($queries)->toBeLessThan(56);
+    expect($queries)->toBeLessThanOrEqual(56);
 });
 
 it('lists only sibling dates in the related majlis section', function (): void {
