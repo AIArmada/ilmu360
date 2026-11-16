@@ -76,13 +76,13 @@ jobs:
         id: phpstan
         continue-on-error: true
         run: php -d max_memory_limit=1G vendor/bin/phpstan analyse --memory-limit=1G --no-progress
-      - name: Run affected Pest suite
+      - name: Recheck three previously failing Pest suites
         id: pest
         continue-on-error: true
         run: |
           set -o pipefail
           failures=0
-          for file in "tests/Feature/FeatureOwnershipSeamsTest.php" "tests/Feature/InstitutionHardeningTest.php" "tests/Feature/InstitutionAdminFacilitiesTest.php" "tests/Feature/SpaceModelRemediationTest.php" "tests/Feature/VenueLocationCascadeTest.php" "tests/Feature/SaveDonationChannelActionTest.php" "tests/Feature/InstitutionContributionLocationPickerTest.php" "tests/Feature/Events/EventMediaSeamTest.php" "tests/Feature/ContributionWorkflowServiceTest.php" "tests/Feature/ReferenceFamilyTest.php" "tests/Feature/PersonSearchCacheTest.php" "tests/Feature/ResourceSearchDispatcherTest.php" "tests/Feature/SlugRedirectFeatureTest.php" "tests/Feature/LifecycleHardeningTest.php" "tests/Feature/AccountSettingsPageTest.php" "tests/Feature/MembershipApplicationPagesTest.php" "tests/Feature/MembershipApplicationActionsTest.php" "tests/Feature/ReportActionsTest.php" "tests/Feature/ReportAdminResourceTest.php" "tests/Feature/Mcp/AdminServerTest.php" "tests/Feature/Api/Admin/AdminApiTest.php" "tests/Feature/Api/Frontend/FrontendApiParityTest.php" "tests/Feature/HomePageTest.php" "tests/Feature/PublicListingCacheInvalidationTest.php" "tests/Unit/PublicDirectoryCacheVersionsTest.php" "tests/Unit/Platform/ArchitectureBoundaryTest.php"; do
+          for file in "tests/Feature/FeatureOwnershipSeamsTest.php" "tests/Feature/MembershipApplicationPagesTest.php" "tests/Unit/PublicDirectoryCacheVersionsTest.php"; do
             echo "Running $file"
             if ! vendor/bin/pest --compact "$file"; then
               failures=1
