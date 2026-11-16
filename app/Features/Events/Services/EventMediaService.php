@@ -38,7 +38,7 @@ final readonly class EventMediaService implements EventMedia
             return false;
         }
 
-        $this->directoryContributionMedia->attachStagedDonationQr($event, $media);
+        $this->donationQrMedia->attachStagedDonationQr($event, $media);
 
         return true;
     }
