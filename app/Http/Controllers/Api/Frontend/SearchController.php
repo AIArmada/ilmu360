@@ -141,7 +141,7 @@ class SearchController extends FrontendController
         private readonly ReferenceSearchService $referenceSearchService,
         private readonly PersonSearchService $personSearchService,
         private readonly InstitutionListingCacheVersion $institutionListingCacheVersion,
-        PersonListingCacheVersion $personListingCacheVersion,
+        private readonly PersonListingCacheVersion $personListingCacheVersion,
         private readonly SearchRequestNormalizer $searchRequestNormalizer,
         private readonly SearchPayloadTransformer $searchPayloadTransformer,
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
