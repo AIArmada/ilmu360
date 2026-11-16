@@ -6,8 +6,10 @@
 - [x] Remove retired Directory provider/classes and update PHPStan helper registration, ownership exceptions, and focused seams.
 - [x] Verify ownership architecture, typed boundaries, full PHPStan and 749-route identity/middleware parity on a GitHub runner with independent pre-refactor vendor installation.
 - [x] Repair GitHub CI package bootstrap (sibling Commerce checkout and APP_ENV=testing) and Paratest shard invocation fallback.
-- [ ] Finish affected Pest regression suite and authenticated Filament smoke. The Pest parallel wrapper is incompatible with the installed Pest/Paratest combination, so CI runs serial test-file selections as fallback; do not claim an all-green suite without execution.
-- [ ] Confirm Pint/Rector CI after the automated style commit, and review any test failures introduced or revealed by the full-suite run.
+- [x] Complete the affected 26-file Pest regression selection using serial fallback for the broken Paratest wrapper: **608 tests passed, 5,431 assertions, zero failures**.
+- [ ] Authenticated Filament smoke remains unverified because this GitHub-only environment has no signed-in local Herd browser session; route/resource identity checks passed.
+- [x] Confirm Pint full-repository check (2,571 files), Rector CI, ownership PHPStan, ordinary PHPStan and route identity/middleware parity after the formatting commit.
+- [ ] The unrelated app-wide PostgreSQL shards still show failures outside this ownership split (including Share Cards, MCP image generation, community fixtures). One relevant unsaved Reference preview UUID query was corrected after the passing SQLite-focused run; verify that correction under PostgreSQL before claiming an app-wide green CI.
 
 ## Scope and verification evidence
 
@@ -17,7 +19,8 @@
 - Source-level checks: the remote GitHub Actions implementation run [43826856073](https://github.com/AIArmada/ilmu360/actions/runs/43826856073) passed the execution payload checksum, 26-feature and five-owner manifest checks, `git diff --cached --check`, and PHP 8.5 lint of all modified/new PHP paths. The implementation was committed and pushed as [`ab15e4d`](https://github.com/AIArmada/ilmu360/commit/ab15e4dfef0979774fd4d1d513a282834bdfc91e).
 - No database or external services were written by this refactor task.
 - Post-cut verification: [GitHub Actions 43853277130](https://github.com/AIArmada/ilmu360/actions/runs/43853277130) reported **0 architecture violations / 26 features**, **0 ownership-PHPStan errors**, **0 ordinary PHPStan errors**, and **749/749 matching routes**, with middleware order preserved. Initial Pint full-repository scan reported 297 style issues; the existing fix-code-style workflow subsequently pushed a formatting/Rector commit. Follow-up behavior and formatting gates are being evaluated separately.
-- The References person morph read, shared submission space-eligibility dependency, EventMediaService QR property, owner action typing and institution lookup result typing were corrected in `refactor`; source hard cut and stored identities remain unchanged.
+- Final affected-check evidence: [GitHub Actions 43854015559 (rerun)](https://github.com/AIArmada/ilmu360/actions/runs/43854015559) reported **0 architecture violations across 26 features, 0 ownership PHPStan errors, 749/749 matching routes with middleware order preserved, Pint PASS over 2,571 files, 0 ordinary PHPStan errors and 608/608 passing tests (5,431 assertions) across 26 selected Pest files**. These checks ran after the three ownership/membership/cache regression fixes and before the subsequent unsaved-Reference PostgreSQL guard.
+- The References person morph read, shared submission space-eligibility dependency, EventMediaService QR property, owner action typing and institution lookup result typing were corrected in `refactor`; source hard cut and stored identities remain unchanged. The membership Person lookup no longer reads nonexistent `type`; the unit cache test isolates its Events fingerprint; the seam test now asserts missing-ID rejection. A PostgreSQL test also revealed an unsaved Reference preview with a provisional non-UUID ID querying contributor rows; the canonical model now skips persisted contributor lookups for unsaved owners.
 
 # Architecture migration range audit (2026-11-16)
 
