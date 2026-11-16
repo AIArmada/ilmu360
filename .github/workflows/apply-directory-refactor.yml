@@ -24,8 +24,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /mnt/data
-          ln -s "$GITHUB_WORKSPACE" /mnt/data/ilmu360-work
           for i in $(seq -w 1 6); do
             test -s ".github/refactor-scripts-part-$i.b64"
           done
@@ -33,6 +31,7 @@ jobs:
           echo '24897d81e31c2fff6467b9d74726cdba59e2535c5dd68a70123433b2030fa140  /tmp/ilmu360-scripts.tar.xz' | sha256sum -c -
           mkdir -p /tmp/ilmu360-scripts
           tar -xJf /tmp/ilmu360-scripts.tar.xz -C /tmp/ilmu360-scripts
+          sed -i "s@/mnt/data/ilmu360-work@${GITHUB_WORKSPACE}@g" /tmp/ilmu360-scripts/phase*.py
           for i in $(seq 1 16); do
             f=$(find /tmp/ilmu360-scripts -maxdepth 1 -type f -name "phase${i}_*.py" -print -quit)
             test -n "$f"
