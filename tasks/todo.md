@@ -4,7 +4,10 @@
 - [x] Keep Filament Directory navigation grouping, existing resource routes and morph aliases; preserve storage schema and persisted lifecycle snapshot field names.
 - [x] Replace Directory reader, lifecycle coordinator, donation QR media, report resolver, counts and public cache versions with owning feature APIs and consumer-level composition.
 - [x] Remove retired Directory provider/classes and update PHPStan helper registration, ownership exceptions, and focused seams.
-- [ ] Complete executable Laravel verification on an environment with vendor dependencies (Pint, architecture checker, PHPStan, route parity, selected parallel Pest tests and authenticated Filament smoke). The provided GitHub CI on the baseline revision `39c51c0f` fails during Composer install because `../commerce/packages/commerce-support` is not present; this prevents attributing subsequent CI failures to this refactor.
+- [x] Verify ownership architecture, typed boundaries, full PHPStan and 749-route identity/middleware parity on a GitHub runner with independent pre-refactor vendor installation.
+- [x] Repair GitHub CI package bootstrap (sibling Commerce checkout and APP_ENV=testing) and Paratest shard invocation fallback.
+- [ ] Finish affected Pest regression suite and authenticated Filament smoke. The Pest parallel wrapper is incompatible with the installed Pest/Paratest combination, so CI runs serial test-file selections as fallback; do not claim an all-green suite without execution.
+- [ ] Confirm Pint/Rector CI after the automated style commit, and review any test failures introduced or revealed by the full-suite run.
 
 ## Scope and verification evidence
 
@@ -13,6 +16,8 @@
 - Root `App\Models`, morph aliases, original migrations and resource Filament pages remain canonical and unchanged in identity.
 - Source-level checks: the remote GitHub Actions implementation run [43826856073](https://github.com/AIArmada/ilmu360/actions/runs/43826856073) passed the execution payload checksum, 26-feature and five-owner manifest checks, `git diff --cached --check`, and PHP 8.5 lint of all modified/new PHP paths. The implementation was committed and pushed as [`ab15e4d`](https://github.com/AIArmada/ilmu360/commit/ab15e4dfef0979774fd4d1d513a282834bdfc91e).
 - No database or external services were written by this refactor task.
+- Post-cut verification: [GitHub Actions 43853277130](https://github.com/AIArmada/ilmu360/actions/runs/43853277130) reported **0 architecture violations / 26 features**, **0 ownership-PHPStan errors**, **0 ordinary PHPStan errors**, and **749/749 matching routes**, with middleware order preserved. Initial Pint full-repository scan reported 297 style issues; the existing fix-code-style workflow subsequently pushed a formatting/Rector commit. Follow-up behavior and formatting gates are being evaluated separately.
+- The References person morph read, shared submission space-eligibility dependency, EventMediaService QR property, owner action typing and institution lookup result typing were corrected in `refactor`; source hard cut and stored identities remain unchanged.
 
 # Architecture migration range audit (2026-11-16)
 
