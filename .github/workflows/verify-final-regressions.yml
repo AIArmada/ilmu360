@@ -83,7 +83,7 @@ jobs:
               s=f.read_text()
               before="            $result['passes'] = $this->issuePasses->handle($registration);"
               if s.count(before)!=1: raise RuntimeError(path)
-              report = """            $statusRow = DB::table('event_registrations')->where('id', $registration->getKey())->first(['status', 'payment_status']);\n            fwrite(STDERR, 'OFFLINE PROBE ['.__CLASS__.'] '.json_encode(['orderPaid' => $result['order']->isPaid(), 'modelStatus' => $registration->status->getValue(), 'persistedStatus' => $statusRow?->status, 'paymentStatus' => $statusRow?->payment_status]).PHP_EOL);\n"""
+              report = """            $statusRow = DB::table('event_registrations')->where('id', $registration->getKey())->first(['status', 'payment_status']);\n            throw new \\RuntimeException('OFFLINE PROBE ['.__CLASS__.'] '.json_encode(['orderPaid' => $result['order']->isPaid(), 'modelStatus' => $registration->status->getValue(), 'persistedStatus' => $statusRow?->status, 'paymentStatus' => $statusRow?->payment_status]));\n"""
               s=s.replace(before,report+before)
               f.write_text(s)
           PY
