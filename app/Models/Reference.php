@@ -577,6 +577,12 @@ class Reference extends PackageReference implements AuditableContract, Followabl
             return $authors instanceof EloquentCollection ? $authors : new EloquentCollection;
         }
 
+        // An unsaved reference cannot have persisted contributor links.
+        // Do not query the pivot with a provisional (possibly non-UUID) ID.
+        if (! $owner->exists) {
+            return new EloquentCollection;
+        }
+
         return $owner->authors()->with('titleAssignments.title.category')->get();
     }
 
