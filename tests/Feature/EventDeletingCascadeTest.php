@@ -202,7 +202,12 @@ it('deletes an event through the named delete action', function () {
 });
 
 it('rejects event deletion before cleanup when a registration tree crosses events', function (): void {
-    $event = Event::factory()->create();
+    // This test targets the cross-event registration guard. A randomly
+    // published event may hit the separate last-occurrence guard first.
+    $event = Event::factory()->create([
+        'status' => 'draft',
+        'published_at' => null,
+    ]);
     $otherEvent = Event::factory()->create();
     $user = User::factory()->create();
     $event->members()->attach($user);
