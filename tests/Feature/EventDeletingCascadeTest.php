@@ -206,7 +206,9 @@ it('rejects event deletion before cleanup when a registration tree crosses event
     $otherEvent = Event::factory()->create();
     $user = User::factory()->create();
     $event->members()->attach($user);
-    $registration = Registration::factory()->for($event)->withPrimaryParticipant('Parent')->create();
+    $registration = Registration::factory()->for($event)->withPrimaryParticipant('Parent')->create([
+        'event_occurrence_id' => $event->occurrences()->firstOrFail()->getKey(),
+    ]);
     $foreignChild = Registration::factory()->for($otherEvent)->withPrimaryParticipant('Foreign Child')->create([
         'parent_registration_id' => $registration->getKey(),
     ]);
