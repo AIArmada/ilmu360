@@ -315,9 +315,88 @@ jobs:
           echo "Executed ${selected} test files in shard ${TEST_SHARD}/20"
           exit "${failed}"
 
+  browser:
+    name: Browser smoke (Chromium)
+    needs: changes
+    if: needs.changes.outputs.tests == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Obtain sibling Commerce package sources
+        run: |
+          git clone --depth 1 https://github.com/AIArmada/commerce.git ../commerce
+          test -f ../commerce/packages/commerce-support/composer.json
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install PHP dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Build browser assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install Playwright Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run real browser smoke
+        run: vendor/bin/pest --ci --trace tests/Browser/PlaywrightSmokeTest.php
+
+      - name: Upload failed browser traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-traces
+          path: |
+            tests/Browser/Screenshots
+            tests/Browser/Traces
+          if-no-files-found: ignore
+
   quality:
     name: Quality
-    needs: [changes, rector, pint, phpstan, tests]
+    needs: [changes, rector, pint, phpstan, tests, browser]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -327,10 +406,11 @@ jobs:
           echo "pint:    ${{ needs.pint.result }}"
           echo "phpstan: ${{ needs.phpstan.result }}"
           echo "tests:   ${{ needs.tests.result }}"
+           echo "browser: ${{ needs.browser.result }}"
 
       - name: Enforce required checks
         run: |
-          results=("${{ needs.rector.result }}" "${{ needs.pint.result }}" "${{ needs.phpstan.result }}" "${{ needs.tests.result }}")
+          results=("${{ needs.rector.result }}" "${{ needs.pint.result }}" "${{ needs.phpstan.result }}" "${{ needs.tests.result }}" "${{ needs.browser.result }}")
           for r in "${results[@]}"; do
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
               exit 1
