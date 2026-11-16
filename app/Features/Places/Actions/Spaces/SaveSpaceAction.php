@@ -27,6 +27,7 @@ final readonly class SaveSpaceAction
     {
         $creating = ! $space instanceof Model;
         $space ??= new Space;
+        /** @var Space $space */
         $space = MorphModelResolver::assert($space, 'space');
 
         if (array_key_exists('venue_id', $data)) {
