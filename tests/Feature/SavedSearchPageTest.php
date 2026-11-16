@@ -65,14 +65,26 @@ it('opens saved searches with the advanced filter panel closed', function () {
         ],
     ]);
 
-    $this->actingAs($user)
+    $response = $this->actingAs($user)
         ->get(route('saved-searches.index'))
-        ->assertOk()
-        ->assertSee(route('events.index', [
-            'institution_id' => (string) $institution->getKey(),
-            'time_scope' => 'past',
-            'filters_panel' => 'closed',
-        ]));
+        ->assertOk();
+
+    $html = (string) $response->getContent();
+    $pattern = '/href="('.preg_quote(route('events.index'), '/').'\\?[^"]+)"/';
+    $matches = [];
+
+    if (preg_match($pattern, $html, $matches) !== 1) {
+        throw new \RuntimeException('The saved search link is missing.');
+    }
+
+    $url = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    parse_str((string) parse_url($url, PHP_URL_QUERY), $params);
+
+    expect($params)->toMatchArray([
+        'institution_id' => (string) $institution->getKey(),
+        'time_scope' => 'past',
+        'filters_panel' => 'closed',
+    ]);
 });
 
 it('allows authenticated users to create and delete saved searches', function () {
