@@ -1,9 +1,6 @@
 <?php
 
 use AIArmada\Events\Models\EventTemplate;
-use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
-use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
-use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;
@@ -13,6 +10,9 @@ use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Filament\Resources\Events\EventResource;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelationManager as InstitutionDonationChannelsRelationManager;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;
