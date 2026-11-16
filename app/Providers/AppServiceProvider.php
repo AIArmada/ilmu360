@@ -27,6 +27,7 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
+use App\Models\EventOccurrence as AppEventOccurrence;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTaxonomy;
@@ -648,6 +649,8 @@ class AppServiceProvider extends ServiceProvider
         EventKeyPerson::observe(EventKeyPersonObserver::class);
         EventOccurrence::observe(EventOccurrenceObserver::class);
         EventOccurrence::observe(EventOccurrenceFeaturedObserver::class);
+        AppEventOccurrence::observe(EventOccurrenceObserver::class);
+        AppEventOccurrence::observe(EventOccurrenceFeaturedObserver::class);
         EventTimeExpression::observe(EventTimeExpressionObserver::class);
         EventTaxonomy::observe(EventTaxonomyObserver::class);
         Language::observe(LanguageObserver::class);

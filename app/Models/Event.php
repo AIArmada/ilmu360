@@ -21,7 +21,6 @@ use AIArmada\Events\Models\EventLanguage;
 use AIArmada\Events\Models\EventLink;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventMaterial;
-use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
@@ -418,6 +417,28 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     /**
      * @return HasOne<EventOccurrence, $this>
      */
+    #[\Override]
+    public function primaryOccurrence(): HasOne
+    {
+        return $this->hasOne(EventOccurrence::class)
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * Resolve application occurrences so direct deletion validates the
+     * registration subtree before vendor-owned deletion hooks execute.
+     *
+     * @return HasMany<EventOccurrence, $this>
+     */
+    #[\Override]
+    public function occurrences(): HasMany
+    {
+        return $this->hasMany(EventOccurrence::class);
+    }
+
+    /** @return HasOne<EventOccurrence, $this> */
     #[\Override]
     public function primaryOccurrence(): HasOne
     {
