@@ -27,7 +27,6 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Models\EventOccurrence as AppEventOccurrence;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTaxonomy;
@@ -63,6 +62,7 @@ use App\Contracts\CaptchaVerifier;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
 use App\Features\Engagement\Api\EventEngagement;
+use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\ShareTracking\Api\ShareAnalytics;
@@ -285,6 +285,10 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
+        // Register before the final vendor EventOccurrence model boots so
+        // integrity preflight precedes the vendor's cascading deleting hook.
+        EventFacade::listen('eloquent.deleting: '.EventOccurrence::class, [GuardEventOccurrenceDeletionAction::class, 'handle']);
+
         $this->app->bind(AuditRecorder::class, EloquentAuditRecorder::class);
         $this->app->bind(AccountAccess::class, EloquentAccountAccess::class);
         $this->app->bind(AccountDirectory::class, EloquentAccountDirectory::class);
@@ -649,8 +653,6 @@ class AppServiceProvider extends ServiceProvider
         EventKeyPerson::observe(EventKeyPersonObserver::class);
         EventOccurrence::observe(EventOccurrenceObserver::class);
         EventOccurrence::observe(EventOccurrenceFeaturedObserver::class);
-        AppEventOccurrence::observe(EventOccurrenceObserver::class);
-        AppEventOccurrence::observe(EventOccurrenceFeaturedObserver::class);
         EventTimeExpression::observe(EventTimeExpressionObserver::class);
         EventTaxonomy::observe(EventTaxonomyObserver::class);
         Language::observe(LanguageObserver::class);

@@ -20,6 +20,7 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventLanguage;
 use AIArmada\Events\Models\EventLink;
 use AIArmada\Events\Models\EventLocation;
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventMaterial;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSeriesItemPivot;

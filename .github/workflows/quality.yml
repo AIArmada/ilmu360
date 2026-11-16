@@ -299,7 +299,7 @@ jobs:
           TEST_SHARD: ${{ matrix.shard }}
         run: |
           set -euo pipefail
-          mapfile -t files < <(find tests -type f -name '*Test.php' | LC_ALL=C sort)
+          mapfile -t files < <(find tests/Feature tests/Unit -type f -name '*Test.php' | LC_ALL=C sort)
           failed=0
           selected=0
           for index in "${!files[@]}"; do
