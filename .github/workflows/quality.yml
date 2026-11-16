@@ -287,8 +287,26 @@ jobs:
           }
           '
 
-      - name: Run tests (Pest)
-        run: vendor/bin/pest --parallel --shard=${{ matrix.shard }}/20
+      - name: Run tests (serial shard fallback for Paratest WrapperRunner)
+        env:
+          TEST_SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find tests -type f -name '*Test.php' | LC_ALL=C sort)
+          failed=0
+          selected=0
+          for index in "${!files[@]}"; do
+            if (( index % 20 != TEST_SHARD - 1 )); then
+              continue
+            fi
+            selected=$((selected + 1))
+            echo "Testing ${files[index]}"
+            if ! vendor/bin/pest --compact "${files[index]}"; then
+              failed=1
+            fi
+          done
+          echo "Executed ${selected} test files in shard ${TEST_SHARD}/20"
+          exit "${failed}"
 
   quality:
     name: Quality
