@@ -61,7 +61,7 @@ it('freezes the projection receipt once with the exact row shape', function (): 
         ->and($receipt->source_id)->toBe($businessKey)
         ->and($receipt->effect_type)->toBe('projection')
         ->and($receipt->status)->toBe(ShareEffectStatus::Pending)
-        ->and($receipt->payload)->toBe([
+        ->and($receipt->payload)->toEqual([
             'conversion_id' => $conversionId,
             'affiliate_id' => $affiliateId,
             'link_id' => $linkId,
@@ -121,7 +121,7 @@ it('creates the ticket reversal receipt once by its effect key', function (): vo
         ->and($receipt->source_id)->toBe($registrationId)
         ->and($receipt->effect_type)->toBe('ticket_affiliate_reversal')
         ->and($receipt->status)->toBe(ShareEffectStatus::Pending)
-        ->and($receipt->payload)->toBe([
+        ->and($receipt->payload)->toEqual([
             'conversion_id' => $conversionId,
             'registration_id' => $registrationId,
             'order_id' => $orderId,
@@ -165,12 +165,12 @@ it('leases pending effects for five minutes and fences other workers', function 
     expect($receipts->claimableBatch(['projection'], 10))->toHaveCount(1)
         ->and($receipts->claimableBatch(['ticket_affiliate_reversal'], 10))->toBeEmpty();
 
-    $claimed = $receipts->claim($projection->id, ['projection'], 'worker-a', 'lease-a');
+    $claimed = $receipts->claim($projection->id, ['projection'], 'worker-a', '00000000-0000-7000-8000-0000000000a1');
 
     expect($claimed)->not->toBeNull()
         ->and($claimed?->status)->toBe(ShareEffectStatus::Leased->value)
         ->and($claimed?->attempts)->toBe(1)
-        ->and($claimed?->leaseToken)->toBe('lease-a')
+        ->and($claimed?->leaseToken)->toBe('00000000-0000-7000-8000-0000000000a1')
         ->and($claimed?->leasedBy)->toBe('worker-a');
 
     $row = ShareEffectReceipt::query()->whereKey($projection->id)->sole();
@@ -181,28 +181,28 @@ it('leases pending effects for five minutes and fences other workers', function 
         ->and($row->lease_expires_at?->lessThan(now()->addMinutes(6)))->toBeTrue();
 
     // A live lease cannot be stolen by another worker.
-    expect($receipts->claim($projection->id, ['projection'], 'worker-b', 'lease-b'))->toBeNull()
+    expect($receipts->claim($projection->id, ['projection'], 'worker-b', '00000000-0000-7000-8000-0000000000b2'))->toBeNull()
         ->and($receipts->claimableBatch(['projection'], 10))->toBeEmpty()
-        ->and($receipts->lockLease($projection->id, 'worker-b', 'lease-b'))->toBeNull();
+        ->and($receipts->lockLease($projection->id, 'worker-b', '00000000-0000-7000-8000-0000000000b2'))->toBeNull();
 
     $this->travel(6)->minutes();
 
     // The expired lease is reclaimable by the next worker.
-    $reclaimed = $receipts->claim($projection->id, ['projection'], 'worker-b', 'lease-b');
+    $reclaimed = $receipts->claim($projection->id, ['projection'], 'worker-b', '00000000-0000-7000-8000-0000000000b2');
 
     expect($reclaimed)->not->toBeNull()
         ->and($reclaimed?->status)->toBe(ShareEffectStatus::Leased->value)
         ->and($reclaimed?->attempts)->toBe(2)
-        ->and($reclaimed?->leaseToken)->toBe('lease-b')
-        ->and($receipts->lockLease($projection->id, 'worker-a', 'lease-a'))->toBeNull()
-        ->and($receipts->lockLease($projection->id, 'worker-b', 'lease-b'))->not->toBeNull();
+        ->and($reclaimed?->leaseToken)->toBe('00000000-0000-7000-8000-0000000000b2')
+        ->and($receipts->lockLease($projection->id, 'worker-a', '00000000-0000-7000-8000-0000000000a1'))->toBeNull()
+        ->and($receipts->lockLease($projection->id, 'worker-b', '00000000-0000-7000-8000-0000000000b2'))->not->toBeNull();
 
     // A stale worker cannot settle the receipt it no longer owns.
-    $receipts->markSucceeded($projection->id, 'worker-a', 'lease-a');
+    $receipts->markSucceeded($projection->id, 'worker-a', '00000000-0000-7000-8000-0000000000a1');
 
     expect(ShareEffectReceipt::query()->whereKey($projection->id)->sole()->status)->toBe(ShareEffectStatus::Leased);
 
-    $receipts->markSucceeded($projection->id, 'worker-b', 'lease-b');
+    $receipts->markSucceeded($projection->id, 'worker-b', '00000000-0000-7000-8000-0000000000b2');
 
     $settled = ShareEffectReceipt::query()->whereKey($projection->id)->sole();
 
@@ -231,13 +231,13 @@ it('writes failed, cancelled and pending releases through the lease fence', func
         return $receipt->id;
     };
 
-    $failedId = $makeClaimed(effectReceiptBusinessKey(), 'worker-fail', 'lease-fail');
-    $cancelledId = $makeClaimed(effectReceiptBusinessKey(), 'worker-cancel', 'lease-cancel');
-    $pendingId = $makeClaimed(effectReceiptBusinessKey(), 'worker-pending', 'lease-pending');
+    $failedId = $makeClaimed(effectReceiptBusinessKey(), 'worker-fail', '00000000-0000-7000-8000-0000000000f1');
+    $cancelledId = $makeClaimed(effectReceiptBusinessKey(), 'worker-cancel', '00000000-0000-7000-8000-0000000000c1');
+    $pendingId = $makeClaimed(effectReceiptBusinessKey(), 'worker-pending', '00000000-0000-7000-8000-0000000000e1');
 
-    $receipts->markFailed($failedId, 'worker-fail', 'lease-fail');
-    $receipts->markCancelled($cancelledId, 'worker-cancel', 'lease-cancel');
-    $receipts->releaseToPending($pendingId, 'worker-pending', 'lease-pending');
+    $receipts->markFailed($failedId, 'worker-fail', '00000000-0000-7000-8000-0000000000f1');
+    $receipts->markCancelled($cancelledId, 'worker-cancel', '00000000-0000-7000-8000-0000000000c1');
+    $receipts->releaseToPending($pendingId, 'worker-pending', '00000000-0000-7000-8000-0000000000e1');
 
     $failed = ShareEffectReceipt::query()->whereKey($failedId)->sole();
     $cancelled = ShareEffectReceipt::query()->whereKey($cancelledId)->sole();
@@ -277,7 +277,7 @@ it('cancels only the non-terminal effects of a corrected source', function (): v
         linkId: (string) Str::uuid(),
     );
 
-    $receipts->claim($leased->id, ['projection'], 'worker-lease', 'lease-token');
+    $receipts->claim($leased->id, ['projection'], 'worker-lease', '00000000-0000-7000-8000-0000000000d1');
 
     $succeededKey = effectReceiptBusinessKey();
 

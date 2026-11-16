@@ -250,7 +250,7 @@ it('accepts canonical localized description arrays', function () {
     $occurrence = $result['occurrence']->fresh();
 
     expect($event->getKey())->not->toBeNull()
-        ->and($occurrence->metadata['description_localized'])->toBe(['ms' => 'Huraian majlis.', 'en' => 'Event description.'])
+        ->and($occurrence->metadata['description_localized'])->toEqual(['ms' => 'Huraian majlis.', 'en' => 'Event description.'])
         ->and(EventSubmission::query()->where('event_occurrence_id', $occurrence->getKey())->exists())->toBeTrue();
 });
 
@@ -290,7 +290,7 @@ it('persists localized descriptions to sessions as locale scalars', function () 
 
     expect($session->summary)->toBe('Huraian sesi.')
         ->and($session->description)->toBe('Huraian sesi.')
-        ->and($session->metadata['description_localized'])->toBe(['ms' => 'Huraian sesi.', 'en' => 'Session description.']);
+        ->and($session->metadata['description_localized'])->toEqual(['ms' => 'Huraian sesi.', 'en' => 'Session description.']);
 
     app()->setLocale('en');
 

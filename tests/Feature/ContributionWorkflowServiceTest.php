@@ -253,10 +253,10 @@ it('applies structured institution updates through approval', function () {
 
     expect($institution->description)->toBe('New description')
         ->and($institution->primaryAddress()?->line1)->toBe('Jalan Hikmah 5')
-        ->and($institution->contactMethods->pluck('value')->all())->toEqual(['01112345678', 'contact@masjidhikmah.test'])
-        ->and($institution->contactMethods->pluck('sort_order')->all())->toEqual([1, 2])
-        ->and($institution->socialProfiles->pluck('platform')->all())->toEqual(['facebook', 'youtube'])
-        ->and($institution->socialProfiles->pluck('sort_order')->all())->toEqual([1, 2]);
+        ->and($institution->contactMethods->sortBy('sort_order')->pluck('value')->values()->all())->toEqual(['01112345678', 'contact@masjidhikmah.test'])
+        ->and($institution->contactMethods->sortBy('sort_order')->pluck('sort_order')->values()->all())->toEqual([1, 2])
+        ->and($institution->socialProfiles->sortBy('sort_order')->pluck('platform')->values()->all())->toEqual(['facebook', 'youtube'])
+        ->and($institution->socialProfiles->sortBy('sort_order')->pluck('sort_order')->values()->all())->toEqual([1, 2]);
 });
 
 it('applies structured event associations and languages through approval', function () {

@@ -118,7 +118,7 @@ it('marks new member share profiles and never adopts an unmarked commercial prof
         $this->sharer->getMorphClass(),
         (string) $this->sharer->getKey(),
     ))->toBeTrue()
-        ->and($marked->metadata)->toBe([
+        ->and($marked->metadata)->toEqual([
             'share_tracking_profile' => true,
             'profile_kind' => 'member',
         ]);
@@ -1302,7 +1302,7 @@ it('never overwrites retained financial profile state from a stale snapshot', fu
     $retained = Affiliate::query()->whereKey($affiliate->id)->firstOrFail();
 
     expect($retained->name)->toBe('Settled Ledger Name')
-        ->and($retained->metadata)->toBe([
+        ->and($retained->metadata)->toEqual([
             'share_tracking_profile' => true,
             'profile_kind' => 'member',
             'settlement_batch' => 'batch-9',

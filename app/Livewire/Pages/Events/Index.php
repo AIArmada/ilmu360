@@ -55,6 +55,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -1346,6 +1347,8 @@ class Index extends Component implements HasForms
      */
     public function personOptionLabels(array $values): array
     {
+        $values = array_values(array_filter($values, static fn (string $value): bool => Str::isUuid($value)));
+
         if ($values === []) {
             return [];
         }

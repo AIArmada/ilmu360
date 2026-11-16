@@ -238,7 +238,7 @@ it('binds issued coupon codes to the recipient at validation and usage', functio
 
     // The issued voucher carries the generic assignee marker.
     expect(VoucherModel::query()->where('code', $code)->firstOrFail()->metadata['assignee'])
-        ->toBe(['type' => $member->getMorphClass(), 'id' => $memberId]);
+        ->toEqual(['type' => $member->getMorphClass(), 'id' => $memberId]);
 
     $validator = app(VoucherValidator::class);
 

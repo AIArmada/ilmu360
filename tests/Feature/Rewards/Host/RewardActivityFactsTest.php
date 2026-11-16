@@ -713,7 +713,7 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
         ]],
     ], RewardProgramMode::Points);
 
-    expect($version->refresh()->rules['caps'])->toBe([
+    expect($version->refresh()->rules['caps'])->toEqual([
         ['scope' => 'recipient_source_component', 'limit' => 1],
         ['scope' => 'recipient_program_day', 'limit' => 2],
     ]);

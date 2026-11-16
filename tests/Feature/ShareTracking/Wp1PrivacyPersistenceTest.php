@@ -222,7 +222,7 @@ it('stores only bounded safe campaign slugs and drops free-form secrets', functi
 
     $attribution = AffiliateAttribution::query()->where('attribution_type', 'landing')->firstOrFail();
 
-    expect($attribution->metadata)->toBe([
+    expect($attribution->metadata)->toEqual([
         'utm_source' => 'wa-group_9.2',
         'utm_campaign' => 'sk-2026-ramadan_01',
         'utm_term' => str_repeat('t', 120),

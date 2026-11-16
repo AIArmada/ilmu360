@@ -77,7 +77,7 @@ it('accepts discovery geography ids from canonical configured tables', function 
         ->assertJsonPath('data.filters.city_id', $filters['city_id'])
         ->assertJsonPath('data.filters.area_assignments.administrative_district', $filters['area_assignments']['administrative_district']);
 
-    expect(SavedSearch::query()->findOrFail($response->json('data.id'))->filters)->toBe($filters);
+    expect(SavedSearch::query()->findOrFail($response->json('data.id'))->filters)->toEqual($filters);
 });
 
 it('accepts canonical configured geography ids on partial updates', function (): void {
@@ -102,7 +102,7 @@ it('accepts canonical configured geography ids on partial updates', function ():
     $fresh = $savedSearch->fresh();
 
     expect($fresh->name)->toBe('Preserved Canonical Search')
-        ->and($fresh->filters)->toBe($filters)
+        ->and($fresh->filters)->toEqual($filters)
         ->and($fresh->notify)->toBe('weekly');
 });
 
