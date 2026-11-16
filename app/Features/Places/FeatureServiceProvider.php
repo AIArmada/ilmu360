@@ -18,6 +18,7 @@ use App\Models\Venue;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
+use App\Shared\Submission\SpaceSelectionEligibility;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -25,6 +26,7 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(InstitutionSpaceLinks::class, InstitutionSpaceLinkService::class);
         $this->app->bind(SpaceEligibility::class, SpaceEligibilityService::class);
+        $this->app->bind(SpaceSelectionEligibility::class, SpaceEligibilityService::class);
         $this->app->bind(VenueWorkflow::class, VenueWorkflowService::class);
         $this->app->bind(SpaceWorkflow::class, SpaceWorkflowService::class);
         $this->app->bind(PlaceLookup::class, EloquentPlaceLookup::class);
