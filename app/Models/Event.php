@@ -2467,7 +2467,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         }
 
         if ($this->getFirstMedia('poster') instanceof Media) {
-            return $this->poster_display_aspect_ratio;
+            return $this->poster_orientation === 'landscape' ? '16:9' : $this->poster_display_aspect_ratio;
         }
 
         if ($this->institution?->hasMedia('logo')) {

@@ -276,6 +276,7 @@ it('clears the event primary location when the admin form removes the venue', fu
     $event = Event::factory()->create([
         'institution_id' => $institution->getKey(),
         'default_venue_id' => $venue->getKey(),
+        'timing_mode' => 'absolute',
     ]);
     $event->setPrimaryOrganizer($institution);
     $event->syncLocation((string) $venue->getKey());

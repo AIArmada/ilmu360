@@ -84,6 +84,9 @@
     $navigationUrl = $mapTarget !== null
         ? 'https://www.google.com/maps/dir/?'.http_build_query(['api' => '1', 'destination' => $mapTarget])
         : null;
+    $wazeUrl = $lat !== null && $lng !== null
+        ? 'https://waze.com/ul?'.http_build_query(['ll' => $lat.','.$lng, 'navigate' => 'yes'])
+        : null;
     $mapsUrl = filled($normalizedMapQuery)
         ? 'https://www.google.com/maps/search/?api=1&query='.urlencode((string) $normalizedMapQuery)
         : null;
@@ -460,9 +463,14 @@
                                     @endif
                                     <div class="mt-5 flex flex-wrap items-center gap-2.5">
                                         @if($navigationUrl)
-                                            <a href="{{ $navigationUrl }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full bg-[#14342e] px-4 py-2.5 text-[13px] font-semibold text-[#fdfaf2] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#1d4a41] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
+                                            <a href="{{ $navigationUrl }}" target="_blank" rel="noopener" data-signal-event="navigation.external_link_clicked" class="inline-flex items-center gap-2 rounded-full bg-[#14342e] px-4 py-2.5 text-[13px] font-semibold text-[#fdfaf2] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#1d4a41] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
                                                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.27 3.13a59.77 59.77 0 0118.18 8.6c.36.36.36.94 0 1.3a59.77 59.77 0 01-18.18 8.6L6 12zm0 0h6.75" /></svg>
                                                 {{ __('Navigasi ke sini') }}
+                                            </a>
+                                        @endif
+                                        @if($wazeUrl)
+                                            <a href="{{ $wazeUrl }}" target="_blank" rel="noopener noreferrer" data-signal-event="navigation.external_link_clicked" class="inline-flex items-center rounded-full px-2 py-2 text-[12px] font-medium text-[#6b645e] transition-colors hover:text-[#14342e]">
+                                                Waze
                                             </a>
                                         @endif
                                         @if($mapsUrl)

@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Events\Models\EventTemplate;
-use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
-use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
-use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
+use App\Filament\Resources\Events\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;
