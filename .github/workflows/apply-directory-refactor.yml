@@ -57,7 +57,7 @@ jobs:
                   assert key not in owners, (key, name, owners.get(key))
                   owners[key] = name
                   for writer in writers:
-                      path = Path('app')/Path(writer.removeprefix('App\\').replace('\\','/')).relative_to('Features')
+                      path = Path('app')/writer.removeprefix('App\\').replace('\\','/')
                       assert path.exists(), (key, writer, path)
           assert len([p for p in root.iterdir() if p.is_dir()]) == 26
           print('Verified five owner manifests, unique resource ownership, and 26 features')
