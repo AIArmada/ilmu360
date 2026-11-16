@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Spaces;
 
+use App\Models\Space;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
@@ -13,12 +14,13 @@ use Illuminate\Validation\ValidationException;
  * location guard.
  *
  * The space model delete override detaches institution_space rows through
- * the Directory link action inside its transaction.
+ * the Places link action inside its transaction.
  */
 final readonly class DeleteSpaceAction
 {
     public function handle(Model $space): void
     {
+        /** @var Space $space */
         $space = MorphModelResolver::assert($space, 'space');
 
         if ($space->eventLocations()->exists()) {
