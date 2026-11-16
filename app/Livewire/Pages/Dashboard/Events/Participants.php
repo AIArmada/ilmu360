@@ -594,7 +594,10 @@ final class Participants extends Component
                 ->orWhereHas('registration', fn (Builder $registrationQuery): Builder => $registrationQuery
                     ->whereLike('registration_no', $like)
                     ->orWhereLike('external_order_id', $like))
-                ->orWhereLike('metadata', '%"lookup_hash":"'.$identityHash.'"%');
+                ->orWhereRaw(
+                    'CAST('.$searchQuery->getQuery()->getGrammar()->wrap('metadata').' AS TEXT) LIKE ?',
+                    ['%'.$identityHash.'%'],
+                );
         });
     }
 
