@@ -211,11 +211,16 @@ it('keeps a deliberately locked institution locked while eligibility holds', fun
     expect($institution->fresh()?->allow_public_event_submission)->toBeFalse();
 });
 
-it('ignores missing directory entities when syncing submission eligibility', function (): void {
+it('rejects missing owner entities and safely syncs eligibility for an account with no matching subjects', function (): void {
+    $missingId = '00000000-0000-0000-0000-000000000999';
     $sync = app(AccountSubmissionEligibility::class);
+    $user = User::factory()->create();
 
-    app(InstitutionSubmissionAccess::class)->reopenIfIneligible('00000000-0000-0000-0000-000000000999');
-    app(PersonSubmissionAccess::class)->reopenIfIneligible('00000000-0000-0000-0000-000000000999');
+    expect(fn () => app(InstitutionSubmissionAccess::class)->reopenIfIneligible($missingId))
+        ->toThrow(RuntimeException::class, "Institution [{$missingId}] was not found.")
+        ->and(fn () => app(PersonSubmissionAccess::class)->reopenIfIneligible($missingId))
+        ->toThrow(RuntimeException::class, "Person [{$missingId}] was not found.")
+        ->and($sync)->toBeInstanceOf(AccountSubmissionEligibility::class);
 
-    expect($sync)->toBeInstanceOf(AccountSubmissionEligibility::class);
+    $sync->syncForAccount((string) $user->getKey());
 });
