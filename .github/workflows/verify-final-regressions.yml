@@ -86,6 +86,11 @@ jobs:
               report = """            $statusRow = DB::table('event_registrations')->where('id', $registration->getKey())->first(['status', 'payment_status']);\n            throw new \\RuntimeException('OFFLINE PROBE ['.__CLASS__.'] '.json_encode(['orderPaid' => $result['order']->isPaid(), 'modelStatus' => $registration->status->getValue(), 'persistedStatus' => $statusRow?->status, 'paymentStatus' => $statusRow?->payment_status]));\n"""
               s=s.replace(before,report+before)
               f.write_text(s)
+          f=Path('app/Livewire/Pages/Dashboard/Events/OfflineAdmissions.php')
+          s=f.read_text()
+          if s.count('                report($exception);') != 2: raise RuntimeError('unexpected error handlers')
+          s=s.replace('                report($exception);', '                throw $exception;')
+          f.write_text(s)
           PY
       - name: Verify offline admissions
         id: offline
