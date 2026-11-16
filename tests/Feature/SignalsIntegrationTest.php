@@ -122,7 +122,7 @@ it('records authoritative share outcomes without writing unread share-fact telem
     $shareService = app(AffiliatesShareTrackingService::class);
     $sharedUrl = $shareService->attributedUrl($sharer, route('events.show', $event), $event->title);
 
-    $landingResponse = $this->get($sharedUrl);
+    $landingResponse = $this->followingRedirects()->get($sharedUrl);
     $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
@@ -167,7 +167,7 @@ it('records authoritative share outcomes when signals delivery is unavailable', 
     $shareService = app(AffiliatesShareTrackingService::class);
     $sharedUrl = $shareService->attributedUrl($sharer, route('events.show', $event), $event->title);
 
-    $landingResponse = $this->get($sharedUrl);
+    $landingResponse = $this->followingRedirects()->get($sharedUrl);
     $cookie = $landingResponse->getCookie(config('share-tracking.cookie.name'));
 
     expect($cookie)->not->toBeNull();
