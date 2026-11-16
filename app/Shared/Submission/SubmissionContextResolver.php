@@ -9,7 +9,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\OrganizerResolver;
 use App\Shared\Prayer\PrayerTargetSelector;
@@ -27,7 +26,7 @@ final class SubmissionContextResolver
 {
     public function __construct(
         private readonly SubmissionTimingPolicy $timing,
-        private readonly SpaceEligibility $spaceEligibilityResolver,
+        private readonly SpaceSelectionEligibility $spaceEligibilityResolver,
         private readonly EntitySubmissionAccess $entitySubmissionAccess,
     ) {}
 
