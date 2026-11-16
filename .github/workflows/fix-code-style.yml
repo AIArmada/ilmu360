@@ -98,11 +98,11 @@ jobs:
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
           composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Run Pint (fix)
-        run: vendor/bin/pint
-
       - name: Run Rector (fix)
         run: vendor/bin/rector --no-progress-bar
+
+      - name: Run Pint (fix)
+        run: vendor/bin/pint
 
       - name: Commit changes (if any)
         run: |
