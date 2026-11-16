@@ -62,7 +62,7 @@ use App\Contracts\CaptchaVerifier;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
 use App\Features\Engagement\Api\EventEngagement;
-use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
+use App\Features\Events\Api\EventOccurrenceDeletionPreflight;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\ShareTracking\Api\ShareAnalytics;
@@ -287,7 +287,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register before the final vendor EventOccurrence model boots so
         // integrity preflight precedes the vendor's cascading deleting hook.
-        EventFacade::listen('eloquent.deleting: '.EventOccurrence::class, [GuardEventOccurrenceDeletionAction::class, 'handle']);
+        EventFacade::listen('eloquent.deleting: '.EventOccurrence::class, [EventOccurrenceDeletionPreflight::class, 'handle']);
 
         $this->app->bind(AuditRecorder::class, EloquentAuditRecorder::class);
         $this->app->bind(AccountAccess::class, EloquentAccountAccess::class);
