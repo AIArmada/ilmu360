@@ -4,6 +4,8 @@ on:
     branches: [refactor]
     paths:
       - '.github/workflows/verify-directory-refactor.yml'
+      - 'app/**'
+      - 'tools/**'
 permissions:
   contents: read
 jobs:
