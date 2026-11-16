@@ -285,6 +285,8 @@ it('displays upcoming events and links to the filtered past events listing', fun
             'visibility' => EventVisibility::Public,
             'starts_at' => now()->subDays(3),
             'title' => 'Kuliah Subuh Lalu',
+            'ends_at' => now()->subDays(3)->addHour(),
+            'timing_mode' => 'absolute',
         ]);
 
     $this->get(route('institutions.show', $institution))
@@ -371,6 +373,8 @@ it('keeps hero event totals independent of the upcoming date filter', function (
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'starts_at' => Carbon::create(2026, 7, 29, 12, 0, 0, 'UTC'),
+        'ends_at' => Carbon::create(2026, 7, 29, 14, 0, 0, 'UTC'),
+        'timing_mode' => 'absolute',
     ]);
 
     try {

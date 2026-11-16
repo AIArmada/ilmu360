@@ -294,12 +294,16 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
         if ($paymentState === 'confirmed') {
             // The offline flow must settle the registration synchronously:
             // queued OrderPaid fulfillment is not guaranteed to run yet.
-            $this->syncOrderRegistrations->handle(
+            $synced = OwnerContext::withOwner(null, fn (): int => $this->syncOrderRegistrations->handle(
                 orderId: (string) $result['order']->getKey(),
                 orderType: (string) $result['registration']->external_order_type,
                 eventType: 'paid',
                 registrationIds: [(string) $result['registration']->getKey()],
-            );
+            ));
+
+            if ($synced !== 1) {
+                throw new InvalidArgumentException('The paid offline admission registration was not synchronized.');
+            }
 
             $registration = $result['registration']->fresh(['participants', 'items', 'passes']);
 

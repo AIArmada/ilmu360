@@ -11,7 +11,8 @@ use App\Support\Location\VisitorCountryResolver;
  * D0 characterization: pin the visibility matrix that D1a applies.
  *
  * Ruled matrix:
- * - home + /majlis: approved, pending and cancelled + public + published.
+ * - home featured selection: approved + public + published.
+ * - /majlis: approved, pending and cancelled + public + published.
  * - REST event list: approved, pending and cancelled + public + published.
  * - REST event detail + Livewire event detail: approved, pending and cancelled
  *   + public/unlisted + published.
@@ -73,8 +74,8 @@ it('pins the home visibility matrix', function (): void {
 
     $response->assertOk()
         ->assertSee($events['approved_public']->title)
-        ->assertSee($events['pending_public']->title)
-        ->assertSee($events['cancelled_public']->title)
+        ->assertDontSee($events['pending_public']->title)
+        ->assertDontSee($events['cancelled_public']->title)
         ->assertDontSee($events['draft_public']->title)
         ->assertDontSee($events['approved_unlisted']->title)
         ->assertDontSee($events['approved_private']->title)

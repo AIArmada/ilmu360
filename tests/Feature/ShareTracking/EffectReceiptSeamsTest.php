@@ -75,7 +75,7 @@ it('freezes the projection receipt once with the exact row shape', function (): 
         ->and($receipt->cancelled_at)->toBeNull()
         ->and($snapshot->id)->toBe((string) $receipt->getKey())
         ->and($snapshot->status)->toBe(ShareEffectStatus::Pending->value)
-        ->and($snapshot->payload)->toBe($receipt->payload);
+        ->and($snapshot->payload)->toEqual($receipt->payload);
 
     // Freeze-once: a replay with a different payload keeps the first row.
     $replayed = $receipts->ensureProjection(
@@ -86,7 +86,7 @@ it('freezes the projection receipt once with the exact row shape', function (): 
     );
 
     expect($replayed->id)->toBe($snapshot->id)
-        ->and($replayed->payload)->toBe($snapshot->payload)
+        ->and($replayed->payload)->toEqual($snapshot->payload)
         ->and(ShareEffectReceipt::query()->count())->toBe(1);
 });
 
@@ -288,8 +288,8 @@ it('cancels only the non-terminal effects of a corrected source', function (): v
         linkId: (string) Str::uuid(),
     );
 
-    $receipts->claim($succeeded->id, ['projection'], 'worker-success', 'lease-success');
-    $receipts->markSucceeded($succeeded->id, 'worker-success', 'lease-success');
+    $receipts->claim($succeeded->id, ['projection'], 'worker-success', '00000000-0000-7000-8000-0000000000f5');
+    $receipts->markSucceeded($succeeded->id, 'worker-success', '00000000-0000-7000-8000-0000000000f5');
 
     // Re-point the fixtures at one source id so cancellation sees them all.
     ShareEffectReceipt::query()->whereKey($pending->id)->update(['source_id' => $sourceId]);

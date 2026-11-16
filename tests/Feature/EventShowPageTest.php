@@ -1148,6 +1148,8 @@ describe('Event Show Page Location & Contact Info', function () {
             'default_venue_id' => $venue->id,
         ]);
 
+        $event->syncLocation((string) $venue->getKey());
+
         $response = $this->get(route('events.show', $event));
         $response->assertOk();
         $response->assertSee('Waze');

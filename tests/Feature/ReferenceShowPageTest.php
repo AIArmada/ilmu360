@@ -26,6 +26,8 @@ it('displays upcoming events and links to the filtered past events for the refer
         'visibility' => EventVisibility::Public,
         'published_at' => now()->subDays(4),
         'starts_at' => now()->subDays(3),
+        'ends_at' => now()->subDays(3)->addHours(2),
+        'timing_mode' => 'absolute',
     ]);
     $pastEvent->references()->attach($reference->id);
 
