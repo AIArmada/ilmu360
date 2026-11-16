@@ -215,8 +215,12 @@ it('rejects event deletion before cleanup when a registration tree crosses event
     $eventId = (string) $event->getKey();
     $registrationIds = [(string) $registration->getKey(), (string) $foreignChild->getKey()];
 
-    expect(fn () => $event->delete())->toThrow(LogicException::class)
-        ->and(fn () => $event->primaryOccurrence?->delete())->toThrow(Illuminate\Validation\ValidationException::class)
+    // Both deletion paths must reject the cross-event child before removing
+    // any registration or membership rows.
+    expect(fn () => $event->delete())
+        ->toThrow(LogicException::class, 'A child registration belongs to a different event than its parent.')
+        ->and(fn () => $event->primaryOccurrence?->delete())
+        ->toThrow(LogicException::class, 'A child registration belongs to a different event than its parent.')
         ->and(DB::table('events')->where('id', $eventId)->exists())->toBeTrue()
         ->and(DB::table('event_members')->where('event_id', $eventId)->where('user_id', $user->getKey())->exists())->toBeTrue()
         ->and(DB::table('event_registrations')->whereIn('id', $registrationIds)->count())->toBe(2)
