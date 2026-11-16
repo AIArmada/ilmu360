@@ -85,7 +85,7 @@ function wp3VendorSchemaIndexes(string $table): array
         preg_match('/\\((.+)\\)/', $definition, $matches);
         $columns = array_map(
             static fn (string $column): string => trim($column, ' "'),
-            explode(',', (string) ($matches[1] ?? '')),
+            explode(',', $matches[1] ?? ''),
         );
 
         $out[$name] = [

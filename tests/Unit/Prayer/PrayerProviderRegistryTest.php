@@ -9,7 +9,7 @@ use Tests\Support\Prayer\StubPrayerProviderAlpha;
 use Tests\Support\Prayer\StubPrayerProviderBeta;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 beforeEach(function () {
     config()->set('prayer.provider_map', [

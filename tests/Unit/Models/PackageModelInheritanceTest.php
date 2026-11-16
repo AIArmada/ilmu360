@@ -9,7 +9,7 @@ use App\Models\Registration;
 use App\Models\Venue;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('Registration resolves to event_registrations table', function () {
     expect((new Registration)->getTable())->toBe('event_registrations');

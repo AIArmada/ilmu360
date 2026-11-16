@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -90,13 +90,11 @@ it('parses daily datetimes offset-aware into UTC anchors', function () {
         ->and($dto->timezoneUsed)->toBe('Asia/Kuala_Lumpur')
         ->and($dto->date)->toBe('2026-10-15');
 
-    Http::assertSent(function ($request) {
-        return str_ends_with(strtok($request->url(), '?'), '/api/prayer-times')
-            && $request['method'] === 'malaysia'
-            && $request['madhab'] === 'Shafi'
-            && $request['timezone'] === 'Asia/Kuala_Lumpur'
-            && $request['date'] === '2026-10-15';
-    });
+    Http::assertSent(fn($request) => str_ends_with(strtok($request->url(), '?'), '/api/prayer-times')
+        && $request['method'] === 'malaysia'
+        && $request['madhab'] === 'Shafi'
+        && $request['timezone'] === 'Asia/Kuala_Lumpur'
+        && $request['date'] === '2026-10-15');
 });
 
 it('falls back to the wall-clock table when datetimes are absent', function () {
@@ -155,11 +153,9 @@ it('parses month bulk into date-keyed DTOs', function () {
         ->and($days['2026-10-15']->source)->toBe('ummah:malaysia/Shafi')
         ->and($days['2026-10-15']->timeFor('fajr')?->setTimezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('05:40');
 
-    Http::assertSent(function ($request) {
-        return str_ends_with(strtok($request->url(), '?'), '/api/prayer-times/month')
-            && (int) $request['month'] === 10
-            && (int) $request['year'] === 2026;
-    });
+    Http::assertSent(fn($request) => str_ends_with(strtok($request->url(), '?'), '/api/prayer-times/month')
+        && (int) $request['month'] === 10
+        && (int) $request['year'] === 2026);
 });
 
 it('rejects payloads whose echo does not match the query', function () {
@@ -173,11 +169,10 @@ it('rejects payloads whose echo does not match the query', function () {
 it('reports unavailable on rate limits and negative success flags', function () {
     Http::fake(['ummahapi.com/*' => Http::response([], 429)]);
 
-    try {
+    expect(function () {
         app(UmmahPrayerProvider::class)->dailyPrayers(ummahQuery());
         $this->fail('Expected ProviderUnavailable for HTTP 429.');
-    } catch (ProviderUnavailable) {
-    }
+    })->toThrow(ProviderUnavailable::class);
 
     Http::fake(['ummahapi.com/*' => Http::response(['success' => false])]);
 
@@ -198,10 +193,8 @@ it('sends the API key as a header and never as a query param', function () {
 
     app(UmmahPrayerProvider::class)->dailyPrayers(ummahQuery());
 
-    Http::assertSent(function ($request) {
-        return $request->hasHeader('X-API-Key', 'test-key-123')
-            && ! isset($request['apikey']);
-    });
+    Http::assertSent(fn($request) => $request->hasHeader('X-API-Key', 'test-key-123')
+        && ! isset($request['apikey']));
 });
 
 it('resolves the method from the per-country table when the query omits it', function () {
@@ -210,9 +203,7 @@ it('resolves the method from the per-country table when the query omits it', fun
     $query = new PrayerQuery('MY', '2026-10-15', 'Asia/Kuala_Lumpur', 3.1390, 101.6869);
     app(UmmahPrayerProvider::class)->dailyPrayers($query);
 
-    Http::assertSent(function ($request) {
-        return $request['method'] === 'malaysia' && $request['madhab'] === 'Shafi';
-    });
+    Http::assertSent(fn($request) => $request['method'] === 'malaysia' && $request['madhab'] === 'Shafi');
 });
 
 it('skips day rows outside the queried month', function () {

@@ -16,19 +16,19 @@ interface InstitutionLookup
     public function searchPrayerInstitutions(string $search, int $limit = 50): array;
 
     /**
-     * @param list<string> $institutionIds
+     * @param  list<string>  $institutionIds
      * @return array<string, string>
      */
     public function prayerInstitutionLabels(array $institutionIds): array;
 
     /**
-     * @param list<string> $institutionIds
+     * @param  list<string>  $institutionIds
      * @return list<string>
      */
     public function selectablePrayerInstitutionIds(array $institutionIds): array;
 
     /**
-     * @param list<string> $institutionIds
+     * @param  list<string>  $institutionIds
      * @return array<string, string|null>
      */
     public function rawNamesByIds(array $institutionIds): array;

@@ -2,10 +2,6 @@
 
 use AIArmada\Events\Models\EventTerm;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
@@ -13,6 +9,10 @@ use App\Models\Person;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -79,9 +79,8 @@ it('rejects a forged scoped institution the submitter does not belong to', funct
         request: submitSecurityRequest(),
         submitter: $user,
         scopedInstitution: $institution,
-    ))->toThrow(ValidationException::class, 'institusi ini');
-
-    expect(Event::query()->where('title', 'Security Submission')->exists())->toBeFalse();
+    ))->toThrow(ValidationException::class, 'institusi ini')
+        ->and(Event::query()->where('title', 'Security Submission')->exists())->toBeFalse();
 });
 
 it('rejects a revoked membership on a subsequent submit request', function () {
@@ -118,10 +117,8 @@ it('locks context identity props against client-side updates', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     expect(fn () => Livewire::actingAs($user)->test(Create::class)->set('scopedInstitutionId', $institution->id))
-        ->toThrow(CannotUpdateLockedPropertyException::class);
-
-    expect(fn () => Livewire::actingAs($user)->test(Create::class)->set('eventId', (string) Str::uuid()))
-        ->toThrow(CannotUpdateLockedPropertyException::class);
+        ->toThrow(CannotUpdateLockedPropertyException::class)
+        ->and(fn() => Livewire::actingAs($user)->test(Create::class)->set('eventId', (string) Str::uuid()))->toThrow(CannotUpdateLockedPropertyException::class);
 });
 
 it('rejects session submissions to events the user cannot update', function () {
@@ -188,7 +185,7 @@ it('fails closed on invalid or deleted container ids', function () {
         ->assertNotFound();
 
     $this->actingAs($user)
-        ->get('/tambah-majlis?event='.(string) Str::uuid())
+        ->get('/tambah-majlis?event='.Str::uuid())
         ->assertNotFound();
 });
 

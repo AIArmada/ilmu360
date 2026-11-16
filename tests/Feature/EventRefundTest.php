@@ -19,8 +19,6 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     config()->set('orders.owner.enabled', false);
     config()->set('events.features.commerce.refunds_enabled_by_default', false);
@@ -292,25 +290,23 @@ it('uses the provider refund id when several admissions share the same payment',
         ]),
     ]);
 
-    $refunds = $registrations->values()->map(function (Registration $registration, int $index) use ($order, $payment): mixed {
-        return $order->refunds()->create([
-            'payment_id' => $payment->getKey(),
-            'gateway' => 'cashier',
-            'transaction_id' => 'event-refund-'.$registration->getKey(),
-            'amount' => 5000,
-            'currency' => 'MYR',
-            'status' => RefundStatus::Pending,
-            'reason' => 'Refund requested by purchaser.',
-            'metadata' => [
-                'event_registration_scope' => 'selected',
-                'event_registration_ids' => [$registration->getKey()],
-                'event_registration_id' => $registration->getKey(),
-                'payment_id' => 'chip-payment-shared',
-                'provider' => 'chip',
-                'provider_refund_id' => 'chip-refund-'.$index,
-            ],
-        ]);
-    });
+    $refunds = $registrations->values()->map(fn(Registration $registration, int $index): mixed => $order->refunds()->create([
+        'payment_id' => $payment->getKey(),
+        'gateway' => 'cashier',
+        'transaction_id' => 'event-refund-'.$registration->getKey(),
+        'amount' => 5000,
+        'currency' => 'MYR',
+        'status' => RefundStatus::Pending,
+        'reason' => 'Refund requested by purchaser.',
+        'metadata' => [
+            'event_registration_scope' => 'selected',
+            'event_registration_ids' => [$registration->getKey()],
+            'event_registration_id' => $registration->getKey(),
+            'payment_id' => 'chip-payment-shared',
+            'provider' => 'chip',
+            'provider_refund_id' => 'chip-refund-'.$index,
+        ],
+    ]));
 
     event(new CommercePaymentRefunded(
         provider: 'chip',

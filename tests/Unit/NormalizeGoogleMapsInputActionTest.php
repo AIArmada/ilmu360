@@ -5,7 +5,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('canonicalizes picker-provided place metadata without extra server lookups', function () {
     config()->set('services.google.place_link_resolution_enabled', true);

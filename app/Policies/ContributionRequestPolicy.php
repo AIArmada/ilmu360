@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Models\ContributionRequest;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionRequestType;
 use Illuminate\Database\Eloquent\Model;
 
 class ContributionRequestPolicy

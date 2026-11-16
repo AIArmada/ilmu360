@@ -239,14 +239,13 @@ it('records a curated outcome when a pending edition is quick created', function
 it('does not record a quick creation outcome when reference input is invalid', function (): void {
     expect(fn (): string => ReferenceFormSchema::createPending([
         'title' => 'Invalid Quick Reference', 'type' => 'book', 'record_kind' => 'work', 'isbn' => '9780306406158',
-    ]))->toThrow(ValidationException::class);
-
-    expect(SignalEvent::query()->where('event_name', 'reference.quick_created')->exists())->toBeFalse();
+    ]))->toThrow(ValidationException::class)
+        ->and(SignalEvent::query()->where('event_name', 'reference.quick_created')->exists())->toBeFalse();
     $this->assertDatabaseMissing('references', ['title' => 'Invalid Quick Reference']);
 });
 
 it('rejects malformed selected reference ids before querying options', function (): void {
-    expect(ReferenceFormSchema::selectedLabels(['not-a-uuid', [], null]))->toBe([]);
+    expect(ReferenceFormSchema::selectedLabels(['not-a-uuid', [], null]))->toBeEmpty();
 });
 
 it('previews the same localized part title that quick create saves', function (string $locale, string $partType, ?string $customName, string $expectedLabel): void {
@@ -283,12 +282,11 @@ it('offers the full language catalog as initial options in the reference form', 
 
         $options = $candidate->getOptions();
 
-        expect(count($options))->toBeGreaterThan(150);
-        expect($options)->toHaveKeys(['ms', 'en', 'ar', 'ja', 'fr']);
-        expect($options['ar'])->toBe('Arabic (العربية)');
-        expect($options['ja'])->toBe('Japanese (日本語)');
-        expect($candidate->isSearchable())->toBeTrue();
-        expect($candidate->isPreloaded())->toBeTrue();
+        expect(count($options))->toBeGreaterThan(150)
+            ->and($options)->toHaveKeys(['ms', 'en', 'ar', 'ja', 'fr'])
+            ->toMatchArray(['ar' => 'Arabic (العربية)', 'ja' => 'Japanese (日本語)'])
+            ->and($candidate->isSearchable())->toBeTrue()
+            ->and($candidate->isPreloaded())->toBeTrue();
 
         return;
     }

@@ -6,8 +6,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 it('renders the shared toast stack on public and auth shells', function () {
     $this->get(route('home'))
         ->assertOk()

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Filament\Resources\Events\EventResource;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
+use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\User;
@@ -230,7 +230,7 @@ final class PersonDashboard extends Component
         $invitation = $membershipInvitations->find($invitationId);
 
         abort_unless(
-            $invitation !== null
+            $invitation instanceof \App\Features\Membership\Api\MembershipInvitationDetail
             && $invitation->subjectType === MembershipSubjectType::Person
             && $invitation->subjectId === (string) $person->getKey(),
             404,

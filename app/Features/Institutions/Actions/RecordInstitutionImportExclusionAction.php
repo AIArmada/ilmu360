@@ -6,7 +6,6 @@ namespace App\Features\Institutions\Actions;
 
 use App\Models\InstitutionImportExclusion;
 
-
 /**
  * Record the durable import exclusion for a deleted source-backed institution.
  */

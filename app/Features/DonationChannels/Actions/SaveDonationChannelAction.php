@@ -27,7 +27,7 @@ final readonly class SaveDonationChannelAction
      */
     public function handle(array $data, ?DonationChannel $donationChannel = null): DonationChannel
     {
-        $creating = $donationChannel === null;
+        $creating = !$donationChannel instanceof \App\Models\DonationChannel;
 
         if ($donationChannel instanceof DonationChannel) {
             MorphModelResolver::assert($donationChannel, 'donation_channel');

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Filament\Resources\Events\EventResource;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
@@ -11,9 +10,8 @@ use AIArmada\Membership\Services\MembershipRoleSyncService;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Membership\Actions\TransferPersonOwnershipAction;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Features\Membership\Notifications\MemberInvitationNotification;
+use App\Filament\Resources\Events\EventResource;
 use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\PersonDashboard;
@@ -25,7 +23,9 @@ use App\Models\MemberInvitation;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
-use App\Features\Membership\Notifications\MemberInvitationNotification;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Support\Api\Member\MemberResourceRegistry;
 use App\Support\Authz\MemberPermissionGate;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -33,8 +33,6 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(EventRoleSeeder::class);
@@ -419,7 +417,7 @@ it('applies the public first-session timing rules to the advanced builder', func
         ->call('submit')
         ->assertHasErrors('form.prayer_time');
 
-    $options = (new ReflectionMethod(CreateAdvanced::class, 'prayerTimeOptions'))->invoke($component->instance());
+    $options = new ReflectionMethod(CreateAdvanced::class, 'prayerTimeOptions')->invoke($component->instance());
 
     expect($options)->not->toHaveKey('selepas_zuhur')
         ->toHaveKey('selepas_jumaat');
@@ -496,12 +494,10 @@ it('lets a person owner remove an admin while protecting the owner from admins',
         ->assertHasNoErrors()
         ->assertDispatched('app-toast');
 
-    expect($person->fresh()->members()->whereKey($owner->getKey())->exists())->toBeTrue();
-
-    expect(function () use ($person, $owner): void {
+    expect($person->fresh()->members()->whereKey($owner->getKey())->exists())->toBeTrue()
+        ->and(function () use ($person, $owner): void {
         app(RemoveMemberAction::class)->handle($person, $owner);
-    })
-        ->toThrow(AuthorizationException::class);
+    })->toThrow(AuthorizationException::class);
 });
 
 it('lets a person owner transfer ownership to an existing member', function (): void {
@@ -547,12 +543,9 @@ it('does not let a person admin transfer ownership', function (): void {
     addTestMember($person, $newOwner, MemberRole::Editor);
 
     expect(fn (): Person => app(TransferPersonOwnershipAction::class)->handle($person, $admin, $newOwner))
-        ->toThrow(AuthorizationException::class);
-
-    expect($person->fresh()->members()->whereKey($owner->getKey())->first()?->pivot?->role)
-        ->toBe(MemberRole::Owner->spatieRoleName())
-        ->and($person->fresh()->members()->whereKey($newOwner->getKey())->first()?->pivot?->role)
-        ->toBe(MemberRole::Editor->spatieRoleName());
+        ->toThrow(AuthorizationException::class)
+        ->and($person->fresh()->members()->whereKey($owner->getKey())->first()?->pivot?->role)->toBe(MemberRole::Owner->spatieRoleName())
+        ->and($person->fresh()->members()->whereKey($newOwner->getKey())->first()?->pivot?->role)->toBe(MemberRole::Editor->spatieRoleName());
 });
 
 it('rejects a stale resolved membership mutation after ownership changes', function (): void {
@@ -570,11 +563,9 @@ it('rejects a stale resolved membership mutation after ownership changes', funct
         withGlobalOwnerContext(function () use ($newOwner, $person, $staleMember): void {
             app(AddMemberAction::class)->handleResolvedMember($person, $newOwner, MemberRole::Viewer, $staleMember);
         });
-    })->toThrow(RuntimeException::class, 'Membership changed while this mutation was in progress. Please retry.');
-
-    expect($person->fresh()->ownerMember()->count())->toBe(1)
-        ->and($person->fresh()->members()->whereKey($newOwner->getKey())->first()?->pivot?->role)
-        ->toBe(MemberRole::Owner->spatieRoleName());
+    })->toThrow(RuntimeException::class, 'Membership changed while this mutation was in progress. Please retry.')
+        ->and($person->fresh()->ownerMember()->count())->toBe(1)
+        ->and($person->fresh()->members()->whereKey($newOwner->getKey())->first()?->pivot?->role)->toBe(MemberRole::Owner->spatieRoleName());
 });
 
 it('does not invite an existing speaker member when email casing differs', function (): void {

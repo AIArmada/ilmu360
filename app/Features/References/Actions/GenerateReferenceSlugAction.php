@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\References\Actions;
 
-use App\Models\Reference;
-
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
+use App\Models\Reference;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;

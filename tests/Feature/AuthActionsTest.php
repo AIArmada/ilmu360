@@ -9,8 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
-uses(RefreshDatabase::class);
-
 it('resolves an existing social account by provider id', function () {
     $user = User::factory()->create();
     $provider = 'google';
@@ -49,13 +47,10 @@ it('creates a new user when no social account or user exists', function () {
 
     expect($result['profile']->email)->toBe('ali@example.com')
         ->and($result['profile']->emailVerified)->toBeTrue()
-        ->and($result['created_account'])->toBeTrue();
-
-    expect(SocialAccount::query()
+        ->and($result['created_account'])->toBeTrue()
+        ->and(SocialAccount::query()
         ->where('provider', 'google')
-        ->where('provider_id', 'google-456')
-        ->exists()
-    )->toBeTrue();
+        ->where('provider_id', 'google-456')->exists())->toBeTrue();
 });
 
 it('links existing user by email when social account is new', function () {
@@ -73,13 +68,10 @@ it('links existing user by email when social account is new', function () {
     $result = app(ResolveSocialiteUserAction::class)->handle('google', $socialUser);
 
     expect($result['profile']->id)->toBe((string) $user->getKey())
-        ->and($result['created_account'])->toBeFalse();
-
-    expect(SocialAccount::query()
+        ->and($result['created_account'])->toBeFalse()
+        ->and(SocialAccount::query()
         ->where('user_id', $user->id)
-        ->where('provider', 'google')
-        ->exists()
-    )->toBeTrue();
+        ->where('provider', 'google')->exists())->toBeTrue();
 });
 
 it('does not link an unverified provider email to an existing user', function () {
@@ -99,13 +91,10 @@ it('does not link an unverified provider email to an existing user', function ()
     expect($result['profile']->id)->not->toBe((string) $victim->getKey())
         ->and($result['profile']->email)->toBeNull()
         ->and($result['profile']->emailVerified)->toBeFalse()
-        ->and($result['created_account'])->toBeTrue();
-
-    expect(SocialAccount::query()
+        ->and($result['created_account'])->toBeTrue()
+        ->and(SocialAccount::query()
         ->where('user_id', $victim->id)
-        ->where('provider', 'google')
-        ->exists()
-    )->toBeFalse();
+        ->where('provider', 'google')->exists())->toBeFalse();
 });
 
 it('accepts the Google provider verified_email claim', function () {

@@ -13,8 +13,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
@@ -151,10 +149,8 @@ it('prohibits self-verification, self-rejection, and registering for someone els
 
     expect(fn () => VerifyRewardPayeeAction::run(
         'user', $memberId, 'bank_transfer', 'op-ref-7', 'Desk 7', 'user', $memberId, 'staff',
-    ))->toThrow(InvalidArgumentException::class, 'self-verification');
-
-    expect(fn () => RejectRewardPayeeAction::run($pending, 'user', $memberId, 'staff', 'No.'))
-        ->toThrow(InvalidArgumentException::class, 'self-decision');
+    ))->toThrow(InvalidArgumentException::class, 'self-verification')
+        ->and(fn() => RejectRewardPayeeAction::run($pending, 'user', $memberId, 'staff', 'No.'))->toThrow(InvalidArgumentException::class, 'self-decision');
 
     $other = User::factory()->create();
 

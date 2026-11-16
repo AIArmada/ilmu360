@@ -72,7 +72,7 @@ it('resolves the browser selection model through its registered morph alias', fu
 });
 
 it('declares the owned table literally on the root model', function (string $model, string $table): void {
-    $defaults = (new ReflectionClass($model))->getDefaultProperties();
+    $defaults = new ReflectionClass($model)->getDefaultProperties();
 
     expect($defaults['table'] ?? null)->toBe($table)
         ->and((new $model)->getTable())->toBe($table);

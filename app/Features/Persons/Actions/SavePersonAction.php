@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions;
 
 use AIArmada\Persons\Enums\Gender;
-use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Models\Person;
 use App\Platform\Addressing\AddressFormState;
 use App\Shared\Auth\AccountActor;
@@ -41,7 +41,7 @@ final readonly class SavePersonAction
         string $validationErrorKey = 'allow_public_event_submission',
         bool $assignOwner = true,
     ): Person {
-        $creating = $person === null;
+        $creating = !$person instanceof \App\Models\Person;
         $person ??= new Person;
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];

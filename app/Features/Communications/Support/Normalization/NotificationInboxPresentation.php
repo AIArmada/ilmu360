@@ -29,7 +29,7 @@ final readonly class NotificationInboxPresentation
         $family = PackageNotificationFamily::tryFrom($familyValue);
         $appFamily = self::appFamily($familyValue);
 
-        if ($appFamily !== null) {
+        if ($appFamily instanceof \App\Features\Communications\Api\NotificationFamily) {
             return \App\Features\Communications\Api\NotificationCatalog::familyDefinition($appFamily)['label'];
         }
 

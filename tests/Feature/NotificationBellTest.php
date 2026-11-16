@@ -4,15 +4,13 @@ use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\NotificationInbox;
+use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Features\Communications\EntryPoints\Livewire\NotificationBell;
 use App\Features\Communications\EntryPoints\Livewire\NotificationsIndex;
 use App\Models\User;
-use App\Features\Communications\Api\NotificationInboxManagement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     app()->setLocale('en');

@@ -1,7 +1,7 @@
 <?php
 
-use App\Shared\Events\Enums\EventFormat;
 use App\Livewire\Pages\SubmitEvent\Create;
+use App\Shared\Events\Enums\EventFormat;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;

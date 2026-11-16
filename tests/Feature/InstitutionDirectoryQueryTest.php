@@ -148,7 +148,7 @@ it('returns an empty page with the correct total beyond the last direct search p
     );
 
     expect($paginator->total())->toBe(3)
-        ->and($paginator->items())->toBe([]);
+        ->and($paginator->items())->toBeEmpty();
 });
 
 it('returns an empty page with the correct total beyond the last fuzzy search page', function () {
@@ -167,5 +167,5 @@ it('returns an empty page with the correct total beyond the last fuzzy search pa
     );
 
     expect($paginator->total())->toBe(1)
-        ->and($paginator->items())->toBe([]);
+        ->and($paginator->items())->toBeEmpty();
 });

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class EventKeyPersonFactory extends Factory
 {
+    #[\Override]
     protected $model = EventKeyPerson::class;
 
     /**

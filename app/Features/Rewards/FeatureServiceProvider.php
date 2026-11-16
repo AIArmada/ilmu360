@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Rewards;
 
+use AIArmada\Rewards\Contracts\RewardBenefitCatalog;
+use AIArmada\Rewards\Contracts\RewardBenefitCouponFulfillment;
+use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
+use AIArmada\Rewards\Contracts\RewardGratitudePlanner;
+use AIArmada\Rewards\Contracts\RewardReadinessChecker;
+use AIArmada\Rewards\Contracts\RewardReservationResolver;
 use AIArmada\Rewards\Models\RewardAppeal;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardBenefitGrant;
@@ -13,12 +19,6 @@ use AIArmada\Rewards\Models\RewardPayee;
 use AIArmada\Rewards\Models\RewardPayoutRequest;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardRecovery;
-use AIArmada\Rewards\Contracts\RewardBenefitCatalog;
-use AIArmada\Rewards\Contracts\RewardBenefitCouponFulfillment;
-use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
-use AIArmada\Rewards\Contracts\RewardGratitudePlanner;
-use AIArmada\Rewards\Contracts\RewardReadinessChecker;
-use AIArmada\Rewards\Contracts\RewardReservationResolver;
 use AIArmada\Rewards\Support\FundedRewardFinancialReadinessChecker;
 use AIArmada\Rewards\Support\FundedRewardReadinessChecker;
 use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;

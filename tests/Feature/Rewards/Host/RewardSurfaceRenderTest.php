@@ -28,8 +28,6 @@ use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);

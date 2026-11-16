@@ -41,8 +41,6 @@ use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 it('runs the manual bank payout from funding to confirmed fulfillment', function (): void {
     Http::preventStrayRequests();
 
@@ -72,7 +70,7 @@ it('runs the manual bank payout from funding to confirmed fulfillment', function
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact('payout-live-attendance', $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program,
         RewardComponent::Cash,
         'user',
@@ -219,9 +217,8 @@ it('rejects new affiliate awards without a host cash policy', function (): void 
 
     expect($result->disposition)->toBe(AffiliateOutcomeDisposition::Rejected)
         ->and($result->conversion)->toBeNull()
-        ->and($affiliate->canBeAttributed())->toBeTrue();
-
-    expect(AffiliateConversion::query()->count())->toBe(0)
+        ->and($affiliate->canBeAttributed())->toBeTrue()
+        ->and(AffiliateConversion::query()->count())->toBe(0)
         ->and(AffiliateBalance::query()->count())->toBe(0)
         ->and(AffiliatePayout::query()->count())->toBe(0)
         ->and(RewardBudgetMovement::query()->count())->toBe(0)

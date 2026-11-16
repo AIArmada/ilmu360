@@ -54,5 +54,4 @@ class AppConsentResolver implements ConsentResolver
 
         return $modelClass::query()->find($recipientId);
     }
-
 }

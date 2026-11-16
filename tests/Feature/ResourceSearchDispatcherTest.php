@@ -97,6 +97,6 @@ it('matches no records when a supporting adapter finds no ids', function () {
 
     $query = Person::query();
 
-    expect((new ResourceSearchDispatcher([$adapter]))->apply($query, 'missing'))->toBeTrue()
+    expect(new ResourceSearchDispatcher([$adapter])->apply($query, 'missing'))->toBeTrue()
         ->and($query->toSql())->toContain('1 = 0');
 });

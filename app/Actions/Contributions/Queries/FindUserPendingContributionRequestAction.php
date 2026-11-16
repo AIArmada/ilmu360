@@ -2,10 +2,10 @@
 
 namespace App\Actions\Contributions\Queries;
 
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use App\Models\ContributionRequest;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
 

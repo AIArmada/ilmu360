@@ -22,8 +22,6 @@ use Filament\Forms\Components\CheckboxList;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
@@ -198,7 +196,7 @@ it('edits the disabled list to suppress and re-enable an inherited venue facilit
     ]);
 
     expect($institution->fresh()->facilities)->toBe(['wheelchair_access' => false])
-        ->and($institution->fresh()->effective_facilities)->toBe([]);
+        ->and($institution->fresh()->effective_facilities)->toBeEmpty();
 
     saveInstitutionFacilitiesForm($administrator, $institution->fresh(), [
         'facilities' => ['wheelchair_access'],

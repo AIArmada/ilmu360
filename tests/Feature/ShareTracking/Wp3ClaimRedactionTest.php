@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Communications\Contracts\PayloadRedactor;
+use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     $this->sharer = User::factory()->create([
@@ -123,9 +121,8 @@ it('redacts sensitive array-valued subtrees before visiting their values', funct
 
     expect($clean['token'])->toBe('**[REDACTED]**')
         ->and($clean['password'])->toBe('**[REDACTED]**')
-        ->and($clean['utm_campaign'])->toBe(['ramadan']);
-
-    expect(json_encode($clean, JSON_THROW_ON_ERROR))->not->toContain('inner-secret-value');
+        ->and($clean['utm_campaign'])->toBe(['ramadan'])
+        ->and(json_encode($clean, JSON_THROW_ON_ERROR))->not->toContain('inner-secret-value');
 });
 
 it('keeps issued claim secrets out of shared payload surfaces', function (): void {
@@ -138,10 +135,9 @@ it('keeps issued claim secrets out of shared payload surfaces', function (): voi
     $capability = (string) $payload['guest_claim_capability'];
     $credential = (string) $payload['guest_credential'];
 
-    expect($capability)->not->toBe('')
-        ->and($credential)->not->toBe('');
-
-    expect((string) $payload['url'])->not->toContain($capability)
+    expect($capability)->not->toBeEmpty()
+        ->and($credential)->not->toBeEmpty()
+        ->and((string) $payload['url'])->not->toContain($capability)
         ->and((string) $payload['url'])->not->toContain($credential);
 
     foreach (['platform_links', 'channel_urls'] as $group) {

@@ -132,9 +132,8 @@ it('runs one full search per saved-search candidate and groups matching candidat
     expect($fake->searchCalls)->toBe(2)
         ->and($fake->nearbyCalls)->toBe(1)
         ->and(collect($fake->searchArguments)->pluck('perPage')->unique()->all())->toBe([50])
-        ->and(collect($fake->searchArguments)->pluck('query')->all())->toEqualCanonicalizing(['kuliah tafsir', 'tauhid']);
-
-    expect($service->recorded)->toHaveCount(1);
+        ->and(collect($fake->searchArguments)->pluck('query')->all())->toEqualCanonicalizing(['kuliah tafsir', 'tauhid'])
+        ->and($service->recorded)->toHaveCount(1);
     $notification = $service->recorded[0];
 
     expect($notification->trigger)->toBe(NotificationTrigger::SavedSearchMatch)

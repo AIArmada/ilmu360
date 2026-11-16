@@ -5,10 +5,10 @@ use AIArmada\Persons\Enums\TitleUsagePosition;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 

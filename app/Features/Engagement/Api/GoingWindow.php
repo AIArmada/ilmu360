@@ -82,7 +82,7 @@ final readonly class GoingWindow
 
     private static function immutable(?DateTimeInterface $value): ?DateTimeImmutable
     {
-        if ($value === null) {
+        if (!$value instanceof \DateTimeInterface) {
             return null;
         }
 

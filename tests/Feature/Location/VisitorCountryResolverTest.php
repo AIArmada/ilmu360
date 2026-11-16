@@ -9,8 +9,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     Cache::flush();
     app(VisitorCountryResolver::class)->forget();
@@ -179,7 +177,7 @@ it('restores the visitor country when all filters are cleared', function (): voi
     ensureTestMalaysiaCountry();
 
     Livewire\Livewire::test(Index::class)
-        ->set('filterData.state_id', null)
+        ->set('filterData.state_id')
         ->call('clearAllFilters')
         ->assertSet('country_id', testMalaysiaCountryId());
 });

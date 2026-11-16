@@ -53,7 +53,7 @@ it('warns administrators when a featured occurrence is already in the past', fun
 it('hides the featured occurrence control from non administrators', function () {
     $this->actingAs(User::factory()->create());
 
-    expect(app(EventOccurrenceFeaturedFormExtension::class)->components())->toBe([]);
+    expect(app(EventOccurrenceFeaturedFormExtension::class)->components())->toBeEmpty();
 });
 
 it('prevents non administrators from curating featured occurrences through direct writes', function () {
@@ -63,9 +63,8 @@ it('prevents non administrators from curating featured occurrences through direc
     $this->actingAs($member);
 
     expect(fn () => $occurrence->update(['is_featured' => true]))
-        ->toThrow(AuthorizationException::class);
-
-    expect($occurrence->fresh()?->is_featured)->toBeFalse();
+        ->toThrow(AuthorizationException::class)
+        ->and($occurrence->fresh()?->is_featured)->toBeFalse();
 });
 
 it('exposes featured controls on the occurrence table', function () {

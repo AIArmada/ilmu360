@@ -1,18 +1,16 @@
 <?php
 
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\Events\Index as EventsIndex;
 use App\Livewire\Pages\Persons\Show as PersonShow;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 it('resolves this weekend to saturday and sunday when today is sunday', function (): void {
     Carbon::setTestNow(Carbon::create(2026, 9, 20, 10, 0, 0, 'Asia/Kuala_Lumpur'));

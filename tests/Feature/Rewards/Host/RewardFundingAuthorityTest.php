@@ -45,14 +45,6 @@ use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-// R5 proof: immutable funding/allocation authority (one deposit cannot be
-// counted twice across programs), reservation at the held-obligation
-// boundary, own-obligation-aware gates, conversion without double
-// counting, unknown-held reserves, spend-bounded recoveries, and
-// truthful member funds wording. Real actions throughout.
-
-uses(RefreshDatabase::class);
-
 function faStaff(): array
 {
     return [(string) Str::uuid(), (string) Str::uuid(), (string) Str::uuid(), (string) Str::uuid()];
@@ -91,7 +83,7 @@ function faHeld($program, $version, string $source, ?string $memberId = null): a
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact($source, $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Cash, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         $source, CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
@@ -104,7 +96,7 @@ function faHeld($program, $version, string $source, ?string $memberId = null): a
 
 function faApprove(RewardAward $award, $reader, string $staff, string $at): RewardAward
 {
-    return (new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader))->handle(
+    return new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader)->handle(
         $award, RewardAwardStatus::Approved, 'user', $staff, 'staff', 'policy-ok', null, null, CarbonImmutable::parse($at),
     );
 }
@@ -177,9 +169,8 @@ it('refuses allocation without a recorded source and replays retries on same ter
 
     expect($entries)->toHaveCount(1)
         ->and((string) $replayed->getKey())->toBe((string) $entries->first()->getKey())
-        ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['funded'])->toBe(1000);
-
-    expect(fn () => RecordRewardFundingAction::run(
+        ->and(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['funded'])->toBe(1000)
+        ->and(fn() => RecordRewardFundingAction::run(
         $program, 'MYR', 600, 'TREASURY-fa-nosrc',
         'user', $funder, 'staff', null, CarbonImmutable::parse('2026-06-03T00:00:00Z'),
     ))->toThrow(InvalidArgumentException::class, 'already bound to different terms');
@@ -251,7 +242,7 @@ it('releases the held obligation on rejection with replay-safe double release', 
 
     expect(RewardBudgetLedger::balances((string) $program->getKey(), 'MYR')['reserved'])->toBe(500);
 
-    $rejected = (new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader))->handle(
+    $rejected = new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader)->handle(
         $award, RewardAwardStatus::Rejected, 'user', $staff, 'staff', 'not-qualified',
         null, null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
@@ -261,7 +252,7 @@ it('releases the held obligation on rejection with replay-safe double release', 
         ->toBe(['funded' => 10000, 'reserved' => 0, 'net_spent' => 0, 'available' => 10000]);
 
     // A second rejection is a replay no-op, never a double credit.
-    $again = (new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader))->handle(
+    $again = new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader)->handle(
         $rejected, RewardAwardStatus::Rejected, 'user', $staff, 'staff', 'not-qualified',
         null, null, CarbonImmutable::parse('2026-06-16T01:00:00Z'),
     );
@@ -289,7 +280,7 @@ it('re-obligates an overturned rejection under a fresh epoch', function () {
         'event_checkin', ['verification' => RewardVerificationLevel::Unverified],
     ));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Cash, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         'src-fa-over-1', CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
@@ -315,7 +306,7 @@ it('re-obligates an overturned rejection under a fresh epoch', function () {
         $opened, RewardAppealStatus::InReview, 'user', $reviewer, 'admin', 'taking-case',
         null, CarbonImmutable::parse('2026-06-18T01:00:00Z'),
     );
-    (new AdvanceRewardAppealAction($reader))->handle(
+    new AdvanceRewardAppealAction($reader)->handle(
         $opened, RewardAppealStatus::Overturned, 'user', $reviewer, 'admin', 'evidence-now-qualified',
         ['review' => 'verified'], CarbonImmutable::parse('2026-06-18T02:00:00Z'),
     );
@@ -445,7 +436,7 @@ it('bounds confirmed recoveries to actual spend and refuses to mint budget', fun
         CarbonImmutable::parse('2026-06-19T00:00:00Z'),
     );
 
-    $fulfilled = (new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader))->handle(
+    $fulfilled = new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader)->handle(
         $approved, RewardAwardStatus::Fulfilled, 'user', $staff, 'staff', 'paid',
         null, null, CarbonImmutable::parse('2026-06-19T01:00:00Z'),
     );

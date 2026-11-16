@@ -12,14 +12,14 @@ use App\Features\Communications\Support\Recipient\NotificationRecipientSnapshot;
 use Illuminate\Support\Arr;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class SaveNotificationPreferencesAction
+final readonly class SaveNotificationPreferencesAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly EnsureNotificationPreferencesAction $ensurePreferences,
-        private readonly SyncNotificationPreferenceAction $syncPreference,
-        private readonly SyncSystemEmailDestinationAction $syncEmailDestination,
+        private EnsureNotificationPreferencesAction $ensurePreferences,
+        private SyncNotificationPreferenceAction $syncPreference,
+        private SyncSystemEmailDestinationAction $syncEmailDestination,
     ) {}
 
     /**

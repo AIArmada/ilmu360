@@ -4,7 +4,6 @@ namespace App\Livewire\Components;
 
 use App\Livewire\Concerns\TogglesEventGoing;
 use App\Livewire\Concerns\TogglesEventSave;
-use App\Models\Event;
 use App\Models\User;
 use App\Shared\Engagement\EngagementReader;
 use Illuminate\Contracts\View\View;

@@ -32,12 +32,12 @@ final class PrayerLocation
      *
      * @var array<string, array{district: string, subdivision: string}>
      */
-    private const CANDIDATE_ROLES = [
+    private const array CANDIDATE_ROLES = [
         'default' => ['district' => 'administrative_district', 'subdivision' => 'administrative_subdivision'],
         'MY' => ['district' => 'administrative_district', 'subdivision' => 'administrative_subdivision'],
     ];
 
-    private const MAX_PARENT_HOPS = 5;
+    private const int MAX_PARENT_HOPS = 5;
 
     /**
      * Picks the event's real address: institution first (the ~90% case),
@@ -170,7 +170,7 @@ final class PrayerLocation
         }
 
         $candidates = array_filter(array_map(
-            static fn (string $candidate): string => trim($candidate),
+            trim(...),
             $candidates,
         ));
 
@@ -206,7 +206,7 @@ final class PrayerLocation
      */
     private static function withinOwnerContext(callable $callback): mixed
     {
-        if (OwnerContext::resolve() !== null || OwnerContext::isExplicitGlobal()) {
+        if (OwnerContext::resolve() instanceof \Illuminate\Database\Eloquent\Model || OwnerContext::isExplicitGlobal()) {
             return $callback();
         }
 

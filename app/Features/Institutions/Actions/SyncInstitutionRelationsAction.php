@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use App\Platform\Directory\EntityRelationSync;
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
+use App\Platform\Directory\EntityRelationSync;
 use Illuminate\Database\Eloquent\Model;
 
 /**

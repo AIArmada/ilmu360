@@ -26,8 +26,6 @@ use Illuminate\Support\Facades\Storage;
 use Tests\Feature\ShareCards\Wp3ScThrowingPresenter;
 use Tests\Feature\ShareCards\Wp3ScThrowingRenderer;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     Storage::fake('public');
 
@@ -815,7 +813,7 @@ it('renders share-card meta urls escaped exactly once for browser parsing', func
     foreach (['og:image', 'og:image:secure_url', 'twitter:image'] as $property) {
         $pattern = '/<meta\s[^>]*?(?:property|name)="'.preg_quote($property, '/').'"[^>]*?content="([^"]*)"/';
 
-        expect(preg_match($pattern, $html, $matches))->toBe(1);
+        expect($html)->toMatch($pattern);
 
         $content = $matches[1];
 
@@ -830,17 +828,17 @@ it('renders share-card meta urls escaped exactly once for browser parsing', func
 
         parse_str((string) parse_url($decoded, PHP_URL_QUERY), $query);
 
-        expect(array_key_exists('v', $query))->toBeTrue()
-            ->and(array_key_exists('occurrence', $query))->toBeTrue()
+        expect($query)->toHaveKey('v')
+            ->and($query)->toHaveKey('occurrence')
             ->and($query['occurrence'] ?? null)->toBe('kuliah-maghrib-okt-12')
-            ->and(array_key_exists('amp;v', $query))->toBeFalse()
-            ->and(array_key_exists('amp;occurrence', $query))->toBeFalse();
+            ->and($query)->not->toHaveKey('amp;v')
+            ->and($query)->not->toHaveKey('amp;occurrence');
     }
 
-    expect(preg_match('/<meta\s[^>]*?property="og:url"[^>]*?content="([^"]*)"/', $html, $urlMatches))->toBe(1);
+    expect($html)->toMatch('/<meta\s[^>]*?property="og:url"[^>]*?content="([^"]*)"/');
 
     $ogUrl = html_entity_decode($urlMatches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
     expect($ogUrl)->toBe(route('events.show', $event))
-        ->and(filter_var($ogUrl, FILTER_VALIDATE_URL))->not->toBeFalse();
+        ->and($ogUrl)->toBeUrl();
 });

@@ -103,7 +103,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      * collection (not the displayed one) so the entity's existing media is never
      * mutated or replaced until a reviewer approves the contribution.
      */
-    private const VISITOR_MEDIA_HOLDING = 'contribution_staging';
+    private const string VISITOR_MEDIA_HOLDING = 'contribution_staging';
 
     private ?bool $directEditPermission = null;
 
@@ -765,11 +765,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function shouldShowDirectEditMediaSection(): bool
     {
-        if ($this->directEditMediaFields === []) {
-            return false;
-        }
-
-        return true;
+        return $this->directEditMediaFields !== [];
     }
 
     private function personDirectEditMediaSection(): Section
@@ -956,13 +952,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function hasNewMedia(): bool
     {
-        foreach ($this->actionableDirectEditMediaFields() as $field) {
-            if ($this->newMediaUuids($field) !== []) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($this->actionableDirectEditMediaFields(), fn($field) => $this->newMediaUuids($field) !== []);
     }
 
     private function directEditMediaFieldChanged(string $field): bool
@@ -1136,7 +1126,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     private function visitorMediaFileSaver(): Closure
     {
         return function (SpatieMediaLibraryFileUpload $component, TemporaryUploadedFile $file, ?Model $record): ?string {
-            if ($record === null || ! method_exists($record, 'addMediaFromString')) {
+            if (!$record instanceof \Illuminate\Database\Eloquent\Model || ! method_exists($record, 'addMediaFromString')) {
                 return $file;
             }
 

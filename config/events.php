@@ -29,7 +29,7 @@ return [
     |
     */
     'prayer' => [
-        'resolver_class' => \App\Services\PrayerTimeExpressionResolver::class,
+        'resolver_class' => App\Services\PrayerTimeExpressionResolver::class,
     ],
 
     /*
@@ -43,7 +43,7 @@ return [
     |
     */
     'moderation' => [
-        'adapter' => \App\Support\Events\EventModerationAdapter::class,
+        'adapter' => App\Support\Events\EventModerationAdapter::class,
     ],
 
     'database' => [

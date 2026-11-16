@@ -13,8 +13,6 @@ use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 function effectReceiptBusinessKey(): string
 {
     return ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
@@ -166,7 +164,7 @@ it('leases pending effects for five minutes and fences other workers', function 
     );
 
     expect($receipts->claimableBatch(['projection'], 10))->toHaveCount(1)
-        ->and($receipts->claimableBatch(['ticket_affiliate_reversal'], 10))->toBe([]);
+        ->and($receipts->claimableBatch(['ticket_affiliate_reversal'], 10))->toBeEmpty();
 
     $claimed = $receipts->claim($projection->id, ['projection'], 'worker-a', 'lease-a');
 
@@ -185,7 +183,7 @@ it('leases pending effects for five minutes and fences other workers', function 
 
     // A live lease cannot be stolen by another worker.
     expect($receipts->claim($projection->id, ['projection'], 'worker-b', 'lease-b'))->toBeNull()
-        ->and($receipts->claimableBatch(['projection'], 10))->toBe([])
+        ->and($receipts->claimableBatch(['projection'], 10))->toBeEmpty()
         ->and($receipts->lockLease($projection->id, 'worker-b', 'lease-b'))->toBeNull();
 
     $this->travel(6)->minutes();
@@ -214,7 +212,7 @@ it('leases pending effects for five minutes and fences other workers', function 
         ->and($settled->leased_by)->toBeNull()
         ->and($settled->lease_expires_at)->toBeNull()
         ->and($settled->succeeded_at)->not->toBeNull()
-        ->and($receipts->claimableBatch(['projection'], 10))->toBe([])
+        ->and($receipts->claimableBatch(['projection'], 10))->toBeEmpty()
         ->and($receipts->claim($projection->id, ['projection'], 'worker-c', 'lease-c'))->toBeNull();
 });
 

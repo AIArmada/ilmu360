@@ -26,8 +26,6 @@ use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('serves membership, engagement and event facts without user reverse relations', function (): void {
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
@@ -62,9 +60,8 @@ it('serves membership, engagement and event facts without user reverse relations
 
     $facts = app(AccountEventFacts::class);
     expect($facts->ownedEventIds((string) $user->getKey()))->toBe([(string) $event->id])
-        ->and($facts->registrationIds((string) $user->getKey()))->toBe([(string) $registration->id]);
-
-    expect(method_exists(User::class, 'institutions'))->toBeFalse()
+        ->and($facts->registrationIds((string) $user->getKey()))->toBe([(string) $registration->id])
+        ->and(method_exists(User::class, 'institutions'))->toBeFalse()
         ->and(method_exists(User::class, 'savedEvents'))->toBeFalse()
         ->and(method_exists(User::class, 'goingEvents'))->toBeFalse()
         ->and(method_exists(User::class, 'registrations'))->toBeFalse()

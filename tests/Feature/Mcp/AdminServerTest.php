@@ -1294,7 +1294,7 @@ it('exposes series write schema and creates and updates series through the admin
 
     $seriesRouteKey = (string) Series::query()->where('slug', 'admin-mcp-series-'.$suffix)->value('id');
 
-    expect($seriesRouteKey)->not->toBe('');
+    expect($seriesRouteKey)->not->toBeEmpty();
 
     $series = Series::query()->findOrFail($seriesRouteKey);
 
@@ -1364,7 +1364,7 @@ it('exposes space write schema and creates and updates spaces through the admin 
 
     $spaceRouteKey = (string) Space::query()->where('slug', 'admin-mcp-space-'.$suffix)->value('id');
 
-    expect($spaceRouteKey)->not->toBe('');
+    expect($spaceRouteKey)->not->toBeEmpty();
 
     $space = Space::query()->findOrFail($spaceRouteKey);
 
@@ -1445,7 +1445,7 @@ it('exposes donation channel write schema and creates and updates donation chann
         ->where('recipient', 'Masjid MCP')
         ->value('id');
 
-    expect($donationChannelRouteKey)->not->toBe('');
+    expect($donationChannelRouteKey)->not->toBeEmpty();
 
     $donationChannel = DonationChannel::query()->findOrFail($donationChannelRouteKey);
 
@@ -1528,7 +1528,7 @@ it('exposes inspiration write schema and creates and updates inspirations throug
 
     $inspirationRouteKey = (string) Inspiration::query()->where('title', 'Admin MCP Inspiration')->value('id');
 
-    expect($inspirationRouteKey)->not->toBe('');
+    expect($inspirationRouteKey)->not->toBeEmpty();
 
     $inspiration = Inspiration::query()->findOrFail($inspirationRouteKey);
 
@@ -2355,11 +2355,11 @@ it('creates and updates events through MCP write tools', function () {
     expect($event->title)->toBe('Admin MCP Event Updated')
         ->and($event->live_url)->toBe('https://youtube.com/watch?v=admin-mcp-event-live')
         ->and($event->accessPolicy?->registration_required)->toBeFalse()
-        ->and($event->references)->toHaveCount(0)
-        ->and($event->series)->toHaveCount(0)
+        ->and($event->references)->toBeEmpty()
+        ->and($event->series)->toBeEmpty()
         ->and($event->classifications->pluck('event_term_id')->all())->toContain($sourceTag->getKey())
         ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey(), $disciplineTag->getKey())
-        ->and($event->keyPeople)->toHaveCount(0);
+        ->and($event->keyPeople)->toBeEmpty();
 
     $this->get($oldPath)
         ->assertRedirect(route('events.show', $event));
@@ -3120,43 +3120,31 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         'admin-review-contribution-request',
         'admin-review-membership-application',
         'admin-update-record',
-    );
-
-    expect($tools->keys()->all())->not->toContain('admin-generate-event-cover-image', 'admin-generate-event-poster-image');
-
-    expect($tools->keys()->all())->not->toContain('member-list-resources', 'member-list-records');
-
-    expect($tools->keys()->all())->not->toContain(
-        'admin-delete-record',
-        'admin-delete',
-        'admin-remove-record',
-    );
-
-    expect($tools->get('search')['securitySchemes'] ?? [])->toContainEqual([
+    )
+        ->and($tools->keys()->all())->not->toContain('admin-generate-event-cover-image', 'admin-generate-event-poster-image')
+        ->and($tools->keys()->all())->not->toContain('member-list-resources', 'member-list-records')
+        ->and($tools->keys()->all())->not->toContain('admin-delete-record', 'admin-delete', 'admin-remove-record')
+        ->and($tools->get('search')['securitySchemes'] ?? [])->toContainEqual([
         'type' => 'oauth2',
         'scopes' => ['mcp:use'],
-    ]);
-
-    expect($tools->get('fetch')['securitySchemes'] ?? [])->toContainEqual([
+    ])
+        ->and($tools->get('fetch')['securitySchemes'] ?? [])->toContainEqual([
         'type' => 'oauth2',
         'scopes' => ['mcp:use'],
     ])
         ->and($tools->get('fetch')['description'] ?? '')->toContain('not a url or file:// resource URI')
-        ->and(data_get($tools->get('fetch'), 'inputSchema.properties.id.description'))->toContain('Do not pass the document url');
-
-    expect(data_get($tools->get('search'), 'outputSchema.type'))->toBe('object');
-    expect(data_get($tools->get('search'), 'outputSchema.required'))->toBe(['results']);
-    expect(data_get($tools->get('search'), 'outputSchema.properties.results.type'))->toBe('array');
-    expect(data_get($tools->get('search'), 'outputSchema.properties.results.items.required'))->toBe(['id', 'title', 'url']);
-    expect(data_get($tools->get('search'), 'outputSchema.properties.results.items.properties.url.format'))->toBe('uri');
-
-    expect(data_get($tools->get('fetch'), 'outputSchema.type'))->toBe('object');
-    expect(data_get($tools->get('fetch'), 'outputSchema.required'))->toBe(['id', 'title', 'text', 'url', 'metadata']);
-    expect(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.type'))->toBe('object');
-    expect(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.required'))->toBe(['description', 'mime_type', 'resource_uri', 'relative_path', 'last_modified']);
-    expect(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.properties.last_modified.format'))->toBe('date-time');
-
-    expect($tools->get('admin-list-resources')['annotations'] ?? [])->toMatchArray([
+        ->and(data_get($tools->get('fetch'), 'inputSchema.properties.id.description'))->toContain('Do not pass the document url')
+        ->and(data_get($tools->get('search'), 'outputSchema.type'))->toBe('object')
+        ->and(data_get($tools->get('search'), 'outputSchema.required'))->toBe(['results'])
+        ->and(data_get($tools->get('search'), 'outputSchema.properties.results.type'))->toBe('array')
+        ->and(data_get($tools->get('search'), 'outputSchema.properties.results.items.required'))->toBe(['id', 'title', 'url'])
+        ->and(data_get($tools->get('search'), 'outputSchema.properties.results.items.properties.url.format'))->toBe('uri')
+        ->and(data_get($tools->get('fetch'), 'outputSchema.type'))->toBe('object')
+        ->and(data_get($tools->get('fetch'), 'outputSchema.required'))->toBe(['id', 'title', 'text', 'url', 'metadata'])
+        ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.type'))->toBe('object')
+        ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.required'))->toBe(['description', 'mime_type', 'resource_uri', 'relative_path', 'last_modified'])
+        ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.properties.last_modified.format'))->toBe('date-time')
+        ->and($tools->get('admin-list-resources')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => true,
         'idempotentHint' => true,
     ]);
@@ -3165,81 +3153,67 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
 
     expect($readOnlyTools->isNotEmpty())->toBeTrue()
         ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.destructiveHint') === false))->toBeTrue()
-        ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.openWorldHint') === false))->toBeTrue();
-
-    expect(collect((array) data_get($tools->get('admin-list-records'), 'inputSchema.properties.filters.type'))->contains('object'))->toBeTrue();
-
-    expect($tools->get('admin-get-write-schema')['annotations'] ?? [])->toMatchArray([
+        ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.openWorldHint') === false))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-list-records'), 'inputSchema.properties.filters.type'))->contains('object'))->toBeTrue()
+        ->and($tools->get('admin-get-write-schema')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => true,
         'idempotentHint' => true,
         'destructiveHint' => false,
         'openWorldHint' => false,
-    ]);
-
-    expect($tools->get('admin-get-event-moderation-schema')['annotations'] ?? [])->toMatchArray([
+    ])
+        ->and($tools->get('admin-get-event-moderation-schema')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => true,
         'idempotentHint' => true,
         'destructiveHint' => false,
         'openWorldHint' => false,
-    ]);
-
-    expect($tools->get('admin-create-record')['annotations'] ?? [])->toMatchArray([
+    ])
+        ->and($tools->get('admin-create-record')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => false,
         'idempotentHint' => false,
         'destructiveHint' => false,
         'openWorldHint' => false,
-    ]);
-
-    expect($tools->get('admin-create-event')['annotations'] ?? [])->toMatchArray([
+    ])
+        ->and($tools->get('admin-create-event')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => false,
         'idempotentHint' => false,
         'destructiveHint' => false,
         'openWorldHint' => false,
-    ]);
-    expect(data_get($tools->get('admin-create-event'), 'title'))->toBe('Create Event');
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('title'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_date'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('prayer_time'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_category_ids'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.primary_organizer_key.type'))->contains('string'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.institution_key.type'))->contains('string'))->toBeTrue();
-    expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_key'))->toBeNull();
-    expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_id'))->toBeNull();
-    expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.institution_id'))->toBeNull();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.person_keys.type'))->contains('array'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.reference_keys.type'))->contains('array'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.languages.type'))->contains('array'))->toBeTrue();
-    expect((string) data_get($tools->get('admin-create-event'), 'inputSchema.properties.apply_defaults.description'))
-        ->toContain('Preview-only helper')
-        ->toContain('ignored for persisted creates');
-    expect((string) data_get($tools->get('admin-update-event'), 'description'))
-        ->toContain('MCP event tool')
+    ])
+        ->and(data_get($tools->get('admin-create-event'), 'title'))->toBe('Create Event')
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('title'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_date'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('prayer_time'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_category_ids'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.primary_organizer_key.type'))->contains('string'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.institution_key.type'))->contains('string'))->toBeTrue()
+        ->and(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_key'))->toBeNull()
+        ->and(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_id'))->toBeNull()
+        ->and(data_get($tools->get('admin-create-event'), 'inputSchema.properties.institution_id'))->toBeNull()
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.person_keys.type'))->contains('array'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.reference_keys.type'))->contains('array'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.languages.type'))->contains('array'))->toBeTrue()
+        ->and((string) data_get($tools->get('admin-create-event'), 'inputSchema.properties.apply_defaults.description'))->toContain('Preview-only helper')
+        ->toContain('ignored for persisted creates')
+        ->and((string) data_get($tools->get('admin-update-event'), 'description'))->toContain('MCP event tool')
         ->toContain('pass [] to detach all')
-        ->toContain('pass null to preserve');
-    expect((string) data_get($tools->get('admin-update-event'), 'inputSchema.properties.person_keys.description'))
-        ->toContain('Omit or pass null to preserve')
-        ->toContain('Pass [] to detach all persons');
-    expect((string) data_get($tools->get('admin-batch-create-events'), 'description'))
-        ->toContain('apply_defaults is only honored together with validate_only=true')
-        ->toContain('ignored for real creates');
-
-    expect(data_get($tools->get('admin-create-record'), 'inputSchema.properties.payload.type'))->toBe('object');
-    expect(collect((array) data_get($tools->get('admin-create-record'), 'inputSchema.required'))->contains('payload'))->toBeTrue();
-
-    expect(data_get($tools->get('admin-update-record'), 'inputSchema.properties.payload.type'))->toBe('object');
-    expect(collect((array) data_get($tools->get('admin-update-record'), 'inputSchema.required'))->contains('record_key'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-update-record'), 'inputSchema.required'))->contains('payload'))->toBeTrue();
-
-    expect(data_get($tools->get('admin-batch-create-records'), 'inputSchema.properties.items.items.properties.payload.type'))->toBe('object');
-    expect(data_get($tools->get('admin-batch-create-records'), 'inputSchema.properties.items.items.properties.payload.additionalProperties'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-batch-create-records'), 'inputSchema.properties.items.items.required'))->contains('payload'))->toBeTrue();
-
-    expect(data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.properties.payload.type'))->toBe('object');
-    expect(data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.properties.payload.additionalProperties'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.required'))->contains('record_key'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.required'))->contains('payload'))->toBeTrue();
-
-    expect($tools->get('admin-create-github-issue')['annotations'] ?? [])->toMatchArray([
+        ->toContain('pass null to preserve')
+        ->and((string) data_get($tools->get('admin-update-event'), 'inputSchema.properties.person_keys.description'))->toContain('Omit or pass null to preserve')
+        ->toContain('Pass [] to detach all persons')
+        ->and((string) data_get($tools->get('admin-batch-create-events'), 'description'))->toContain('apply_defaults is only honored together with validate_only=true')
+        ->toContain('ignored for real creates')
+        ->and(data_get($tools->get('admin-create-record'), 'inputSchema.properties.payload.type'))->toBe('object')
+        ->and(collect((array) data_get($tools->get('admin-create-record'), 'inputSchema.required'))->contains('payload'))->toBeTrue()
+        ->and(data_get($tools->get('admin-update-record'), 'inputSchema.properties.payload.type'))->toBe('object')
+        ->and(collect((array) data_get($tools->get('admin-update-record'), 'inputSchema.required'))->contains('record_key'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-update-record'), 'inputSchema.required'))->contains('payload'))->toBeTrue()
+        ->and(data_get($tools->get('admin-batch-create-records'), 'inputSchema.properties.items.items.properties.payload.type'))->toBe('object')
+        ->and(data_get($tools->get('admin-batch-create-records'), 'inputSchema.properties.items.items.properties.payload.additionalProperties'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-batch-create-records'), 'inputSchema.properties.items.items.required'))->contains('payload'))->toBeTrue()
+        ->and(data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.properties.payload.type'))->toBe('object')
+        ->and(data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.properties.payload.additionalProperties'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.required'))->contains('record_key'))->toBeTrue()
+        ->and(collect((array) data_get($tools->get('admin-batch-update-records'), 'inputSchema.properties.items.items.required'))->contains('payload'))->toBeTrue()
+        ->and($tools->get('admin-create-github-issue')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => false,
         'idempotentHint' => false,
         'destructiveHint' => false,
@@ -3335,15 +3309,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint', function () {
         'admin-review-contribution-request',
         'admin-review-membership-application',
         'admin-update-record',
-    );
-
-    expect($toolNames)->not->toContain('admin-generate-event-cover-image', 'admin-generate-event-poster-image');
-
-    expect($toolNames)->not->toContain(
-        'admin-delete-record',
-        'admin-delete',
-        'admin-remove-record',
-    );
+    )->not->toContain('admin-generate-event-cover-image', 'admin-generate-event-poster-image')->not->toContain('admin-delete-record', 'admin-delete', 'admin-remove-record');
 });
 
 it('searches and fetches verified documentation through admin MCP tools', function () {
@@ -3505,11 +3471,11 @@ it('auto-injects guide on first operational call and allows the retry in the sam
         ],
     ])->assertOk();
 
-    expect($firstCall->json('result.isError'))->toBeFalse();
-    expect($firstCall->json('result.structuredContent.action'))->toBe('documentation_preflight_injected');
-    expect($firstCall->json('result.structuredContent.document.id'))->toBe(McpDocumentationPreflight::GUIDE_DOCUMENT_ID);
-    expect($firstCall->json('result.structuredContent.retry.tool_name'))->toBe('admin-list-resources');
-    expect($firstCall->json('result.content.0.text'))->toContain('Guide auto-loaded');
+    expect($firstCall->json('result.isError'))->toBeFalse()
+        ->and($firstCall->json('result.structuredContent.action'))->toBe('documentation_preflight_injected')
+        ->and($firstCall->json('result.structuredContent.document.id'))->toBe(McpDocumentationPreflight::GUIDE_DOCUMENT_ID)
+        ->and($firstCall->json('result.structuredContent.retry.tool_name'))->toBe('admin-list-resources')
+        ->and($firstCall->json('result.content.0.text'))->toContain('Guide auto-loaded');
 
     $allowedCall = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3521,8 +3487,8 @@ it('auto-injects guide on first operational call and allows the retry in the sam
         ],
     ])->assertOk();
 
-    expect($allowedCall->json('result.isError'))->toBeFalse();
-    expect($allowedCall->json('result.structuredContent.data.resources'))->toBeArray();
+    expect($allowedCall->json('result.isError'))->toBeFalse()
+        ->and($allowedCall->json('result.structuredContent.data.resources'))->toBeArray();
 });
 
 it('auto-injects guide via meta-session identity and allows the retry', function () {
@@ -3559,9 +3525,9 @@ it('auto-injects guide via meta-session identity and allows the retry', function
         ],
     ])->assertOk();
 
-    expect($firstCall->json('result.isError'))->toBeFalse();
-    expect($firstCall->json('result.structuredContent.action'))->toBe('documentation_preflight_injected');
-    expect($firstCall->json('result.structuredContent.document.id'))->toBe(McpDocumentationPreflight::GUIDE_DOCUMENT_ID);
+    expect($firstCall->json('result.isError'))->toBeFalse()
+        ->and($firstCall->json('result.structuredContent.action'))->toBe('documentation_preflight_injected')
+        ->and($firstCall->json('result.structuredContent.document.id'))->toBe(McpDocumentationPreflight::GUIDE_DOCUMENT_ID);
 
     $allowedCall = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3578,8 +3544,8 @@ it('auto-injects guide via meta-session identity and allows the retry', function
         ],
     ])->assertOk();
 
-    expect($allowedCall->json('result.isError'))->toBeFalse();
-    expect($allowedCall->json('result.structuredContent.data.resources'))->toBeArray();
+    expect($allowedCall->json('result.isError'))->toBeFalse()
+        ->and($allowedCall->json('result.structuredContent.data.resources'))->toBeArray();
 });
 
 it('auto-injects guide when no session identity is forwarded and allows the retry', function () {
@@ -3610,9 +3576,9 @@ it('auto-injects guide when no session identity is forwarded and allows the retr
         ],
     ])->assertOk();
 
-    expect($firstCall->json('result.isError'))->toBeFalse();
-    expect($firstCall->json('result.structuredContent.action'))->toBe('documentation_preflight_injected');
-    expect($firstCall->json('result.structuredContent.document.id'))->toBe(McpDocumentationPreflight::GUIDE_DOCUMENT_ID);
+    expect($firstCall->json('result.isError'))->toBeFalse()
+        ->and($firstCall->json('result.structuredContent.action'))->toBe('documentation_preflight_injected')
+        ->and($firstCall->json('result.structuredContent.document.id'))->toBe(McpDocumentationPreflight::GUIDE_DOCUMENT_ID);
 
     $allowedCall = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3624,8 +3590,8 @@ it('auto-injects guide when no session identity is forwarded and allows the retr
         ],
     ])->assertOk();
 
-    expect($allowedCall->json('result.isError'))->toBeFalse();
-    expect($allowedCall->json('result.structuredContent.data.resources'))->toBeArray();
+    expect($allowedCall->json('result.isError'))->toBeFalse()
+        ->and($allowedCall->json('result.structuredContent.data.resources'))->toBeArray();
 });
 
 it('lists and reads the documentation routing prompt through the admin MCP server', function () {
@@ -3672,8 +3638,8 @@ it('lists and reads the documentation routing prompt through the admin MCP serve
 
     $prompts = collect($listPrompts->json('result.prompts'))->keyBy('name');
 
-    expect($prompts->keys()->all())->toContain('documentation-tool-routing');
-    expect($prompts->get('documentation-tool-routing'))->toMatchArray([
+    expect($prompts->keys()->all())->toContain('documentation-tool-routing')
+        ->and($prompts->get('documentation-tool-routing'))->toMatchArray([
         'title' => 'Documentation Tool Routing',
         'description' => 'Short guidance for deciding when to use the verified admin documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.',
         'arguments' => [
@@ -3697,13 +3663,13 @@ it('lists and reads the documentation routing prompt through the admin MCP serve
         ],
     ])->assertOk();
 
-    expect($getPrompt->json('result.description'))->toBe('Short guidance for deciding when to use the verified admin documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Before the first ilmu360 admin MCP operational tool call for runtime reads, search, lookup, listing, metadata inspection, relation traversal, write-schema discovery, preview, write, or workflow actions, ensure the verified guide is already in context.');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('a fresh docs fetch may be skipped only when the fetched guide is already active in context');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Use `fetch` first');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Search `institutions` first when the noun matches an institution type');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Topic-specific guidance for "crud":');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Fetch `docs-admin-mcp-guide` and focus on the MCP capability matrix, writable resource matrix, and preview sections.');
+    expect($getPrompt->json('result.description'))->toBe('Short guidance for deciding when to use the verified admin documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Before the first ilmu360 admin MCP operational tool call for runtime reads, search, lookup, listing, metadata inspection, relation traversal, write-schema discovery, preview, write, or workflow actions, ensure the verified guide is already in context.')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('a fresh docs fetch may be skipped only when the fetched guide is already active in context')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Use `fetch` first')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Search `institutions` first when the noun matches an institution type')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Topic-specific guidance for "crud":')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Fetch `docs-admin-mcp-guide` and focus on the MCP capability matrix, writable resource matrix, and preview sections.');
 
     AdminServer::actingAs($admin)
         ->completion(DocumentationToolRoutingPrompt::class, 'topic', 'cr')
@@ -3755,9 +3721,9 @@ it('lists and reads verified documentation resources through the admin MCP serve
 
     $resources = collect($listResources->json('result.resources'))->keyBy('name');
 
-    expect($resources->keys()->all())->toContain('docs-admin-mcp-guide');
-    expect($resources->keys()->all())->not->toContain('docs-crud-capability-matrix');
-    expect($resources->get('docs-admin-mcp-guide'))->toMatchArray([
+    expect($resources->keys()->all())->toContain('docs-admin-mcp-guide')
+        ->and($resources->keys()->all())->not->toContain('docs-crud-capability-matrix')
+        ->and($resources->get('docs-admin-mcp-guide'))->toMatchArray([
         'uri' => 'file://docs/ilmu360_mcp_admin_agent_guide.md',
         'mimeType' => 'text/markdown',
     ]);
@@ -4270,8 +4236,8 @@ it('detaches persons and references when empty route-key arrays are provided via
 
     $event->refresh()->load(['persons', 'references']);
 
-    expect($event->persons)->toHaveCount(0)
-        ->and($event->references)->toHaveCount(0);
+    expect($event->persons)->toBeEmpty()
+        ->and($event->references)->toBeEmpty();
 });
 
 it('preserves persons and references when route-key arrays are omitted via admin-update-event', function () {
@@ -4433,8 +4399,8 @@ it('batch-updates events detach or preserve persons and references based on rout
     $eventToDetach->refresh()->load(['persons', 'references']);
     $eventToPreserve->refresh()->load(['persons', 'references']);
 
-    expect($eventToDetach->persons)->toHaveCount(0)
-        ->and($eventToDetach->references)->toHaveCount(0)
+    expect($eventToDetach->persons)->toBeEmpty()
+        ->and($eventToDetach->references)->toBeEmpty()
         ->and($eventToPreserve->persons->contains($preservePerson))->toBeTrue()
         ->and($eventToPreserve->references->contains($preserveReference))->toBeTrue();
 });

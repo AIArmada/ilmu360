@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 afterEach(function (): void {
     DB::purge('production_speaker_import_source');
-    config()->set('database.connections.production_speaker_import_source', null);
+    config()->set('database.connections.production_speaker_import_source');
 });
 
 it('imports only event-level person involvements with their canonical fields', function (): void {

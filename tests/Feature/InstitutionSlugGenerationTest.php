@@ -20,8 +20,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 it('generates geographic slugs for institution quick-create flows', function () {
     $geography = createInstitutionSlugGeography();
 
@@ -390,9 +388,8 @@ it('rejects a duplicate explicit slug on a source-backed institution', function 
         'name' => 'Masjid Import Collision',
         'type' => 'masjid',
         'slug' => $taken,
-    ], $actor, $imported))->toThrow(ValidationException::class);
-
-    expect($imported->fresh()?->slug)->toBe('imported-collision-slug');
+    ], $actor, $imported))->toThrow(ValidationException::class)
+        ->and($imported->fresh()?->slug)->toBe('imported-collision-slug');
 });
 
 it('keeps an explicit slug consistent under a real outer transaction', function () {

@@ -145,8 +145,8 @@ final class Wp3RealDriverHarness
                 command: [
                     PHP_BINARY,
                     $worker,
-                                '--database='.$job['database'],
-                            '--app-url='.$job['app_url'],
+                    '--database='.$job['database'],
+                    '--app-url='.$job['app_url'],
                     '--mode='.$job['mode'],
                     '--ready-dir='.$readyDir,
                     '--slot='.$slot,

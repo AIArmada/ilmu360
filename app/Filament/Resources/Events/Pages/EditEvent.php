@@ -17,6 +17,7 @@ use LogicException;
 
 final class EditEvent extends EditRecord
 {
+    #[\Override]
     protected static string $resource = EventResource::class;
 
     protected function getHeaderActions(): array

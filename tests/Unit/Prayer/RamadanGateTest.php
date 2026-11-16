@@ -4,7 +4,7 @@ use App\Features\Prayer\Services\RamadanGate;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('treats announced windows as exact with no tolerance', function () {
     $gate = app(RamadanGate::class);

@@ -13,8 +13,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 function rw2aSourceReceipt(
     string $businessKey,
     CarbonImmutable $occurredAt,

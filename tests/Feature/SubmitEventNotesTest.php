@@ -1,14 +1,14 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Livewire\Livewire;

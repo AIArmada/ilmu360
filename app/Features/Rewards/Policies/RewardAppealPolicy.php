@@ -36,7 +36,7 @@ class RewardAppealPolicy
     {
         return $award instanceof RewardAward
             && (string) $award->recipient_type === $user->actorType()
-            && (string) $award->recipient_id === (string) $user->actorId();
+            && (string) $award->recipient_id === $user->actorId();
     }
 
     public function decide(AccountActor $user, RewardAppeal $appeal): bool
@@ -49,12 +49,12 @@ class RewardAppealPolicy
 
         return ! ($award instanceof RewardAward
             && (string) $award->recipient_type === $user->actorType()
-            && (string) $award->recipient_id === (string) $user->actorId());
+            && (string) $award->recipient_id === $user->actorId());
     }
 
     private function isInvolved(AccountActor $user, RewardAppeal $appeal): bool
     {
-        $userId = (string) $user->actorId();
+        $userId = $user->actorId();
 
         if ((string) $appeal->opened_by_type === $user->actorType() && (string) $appeal->opened_by_id === $userId) {
             return true;

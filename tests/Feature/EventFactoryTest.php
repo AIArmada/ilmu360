@@ -1,7 +1,7 @@
 <?php
 
-use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
+use App\Shared\Events\Enums\TimingMode;
 
 it('coerces factory windows where the end precedes the start', function (): void {
     // Definition ends_at is random; combined with an explicit earlier end

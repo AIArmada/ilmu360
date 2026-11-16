@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Reference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('persists the canonical year field', function (): void {
     $reference = OwnerContext::withOwner(null, fn () => Reference::factory()->create(['year' => 2020]));

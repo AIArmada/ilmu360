@@ -10,7 +10,7 @@ use App\States\EventStatus\Draft;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('models have active scopes', function () {
     withGlobalOwnerContext(function (): void {

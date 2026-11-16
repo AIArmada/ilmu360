@@ -103,7 +103,7 @@ while (! is_file($readyDir.'/ready-'.$peer)) {
 try {
     $link = app(AffiliatesShareTrackingService::class)->createOrReuseLink($user, $url, $title, 'web');
 } catch (Throwable $exception) {
-    $fail(get_class($exception).': '.$exception->getMessage());
+    $fail($exception::class.': '.$exception->getMessage());
 }
 
 echo json_encode([

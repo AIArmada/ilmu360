@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Services;
 
-use App\Models\Space;
-
 use App\Features\Places\Actions\Spaces\DeleteSpaceAction;
 use App\Features\Places\Actions\Spaces\SaveSpaceAction;
 use App\Features\Places\Api\SpaceWorkflow;
+use App\Models\Space;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 

@@ -24,8 +24,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     config([
         'affiliates.owner.enabled' => false,
@@ -117,7 +115,7 @@ function signupResolverCommercialFixture(User $owner, ?string $purpose = null): 
     $request = Request::create(route('register'), 'POST');
     $request->cookies->set((string) config('affiliates.cookies.name', 'affiliate_session'), $cookie);
 
-    return compact('request', 'affiliate', 'link', 'attribution');
+    return ['request' => $request, 'affiliate' => $affiliate, 'link' => $link, 'attribution' => $attribution];
 }
 
 it('captures the referring member from a real tracked share landing', function (): void {
@@ -148,8 +146,8 @@ it('resolves a tracked share across owner scopes without changing the ambient ow
         return $source;
     });
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value);
-    expect($source?->referrerUserId)->toBe((string) $sharer->getKey());
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value)
+        ->and($source?->referrerUserId)->toBe((string) $sharer->getKey());
 });
 
 it('preserves an unclaimed guest share without inventing a referring account', function (): void {
@@ -157,9 +155,9 @@ it('preserves an unclaimed guest share without inventing a referring account', f
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value);
-    expect($source?->referrerUserId)->toBeNull();
-    expect($source?->affiliateId)->toBe((string) $fixture['affiliate']->getKey());
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value)
+        ->and($source?->referrerUserId)->toBeNull()
+        ->and($source?->affiliateId)->toBe((string) $fixture['affiliate']->getKey());
     $this->assertDatabaseCount('affiliate_claims', 0);
 });
 
@@ -171,9 +169,9 @@ it('resolves the existing explicit guest claimant without changing the guest pro
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value);
-    expect($source?->referrerUserId)->toBe((string) $claimant->getKey());
-    expect($fixture['affiliate']->fresh()?->owner_id)->toBeNull();
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value)
+        ->and($source?->referrerUserId)->toBe((string) $claimant->getKey())
+        ->and($fixture['affiliate']->fresh()?->owner_id)->toBeNull();
     $this->assertDatabaseCount('affiliate_claims', 1);
 });
 
@@ -186,8 +184,8 @@ it('does not resolve a revoked guest claimant', function (): void {
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value);
-    expect($source?->referrerUserId)->toBeNull();
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest->value)
+        ->and($source?->referrerUserId)->toBeNull();
 });
 
 it('captures a commercial affiliate owner through a valid cookie', function (?string $purpose): void {
@@ -218,8 +216,8 @@ it('resolves a commercial source in its verified owner scope and restores the am
         return $source;
     });
 
-    expect($source?->referrerUserId)->toBe((string) $owner->getKey());
-    expect($source?->affiliateId)->toBe((string) $fixture['affiliate']->getKey());
+    expect($source?->referrerUserId)->toBe((string) $owner->getKey())
+        ->and($source?->affiliateId)->toBe((string) $fixture['affiliate']->getKey());
 });
 
 it('accepts a commercial code attribution that has no campaign link', function (): void {
@@ -228,8 +226,8 @@ it('accepts a commercial code attribution that has no campaign link', function (
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate->value);
-    expect($source?->affiliateLinkId)->toBeNull();
+    expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate->value)
+        ->and($source?->affiliateLinkId)->toBeNull();
 });
 
 it('prefers the current tracked share when explicit referral timestamps tie', function (): void {
@@ -242,9 +240,9 @@ it('prefers the current tracked share when explicit referral timestamps tie', fu
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value);
-    expect($source?->referrerUserId)->toBe((string) $sharer->getKey());
-    expect($source?->affiliateId)->toBe((string) $share['affiliate']->getKey());
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value)
+        ->and($source?->referrerUserId)->toBe((string) $sharer->getKey())
+        ->and($source?->affiliateId)->toBe((string) $share['affiliate']->getKey());
 });
 
 it('chooses a newer commercial referral over an older tracked share', function (): void {
@@ -263,8 +261,8 @@ it('chooses a newer commercial referral over an older tracked share', function (
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate->value);
-    expect($source?->referrerUserId)->toBe((string) $owner->getKey());
+    expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate->value)
+        ->and($source?->referrerUserId)->toBe((string) $owner->getKey());
 });
 
 it('chooses a newer share despite later passive commercial cookie maintenance', function (): void {
@@ -283,8 +281,8 @@ it('chooses a newer share despite later passive commercial cookie maintenance', 
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
 
-    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value);
-    expect($source?->referrerUserId)->toBe((string) $sharer->getKey());
+    expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember->value)
+        ->and($source?->referrerUserId)->toBe((string) $sharer->getKey());
 });
 
 it('abstains from an undated commercial attribution without inferring an explicit touch', function (): void {

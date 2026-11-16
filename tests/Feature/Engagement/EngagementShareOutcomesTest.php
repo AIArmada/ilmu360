@@ -53,24 +53,14 @@ it('records bookmark outcomes with the event save business key and the caller me
 
     $tracking->shouldReceive('recordOutcome')
         ->once()
-        ->withArgs(function (
-            ShareOutcomeType $type,
-            string $businessKey,
-            ?Model $subject,
-            ?User $actor,
-            ?Request $receivedRequest,
-            array $receivedMetadata,
-            ?CarbonImmutable $receivedOccurredAt,
-        ) use ($bookmarkId, $event, $user, $request, $metadata, $occurredAt): bool {
-            return $type === ShareOutcomeType::EventSave
-                && $businessKey === ShareOutcomeBusinessKey::eventSave($bookmarkId)
-                && $subject instanceof Event
-                && $subject->is($event)
-                && $actor?->is($user) === true
-                && $receivedRequest === $request
-                && $receivedMetadata === $metadata
-                && $receivedOccurredAt?->equalTo($occurredAt) === true;
-        })
+        ->withArgs(fn(ShareOutcomeType $type, string $businessKey, ?Model $subject, ?User $actor, ?Request $receivedRequest, array $receivedMetadata, ?CarbonImmutable $receivedOccurredAt): bool => $type === ShareOutcomeType::EventSave
+            && $businessKey === ShareOutcomeBusinessKey::eventSave($bookmarkId)
+            && $subject instanceof Event
+            && $subject->is($event)
+            && $actor?->is($user) === true
+            && $receivedRequest === $request
+            && $receivedMetadata === $metadata
+            && $receivedOccurredAt?->equalTo($occurredAt) === true)
         ->andReturnNull();
 
     $recorder->recordBookmark($bookmarkId, $event, $user, $request, $metadata, $occurredAt);

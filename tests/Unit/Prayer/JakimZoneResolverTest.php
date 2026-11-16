@@ -5,7 +5,7 @@ use App\Features\Prayer\Services\JakimZoneResolver;
 use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('ships a 60-zone snapshot with state defaults pointing at known zones', function () {
     $resolver = app(JakimZoneResolver::class);
@@ -57,7 +57,7 @@ it('falls back to capital coordinates when only a state is known', function () {
 });
 
 it('falls back to the tagged country default when nothing is known', function () {
-    $resolved = app(JakimZoneResolver::class)->resolve(null, null, null);
+    $resolved = app(JakimZoneResolver::class)->resolve(null, null);
 
     expect($resolved)->toBe([
         'zone' => 'WLY01',

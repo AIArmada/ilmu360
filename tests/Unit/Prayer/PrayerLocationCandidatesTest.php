@@ -16,7 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 function ensurePrayerCandidatesCountry(): AddressCountry
 {
@@ -144,7 +144,7 @@ it('returns no candidates without areas or city', function () {
     $country = ensurePrayerCandidatesCountry();
     $address = makePrayerCandidatesAddress($country, makePrayerCandidatesState($country));
 
-    expect(PrayerLocation::fromAddress($address, 'MY')['districtCandidates'])->toBe([]);
+    expect(PrayerLocation::fromAddress($address, 'MY')['districtCandidates'])->toBeEmpty();
 });
 
 it('skips candidate extraction when the provider flag is off', function () {
@@ -157,7 +157,7 @@ it('skips candidate extraction when the provider flag is off', function () {
 
     $location = PrayerLocation::fromAddress($address, 'MY');
 
-    expect($location['districtCandidates'])->toBe([])
+    expect($location['districtCandidates'])->toBeEmpty()
         ->and($location['stateCode'])->toBe('01');
 });
 

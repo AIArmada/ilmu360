@@ -21,7 +21,7 @@ use Tests\Support\Prayer\FailingPrayerCacheStore;
 use Tests\Support\Prayer\ThrowingTestQueue;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -30,7 +30,7 @@ beforeEach(function () {
 it('fills the monthly cache from the mirror without throwing', function () {
     Http::fake(['api.waktusolat.app/*' => Http::response(refreshV2Payload())]);
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
     $days = app(PrayerTimesCache::class)->getMonthly('WLY01', '2026-10', 'MY');
@@ -44,7 +44,7 @@ it('records a negative marker when the month is unpublished', function () {
         'ummahapi.com/*' => Http::response(['message' => 'No data found'], 404),
     ]);
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-11', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-11', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
     $cache = app(PrayerTimesCache::class);
@@ -59,7 +59,7 @@ it('falls through to Ummah monthly when the mirror fails', function () {
         'ummahapi.com/*' => Http::response(refreshUmmahMonthPayload()),
     ]);
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
     $days = app(PrayerTimesCache::class)->getMonthly('WLY01', '2026-10', 'MY');
@@ -67,11 +67,9 @@ it('falls through to Ummah monthly when the mirror fails', function () {
     expect($days['2026-10-15']?->source)->toBe('ummah:malaysia/Shafi')
         ->and($days['2026-10-15']?->zoneOrCell)->toBe('WLY01');
 
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), 'ummahapi.com')
-            && (float) $request['lat'] === 3.1390
-            && (float) $request['lng'] === 101.6869;
-    });
+    Http::assertSent(fn($request) => str_contains($request->url(), 'ummahapi.com')
+        && (float) $request['lat'] === 3.1390
+        && (float) $request['lng'] === 101.6869);
 });
 
 it('self-heals a fallback-filled month back to the primary source', function () {
@@ -79,7 +77,7 @@ it('self-heals a fallback-filled month back to the primary source', function () 
     $cache = app(PrayerTimesCache::class);
     $cache->putMonthly('WLY01', '2026-10', ['2026-10-15' => prayerWithCalcFingerprint(prayerCacheDto('2026-10-15', 'ummah:malaysia/Shafi'))], 'MY');
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), $cache);
 
     expect($cache->getMonthly('WLY01', '2026-10', 'MY')['2026-10-15']?->source)->toBe('jakim:v2/WLY01');
@@ -90,10 +88,10 @@ it('skips unknown zones and already-warm months without HTTP', function () {
     $cache = app(PrayerTimesCache::class);
     $cache->putMonthly('WLY01', '2026-10', prayerCompleteMonth('2026-10'), 'MY');
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'NOPE1', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'NOPE1', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), $cache);
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), $cache);
 
     Http::assertNothingSent();
@@ -102,12 +100,12 @@ it('skips unknown zones and already-warm months without HTTP', function () {
 it('skips zone-month refresh for coordinate-only countries without HTTP', function () {
     Http::fake();
 
-    (new RefreshPrayerTimes('zone-month', [
+    new RefreshPrayerTimes('zone-month', [
         'zone' => 'XX01',
         'year_month' => '2026-10',
         'country' => 'XX',
         'timezone' => 'UTC',
-    ]))->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
+    ])->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
     expect(app(PrayerTimesCache::class)->getMonthly('XX01', '2026-10', 'MY'))->toBeNull();
 
@@ -117,12 +115,12 @@ it('skips zone-month refresh for coordinate-only countries without HTTP', functi
 it('refreshes zone-months with an explicit country scope', function () {
     Http::fake(['api.waktusolat.app/*' => Http::response(refreshV2Payload())]);
 
-    (new RefreshPrayerTimes('zone-month', [
+    new RefreshPrayerTimes('zone-month', [
         'zone' => 'WLY01',
         'year_month' => '2026-10',
         'country' => 'MY',
         'timezone' => 'Asia/Kuala_Lumpur',
-    ]))->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
+    ])->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
     expect(app(PrayerTimesCache::class)->getMonthly('WLY01', '2026-10', 'MY')['2026-10-15']?->source)
         ->toBe('jakim:v2/WLY01');
@@ -137,17 +135,15 @@ it('warms shared zone months with the canonical country timezone, ignoring stale
     // A stale queued payload (or older dispatcher) carrying a requester
     // timezone must not poison the shared month: the job derives the
     // canonical country timezone itself, matching preview/prefetch.
-    (new RefreshPrayerTimes('zone-month', [
+    new RefreshPrayerTimes('zone-month', [
         'zone' => 'WLY01',
         'year_month' => '2026-10',
         'country' => 'MY',
         'timezone' => 'America/New_York',
-    ]))->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
+    ])->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/prayer-times/month')
-            && $request['timezone'] === 'Asia/Kuala_Lumpur';
-    });
+    Http::assertSent(fn($request) => str_contains($request->url(), '/prayer-times/month')
+        && $request['timezone'] === 'Asia/Kuala_Lumpur');
 
     $days = app(PrayerTimesCache::class)->getMonthly('WLY01', '2026-10', 'MY');
 
@@ -165,17 +161,15 @@ it('warms a second zoned country with its own configured timezone', function () 
         'ummahapi.com/*' => Http::response(refreshUmmahMonthPayload()),
     ]);
 
-    (new RefreshPrayerTimes('zone-month', [
+    new RefreshPrayerTimes('zone-month', [
         'zone' => 'WLY01',
         'year_month' => '2026-10',
         'country' => 'YY',
         'timezone' => 'America/New_York',
-    ]))->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
+    ])->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/prayer-times/month')
-            && $request['timezone'] === 'Asia/Jakarta';
-    });
+    Http::assertSent(fn($request) => str_contains($request->url(), '/prayer-times/month')
+        && $request['timezone'] === 'Asia/Jakarta');
 
     expect(app(PrayerTimesCache::class)->getMonthly('WLY01', '2026-10', 'YY')['2026-10-15']?->source)
         ->toBe('ummah:MuslimWorldLeague/Shafi');
@@ -186,13 +180,13 @@ it('memos GPS zones and skips memoized coordinates', function () {
 
     $zones = app(JakimZoneResolver::class);
 
-    (new ResolveGpsZone(3.1390, 101.6869))->handle(app(Factory::class), $zones);
+    new ResolveGpsZone(3.1390, 101.6869)->handle(app(Factory::class), $zones);
 
     expect($zones->memoizedZone(3.1390, 101.6869))->toBe('WLY01');
 
     Http::assertSentCount(1);
 
-    (new ResolveGpsZone(3.1390, 101.6869))->handle(app(Factory::class), $zones);
+    new ResolveGpsZone(3.1390, 101.6869)->handle(app(Factory::class), $zones);
 
     Http::assertSentCount(1);
 });
@@ -231,7 +225,7 @@ it('fills a partial primary month from the secondary without clobbering primary 
         'ummahapi.com/*' => Http::response(refreshUmmahMonthPayload()),
     ]);
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), app(PrayerTimesCache::class));
 
     // Mirror carries day 15 only; Ummah carries 14+15. The overlap keeps
@@ -253,7 +247,7 @@ it('preserves complete stale coverage when the refresh is partial', function () 
     $cache->putMonthly('WLY01', '2026-10', prayerCompleteMonth('2026-10'), 'MY');
     $cache->forget($cache->monthlyKey('WLY01', '2026-10', 'MY'));
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), $cache);
 
     // The single-day fresh fetch merges; no stale day is wiped.
@@ -291,10 +285,10 @@ it('keeps primary coverage across complementary partial refreshes', function () 
             ->push(refreshUmmahMonthPayload()),
     ]);
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), $cache);
 
-    (new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY']))
+    new RefreshPrayerTimes('zone-month', ['zone' => 'WLY01', 'year_month' => '2026-10', 'country' => 'MY'])
         ->handle(app(PrayerProviderRegistry::class), $cache);
 
     // The secondary overlap must not replace retained primary day 15.
@@ -344,7 +338,7 @@ it('schedules a delayed async retry when the GPS lookup fails on a redis-backed 
     // Real handle execution (as the worker runs it); only the transport
     // is faked. release() on the after-response sync run would drop the
     // retry silently — the fix enqueues a fresh delayed attempt instead.
-    (new ResolveGpsZone(3.139, 101.6869))->handle(app(Factory::class), app(JakimZoneResolver::class));
+    new ResolveGpsZone(3.139, 101.6869)->handle(app(Factory::class), app(JakimZoneResolver::class));
 
     Queue::assertPushed(ResolveGpsZone::class, fn (ResolveGpsZone $job): bool => $job->attempt === 2
         && $job->latitude === 3.139
@@ -377,7 +371,7 @@ it('stops redispatching once GPS attempts are exhausted', function () {
     Queue::fake();
     Http::fake(['api.waktusolat.app/*' => Http::response([], 500)]);
 
-    (new ResolveGpsZone(3.139, 101.6869, 3))->handle(app(Factory::class), app(JakimZoneResolver::class));
+    new ResolveGpsZone(3.139, 101.6869, 3)->handle(app(Factory::class), app(JakimZoneResolver::class));
 
     Http::assertSentCount(1);
 
@@ -417,7 +411,7 @@ it('discards a deferred daily refresh whose calculation settings drifted', funct
         ],
     ])]);
 
-    (new RefreshPrayerTimes('daily', [
+    new RefreshPrayerTimes('daily', [
         'provider' => 'aladhan',
         'cell' => $cell,
         'date' => '2026-10-15',
@@ -427,7 +421,7 @@ it('discards a deferred daily refresh whose calculation settings drifted', funct
         'timezone' => 'Asia/Jakarta',
         'method' => null,
         'madhab' => 'Shafi',
-    ]))->handle(app(PrayerProviderRegistry::class), $cache);
+    ])->handle(app(PrayerProviderRegistry::class), $cache);
 
     // Discarded before any fetch: the method-3 key holds no method-4
     // result a rollback or older worker could serve.

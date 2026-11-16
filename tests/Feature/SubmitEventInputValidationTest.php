@@ -7,15 +7,15 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\Request;
@@ -413,9 +413,8 @@ it('normalizes backed enums and collections while keeping malformed data for the
         ->and($normalized['age_group'])->toBe([EventAgeGroup::AllAges->value])
         ->and($normalized['event_category_ids'])->toBe([$categoryId])
         ->and($normalized['persons'])->toBe([$personId])
-        ->and($normalized['domain_tags'])->toBe([EventFormat::Online->value]);
-
-    expect(fn () => app(ValidateEventSubmissionInputAction::class)->handle([
+        ->and($normalized['domain_tags'])->toBe([EventFormat::Online->value])
+        ->and(fn() => app(ValidateEventSubmissionInputAction::class)->handle([
         'title' => 'Direct Validator Check',
         'event_category_ids' => [$categoryId],
         'event_format' => 'bogus',

@@ -1,10 +1,10 @@
 <?php
 
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 

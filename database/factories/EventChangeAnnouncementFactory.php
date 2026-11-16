@@ -6,13 +6,14 @@ namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventUpdateFactory;
 use App\Enums\EventChangeSeverity;
-use App\Shared\Events\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\User;
+use App\Shared\Events\Enums\EventChangeType;
 
 class EventChangeAnnouncementFactory extends EventUpdateFactory
 {
+    #[\Override]
     protected $model = EventChangeAnnouncement::class;
 
     /**

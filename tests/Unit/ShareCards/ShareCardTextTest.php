@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Support\ShareCards\ShareCardText;
 
 it('normalizes required text to NFC with folded line breaks', function (): void {

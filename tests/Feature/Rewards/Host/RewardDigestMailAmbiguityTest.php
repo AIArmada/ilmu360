@@ -22,8 +22,8 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Api\ManagedNotificationDelivery;
-use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Communications\Api\NotificationTransport;
+use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
@@ -91,12 +91,12 @@ function mailAmbiguityDueSlot(string $prefix, string $source): array
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact($source, $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program->refresh(), RewardComponent::Points, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         $source, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
 
-    (new TransitionRewardAwardAction(null, $reader))->handle(
+    new TransitionRewardAwardAction(null, $reader)->handle(
         $result->award, RewardAwardStatus::Approved, 'user', RewardLedgerFixtures::staffId(), 'staff', 'approve',
         null, null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
@@ -203,9 +203,8 @@ it("never resends mail after acceptance plus recording crash on {$mailLabel}", f
             ->and(CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->count())->toBe(1)
             ->and(CommunicationAttempt::query()->where('delivery_id', $mailDeliveryId)->whereNull('responded_at')->whereNull('failed_at')->count())->toBe(1)
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
-            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
-
-        expect(fn () => CancelRewardDigestAction::run(
+            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
+            ->and(fn() => CancelRewardDigestAction::run(
             $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
             CarbonImmutable::parse('2026-06-23T08:05:00Z'),
         ))->toThrow(InvalidArgumentException::class, 'in flight');
@@ -311,9 +310,8 @@ it("holds transport timeout after acceptance as UNKNOWN without auto-fail on {$m
             ->and($attempt->failed_at)->toBeNull()
             ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
-            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
-
-        expect(fn () => CancelRewardDigestAction::run(
+            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
+            ->and(fn() => CancelRewardDigestAction::run(
             $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
             CarbonImmutable::parse('2026-06-23T08:05:00Z'),
         ))->toThrow(InvalidArgumentException::class, 'in flight');
@@ -434,9 +432,8 @@ it("holds logic-class transport errors as UNKNOWN without auto-fail on {$mailLab
             ->and($attempt->failed_at)->toBeNull()
             ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
-            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
-
-        expect(fn () => CancelRewardDigestAction::run(
+            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
+            ->and(fn() => CancelRewardDigestAction::run(
             $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
             CarbonImmutable::parse('2026-06-23T08:05:00Z'),
         ))->toThrow(InvalidArgumentException::class, 'in flight');
@@ -563,9 +560,8 @@ it("holds logic failure after acceptance as UNKNOWN without auto-fail on {$mailL
             ->and($attempt->failed_at)->toBeNull()
             ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
-            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
-
-        expect(fn () => CancelRewardDigestAction::run(
+            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
+            ->and(fn() => CancelRewardDigestAction::run(
             $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
             CarbonImmutable::parse('2026-06-23T08:05:00Z'),
         ))->toThrow(InvalidArgumentException::class, 'in flight');
@@ -694,9 +690,8 @@ it("holds post-send listener errors after acceptance as UNKNOWN on {$mailLabel}"
             ->and($attempt->failed_at)->toBeNull()
             ->and(app(DeliveryFencing::class)->isAmbiguousExternal($mailDeliveryId))->toBeTrue()
             ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING)
-            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0);
-
-        expect(fn () => CancelRewardDigestAction::run(
+            ->and(NotificationInbox::query()->where('recipient_id', $memberId)->count())->toBe(0)
+            ->and(fn() => CancelRewardDigestAction::run(
             $slot->refresh(), 'too-late', 'user', RewardLedgerFixtures::staffId(), 'staff', true,
             CarbonImmutable::parse('2026-06-23T08:05:00Z'),
         ))->toThrow(InvalidArgumentException::class, 'in flight');

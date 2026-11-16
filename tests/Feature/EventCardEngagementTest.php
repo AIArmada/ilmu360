@@ -8,8 +8,6 @@ use App\Services\PublicScheduleDiscoveryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 function engagementCardParameters(Event $event): array
 {
     return [
@@ -37,12 +35,12 @@ it('updates card engagement and counters without querying schedule discovery', f
         ->assertNotDispatched('event-card-list-changed');
     expect(app(EngagementCounterService::class)->countBookmarks($event))->toBe(1);
     $card->call('toggleGoing', (string) $event->id)->assertSet('isGoing', true);
-    expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue();
-    expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(1);
+    expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue()
+        ->and(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(1);
     $card->call('toggleSave', (string) $event->id)->assertSet('isSaved', false);
     $card->call('toggleGoing', (string) $event->id)->assertSet('isGoing', false);
-    expect(app(EngagementCounterService::class)->countBookmarks($event))->toBe(0);
-    expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(0);
+    expect(app(EngagementCounterService::class)->countBookmarks($event))->toBe(0)
+        ->and(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(0);
 });
 
 it('refreshes filtered listings and synchronizes another occurrence card', function () {

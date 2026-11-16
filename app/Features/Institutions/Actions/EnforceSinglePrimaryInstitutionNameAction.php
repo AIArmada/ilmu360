@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Actions;
 
 use App\Models\InstitutionName;
-
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
 

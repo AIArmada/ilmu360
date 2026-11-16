@@ -169,7 +169,7 @@ class Show extends Component
         $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
         $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate);
 
-        if (!$from instanceof \Carbon\CarbonInterface || !$to instanceof \Carbon\CarbonInterface || $from->greaterThan($to)) {
+        if (! $from instanceof CarbonInterface || ! $to instanceof CarbonInterface || $from->greaterThan($to)) {
             $this->addError('customDateRange', __('Sila pilih julat tarikh yang sah.'));
 
             return;
@@ -440,7 +440,7 @@ class Show extends Component
             $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
             $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate)?->addDay();
 
-            if (!$from instanceof \Carbon\CarbonInterface || $to === null || $from->greaterThanOrEqualTo($to)) {
+            if (! $from instanceof CarbonInterface || $to === null || $from->greaterThanOrEqualTo($to)) {
                 return null;
             }
 

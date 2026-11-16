@@ -4,15 +4,15 @@ use AIArmada\Events\Models\EventTemplate;
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
 use AIArmada\FilamentEvents\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
-use App\Filament\Resources\Events\EventResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
-use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\InspirationResource;
-use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiUsageLogs\AiUsageLogResource;
+use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\InspirationResource;
+use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelationManager as InstitutionDonationChannelsRelationManager;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;
@@ -101,15 +101,15 @@ it('registers and can create commerce event templates in both panels', function 
 });
 
 it('registers expected relation managers on core admin resources', function () {
-    expect(SeriesResource::getRelations())->toContain(SeriesEventsRelationManager::class);
-    expect(PersonResource::getRelations())->toContain(PersonEventsRelationManager::class);
-    expect(PersonResource::getRelations())->toContain(PersonFollowersRelationManager::class);
-    expect(PersonResource::getRelations())->toContain(PersonMemberInvitationsRelationManager::class);
-    expect(ReferenceResource::getRelations())->toContain(ReferenceEventsRelationManager::class);
-    expect(ReferenceResource::getRelations())->toContain(ReferenceMembersRelationManager::class);
-    expect(ReferenceResource::getRelations())->toContain(ReferenceMemberInvitationsRelationManager::class);
-    expect(InstitutionResource::getRelations())->toContain(InstitutionDonationChannelsRelationManager::class);
-    expect(InstitutionResource::getRelations())->toContain(InstitutionMemberInvitationsRelationManager::class);
+    expect(SeriesResource::getRelations())->toContain(SeriesEventsRelationManager::class)
+        ->and(PersonResource::getRelations())->toContain(PersonEventsRelationManager::class)
+        ->and(PersonResource::getRelations())->toContain(PersonFollowersRelationManager::class)
+        ->and(PersonResource::getRelations())->toContain(PersonMemberInvitationsRelationManager::class)
+        ->and(ReferenceResource::getRelations())->toContain(ReferenceEventsRelationManager::class)
+        ->and(ReferenceResource::getRelations())->toContain(ReferenceMembersRelationManager::class)
+        ->and(ReferenceResource::getRelations())->toContain(ReferenceMemberInvitationsRelationManager::class)
+        ->and(InstitutionResource::getRelations())->toContain(InstitutionDonationChannelsRelationManager::class)
+        ->and(InstitutionResource::getRelations())->toContain(InstitutionMemberInvitationsRelationManager::class);
 });
 
 it('configures the person institution relation manager with the app inverse relation name', function () {

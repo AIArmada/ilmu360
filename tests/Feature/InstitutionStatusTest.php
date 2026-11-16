@@ -10,8 +10,6 @@ use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 it('exposes only supported institution lifecycle statuses in the admin form', function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);

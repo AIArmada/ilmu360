@@ -47,7 +47,7 @@ function d4bSaveConversionStatus(AffiliateConversion $conversion): string
     $status = $conversion->status;
 
     return $status instanceof ConversionStatus
-        ? (string) $status->getValue()
+        ? $status->getValue()
         : (string) $status;
 }
 
@@ -165,7 +165,7 @@ it('records and reverses the bookmark through the engagement share outcomes cont
             array $metadata,
             ?CarbonInterface $occurredAt,
         ) use (&$recorded): bool {
-            $recorded = compact('bookmarkId', 'subject', 'actor', 'receivedRequest', 'metadata', 'occurredAt');
+            $recorded = ['bookmarkId' => $bookmarkId, 'subject' => $subject, 'actor' => $actor, 'receivedRequest' => $receivedRequest, 'metadata' => $metadata, 'occurredAt' => $occurredAt];
 
             return true;
         });
@@ -176,7 +176,7 @@ it('records and reverses the bookmark through the engagement share outcomes cont
             string $reason,
             ?Authenticatable $actor,
         ) use (&$reversed): bool {
-            $reversed = compact('bookmarkId', 'reason', 'actor');
+            $reversed = ['bookmarkId' => $bookmarkId, 'reason' => $reason, 'actor' => $actor];
 
             return true;
         });

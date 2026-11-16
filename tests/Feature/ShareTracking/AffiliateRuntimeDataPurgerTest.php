@@ -14,8 +14,6 @@ use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 function wp1MarkedShareAffiliate(User $user, string $code): Affiliate
 {
     $affiliate = new Affiliate([
@@ -138,9 +136,8 @@ it('removes only the marked share profile and its scoped facts on tracking clean
         ->and(AffiliateLink::query()->whereKey($link->id)->exists())->toBeFalse()
         ->and(AffiliateAttribution::query()->whereKey($attribution->id)->exists())->toBeFalse()
         ->and(AffiliateTouchpoint::query()->whereKey($touchpoint->id)->exists())->toBeFalse()
-        ->and(AffiliateConversion::query()->whereKey($conversion->id)->exists())->toBeFalse();
-
-    expect(Affiliate::query()->whereKey($otherAffiliate->id)->exists())->toBeTrue()
+        ->and(AffiliateConversion::query()->whereKey($conversion->id)->exists())->toBeFalse()
+        ->and(Affiliate::query()->whereKey($otherAffiliate->id)->exists())->toBeTrue()
         ->and(AffiliateLink::query()->whereKey($otherLink->id)->exists())->toBeTrue();
 });
 

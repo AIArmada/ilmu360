@@ -28,6 +28,7 @@ use WeakMap;
 
 class EventFactory extends PackageEventFactory
 {
+    #[\Override]
     protected $model = Event::class;
 
     /** @var WeakMap<Event, array<string, mixed>>|null */

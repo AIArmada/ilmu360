@@ -483,8 +483,7 @@ it('renders institution event cards with localized prayer timing stacked person 
 
         $eventCard = $matches[0] ?? null;
 
-        expect($eventCard)->not->toBeNull();
-        expect($eventCard)
+        expect($eventCard)->not->toBeNull()
             ->toContain('After Maghrib')
             ->toContain('Ustaz Abdullah Fahmi')
             ->toContain('Ustaz Ahmad Razak')
@@ -492,12 +491,7 @@ it('renders institution event cards with localized prayer timing stacked person 
             ->toContain($secondPerson->public_avatar_url)
             ->toContain('-space-x-2')
             ->toContain('h-9 w-9')
-            ->toContain('data-testid="event-card-date-badge"')
-            ->not->toContain('data-testid="event-card-location"', false)
-            ->not->toContain('Masjid Sultan Salahuddin Abdul Aziz Shah')
-            ->not->toContain('Selepas Maghrib')
-            ->not->toContain('Penceramah:')
-            ->not->toContain('Shah Alam, Petaling, Selangor');
+            ->toContain('data-testid="event-card-date-badge"')->not->toContain('data-testid="event-card-location"', false)->not->toContain('Masjid Sultan Salahuddin Abdul Aziz Shah')->not->toContain('Selepas Maghrib')->not->toContain('Penceramah:')->not->toContain('Shah Alam, Petaling, Selangor');
     } finally {
         app()->setLocale($originalLocale);
     }
@@ -551,21 +545,14 @@ it('renders the book title on institution event cards without parentheses', func
     $bookEventCard = $bookMatches[0] ?? null;
     $articleEventCard = $articleMatches[0] ?? null;
 
-    expect($bookEventCard)->not->toBeNull();
-    expect($articleEventCard)->not->toBeNull();
-
-    expect($bookEventCard)
-        ->toContain('Kuliah Maghrib Kitab')
-        ->toContain('Riyadhus Solihin')
-        ->not->toContain('(Riyadhus Solihin)')
+    expect($bookEventCard)->not->toBeNull()
+        ->and($articleEventCard)->not->toBeNull()
+        ->and($bookEventCard)->toContain('Kuliah Maghrib Kitab')
+        ->toContain('Riyadhus Solihin')->not->toContain('(Riyadhus Solihin)')
         ->toContain('font-bold')
         ->toContain('line-clamp-2')
-        ->toContain('data-testid="event-card-date-badge"');
-
-    expect($articleEventCard)
-        ->toContain('Kuliah Maghrib Artikel')
-        ->not->toContain('Riyadhus Solihin')
-        ->not->toContain('Artikel Dakwah Semasa');
+        ->toContain('data-testid="event-card-date-badge"')
+        ->and($articleEventCard)->toContain('Kuliah Maghrib Artikel')->not->toContain('Riyadhus Solihin')->not->toContain('Artikel Dakwah Semasa');
 });
 
 it('renders institution event cards cleanly when an event has no persons', function () {
@@ -592,11 +579,8 @@ it('renders institution event cards cleanly when an event has no persons', funct
 
     $eventCard = $matches[0] ?? null;
 
-    expect($eventCard)->not->toBeNull();
-    expect($eventCard)
-        ->toContain('Kuliah Tanpa Penceramah')
-        ->not->toContain('aria-label="Penceramah"')
-        ->not->toContain('Penceramah:');
+    expect($eventCard)->not->toBeNull()
+        ->toContain('Kuliah Tanpa Penceramah')->not->toContain('aria-label="Penceramah"')->not->toContain('Penceramah:');
 });
 
 it('uses stronger calendar event colors on institution page', function () {

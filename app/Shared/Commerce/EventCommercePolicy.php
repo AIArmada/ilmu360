@@ -45,7 +45,7 @@ final readonly class EventCommercePolicy
             return 'refunds_disabled';
         }
 
-        if (!$user instanceof \Illuminate\Database\Eloquent\Model) {
+        if (! $user instanceof Model) {
             return 'purchaser_only';
         }
 

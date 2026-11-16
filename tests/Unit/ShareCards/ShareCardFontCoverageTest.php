@@ -51,7 +51,7 @@ if (! function_exists('shareCardFontHasGlyph')) {
                     return false;
                 }
 
-                if (substr($record, 0, 4) === 'cmap') {
+                if (str_starts_with($record, 'cmap')) {
                     $cmapOffset = (ord($record[8]) << 24) | (ord($record[9]) << 16) | (ord($record[10]) << 8) | ord($record[11]);
                     $cmapLength = (ord($record[12]) << 24) | (ord($record[13]) << 16) | (ord($record[14]) << 8) | ord($record[15]);
 
@@ -106,7 +106,7 @@ if (! function_exists('shareCardFontHasGlyph')) {
 
                 $format = $u16($cmap, $offset);
 
-                if ($format === 4 || $format === 6 || $format === 12) {
+                if (in_array($format, [4, 6, 12], true)) {
                     $candidates[$format] = $offset;
                 }
             }
@@ -299,21 +299,12 @@ it('covers every matrix title character in at least one vendored font', function
         if ($codepoint === false || $codepoint <= 0x20) {
             continue;
         }
-
-        $held = false;
-
-        foreach ($files as $file) {
-            if (shareCardFontHasGlyph(shareCardFontsDir().'/'.$file, $codepoint)) {
-                $held = true;
-
-                break;
-            }
-        }
+        $held = array_any($files, fn($file) => shareCardFontHasGlyph(shareCardFontsDir().'/'.$file, $codepoint));
 
         if (! $held) {
             $missing[] = sprintf('U+%04X', $codepoint);
         }
     }
 
-    expect($missing)->toBe([]);
+    expect($missing)->toBeEmpty();
 })->with(shareCardMatrixTitles());

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Events\Api;
 
 /** Immutable scalar input for event submission persistence. */

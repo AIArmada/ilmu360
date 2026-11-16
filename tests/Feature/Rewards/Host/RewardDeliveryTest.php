@@ -17,7 +17,6 @@ use App\Support\Share\CommittedShareSignalProducer;
 use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
-use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,8 +24,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
-
-uses(RefreshDatabase::class);
 
 function deliveryCommittedShare(object $testCase, User $user, CarbonImmutable $at): AffiliateTouchpoint
 {
@@ -78,13 +75,9 @@ it('summarizes share metrics with viewer-local bounds and freshness', function (
 
     expect($cohorts['status'])->toBe('active')
         ->and($cohorts['maturity_days'])->toBe(ShareCohortAuthority::MATURITY_DAYS)
-        ->and($cohorts['cohorts'])->toHaveCount(1);
-
-    expect(fn () => (new ShareMetricReader)->summarize('Mars/Olympus', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31')))
-        ->toThrow(InvalidArgumentException::class, 'timezone');
-
-    expect(fn () => (new ShareMetricReader)->summarize('UTC', CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-12-31')))
-        ->toThrow(InvalidArgumentException::class, 'bound');
+        ->and($cohorts['cohorts'])->toHaveCount(1)
+        ->and(fn() => (new ShareMetricReader)->summarize('Mars/Olympus', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31')))->toThrow(InvalidArgumentException::class, 'timezone')
+        ->and(fn() => (new ShareMetricReader)->summarize('UTC', CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-12-31')))->toThrow(InvalidArgumentException::class, 'bound');
 });
 
 it('drains committed-share signals to projections through the operations command', function () {
@@ -96,9 +89,8 @@ it('drains committed-share signals to projections through the operations command
 
     $touchpoint = deliveryCommittedShare($this, User::factory()->create(), CarbonImmutable::parse('2026-05-10T08:00:00Z'));
 
-    expect(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(1);
-
-    expect(Artisan::call('signals:drain-committed-shares'))->toBe(0)
+    expect(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(1)
+        ->and(Artisan::call('signals:drain-committed-shares'))->toBe(0)
         ->and(Artisan::output())->toContain('Signals processed: 1; projected 1; failed 0.');
 
     $projection = ShareCohortProjection::query()
@@ -198,7 +190,7 @@ it('plans one digest slot per recipient day and dispatches after recheck', funct
     $slot = PlanRewardGratitudeDigestAction::run('user', (string) $user->getKey());
 
     expect($slot->status)->toBe(RewardDigestSlot::STATUS_PLANNED)
-        ->and($slot->plan_key)->toBe('gratitude:'.(string) $user->getKey().':'.$slot->local_day);
+        ->and($slot->plan_key)->toBe('gratitude:'.$user->getKey().':'.$slot->local_day);
 
     // Own-slot-aware: planning again merges into the stored slot, so
     // the single daily send covers every planned section.

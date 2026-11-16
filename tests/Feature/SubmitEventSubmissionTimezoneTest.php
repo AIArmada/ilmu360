@@ -1,14 +1,14 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Support\Submission\SubmitEventPrefill;
@@ -208,7 +208,7 @@ it('keeps the selector for seasonally diverging zones with matching current offs
 
 it('collapses equivalent zones for countries without a preferred representative', function () {
     $fixtures = submissionTimezoneFixtures();
-    $genericId = (string) ensureTestAddressCountry('XX', 'Equivalent Test', 'XXX', ['Asia/Kuala_Lumpur', 'Asia/Singapore'], null)->getKey();
+    $genericId = (string) ensureTestAddressCountry('XX', 'Equivalent Test', 'XXX', ['Asia/Kuala_Lumpur', 'Asia/Singapore'])->getKey();
     syncPrimaryAddressForTest($fixtures['institution'], ['country_id' => $genericId]);
 
     $component = Livewire::test(Create::class)
@@ -364,7 +364,7 @@ it('persists the second timezone with correct UTC conversion', function () {
 
 it('blocks submissions for countries without linked timezones', function () {
     $fixtures = submissionTimezoneFixtures();
-    $countryId = (string) ensureTestAddressCountry('AQ', 'Antarctica Test', 'AQT', [], null)->getKey();
+    $countryId = (string) ensureTestAddressCountry('AQ', 'Antarctica Test', 'AQT', [])->getKey();
 
     setSubmitEventFormState(
         Livewire::test(Create::class),
@@ -399,10 +399,8 @@ it('counts the timezone in form progress only for multi-zone countries', functio
 
     expect($component->instance()->clientProgressConfiguration()['multi_timezone_country_ids'])
         ->toContain($indonesiaId)
-        ->not->toContain($malaysiaId);
-
-    expect($component->html())
-        ->toContain("'submission_timezone'")
+        ->not->toContain($malaysiaId)
+        ->and($component->html())->toContain("'submission_timezone'")
         ->toContain('multi_timezone_country_ids');
 });
 
@@ -518,7 +516,7 @@ it('collapses equivalent linked zones to the mapped representative', function (
     string $expected,
     bool $beatsAlphabetical,
 ) {
-    $countryId = (string) ensureTestAddressCountry($iso2, $name, $iso3, $linked, null)->getKey();
+    $countryId = (string) ensureTestAddressCountry($iso2, $name, $iso3, $linked)->getKey();
     $policy = app(SubmissionTimingPolicy::class);
 
     // Locks the dataset premise: beating cases must keep an alphabetically
@@ -532,7 +530,7 @@ it('collapses equivalent linked zones to the mapped representative', function (
         ->and($policy->resolveSubmissionTimezone($countryId))->toBe($expected)
         ->and($policy->resolveSubmissionTimezone($countryId, $expected))->toBe($expected);
 
-    $collapsedAway = array_values(array_diff($linked, [$expected]))[0];
+    $collapsedAway = array_first(array_diff($linked, [$expected]));
 
     expect(fn () => $policy->resolveSubmissionTimezone($countryId, $collapsedAway))
         ->toThrow(ValidationException::class);
@@ -554,7 +552,7 @@ it('falls back to canonical order when the mapped representative is not linked',
     string $expected,
     string $unlinkedPreferred,
 ) {
-    $countryId = (string) ensureTestAddressCountry($iso2, $name, $iso3, $linked, null)->getKey();
+    $countryId = (string) ensureTestAddressCountry($iso2, $name, $iso3, $linked)->getKey();
     $policy = app(SubmissionTimingPolicy::class);
 
     expect($policy->countryTimezones($countryId))->toBe([$expected])
@@ -584,8 +582,6 @@ it('still requires a choice when a mapped country links divergent zones', functi
         ->and($policy->submissionTimezoneRequired($countryId))->toBeTrue()
         ->and($policy->defaultSubmissionTimezone($countryId))->toBeNull()
         ->and($policy->previewSubmissionTimezone($countryId))->toBe(config('app.timezone', 'UTC'))
-        ->and($policy->resolveSubmissionTimezone($countryId, 'Pacific/Auckland'))->toBe('Pacific/Auckland');
-
-    expect(fn () => $policy->resolveSubmissionTimezone($countryId))
-        ->toThrow(ValidationException::class);
+        ->and($policy->resolveSubmissionTimezone($countryId, 'Pacific/Auckland'))->toBe('Pacific/Auckland')
+        ->and(fn() => $policy->resolveSubmissionTimezone($countryId))->toThrow(ValidationException::class);
 });

@@ -22,8 +22,6 @@ use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     config()->set('app.url', 'https://ilmu360.test');
     config()->set('services.google.client_id', 'google-client-id');
@@ -76,11 +74,11 @@ it('captures the invitation held through web password signup', function (): void
     $this->assertAuthenticatedAs($user);
     $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
-    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
-    expect($attribution->status)->toBe(SignupAttributionStatus::Pending);
-    expect((string) $attribution->referrer_user_id)->toBe((string) $referrer->getKey());
-    expect((string) $attribution->referral_invite_id)->toBe((string) $invite->getKey());
-    expect($attribution->signed_up_at->equalTo($user->created_at))->toBeTrue();
+    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite)
+        ->and($attribution->status)->toBe(SignupAttributionStatus::Pending)
+        ->and((string) $attribution->referrer_user_id)->toBe((string) $referrer->getKey())
+        ->and((string) $attribution->referral_invite_id)->toBe((string) $invite->getKey())
+        ->and($attribution->signed_up_at->equalTo($user->created_at))->toBeTrue();
 });
 
 it('captures an invitation supplied to api password signup without a browser session', function (): void {
@@ -98,11 +96,11 @@ it('captures an invitation supplied to api password signup without a browser ses
     $user = User::query()->where('email', 'api-signup@example.test')->firstOrFail();
     $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
-    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
-    expect($attribution->status)->toBe(SignupAttributionStatus::Pending);
-    expect((string) $attribution->referrer_user_id)->toBe((string) $referrer->getKey());
-    expect((string) $attribution->referral_invite_id)->toBe((string) $invite->getKey());
-    expect($attribution->signed_up_at->equalTo($user->created_at))->toBeTrue();
+    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite)
+        ->and($attribution->status)->toBe(SignupAttributionStatus::Pending)
+        ->and((string) $attribution->referrer_user_id)->toBe((string) $referrer->getKey())
+        ->and((string) $attribution->referral_invite_id)->toBe((string) $invite->getKey())
+        ->and($attribution->signed_up_at->equalTo($user->created_at))->toBeTrue();
 });
 
 it('confirms the captured invitation when google creates a verified web account', function (): void {
@@ -122,11 +120,11 @@ it('confirms the captured invitation when google creates a verified web account'
     $this->assertAuthenticatedAs($user);
     $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
-    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
-    expect($attribution->status)->toBe(SignupAttributionStatus::Confirmed);
-    expect((string) $attribution->referrer_user_id)->toBe((string) $referrer->getKey());
-    expect((string) $attribution->referral_invite_id)->toBe((string) $invite->getKey());
-    expect($attribution->confirmed_at)->not->toBeNull();
+    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite)
+        ->and($attribution->status)->toBe(SignupAttributionStatus::Confirmed)
+        ->and((string) $attribution->referrer_user_id)->toBe((string) $referrer->getKey())
+        ->and((string) $attribution->referral_invite_id)->toBe((string) $invite->getKey())
+        ->and($attribution->confirmed_at)->not->toBeNull();
 });
 
 it('does not create signup credit when google links an existing web account', function (): void {
@@ -166,10 +164,10 @@ it('confirms the invitation when google token exchange creates a verified api ac
     $user = User::query()->where('email', 'google-api-signup@example.test')->firstOrFail();
     $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
-    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
-    expect($attribution->status)->toBe(SignupAttributionStatus::Confirmed);
-    expect((string) $attribution->referrer_user_id)->toBe((string) $referrer->getKey());
-    expect((string) $attribution->referral_invite_id)->toBe((string) $invite->getKey());
+    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite)
+        ->and($attribution->status)->toBe(SignupAttributionStatus::Confirmed)
+        ->and((string) $attribution->referrer_user_id)->toBe((string) $referrer->getKey())
+        ->and((string) $attribution->referral_invite_id)->toBe((string) $invite->getKey());
 });
 
 it('does not create signup credit when google token exchange links an existing account', function (): void {
@@ -205,7 +203,7 @@ it('retains the origin invitation through an oauth bridge despite a different ca
         'email_verified' => true,
     ]));
 
-    $response = $this->get((string) config('services.google.redirect').'?'.http_build_query([
+    $response = $this->get(config('services.google.redirect').'?'.http_build_query([
         'state' => $state,
         'referral_invite_token' => $laterToken,
     ]));
@@ -217,11 +215,11 @@ it('retains the origin invitation through an oauth bridge despite a different ca
     $user = User::query()->where('email', 'google-bridge-signup@example.test')->firstOrFail();
     $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
-    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite);
-    expect($attribution->status)->toBe(SignupAttributionStatus::Confirmed);
-    expect((string) $attribution->referrer_user_id)->toBe((string) $originReferrer->getKey());
-    expect((string) $attribution->referral_invite_id)->toBe((string) $originInvite->getKey());
-    expect(SignupAttribution::query()->where('user_id', $user->getKey())->count())->toBe(1);
+    expect($attribution->source_type)->toBe(SignupAttributionSourceType::ReferralInvite)
+        ->and($attribution->status)->toBe(SignupAttributionStatus::Confirmed)
+        ->and((string) $attribution->referrer_user_id)->toBe((string) $originReferrer->getKey())
+        ->and((string) $attribution->referral_invite_id)->toBe((string) $originInvite->getKey())
+        ->and(SignupAttribution::query()->where('user_id', $user->getKey())->count())->toBe(1);
 });
 
 it('keeps a direct oauth origin direct when an invitation appears only at callback', function (): void {
@@ -236,7 +234,7 @@ it('keeps a direct oauth origin direct when an invitation appears only at callba
         'email_verified' => true,
     ]));
 
-    $response = $this->get((string) config('services.google.redirect').'?'.http_build_query([
+    $response = $this->get(config('services.google.redirect').'?'.http_build_query([
         'state' => $state,
         'referral_invite_token' => $laterToken,
     ]));
@@ -247,11 +245,11 @@ it('keeps a direct oauth origin direct when an invitation appears only at callba
     $user = User::query()->where('email', 'google-bridge-direct@example.test')->firstOrFail();
     $attribution = SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
 
-    expect($attribution->source_type)->toBe(SignupAttributionSourceType::Direct);
-    expect($attribution->status)->toBe(SignupAttributionStatus::Confirmed);
-    expect($attribution->referrer_user_id)->toBeNull();
-    expect($attribution->referral_invite_id)->toBeNull();
-    expect(SignupAttribution::query()->where('user_id', $user->getKey())->count())->toBe(1);
+    expect($attribution->source_type)->toBe(SignupAttributionSourceType::Direct)
+        ->and($attribution->status)->toBe(SignupAttributionStatus::Confirmed)
+        ->and($attribution->referrer_user_id)->toBeNull()
+        ->and($attribution->referral_invite_id)->toBeNull()
+        ->and(SignupAttribution::query()->where('user_id', $user->getKey())->count())->toBe(1);
 });
 
 it('rejects oauth state with missing or malformed signup context instead of recapturing callback evidence', function (mixed $context): void {

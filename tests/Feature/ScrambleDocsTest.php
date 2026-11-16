@@ -100,7 +100,7 @@ it('publishes the docs surface on the api host', function () {
         ->toContain('max-age=300')
         ->toContain('s-maxage=3600')
         ->toContain('stale-while-revalidate=86400')
-        ->and((string) $response->headers->get('ETag'))->not->toBe('')
+        ->and((string) $response->headers->get('ETag'))->not->toBeEmpty()
         ->and((string) $response->headers->get('Vary'))->toContain('Accept');
 
     $originalEnvironment = app()->environment();
@@ -654,11 +654,11 @@ it('keeps live api routes and generated scramble operations aligned', function (
         $extraDocs[] = $documentedKey;
     }
 
-    expect($missingFromDocs)->toBe([])
-        ->and($extraDocs)->toBe([])
-        ->and($authMismatches)->toBe([])
-        ->and($summaryGaps)->toBe([])
-        ->and($responseGaps)->toBe([])
+    expect($missingFromDocs)->toBeEmpty()
+        ->and($extraDocs)->toBeEmpty()
+        ->and($authMismatches)->toBeEmpty()
+        ->and($summaryGaps)->toBeEmpty()
+        ->and($responseGaps)->toBeEmpty()
         ->and(array_key_exists('/saved-searches/{savedSearch}', $paths))->toBeTrue()
         ->and(array_key_exists('/saved-searches/{saved_search}', $paths))->toBeFalse();
 });

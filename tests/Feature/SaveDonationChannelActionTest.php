@@ -9,8 +9,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-uses(RefreshDatabase::class);
-
 it('creates a bank account donation channel', function () {
     $institution = Institution::factory()->create();
 

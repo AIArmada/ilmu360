@@ -37,15 +37,13 @@ use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Shared\Registration\CheckInNotifier;
 use App\Shared\ShareTracking\ParticipationAttribution;
-use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Support\Registration\EventNotificationCheckInNotifier;
 use App\Support\ShareTracking\ShareTrackingParticipationAttribution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Str;
-
-uses(RefreshDatabase::class);
 
 /**
  * @return array{event: Event, registration: Registration, participant_id: string, contact_method_ids: list<string>, answer_id: string, item_id: string, attendance_ids: list<string>, log_ids: list<string>}
@@ -249,7 +247,7 @@ it('records self check-in through the scalar attendance boundary', function (): 
     );
 
     expect($created['status'])->toBe('created')
-        ->and($created['checkin_id'])->not->toBe('')
+        ->and($created['checkin_id'])->not->toBeEmpty()
         ->and(EventCheckin::query()->whereKey($created['checkin_id'])->exists())->toBeTrue();
 
     $duplicate = app(AttendanceCommands::class)->recordSelfCheckIn(
@@ -348,7 +346,7 @@ it('registers free admission through the scalar boundary', function (): void {
 
     $registrationId = (string) $result['primary_registration_id'];
 
-    expect($registrationId)->not->toBe('')
+    expect($registrationId)->not->toBeEmpty()
         ->and($result['registrations'])->toBe([
             ['registration_id' => $registrationId, 'created' => true],
         ]);

@@ -8,13 +8,13 @@ use AIArmada\Communications\Models\CommunicationDestination;
 use App\Features\Communications\Api\PushDestinationDetails;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class UpdatePushDestinationAction
+final readonly class UpdatePushDestinationAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly FindPushDestinationByInstallationAction $findDestination,
-        private readonly SyncPushDestinationDetailsAction $syncDestination,
+        private FindPushDestinationByInstallationAction $findDestination,
+        private SyncPushDestinationDetailsAction $syncDestination,
     ) {}
 
     public function handle(string $accountId, string $installationId, PushDestinationDetails $details): ?CommunicationDestination

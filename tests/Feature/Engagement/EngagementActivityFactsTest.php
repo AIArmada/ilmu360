@@ -17,7 +17,7 @@ it('reads saved event reward facts through the engagement reader', function (): 
 
     $key = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventSave,
-        'bookmark:'.(string) $bookmark->getKey(),
+        'bookmark:'.$bookmark->getKey(),
     );
 
     $fact = (new ActivityRewardSourceFactReader)->read($key);
@@ -42,11 +42,11 @@ it('marks removed saves and cancelled going responses invalid', function (): voi
 
     $bookmarkFact = (new ActivityRewardSourceFactReader)->read(ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventSave,
-        'bookmark:'.(string) $bookmark->getKey(),
+        'bookmark:'.$bookmark->getKey(),
     ));
     $responseFact = (new ActivityRewardSourceFactReader)->read(ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventGoing,
-        'response:'.(string) $response->getKey(),
+        'response:'.$response->getKey(),
     ));
 
     expect($bookmarkFact?->isValid)->toBeFalse()
@@ -62,7 +62,7 @@ it('reads follow reward facts and invalidates unfollowed rows', function (): voi
 
     $key = ActivityRewardBusinessKey::for(
         ShareOutcomeType::InstitutionFollow,
-        'follow:'.(string) $follow->getKey(),
+        'follow:'.$follow->getKey(),
     );
 
     $fact = (new ActivityRewardSourceFactReader)->read($key);
@@ -93,7 +93,7 @@ it('preserves first-time detection for bookmark activity', function (): void {
 
     $fact = (new ActivityRewardSourceFactReader)->read(ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventSave,
-        'bookmark:'.(string) $later->getKey(),
+        'bookmark:'.$later->getKey(),
     ));
 
     expect($fact?->isFirstTime)->toBeFalse();
@@ -113,7 +113,7 @@ it('reads reward fraud and bot signals from the engagement metadata', function (
 
     $fact = (new ActivityRewardSourceFactReader)->read(ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventSave,
-        'bookmark:'.(string) $bookmark->getKey(),
+        'bookmark:'.$bookmark->getKey(),
     ));
 
     expect($fact?->isBot)->toBeTrue()

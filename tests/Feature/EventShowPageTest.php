@@ -9,13 +9,9 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Filament\Resources\Events\EventResource;
 use AIArmada\Seating\Enums\SeatingMode;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Events\Enums\TimingMode;
+use App\Filament\Resources\Events\EventResource;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
 use App\Models\Institution;
@@ -23,6 +19,10 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\TimingMode;
 use App\Support\Events\PublicScheduleSlug;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -229,8 +229,8 @@ describe('Event Show Page Going Feature', function () {
             ->call('toggleGoing')
             ->assertSet('isGoing', true);
 
-        expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(1);
-        expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue();
+        expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(1)
+            ->and($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue();
     });
 
     it('keeps going available for an ongoing event', function () {
@@ -290,8 +290,8 @@ describe('Event Show Page Going Feature', function () {
             ->call('toggleGoing')
             ->assertSet('isGoing', false);
 
-        expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(0);
-        expect($event->goingBy()->forResponder($user)->active()->exists())->toBeFalse();
+        expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(0)
+            ->and($event->goingBy()->forResponder($user)->active()->exists())->toBeFalse();
     });
 
     it('redirects guests to login when trying to toggle going', function () {
@@ -343,8 +343,7 @@ describe('Event Show Page Going Feature', function () {
         $body = $dom->getElementsByTagName('body')->item(0);
         $bodyText = $body?->textContent ?? '';
 
-        expect($bodyText)->not->toContain('shareModalOpen: false');
-        expect($bodyText)->not->toContain("copyLink(shouldTrack = true, provider = 'copy_link')");
+        expect($bodyText)->not->toContain('shareModalOpen: false')->not->toContain("copyLink(shouldTrack = true, provider = 'copy_link')");
     });
 
     it('shows correct going count in the UI', function () {

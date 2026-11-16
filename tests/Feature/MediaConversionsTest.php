@@ -39,10 +39,10 @@ it('registers media conversions for Event model', function () {
     $coverMedia = $event->getFirstMedia('cover');
     $media = $event->getFirstMedia('poster');
 
-    expect($coverMedia)->not->toBeNull();
-    expect($media)->not->toBeNull();
-    expect($event->hasMedia('cover'))->toBeTrue();
-    expect($event->hasMedia('poster'))->toBeTrue();
+    expect($coverMedia)->not->toBeNull()
+        ->and($media)->not->toBeNull()
+        ->and($event->hasMedia('cover'))->toBeTrue()
+        ->and($event->hasMedia('poster'))->toBeTrue();
 
     $coverConversions = $coverMedia->getMediaConversionNames();
     expect($coverConversions)
@@ -98,9 +98,8 @@ it('defines accepted MIME types for Event cover and poster collections', functio
     $event = Event::factory()->create();
 
     expect(fn () => $event->addMedia(UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'))
-        ->toMediaCollection('cover'))->toThrow(FileUnacceptableForCollection::class);
-
-    expect(fn () => $event->addMedia(UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'))
+        ->toMediaCollection('cover'))->toThrow(FileUnacceptableForCollection::class)
+        ->and(fn() => $event->addMedia(UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'))
         ->toMediaCollection('poster'))->toThrow(FileUnacceptableForCollection::class);
 });
 
@@ -201,8 +200,8 @@ it('registers media conversions for Institution model', function () {
 
     $media = $institution->getFirstMedia('logo');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('thumb');
+    expect($media)->not->toBeNull()
+        ->and($media->getMediaConversionNames())->toContain('thumb');
 });
 
 it('returns fallback URL when Institution has no logo', function () {
@@ -228,8 +227,8 @@ it('registers media conversions for Institution gallery collection', function ()
 
     $media = $institution->getFirstMedia('gallery');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('gallery_thumb');
+    expect($media)->not->toBeNull()
+        ->and($media->getMediaConversionNames())->toContain('gallery_thumb');
 });
 
 it('uses the institution logo as the public image when no cover exists', function () {
@@ -279,9 +278,9 @@ it('registers media conversions for Person model', function () {
 
     $avatarMedia = $person->getFirstMedia('avatar');
 
-    expect($avatarMedia)->not->toBeNull();
-    expect($avatarMedia->getMediaConversionNames())->toContain('thumb');
-    expect($avatarMedia->getMediaConversionNames())->not->toContain('profile');
+    expect($avatarMedia)->not->toBeNull()
+        ->and($avatarMedia->getMediaConversionNames())->toContain('thumb')
+        ->and($avatarMedia->getMediaConversionNames())->not->toContain('profile');
 });
 
 it('registers media conversions for Person cover, gallery, and profile collections', function () {
@@ -298,12 +297,12 @@ it('registers media conversions for Person cover, gallery, and profile collectio
     $galleryMedia = $person->getFirstMedia('gallery');
     $profileMedia = $person->getFirstMedia('profile');
 
-    expect($coverMedia)->not->toBeNull();
-    expect($galleryMedia)->not->toBeNull();
-    expect($profileMedia)->not->toBeNull();
-    expect($coverMedia->getMediaConversionNames())->toContain('banner');
-    expect($galleryMedia->getMediaConversionNames())->toContain('gallery_thumb');
-    expect($profileMedia->getMediaConversionNames())->toContain('profile_thumb');
+    expect($coverMedia)->not->toBeNull()
+        ->and($galleryMedia)->not->toBeNull()
+        ->and($profileMedia)->not->toBeNull()
+        ->and($coverMedia->getMediaConversionNames())->toContain('banner')
+        ->and($galleryMedia->getMediaConversionNames())->toContain('gallery_thumb')
+        ->and($profileMedia->getMediaConversionNames())->toContain('profile_thumb');
 });
 
 it('returns fallback URL when Person has no avatar', function () {
@@ -322,8 +321,8 @@ it('returns avatar_url using thumb conversion when media exists', function () {
 
     $avatarUrl = $person->avatar_url;
 
-    expect($avatarUrl)->not->toBeNull();
-    expect($avatarUrl)->toContain('avatar');
+    expect($avatarUrl)->not->toBeNull()
+        ->toContain('avatar');
 });
 
 it('returns public_avatar_url using the thumb conversion when media exists', function () {
@@ -347,8 +346,8 @@ it('registers profile media collection for Person model', function () {
 
     $media = $person->getFirstMedia('profile');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('profile_thumb');
+    expect($media)->not->toBeNull()
+        ->and($media->getMediaConversionNames())->toContain('profile_thumb');
 });
 
 it('returns a gender-aware portrait fallback when Person has no profile photo', function (Gender $gender, string $asset) {
@@ -381,9 +380,9 @@ it('registers media conversions for Venue model', function () {
 
     $media = $venue->getFirstMedia('cover');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('thumb');
-    expect($media->getMediaConversionNames())->toContain('banner');
+    expect($media)->not->toBeNull()
+        ->and($media->getMediaConversionNames())->toContain('thumb')
+        ->and($media->getMediaConversionNames())->toContain('banner');
 });
 
 it('returns fallback URL when Venue has no cover image', function () {
@@ -402,10 +401,10 @@ it('registers main media collection for Venue model', function () {
 
     $media = $venue->getFirstMedia('main');
 
-    expect($media)->not->toBeNull();
-    expect($venue->hasMedia('main'))->toBeTrue();
-    expect($media->getMediaConversionNames())->toContain('thumb');
-    expect($media->getMediaConversionNames())->toContain('banner');
+    expect($media)->not->toBeNull()
+        ->and($venue->hasMedia('main'))->toBeTrue()
+        ->and($media->getMediaConversionNames())->toContain('thumb')
+        ->and($media->getMediaConversionNames())->toContain('banner');
 });
 
 it('returns public_main_url preferring main over cover for Venue', function () {
@@ -432,8 +431,8 @@ it('registers media conversions for Series model', function () {
 
     $media = $series->getFirstMedia('cover');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('thumb');
+    expect($media)->not->toBeNull()
+        ->and($media->getMediaConversionNames())->toContain('thumb');
 });
 
 // ---------------------------------------------------------------
@@ -454,12 +453,12 @@ it('registers media conversions for Reference model', function () {
     $backCoverMedia = $reference->getFirstMedia('back_cover');
     $galleryMedia = $reference->getFirstMedia('gallery');
 
-    expect($frontCoverMedia)->not->toBeNull();
-    expect($backCoverMedia)->not->toBeNull();
-    expect($galleryMedia)->not->toBeNull();
-    expect($frontCoverMedia->getMediaConversionNames())->toContain('thumb');
-    expect($backCoverMedia->getMediaConversionNames())->toContain('thumb');
-    expect($galleryMedia->getMediaConversionNames())->toContain('gallery_thumb');
+    expect($frontCoverMedia)->not->toBeNull()
+        ->and($backCoverMedia)->not->toBeNull()
+        ->and($galleryMedia)->not->toBeNull()
+        ->and($frontCoverMedia->getMediaConversionNames())->toContain('thumb')
+        ->and($backCoverMedia->getMediaConversionNames())->toContain('thumb')
+        ->and($galleryMedia->getMediaConversionNames())->toContain('gallery_thumb');
 });
 
 it('keeps only the latest media in Reference single-file cover collections', function () {
@@ -509,8 +508,8 @@ it('registers media conversions for Report model', function () {
 
     $media = $report->getFirstMedia('evidence');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('thumb');
+    expect($media)->not->toBeNull()
+        ->and($media->getMediaConversionNames())->toContain('thumb');
 });
 
 it('registers media conversions for MembershipApplication model', function () {
@@ -521,8 +520,8 @@ it('registers media conversions for MembershipApplication model', function () {
 
     $media = $claim->getFirstMedia('evidence');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('thumb');
+    expect($media)->not->toBeNull()
+        ->and($media->getMediaConversionNames())->toContain('thumb');
 });
 
 it('accepts PDF files for Report evidence', function () {
@@ -551,8 +550,8 @@ it('registers media conversions for DonationChannel model', function () {
 
     $media = $channel->getFirstMedia('qr');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('thumb');
+    expect($media)->not->toBeNull()
+        ->and($media->getMediaConversionNames())->toContain('thumb');
 });
 
 // ---------------------------------------------------------------

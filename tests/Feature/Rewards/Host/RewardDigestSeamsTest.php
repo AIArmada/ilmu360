@@ -15,17 +15,15 @@ use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestActio
 use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Api\GratitudeDigestSnapshot;
 use App\Features\Rewards\FeatureServiceProvider as RewardsFeatureServiceProvider;
+use App\Features\Rewards\Support\DigestRewardGratitudePlanner;
 use App\Features\Rewards\Support\RewardsModel;
 use App\Models\RewardDigestSlot;
 use App\Platform\FeatureCatalog;
-use App\Features\Rewards\Support\DigestRewardGratitudePlanner;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
-
-uses(RefreshDatabase::class);
 
 final class Rw1FakeGratitudeDigest implements GratitudeDigest
 {
@@ -119,8 +117,8 @@ it('binds the gratitude digest Api to the feature action and keeps its surface s
             ->and($type)->not->toContain('App\\Support\\');
     }
 
-    $sources = (string) file_get_contents(app_path('Features/Rewards/Api/GratitudeDigest.php'))
-        .(string) file_get_contents(app_path('Features/Rewards/Api/GratitudeDigestSnapshot.php'));
+    $sources = file_get_contents(app_path('Features/Rewards/Api/GratitudeDigest.php'))
+        .file_get_contents(app_path('Features/Rewards/Api/GratitudeDigestSnapshot.php'));
 
     expect($sources)->not->toContain('Illuminate\\')
         ->and($sources)->not->toContain('Carbon\\')
@@ -149,7 +147,7 @@ it('claims reward_digest_slots with exactly the three gratitude digest writers',
 });
 
 it('resolves the root digest slot model through its morph alias and literal table', function (): void {
-    $defaults = (new ReflectionClass(RewardDigestSlot::class))->getDefaultProperties();
+    $defaults = new ReflectionClass(RewardDigestSlot::class)->getDefaultProperties();
 
     expect(RewardsModel::digestSlot())->toBe(RewardDigestSlot::class)
         ->and((new RewardDigestSlot)->getMorphClass())->toBe('reward_digest_slot')
@@ -221,8 +219,6 @@ it('round-trips plan, cancel and dispatch through the scalar Api', function (): 
         (string) $second->getKey(),
         'award-reversed',
         new DateTimeImmutable('2026-06-15T11:00:00Z'),
-    ))->toBe(1);
-
-    expect(RewardDigestSlot::query()->whereKey($pending->id)->firstOrFail()->status)
-        ->toBe(RewardDigestSlot::STATUS_CANCELLED);
+    ))->toBe(1)
+        ->and(RewardDigestSlot::query()->whereKey($pending->id)->firstOrFail()->status)->toBe(RewardDigestSlot::STATUS_CANCELLED);
 });

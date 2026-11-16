@@ -74,7 +74,7 @@ final readonly class GratitudeDigestAction implements GratitudeDigest
 
     private function at(?DateTimeImmutable $at): ?CarbonImmutable
     {
-        return $at === null ? null : CarbonImmutable::createFromInterface($at)->setTimezone('UTC');
+        return $at instanceof \DateTimeImmutable ? CarbonImmutable::createFromInterface($at)->setTimezone('UTC') : null;
     }
 
     private function snapshot(Model $slot): GratitudeDigestSnapshot

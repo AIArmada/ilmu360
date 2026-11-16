@@ -46,8 +46,6 @@ use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 /**
  * @return array{0: RewardProgram, 1: RewardProgramVersion}
  */
@@ -169,7 +167,7 @@ function evaluateHostRewardFact(
     string $recipientId,
     RewardBeneficiaryRole $role,
 ): void {
-    (new EvaluateRewardEntitlementAction(app(RewardSourceFactReader::class)))->handle(
+    new EvaluateRewardEntitlementAction(app(RewardSourceFactReader::class))->handle(
         $program->refresh(),
         RewardComponent::Points,
         'user',
@@ -207,7 +205,7 @@ it('reads an unattributed registration directly from its authenticated registran
     ]);
     $key = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventRegistration,
-        'registration:'.(string) $registration->getKey(),
+        'registration:'.$registration->getKey(),
     );
 
     $fact = (new ActivityRewardSourceFactReader)->read($key);
@@ -240,7 +238,7 @@ it('awards direct registrations and check-ins once to the participant', function
     $registrationKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
     $registrationActivityKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventRegistration,
-        'registration:'.(string) $registration->getKey(),
+        'registration:'.$registration->getKey(),
     );
 
     app(AffiliatesShareTrackingService::class)->recordOutcome(
@@ -262,7 +260,7 @@ it('awards direct registrations and check-ins once to the participant', function
     $checkinKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
     $checkinActivityKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventCheckin,
-        'checkin:'.(string) $checkin->getKey(),
+        'checkin:'.$checkin->getKey(),
     );
 
     app(AffiliatesShareTrackingService::class)->recordInheritedOutcome(
@@ -330,7 +328,7 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
 
     $shareTracking = app(AffiliatesShareTrackingService::class);
     $shareTracking->recordSignup($actor);
-    $signupKey = ActivityRewardBusinessKey::for(ShareOutcomeType::Signup, 'user:'.(string) $actor->getKey());
+    $signupKey = ActivityRewardBusinessKey::for(ShareOutcomeType::Signup, 'user:'.$actor->getKey());
     evaluateHostRewardFact($program, $signupKey, (string) $actor->getKey(), RewardBeneficiaryRole::Participant);
 
     $registration = Registration::factory()->forRegistrant($actor)->create([
@@ -364,7 +362,7 @@ it('awards distinct host point amounts for signup and staff-verified check-in', 
     );
     $checkinActivityKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventCheckin,
-        'checkin:'.(string) $checkin->getKey(),
+        'checkin:'.$checkin->getKey(),
     );
     evaluateHostRewardFact($program, $checkinActivityKey, (string) $actor->getKey(), RewardBeneficiaryRole::Participant);
 
@@ -437,14 +435,12 @@ it('awards the participant and sharer once each for attributed registration and 
     }
 
     expect(activityAwardCounts($registrationShareKey, $actor, $sharer))->toBe(['participant' => 1, 'sharer' => 1])
-        ->and(activityAwardCounts($checkinShareKey, $actor, $sharer))->toBe(['participant' => 1, 'sharer' => 1]);
-
-    expect(RewardAward::query()
+        ->and(activityAwardCounts($checkinShareKey, $actor, $sharer))->toBe(['participant' => 1, 'sharer' => 1])
+        ->and(RewardAward::query()
         ->whereIn('source_business_key', [$registrationShareKey, $checkinShareKey])
         ->where('recipient_id', (string) $actor->getKey())
         ->where('beneficiary_role', RewardBeneficiaryRole::Participant->value)
-        ->where('component', RewardComponent::Points->value)
-        ->count())->toBe(2);
+        ->where('component', RewardComponent::Points->value)->count())->toBe(2);
 });
 
 it('rejects cancelled registrations and reverses an award when a source is cancelled later', function (): void {
@@ -459,7 +455,7 @@ it('rejects cancelled registrations and reverses an award when a source is cance
     ]);
     $cancelledKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventRegistration,
-        'registration:'.(string) $cancelled->getKey(),
+        'registration:'.$cancelled->getKey(),
     );
     $service->recordOutcome(
         ShareOutcomeType::EventRegistration,
@@ -477,7 +473,7 @@ it('rejects cancelled registrations and reverses an award when a source is cance
     ]);
     $activityKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventRegistration,
-        'registration:'.(string) $registration->getKey(),
+        'registration:'.$registration->getKey(),
     );
     $service->recordOutcome(
         ShareOutcomeType::EventRegistration,
@@ -537,7 +533,7 @@ it('completes a private named star milestone from a verified check-in fact', fun
     ]);
     $activityKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventCheckin,
-        'checkin:'.(string) $checkin->getKey(),
+        'checkin:'.$checkin->getKey(),
     );
 
     EvaluateRewardEntitlementJob::dispatchSync($activityKey);
@@ -580,7 +576,7 @@ it('dispatches signup activity evaluation after recording the user', function ()
     $user = User::factory()->create();
     $activityKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::Signup,
-        'user:'.(string) $user->getKey(),
+        'user:'.$user->getKey(),
     );
 
     app(AffiliatesShareTrackingService::class)->recordSignup($user);
@@ -649,7 +645,7 @@ it('evaluates eligible preclaim signup facts for both the sharer and participant
         ->firstOrFail();
     $participantKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::Signup,
-        'user:'.(string) $member->getKey(),
+        'user:'.$member->getKey(),
     );
     $sharerKey = ShareOutcomeBusinessKey::signup((string) $visitor->getKey());
 
@@ -681,14 +677,12 @@ it('evaluates eligible preclaim signup facts for both the sharer and participant
         ->firstOrFail();
 
     expect($participantAward->amount_snapshot['points'])->toBe(2)
-        ->and($sharerAward->amount_snapshot['points'])->toBe(3);
-
-    expect(RewardAward::query()
+        ->and($sharerAward->amount_snapshot['points'])->toBe(3)
+        ->and(RewardAward::query()
         ->where('program_id', $program->getKey())
         ->where('source_business_key', ShareOutcomeBusinessKey::signup((string) $member->getKey()))
         ->where('recipient_id', (string) $member->getKey())
-        ->where('beneficiary_role', RewardBeneficiaryRole::Sharer->value)
-        ->exists())->toBeFalse();
+        ->where('beneficiary_role', RewardBeneficiaryRole::Sharer->value)->exists())->toBeFalse();
 });
 
 it('excludes preclaim facts outside the lookback and applies the daily cap across prior outcomes', function (): void {
@@ -801,9 +795,8 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
         ->where('scope', 'recipient_program_day')
         ->firstOrFail();
 
-    expect($dailyCap->consumed)->toBe(2);
-
-    expect($awards)->toHaveCount(2)
+    expect($dailyCap->consumed)->toBe(2)
+        ->and($awards)->toHaveCount(2)
         ->and($awards->sum(fn (RewardAward $award): int => (int) $award->amount_snapshot['points']))->toBe(10)
         ->and($awards->pluck('source_business_key')->all())->not->toContain($oldKey);
 });
@@ -874,7 +867,7 @@ it('keeps enroll-first share rewards and source claims idempotent after reaccept
     $rules = $version->rules;
     $terms = $version->terms;
     $terms['version_label'] = 'v2';
-    $terms['material']['changes'] = (string) $terms['material']['changes'].' A new version now applies.';
+    $terms['material']['changes'] .= ' A new version now applies.';
     $publishedAt = CarbonImmutable::now('UTC')->subSecond();
 
     app(PublishRewardProgramVersionAction::class)->handle(

@@ -3,13 +3,11 @@
 declare(strict_types=1);
 
 use AIArmada\Communications\Contracts\PayloadRedactor;
+use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use App\Models\Event;
 use App\Models\User;
-use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     $this->sharer = User::factory()->create([
@@ -57,9 +55,8 @@ it('keeps the issued guest credential out of share urls platform links and nativ
 
     $credential = (string) ($payload['guest_credential'] ?? '');
 
-    expect($credential)->not->toBe('');
-
-    expect((string) $payload['url'])->not->toContain($credential)
+    expect($credential)->not->toBeEmpty()
+        ->and((string) $payload['url'])->not->toContain($credential)
         ->and((string) $payload['url'])->not->toContain('guest_credential');
 
     foreach (['platform_links', 'channel_urls'] as $group) {

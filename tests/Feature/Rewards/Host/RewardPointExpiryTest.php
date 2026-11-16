@@ -14,8 +14,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 it('expires due point lots through the operator command, idempotently', function (): void {
     [$program] = RewardLedgerFixtures::seedVersionedProgram('expiry-proof', RewardProgramMode::Points);
     TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Ready);

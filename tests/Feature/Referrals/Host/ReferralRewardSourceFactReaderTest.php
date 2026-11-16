@@ -12,15 +12,13 @@ use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use App\Models\Registration;
 use App\Models\User;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Support\Rewards\ActivityRewardSourceFactReader;
 use App\Support\Rewards\ReferralRewardSourceFactReader;
 use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-
-uses(RefreshDatabase::class);
 
 it('maps both referral reward sides to the live accepted registration fact', function (): void {
     $referrer = User::factory()->create();

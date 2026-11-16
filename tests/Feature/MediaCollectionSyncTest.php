@@ -18,7 +18,7 @@ it('clears one collection without touching other collections', function (): void
 
     app(MediaCollectionSync::class)->clearCollection($institution, 'gallery');
 
-    expect($institution->refresh()->getMedia('gallery'))->toHaveCount(0)
+    expect($institution->refresh()->getMedia('gallery'))->toBeEmpty()
         ->and($institution->getMedia('logo'))->toHaveCount(1);
 });
 
@@ -84,9 +84,8 @@ it('clears the existing single file before a rejected replacement fails', functi
         $institution,
         UploadedFile::fake()->create('notes.txt', 1, 'text/plain'),
         'logo',
-    ))->toThrow(FileUnacceptableForCollection::class);
-
-    expect($institution->refresh()->getMedia('logo'))->toHaveCount(0);
+    ))->toThrow(FileUnacceptableForCollection::class)
+        ->and($institution->refresh()->getMedia('logo'))->toBeEmpty();
 });
 
 it('keeps files added before a rejected replacement fails', function (): void {
@@ -96,7 +95,6 @@ it('keeps files added before a rejected replacement fails', function (): void {
     expect(fn () => app(MediaCollectionSync::class)->syncMultiple($institution, [
         fakeGeneratedImageUpload('accepted.png', 1200, 800),
         UploadedFile::fake()->create('notes.txt', 1, 'text/plain'),
-    ], 'gallery', replace: true))->toThrow(FileUnacceptableForCollection::class);
-
-    expect($institution->refresh()->getMedia('gallery'))->toHaveCount(1);
+    ], 'gallery', replace: true))->toThrow(FileUnacceptableForCollection::class)
+        ->and($institution->refresh()->getMedia('gallery'))->toHaveCount(1);
 });

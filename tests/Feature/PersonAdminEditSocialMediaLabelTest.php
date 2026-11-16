@@ -184,7 +184,7 @@ it('clears stale city text and slug suffix when an admin changes to a state with
         Livewire::actingAs($administrator)
             ->test(EditPerson::class, ['record' => $person->id])
             ->set('data.address.state_id', (string) $selangor->getKey())
-            ->set('data.address.city_id', null)
+            ->set('data.address.city_id')
             ->call('save')
             ->assertHasNoErrors();
     });
@@ -233,7 +233,7 @@ it('persists clearing the state selection from the person edit form', function (
     OwnerContext::withOwner(null, function () use ($administrator, $person): void {
         Livewire::actingAs($administrator)
             ->test(EditPerson::class, ['record' => $person->id])
-            ->set('data.address.state_id', null)
+            ->set('data.address.state_id')
             ->call('save')
             ->assertHasNoErrors();
     });

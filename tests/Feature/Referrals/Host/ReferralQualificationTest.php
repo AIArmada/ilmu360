@@ -38,8 +38,6 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 it('has no referral effect for a qualifying outcome without an accepted invite or programme', function (): void {
     Queue::fake([
         QualifyReferralFromShareOutcomeJob::class,
@@ -127,7 +125,7 @@ it('qualifies the first accepted registration and fulfils points plus the single
         occurredAt: $registeredAt,
     );
     Queue::assertPushed(QualifyReferralFromShareOutcomeJob::class, fn (QualifyReferralFromShareOutcomeJob $job): bool => $job->businessKey === $sourceKey);
-    (new QualifyReferralFromShareOutcomeJob($sourceKey))->handle(app(QualifyReferralFromShareOutcomeAction::class));
+    new QualifyReferralFromShareOutcomeJob($sourceKey)->handle(app(QualifyReferralFromShareOutcomeAction::class));
 
     $invite->refresh();
     $rewards = ReferralReward::query()->where('invite_id', $invite->getKey())->orderBy('side')->get();
@@ -166,7 +164,7 @@ it('qualifies the first accepted registration and fulfils points plus the single
         actor: $invitee,
         occurredAt: $checkin->checked_in_at,
     );
-    (new QualifyReferralFromShareOutcomeJob($checkinKey))->handle(app(QualifyReferralFromShareOutcomeAction::class));
+    new QualifyReferralFromShareOutcomeJob($checkinKey)->handle(app(QualifyReferralFromShareOutcomeAction::class));
 
     expect(ReferralReward::query()->where('invite_id', $invite->getKey())->count())->toBe(2)
         ->and(RewardAward::query()->where('source_business_key', 'referrals:qualified:'.$invite->getKey().':referrer')->count())->toBe(1)
@@ -196,7 +194,7 @@ it('qualifies a staff-verified check-in when no registration was recorded first'
         occurredAt: $checkin->checked_in_at,
     );
     Queue::assertPushed(QualifyReferralFromShareOutcomeJob::class);
-    (new QualifyReferralFromShareOutcomeJob($sourceKey))->handle(app(QualifyReferralFromShareOutcomeAction::class));
+    new QualifyReferralFromShareOutcomeJob($sourceKey)->handle(app(QualifyReferralFromShareOutcomeAction::class));
 
     expect($invite->refresh()->status)->toBe(ReferralInviteStatus::Rewarded)
         ->and($invite->qualification_business_key)->toBe($sourceKey)
@@ -222,9 +220,9 @@ it('preserves both rewards when a reversal job arrives before the source is inva
         actor: $invitee,
         occurredAt: $registration->registered_at,
     );
-    (new QualifyReferralFromShareOutcomeJob($sourceKey))->handle(app(QualifyReferralFromShareOutcomeAction::class));
+    new QualifyReferralFromShareOutcomeJob($sourceKey)->handle(app(QualifyReferralFromShareOutcomeAction::class));
 
-    (new ReverseReferralRewardsForShareOutcomeJob($sourceKey, 'registration-cancelled'))
+    new ReverseReferralRewardsForShareOutcomeJob($sourceKey, 'registration-cancelled')
         ->handle(app(ReverseReferralRewardsForShareOutcomeAction::class));
 
     $rewards = ReferralReward::query()->where('invite_id', $invite->getKey())->get();
@@ -234,10 +232,10 @@ it('preserves both rewards when a reversal job arrives before the source is inva
         ->where('source_business_key', 'referrals:qualified:'.$invite->getKey().':referrer')
         ->firstOrFail();
 
-    expect($invite->refresh()->status)->toBe(ReferralInviteStatus::Rewarded);
-    expect($rewards->every(fn (ReferralReward $reward): bool => $reward->status === ReferralRewardStatus::Fulfilled))->toBeTrue();
-    expect($voucher->status)->not->toBeInstanceOf(Expired::class);
-    expect($pointsAward->status)->not->toBe(RewardAwardStatus::Reversed);
+    expect($invite->refresh()->status)->toBe(ReferralInviteStatus::Rewarded)
+        ->and($rewards->every(fn (ReferralReward $reward): bool => $reward->status === ReferralRewardStatus::Fulfilled))->toBeTrue()
+        ->and($voucher->status)->not->toBeInstanceOf(Expired::class)
+        ->and($pointsAward->status)->not->toBe(RewardAwardStatus::Reversed);
 });
 
 it('reverses fulfilled points and voucher sides when the qualifying source is cancelled', function (): void {
@@ -254,12 +252,12 @@ it('reverses fulfilled points and voucher sides when the qualifying source is ca
     ]);
     $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey());
     app(AffiliatesShareTrackingService::class)->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, actor: $invitee, occurredAt: $registeredAt);
-    (new QualifyReferralFromShareOutcomeJob($sourceKey))->handle(app(QualifyReferralFromShareOutcomeAction::class));
+    new QualifyReferralFromShareOutcomeJob($sourceKey)->handle(app(QualifyReferralFromShareOutcomeAction::class));
 
     $registration->forceFill(['status' => 'cancelled'])->save();
     ReverseShareOutcomeAction::run($sourceKey, 'registration-cancelled');
     Queue::assertPushed(ReverseReferralRewardsForShareOutcomeJob::class, fn (ReverseReferralRewardsForShareOutcomeJob $job): bool => $job->businessKey === $sourceKey);
-    (new ReverseReferralRewardsForShareOutcomeJob($sourceKey, 'registration-cancelled'))->handle(app(ReverseReferralRewardsForShareOutcomeAction::class));
+    new ReverseReferralRewardsForShareOutcomeJob($sourceKey, 'registration-cancelled')->handle(app(ReverseReferralRewardsForShareOutcomeAction::class));
 
     $rewards = ReferralReward::query()->where('invite_id', $invite->getKey())->get();
     $voucherReward = $rewards->firstWhere('side', ReferralRewardSide::Referee);

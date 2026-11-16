@@ -4,9 +4,9 @@ namespace App\Features\Communications\EntryPoints\Http;
 
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationCatalog;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

@@ -9,5 +9,6 @@ use Filament\Resources\Pages\ListRecords;
 
 final class ListEvents extends ListRecords
 {
+    #[\Override]
     protected static string $resource = EventResource::class;
 }

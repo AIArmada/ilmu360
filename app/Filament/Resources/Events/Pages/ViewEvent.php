@@ -12,6 +12,7 @@ use Filament\Resources\Pages\ViewRecord;
 
 final class ViewEvent extends ViewRecord
 {
+    #[\Override]
     protected static string $resource = EventResource::class;
 
     protected function getHeaderActions(): array

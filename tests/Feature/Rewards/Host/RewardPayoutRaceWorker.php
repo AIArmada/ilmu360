@@ -187,7 +187,7 @@ try {
     // a worker crash: the parent asserts exactly one winner.
     $report = ['outcome' => 'aborted', 'message' => $exception->getMessage()];
 } catch (Throwable $exception) {
-    $fail('Race worker crashed: '.get_class($exception).': '.$exception->getMessage());
+    $fail('Race worker crashed: '.$exception::class.': '.$exception->getMessage());
 }
 
 echo json_encode(['ok' => true, 'report' => $report], JSON_THROW_ON_ERROR)."\n";

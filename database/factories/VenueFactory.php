@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
  */
 class VenueFactory extends PackageVenueFactory
 {
+    #[\Override]
     protected $model = Venue::class;
 
     /**

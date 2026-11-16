@@ -19,6 +19,7 @@ use Throwable;
 
 final class CreateEvent extends CreateRecord
 {
+    #[\Override]
     protected static string $resource = EventResource::class;
 
     protected function getHeaderActions(): array

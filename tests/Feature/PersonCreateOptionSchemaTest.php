@@ -88,15 +88,15 @@ it('stores biography and institution pivot position when creating a person via c
         ->and($person->status)->toBe('pending')
         ->and($linkedInstitution)->not->toBeNull()
         ->and($linkedInstitution?->pivot?->position)->toBe('Mudir')
-        ->and((bool) $linkedInstitution?->pivot?->is_primary)->toBeTrue();
+        ->and($linkedInstitution?->pivot?->is_primary)->toBeTruthy();
 });
 
 it('rejects blank or missing speaker identity before quick creation', function (array $identity) {
     $count = Person::query()->count();
 
     expect(fn () => PersonFormSchema::createOptionUsing($identity))
-        ->toThrow(ValidationException::class);
-    expect(Person::query()->count())->toBe($count);
+        ->toThrow(ValidationException::class)
+        ->and(Person::query()->count())->toBe($count);
 })->with([
     'blank name' => [['name' => '   ', 'gender' => 'male']],
     'missing name' => [['gender' => 'male']],

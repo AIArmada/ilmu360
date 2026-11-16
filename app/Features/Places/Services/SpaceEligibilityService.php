@@ -2,9 +2,8 @@
 
 namespace App\Features\Places\Services;
 
-use App\Models\Space;
-
 use App\Features\Places\Api\SpaceEligibility;
+use App\Models\Space;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;

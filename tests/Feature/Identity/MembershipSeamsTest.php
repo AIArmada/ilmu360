@@ -57,8 +57,7 @@ it('reads subjects, roles and members from the current member pivots', function 
 
     expect($directory->subjectIdsFor($accountId, MembershipSubjectType::Institution))
         ->toBe([$institutionId])
-        ->and($directory->subjectIdsFor($accountId, MembershipSubjectType::Institution, 'owner'))
-        ->toBe([])
+        ->and($directory->subjectIdsFor($accountId, MembershipSubjectType::Institution, 'owner'))->toBeEmpty()
         ->and($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'admin'))
         ->toBeTrue()
         ->and($directory->hasRole($accountId, MembershipSubjectType::Institution, (string) $otherInstitution->getKey(), 'admin'))
@@ -70,7 +69,7 @@ it('reads subjects, roles and members from the current member pivots', function 
         ->and($memberships[0]->subjectId)->toBe($institutionId)
         ->and($members)->toHaveCount(1)
         ->and($members[0]->role)->toBe('admin')
-        ->and($directory->membershipsFor($accountId, MembershipSubjectType::Person))->toBe([]);
+        ->and($directory->membershipsFor($accountId, MembershipSubjectType::Person))->toBeEmpty();
 });
 
 it('authorizes through the current member permission rules', function (): void {
@@ -93,8 +92,7 @@ it('authorizes through the current member permission rules', function (): void {
         ->toBeFalse()
         ->and($authorization->membersWithPermission(MembershipSubjectType::Institution, $institutionId, 'institution.update'))
         ->toContain($accountId)
-        ->and($authorization->membersWithPermission(MembershipSubjectType::Institution, $institutionId, 'institution.delete'))
-        ->toBe([]);
+        ->and($authorization->membersWithPermission(MembershipSubjectType::Institution, $institutionId, 'institution.delete'))->toBeEmpty();
 });
 
 it('authorizes event access through person membership', function (): void {
@@ -313,9 +311,8 @@ it('writes the invitation lifecycle through the invitation boundary', function (
     expect($invited->email)->toBe('boundary-invitee@example.com')
         ->and($invited->role)->toBe('admin')
         ->and($invited->isValid)->toBeTrue()
-        ->and($invitations->pendingExistsForEmail(MembershipSubjectType::Institution, $institutionId, 'BOUNDARY-INVITEE@example.com'))->toBeTrue();
-
-    expect(fn () => $invitations->invite(
+        ->and($invitations->pendingExistsForEmail(MembershipSubjectType::Institution, $institutionId, 'BOUNDARY-INVITEE@example.com'))->toBeTrue()
+        ->and(fn() => $invitations->invite(
         MembershipSubjectType::Institution,
         $institutionId,
         'boundary-invitee@example.com',

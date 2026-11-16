@@ -13,8 +13,6 @@ use Illuminate\Validation\Rule;
 
 use function Pest\Laravel\seed;
 
-uses(RefreshDatabase::class);
-
 it('seeds a flat activity-first event category vocabulary', function (): void {
     seed(FoundationSeeder::class);
 
@@ -23,14 +21,12 @@ it('seeds a flat activity-first event category vocabulary', function (): void {
 
     expect($hierarchy->options('event_category'))
         ->toHaveKey((string) $lecture->getKey(), 'Kuliah / Ceramah')
-        ->toHaveCount(8);
-
-    expect(EventTerm::query()->where('code', 'ilmu')->exists())->toBeFalse()
+        ->toHaveCount(8)
+        ->and(EventTerm::query()->where('code', 'ilmu')->exists())->toBeFalse()
         ->and(EventTerm::query()->where('code', 'kelas_daurah')->exists())->toBeFalse()
         ->and(EventTerm::query()
-            ->where('event_taxonomy_id', $lecture->event_taxonomy_id)
-            ->whereNull('parent_id')
-            ->count())->toBe(8);
+        ->where('event_taxonomy_id', $lecture->event_taxonomy_id)
+        ->whereNull('parent_id')->count())->toBe(8);
 });
 
 it('applies activity policies to the new category terms', function (): void {
@@ -65,8 +61,8 @@ it('validates the flat category IDs before minimizing them', function (): void {
     expect(Validator::make(
         ['event_category_ids' => $ids],
         ['event_category_ids.*' => ['uuid', Rule::in($catalog->validTermIds($ids))]],
-    )->passes())->toBeTrue();
-    expect($catalog->validateTermIds($ids))->toBe([(string) $lecture->getKey()]);
+    )->passes())->toBeTrue()
+        ->and($catalog->validateTermIds($ids))->toBe([(string) $lecture->getKey()]);
 });
 
 it('hides an inactive taxonomy from active hierarchy reads', function (): void {
@@ -74,7 +70,7 @@ it('hides an inactive taxonomy from active hierarchy reads', function (): void {
 
     EventTaxonomy::query()->where('code', 'event_category')->update(['is_active' => false]);
 
-    expect(app(EventTaxonomyHierarchy::class)->options('event_category'))->toBe([]);
+    expect(app(EventTaxonomyHierarchy::class)->options('event_category'))->toBeEmpty();
 });
 
 it('seeds policy rows for terms with requires_speaker', function (): void {

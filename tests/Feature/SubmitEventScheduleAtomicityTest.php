@@ -5,8 +5,8 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
-use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\PrayerReference;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 
@@ -38,15 +38,13 @@ it('rolls back the occurrence write when the prayer expression fails', function 
         event: $event,
         scheduleKind: ScheduleKind::Single,
         startsAt: now()->addDays(9)->setTime(20, 0),
-        endsAt: null,
         timezone: 'Asia/Kuala_Lumpur',
         timingMode: TimingMode::PrayerRelative,
         prayerReference: PrayerReference::Maghrib->value,
         prayerOffset: 5,
         prayerDisplayText: 'Selepas Maghrib',
-    ))->toThrow(RuntimeException::class, 'Injected expression failure.');
-
-    expect(EventOccurrence::query()->where('event_id', $event->getKey())->count())->toBe($beforeCount)
+    ))->toThrow(RuntimeException::class, 'Injected expression failure.')
+        ->and(EventOccurrence::query()->where('event_id', $event->getKey())->count())->toBe($beforeCount)
         ->and(EventOccurrence::query()->findOrFail($occurrenceId)->starts_at->timestamp)->toBe($beforeStartsAt)
         ->and($event->fresh()->schedule_kind)->toBe(ScheduleKind::MultiDay);
 });
@@ -108,7 +106,6 @@ it('leaves occurrence and session scoped expressions untouched', function () {
         event: $event,
         scheduleKind: ScheduleKind::Single,
         startsAt: now()->addDays(9)->setTime(20, 0),
-        endsAt: null,
         timezone: 'Asia/Kuala_Lumpur',
         timingMode: TimingMode::Absolute,
     );
@@ -122,7 +119,6 @@ it('leaves occurrence and session scoped expressions untouched', function () {
         event: $event,
         scheduleKind: ScheduleKind::Single,
         startsAt: now()->addDays(9)->setTime(20, 0),
-        endsAt: null,
         timezone: 'Asia/Kuala_Lumpur',
         timingMode: TimingMode::PrayerRelative,
         prayerReference: PrayerReference::Maghrib->value,
@@ -151,7 +147,6 @@ it('refreshes the passed event model with the synced schedule', function () {
         event: $event,
         scheduleKind: ScheduleKind::Single,
         startsAt: $startsAt,
-        endsAt: null,
         timezone: 'Asia/Kuala_Lumpur',
         timingMode: TimingMode::Absolute,
     );

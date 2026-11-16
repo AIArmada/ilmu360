@@ -1,9 +1,9 @@
 <?php
 
-use App\Shared\Events\Enums\EventFormat;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Space;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventFormat;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;

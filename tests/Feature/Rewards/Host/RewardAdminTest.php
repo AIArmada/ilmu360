@@ -30,8 +30,6 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
@@ -221,6 +219,6 @@ it('lets staff decide an appeal from the appeals table', function (): void {
         ])
         ->assertHasNoTableActionErrors();
 
-    expect($appeal->fresh()->status)->toBe(RewardAppealStatus::InReview);
-    expect(RewardAppeal::query()->whereKey($appeal->getKey())->value('status'))->toBe(RewardAppealStatus::InReview);
+    expect($appeal->fresh()->status)->toBe(RewardAppealStatus::InReview)
+        ->and(RewardAppeal::query()->whereKey($appeal->getKey())->value('status'))->toBe(RewardAppealStatus::InReview);
 });

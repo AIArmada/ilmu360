@@ -23,6 +23,6 @@ it('queues scheduled communications that are due', function () {
 
     $queuedCommunication = Communication::query()->findOrFail($communication->getKey());
 
-    expect($queuedCommunication->status)->toBe(CommunicationStatus::Queued);
-    expect($queuedCommunication->queued_at)->not->toBeNull();
+    expect($queuedCommunication->status)->toBe(CommunicationStatus::Queued)
+        ->and($queuedCommunication->queued_at)->not->toBeNull();
 });

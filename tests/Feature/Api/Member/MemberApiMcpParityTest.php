@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Enums\MemberSubjectType;
 use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Member\MemberApproveContributionRequestTool;
@@ -20,6 +17,9 @@ use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Eloquent\Model;
@@ -168,10 +168,8 @@ it('keeps member api and member mcp contribution request actions aligned', funct
         ->assertOk();
 
     expect(memberParityContributionRequestSnapshot($apiApproveResponse->json('data.request') ?? []))
-        ->toEqual(memberParityContributionRequestSnapshot(memberMcpStructuredContent($mcpApproveResponse)['data']['request'] ?? []));
-
-    expect(memberParityPersistedAttribute($apiApproveInstitution, 'description'))
-        ->toBe('Approve request proposed description.')
+        ->toEqual(memberParityContributionRequestSnapshot(memberMcpStructuredContent($mcpApproveResponse)['data']['request'] ?? []))
+        ->and(memberParityPersistedAttribute($apiApproveInstitution, 'description'))->toBe('Approve request proposed description.')
         ->and(memberParityPersistedAttribute($mcpApproveInstitution, 'description'))->toBe('Approve request proposed description.');
 
     [$apiRejectInstitution, $apiRejectRequest, $mcpRejectInstitution, $mcpRejectRequest] = $makeReviewablePair(

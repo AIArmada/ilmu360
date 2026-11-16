@@ -10,13 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ResolveNotificationInboxRecipientAction
+final readonly class ResolveNotificationInboxRecipientAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly AccountDirectory $accounts,
-        private readonly UserMorphType $userMorphType,
+        private AccountDirectory $accounts,
+        private UserMorphType $userMorphType,
     ) {}
 
     public function handle(string $accountId): Model

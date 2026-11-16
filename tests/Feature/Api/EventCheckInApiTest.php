@@ -7,8 +7,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 it('returns check-in state and records a self-reported check-in for open events', function () {
     $user = User::factory()->create();
     $event = Event::factory()->create([

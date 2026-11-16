@@ -3,12 +3,12 @@
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use Laravel\Sanctum\Sanctum;
 
 it('requires an explicit country for public states catalog options', function () {

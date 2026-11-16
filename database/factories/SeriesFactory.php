@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 
 class SeriesFactory extends EventSeriesFactory
 {
+    #[\Override]
     protected $model = Series::class;
 
     /**

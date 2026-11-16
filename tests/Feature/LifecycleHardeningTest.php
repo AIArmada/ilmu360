@@ -15,8 +15,6 @@ use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('keeps report lifecycle fields behind transitionStatus', function (): void {
     $person = Person::factory()->create(['status' => 'verified']);
     $forgedAt = now()->subDay();

@@ -20,8 +20,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 /** @return array{0: RewardProgram, 1: RewardProgramVersion} */
 function activePromptRewardProgram(string $prefix): array
 {
@@ -84,8 +82,8 @@ it('shows the prompt for an unenrolled user with an activity outcome and enrolls
         ->latest('occurred_at')
         ->first();
 
-    expect($signalEvent)->not->toBeNull();
-    expect(data_get($signalEvent?->properties, 'surface'))->toBe('dashboard-prompt');
+    expect($signalEvent)->not->toBeNull()
+        ->and(data_get($signalEvent?->properties, 'surface'))->toBe('dashboard-prompt');
 });
 
 it('hides the prompt for an enrolled user even when the user has activity outcomes', function (): void {

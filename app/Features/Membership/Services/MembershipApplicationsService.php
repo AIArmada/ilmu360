@@ -96,7 +96,7 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
                 }
 
                 $files = array_map(
-                    fn (StagedUpload $upload): UploadedFile => $this->stagedUploads->toUploadedFile($upload),
+                    $this->stagedUploads->toUploadedFile(...),
                     $input->evidenceFiles,
                 );
 

@@ -11,8 +11,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 function detachHardeningVenueAddresses(Venue $venue): void
 {
     DB::table(AddressingTableResolver::resolve('addressables'))
@@ -124,9 +122,8 @@ it('selects the canonically ordered primary row when several primary rows exist'
 
     $event = $event->fresh();
 
-    expect($event)->toBeInstanceOf(Event::class);
-
-    expect($event->primaryLocationVenueId())->toBe((string) $canonical->getKey())
+    expect($event)->toBeInstanceOf(Event::class)
+        ->and($event->primaryLocationVenueId())->toBe((string) $canonical->getKey())
         ->and($event->resolvedLocationAddress()?->getKey())->toBe($canonical->primaryAddress()?->getKey())
         ->and($event->resolvedLocationName())->toBe($canonical->name)
         ->and($event->hasExplicitVenueSelection())->toBeTrue();

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -55,16 +55,12 @@ it('uses explicit Labuan coordinates during fallback instead of Kuala Lumpur', f
         ->and($preview['exact'])->toBeTrue();
 
     // Labuan town coordinates — never the KL country default.
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), 'ummahapi.com')
-            && (float) $request['lat'] === 5.28
-            && (float) $request['lng'] === 115.24;
-    });
-    Http::assertNotSent(function ($request) {
-        return str_contains($request->url(), 'ummahapi.com')
-            && (float) $request['lat'] === 3.139
-            && (float) $request['lng'] === 101.6869;
-    });
+    Http::assertSent(fn($request) => str_contains($request->url(), 'ummahapi.com')
+        && (float) $request['lat'] === 5.28
+        && (float) $request['lng'] === 115.24);
+    Http::assertNotSent(fn($request) => str_contains($request->url(), 'ummahapi.com')
+        && (float) $request['lat'] === 3.139
+        && (float) $request['lng'] === 101.6869);
 });
 
 it('warms the exact daily cells submission reads for global countries', function () {

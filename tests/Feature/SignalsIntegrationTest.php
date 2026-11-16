@@ -29,8 +29,8 @@ it('registers the signals package migrations with the application', function () 
 it('resolves the default tracked property', function () {
     $trackedProperty = TrackedProperty::query()->first();
 
-    expect($trackedProperty)->not->toBeNull();
-    expect(app('router')->has('signals.tracker.script'))->toBeTrue();
+    expect($trackedProperty)->not->toBeNull()
+        ->and(app('router')->has('signals.tracker.script'))->toBeTrue();
 
     $default = TrackedProperty::query()
         ->withoutOwnerScope()
@@ -39,8 +39,8 @@ it('resolves the default tracked property', function () {
         ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
         ->first();
 
-    expect($default)->not->toBeNull();
-    expect($default?->write_key)->toBe((string) $trackedProperty?->write_key);
+    expect($default)->not->toBeNull()
+        ->and($default?->write_key)->toBe((string) $trackedProperty?->write_key);
 });
 
 it('renders the inline signal event hooks used by the package tracker', function () {
@@ -141,8 +141,8 @@ it('records authoritative share outcomes without writing unread share-fact telem
         $request,
     );
 
-    expect($outcome)->not->toBeNull();
-    expect($outcome?->outcomeType)->toBe(ShareOutcomeType::EventSave->value);
+    expect($outcome)->not->toBeNull()
+        ->and($outcome?->outcomeType)->toBe(ShareOutcomeType::EventSave->value);
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => ShareOutcomeType::EventSave->value,
@@ -186,8 +186,8 @@ it('records authoritative share outcomes when signals delivery is unavailable', 
         $request,
     );
 
-    expect($outcome)->not->toBeNull();
-    expect($outcome?->outcomeType)->toBe(ShareOutcomeType::EventSave->value);
+    expect($outcome)->not->toBeNull()
+        ->and($outcome?->outcomeType)->toBe(ShareOutcomeType::EventSave->value);
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => ShareOutcomeType::EventSave->value,

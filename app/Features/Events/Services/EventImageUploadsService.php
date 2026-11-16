@@ -24,7 +24,7 @@ final readonly class EventImageUploadsService implements EventImageUploads
             routeKey: (string) $event->getRouteKey(),
             slug: (string) $event->slug,
             title: (string) $event->title,
-            publicUrl: (string) route('events.show', ['event' => $event->slug], false),
+            publicUrl: route('events.show', ['event' => $event->slug], false),
             collection: $input->collection->value,
             mediaId: (string) $media->getKey(),
             mediaUrl: (string) $media->getUrl(),

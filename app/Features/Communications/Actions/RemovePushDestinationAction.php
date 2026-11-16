@@ -9,12 +9,12 @@ use App\Features\Communications\Api\NotificationChannel;
 use App\Shared\Auth\UserMorphType;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class RemovePushDestinationAction
+final readonly class RemovePushDestinationAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly UserMorphType $userMorphType,
+        private UserMorphType $userMorphType,
     ) {}
 
     public function handle(string $accountId, string $destinationId): bool

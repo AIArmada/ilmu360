@@ -11,8 +11,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 it('demotes the previous primary when an admin edits a person institution affiliation', function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);

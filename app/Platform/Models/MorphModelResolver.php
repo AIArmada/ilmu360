@@ -35,6 +35,7 @@ final class MorphModelResolver
      * package models through generic Eloquent entry points.
      *
      * @template TModel of Model
+     *
      * @param  TModel  $model
      * @return TModel
      */

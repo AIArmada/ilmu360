@@ -45,9 +45,8 @@ it('seeds embedded reference cover media pointing at S3', function () {
     $covers = DB::table('media')->where('collection_name', 'front_cover');
 
     expect($covers->count())->toBe(48)
-        ->and($covers->where('disk', '!=', 's3')->count())->toBe(0);
-
-    expect(DB::table('media')->where('collection_name', 'back_cover')->count())->toBe(1)
+        ->and($covers->where('disk', '!=', 's3')->count())->toBe(0)
+        ->and(DB::table('media')->where('collection_name', 'back_cover')->count())->toBe(1)
         ->and(DB::table('media')->where('collection_name', 'gallery')->count())->toBe(2);
 
     $sample = DB::table('media')
@@ -55,9 +54,8 @@ it('seeds embedded reference cover media pointing at S3', function () {
         ->where('model_type', (new Reference)->getMorphClass())
         ->first();
 
-    expect($sample)->not->toBeNull();
-
-    expect(Reference::query()->whereKey($sample->model_id)->exists())->toBeTrue();
+    expect($sample)->not->toBeNull()
+        ->and(Reference::query()->whereKey($sample->model_id)->exists())->toBeTrue();
 });
 
 it('keeps embedded production references idempotent on reseeding', function () {

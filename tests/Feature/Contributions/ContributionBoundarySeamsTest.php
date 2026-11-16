@@ -20,8 +20,6 @@ use App\Shared\Contributions\Enums\ContributionSubjectType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 
-uses(RefreshDatabase::class);
-
 it('declares the owned table literally on the root model', function (): void {
     $model = new ContributionRequest;
     $property = new ReflectionProperty(ContributionRequest::class, 'table');
@@ -71,14 +69,14 @@ it('binds the reader through the feature Api and resolves ownership', function (
     expect($reader->requestIdsForProposer((string) $user->getKey()))->toBe([(string) $owned->id])
         ->and($reader->findRequestIdForProposer((string) $user->getKey(), (string) $owned->id))->toBe((string) $owned->id)
         ->and($reader->findRequestIdForProposer((string) $other->getKey(), (string) $owned->id))->toBeNull()
-        ->and($reader->requestIdsForReviewer((string) $user->getKey()))->toBe([]);
+        ->and($reader->requestIdsForReviewer((string) $user->getKey()))->toBeEmpty();
 
-    $contractFile = (new ReflectionClass(ContributionRequestReader::class))->getFileName();
-    $implementationFile = (new ReflectionClass(EloquentContributionRequestReader::class))->getFileName();
+    $contractFile = new ReflectionClass(ContributionRequestReader::class)->getFileName();
+    $implementationFile = new ReflectionClass(EloquentContributionRequestReader::class)->getFileName();
 
     expect($contractFile)->toEndWith('app/Features/Contributions/Api/ContributionRequestReader.php')
         ->and($implementationFile)->toEndWith('app/Features/Contributions/Queries/EloquentContributionRequestReader.php')
-        ->and((string) file_get_contents((string) $implementationFile))->not->toContain('App\\Models\\ContributionRequest');
+        ->and((string) file_get_contents((string) $implementationFile))->not->toContain(\App\Models\ContributionRequest::class);
 });
 
 it('discovers the feature manifest with its request table claim', function (): void {

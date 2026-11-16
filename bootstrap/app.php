@@ -5,13 +5,13 @@ declare(strict_types=1);
 use AIArmada\CommerceSupport\Exceptions\NoCurrentOwnerException;
 use AIArmada\CommerceSupport\Middleware\SetExplicitGlobalOwnerContext;
 use AIArmada\Organizations\Http\Middleware\CurrentOrganizationMiddleware;
-use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Http\Middleware\NormalizeApiJsonResponse;
 use App\Http\Middleware\SetFilamentTimezone;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackShareAttribution;
 use App\Platform\Api\ApiJsonResponseNormalizer;
 use App\Platform\Api\ApiResponseFactory;
+use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Support\Location\PublicGeolocationPermission;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Application;
@@ -60,15 +60,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(static fn (Request $request): bool => ApiResponseFactory::isApiRequest($request) || $request->expectsJson());
 
-        $exceptions->render(static function (NoCurrentOwnerException $exception): JsonResponse {
-            return response()->json([
+        $exceptions->render(static fn(NoCurrentOwnerException $exception): JsonResponse => response()->json([
+            'message' => $exception->getMessage(),
+            'error' => [
+                'code' => 'forbidden',
                 'message' => $exception->getMessage(),
-                'error' => [
-                    'code' => 'forbidden',
-                    'message' => $exception->getMessage(),
-                ],
-            ], 403);
-        });
+            ],
+        ], 403));
 
         $exceptions->render(static function (LockTimeoutException $exception, Request $request): ?JsonResponse {
             if (! ApiResponseFactory::isApiRequest($request) && ! $request->expectsJson()) {

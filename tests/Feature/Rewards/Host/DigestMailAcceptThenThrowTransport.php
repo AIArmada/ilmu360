@@ -12,11 +12,11 @@ use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\RawMessage;
 
-final class DigestMailAcceptThenThrowTransport implements TransportInterface
+final readonly class DigestMailAcceptThenThrowTransport implements TransportInterface
 {
     public function __construct(
-        private readonly string $observer,
-        private readonly ArrayTransport $inner,
+        private string $observer,
+        private ArrayTransport $inner,
     ) {}
 
     public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage

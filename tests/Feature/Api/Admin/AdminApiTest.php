@@ -274,24 +274,24 @@ it('filters admin person records by explicit query parameters', function () {
 
     $verifiedIds = collect($verifiedResponse->json('data'))->pluck('id')->all();
 
-    expect(in_array($personWithEvents->getKey(), $verifiedIds, true))->toBeTrue();
-    expect(in_array($personWithoutEvents->getKey(), $verifiedIds, true))->toBeFalse();
-    expect(in_array($pendingPerson->getKey(), $verifiedIds, true))->toBeFalse();
+    expect($personWithEvents->getKey())->toBeIn($verifiedIds)
+        ->and($personWithoutEvents->getKey())->not->toBeIn($verifiedIds)
+        ->and($pendingPerson->getKey())->not->toBeIn($verifiedIds);
 
     $inactiveResponse = $this->getJson('/api/v1/admin/people?filter[status]=inactive')
         ->assertOk();
 
     $inactiveIds = collect($inactiveResponse->json('data'))->pluck('id')->all();
 
-    expect(in_array($personWithoutEvents->getKey(), $inactiveIds, true))->toBeTrue();
+    expect($personWithoutEvents->getKey())->toBeIn($inactiveIds);
 
     $hasEventsResponse = $this->getJson('/api/v1/admin/people?filter[has_events]=true')
         ->assertOk();
 
     $hasEventsIds = collect($hasEventsResponse->json('data'))->pluck('id')->all();
 
-    expect(in_array($personWithEvents->getKey(), $hasEventsIds, true))->toBeTrue();
-    expect(in_array($personWithoutEvents->getKey(), $hasEventsIds, true))->toBeFalse();
+    expect($personWithEvents->getKey())->toBeIn($hasEventsIds)
+        ->and($personWithoutEvents->getKey())->not->toBeIn($hasEventsIds);
 });
 
 it('uses the richer person institution and reference search behavior on the admin api', function () {
@@ -481,7 +481,7 @@ it('allows admin api event create payload to control initial workflow status', f
     $moderationSchemaResponse = $this->getJson('/api/v1/admin/events/'.$draftRouteKey.'/moderation-schema')
         ->assertOk();
 
-    $actionField = collect($moderationSchemaResponse->json('data.schema.fields', []))
+    $actionField = collect($moderationSchemaResponse->json('data.schema.fields'))
         ->firstWhere('name', 'action');
 
     expect($actionField['allowed_values'] ?? [])
@@ -1075,7 +1075,7 @@ it('exposes report write schema and can create and update reports through the ap
         ->and($report->status)->toBe('resolved')
         ->and($report->handled_by)->toBe($admin->getKey())
         ->and($report->resolution_note)->toBe('Resolved through admin API.')
-        ->and($report->getMedia('evidence'))->toHaveCount(0);
+        ->and($report->getMedia('evidence'))->toBeEmpty();
 });
 
 it('surfaces report update semantics through the admin api schema', function () {
@@ -1150,7 +1150,7 @@ it('clears report optional scalars and evidence through the admin api', function
         ->and($report->reporter_id)->toBeNull()
         ->and($report->handled_by)->toBeNull()
         ->and($report->resolution_note)->toBeNull()
-        ->and($report->getMedia('evidence'))->toHaveCount(0);
+        ->and($report->getMedia('evidence'))->toBeEmpty();
 });
 
 it('exposes inspiration write schema and can create and update inspirations through the api', function () {
@@ -1219,7 +1219,7 @@ it('exposes inspiration write schema and can create and update inspirations thro
         ->and($inspiration->title)->toBe('Admin API Inspiration Updated')
         ->and($inspiration->source)->toBe('Updated API Source')
         ->and((string) $inspiration->status)->toBe('inactive')
-        ->and($inspiration->getMedia('main'))->toHaveCount(0);
+        ->and($inspiration->getMedia('main'))->toBeEmpty();
 });
 
 it('surfaces inspiration update semantics through the admin api schema', function () {
@@ -1337,8 +1337,8 @@ it('exposes series write schema and can create and update series through the api
         ->and($series->slug)->toBe('admin-api-series-updated-'.$suffix)
         ->and($series->visibility)->toBe('private')
         ->and((string) $series->status)->toBe('inactive')
-        ->and($series->getMedia('cover'))->toHaveCount(0)
-        ->and($series->getMedia('gallery'))->toHaveCount(0);
+        ->and($series->getMedia('cover'))->toBeEmpty()
+        ->and($series->getMedia('gallery'))->toBeEmpty();
 });
 
 it('surfaces series update semantics through the admin api schema', function () {
@@ -1392,7 +1392,7 @@ it('clears series description and languages through the admin api', function () 
     $series->refresh()->load('languages');
 
     expect($series->description)->toBeNull()
-        ->and($series->languages)->toHaveCount(0);
+        ->and($series->languages)->toBeEmpty();
 });
 
 it('exposes space write schema and can create and update spaces through the api', function () {
@@ -1500,7 +1500,7 @@ it('clears space capacity and institutions through the admin api', function () {
     $space->refresh()->load('institutions');
 
     expect($space->capacity)->toBeNull()
-        ->and($space->institutions)->toHaveCount(0);
+        ->and($space->institutions)->toBeEmpty();
 });
 
 it('clears space institution capacity overrides through the admin api without unlinking institutions', function () {
@@ -1639,7 +1639,7 @@ it('exposes donation channel write schema and can create and update donation cha
         ->and($donationChannel->ewallet_qr_payload)->toBe('duitnow://payment/ilmu360')
         ->and($donationChannel->status)->toBe(DonationChannelStatus::Inactive)
         ->and($donationChannel->is_default)->toBeFalse()
-        ->and($donationChannel->getMedia('qr'))->toHaveCount(0);
+        ->and($donationChannel->getMedia('qr'))->toBeEmpty();
 });
 
 it('surfaces donation channel update semantics through the admin api schema', function () {
@@ -2064,12 +2064,12 @@ it('replaces person collections and still requires an explicit country when muta
         ->and($person->contactMethods)->toHaveCount(1)
         ->and($person->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
         ->and($person->contactMethods->first()?->getRawOriginal('purpose'))->toBe('support')
-        ->and(collect($person->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBe([])
+        ->and(collect($person->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBeEmpty()
         ->and($person->socialProfiles)->toHaveCount(1)
         ->and($person->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
         ->and($person->socialProfiles->first()?->handle)->toBe('admin-api-person-collections-updated')
         ->and($person->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-person-collections-updated')
-        ->and(collect($person->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
+        ->and(collect($person->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBeEmpty();
 
     $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
         'name' => 'Admin API Person Collections Updated',
@@ -2084,9 +2084,9 @@ it('replaces person collections and still requires an explicit country when muta
         fn (): Person => $person->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
     );
 
-    expect($person->languages)->toHaveCount(0)
-        ->and($person->contactMethods)->toHaveCount(0)
-        ->and($person->socialProfiles)->toHaveCount(0);
+    expect($person->languages)->toBeEmpty()
+        ->and($person->contactMethods)->toBeEmpty()
+        ->and($person->socialProfiles)->toBeEmpty();
 });
 
 it('allows sparse venue address updates without resending the existing country through the admin api', function () {
@@ -2378,12 +2378,12 @@ it('replaces institution contacts and social media collections and canonicalizes
     expect($institution->contactMethods)->toHaveCount(1)
         ->and($institution->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
         ->and($institution->contactMethods->first()?->getRawOriginal('purpose'))->toBe('support')
-        ->and(collect($replacedContactIds)->intersect($originalContactIds)->all())->toBe([])
+        ->and(collect($replacedContactIds)->intersect($originalContactIds)->all())->toBeEmpty()
         ->and($institution->socialProfiles)->toHaveCount(1)
         ->and($institution->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
         ->and($institution->socialProfiles->first()?->handle)->toBe('admin-api-institution-collections-updated')
         ->and($institution->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-institution-collections-updated')
-        ->and(collect($replacedSocialMediaIds)->intersect($originalSocialMediaIds)->all())->toBe([]);
+        ->and(collect($replacedSocialMediaIds)->intersect($originalSocialMediaIds)->all())->toBeEmpty();
 
     $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [
         'name' => 'Admin API Institution Collections Updated',
@@ -2400,8 +2400,8 @@ it('replaces institution contacts and social media collections and canonicalizes
         fn (): Institution => $institution->refresh()->load(['contactMethods', 'socialProfiles']),
     );
 
-    expect($institution->contactMethods)->toHaveCount(0)
-        ->and($institution->socialProfiles)->toHaveCount(0);
+    expect($institution->contactMethods)->toBeEmpty()
+        ->and($institution->socialProfiles)->toBeEmpty();
 });
 
 it('exposes institution contacts and social_media in admin-get-record response', function () {
@@ -2686,12 +2686,12 @@ it('replaces venue collections and deletes the address on an empty object throug
     ])
         ->and($venue->contactMethods)->toHaveCount(1)
         ->and($venue->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
-        ->and(collect($venue->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBe([])
+        ->and(collect($venue->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBeEmpty()
         ->and($venue->socialProfiles)->toHaveCount(1)
         ->and($venue->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
         ->and($venue->socialProfiles->first()?->handle)->toBe('admin-api-venue-collections-updated')
         ->and($venue->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-venue-collections-updated')
-        ->and(collect($venue->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
+        ->and(collect($venue->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBeEmpty();
 
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'address' => [],
@@ -2705,9 +2705,9 @@ it('replaces venue collections and deletes the address on an empty object throug
     );
 
     expect($venue->primaryAddress())->toBeNull()
-        ->and($venue->facilities->load('facilityType')->pluck('facilityType.code')->all())->toBe([])
-        ->and($venue->contactMethods)->toHaveCount(0)
-        ->and($venue->socialProfiles)->toHaveCount(0);
+        ->and($venue->facilities->load('facilityType')->pluck('facilityType.code')->all())->toBeEmpty()
+        ->and($venue->contactMethods)->toBeEmpty()
+        ->and($venue->socialProfiles)->toBeEmpty();
 });
 
 it('lists admin geography catalogs and exposes catalog metadata through admin write schemas', function () {
@@ -2997,14 +2997,14 @@ it('clears normalized reference scalars and replaces canonicalized social media 
 
     $updatedReferenceRouteKey = (string) $reference->getRouteKey();
 
-    expect($reference->authorIdsValue())->toBe([])
+    expect($reference->authorIdsValue())->toBeEmpty()
         ->and($reference->year)->toBeNull()
         ->and($reference->publisher)->toBeNull()
         ->and($reference->socialProfiles)->toHaveCount(1)
         ->and($reference->socialProfiles->first()?->getRawOriginal('platform'))->toBe('youtube')
         ->and($reference->socialProfiles->first()?->handle)->toBe('admin-api-reference-collections-updated')
         ->and($reference->socialProfiles->first()?->url)->toBe('https://youtube.com/admin-api-reference-collections-updated')
-        ->and(collect($reference->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
+        ->and(collect($reference->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBeEmpty();
 
     $this->putJson('/api/v1/admin/references/'.$updatedReferenceRouteKey, [
         'title' => 'Admin API Reference Collections Updated',
@@ -3013,7 +3013,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         'social_media' => null,
     ])->assertOk();
 
-    expect(withGlobalOwnerContext(fn (): Reference => $reference->fresh()->load('socialProfiles'))->socialProfiles)->toHaveCount(0);
+    expect(withGlobalOwnerContext(fn (): Reference => $reference->fresh()->load('socialProfiles'))->socialProfiles)->toBeEmpty();
 });
 
 it('exposes admin address-area write schema and can create and update address areas through the api', function () {
@@ -3217,11 +3217,11 @@ it('exposes admin event write schema and can create and update events through th
         ->and($event->live_url)->toBe('https://youtube.com/watch?v=admin-api-event-live')
         ->and($event->starts_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('Y-m-d H:i'))->toBe('2026-06-01 20:00')
         ->and($event->accessPolicy?->registration_required)->toBeFalse()
-        ->and($event->references)->toHaveCount(0)
-        ->and($event->series)->toHaveCount(0)
+        ->and($event->references)->toBeEmpty()
+        ->and($event->series)->toBeEmpty()
         ->and($event->classifications->pluck('event_term_id')->all())->toContain($sourceTag->getKey())
         ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey(), $disciplineTag->getKey())
-        ->and($event->keyPeople)->toHaveCount(0)
+        ->and($event->keyPeople)->toBeEmpty()
         ->and($event->slug)->toContain($person->slug);
 });
 
@@ -3393,9 +3393,9 @@ it('supports sparse event updates while replacing submitted relation collections
 
     expect($event->title)->toBe('Admin API Event Created')
         ->and($event->live_url)->toBeNull()
-        ->and($event->references)->toHaveCount(0)
-        ->and($event->series)->toHaveCount(0)
-        ->and($event->languages)->toHaveCount(0)
+        ->and($event->references)->toBeEmpty()
+        ->and($event->series)->toBeEmpty()
+        ->and($event->languages)->toBeEmpty()
         ->and($event->classifications->pluck('event_term_id')->all())->toContain($disciplineTag->getKey(), $sourceTag->getKey())
         ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey())
         ->and($event->keyPeople)->toHaveCount(3)
@@ -3404,7 +3404,7 @@ it('supports sparse event updates while replacing submitted relation collections
             (string) $secondPerson->getKey(),
         ])
         ->and($event->keyPeople->where('role_code', EventKeyPersonRole::Moderator->value)->count())->toBe(1)
-        ->and(collect($event->keyPeople->modelKeys())->intersect($originalKeyPeopleIds)->all())->toBe([]);
+        ->and(collect($event->keyPeople->modelKeys())->intersect($originalKeyPeopleIds)->all())->toBeEmpty();
 });
 
 it('clears event poster when clear_poster is submitted as a form-style boolean', function () {
@@ -3450,7 +3450,7 @@ it('clears event poster when clear_poster is submitted as a form-style boolean',
 
     $event->refresh();
 
-    expect($event->getMedia('poster'))->toHaveCount(0);
+    expect($event->getMedia('poster'))->toBeEmpty();
 
     $this->getJson('/api/v1/admin/events/schema?operation=update&recordKey='.$eventRouteKey)
         ->assertOk()

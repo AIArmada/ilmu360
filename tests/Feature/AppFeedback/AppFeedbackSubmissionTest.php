@@ -314,7 +314,7 @@ it('returns the same record when evidence order differs on retry', function () {
 
         mkdir($dir, 0755, true);
 
-        $png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
 
         file_put_contents($dir.'/a.png', $png);
         file_put_contents($dir.'/b.png', $png);
@@ -493,10 +493,10 @@ it('preserves distinct evidence files uploaded in the same timestamp bucket', fu
 
     $media = $feedback->getMedia('evidence');
 
-    expect($media)->toHaveCount(2);
-    expect($media[0]->getPathRelativeToRoot())->not->toBe($media[1]->getPathRelativeToRoot());
-    expect(Storage::disk('app_feedback_private')->get($media[0]->getPathRelativeToRoot()))->toBe($firstContents);
-    expect(Storage::disk('app_feedback_private')->get($media[1]->getPathRelativeToRoot()))->toBe($secondContents);
+    expect($media)->toHaveCount(2)
+        ->and($media[0]->getPathRelativeToRoot())->not->toBe($media[1]->getPathRelativeToRoot())
+        ->and(Storage::disk('app_feedback_private')->get($media[0]->getPathRelativeToRoot()))->toBe($firstContents)
+        ->and(Storage::disk('app_feedback_private')->get($media[1]->getPathRelativeToRoot()))->toBe($secondContents);
 
     Notification::assertSentTo($user, AppFeedbackReceivedNotification::class);
 });

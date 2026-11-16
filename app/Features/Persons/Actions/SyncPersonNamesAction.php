@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
-use App\Models\PersonName;
-
 use AIArmada\Persons\Enums\PersonNameType;
+use App\Models\PersonName;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -113,7 +112,7 @@ final readonly class SyncPersonNamesAction
     }
 
     /**
-     * @param  Collection<string, \App\Models\PersonName>  $existing
+     * @param  Collection<string, PersonName>  $existing
      * @param  list<string>  $retainedIds
      */
     private function deleteMissing(Collection $existing, array $retainedIds): void

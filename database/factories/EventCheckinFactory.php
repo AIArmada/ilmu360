@@ -11,6 +11,7 @@ use App\Models\User;
 
 class EventCheckinFactory extends EventAttendanceFactory
 {
+    #[\Override]
     protected $model = EventCheckin::class;
 
     /**

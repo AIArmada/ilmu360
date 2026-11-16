@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+declare(strict_types=1);
 
-uses(RefreshDatabase::class);
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 it('omits market switching markup', function () {
     $response = $this->withSession(['locale' => 'en'])

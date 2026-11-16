@@ -5,8 +5,6 @@ use App\Shared\Directory\Enums\InstitutionStatus;
 use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('dry-runs by default without flagging anything', function () {
     $old = staleInactiveInstitution(now()->subDays(200));
 

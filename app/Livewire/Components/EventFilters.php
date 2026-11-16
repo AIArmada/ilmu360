@@ -165,7 +165,7 @@ class EventFilters extends EventsIndex
             count(array_filter((array) $this->event_format)) > 0,
             $gender !== null && $gender !== EventGenderRestriction::All->value,
             $this->listIsActiveFilter('age_group', $this->age_group),
-            $childrenAllowed !== null && !$childrenAllowed,
+            $childrenAllowed !== null && ! $childrenAllowed,
             $isMuslimOnly !== null && $isMuslimOnly,
             count(array_filter($this->person_ids)) > 0,
             count(array_filter($this->key_person_roles)) > 0,

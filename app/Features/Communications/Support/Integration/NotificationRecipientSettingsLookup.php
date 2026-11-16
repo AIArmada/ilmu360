@@ -41,5 +41,4 @@ final readonly class NotificationRecipientSettingsLookup
             ->where('status', 'active')
             ->exists();
     }
-
 }

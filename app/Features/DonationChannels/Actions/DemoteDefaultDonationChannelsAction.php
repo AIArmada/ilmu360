@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\DonationChannels\Actions;
 
-use App\Platform\Models\MorphModelResolver;
 use App\Models\DonationChannel;
+use App\Platform\Models\MorphModelResolver;
 
 /**
  * Demote every other default channel for the same owner.

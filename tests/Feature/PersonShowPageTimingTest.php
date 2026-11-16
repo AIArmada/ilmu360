@@ -597,19 +597,12 @@ it('renders the book title on person event cards without parentheses', function 
     $bookEventCard = $bookMatches[0] ?? null;
     $articleEventCard = $articleMatches[0] ?? null;
 
-    expect($bookEventCard)->not->toBeNull();
-    expect($articleEventCard)->not->toBeNull();
-
-    expect($bookEventCard)
-        ->toContain('Kuliah Maghrib Kitab Penceramah')
-        ->toContain('Al-Hikam')
-        ->not->toContain('(Al-Hikam)')
+    expect($bookEventCard)->not->toBeNull()
+        ->and($articleEventCard)->not->toBeNull()
+        ->and($bookEventCard)->toContain('Kuliah Maghrib Kitab Penceramah')
+        ->toContain('Al-Hikam')->not->toContain('(Al-Hikam)')
         ->toContain('font-bold')
         ->toContain('line-clamp-2')
-        ->toContain('data-testid="event-card-date-badge"');
-
-    expect($articleEventCard)
-        ->toContain('Kuliah Maghrib Artikel Penceramah')
-        ->not->toContain('Al-Hikam')
-        ->not->toContain('Artikel Dakwah Semasa');
+        ->toContain('data-testid="event-card-date-badge"')
+        ->and($articleEventCard)->toContain('Kuliah Maghrib Artikel Penceramah')->not->toContain('Al-Hikam')->not->toContain('Artikel Dakwah Semasa');
 });

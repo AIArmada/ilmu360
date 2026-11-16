@@ -6,7 +6,7 @@ use App\Features\Prayer\Services\JakimZoneResolver;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('dispatches refreshes for cold months and skips warm ones', function () {
     Queue::fake();

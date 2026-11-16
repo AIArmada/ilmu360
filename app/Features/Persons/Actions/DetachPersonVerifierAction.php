@@ -6,7 +6,6 @@ namespace App\Features\Persons\Actions;
 
 use App\Models\Person;
 
-
 final readonly class DetachPersonVerifierAction
 {
     public function handle(string $accountId): void

@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
  */
 class AppFeedbackFactory extends Factory
 {
+    #[\Override]
     protected $model = AppFeedback::class;
 
     /**

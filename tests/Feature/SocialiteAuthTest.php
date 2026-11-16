@@ -9,8 +9,6 @@ use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Symfony\Component\HttpFoundation\Cookie as SymfonyCookie;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
     config()->set('app.url', 'https://ilmu360.test');
     config()->set('services.google.client_id', 'google-client-id');
@@ -27,16 +25,14 @@ it('redirects to google with the account chooser prompt when the provider is con
     parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
 
     expect($location)
-        ->toContain('https://accounts.google.com/o/oauth2/auth');
-
-    expect($query)
-        ->toMatchArray([
-            'client_id' => 'google-client-id',
-            'redirect_uri' => 'https://ilmu360.test/oauth/google/callback',
-            'prompt' => 'select_account',
-        ]);
-
-    expect($query['state'] ?? null)->toBeString()->toHaveLength(64);
+        ->toContain('https://accounts.google.com/o/oauth2/auth')
+        ->and($query)->toMatchArray([
+        'client_id' => 'google-client-id',
+        'redirect_uri' => 'https://ilmu360.test/oauth/google/callback',
+        'prompt' => 'select_account',
+    ])
+        ->and($query['state'] ?? null)->toBeString()
+        ->toHaveLength(64);
     $response->assertCookie(OAuthTransactionStore::VERIFIER_COOKIE);
 });
 
@@ -140,8 +136,8 @@ it('creates a user and social account on callback', function () {
 
     $user = User::query()->where('email', 'jane@example.com')->first();
 
-    expect($user)->not->toBeNull();
-    expect($user?->email_verified_at)->not->toBeNull();
+    expect($user)->not->toBeNull()
+        ->and($user?->email_verified_at)->not->toBeNull();
 
     $this->assertDatabaseHas('socialite', [
         'user_id' => $user->id,
@@ -183,8 +179,8 @@ it('links a social account to an existing user', function () {
     ]);
 
     expect(SocialAccount::query()->where('user_id', $user->id)->count())
-        ->toBe(1);
-    expect($user->fresh()?->email_verified_at)->not->toBeNull();
+        ->toBe(1)
+        ->and($user->fresh()?->email_verified_at)->not->toBeNull();
 });
 
 it('verifies an existing user when signing in through an existing google social account', function () {
@@ -254,14 +250,14 @@ it('sets the verifier cookie without a domain attribute so browsers accept the _
     $verifier = collect($response->headers->getCookies())
         ->first(fn (SymfonyCookie $cookie) => $cookie->getName() === OAuthTransactionStore::VERIFIER_COOKIE);
 
-    expect($verifier)->not->toBeNull();
-    expect($verifier->getDomain())->toBeNull();
-    expect($verifier->isSecure())->toBeTrue();
-    expect($verifier->getPath())->toBe('/');
+    expect($verifier)->not->toBeNull()
+        ->and($verifier->getDomain())->toBeNull()
+        ->and($verifier->isSecure())->toBeTrue()
+        ->and($verifier->getPath())->toBe('/');
 
     $raw = collect($response->headers->all('set-cookie'))
         ->first(fn (string $header) => str_starts_with($header, OAuthTransactionStore::VERIFIER_COOKIE.'='));
 
-    expect($raw)->not->toBeNull();
-    expect(strtolower((string) strstr((string) $raw, ';')))->not->toContain('domain=');
+    expect($raw)->not->toBeNull()
+        ->and(strtolower((string) strstr((string) $raw, ';')))->not->toContain('domain=');
 });

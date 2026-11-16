@@ -44,12 +44,12 @@ it('records a signals event for successful password login', function () {
 
     $event = SignalEvent::query()->where('event_name', 'auth.login')->latest('occurred_at')->first();
 
-    expect($event)->not->toBeNull();
-    expect($event?->event_category)->toBe('auth');
-    expect(data_get($event?->properties, 'method'))->toBe('password');
-    expect(data_get($event?->properties, 'client_origin'))->toBe('web');
-    expect(data_get($event?->properties, 'client_transport'))->toBe('web');
-    expect($event?->identity?->external_id)->toBe($user->id);
+    expect($event)->not->toBeNull()
+        ->and($event?->event_category)->toBe('auth')
+        ->and(data_get($event?->properties, 'method'))->toBe('password')
+        ->and(data_get($event?->properties, 'client_origin'))->toBe('web')
+        ->and(data_get($event?->properties, 'client_transport'))->toBe('web')
+        ->and($event?->identity?->external_id)->toBe($user->id);
 });
 
 it('stitches login telemetry to browser identity cookies when present', function () {
@@ -65,9 +65,9 @@ it('stitches login telemetry to browser identity cookies when present', function
 
     $event = SignalEvent::query()->where('event_name', 'auth.login')->latest('occurred_at')->first();
 
-    expect($event)->not->toBeNull();
-    expect($event?->identity?->anonymous_id)->toBe('sig_anon_browser');
-    expect($event?->session?->session_identifier)->toBe('sig_session_browser');
+    expect($event)->not->toBeNull()
+        ->and($event?->identity?->anonymous_id)->toBe('sig_anon_browser')
+        ->and($event?->session?->session_identifier)->toBe('sig_session_browser');
 });
 
 it('does not break password login when signals ingestion fails', function () {
@@ -103,9 +103,9 @@ it('records a signals event when a report is submitted', function () {
 
     $signalEvent = SignalEvent::query()->where('event_name', 'report.submitted')->latest('occurred_at')->first();
 
-    expect($signalEvent)->not->toBeNull();
-    expect(data_get($signalEvent?->properties, 'entity_type'))->toBe('event');
-    expect(data_get($signalEvent?->properties, 'entity_id'))->toBe($event->id);
+    expect($signalEvent)->not->toBeNull()
+        ->and(data_get($signalEvent?->properties, 'entity_type'))->toBe('event')
+        ->and(data_get($signalEvent?->properties, 'entity_id'))->toBe($event->id);
 });
 
 it('records a signals event when signup completes', function () {
@@ -118,10 +118,10 @@ it('records a signals event when signup completes', function () {
 
     $signalEvent = SignalEvent::query()->where('event_name', 'auth.signup.completed')->latest('occurred_at')->first();
 
-    expect($user->email)->toBe('signals-signup@example.com');
-    expect($signalEvent)->not->toBeNull();
-    expect($signalEvent?->identity?->external_id)->toBe($user->id);
-    expect(data_get($signalEvent?->properties, 'has_email'))->toBeTrue();
+    expect($user->email)->toBe('signals-signup@example.com')
+        ->and($signalEvent)->not->toBeNull()
+        ->and($signalEvent?->identity?->external_id)->toBe($user->id)
+        ->and(data_get($signalEvent?->properties, 'has_email'))->toBeTrue();
 });
 
 it('records a signals event when a password reset completes', function () {
@@ -134,9 +134,9 @@ it('records a signals event when a password reset completes', function () {
 
     $signalEvent = SignalEvent::query()->where('event_name', 'auth.password_reset.completed')->latest('occurred_at')->first();
 
-    expect($signalEvent)->not->toBeNull();
-    expect($signalEvent?->identity?->external_id)->toBe($user->id);
-    expect(Hash::check('ResetPassword123!', (string) $user->password))->toBeTrue();
+    expect($signalEvent)->not->toBeNull()
+        ->and($signalEvent?->identity?->external_id)->toBe($user->id)
+        ->and(Hash::check('ResetPassword123!', (string) $user->password))->toBeTrue();
 });
 
 it('records a signals event when email verification completes', function () {
@@ -146,8 +146,8 @@ it('records a signals event when email verification completes', function () {
 
     $signalEvent = SignalEvent::query()->where('event_name', 'auth.email_verified')->latest('occurred_at')->first();
 
-    expect($signalEvent)->not->toBeNull();
-    expect($signalEvent?->identity?->external_id)->toBe($user->id);
+    expect($signalEvent)->not->toBeNull()
+        ->and($signalEvent?->identity?->external_id)->toBe($user->id);
 });
 
 it('does not break report submission when signals ingestion fails', function () {
@@ -202,8 +202,8 @@ it('records a signals event when a notification is read via the api', function (
 
     $signalEvent = SignalEvent::query()->where('event_name', 'notification.read')->latest('occurred_at')->first();
 
-    expect($signalEvent)->not->toBeNull();
-    expect(data_get($signalEvent?->properties, 'notification_id'))->toBe($message->id)
+    expect($signalEvent)->not->toBeNull()
+        ->and(data_get($signalEvent?->properties, 'notification_id'))->toBe($message->id)
         ->and(SignalEvent::query()->where('event_name', 'notification.read')->count())->toBe(1);
 });
 
@@ -236,8 +236,8 @@ it('does not break notification reads when signals ingestion fails', function ()
     $this->postJson("/api/v1/notifications/{$message->id}/read")
         ->assertOk();
 
-    expect($message->fresh()?->read_at)->not->toBeNull();
-    expect(SignalEvent::query()->where('event_name', 'notification.read')->exists())->toBeFalse();
+    expect($message->fresh()?->read_at)->not->toBeNull()
+        ->and(SignalEvent::query()->where('event_name', 'notification.read')->exists())->toBeFalse();
 });
 
 it('records a signals event when all notifications are marked as read from the inbox page', function () {
@@ -286,8 +286,8 @@ it('records a signals event when all notifications are marked as read from the i
 
     $signalEvent = SignalEvent::query()->where('event_name', 'notification.read_all')->latest('occurred_at')->first();
 
-    expect($signalEvent)->not->toBeNull();
-    expect(data_get($signalEvent?->properties, 'updated_count'))->toBe(2);
+    expect($signalEvent)->not->toBeNull()
+        ->and(data_get($signalEvent?->properties, 'updated_count'))->toBe(2);
 });
 
 it('records signals events for api and saved search executions', function () {
@@ -321,9 +321,9 @@ it('records signals events for api and saved search executions', function () {
         ->values()
         ->all();
 
-    expect($searchEvents)->toHaveCount(2);
-    expect($surfaces)->toContain('api.events.index', 'saved_search.execute');
-    expect($event->title)->toBe('Signals Search Event');
+    expect($searchEvents)->toHaveCount(2)
+        ->and($surfaces)->toContain('api.events.index', 'saved_search.execute')
+        ->and($event->title)->toBe('Signals Search Event');
 });
 
 it('records one normalized saved-search execution signal including zero-value location', function () {
@@ -400,28 +400,26 @@ it('records normalized client context for api and mobile search telemetry', func
         fn (SignalEvent $signalEvent): bool => data_get($signalEvent->properties, 'query') === 'Mobile Android',
     );
 
-    expect($defaultApiEvent)->not->toBeNull();
-    expect(data_get($defaultApiEvent?->properties, 'surface'))->toBe('api.events.index');
-    expect(data_get($defaultApiEvent?->properties, 'client_origin'))->toBe('api');
-    expect(data_get($defaultApiEvent?->properties, 'client_family'))->toBe('api');
-    expect(data_get($defaultApiEvent?->properties, 'client_transport'))->toBe('api');
-
-    expect($iosEvent)->not->toBeNull();
-    expect(data_get($iosEvent?->properties, 'client_origin'))->toBe('ios');
-    expect(data_get($iosEvent?->properties, 'client_origin_source'))->toBe('header:X-Ilmu360-Client-Origin');
-    expect(data_get($iosEvent?->properties, 'client_platform'))->toBe('ios');
-    expect(data_get($iosEvent?->properties, 'client_family'))->toBe('mobile');
-    expect(data_get($iosEvent?->properties, 'client_transport'))->toBe('api');
-    expect(data_get($iosEvent?->properties, 'client_name'))->toBe('ilmu360 iOS');
-    expect(data_get($iosEvent?->properties, 'client_version'))->toBe('1.2.3');
-    expect(data_get($iosEvent?->properties, 'client_build'))->toBe('456');
-
-    expect($androidEvent)->not->toBeNull();
-    expect(data_get($androidEvent?->properties, 'client_origin'))->toBe('android');
-    expect(data_get($androidEvent?->properties, 'client_origin_source'))->toBe('query:origin');
-    expect(data_get($androidEvent?->properties, 'client_platform'))->toBe('android');
-    expect(data_get($androidEvent?->properties, 'client_family'))->toBe('mobile');
-    expect(data_get($androidEvent?->properties, 'client_transport'))->toBe('api');
+    expect($defaultApiEvent)->not->toBeNull()
+        ->and(data_get($defaultApiEvent?->properties, 'surface'))->toBe('api.events.index')
+        ->and(data_get($defaultApiEvent?->properties, 'client_origin'))->toBe('api')
+        ->and(data_get($defaultApiEvent?->properties, 'client_family'))->toBe('api')
+        ->and(data_get($defaultApiEvent?->properties, 'client_transport'))->toBe('api')
+        ->and($iosEvent)->not->toBeNull()
+        ->and(data_get($iosEvent?->properties, 'client_origin'))->toBe('ios')
+        ->and(data_get($iosEvent?->properties, 'client_origin_source'))->toBe('header:X-Ilmu360-Client-Origin')
+        ->and(data_get($iosEvent?->properties, 'client_platform'))->toBe('ios')
+        ->and(data_get($iosEvent?->properties, 'client_family'))->toBe('mobile')
+        ->and(data_get($iosEvent?->properties, 'client_transport'))->toBe('api')
+        ->and(data_get($iosEvent?->properties, 'client_name'))->toBe('ilmu360 iOS')
+        ->and(data_get($iosEvent?->properties, 'client_version'))->toBe('1.2.3')
+        ->and(data_get($iosEvent?->properties, 'client_build'))->toBe('456')
+        ->and($androidEvent)->not->toBeNull()
+        ->and(data_get($androidEvent?->properties, 'client_origin'))->toBe('android')
+        ->and(data_get($androidEvent?->properties, 'client_origin_source'))->toBe('query:origin')
+        ->and(data_get($androidEvent?->properties, 'client_platform'))->toBe('android')
+        ->and(data_get($androidEvent?->properties, 'client_family'))->toBe('mobile')
+        ->and(data_get($androidEvent?->properties, 'client_transport'))->toBe('api');
 });
 
 it('records listing filtered events for filter-only discovery traffic', function () {
@@ -435,9 +433,9 @@ it('records listing filtered events for filter-only discovery traffic', function
 
     $signalEvent = SignalEvent::query()->where('event_name', 'listing.filtered')->latest('occurred_at')->first();
 
-    expect($signalEvent)->not->toBeNull();
-    expect($signalEvent?->event_category)->toBe('discovery');
-    expect(data_get($signalEvent?->properties, 'interaction_type'))->toBe('filter');
+    expect($signalEvent)->not->toBeNull()
+        ->and($signalEvent?->event_category)->toBe('discovery')
+        ->and(data_get($signalEvent?->properties, 'interaction_type'))->toBe('filter');
 });
 
 it('does not break search execution when signals ingestion fails', function () {

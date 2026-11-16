@@ -19,8 +19,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-uses(RefreshDatabase::class);
-
 function d4dApiFollowShareCookie(TestCase $testCase, string $url, User $sharer): string
 {
     app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $url, 'Follow Page', 'web');
@@ -43,7 +41,7 @@ function d4dApiFollowConversionStatus(AffiliateConversion $conversion): string
     $status = $conversion->status;
 
     return $status instanceof ConversionStatus
-        ? (string) $status->getValue()
+        ? $status->getValue()
         : (string) $status;
 }
 

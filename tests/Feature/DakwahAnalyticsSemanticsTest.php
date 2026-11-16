@@ -19,8 +19,8 @@ test('prepared links have no last share or recent activity until an outbound sha
     $link = AffiliateLink::query()->firstOrFail();
     $analytics = app(ShareTrackingAnalyticsService::class);
 
-    expect($analytics->findLinkForUser($user, $link->id)->lastSharedAt)->toBeNull();
-    expect($analytics->linksForUser($user, status: 'active'))->toBeEmpty();
+    expect($analytics->findLinkForUser($user, $link->id)->lastSharedAt)->toBeNull()
+        ->and($analytics->linksForUser($user, status: 'active'))->toBeEmpty();
 
     $this->actingAs($user)->get(route('share.redirect', [
         'provider' => 'whatsapp',
@@ -32,9 +32,9 @@ test('prepared links have no last share or recent activity until an outbound sha
     $this->travel(1)->hours();
     $link->touch();
 
-    expect($recorded)->not->toBeNull();
-    expect($analytics->findLinkForUser($user, $link->id)->lastSharedAt->equalTo($recorded))->toBeTrue();
-    expect($analytics->linksForUser($user, status: 'active'))->toHaveCount(1);
+    expect($recorded)->not->toBeNull()
+        ->and($analytics->findLinkForUser($user, $link->id)->lastSharedAt->equalTo($recorded))->toBeTrue()
+        ->and($analytics->linksForUser($user, status: 'active'))->toHaveCount(1);
 });
 
 test('channel breakdown includes unattributed channels so visits reconcile with the total', function (): void {
@@ -70,9 +70,9 @@ test('channel breakdown includes unattributed channels so visits reconcile with 
     $analytics = app(ShareTrackingAnalyticsService::class);
     $breakdown = $analytics->providerBreakdownForUser($user);
 
-    expect($breakdown->firstWhere('provider', 'direct')['visits'])->toBe(2);
-    expect($breakdown->sum('visits'))->toBe(3);
-    expect($analytics->summaryForUser($user)['visits'])->toBe(3);
+    expect($breakdown->firstWhere('provider', 'direct')['visits'])->toBe(2)
+        ->and($breakdown->sum('visits'))->toBe(3)
+        ->and($analytics->summaryForUser($user)['visits'])->toBe(3);
 });
 
 test('loading a library uses bounded measurement queries as the number of links grows', function (): void {
@@ -96,6 +96,6 @@ test('loading a library uses bounded measurement queries as the number of links 
     $multipleLinkQueries = count(DB::getQueryLog());
     DB::disableQueryLog();
 
-    expect($links)->toHaveCount(3);
-    expect($multipleLinkQueries)->toBe($singleLinkQueries);
+    expect($links)->toHaveCount(3)
+        ->and($multipleLinkQueries)->toBe($singleLinkQueries);
 });

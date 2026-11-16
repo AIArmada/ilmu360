@@ -33,8 +33,6 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Livewire;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-uses(RefreshDatabase::class);
-
 function ensureCountryForLocationPicker(string $iso2, string $name): AddressCountry
 {
     return ensureTestAddressCountry(
@@ -140,7 +138,7 @@ function giveInstitutionStoredMapsPlace(Institution $institution, string $placeI
 {
     $address = $institution->primaryAddress();
 
-    if ($address === null) {
+    if (!$address instanceof \AIArmada\Addressing\Models\Address) {
         return;
     }
 
@@ -348,9 +346,8 @@ it('verifies a Maps place, autofills public links, and persists provider identif
         ->and(data_get($address?->components, '6.types'))->toContain('country')
         ->and($address?->formatted_address)->toBe('Jalan Masjid, 40000 Shah Alam, Selangor, Malaysia')
         ->and(data_get($address?->areaAssignments()->pluck('role', 'address_area_id')->all(), (string) $district->id))->toBe('administrative_district')
-        ->and(data_get($address?->areaAssignments()->pluck('role', 'address_area_id')->all(), (string) $subdistrict->id))->toBe('administrative_subdivision');
-
-    expect($institution->contactMethods()->where('type', 'website')->value('value'))->toBe('https://93.184.216.34/')
+        ->and(data_get($address?->areaAssignments()->pluck('role', 'address_area_id')->all(), (string) $subdistrict->id))->toBe('administrative_subdivision')
+        ->and($institution->contactMethods()->where('type', 'website')->value('value'))->toBe('https://93.184.216.34/')
         ->and($institution->contactMethods()->where('type', 'phone')->value('value'))->toBe('+60312345678')
         ->and($institution->socialProfiles()->where('platform', 'facebook')->value('handle'))->toBe('ilmu360')
         ->and($institution->socialProfiles()->where('platform', 'instagram')->value('handle'))->toBe('ilmu360');
@@ -758,7 +755,7 @@ it('does not stage or delete live institution media on visitor text-only updates
         ->latest('id')
         ->firstOrFail();
 
-    expect($request->getMedia('pending_media'))->toHaveCount(0);
+    expect($request->getMedia('pending_media'))->toBeEmpty();
 });
 
 it('handles donation QR uploads stored under Filament file keys', function () {
@@ -783,7 +780,7 @@ it('handles donation QR uploads stored under Filament file keys', function () {
         ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('keyed-qr.png', 600, 600)], true);
 
     $uploaded = $component->get('data.donation_channels.0.qr_upload');
-    $tuf = is_array($uploaded) ? $uploaded[array_key_first($uploaded)] : $uploaded;
+    $tuf = is_array($uploaded) ? array_first($uploaded) : $uploaded;
     expect($tuf)->toBeInstanceOf(TemporaryUploadedFile::class);
 
     // Production Filament state keys the file by its generated file key.
@@ -1400,7 +1397,7 @@ it('stages visitor donation QR uploads and attaches them on approval', function 
 
     expect($channel->getFirstMedia('qr'))->not->toBeNull()
         ->and($channel->getFirstMedia('qr')->file_name)->toMatch('/^[a-z0-9_-]+-[0-9a-z]{8}\.png$/')
-        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+        ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
 // --- Joint audit hardening: visitor media policy, QR atomicity, sync guards ---
@@ -1471,9 +1468,8 @@ it('maps dehydrated donation row indices back to raw repeater keys', function ()
     expect(array_keys(SharedFormSchema::rekeyDonationRowsByRawKeys($dehydrated, [
         'uuid-row-1' => ['recipient' => 'Tabung A'],
         'uuid-row-2' => ['recipient' => 'Tabung B'],
-    ])))->toBe(['uuid-row-1', 'uuid-row-2']);
-
-    expect(array_keys(SharedFormSchema::rekeyDonationRowsByRawKeys($dehydrated, [
+    ])))->toBe(['uuid-row-1', 'uuid-row-2'])
+        ->and(array_keys(SharedFormSchema::rekeyDonationRowsByRawKeys($dehydrated, [
         ['recipient' => 'Tabung A'],
         ['recipient' => 'Tabung B'],
     ])))->toBe([0, 1]);
@@ -1609,9 +1605,8 @@ it('refuses to wipe all donation channels when every submitted row is invalid', 
             'method' => 'ewallet',
             'ewallet_provider' => 'tng',
         ]],
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(1);
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(1);
 });
 
 it('shows a form-level error when Maps is unavailable for a place-less institution', function () {
@@ -1692,7 +1687,7 @@ it('clears staged donation QR media when a contribution request is rejected', fu
 
     app(RejectContributionRequestAction::class)->handle($request->fresh(), $reviewer, 'incorrect_information');
 
-    expect($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+    expect($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
 it('runs the institution update submit under the Maps identity lock', function () {

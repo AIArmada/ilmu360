@@ -10,7 +10,7 @@ use InvalidArgumentException;
  * Stored as a JSON object of facility code => bool. Allowed codes mirror the
  * shared FacilityType catalog seeded by FacilityTypeSeeder.
  */
-final class InstitutionFacilities
+final readonly class InstitutionFacilities
 {
     /**
      * @var array<string, string> code => label
@@ -28,7 +28,7 @@ final class InstitutionFacilities
      * @param  array<string, bool>  $flags
      */
     private function __construct(
-        private readonly array $flags,
+        private array $flags,
     ) {}
 
     /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Persistence;
 
-use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Events\Api\EventInvolvementFingerprint;
+use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Platform\Cache\CacheVersionStore;
 
 final readonly class PersonListingCacheVersionStore implements PersonListingCacheVersion

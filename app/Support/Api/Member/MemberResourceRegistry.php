@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Support\Api\Member;
 
 use AIArmada\Addressing\Models\Address;
-use App\Filament\Resources\Events\EventResource as AhliEventResource;
 use AIArmada\Organizations\Models\Organization;
 use App\Data\Api\Event\EventPayloadData;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
 use App\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
+use App\Filament\Resources\Events\EventResource as AhliEventResource;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

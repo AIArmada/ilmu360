@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -215,7 +215,7 @@ it('agrees between live preview and cache-only reads when clock-only isha rolls 
 
 it('falls through to Ummah when the JAKIM echo is malformed', function () {
     Bus::fake();
-    $jakim = refreshV2Payload('WLY01');
+    $jakim = refreshV2Payload();
     $jakim['zone'] = [];
     Http::fake([
         'api.waktusolat.app/*' => Http::response($jakim),
@@ -242,7 +242,7 @@ it('falls through to Ummah when the JAKIM echo is malformed', function () {
 
     expect($anchor)->not->toBeNull()
         ->and($anchor['clock'])->toBe('19:01')
-        ->and(str_starts_with((string) $anchor['source'], 'ummah:'))->toBeTrue();
+        ->and((string) $anchor['source'])->toStartWith('ummah:');
 });
 
 it('returns null on a cold global cache and queues a refresh', function () {

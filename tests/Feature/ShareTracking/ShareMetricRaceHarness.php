@@ -101,7 +101,7 @@ final class ShareMetricRaceHarness
                 '--app-url='.$job['app_url'],
                 '--mode='.$job['mode'],
                 '--ready-dir='.$readyDir,
-                '--slot='.(string) $slot,
+                '--slot='.$slot,
             ]);
 
             $processes[$slot]->start();

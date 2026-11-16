@@ -8,8 +8,6 @@ use App\Models\User;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('marks guest share profiles with the neutral purpose', function (): void {
     $response = test()->getJson(route('share.payload', [
         'url' => route('events.index'),
@@ -21,8 +19,8 @@ it('marks guest share profiles with the neutral purpose', function (): void {
     $link = AffiliateLink::query()->where('custom_slug', $response->json('tracking_token'))->firstOrFail();
     $affiliate = Affiliate::query()->whereKey($link->affiliate_id)->firstOrFail();
 
-    expect($affiliate->purpose)->toBe(ShareTrackingProfile::PURPOSE_SHARE_GUEST);
-    expect($affiliate->isCommercialPurpose())->toBeFalse();
+    expect($affiliate->purpose)->toBe(ShareTrackingProfile::PURPOSE_SHARE_GUEST)
+        ->and($affiliate->isCommercialPurpose())->toBeFalse();
 });
 
 it('marks member share profiles with the neutral purpose', function (): void {
@@ -38,8 +36,8 @@ it('marks member share profiles with the neutral purpose', function (): void {
     $link = AffiliateLink::query()->where('custom_slug', $response->json('tracking_token'))->firstOrFail();
     $affiliate = Affiliate::query()->whereKey($link->affiliate_id)->firstOrFail();
 
-    expect($affiliate->purpose)->toBe(ShareTrackingProfile::PURPOSE_SHARE_MEMBER);
-    expect($affiliate->isCommercialPurpose())->toBeFalse();
+    expect($affiliate->purpose)->toBe(ShareTrackingProfile::PURPOSE_SHARE_MEMBER)
+        ->and($affiliate->isCommercialPurpose())->toBeFalse();
 });
 
 it('leaves unmarked commercial affiliates untouched', function (): void {
@@ -52,6 +50,6 @@ it('leaves unmarked commercial affiliates untouched', function (): void {
         'currency' => 'MYR',
     ]);
 
-    expect($affiliate->purpose)->toBeNull();
-    expect($affiliate->isCommercialPurpose())->toBeTrue();
+    expect($affiliate->purpose)->toBeNull()
+        ->and($affiliate->isCommercialPurpose())->toBeTrue();
 });

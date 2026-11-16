@@ -16,23 +16,21 @@ use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
-use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 
-uses(RefreshDatabase::class);
-
 it('refuses unknown sources without a fact', function (): void {
     $reader = new ShareAttributionRewardSourceFactReader;
 
-    expect($reader->read(''))->toBeNull();
-    expect($reader->read('commercial:signup:user:'.((string) Str::uuid())))->toBeNull();
-    expect($reader->read('share-outcome:visit:user:'.((string) Str::uuid())))->toBeNull();
-    expect($reader->read('share-outcome:signup:user:not-a-uuid'))->toBeNull();
-    expect($reader->read('share-outcome:signup:user:'.((string) Str::uuid())))->toBeNull();
+    expect($reader->read(''))->toBeNull()
+        ->and($reader->read('commercial:signup:user:'.(Str::uuid())))->toBeNull()
+        ->and($reader->read('share-outcome:visit:user:'.(Str::uuid())))->toBeNull()
+        ->and($reader->read('share-outcome:signup:user:not-a-uuid'))->toBeNull()
+        ->and($reader->read('share-outcome:signup:user:'.(Str::uuid())))->toBeNull();
 });
 
 it('returns null when the conversion is missing under an attributed receipt', function (): void {
@@ -62,20 +60,20 @@ it('maps an attributed member signup fact from committed evidence', function ():
 
     $fact = (new ShareAttributionRewardSourceFactReader)->read($key);
 
-    expect($fact)->not->toBeNull();
-    expect($fact->outcome)->toBe('signup');
-    expect($fact->occurredAt->toIso8601String())->toBe($occurred->toIso8601String());
-    expect($fact->verification)->toBe(RewardVerificationLevel::Accepted);
-    expect($fact->actorId)->toBe((string) $actor->getKey());
-    expect($fact->sharerId)->toBe((string) $sharer->getKey());
-    expect($fact->actorRole)->toBe(RewardBeneficiaryRole::Recipient);
-    expect($fact->isClaimedIdentity)->toBeTrue();
-    expect($fact->isAttributed)->toBeTrue();
-    expect($fact->isFirstTime)->toBeTrue();
-    expect($fact->isValid)->toBeTrue();
-    expect($fact->isCancelled)->toBeFalse();
-    expect($fact->fraudStatus)->toBe(RewardSourceFraudStatus::Clear);
-    expect($fact->correctionStatus)->toBe(RewardSourceCorrectionStatus::Current);
+    expect($fact)->not->toBeNull()
+        ->and($fact->outcome)->toBe('signup')
+        ->and($fact->occurredAt->toIso8601String())->toBe($occurred->toIso8601String())
+        ->and($fact->verification)->toBe(RewardVerificationLevel::Accepted)
+        ->and($fact->actorId)->toBe((string) $actor->getKey())
+        ->and($fact->sharerId)->toBe((string) $sharer->getKey())
+        ->and($fact->actorRole)->toBe(RewardBeneficiaryRole::Recipient)
+        ->and($fact->isClaimedIdentity)->toBeTrue()
+        ->and($fact->isAttributed)->toBeTrue()
+        ->and($fact->isFirstTime)->toBeTrue()
+        ->and($fact->isValid)->toBeTrue()
+        ->and($fact->isCancelled)->toBeFalse()
+        ->and($fact->fraudStatus)->toBe(RewardSourceFraudStatus::Clear)
+        ->and($fact->correctionStatus)->toBe(RewardSourceCorrectionStatus::Current);
 });
 
 it('reports unattributed receipts as facts so policy rejects on merits', function (): void {
@@ -86,9 +84,9 @@ it('reports unattributed receipts as facts so policy rejects on merits', functio
 
     $fact = (new ShareAttributionRewardSourceFactReader)->read($key);
 
-    expect($fact)->not->toBeNull();
-    expect($fact->isAttributed)->toBeFalse();
-    expect($fact->sharerId)->toBeNull();
+    expect($fact)->not->toBeNull()
+        ->and($fact->isAttributed)->toBeFalse()
+        ->and($fact->sharerId)->toBeNull();
 });
 
 it('resolves a guest sharer only through an active claim', function (): void {
@@ -116,8 +114,8 @@ it('resolves a guest sharer only through an active claim', function (): void {
     ]);
 
     $fact = $reader->read($key);
-    expect($fact->sharerId)->toBe((string) $claimant->getKey());
-    expect($fact->isClaimedIdentity)->toBeTrue();
+    expect($fact->sharerId)->toBe((string) $claimant->getKey())
+        ->and($fact->isClaimedIdentity)->toBeTrue();
 
     app(RevokeAffiliateClaim::class)->handle(
         AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->firstOrFail()
@@ -143,8 +141,8 @@ it('grades checkin verification from staff evidence only', function (): void {
 
     $reader = new ShareAttributionRewardSourceFactReader;
     $recorded = $reader->read($key);
-    expect($recorded->verification)->toBe(RewardVerificationLevel::Unverified);
-    expect($recorded->actorRole)->toBe(RewardBeneficiaryRole::Participant);
+    expect($recorded->verification)->toBe(RewardVerificationLevel::Unverified)
+        ->and($recorded->actorRole)->toBe(RewardBeneficiaryRole::Participant);
 
     $checkin->forceFill(['verified_by_user_id' => (string) $staff->getKey()])->save();
 
@@ -167,9 +165,9 @@ it('invalidates facts on correction rows and reversed conversions', function ():
     ]);
 
     $fact = (new ShareAttributionRewardSourceFactReader)->read($key);
-    expect($fact->isValid)->toBeFalse();
-    expect($fact->correctionStatus)->toBe(RewardSourceCorrectionStatus::Withdrawn);
-    expect($fact->correctionId)->not->toBeNull();
+    expect($fact->isValid)->toBeFalse()
+        ->and($fact->correctionStatus)->toBe(RewardSourceCorrectionStatus::Withdrawn)
+        ->and($fact->correctionId)->not->toBeNull();
 });
 
 it('tracks fraud suspect/confirmed/dismissed readings', function (): void {
@@ -222,15 +220,15 @@ it('marks paid registrations as purchaser and cancelled ones invalid', function 
     $registration->forceFill(['status' => 'cancelled'])->save();
 
     $cancelled = $reader->read($key);
-    expect($cancelled->isCancelled)->toBeTrue();
-    expect($cancelled->isValid)->toBeFalse();
+    expect($cancelled->isCancelled)->toBeTrue()
+        ->and($cancelled->isValid)->toBeFalse();
 });
 
 it('attests unsubmitted reservations and refuses submitted ones', function (): void {
     $resolver = new PointLedgerRewardReservationResolver;
 
-    expect($resolver->mayVoidReservation('rsv-host-unsubmitted-001'))->toBeTrue();
-    expect($resolver->mayVoidReservation(''))->toBeFalse();
+    expect($resolver->mayVoidReservation('rsv-host-unsubmitted-001'))->toBeTrue()
+        ->and($resolver->mayVoidReservation(''))->toBeFalse();
 
     MarkRewardReservationSubmittedAction::run('rsv-host-sending-002', RewardPointReservationSubmission::STATUS_SENDING, 'op-1');
     expect($resolver->mayVoidReservation('rsv-host-sending-002'))->toBeFalse();

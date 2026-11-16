@@ -17,8 +17,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 describe('Saved Search API Endpoints', function () {
     it('requires authentication', function () {
         $this->getJson('/api/v1/saved-searches')

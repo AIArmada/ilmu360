@@ -1,12 +1,10 @@
 <?php
 
-use App\Shared\Events\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
+use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 it('allows multiple registrations for the same event', function () {
     $event = Event::factory()

@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 it('keeps the MCP event search validation contract on the shared filter vocabulary', function (): void {
     $ruleKeys = array_keys(app(McpEventSearchService::class)->validationRules());
 
-    expect(array_values(array_diff(SearchFilterKeys::all(), $ruleKeys)))->toBe([]);
+    expect(array_values(array_diff(SearchFilterKeys::all(), $ruleKeys)))->toBeEmpty();
 });
 
 it('accepts scalar and list prayer_time values in the MCP search contract', function (): void {

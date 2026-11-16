@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Features\Prayer\Api\PrayerQuery;
 
 it('normalizes the country code', function () {

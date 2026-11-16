@@ -21,8 +21,6 @@ use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 it('freezes digest identity columns and immutable transition timestamps', function (): void {
     $frozen = [
         'recipient_type' => 'person',
@@ -101,9 +99,8 @@ it('refuses digest slot model deletes', function (): void {
     $slot = RewardCharacterizationFixtures::slot(RewardDigestSlot::STATUS_PLANNED);
 
     expect(fn () => $slot->delete())
-        ->toThrow(LogicException::class, 'cannot be deleted');
-
-    expect(RewardDigestSlot::query()->whereKey($slot->getKey())->exists())->toBeTrue();
+        ->toThrow(LogicException::class, 'cannot be deleted')
+        ->and(RewardDigestSlot::query()->whereKey($slot->getKey())->exists())->toBeTrue();
 });
 
 it('uses the global daily delivery time instead of a per-user preference', function (): void {
@@ -232,7 +229,7 @@ it('replays sending, sent, and cancelled slots untouched', function (string $sta
 
     $slot = RewardCharacterizationFixtures::slot($status, [
         'recipient_id' => (string) $user->getKey(),
-        'plan_key' => 'gratitude:'.(string) $user->getKey().':2026-06-16',
+        'plan_key' => 'gratitude:'.$user->getKey().':2026-06-16',
         'categories' => ['awards'],
         'payload' => [
             'window' => ['from' => '2026-06-14T10:00:00+00:00', 'to' => '2026-06-15T10:00:00+00:00'],

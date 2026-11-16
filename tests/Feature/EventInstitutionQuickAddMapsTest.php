@@ -17,8 +17,6 @@ use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 function configureEventInstitutionQuickAddMaps(): void
 {
     config()->set('services.google.maps_api_key', 'test-maps-key');
@@ -109,7 +107,7 @@ it('mounts both event institution quick-add actions and rotates each modal nonce
 
     $organizer = mountEventInstitutionQuickAdd('primary_organizer_institution_id');
 
-    expect($organizer['nonce'])->not->toBe('');
+    expect($organizer['nonce'])->not->toBeEmpty();
     $organizer['component']->unmountFormComponentAction();
 
     $reopened = $organizer['component']->mountFormComponentAction('primary_organizer_institution_id', 'createOption');
@@ -119,7 +117,7 @@ it('mounts both event institution quick-add actions and rotates each modal nonce
 
     $location = mountEventInstitutionQuickAdd('location_institution_id');
 
-    expect($location['nonce'])->toBeString()->not->toBe('');
+    expect($location['nonce'])->toBeString()->not->toBeEmpty();
     $location['component']->assertFormComponentActionMounted('location_institution_id', 'createOption');
 });
 
@@ -255,9 +253,8 @@ it('creates a verified organizer institution with provider geography and editabl
         ->and($institution->socialProfiles()->where('platform', 'facebook')->value('handle'))->toBe('manual-page')
         ->and($institution->socialProfiles()->where('platform', 'instagram')->value('handle'))->toBe('ilmu360')
         ->and($component->get('data.primary_organizer_institution_id'))->toBe((string) $institution->getKey())
-        ->and($component->get('institutionQuickAddProofToken'))->toBeNull();
-
-    expect(SignalEvent::query()->where('event_name', 'contribution.institution_maps_place_selected')->exists())->toBeTrue();
+        ->and($component->get('institutionQuickAddProofToken'))->toBeNull()
+        ->and(SignalEvent::query()->where('event_name', 'contribution.institution_maps_place_selected')->exists())->toBeTrue();
 });
 
 it('blocks a duplicate Maps identity when quick-adding a location institution', function () {

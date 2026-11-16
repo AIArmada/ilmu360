@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Dashboard\Organizations;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Filament\Resources\Events\EventResource;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Membership\Api\MembershipCommands;
@@ -13,6 +12,7 @@ use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
+use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
@@ -196,7 +196,7 @@ final class Workspace extends Component
         $invitation = $membershipInvitations->find($invitationId);
 
         abort_unless(
-            $invitation instanceof \App\Features\Membership\Api\MembershipInvitationDetail
+            $invitation instanceof MembershipInvitationDetail
             && $invitation->subjectType === MembershipSubjectType::Organization
             && $invitation->subjectId === (string) $organization->getKey(),
             404,

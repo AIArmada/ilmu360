@@ -32,8 +32,6 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-uses(RefreshDatabase::class);
-
 it('defaults new institutions to pending with an enum cast', function (): void {
     $institution = Institution::factory()->create(['status' => InstitutionStatus::Pending]);
 
@@ -93,9 +91,8 @@ it('deactivates donation channels with the inactive timestamp and rejects invali
 
     expect($channel->status)->toBe(DonationChannelStatus::Inactive)
         ->and($channel->inactive_at)->not->toBeNull()
-        ->and($channel->getCasts()['status'])->toBe(DonationChannelStatus::class);
-
-    expect(fn () => $channel->transitionStatus('bogus'))->toThrow(TypeError::class);
+        ->and($channel->getCasts()['status'])->toBe(DonationChannelStatus::class)
+        ->and(fn() => $channel->transitionStatus('bogus'))->toThrow(TypeError::class);
 });
 
 it('keeps institution provenance immutable after create', function (): void {
@@ -116,9 +113,8 @@ it('keeps institution provenance immutable after create', function (): void {
 
     $fresh = $institution->fresh();
 
-    expect($fresh)->toBeInstanceOf(Institution::class);
-
-    expect($fresh->getAttribute('source'))->toBe('masjid-csv')
+    expect($fresh)->toBeInstanceOf(Institution::class)
+        ->and($fresh->getAttribute('source'))->toBe('masjid-csv')
         ->and($fresh->getAttribute('external_ref'))->toBe('ref-1')
         ->and($fresh->imported_at)->toEqual($importedAt);
 });
@@ -133,9 +129,8 @@ it('never attaches provenance to an existing manual row', function (): void {
 
     $fresh = $institution->fresh();
 
-    expect($fresh)->toBeInstanceOf(Institution::class);
-
-    expect($fresh->getAttribute('source'))->toBeNull()
+    expect($fresh)->toBeInstanceOf(Institution::class)
+        ->and($fresh->getAttribute('source'))->toBeNull()
         ->and($fresh->getAttribute('external_ref'))->toBeNull()
         ->and($fresh->getAttribute('imported_at'))->toBeNull();
 });
@@ -186,9 +181,8 @@ it('rejects duplicate explicit slugs on save institution update', function (): v
     $institution = Institution::factory()->create();
 
     expect(fn () => SaveInstitutionAction::run(['name' => $institution->name, 'slug' => $taken], $actor, $institution))
-        ->toThrow(ValidationException::class);
-
-    expect($institution->refresh()->slug)->not->toBe($taken);
+        ->toThrow(ValidationException::class)
+        ->and($institution->refresh()->slug)->not->toBe($taken);
 });
 
 it('saves omits and clears facilities through the save institution action', function (): void {
@@ -205,10 +199,8 @@ it('saves omits and clears facilities through the save institution action', func
 
     SaveInstitutionAction::run(['name' => 'Renamed Institution', 'facilities' => null], $actor, $institution->fresh());
 
-    expect($institution->fresh()->facilities)->toBeNull();
-
-    expect(fn () => SaveInstitutionAction::run(['name' => 'Renamed Institution', 'facilities' => ['bogus' => true]], $actor, $institution->fresh()))
-        ->toThrow(ValidationException::class);
+    expect($institution->fresh()->facilities)->toBeNull()
+        ->and(fn() => SaveInstitutionAction::run(['name' => 'Renamed Institution', 'facilities' => ['bogus' => true]], $actor, $institution->fresh()))->toThrow(ValidationException::class);
 });
 
 it('emits no facilities signal when facilities are omitted from the save', function (): void {
@@ -260,12 +252,10 @@ it('emits the facilities signal only after the enclosing transaction commits', f
 });
 
 it('rejects unknown facility keys and non boolean values at the model boundary', function (): void {
-    expect(InstitutionFacilities::validate(['parking' => true, 'air_conditioning' => false]))->toBe([])
-        ->and(InstitutionFacilities::validate(['bogus' => true]))->not->toBe([])
-        ->and(InstitutionFacilities::validate(['parking' => 'yes']))->not->toBe([]);
-
-    expect(fn () => Institution::factory()->create(['facilities' => ['bogus' => true]]))
-        ->toThrow(InvalidArgumentException::class);
+    expect(InstitutionFacilities::validate(['parking' => true, 'air_conditioning' => false]))->toBeEmpty()
+        ->and(InstitutionFacilities::validate(['bogus' => true]))->not->toBeEmpty()
+        ->and(InstitutionFacilities::validate(['parking' => 'yes']))->not->toBeEmpty()
+        ->and(fn() => Institution::factory()->create(['facilities' => ['bogus' => true]]))->toThrow(InvalidArgumentException::class);
 });
 
 it('merges effective facilities from operated venues and active spaces only', function (): void {
@@ -369,13 +359,11 @@ it('validates institution venue links and keeps one primary per role', function 
 
     expect(fn () => SyncInstitutionVenuesAction::run($institution, [
         ['venue_id' => (string) $venue->getKey(), 'role' => 'bogus'],
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn () => SyncInstitutionVenuesAction::run($institution, [
+    ]))->toThrow(ValidationException::class)
+        ->and(fn() => SyncInstitutionVenuesAction::run($institution, [
         ['venue_id' => 'not-a-uuid', 'role' => InstitutionVenueRole::Operated],
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn () => SyncInstitutionVenuesAction::run($institution, [
+    ]))->toThrow(ValidationException::class)
+        ->and(fn() => SyncInstitutionVenuesAction::run($institution, [
         ['venue_id' => (string) $venue->getKey(), 'role' => InstitutionVenueRole::Operated, 'is_primary' => true],
         ['venue_id' => (string) $other->getKey(), 'role' => InstitutionVenueRole::Operated, 'is_primary' => true],
     ]))->toThrow(ValidationException::class);
@@ -545,10 +533,8 @@ it('rejects invalid app space venue references and reparenting while facilities 
     $otherVenue = Venue::factory()->create();
 
     expect(fn () => Space::factory()->create(['venue_id' => (string) Str::uuid()]))
-        ->toThrow(InvalidArgumentException::class);
-
-    expect(fn () => Space::factory()->create(['venue_id' => 'not-a-uuid']))
-        ->toThrow(InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class)
+        ->and(fn() => Space::factory()->create(['venue_id' => 'not-a-uuid']))->toThrow(InvalidArgumentException::class);
 
     $space = Space::factory()->create(['venue_id' => $venue->getKey()]);
 
@@ -562,9 +548,8 @@ it('rejects invalid app space venue references and reparenting while facilities 
 
     $space->venue_id = (string) $otherVenue->getKey();
 
-    expect(fn () => $space->save())->toThrow(InvalidArgumentException::class);
-
-    expect(VenueFacility::query()->whereKey($facility->getKey())->exists())->toBeTrue()
+    expect(fn () => $space->save())->toThrow(InvalidArgumentException::class)
+        ->and(VenueFacility::query()->whereKey($facility->getKey())->exists())->toBeTrue()
         ->and($space->refresh()->venue_id)->toBe((string) $venue->getKey());
 
     // Spaces without facilities move freely in either direction.
@@ -614,9 +599,8 @@ it('rolls back the institution delete when exclusion recording fails', function 
     });
 
     expect(fn () => app(DeleteInstitutionAction::class)->handle($institution))
-        ->toThrow(RuntimeException::class);
-
-    expect(Institution::query()->whereKey($targetId)->exists())->toBeTrue()
+        ->toThrow(RuntimeException::class)
+        ->and(Institution::query()->whereKey($targetId)->exists())->toBeTrue()
         ->and(InstitutionImportExclusion::query()->count())->toBe(0)
         ->and(InstitutionVenue::query()->where('institution_id', $targetId)->count())->toBe(1);
 });

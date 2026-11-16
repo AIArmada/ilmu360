@@ -95,7 +95,7 @@ function wp1RealCollisionCase(TestCase $testCase): void
 
             $cleanLink = $service->createOrReuseLink($cleanUser, $pageUrl, 'Majlis', 'web');
 
-            expect($cleanLink->id)->not->toBe('');
+            expect($cleanLink->id)->not->toBeEmpty();
         });
 
         expect($failure)->toBe('A share profile for this account conflicts with an existing profile identity.')

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\EntryPoints\Http;
 
-use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipApplicationDetail;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;
@@ -12,6 +11,7 @@ use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Platform\Http\FrontendController;
 use App\Platform\Media\StagedUploadFactory;
 use App\Shared\Feedback\FeedbackActor;
+use App\Shared\Membership\MembershipSubjectCatalog;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

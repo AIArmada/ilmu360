@@ -6,7 +6,7 @@ use App\Platform\Models\SlugOrUuidResolver;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('does not append key lookup bindings for non-uuid identifiers', function () {
     $resolver = app(SlugOrUuidResolver::class);

@@ -45,7 +45,6 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
-
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),

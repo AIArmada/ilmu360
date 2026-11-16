@@ -26,8 +26,6 @@ use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 it('serves the configured manual bank transfer rail', function (): void {
     $catalog = app(RewardPayoutMethodCatalog::class);
 
@@ -46,9 +44,8 @@ it('refuses cash activation until confirmed funding exists, then activates', fun
     TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Ready);
 
     expect(fn () => TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active))
-        ->toThrow(InvalidArgumentException::class, 'no-confirmed-funding:MYR');
-
-    expect($program->fresh()->status)->toBe(RewardProgramStatus::Ready);
+        ->toThrow(InvalidArgumentException::class, 'no-confirmed-funding:MYR')
+        ->and($program->fresh()->status)->toBe(RewardProgramStatus::Ready);
 
     RecordRewardFundingSourceAction::run('finance-funded-source', 'MYR', 10000, 'user', $staff, 'staff');
     RecordRewardFundingAction::run($program, 'MYR', 10000, 'finance-funded-source', 'user', $staff, 'staff');
@@ -86,7 +83,7 @@ it('treats a verified bank destination as cash readiness and approves the award'
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact('finance-payee-attendance', $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program,
         RewardComponent::Cash,
         'user',
@@ -99,12 +96,11 @@ it('treats a verified bank destination as cash readiness and approves the award'
     $assessment = app(RewardFinancialReadinessChecker::class)->canApproveFinancial($result->award);
 
     expect($assessment->ready)->toBeFalse()
-        ->and($assessment->blockers)->toContain('payee-unverified');
-
-    expect(fn () => (new TransitionRewardAwardAction(
+        ->and($assessment->blockers)->toContain('payee-unverified')
+        ->and(fn() => new TransitionRewardAwardAction(
         app(RewardFinancialReadinessChecker::class),
         $reader,
-    ))->handle(
+    )->handle(
         $result->award,
         RewardAwardStatus::Approved,
         'user',
@@ -137,10 +133,10 @@ it('treats a verified bank destination as cash readiness and approves the award'
 
     expect(app(RewardFinancialReadinessChecker::class)->canApproveFinancial($result->award)->ready)->toBeTrue();
 
-    $approved = (new TransitionRewardAwardAction(
+    $approved = new TransitionRewardAwardAction(
         app(RewardFinancialReadinessChecker::class),
         $reader,
-    ))->handle(
+    )->handle(
         $result->award,
         RewardAwardStatus::Approved,
         'user',

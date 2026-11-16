@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 function ensureCountryForPlaceResolution(string $iso2, string $name): AddressCountry
 {
@@ -525,7 +525,7 @@ it('falls back to text for countries without a provider', function () {
         ->and($payload['state'])->toBe('Bangkok')
         ->and($payload['city_id'])->toBeNull()
         ->and($payload['city'])->toBe('Pathum Wan')
-        ->and($payload['area_assignments'])->toBe([])
+        ->and($payload['area_assignments'])->toBeEmpty()
         ->and($payload['postcode'])->toBe('10330');
 });
 

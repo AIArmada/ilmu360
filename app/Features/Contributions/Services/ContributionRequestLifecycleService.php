@@ -102,9 +102,6 @@ final readonly class ContributionRequestLifecycleService implements Contribution
         return $this->deleteRequests->handle($requestIds);
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Model
-     */
     private function account(string $accountId): Model
     {
         $account = $this->accounts->resolveNotifiable($accountId);

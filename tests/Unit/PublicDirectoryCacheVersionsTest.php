@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Features\Events\Api\EventInvolvementFingerprint;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Features\Events\Api\EventInvolvementFingerprint;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('bumps owner listing versions independently', function (): void {
     $institutions = app(InstitutionListingCacheVersion::class);

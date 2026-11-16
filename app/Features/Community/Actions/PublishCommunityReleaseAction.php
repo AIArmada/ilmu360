@@ -169,7 +169,7 @@ final readonly class PublishCommunityReleaseAction
      * A cut is published only when every cell meets both distinct-person
      * thresholds, preventing a sparse complement from being inferred.
      *
-     * @param array<string, array{outcomes: int, sharers: int, participants: int}> $cells
+     * @param  array<string, array{outcomes: int, sharers: int, participants: int}>  $cells
      * @return array<string, int>|null
      */
     private function dualGatedCut(array $cells): ?array

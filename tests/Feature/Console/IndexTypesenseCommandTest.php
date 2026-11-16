@@ -2,8 +2,6 @@
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('runs the scout import wrappers for the supported search drivers', function (string $command) {
     config()->set('scout.driver', 'database');
     config()->set('scout.queue', false);

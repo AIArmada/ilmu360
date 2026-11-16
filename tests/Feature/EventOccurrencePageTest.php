@@ -14,8 +14,6 @@ use App\Support\Events\PublicScheduleSlug;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->venue = Venue::factory()->create(['name' => 'Dewan Al-Ikhlas Test']);
 

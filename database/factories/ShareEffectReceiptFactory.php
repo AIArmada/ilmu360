@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
-use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Models\ShareEffectReceipt;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -14,7 +16,7 @@ class ShareEffectReceiptFactory extends Factory
 {
     public function definition(): array
     {
-        $sourceId = 'share-outcome:signup:user:'.((string) Str::uuid());
+        $sourceId = 'share-outcome:signup:user:'.(Str::uuid());
 
         return [
             'effect_key' => $sourceId.':projection',

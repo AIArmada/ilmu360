@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ReportFactory extends Factory
 {
+    #[\Override]
     protected $model = Report::class;
 
     /**

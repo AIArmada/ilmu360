@@ -20,5 +20,4 @@ interface SpaceEligibility extends SpaceSelectionEligibility
 
     /** @return array<string, string> */
     public function venueOptions(string $venueId, bool $activeOnly = false): array;
-
 }

@@ -12,5 +12,4 @@ namespace App\Features\Identity\Api;
 interface AccountSubmissionEligibility
 {
     public function syncForAccount(string $accountId): void;
-
 }

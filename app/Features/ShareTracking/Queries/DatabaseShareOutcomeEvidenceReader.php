@@ -115,7 +115,7 @@ final readonly class DatabaseShareOutcomeEvidenceReader implements ShareOutcomeE
      */
     private function paidRegistrationIds(Builder $evidence): array
     {
-        $registrationExpression = self::metadataRegistrationIdExpression();
+        $registrationExpression = $this->metadataRegistrationIdExpression();
 
         $candidateIds = (clone $evidence)
             ->where('c.conversion_type', ShareOutcomeType::EventRegistration->value)
@@ -143,7 +143,7 @@ final readonly class DatabaseShareOutcomeEvidenceReader implements ShareOutcomeE
             return $query;
         }
 
-        $registrationExpression = self::metadataRegistrationIdExpression();
+        $registrationExpression = $this->metadataRegistrationIdExpression();
         $paidRegistrations = match (DB::getDriverName()) {
             'pgsql' => 'SELECT value FROM jsonb_array_elements_text(CAST(? AS jsonb))',
             'sqlite' => 'SELECT value FROM json_each(?)',
@@ -263,7 +263,7 @@ final readonly class DatabaseShareOutcomeEvidenceReader implements ShareOutcomeE
         });
     }
 
-    private static function metadataRegistrationIdExpression(): string
+    private function metadataRegistrationIdExpression(): string
     {
         return match (DB::getDriverName()) {
             'pgsql' => "(c.metadata->>'registration_id')",

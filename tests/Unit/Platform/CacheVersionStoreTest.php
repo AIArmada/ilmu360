@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('returns a stable stored version until the key is bumped', function (): void {
     $store = app(CacheVersionStore::class);
@@ -15,7 +15,7 @@ it('returns a stable stored version until the key is bumped', function (): void 
 
     $version = $store->version($key);
 
-    expect($version)->not->toBe('')
+    expect($version)->not->toBeEmpty()
         ->and(Str::isUlid($version))->toBeTrue()
         ->and($store->version($key))->toBe($version)
         ->and(Cache::get($key))->toBe($version);

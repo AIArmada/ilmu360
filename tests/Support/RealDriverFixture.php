@@ -545,7 +545,7 @@ final class RealDriverFixture
         }
 
         $lines = file($path, FILE_IGNORE_NEW_LINES);
-        if (! isset($lines[0]) || ! ctype_digit(trim($lines[0])) || trim((string) ($lines[1] ?? '')) !== self::dataDirectory()) {
+        if (! isset($lines[0]) || ! ctype_digit(trim($lines[0])) || trim($lines[1] ?? '') !== self::dataDirectory()) {
             return null;
         }
 

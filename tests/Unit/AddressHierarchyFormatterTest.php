@@ -8,7 +8,7 @@ use App\Support\Location\AddressHierarchyFormatter;
 use Illuminate\Database\Eloquent\Collection;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 /**
  * @param  array<string, mixed>  $attributes
@@ -159,14 +159,14 @@ it('renders the full package block as one line', function (): void {
 it('renders the block empty when no definition applies', function (): void {
     $address = hierarchyTestAddress(['country' => 'Nowhere', 'country_code' => 'XX']);
 
-    expect(AddressHierarchyFormatter::formatBlock($address))->toBe('')
-        ->and(AddressHierarchyFormatter::formatBlock(null))->toBe('');
+    expect(AddressHierarchyFormatter::formatBlock($address))->toBeEmpty()
+        ->and(AddressHierarchyFormatter::formatBlock(null))->toBeEmpty();
 });
 
 it('falls back to the country when no definition applies', function (): void {
     $address = hierarchyTestAddress(['country' => 'Nowhere', 'country_code' => 'XX']);
 
     expect(AddressHierarchyFormatter::parts($address))->toBe(['Nowhere'])
-        ->and(AddressHierarchyFormatter::parts(null))->toBe([])
-        ->and(AddressHierarchyFormatter::format(null))->toBe('');
+        ->and(AddressHierarchyFormatter::parts(null))->toBeEmpty()
+        ->and(AddressHierarchyFormatter::format(null))->toBeEmpty();
 });

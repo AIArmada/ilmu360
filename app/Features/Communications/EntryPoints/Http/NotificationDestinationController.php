@@ -2,10 +2,10 @@
 
 namespace App\Features\Communications\EntryPoints\Http;
 
-use App\Features\Communications\EntryPoints\Http\Data\NotificationDestinationData as NotificationDestinationPayloadData;
 use App\Features\Communications\Api\PushDestinationDetails;
 use App\Features\Communications\Api\PushDestinationManagement;
 use App\Features\Communications\Api\PushDestinationSnapshot;
+use App\Features\Communications\EntryPoints\Http\Data\NotificationDestinationData as NotificationDestinationPayloadData;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

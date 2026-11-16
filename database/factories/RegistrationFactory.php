@@ -12,6 +12,7 @@ use App\Models\User;
 
 class RegistrationFactory extends PackageEventRegistrationFactory
 {
+    #[\Override]
     protected $model = Registration::class;
 
     /**
@@ -63,18 +64,16 @@ class RegistrationFactory extends PackageEventRegistrationFactory
         // ponytail: chained forRegistrant() + withPrimaryParticipant() must replace, not duplicate.
         $participant = $registration->participants()->where('is_primary', true)->first();
 
-        if ($participant === null) {
-            $participant = $registration->participants()->create([
-                'event_id' => $registration->event_id,
-                'event_occurrence_id' => $registration->event_occurrence_id,
-                'event_session_id' => $registration->event_session_id,
-                'participant_type' => $registration->registrant_type,
-                'participant_id' => $registration->registrant_id,
-                'is_primary' => true,
-                'is_purchaser' => true,
-                'status' => 'active',
-            ]);
-        }
+        $participant ??= $registration->participants()->create([
+            'event_id' => $registration->event_id,
+            'event_occurrence_id' => $registration->event_occurrence_id,
+            'event_session_id' => $registration->event_session_id,
+            'participant_type' => $registration->registrant_type,
+            'participant_id' => $registration->registrant_id,
+            'is_primary' => true,
+            'is_purchaser' => true,
+            'status' => 'active',
+        ]);
 
         $participant->fill(['name' => $name])->save();
         $participant->contactMethods()->delete();
@@ -84,8 +83,8 @@ class RegistrationFactory extends PackageEventRegistrationFactory
                 type: 'email',
                 purpose: 'general',
                 value: $email,
-                isPublic: true,
                 isPrimary: true,
+                isPublic: true,
             ));
         }
 
@@ -95,8 +94,8 @@ class RegistrationFactory extends PackageEventRegistrationFactory
                 purpose: 'general',
                 value: $phone,
                 countryCode: config('contacting.defaults.country_code', 'MY'),
-                isPublic: true,
                 isPrimary: true,
+                isPublic: true,
             ));
         }
     }

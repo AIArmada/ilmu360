@@ -29,8 +29,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 
-uses(RefreshDatabase::class);
-
 function signupAttributionRecordFor(User $user): SignupAttribution
 {
     return SignupAttribution::query()->where('user_id', $user->getKey())->firstOrFail();
@@ -86,11 +84,9 @@ it('freezes a direct signup so later links and invitation confirmation cannot as
     $replayed = recordSignupAttribution($user, signupAcquisitionContext($lateSource));
     confirmSignupAttribution($user);
 
-    expect($replayed?->id)->toBe($original?->id);
-    expect(signupAttributionRecordFor($user))->source_type->toBe(SignupAttributionSourceType::Direct)
-        ->status->toBe(SignupAttributionStatus::Confirmed)
-        ->referrer_user_id->toBeNull();
-    expect(SignupAttribution::query()->where('user_id', $user->getKey())->count())->toBe(1);
+    expect($replayed?->id)->toBe($original?->id)
+        ->and(signupAttributionRecordFor($user))->source_type->toBe(SignupAttributionSourceType::Direct)->status->toBe(SignupAttributionStatus::Confirmed)->referrer_user_id->toBeNull()
+        ->and(SignupAttribution::query()->where('user_id', $user->getKey())->count())->toBe(1);
 });
 
 it('retains the commercial signup referrer when a later source would credit a different user', function (): void {
@@ -104,11 +100,11 @@ it('retains the commercial signup referrer when a later source would credit a di
         new SignupAttributionSource(SignupAttributionSourceType::CommercialAffiliate, (string) $carol->getKey()),
     ));
 
-    expect(signupAttributionRecordFor($bob)->referrer_user_id)->toBe((string) $alice->getKey());
-    expect(confirmedSignupReferralAccountIds($alice))->toBe([(string) $bob->getKey()]);
-    expect(confirmedSignupReferralAccountIds($carol))->toBe([]);
-    expect(AffiliateConversion::query()->count())->toBe(0);
-    expect(ReferralReward::query()->count())->toBe(0);
+    expect(signupAttributionRecordFor($bob)->referrer_user_id)->toBe((string) $alice->getKey())
+        ->and(confirmedSignupReferralAccountIds($alice))->toBe([(string) $bob->getKey()])
+        ->and(confirmedSignupReferralAccountIds($carol))->toBeEmpty()
+        ->and(AffiliateConversion::query()->count())->toBe(0)
+        ->and(ReferralReward::query()->count())->toBe(0);
 });
 
 it('does not infer signup attribution when an existing account accepts an invitation', function (): void {
@@ -116,10 +112,10 @@ it('does not infer signup attribution when an existing account accepts an invita
     [$invite, , $token] = signupAcquisitionInvite('existing-invitee@example.test');
     $result = app(ResolveReferralInviteLandingAction::class)->handle($token, $existingUser);
 
-    expect($result['outcome'])->toBe('accepted');
-    expect(recordSignupAttribution($existingUser, signupAcquisitionContext(invite: $invite), false))->toBeNull();
-    expect(confirmSignupAttribution($existingUser))->toBeNull();
-    expect(SignupAttribution::query()->count())->toBe(0);
+    expect($result['outcome'])->toBe('accepted')
+        ->and(recordSignupAttribution($existingUser, signupAcquisitionContext(invite: $invite), false))->toBeNull()
+        ->and(confirmSignupAttribution($existingUser))->toBeNull()
+        ->and(SignupAttribution::query()->count())->toBe(0);
 });
 
 it('confirms the captured inviter only after the invited email is verified without issuing referral rewards', function (): void {
@@ -128,18 +124,18 @@ it('confirms the captured inviter only after the invited email is verified witho
     $user = User::factory()->unverified()->emailOnly()->create(['email' => 'new-invitee@example.test']);
     $attribution = recordSignupAttribution($user, signupAcquisitionContext(invite: $invite));
 
-    expect($attribution)->status->toBe(SignupAttributionStatus::Pending)->confirmedAt->toBeNull();
-    expect(confirmedSignupReferralAccountIds($referrer))->toBe([]);
+    expect($attribution)->status->toBe(SignupAttributionStatus::Pending)->confirmedAt->toBeNull()
+        ->and(confirmedSignupReferralAccountIds($referrer))->toBeEmpty();
 
     $this->travel(5)->minutes();
     $user->forceFill(['email_verified_at' => now()])->save();
 
     expect(signupAttributionRecordFor($user))->status->toBe(SignupAttributionStatus::Confirmed)
         ->referrer_user_id->toBe((string) $referrer->getKey())
-        ->confirmed_at->toEqual(CarbonImmutable::parse('2026-10-28 12:05:00', 'UTC'));
-    expect(confirmedSignupReferralAccountIds($referrer))->toBe([(string) $user->getKey()]);
-    expect($invite->refresh()->status->value)->toBe('pending');
-    expect(ReferralReward::query()->count())->toBe(0);
+        ->confirmed_at->toEqual(CarbonImmutable::parse('2026-10-28 12:05:00', 'UTC'))
+        ->and(confirmedSignupReferralAccountIds($referrer))->toBe([(string) $user->getKey()])
+        ->and($invite->refresh()->status->value)->toBe('pending')
+        ->and(ReferralReward::query()->count())->toBe(0);
 });
 
 it('requires verification of the captured phone even when an unrelated email is verified', function (): void {
@@ -164,8 +160,8 @@ it('prefers a valid contact-matching invite over the captured share source', fun
 
     expect($attribution)->sourceType->toBe(SignupAttributionSourceType::ReferralInvite)
         ->referrerAccountId->toBe((string) $inviter->getKey())
-        ->status->toBe(SignupAttributionStatus::Confirmed);
-    expect(confirmedSignupReferralAccountIds($otherSharer))->toBe([]);
+        ->status->toBe(SignupAttributionStatus::Confirmed)
+        ->and(confirmedSignupReferralAccountIds($otherSharer))->toBeEmpty();
 });
 
 it('uses the captured link when the invitation targets another contact', function (): void {
@@ -199,8 +195,8 @@ it('refuses revoked invitations and invalid public tokens as signup evidence', f
     $attribution = recordSignupAttribution($user, signupAcquisitionContext(invite: $invite));
     $captured = app(SignupAttributionContextResolver::class)->resolve(Request::create('/', 'POST', ['referral_invite_token' => str_repeat('z', 32)]));
 
-    expect($attribution?->sourceType)->toBe(SignupAttributionSourceType::Direct);
-    expect($captured->referralInviteId)->toBeNull();
+    expect($attribution?->sourceType)->toBe(SignupAttributionSourceType::Direct)
+        ->and($captured->referralInviteId)->toBeNull();
 });
 
 it('links guest signup history through an explicit claim while preserving the source and excluding self referrals', function (): void {
@@ -214,18 +210,16 @@ it('links guest signup history through an explicit claim while preserving the so
     $selfAttribution = recordSignupAttribution($claimant, signupAcquisitionContext($guestSource));
     $attribution = recordSignupAttribution($invitee, signupAcquisitionContext($guestSource));
 
-    expect($attribution?->referrerAccountId)->toBeNull();
-    expect(AffiliateClaim::query()->count())->toBe(0);
+    expect($attribution?->referrerAccountId)->toBeNull()
+        ->and(AffiliateClaim::query()->count())->toBe(0);
 
     $result = ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true);
 
-    expect($result)->toBe(ShareGuestClaimResult::Claimed);
-    expect(signupAttributionRecordFor($invitee))->source_type->toBe(SignupAttributionSourceType::ShareGuest)
-        ->affiliate_id->toBe((string) $link->affiliate_id)
-        ->referrer_user_id->toBe((string) $claimant->getKey());
-    expect(signupAttributionRecordFor($claimant)->referrer_user_id)->toBeNull();
-    expect(Affiliate::query()->whereKey($link->affiliate_id)->firstOrFail()->owner_id)->toBeNull();
-    expect(confirmedSignupReferralAccountIds($claimant))->toBe([(string) $invitee->getKey()]);
+    expect($result)->toBe(ShareGuestClaimResult::Claimed)
+        ->and(signupAttributionRecordFor($invitee))->source_type->toBe(SignupAttributionSourceType::ShareGuest)->affiliate_id->toBe((string) $link->affiliate_id)->referrer_user_id->toBe((string) $claimant->getKey())
+        ->and(signupAttributionRecordFor($claimant)->referrer_user_id)->toBeNull()
+        ->and(Affiliate::query()->whereKey($link->affiliate_id)->firstOrFail()->owner_id)->toBeNull()
+        ->and(confirmedSignupReferralAccountIds($claimant))->toBe([(string) $invitee->getKey()]);
 
     $laterSignup = User::factory()->create();
     $laterAttribution = recordSignupAttribution($laterSignup, signupAcquisitionContext($guestSource));
@@ -239,8 +233,8 @@ it('rejects attempts to rewrite the recorded signup source through a model updat
     $attribution = signupAttributionRecordFor($user);
 
     expect(fn () => $attribution->update(['source_type' => SignupAttributionSourceType::ShareMember]))
-        ->toThrow(LogicException::class);
-    expect($attribution->fresh()->source_type)->toBe(SignupAttributionSourceType::Direct);
+        ->toThrow(LogicException::class)
+        ->and($attribution->fresh()->source_type)->toBe(SignupAttributionSourceType::Direct);
 });
 
 it('does not confirm an invite using verification that exists only on a stale user instance', function (): void {

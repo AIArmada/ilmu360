@@ -39,7 +39,7 @@ it('returns authenticated share analytics dashboard and link detail data for mob
     $shortLink = $this->get($shareUrl)->assertRedirect();
     $destinationUrl = (string) $shortLink->headers->get('Location');
 
-    expect($destinationUrl)->not->toBe('');
+    expect($destinationUrl)->not->toBeEmpty();
 
     $this->get($destinationUrl)->assertOk();
 

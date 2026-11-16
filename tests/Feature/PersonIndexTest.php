@@ -733,10 +733,7 @@ it('does not repeat status predicates across person search queries', function ()
 
     expect($personQueries)->not->toBeEmpty()
         ->and($personQueries->every(
-            static fn (string $query): bool => ! (
-                str_contains($query, '"status" =')
-                && str_contains($query, '"status" in')
-            ),
+            static fn (string $query): bool => !str_contains($query, '"status" =') || !str_contains($query, '"status" in'),
         ))->toBeTrue();
 });
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
-use App\Features\Institutions\Api\InstitutionLookup;
 use AIArmada\Persons\Enums\AffiliationType;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Models\Affiliation;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;

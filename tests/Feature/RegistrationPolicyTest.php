@@ -8,8 +8,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
-uses(RefreshDatabase::class);
-
 it('allows viewer members to list and view registrations in their institution scope', function () {
     $institution = Institution::factory()->create();
     $event = Event::factory()->create(['institution_id' => $institution->getKey()]);

@@ -8,8 +8,6 @@ use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     app(VisitorCountryResolver::class)->forget();
 });

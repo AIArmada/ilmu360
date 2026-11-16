@@ -79,7 +79,7 @@ it('derives a stable revision token from manifest bytes', function (): void {
 });
 
 it('verifies the real vendored asset directory', function (): void {
-    $verification = (new ShareCardFonts(shareCardFontsDir()))->verify();
+    $verification = new ShareCardFonts(shareCardFontsDir())->verify();
     $families = array_keys($verification['families']);
     sort($families);
     $expected = ShareCardFonts::ALL_FAMILIES;
@@ -88,16 +88,13 @@ it('verifies the real vendored asset directory', function (): void {
     expect($verification['ok'])->toBeTrue()
         ->and($verification['revision'])->toMatch('/^fonts-[0-9a-f]{16}$/')
         ->and($families)->toBe($expected)
-        ->and($verification['missing'])->toBe([])
-        ->and(implode("\n", $verification['notes']))->toContain('system fallback disabled');
-
-    foreach ($verification['families'] as $path) {
-        expect(is_file($path))->toBeTrue();
-    }
+        ->and($verification['missing'])->toBeEmpty()
+        ->and(implode("\n", $verification['notes']))->toContain('system fallback disabled')
+        ->and($verification['families'])->each->toBeFile();
 });
 
 it('fails verification for a missing directory or manifest', function (): void {
-    $missingDir = (new ShareCardFonts(shareCardFontsDir().'-does-not-exist'))->verify();
+    $missingDir = new ShareCardFonts(shareCardFontsDir().'-does-not-exist')->verify();
 
     expect($missingDir['ok'])->toBeFalse()
         ->and($missingDir['revision'])->toBe('unverified');
@@ -105,7 +102,7 @@ it('fails verification for a missing directory or manifest', function (): void {
     $empty = shareCardMakeTempDir();
 
     try {
-        $noManifest = (new ShareCardFonts($empty))->verify();
+        $noManifest = new ShareCardFonts($empty)->verify();
 
         expect($noManifest['ok'])->toBeFalse()
             ->and(implode("\n", $noManifest['missing']))->toContain('manifest');
@@ -120,14 +117,14 @@ it('fails verification for malformed manifests and size mismatches', function ()
     try {
         file_put_contents($directory.'/fonts.json', '{oops');
 
-        expect((new ShareCardFonts($directory))->verify()['ok'])->toBeFalse();
+        expect(new ShareCardFonts($directory)->verify()['ok'])->toBeFalse();
 
         file_put_contents($directory.'/x.ttf', 'abc');
         file_put_contents($directory.'/fonts.json', json_encode([
             'fonts' => [['family' => 'X', 'file' => 'x.ttf', 'bytes' => 5, 'sha256' => hash('sha256', 'abc')]],
         ]));
 
-        $mismatch = (new ShareCardFonts($directory))->verify();
+        $mismatch = new ShareCardFonts($directory)->verify();
 
         expect($mismatch['ok'])->toBeFalse()
             ->and(implode("\n", $mismatch['missing']))->toContain('size mismatch');
@@ -151,7 +148,7 @@ it('forbids unlisted font files in the asset directory', function (): void {
             ]],
         ]));
 
-        $verification = (new ShareCardFonts($directory))->verify();
+        $verification = new ShareCardFonts($directory)->verify();
 
         expect($verification['ok'])->toBeFalse()
             ->and(implode("\n", $verification['missing']))->toContain('Unlisted font file [evil.ttf]');

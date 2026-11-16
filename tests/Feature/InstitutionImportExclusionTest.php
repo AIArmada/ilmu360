@@ -6,8 +6,6 @@ use App\Models\InstitutionImportExclusion;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('records source-backed deletions as permanent exclusions', function () {
     $institution = Institution::factory()->create(['status' => InstitutionStatus::Verified->value]);
 

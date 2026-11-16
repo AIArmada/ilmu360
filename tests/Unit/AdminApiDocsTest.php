@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('documents validate-only remediation details in the admin api reference', function () {
     $markdown = file_get_contents(base_path('docs/ilmu360_mobile_api_reference.md')) ?: '';

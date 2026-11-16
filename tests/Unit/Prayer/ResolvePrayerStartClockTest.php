@@ -1,17 +1,17 @@
 <?php
 
+use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Prayer\Actions\BuildPrayerPreviewAction;
 use App\Features\Prayer\Actions\ResolvePrayerStartClockAction;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 function jakartaFajrDto(string $fajrUtc = '2026-10-14 21:40:00', string $ishaUtc = '2026-10-15 12:05:00'): PrayerTimesDTO
 {

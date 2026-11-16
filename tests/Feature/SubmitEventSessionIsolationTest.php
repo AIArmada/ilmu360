@@ -177,9 +177,8 @@ it('leaves the parent untouched while linking the session canonically', function
         ->and($eagerParent->classifications->pluck('event_term_id')->all())->toEqualCanonicalizing($parentClassificationTermIds)
         ->and($eagerParent->categoryClassifications->pluck('event_term_id')->all())->toEqualCanonicalizing($parentCategoryTermIds)
         ->and($eagerParent->references->pluck('id')->all())->toEqualCanonicalizing($parentReferenceIds)
-        ->and($eagerParent->eventReferences->pluck('id')->all())->toEqualCanonicalizing($parentEventReferenceIds);
-
-    expect($session->languages()->pluck('language_code')->all())->toBe(['ms'])
+        ->and($eagerParent->eventReferences->pluck('id')->all())->toEqualCanonicalizing($parentEventReferenceIds)
+        ->and($session->languages()->pluck('language_code')->all())->toBe(['ms'])
         ->and($session->classifications()->pluck('event_term_id')->all())->toContain((string) $this->domainTag->getKey())
         ->and($session->classifications()->pluck('event_term_id')->all())->toContain((string) $this->disciplineTag->getKey());
 });
@@ -314,9 +313,8 @@ it('removes failed session uploads while preserving the parent media', function 
             $model->addMedia(UploadedFile::fake()->image('session.png', 1600, 900))->toMediaCollection('cover', 'public');
             throw new RuntimeException('Session upload failure.');
         },
-    ))->toThrow(RuntimeException::class, 'Session upload failure.');
-
-    expect(EventSession::query()->where('event_id', $event->getKey())->count())->toBe(0)
+    ))->toThrow(RuntimeException::class, 'Session upload failure.')
+        ->and(EventSession::query()->where('event_id', $event->getKey())->count())->toBe(0)
         ->and($event->fresh()->media()->count())->toBe(1)
         ->and(Storage::disk('public')->allFiles())->toBe($parentFiles);
     Storage::disk('public')->assertExists($parentPath);
@@ -390,16 +388,14 @@ it('rejects foreign and terminal occurrences', function () {
         request: submitSessionRequest(),
         submitter: $owner,
         eventContainer: $event,
-    ))->toThrow(ValidationException::class, 'bukan milik majlis ini');
-
-    expect(fn () => app(SubmitFrontendEventAction::class)->handle(
+    ))->toThrow(ValidationException::class, 'bukan milik majlis ini')
+        ->and(fn() => app(SubmitFrontendEventAction::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, $base + ['event_occurrence_id' => (string) $cancelledOccurrence->getKey()]),
         request: submitSessionRequest(),
         submitter: $owner,
         eventContainer: $event,
-    ))->toThrow(ValidationException::class, 'tidak lagi menerima sesi');
-
-    expect(EventSession::query()->where('event_id', $event->getKey())->exists())->toBeFalse();
+    ))->toThrow(ValidationException::class, 'tidak lagi menerima sesi')
+        ->and(EventSession::query()->where('event_id', $event->getKey())->exists())->toBeFalse();
 });
 
 it('reports a missing session container as an event_id validation error', function (): void {
@@ -669,9 +665,8 @@ it('refuses to default to a terminal occurrence when no selection is given', fun
         request: submitSessionRequest(),
         submitter: $owner,
         eventContainer: $event,
-    ))->toThrow(ValidationException::class, 'tidak lagi menerima sesi baharu');
-
-    expect(EventSession::query()->where('event_id', $event->getKey())->exists())->toBeFalse();
+    ))->toThrow(ValidationException::class, 'tidak lagi menerima sesi baharu')
+        ->and(EventSession::query()->where('event_id', $event->getKey())->exists())->toBeFalse();
 });
 
 it('resolves the single eligible occurrence when the other dates are terminal', function () {

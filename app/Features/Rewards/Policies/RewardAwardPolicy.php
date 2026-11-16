@@ -80,6 +80,6 @@ class RewardAwardPolicy
     private function isRecipient(AccountActor $user, RewardAward $award): bool
     {
         return (string) $award->recipient_type === $user->actorType()
-            && (string) $award->recipient_id === (string) $user->actorId();
+            && (string) $award->recipient_id === $user->actorId();
     }
 }

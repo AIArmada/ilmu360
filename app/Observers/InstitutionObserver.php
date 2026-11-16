@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
+use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Institution;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;

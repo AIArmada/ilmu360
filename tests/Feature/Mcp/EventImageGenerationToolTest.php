@@ -73,8 +73,8 @@ it('uploads and stores an admin 16:9 event cover image via base64 descriptor', f
     $coverMedia = $event->fresh()->getFirstMedia('cover');
 
     expect($coverMedia)->toBeInstanceOf(Media::class)
-        ->and((string) $coverMedia->collection_name)->toBe('cover');
-    expect($coverMedia->getCustomProperty('chatgpt_file_id'))->toBe('file_cover_123');
+        ->and((string) $coverMedia->collection_name)->toBe('cover')
+        ->and($coverMedia->getCustomProperty('chatgpt_file_id'))->toBe('file_cover_123');
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetRecordActionsTool::class, [
@@ -245,9 +245,8 @@ it('exposes mutating and open-world metadata for event image upload tools', func
         'idempotentHint' => false,
         'destructiveHint' => true,
         'openWorldHint' => true,
-    ]);
-
-    expect($memberTool['annotations'] ?? [])->toMatchArray([
+    ])
+        ->and($memberTool['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => false,
         'idempotentHint' => false,
         'destructiveHint' => true,
@@ -415,7 +414,7 @@ it('embeds reference urls and title-driven ambience guidance in generated prompt
     $prompt = (string) data_get($result, 'payload.prompt', '');
     $firstReferenceUrl = (string) data_get($result, 'payload.reference_media.0.url', '');
 
-    expect($firstReferenceUrl)->not->toBe('')
+    expect($firstReferenceUrl)->not->toBeEmpty()
         ->and($prompt)->toContain('Selected reference media to attach/use:')
         ->and($prompt)->toContain('URL:')
         ->and($prompt)->toContain($firstReferenceUrl)
@@ -457,7 +456,7 @@ it('includes linked institution media fallback links when organizer is missing',
         ?? ''
     );
 
-    expect($expectedInstitutionAssetUrl)->not->toBe('');
+    expect($expectedInstitutionAssetUrl)->not->toBeEmpty();
 
     $promptHarness = new class
     {

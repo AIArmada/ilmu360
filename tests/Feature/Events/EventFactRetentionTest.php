@@ -14,8 +14,6 @@ use Spatie\DeletedModels\Models\DeletedModel;
 
 use function Pest\Laravel\assertDatabaseHas;
 
-uses(RefreshDatabase::class);
-
 it('retains event facts and detaches only the account links', function (): void {
     $user = User::factory()->create();
     $event = Event::factory()->create();

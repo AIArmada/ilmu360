@@ -1061,43 +1061,31 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
         'member-cancel-membership-application',
         'member-create-github-issue',
         'member-update-record',
-    );
-
-    expect($tools->keys()->all())->not->toContain('member-generate-event-cover-image', 'member-generate-event-poster-image');
-
-    expect($tools->keys()->all())->not->toContain('admin-list-resources', 'admin-list-records', 'member-read-debug-log');
-
-    expect($tools->keys()->all())->not->toContain(
-        'member-delete-record',
-        'member-delete',
-        'member-remove-record',
-    );
-
-    expect($tools->get('search')['securitySchemes'] ?? [])->toContainEqual([
+    )
+        ->and($tools->keys()->all())->not->toContain('member-generate-event-cover-image', 'member-generate-event-poster-image')
+        ->and($tools->keys()->all())->not->toContain('admin-list-resources', 'admin-list-records', 'member-read-debug-log')
+        ->and($tools->keys()->all())->not->toContain('member-delete-record', 'member-delete', 'member-remove-record')
+        ->and($tools->get('search')['securitySchemes'] ?? [])->toContainEqual([
         'type' => 'oauth2',
         'scopes' => ['mcp:use'],
-    ]);
-
-    expect($tools->get('fetch')['securitySchemes'] ?? [])->toContainEqual([
+    ])
+        ->and($tools->get('fetch')['securitySchemes'] ?? [])->toContainEqual([
         'type' => 'oauth2',
         'scopes' => ['mcp:use'],
     ])
         ->and($tools->get('fetch')['description'] ?? '')->toContain('not a url or file:// resource URI')
-        ->and(data_get($tools->get('fetch'), 'inputSchema.properties.id.description'))->toContain('Do not pass the document url');
-
-    expect(data_get($tools->get('search'), 'outputSchema.type'))->toBe('object');
-    expect(data_get($tools->get('search'), 'outputSchema.required'))->toBe(['results']);
-    expect(data_get($tools->get('search'), 'outputSchema.properties.results.type'))->toBe('array');
-    expect(data_get($tools->get('search'), 'outputSchema.properties.results.items.required'))->toBe(['id', 'title', 'url']);
-    expect(data_get($tools->get('search'), 'outputSchema.properties.results.items.properties.url.format'))->toBe('uri');
-
-    expect(data_get($tools->get('fetch'), 'outputSchema.type'))->toBe('object');
-    expect(data_get($tools->get('fetch'), 'outputSchema.required'))->toBe(['id', 'title', 'text', 'url', 'metadata']);
-    expect(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.type'))->toBe('object');
-    expect(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.required'))->toBe(['description', 'mime_type', 'resource_uri', 'relative_path', 'last_modified']);
-    expect(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.properties.last_modified.format'))->toBe('date-time');
-
-    expect($tools->get('member-list-resources')['annotations'] ?? [])->toMatchArray([
+        ->and(data_get($tools->get('fetch'), 'inputSchema.properties.id.description'))->toContain('Do not pass the document url')
+        ->and(data_get($tools->get('search'), 'outputSchema.type'))->toBe('object')
+        ->and(data_get($tools->get('search'), 'outputSchema.required'))->toBe(['results'])
+        ->and(data_get($tools->get('search'), 'outputSchema.properties.results.type'))->toBe('array')
+        ->and(data_get($tools->get('search'), 'outputSchema.properties.results.items.required'))->toBe(['id', 'title', 'url'])
+        ->and(data_get($tools->get('search'), 'outputSchema.properties.results.items.properties.url.format'))->toBe('uri')
+        ->and(data_get($tools->get('fetch'), 'outputSchema.type'))->toBe('object')
+        ->and(data_get($tools->get('fetch'), 'outputSchema.required'))->toBe(['id', 'title', 'text', 'url', 'metadata'])
+        ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.type'))->toBe('object')
+        ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.required'))->toBe(['description', 'mime_type', 'resource_uri', 'relative_path', 'last_modified'])
+        ->and(data_get($tools->get('fetch'), 'outputSchema.properties.metadata.properties.last_modified.format'))->toBe('date-time')
+        ->and($tools->get('member-list-resources')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => true,
         'idempotentHint' => true,
     ]);
@@ -1106,41 +1094,34 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
 
     expect($readOnlyTools->isNotEmpty())->toBeTrue()
         ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.destructiveHint') === false))->toBeTrue()
-        ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.openWorldHint') === false))->toBeTrue();
-
-    expect($tools->get('member-list-related-records')['annotations'] ?? [])->toMatchArray([
+        ->and($readOnlyTools->every(fn (array $tool): bool => data_get($tool, 'annotations.openWorldHint') === false))->toBeTrue()
+        ->and($tools->get('member-list-related-records')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => true,
         'idempotentHint' => true,
         'destructiveHint' => false,
         'openWorldHint' => false,
-    ]);
-
-    expect($tools->get('member-get-write-schema')['annotations'] ?? [])->toMatchArray([
+    ])
+        ->and($tools->get('member-get-write-schema')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => true,
         'idempotentHint' => true,
         'destructiveHint' => false,
         'openWorldHint' => false,
-    ]);
-
-    expect($tools->get('member-update-record')['annotations'] ?? [])->toMatchArray([
+    ])
+        ->and($tools->get('member-update-record')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => false,
         'idempotentHint' => false,
         'destructiveHint' => false,
         'openWorldHint' => false,
-    ]);
-
-    expect($tools->get('member-create-github-issue')['annotations'] ?? [])->toMatchArray([
+    ])
+        ->and($tools->get('member-create-github-issue')['annotations'] ?? [])->toMatchArray([
         'readOnlyHint' => false,
         'idempotentHint' => false,
         'destructiveHint' => false,
         'openWorldHint' => true,
-    ]);
-
-    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.type'))->toBe('array');
-    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.minItems'))
-        ->toBe(1);
-    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.maxItems'))
-        ->toBe(8);
+    ])
+        ->and(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.type'))->toBe('array')
+        ->and(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.minItems'))->toBe(1)
+        ->and(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.maxItems'))->toBe(8);
 
     $evidenceVariants = data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.anyOf');
 
@@ -1264,16 +1245,7 @@ it('initializes and lists member MCP tools over the HTTP endpoint', function () 
         'member-cancel-membership-application',
         'member-create-github-issue',
         'member-update-record',
-    );
-
-    expect($toolNames)->not->toContain('member-generate-event-cover-image', 'member-generate-event-poster-image');
-
-    expect($toolNames)->not->toContain(
-        'member-delete-record',
-        'member-delete',
-        'member-remove-record',
-        'member-read-debug-log',
-    );
+    )->not->toContain('member-generate-event-cover-image', 'member-generate-event-poster-image')->not->toContain('member-delete-record', 'member-delete', 'member-remove-record', 'member-read-debug-log');
 
     $unavailableDebugLogCall = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
@@ -1446,11 +1418,11 @@ it('auto-injects guide on first member operational call and allows the retry', f
         ],
     ])->assertOk();
 
-    expect($firstCall->json('result.isError'))->toBeFalse();
-    expect($firstCall->json('result.structuredContent.action'))->toBe('documentation_preflight_injected');
-    expect($firstCall->json('result.structuredContent.document.id'))->toBe(MemberMcpDocumentationPreflight::GUIDE_DOCUMENT_ID);
-    expect($firstCall->json('result.structuredContent.retry.tool_name'))->toBe('member-list-records');
-    expect($firstCall->json('result.content.0.text'))->toContain('Guide auto-loaded');
+    expect($firstCall->json('result.isError'))->toBeFalse()
+        ->and($firstCall->json('result.structuredContent.action'))->toBe('documentation_preflight_injected')
+        ->and($firstCall->json('result.structuredContent.document.id'))->toBe(MemberMcpDocumentationPreflight::GUIDE_DOCUMENT_ID)
+        ->and($firstCall->json('result.structuredContent.retry.tool_name'))->toBe('member-list-records')
+        ->and($firstCall->json('result.content.0.text'))->toContain('Guide auto-loaded');
 
     $allowedCall = $this->withToken($token)->postJson('/mcp/member', [
         'jsonrpc' => '2.0',
@@ -1462,8 +1434,8 @@ it('auto-injects guide on first member operational call and allows the retry', f
         ],
     ])->assertOk();
 
-    expect($allowedCall->json('result.isError'))->toBeFalse();
-    expect($allowedCall->json('result.structuredContent.data.resources'))->toBeArray();
+    expect($allowedCall->json('result.isError'))->toBeFalse()
+        ->and($allowedCall->json('result.structuredContent.data.resources'))->toBeArray();
 });
 
 it('lists and reads the documentation routing prompt through the member MCP server', function () {
@@ -1510,8 +1482,8 @@ it('lists and reads the documentation routing prompt through the member MCP serv
 
     $prompts = collect($listPrompts->json('result.prompts'))->keyBy('name');
 
-    expect($prompts->keys()->all())->toContain('documentation-tool-routing');
-    expect($prompts->get('documentation-tool-routing'))->toMatchArray([
+    expect($prompts->keys()->all())->toContain('documentation-tool-routing')
+        ->and($prompts->get('documentation-tool-routing'))->toMatchArray([
         'title' => 'Documentation Tool Routing',
         'description' => 'Short guidance for deciding when to use the verified member documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.',
         'arguments' => [
@@ -1535,13 +1507,13 @@ it('lists and reads the documentation routing prompt through the member MCP serv
         ],
     ])->assertOk();
 
-    expect($getPrompt->json('result.description'))->toBe('Short guidance for deciding when to use the verified member documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Before the first ilmu360 member MCP operational tool call for runtime reads, search, lookup, listing, metadata inspection, relation traversal, write-schema discovery, preview, write, or workflow actions, ensure the verified guide is already in context.');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('a fresh docs fetch may be skipped only when the fetched guide is already active in context');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Use `fetch` first');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Search `institutions` first when the noun matches an institution type');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Topic-specific guidance for "media uploads":');
-    expect($getPrompt->json('result.messages.0.content.text'))->toContain('Fetch `docs-member-mcp-guide` and focus on the MCP media/file upload contract and preview rules sections.');
+    expect($getPrompt->json('result.description'))->toBe('Short guidance for deciding when to use the verified member documentation search and fetch tools exposed by this server, with an optional topic hint for more targeted advice.')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Before the first ilmu360 member MCP operational tool call for runtime reads, search, lookup, listing, metadata inspection, relation traversal, write-schema discovery, preview, write, or workflow actions, ensure the verified guide is already in context.')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('a fresh docs fetch may be skipped only when the fetched guide is already active in context')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Use `fetch` first')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Search `institutions` first when the noun matches an institution type')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Topic-specific guidance for "media uploads":')
+        ->and($getPrompt->json('result.messages.0.content.text'))->toContain('Fetch `docs-member-mcp-guide` and focus on the MCP media/file upload contract and preview rules sections.');
 
     MemberServer::actingAs($member)
         ->completion(MemberDocumentationToolRoutingPrompt::class, 'topic', 'ru')
@@ -1594,9 +1566,9 @@ it('lists and reads verified documentation resources through the member MCP serv
 
     $resources = collect($listResources->json('result.resources'))->keyBy('name');
 
-    expect($resources->keys()->all())->toContain('docs-member-mcp-guide');
-    expect($resources->keys()->all())->not->toContain('docs-crud-capability-matrix');
-    expect($resources->get('docs-member-mcp-guide'))->toMatchArray([
+    expect($resources->keys()->all())->toContain('docs-member-mcp-guide')
+        ->and($resources->keys()->all())->not->toContain('docs-crud-capability-matrix')
+        ->and($resources->get('docs-member-mcp-guide'))->toMatchArray([
         'uri' => 'file://docs/ilmu360_mcp_member_agent_guide.md',
         'mimeType' => 'text/markdown',
     ]);

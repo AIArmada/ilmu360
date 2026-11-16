@@ -3,8 +3,8 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
-use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Forms\PersonFormSchema;
 use App\Models\ContributionRequest;
@@ -25,8 +25,6 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(EventRoleSeeder::class);

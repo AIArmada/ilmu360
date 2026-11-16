@@ -35,7 +35,7 @@ class RewardBenefitGrantPolicy
             return true;
         }
 
-        return (string) $user->actorId() === $recipientId;
+        return $user->actorId() === $recipientId;
     }
 
     public function cancel(AccountActor $user, RewardBenefitGrant $grant): bool
@@ -69,6 +69,6 @@ class RewardBenefitGrantPolicy
     private function isRecipient(AccountActor $user, RewardBenefitGrant $grant): bool
     {
         return (string) $grant->recipient_type === $user->actorType()
-            && (string) $grant->recipient_id === (string) $user->actorId();
+            && (string) $grant->recipient_id === $user->actorId();
     }
 }

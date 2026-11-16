@@ -2,8 +2,8 @@
 
 namespace App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\Tables;
 
-use App\Features\Ai\Models\AiModelPricing;
 use App\Features\Ai\Actions\DeleteAiModelPricingsAction;
+use App\Features\Ai\Models\AiModelPricing;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

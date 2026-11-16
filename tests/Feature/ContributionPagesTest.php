@@ -69,7 +69,7 @@ function giveContributionPagesInstitutionMapsPlace(Institution $institution, str
 {
     $address = $institution->primaryAddress();
 
-    if ($address === null) {
+    if (!$address instanceof \AIArmada\Addressing\Models\Address) {
         return;
     }
 
@@ -472,7 +472,7 @@ it('stores person affiliations from the dedicated person contribution page', fun
     expect($person->status)->toBe('pending')
         ->and($affiliatedInstitution)->not->toBeNull()
         ->and($affiliatedInstitution?->pivot?->position)->toBe('Mudir')
-        ->and((bool) $affiliatedInstitution?->pivot?->is_primary)->toBeTrue();
+        ->and($affiliatedInstitution?->pivot?->is_primary)->toBeTruthy();
 });
 
 it('renders the institution contribution submission success page', function () {
@@ -893,7 +893,7 @@ it('stages visitor person media on a pending contribution request and applies it
     expect($person->fresh()->getFirstMedia('cover'))
         ->not->toBeNull()
         ->and($person->fresh()->getFirstMedia('cover')->file_name)->toBe('visitor-cover.jpg')
-        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+        ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
 it('preserves the original person avatar when a visitor replaces it and the request is rejected', function () {
@@ -962,7 +962,7 @@ it('replaces the original person avatar when a visitor replacement is approved',
     expect($person->fresh()->getMedia('avatar'))->toHaveCount(1)
         ->and($person->fresh()->getFirstMedia('avatar')->uuid)->not->toBe($originalUuid)
         ->and(Media::where('uuid', $originalUuid)->exists())->toBeFalse()
-        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+        ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
 it('preserves the original reference front cover when a visitor replaces it and the request is rejected', function () {
@@ -1030,7 +1030,7 @@ it('replaces the original reference front cover when a visitor replacement is ap
     expect($reference->fresh()->getMedia('front_cover'))->toHaveCount(1)
         ->and($reference->fresh()->getFirstMedia('front_cover')->uuid)->not->toBe($originalUuid)
         ->and(Media::where('uuid', $originalUuid)->exists())->toBeFalse()
-        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+        ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
 it('lets a visitor submit an event update without the normally required event fields', function () {
@@ -1227,7 +1227,7 @@ it('stages visitor event media on a pending contribution request and applies it 
     expect($event->fresh()->getFirstMedia('cover'))
         ->not->toBeNull()
         ->and($event->fresh()->getFirstMedia('cover')->file_name)->toBe('visitor-event-cover.jpg')
-        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+        ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
 it('hydrates the selected person institution label even when the institution is not public', function () {
@@ -1344,8 +1344,8 @@ it('applies direct person affiliation edits for owner maintainers from the sugge
         ->not->toContain($currentInstitution->id)
         ->and($newAffiliation)->not->toBeNull()
         ->and($newAffiliation?->pivot?->position)->toBe('Mudir')
-        ->and((bool) $newAffiliation?->pivot?->is_primary)->toBeTrue()
-        ->and((bool) $secondaryAffiliation?->pivot?->is_primary)->toBeFalse()
+        ->and($newAffiliation?->pivot?->is_primary)->toBeTruthy()
+        ->and($secondaryAffiliation?->pivot?->is_primary)->toBeFalsy()
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 

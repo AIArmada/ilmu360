@@ -12,7 +12,7 @@ use App\Platform\Cache\CacheVersionStore;
 use App\Platform\Cache\VersionedCache;
 use Closure;
 
-final class SelectionCatalogCache
+final readonly class SelectionCatalogCache
 {
     private const int CATALOG_TTL_SECONDS = 86400;
 
@@ -25,9 +25,9 @@ final class SelectionCatalogCache
     private const string EVENT_CATEGORIES_VERSION_KEY = 'selection_catalog:event_categories:version:v1';
 
     public function __construct(
-        private readonly EventTaxonomyHierarchy $eventTaxonomyHierarchy,
-        private readonly CacheVersionStore $cacheVersions,
-        private readonly VersionedCache $versionedCache,
+        private EventTaxonomyHierarchy $eventTaxonomyHierarchy,
+        private CacheVersionStore $cacheVersions,
+        private VersionedCache $versionedCache,
     ) {}
 
     /**

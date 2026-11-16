@@ -1,10 +1,5 @@
 <?php
 
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Pages\Events\Index;
 use App\Livewire\Pages\SubmitEvent\Create;
@@ -14,6 +9,11 @@ use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionNameType;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Submission\SubmitEventOptionsProvider;
 use App\Support\Submission\SubmitEventPrefill;

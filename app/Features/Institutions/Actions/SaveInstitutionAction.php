@@ -40,7 +40,7 @@ final readonly class SaveInstitutionAction
      */
     public function handle(array $data, Model&AccountActor $actor, ?Institution $institution = null, string $validationErrorKey = 'allow_public_event_submission'): Institution
     {
-        $creating = $institution === null;
+        $creating = !$institution instanceof \App\Models\Institution;
         $institution ??= new Institution;
 
         $previousFacilities = $creating ? null : $this->facilitiesValue($institution->getAttribute('own_facilities'));

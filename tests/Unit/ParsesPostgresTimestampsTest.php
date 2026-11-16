@@ -4,7 +4,7 @@ use Tests\Support\NativeDateModel;
 use Tests\Support\OptimizedDateModel;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('parses identically to native Laravel across timestamp shapes', function (string $value) {
     $native = (new NativeDateModel)->parseDate($value);

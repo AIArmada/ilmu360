@@ -6,8 +6,6 @@ use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 function dietInstitutionSelectField($component): Select
 {
     $field = collect($component->instance()->getForm('form')->getFlatFields())

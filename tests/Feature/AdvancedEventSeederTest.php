@@ -4,18 +4,16 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpaceType;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Space;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use Database\Seeders\AdvancedEventSeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Database\Seeders\EventSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 it('seeds package occurrences sessions roles and prayer expressions', function (): void {
     $this->seed(FoundationSeeder::class);

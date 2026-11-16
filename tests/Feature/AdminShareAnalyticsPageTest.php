@@ -243,9 +243,9 @@ it('resolves a single global tracked property for all surfaces', function () {
         ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
         ->first();
 
-    expect($default)->not->toBeNull();
-    expect($default?->getKey())->toBe($property->getKey());
-    expect($default?->slug)->toBe('ilmu360');
+    expect($default)->not->toBeNull()
+        ->and($default?->getKey())->toBe($property->getKey())
+        ->and($default?->slug)->toBe('ilmu360');
 });
 
 it('keeps cached product signal timestamps in the viewer timezone', function () {

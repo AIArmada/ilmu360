@@ -211,7 +211,7 @@ it('records and reverses the series follow through the engagement share outcomes
             array $metadata,
             ?CarbonInterface $occurredAt,
         ) use (&$recorded): bool {
-            $recorded = compact('type', 'followId', 'subject', 'actor', 'receivedRequest', 'metadata', 'occurredAt');
+            $recorded = ['type' => $type, 'followId' => $followId, 'subject' => $subject, 'actor' => $actor, 'receivedRequest' => $receivedRequest, 'metadata' => $metadata, 'occurredAt' => $occurredAt];
 
             return true;
         });
@@ -223,7 +223,7 @@ it('records and reverses the series follow through the engagement share outcomes
             string $reason,
             ?Authenticatable $actor,
         ) use (&$reversed): bool {
-            $reversed = compact('type', 'followId', 'reason', 'actor');
+            $reversed = ['type' => $type, 'followId' => $followId, 'reason' => $reason, 'actor' => $actor];
 
             return true;
         });

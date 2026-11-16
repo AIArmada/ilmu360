@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Models\ShareOutcomeCorrection;
@@ -15,7 +17,7 @@ class ShareOutcomeCorrectionFactory extends Factory
     {
         return [
             'conversion_id' => (string) Str::uuid(),
-            'business_key' => 'share-outcome:signup:user:'.((string) Str::uuid()),
+            'business_key' => 'share-outcome:signup:user:'.(Str::uuid()),
             'reason' => 'registration_cancelled',
             'actor_type' => null,
             'actor_id' => null,

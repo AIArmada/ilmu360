@@ -112,7 +112,7 @@ function lcrRequest(RewardAward $award, string $memberId, string $method, string
         $request, 'user', $approver, 'staff', 'finance-ok', CarbonImmutable::parse('2026-06-17T01:00:00Z'),
     );
 
-    return [$request, compact('staff', 'verifier', 'requester', 'approver')];
+    return [$request, ['staff' => $staff, 'verifier' => $verifier, 'requester' => $requester, 'approver' => $approver]];
 }
 
 /**
@@ -156,7 +156,7 @@ function lcrSubmitCancelCase(TestCase $testCase): void
         // the manual submission won (Submitted + 500 reserved, cancel
         // released it) or the cancel won (Cancelled + released, submit
         // aborted). Never a spend on the manual rail.
-        expect(in_array($final, [RewardPayoutRequestStatus::Submitted, RewardPayoutRequestStatus::Cancelled], true))->toBeTrue()
+        expect($final)->toBeIn([RewardPayoutRequestStatus::Submitted, RewardPayoutRequestStatus::Cancelled])
             ->and(RewardBudgetMovement::query()
                 ->where('program_id', (string) $program->getKey())
                 ->where('kind', RewardBudgetMovementKind::Spend->value)

@@ -26,15 +26,13 @@ use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 function rw0PlannerThrowing(Throwable $planFailure, ?Throwable $cancelFailure = null): RewardGratitudePlanner
 {
-    return new class($planFailure, $cancelFailure) implements RewardGratitudePlanner
+    return new readonly class($planFailure, $cancelFailure) implements RewardGratitudePlanner
     {
         public function __construct(
-            private readonly Throwable $planFailure,
-            private readonly ?Throwable $cancelFailure,
+            private Throwable $planFailure,
+            private ?Throwable $cancelFailure,
         ) {}
 
         public function planFor(string $recipientType, string $recipientId, array $channels, CarbonImmutable $at): void
@@ -78,7 +76,7 @@ it('aborts the evaluation when the planner fails outside the refusal contract', 
         new RuntimeException('digest infrastructure unavailable'),
     ));
 
-    expect(fn () => (new EvaluateRewardEntitlementAction($reader))->handle(
+    expect(fn () => new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Points, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         $source, CarbonImmutable::parse('2026-06-15T10:00:00Z'),
     ))->toThrow(RuntimeException::class, 'digest infrastructure unavailable');
@@ -107,7 +105,7 @@ it('aborts the reversal when cancelPendingFor fails because there is no try/catc
         new RuntimeException('digest cancellation unavailable'),
     ));
 
-    expect(fn () => (new TransitionRewardAwardAction(null, $reader))->handle(
+    expect(fn () => new TransitionRewardAwardAction(null, $reader)->handle(
         $award, RewardAwardStatus::Reversed, 'user', RewardLedgerFixtures::staffId(), 'staff',
         'source-invalid', null, null, CarbonImmutable::parse('2026-06-15T12:00:00Z'),
     ))->toThrow(RuntimeException::class, 'digest cancellation unavailable');

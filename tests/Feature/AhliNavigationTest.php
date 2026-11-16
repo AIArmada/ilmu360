@@ -1,15 +1,13 @@
 <?php
 
-use App\Filament\Resources\Events\EventResource;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource;
 use App\Filament\Pages\AhliDashboard;
+use App\Filament\Resources\Events\EventResource;
 use App\Models\Institution;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 it('removes the ahli workspace wrapper and makes events the ahli navigation anchor', function () {
     app()->setLocale('en');
@@ -51,10 +49,9 @@ it('removes the ahli workspace wrapper and makes events the ahli navigation anch
         fn ($item) => $item->getLabel() === 'Events'
     );
 
-    expect($eventsItem)->not->toBeNull();
-    expect(EventResource::getNavigationGroup())->toBe('Events');
-    expect(InstitutionResource::getNavigationGroup())->toBeNull();
-    expect(InstitutionResource::getNavigationParentItem())->toBe('Events');
-    expect($topLevelItems->map(fn ($item) => $item->getLabel())->all())
-        ->not->toContain('Ahli Workspace');
+    expect($eventsItem)->not->toBeNull()
+        ->and(EventResource::getNavigationGroup())->toBe('Events')
+        ->and(InstitutionResource::getNavigationGroup())->toBeNull()
+        ->and(InstitutionResource::getNavigationParentItem())->toBe('Events')
+        ->and($topLevelItems->map(fn ($item) => $item->getLabel())->all())->not->toContain('Ahli Workspace');
 });

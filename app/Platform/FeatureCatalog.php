@@ -10,7 +10,7 @@ use RuntimeException;
 final class FeatureCatalog
 {
     /** @var list<string> */
-    private const ROOT_STORE_WRITER_PREFIXES = [
+    private const array ROOT_STORE_WRITER_PREFIXES = [
         'App\\Console\\Commands\\',
         'App\\Filament\\Pages\\',
         'App\\Platform\\',
@@ -143,16 +143,7 @@ final class FeatureCatalog
             if (isset($writes[$class])) {
                 throw new RuntimeException("Root store writer collides with feature writer: {$class}");
             }
-
-            $isAllowedNamespace = false;
-
-            foreach (self::ROOT_STORE_WRITER_PREFIXES as $prefix) {
-                if (str_starts_with($class, $prefix)) {
-                    $isAllowedNamespace = true;
-
-                    break;
-                }
-            }
+            $isAllowedNamespace = array_any(self::ROOT_STORE_WRITER_PREFIXES, fn($prefix) => str_starts_with($class, $prefix));
 
             if (! $isAllowedNamespace) {
                 throw new RuntimeException("Root store writer must use an allowlisted non-feature namespace: {$class}");

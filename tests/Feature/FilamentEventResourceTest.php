@@ -60,14 +60,10 @@ it('exposes the event domain graph on the admin edit resource', function (): voi
 
     expect(EventResource::getRelations())
         ->toContain(TicketTypesRelationManager::class)
-        ->toContain(SeatMapsRelationManager::class);
-
-    expect(EventOccurrenceResource::getRelations())
-        ->toContain(TicketTypesRelationManager::class)
-        ->toContain(SeatMapsRelationManager::class);
-
-    expect(EventSessionResource::getRelations())
-        ->toContain(TicketTypesRelationManager::class)
+        ->toContain(SeatMapsRelationManager::class)
+        ->and(EventOccurrenceResource::getRelations())->toContain(TicketTypesRelationManager::class)
+        ->toContain(SeatMapsRelationManager::class)
+        ->and(EventSessionResource::getRelations())->toContain(TicketTypesRelationManager::class)
         ->toContain(SeatMapsRelationManager::class);
 
     $this->actingAs($administrator)

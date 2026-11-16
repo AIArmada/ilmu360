@@ -7,8 +7,6 @@ use App\Features\Events\Actions\Authoring\SyncEventSeatMapsAction;
 use App\Models\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('reassigns selected seat maps and deletes unselected maps', function (): void {
     $event = Event::factory()->create();
     $otherEvent = Event::factory()->create();

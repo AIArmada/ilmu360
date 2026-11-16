@@ -50,8 +50,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 function createVisibleEventForSearch(array $attributes = []): Event
 {
     return Event::factory()->create(array_merge([
@@ -826,8 +824,8 @@ describe('Event Search Filters', function () {
         ]));
 
         $defaultResponse->assertOk();
-        expect($defaultResponse->getContent())->not->toMatch(hiddenAttributeRegexForTestId('near-me-button'));
-        expect($defaultResponse->getContent())->toMatch(hiddenAttributeRegexForTestId('nearby-radius-inline'));
+        expect($defaultResponse->getContent())->not->toMatch(hiddenAttributeRegexForTestId('near-me-button'))
+            ->and($defaultResponse->getContent())->toMatch(hiddenAttributeRegexForTestId('nearby-radius-inline'));
 
         $grantedResponse = $this
             ->withUnencryptedCookie(PublicGeolocationPermission::COOKIE_NAME, '1')
@@ -837,8 +835,8 @@ describe('Event Search Filters', function () {
             ]));
 
         $grantedResponse->assertOk();
-        expect($grantedResponse->getContent())->not->toMatch(hiddenAttributeRegexForTestId('near-me-button'));
-        expect($grantedResponse->getContent())->not->toMatch(hiddenAttributeRegexForTestId('nearby-radius-inline'));
+        expect($grantedResponse->getContent())->not->toMatch(hiddenAttributeRegexForTestId('near-me-button'))
+            ->and($grantedResponse->getContent())->not->toMatch(hiddenAttributeRegexForTestId('nearby-radius-inline'));
     });
 
     it('hides the nearby radius until geolocation permission is granted', function () {
@@ -2224,8 +2222,8 @@ describe('Event Search Filters', function () {
 
     it('requires combined location filters to match the same package address', function () {
         $country = ensureMalaysiaCountryForTests();
-        $venueGeography = createTestPackageGeography('Selangor', 'Petaling '.uniqid(), 'Petaling City', country: $country, cityName: 'Petaling Jaya');
-        $institutionGeography = createTestPackageGeography('Johor', 'Johor Bahru '.uniqid(), 'Johor Bahru City', country: $country, cityName: 'Johor Bahru');
+        $venueGeography = createTestPackageGeography('Selangor', 'Petaling '.uniqid(), 'Petaling City', cityName: 'Petaling Jaya', country: $country);
+        $institutionGeography = createTestPackageGeography('Johor', 'Johor Bahru '.uniqid(), 'Johor Bahru City', cityName: 'Johor Bahru', country: $country);
 
         $venue = Venue::factory()->create();
         updatePrimaryAddressForSearch($venue, [
@@ -2258,8 +2256,8 @@ describe('Event Search Filters', function () {
 
     it('uses the institution address for an institution event with a specific venue space', function () {
         $country = ensureMalaysiaCountryForTests();
-        $institutionGeography = createTestPackageGeography('Selangor', 'Petaling '.uniqid(), 'Shah Alam Place', country: $country, cityName: 'Shah Alam');
-        $venueGeography = createTestPackageGeography('Johor', 'Johor Bahru '.uniqid(), 'Johor Place', country: $country, cityName: 'Johor Bahru');
+        $institutionGeography = createTestPackageGeography('Selangor', 'Petaling '.uniqid(), 'Shah Alam Place', cityName: 'Shah Alam', country: $country);
+        $venueGeography = createTestPackageGeography('Johor', 'Johor Bahru '.uniqid(), 'Johor Place', cityName: 'Johor Bahru', country: $country);
 
         $institution = Institution::factory()->create(['status' => 'verified']);
         updatePrimaryAddressForSearch($institution, $institutionGeography['address']);
@@ -3258,8 +3256,7 @@ describe('Event Search Filters', function () {
 
         $eventTitles = collect($events->items())->pluck('title')->all();
 
-        expect($eventTitles)->toContain('Nearby Event');
-        expect($eventTitles)->not->toContain('Far Event');
+        expect($eventTitles)->toContain('Nearby Event')->not->toContain('Far Event');
 
         $nearest = collect($events->items())->first();
 
@@ -3310,8 +3307,7 @@ describe('Event Search Filters', function () {
 
         $eventTitles = collect($events->items())->pluck('title')->all();
 
-        expect($eventTitles)->toContain('Nearby Institution Event');
-        expect($eventTitles)->not->toContain('Far Institution Event');
+        expect($eventTitles)->toContain('Nearby Institution Event')->not->toContain('Far Institution Event');
 
         $nearest = collect($events->items())->firstWhere('title', 'Nearby Institution Event');
 

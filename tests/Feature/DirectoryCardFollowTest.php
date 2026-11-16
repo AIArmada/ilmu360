@@ -44,7 +44,7 @@ function d4dCardConversionStatus(AffiliateConversion $conversion): string
     $status = $conversion->status;
 
     return $status instanceof ConversionStatus
-        ? (string) $status->getValue()
+        ? $status->getValue()
         : (string) $status;
 }
 

@@ -52,7 +52,7 @@ try {
     $config = RealDriverFixture::connectionConfig();
     RealDriverFixture::guardBaseConfig($config);
 } catch (Throwable $exception) {
-    $fail(get_class($exception).': '.$exception->getMessage());
+    $fail($exception::class.': '.$exception->getMessage());
 }
 
 echo json_encode([

@@ -16,7 +16,6 @@ use AIArmada\FilamentRewards\Resources\RewardPayeeResource\RewardPayeeResource;
 use AIArmada\FilamentRewards\Resources\RewardPayoutResource\RewardPayoutResource;
 use AIArmada\FilamentRewards\Resources\RewardProgramResource\RewardProgramResource;
 use AIArmada\FilamentRewards\Resources\RewardRecoveryResource\RewardRecoveryResource;
-use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Rewards\Models\RewardAppeal;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardBenefitGrant;
@@ -26,6 +25,7 @@ use AIArmada\Rewards\Models\RewardPayee;
 use AIArmada\Rewards\Models\RewardPayoutRequest;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardRecovery;
+use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Rewards\EntryPoints\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Features\Rewards\FeatureServiceProvider as RewardsFeatureServiceProvider;
 use App\Features\Rewards\Policies\RewardAppealPolicy;
@@ -50,8 +50,6 @@ use Illuminate\Support\Facades\Gate;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;
-
-uses(RefreshDatabase::class);
 
 /**
  * @return array<string, string> Relative app PHP path => contents.
@@ -90,9 +88,9 @@ it('discovers the Rewards feature with the digest-slot claim and registers its p
         'name' => 'Rewards',
         'owns' => [
             'table:reward_digest_slots' => [
-                'App\\Features\\Rewards\\Actions\\GratitudeDigests\\PlanRewardGratitudeDigestAction',
-                'App\\Features\\Rewards\\Actions\\GratitudeDigests\\DispatchDueRewardDigestsAction',
-                'App\\Features\\Rewards\\Actions\\GratitudeDigests\\CancelRewardDigestAction',
+                \App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction::class,
+                \App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction::class,
+                \App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction::class,
             ],
         ],
     ]);
@@ -121,7 +119,7 @@ it('discovers the Rewards feature with the digest-slot claim and registers its p
 });
 
 it('documents active integrations and package-canonical ownership', function (): void {
-    $docblock = (string) (new ReflectionClass(RewardsFeatureServiceProvider::class))->getDocComment();
+    $docblock = (string) new ReflectionClass(RewardsFeatureServiceProvider::class)->getDocComment();
 
     expect($docblock)->toContain('GratitudeDigest')
         ->and($docblock)->toContain('ShareGratitudeDigestMessages')
@@ -142,8 +140,8 @@ it('documents active integrations and package-canonical ownership', function ():
 });
 
 it('keeps member reward presentation feature-local and the readers uncached', function (): void {
-    $presenterPath = (string) (new ReflectionClass(RewardMemberPresenter::class))->getFileName();
-    $payoutMethodsPath = (string) (new ReflectionClass(RewardPayoutMethods::class))->getFileName();
+    $presenterPath = (string) new ReflectionClass(RewardMemberPresenter::class)->getFileName();
+    $payoutMethodsPath = (string) new ReflectionClass(RewardPayoutMethods::class)->getFileName();
 
     expect($presenterPath)->toEndWith('/app/Features/Rewards/Support/RewardMemberPresenter.php')
         ->and($payoutMethodsPath)->toEndWith('/app/Features/Rewards/Support/RewardPayoutMethods.php')
@@ -243,7 +241,7 @@ it('denies generic admin API mutation for every reward Filament resource', funct
     $tools = $server->getDefaultProperties()['tools'];
     $instructions = $server->getAttributes(Laravel\Mcp\Server\Attributes\Instructions::class)[0]->getArguments()[0];
 
-    expect(array_values(array_filter($tools, static fn (string $tool): bool => str_contains($tool, 'Reward'))))->toBe([])
+    expect(array_values(array_filter($tools, static fn (string $tool): bool => str_contains($tool, 'Reward'))))->toBeEmpty()
         ->and($instructions)->toContain('Reward resources are read-only through the generic admin API and MCP')
         ->and($instructions)->toContain('must call an AIArmada\\Rewards package Action through the Rewards feature');
 
@@ -257,7 +255,7 @@ it('denies generic admin API mutation for every reward Filament resource', funct
         }
     }
 
-    expect($appRewardResources)->toBe([]);
+    expect($appRewardResources)->toBeEmpty();
 });
 
 it('has no app writes to package reward tables', function (): void {
@@ -292,7 +290,7 @@ it('has no app writes to package reward tables', function (): void {
         }
     }
 
-    expect($violations)->toBe([]);
+    expect($violations)->toBeEmpty();
 });
 
 it('writes reward_digest_slots only through the three feature digest actions', function (): void {

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Support\Membership;
 
 use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Persons\Api\PersonLookup;
-use App\Features\References\Api\ReferenceLookup;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubject;

@@ -23,8 +23,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
@@ -101,8 +99,8 @@ it('publishes every mode from structured controls without hand-written JSON', fu
 
     $payload = RewardPublishAssembler::assemble($mode, operabilityFormData($mode));
 
-    expect((new RewardRuleValidator)->errors($payload['rules'], $mode, (string) $program->family_key))->toBe([])
-        ->and((new RewardRuleValidator)->termsErrors($payload['terms'], $payload['rules']))->toBe([]);
+    expect((new RewardRuleValidator)->errors($payload['rules'], $mode, (string) $program->family_key))->toBeEmpty()
+        ->and((new RewardRuleValidator)->termsErrors($payload['terms'], $payload['rules']))->toBeEmpty();
 
     $version = PublishRewardProgramVersionAction::run(
         $program,
@@ -115,7 +113,7 @@ it('publishes every mode from structured controls without hand-written JSON', fu
     );
 
     expect((int) $version->version)->toBe(1)
-        ->and((string) $version->material_terms_hash)->not->toBe('');
+        ->and((string) $version->material_terms_hash)->not->toBeEmpty();
 })->with(RewardProgramMode::cases());
 
 it('accepts Livewire-dehydrated whole floats as the integers typed', function () {
@@ -129,7 +127,7 @@ it('accepts Livewire-dehydrated whole floats as the integers typed', function ()
 
     expect($payload['rules']['components'][0]['points'])->toBe(10)
         ->and($payload['rules']['windows']['preclaim_lookback_days'])->toBe(30)
-        ->and((new RewardRuleValidator)->errors($payload['rules'], RewardProgramMode::Points, 'op-float'))->toBe([]);
+        ->and((new RewardRuleValidator)->errors($payload['rules'], RewardProgramMode::Points, 'op-float'))->toBeEmpty();
 });
 
 it('refuses to publish with no enabled component', function () {

@@ -28,8 +28,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 it('displays the homepage successfully', function () {
     $response = $this->get('/');
 

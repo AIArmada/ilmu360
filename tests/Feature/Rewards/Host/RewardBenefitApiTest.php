@@ -14,8 +14,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 it('serves the member benefit catalog, redemption, grants, use, and cancel flow', function () {
     [$program, $version] = RewardLedgerFixtures::seedVersionedProgram('api-ben', RewardProgramMode::Points);
     TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Ready);

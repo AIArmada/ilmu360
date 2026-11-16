@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Platform\Http\FrontendController;
 use AIArmada\Organizations\Models\Organization;
 use App\Actions\Events\Authoring\CreateEventWithInitialOccurrenceAction;
 use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
 use App\Enums\RegistrationScope;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
+use App\Platform\Http\FrontendController;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;

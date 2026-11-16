@@ -151,7 +151,7 @@ it('discards selected membership applications through the owned feature action',
     $first->addMedia(UploadedFile::fake()->image('proof.png'))->toMediaCollection('evidence');
     $mediaKey = (string) $first->getFirstMedia('evidence')?->getKey();
 
-    expect($mediaKey)->not->toBe('');
+    expect($mediaKey)->not->toBeEmpty();
 
     Livewire::actingAs($administrator)
         ->test(ListMembershipApplications::class)

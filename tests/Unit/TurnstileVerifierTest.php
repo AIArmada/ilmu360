@@ -6,7 +6,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 beforeEach(function (): void {
     config()->set('services.turnstile.enabled', true);
@@ -61,7 +61,7 @@ it('rejects a token from an unapproved hostname', function (): void {
 it('fails closed when the expected action or hostnames are missing', function (): void {
     Http::fake();
 
-    config()->set('services.turnstile.expected_action', null);
+    config()->set('services.turnstile.expected_action');
 
     expect(app(TurnstileVerifier::class)->verify('valid-token'))->toBeFalse();
 

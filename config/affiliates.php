@@ -169,7 +169,7 @@ return [
             'enabled' => env('AFFILIATES_PUBLIC_REFERRAL_ROUTE_ENABLED', true),
             'path' => env('AFFILIATES_PUBLIC_REFERRAL_ROUTE_PATH', 'r/{affiliateCode}'),
             'name' => env('AFFILIATES_PUBLIC_REFERRAL_ROUTE_NAME', 'affiliate.referral.entry'),
-            'middleware' => array_values(array_filter(array_map('trim', explode(',', (string) env('AFFILIATES_PUBLIC_REFERRAL_ROUTE_MIDDLEWARE', 'web'))))),
+            'middleware' => array_values(array_filter(array_map(trim(...), explode(',', (string) env('AFFILIATES_PUBLIC_REFERRAL_ROUTE_MIDDLEWARE', 'web'))))),
             'destination_parameter' => env('AFFILIATES_PUBLIC_REFERRAL_DESTINATION_PARAMETER', 'to'),
             'destinations' => [
                 'home' => env('AFFILIATES_PUBLIC_REFERRAL_HOME_PATH', '/'),
@@ -217,7 +217,7 @@ return [
         ],
         'multi_level' => [
             'enabled' => false,
-            'levels' => array_filter(array_map('floatval', explode(',', (string) env('AFFILIATES_MULTI_LEVEL_LEVELS', '0.1,0.05')))), // percentages of commission (0.1 = 10%)
+            'levels' => array_filter(array_map(floatval(...), explode(',', (string) env('AFFILIATES_MULTI_LEVEL_LEVELS', '0.1,0.05')))), // percentages of commission (0.1 = 10%)
         ],
         'paypal' => [
             'client_id' => env('AFFILIATES_PAYPAL_CLIENT_ID', ''),

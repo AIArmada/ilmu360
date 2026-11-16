@@ -12,13 +12,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ResolveNotificationAccountAction
+final readonly class ResolveNotificationAccountAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly AccountDirectory $accounts,
-        private readonly UserMorphType $userMorphType,
+        private AccountDirectory $accounts,
+        private UserMorphType $userMorphType,
     ) {}
 
     public function handle(string $accountId): NotificationRecipientSnapshot

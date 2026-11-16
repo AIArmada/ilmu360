@@ -149,9 +149,8 @@ function wp3SocialSchemaCase(): void
             ->whereKey($first->getKey())->value('is_primary');
 
         expect($replacement->is_primary)->toBeTrue()
-            ->and($firstDemoted)->toBeFalse();
-
-        expect(DB::table('social_profiles')->where('is_primary', true)->count())->toBe(4);
+            ->and($firstDemoted)->toBeFalse()
+            ->and(DB::table('social_profiles')->where('is_primary', true)->count())->toBe(4);
 
     } finally {
         wp3SocialSchemaTeardown($database, $previous);

@@ -13,13 +13,13 @@ use App\Features\Communications\Support\Recipient\NotificationRecipientSnapshot;
 use Illuminate\Support\Collection;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class EnsureNotificationPreferencesAction
+final readonly class EnsureNotificationPreferencesAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly SyncNotificationPreferenceAction $syncPreference,
-        private readonly SyncSystemEmailDestinationAction $syncEmailDestination,
+        private SyncNotificationPreferenceAction $syncPreference,
+        private SyncSystemEmailDestinationAction $syncEmailDestination,
     ) {}
 
     public function handle(NotificationRecipientSnapshot $recipient): void

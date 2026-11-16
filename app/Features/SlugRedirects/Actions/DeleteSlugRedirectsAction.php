@@ -7,12 +7,12 @@ namespace App\Features\SlugRedirects\Actions;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Throwable;
 
-final class DeleteSlugRedirectsAction
+final readonly class DeleteSlugRedirectsAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly DeleteSlugRedirectAction $deleteSlugRedirectAction,
+        private DeleteSlugRedirectAction $deleteSlugRedirectAction,
     ) {}
 
     /** @param list<string> $redirectIds */

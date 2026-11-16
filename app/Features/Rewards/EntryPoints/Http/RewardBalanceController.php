@@ -39,7 +39,7 @@ class RewardBalanceController extends FrontendController
         foreach ($pairs as $pair) {
             $buckets = RewardPointLedger::balancesFor(
                 $user->actorType(),
-                (string) $user->actorId(),
+                $user->actorId(),
                 (string) $pair->family_key,
                 (string) $pair->unit,
                 $asOf,

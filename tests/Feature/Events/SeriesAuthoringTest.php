@@ -78,8 +78,8 @@ it('saves and updates series through the authoring boundary', function (): void 
         ->and((string) $series->visibility)->toBe('private')
         ->and((string) $series->status)->toBe('inactive')
         ->and($series->languages()->count())->toBe(0)
-        ->and($series->getMedia('cover'))->toHaveCount(0)
-        ->and($series->getMedia('gallery'))->toHaveCount(0);
+        ->and($series->getMedia('cover'))->toBeEmpty()
+        ->and($series->getMedia('gallery'))->toBeEmpty();
 });
 
 it('keeps admin API series create and update parity with the authoring boundary', function (): void {
@@ -154,9 +154,8 @@ it('rejects duplicate series slugs in the authoring boundary', function (): void
         'title' => 'Duplicate Series',
         'slug' => 'taken-series',
         'visibility' => 'public',
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn (): string => app(SeriesAuthoring::class)->save([
+    ]))->toThrow(ValidationException::class)
+        ->and(fn(): string => app(SeriesAuthoring::class)->save([
         'title' => (string) $existing->title,
         'slug' => 'other-series',
         'visibility' => 'public',

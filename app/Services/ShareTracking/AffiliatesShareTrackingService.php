@@ -2583,7 +2583,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             userId: $user instanceof User ? (string) $user->getKey() : null,
             affiliateLinkId: (string) $link->getKey(),
             subjectType: $link->subject_type,
-            lookupSubjectKey: $link->subject_key ?? 'link:'.(string) $link->getKey(),
+            lookupSubjectKey: $link->subject_key ?? 'link:'.$link->getKey(),
             subjectKey: $link->subject_key,
             subjectId: $link->subject_id,
             subjectInstance: $link->subject_instance ?? 'default',

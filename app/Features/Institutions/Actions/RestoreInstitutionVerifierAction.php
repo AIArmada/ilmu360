@@ -6,7 +6,6 @@ namespace App\Features\Institutions\Actions;
 
 use App\Models\Institution;
 
-
 final readonly class RestoreInstitutionVerifierAction
 {
     /**

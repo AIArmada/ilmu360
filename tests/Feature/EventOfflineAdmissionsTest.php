@@ -16,8 +16,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 /** @return array{event: Event, ticket: TicketType} */
 function offlineAdmissionFixture(User $organizer): array
 {

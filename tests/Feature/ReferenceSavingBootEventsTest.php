@@ -1,12 +1,10 @@
 <?php
 
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Reference;
 use App\Models\User;
+use App\Shared\Directory\Enums\ReferenceType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
-
-uses(RefreshDatabase::class);
 
 it('auto-generates a slug when slug is blank on save', function () {
     $reference = Reference::factory()->create([

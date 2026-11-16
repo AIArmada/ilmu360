@@ -53,7 +53,7 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
             ]);
 
             $application = $this->membershipApplications->find((string) $validated['record_key']);
-            abort_unless($application !== null, 404);
+            abort_unless($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail, 404);
             $note = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
 
             $detail = match ((string) $validated['action']) {

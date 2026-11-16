@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Actions;
 
 use App\Models\Institution;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;

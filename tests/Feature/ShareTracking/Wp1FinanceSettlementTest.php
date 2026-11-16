@@ -17,8 +17,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->sharer = User::factory()->create([
         'name' => 'WP1 Finance Sharer',
@@ -67,12 +65,8 @@ it('reads only canonical paid storage values with no class-name alias', function
     // payout-linked or nonzero reversal legs stay monetary via their
     // money counters.
     expect(ShareTrackingFinance::settledStatusValues())->toBe(['paid']);
-
-    foreach (ShareTrackingFinance::settledStatusValues() as $value) {
-        expect($value)->not->toContain('\\');
-    }
-
-    expect(ShareTrackingFinance::isSettledStatus('paid'))->toBeTrue()
+    expect(ShareTrackingFinance::settledStatusValues())->each->not->toContain('\\')
+        ->and(ShareTrackingFinance::isSettledStatus('paid'))->toBeTrue()
         ->and(ShareTrackingFinance::isSettledStatus('reversed'))->toBeFalse()
         ->and(ShareTrackingFinance::isSettledStatus(PaidConversion::class))->toBeFalse()
         ->and(ShareTrackingFinance::isSettledStatus(ReversedConversion::class))->toBeFalse()
@@ -199,7 +193,7 @@ it('preserves paid and monetary reversed conversions while deleting zero-value r
     $correction = new ShareOutcomeCorrection;
     $correction->forceFill([
         'conversion_id' => $reversedZero->getKey(),
-        'business_key' => 'share-outcome:event_save:bookmark:'.((string) Str::uuid()),
+        'business_key' => 'share-outcome:event_save:bookmark:'.(Str::uuid()),
         'reason' => 'wp1 finance probe',
         'occurred_at' => now(),
     ])->save();

@@ -10,19 +10,17 @@ use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\TimingMode;
+use App\Shared\Prayer\HardcodedPrayerFallback;
 use App\Support\Api\Frontend\FrontendFormContractService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(EventRoleSeeder::class);

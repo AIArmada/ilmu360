@@ -8,8 +8,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 
-uses(RefreshDatabase::class);
-
 it('sends welcome and verification emails when an api user registers', function () {
     Notification::fake();
 

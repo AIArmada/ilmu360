@@ -27,16 +27,16 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
-final class NotificationSettingsService implements AccountNotificationPreferences
+final readonly class NotificationSettingsService implements AccountNotificationPreferences
 {
     public function __construct(
-        private readonly ResolveNotificationAccountAction $resolveAccount,
-        private readonly EnsureNotificationPreferencesAction $ensurePreferences,
-        private readonly SaveNotificationPreferencesAction $savePreferences,
-        private readonly SyncProfileNotificationSettingsAction $syncProfileSettings,
-        private readonly SyncSystemEmailDestinationAction $syncEmailDestination,
-        private readonly UpdateNotificationLocaleAction $updateLocaleAction,
-        private readonly UserMorphType $userMorphType,
+        private ResolveNotificationAccountAction $resolveAccount,
+        private EnsureNotificationPreferencesAction $ensurePreferences,
+        private SaveNotificationPreferencesAction $savePreferences,
+        private SyncProfileNotificationSettingsAction $syncProfileSettings,
+        private SyncSystemEmailDestinationAction $syncEmailDestination,
+        private UpdateNotificationLocaleAction $updateLocaleAction,
+        private UserMorphType $userMorphType,
     ) {}
 
     /**

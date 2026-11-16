@@ -1,18 +1,18 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Person;
 use App\Models\User;
-use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Language\MalaysiaLanguageCatalog;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\LanguageSeeder;
@@ -100,8 +100,8 @@ it('resolves current language identities after a catalog is bulk replaced', func
         ->assertFormFieldExists('languages', function (Select $field) use ($oldId, $currentId): bool {
             expect($field->getOptions())
                 ->toHaveKey($currentId, 'Bahasa Melayu')
-                ->not->toHaveKey($oldId);
-            expect($field->getOptionLabels())->toBe([$currentId => 'Bahasa Melayu']);
+                ->not->toHaveKey($oldId)
+                ->and($field->getOptionLabels())->toBe([$currentId => 'Bahasa Melayu']);
 
             return true;
         });
@@ -149,8 +149,8 @@ it('can submit event with single language', function () {
         ->assertRedirect(route('submit-event.success'));
 
     $event = submittedOccurrenceByTitle('Single Language Event');
-    expect($event->languages)->toHaveCount(1);
-    expect($event->languages->first()->language_code)->toBe('ms');
+    expect($event->languages)->toHaveCount(1)
+        ->and($event->languages->first()->language_code)->toBe('ms');
 });
 
 it('can submit event with multiple languages', function () {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
-use App\Filament\Resources\Events\EventResource;
 use App\Features\Events\Api\EventModeration;
+use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
 use App\Models\User;
 use App\Support\Api\Admin\Concerns\ProvidesWorkflowResponse;

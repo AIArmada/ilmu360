@@ -9,7 +9,7 @@ use AIArmada\Events\States\OccurrenceStatus\Published;
 use AIArmada\Events\States\RegistrationStatus\RegistrationStatus;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('memoizes directory-scanned state configs', function (string $state) {
     expect($state::config())->toBe($state::config());

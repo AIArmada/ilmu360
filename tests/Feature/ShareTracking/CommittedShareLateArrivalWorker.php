@@ -40,12 +40,9 @@ $touchpointId = (string) ($options['touchpoint-id'] ?? '');
 // Same guards as the WP1/WP2 harnesses: loopback isolated fixtures only,
 // worker-namespaced databases only.
 
-
 if (preg_match('/^share_rewards_test_[a-z0-9_]{1,43}$/', $database) !== 1) {
     $fail('Refusing a database outside the isolated worker namespace.');
 }
-
-
 
 $basePath = realpath(__DIR__.'/../../../');
 
@@ -59,7 +56,6 @@ $app = require $basePath.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
 $workerConfig = RealDriverFixture::connectionConfig($database);
-
 
 config(['database.connections.csl_worker' => $workerConfig]);
 config(['database.default' => 'csl_worker']);
@@ -91,7 +87,7 @@ try {
         'occurred_at' => CarbonImmutable::parse($event->occurred_at)->setTimezone('UTC')->toIso8601String(),
     ];
 } catch (Throwable $exception) {
-    $fail(get_class($exception).': '.$exception->getMessage());
+    $fail($exception::class.': '.$exception->getMessage());
 }
 
 echo json_encode(['ok' => true, 'report' => $report], JSON_THROW_ON_ERROR)."\n";

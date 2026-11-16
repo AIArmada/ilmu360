@@ -1,8 +1,11 @@
 <?php
 
+use AIArmada\Communications\Models\CommunicationDestination;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Feedback\Models\AppFeedback;
 use App\Features\Feedback\Models\AppFeedbackMessage;
 use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
+use App\Features\Membership\Notifications\MemberInvitationNotification;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Notifications\ReportResolvedNotification;
 use App\Models\Event;
@@ -12,12 +15,7 @@ use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\Auth\WelcomeNotification;
 use App\Notifications\EventEscalationNotification;
 use App\Notifications\EventSubmittedNotification;
-use App\Features\Membership\Notifications\MemberInvitationNotification;
-use App\Features\Communications\Api\AccountNotificationPreferences;
-use AIArmada\Communications\Models\CommunicationDestination;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 it('routes mail notifications through the user email address and tracks destination verification', function () {
     $user = User::factory()->create([

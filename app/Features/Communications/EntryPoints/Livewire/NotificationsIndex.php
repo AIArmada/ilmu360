@@ -108,7 +108,7 @@ class NotificationsIndex extends Component
             newestFirst: true,
         );
 
-        return (new Paginator(
+        return new Paginator(
             $snapshot->messages,
             $snapshot->total,
             $snapshot->perPage,
@@ -117,7 +117,7 @@ class NotificationsIndex extends Component
                 'path' => Paginator::resolveCurrentPath(),
                 'pageName' => 'notifications_page',
             ],
-        ))->withQueryString();
+        )->withQueryString();
     }
 
     public function familyLabel(NotificationInboxMessageSnapshot $message): string

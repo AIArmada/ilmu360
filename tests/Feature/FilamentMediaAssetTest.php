@@ -46,7 +46,7 @@ it('loads the shared Filament file upload component asset', function (): void {
         ->assertSee('/js/filament/forms/components/file-upload.js', false)
         ->assertSee('/js/aiarmada/commerce-support/file-upload-tabs.js', false);
 
-    expect(is_file(public_path('js/filament/forms/components/file-upload.js')))->toBeTrue();
+    expect(public_path('js/filament/forms/components/file-upload.js'))->toBeFile();
 });
 
 it('loads the shared FileUpload lifecycle workaround in the admin panel', function (): void {
@@ -66,5 +66,5 @@ it('loads the shared FileUpload lifecycle workaround in the admin panel', functi
         ->assertOk()
         ->assertSee('/js/aiarmada/commerce-support/file-upload-tabs.js', false);
 
-    expect(is_file(public_path('js/aiarmada/commerce-support/file-upload-tabs.js')))->toBeTrue();
+    expect(public_path('js/aiarmada/commerce-support/file-upload-tabs.js'))->toBeFile();
 });

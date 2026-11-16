@@ -13,7 +13,7 @@ use App\Shared\Prayer\PrayerReference;
 use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('resolves zone adapters per country from configuration', function () {
     $registry = app(PrayerProviderRegistry::class);
@@ -45,7 +45,7 @@ it('passes coordinates through untouched for coordinate-only countries', functio
         'lat' => 1.3521,
         'lng' => 103.8198,
         'source' => 'no-zone',
-    ])->and($resolver->resolve(null, null, null))->toBe([
+    ])->and($resolver->resolve(null, null))->toBe([
         'zone' => null,
         'lat' => null,
         'lng' => null,

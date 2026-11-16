@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class AppFeedbackMessageFactory extends Factory
 {
+    #[\Override]
     protected $model = AppFeedbackMessage::class;
 
     /**

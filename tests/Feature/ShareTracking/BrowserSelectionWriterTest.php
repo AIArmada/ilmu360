@@ -82,7 +82,7 @@ it('writes, preserves and clears the browser selection through share capture', f
 
     $selection = ShareBrowserSelection::query()->sole();
 
-    expect($cookie)->not->toBe('')
+    expect($cookie)->not->toBeEmpty()
         ->and($selection->current_attribution_id)->not->toBeNull()
         ->and($selection->accepted_at)->not->toBeNull();
 

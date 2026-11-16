@@ -35,7 +35,7 @@ it('does not use Sanctum ability middleware on registered api routes without an 
         })
         ->all();
 
-    expect($violations)->toBe([]);
+    expect($violations)->toBeEmpty();
 });
 
 it('does not call tokenCan in runtime authorization code without an explicit exception', function () {
@@ -68,7 +68,7 @@ it('does not call tokenCan in runtime authorization code without an explicit exc
         })
         ->all();
 
-    expect($violations)->toBe([]);
+    expect($violations)->toBeEmpty();
 });
 
 /**

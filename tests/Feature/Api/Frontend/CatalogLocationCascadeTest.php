@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
 

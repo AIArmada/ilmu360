@@ -8,14 +8,14 @@ use App\Features\Communications\Support\Normalization\NotificationPreferenceNorm
 use App\Features\Communications\Support\Recipient\NotificationRecipientSnapshot;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class SyncProfileNotificationSettingsAction
+final readonly class SyncProfileNotificationSettingsAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly EnsureNotificationPreferencesAction $ensurePreferences,
-        private readonly SyncNotificationPreferenceAction $syncPreference,
-        private readonly SyncSystemEmailDestinationAction $syncEmailDestination,
+        private EnsureNotificationPreferencesAction $ensurePreferences,
+        private SyncNotificationPreferenceAction $syncPreference,
+        private SyncSystemEmailDestinationAction $syncEmailDestination,
     ) {}
 
     public function handle(NotificationRecipientSnapshot $recipient): void

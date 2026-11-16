@@ -32,7 +32,7 @@ class RewardInsightController extends FrontendController
         $from = isset($validated['from']) ? CarbonImmutable::parse($validated['from']) : $to->subDays(30);
 
         try {
-            $summary = $analytics->memberSummary((string) $user->actorId(), $timezone, $from, $to);
+            $summary = $analytics->memberSummary($user->actorId(), $timezone, $from, $to);
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }

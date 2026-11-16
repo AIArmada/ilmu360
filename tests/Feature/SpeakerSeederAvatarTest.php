@@ -18,9 +18,8 @@ it('seeds speaker avatar media metadata pointing at S3', function () {
         ->first();
 
     expect($sample)->not->toBeNull()
-        ->and((array) json_decode((string) $sample->generated_conversions, true))->toMatchArray(['thumb' => true, 'profile' => true]);
-
-    expect(Person::query()->whereKey($sample->model_id)->exists())->toBeTrue();
+        ->and((array) json_decode((string) $sample->generated_conversions, true))->toMatchArray(['thumb' => true, 'profile' => true])
+        ->and(Person::query()->whereKey($sample->model_id)->exists())->toBeTrue();
 });
 
 it('keeps speaker avatar media idempotent on reseeding', function () {

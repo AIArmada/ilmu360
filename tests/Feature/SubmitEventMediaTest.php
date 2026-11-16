@@ -1,14 +1,14 @@
 <?php
 
 use AIArmada\Events\Models\EventOccurrence;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\FileUpload;
@@ -103,15 +103,15 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
         throw new RuntimeException('The submitted poster image could not be read.');
     }
 
-    expect($event->getMedia('cover'))->toHaveCount(1);
-    expect($event->getMedia('poster'))->toHaveCount(1);
-    expect($event->getMedia('gallery'))->toHaveCount(2);
-    expect($event->classifications()->count())->toBe(3)
+    expect($event->getMedia('cover'))->toHaveCount(1)
+        ->and($event->getMedia('poster'))->toHaveCount(1)
+        ->and($event->getMedia('gallery'))->toHaveCount(2)
+        ->and($event->classifications()->count())->toBe(3)
         ->and($event->slug)->toBe(sprintf(
-            'test-event-media-upload-%s-%s',
-            implode('-', $personSlugSegments),
-            $expectedSuffix,
-        ))
+        'test-event-media-upload-%s-%s',
+        implode('-', $personSlugSegments),
+        $expectedSuffix,
+    ))
         ->and((float) $posterDimensions[0] / (float) $posterDimensions[1])->toBe(0.75);
 });
 

@@ -35,8 +35,6 @@ use Laravel\Sanctum\Sanctum;
 use Spatie\DeletedModels\Models\DeletedModel;
 use Tests\TestCase;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->sharer = User::factory()->create([
         'name' => 'WP1 Sharer',
@@ -155,9 +153,8 @@ it('reads analytics only for the marked profile and leaves commercial-only users
         'visits' => 0,
         'distinct_browsers' => 0,
         'total_outcomes' => 0,
-    ]);
-
-    expect(app(ShareTrackingAnalyticsService::class)->linksForUser($this->sharer))->toBeEmpty();
+    ])
+        ->and(app(ShareTrackingAnalyticsService::class)->linksForUser($this->sharer))->toBeEmpty();
 });
 
 it('falls back to a plain share payload for suspended profiles without reactivating them', function (): void {
@@ -423,13 +420,12 @@ it('stores only credential verifiers and honors expiry and revocation', function
         ->where('status', 'active')
         ->update(['status' => 'revoked', 'revoked_at' => now()]);
 
-    expect($revoked)->toBe(1);
-
-    expect($record->fresh()->status)->toBe('revoked')
+    expect($revoked)->toBe(1)
+        ->and($record->fresh()->status)->toBe('revoked')
         ->and($record->fresh()->revoked_at)->not->toBeNull()
         ->and(AffiliateCredential::query()->whereKey($record->getKey())->where('status', 'active')->update([
-            'status' => 'revoked', 'revoked_at' => now(),
-        ]))->toBe(0);
+        'status' => 'revoked', 'revoked_at' => now(),
+    ]))->toBe(0);
 
     $this->withHeader($header, $credential)
         ->postJson(route('share.track'), [
@@ -484,9 +480,8 @@ it('minimizes stored visitor data at every share write site', function (): void 
 
     expect($outbound->ip_address)->toBe($expectedHash)
         ->and($outbound->user_agent)->toBeNull()
-        ->and($outbound->referrer_url)->toBeNull();
-
-    expect(AffiliateAttribution::query()->where('ip_address', '127.0.0.1')->exists())->toBeFalse()
+        ->and($outbound->referrer_url)->toBeNull()
+        ->and(AffiliateAttribution::query()->where('ip_address', '127.0.0.1')->exists())->toBeFalse()
         ->and(AffiliateTouchpoint::query()->where('ip_address', '127.0.0.1')->exists())->toBeFalse();
 });
 
@@ -944,12 +939,9 @@ it('requires a matching owner context before creating a member profile', functio
     );
 
     expect(fn () => OwnerContext::withOwner(null, $ensureProfile))
-        ->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.');
-
-    expect(fn () => OwnerContext::withOwner($otherUser, $ensureProfile))
-        ->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.');
-
-    expect(Affiliate::query()->count())->toBe($affiliateCount);
+        ->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.')
+        ->and(fn() => OwnerContext::withOwner($otherUser, $ensureProfile))->toThrow(InvalidArgumentException::class, 'Member share profiles require a matching owner context.')
+        ->and(Affiliate::query()->count())->toBe($affiliateCount);
 });
 
 it('keeps the ineligible validation error when a member profile disappears before rehydration', function (): void {
@@ -1076,9 +1068,8 @@ it('survives a canonical member code collision inside a caller transaction', fun
 
     expect($failure)->toBe('A share profile for this account conflicts with an existing profile identity.')
         ->and($outerSurvived)->toBeTrue()
-        ->and(app(AffiliatesShareTrackingService::class)->findAffiliateForUser($victim))->toBeNull();
-
-    expect($squatter->fresh()->metadata)->toBe(['commercial_account' => true]);
+        ->and(app(AffiliatesShareTrackingService::class)->findAffiliateForUser($victim))->toBeNull()
+        ->and($squatter->fresh()->metadata)->toBe(['commercial_account' => true]);
 });
 
 it('preserves paid monetary conversions with payout and balance across deletion and restore', function (): void {
@@ -1382,9 +1373,8 @@ it('rejects forged child snapshot ids that point at foreign rows', function (): 
 
     $restored = User::restoreDeletedUser($this->sharer->id);
 
-    expect($restored->exists)->toBeTrue();
-
-    expect($foreignLink->fresh()->affiliate_id)->toBe($foreignAffiliate->id)
+    expect($restored->exists)->toBeTrue()
+        ->and($foreignLink->fresh()->affiliate_id)->toBe($foreignAffiliate->id)
         ->and($foreignConversion->fresh()->affiliate_id)->toBe($foreignAffiliate->id)
         ->and($foreignConversion->fresh()->commission_minor)->toBe(0);
 

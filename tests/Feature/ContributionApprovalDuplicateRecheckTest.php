@@ -20,8 +20,6 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 /**
  * @param  array<string, mixed>  $address
  */
@@ -66,9 +64,8 @@ it('blocks approving a create when another staged institution claims the same pl
     approvalRecheckStagedCreate('Second Mosque', $locality + ['google_place_id' => 'contested_place']);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($first, User::factory()->create()))
-        ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
-
-    expect($first->fresh()?->status)->toBe(ContributionRequestStatus::Pending)
+        ->toThrow(ValidationException::class, approvalRecheckConflictMessage())
+        ->and($first->fresh()?->status)->toBe(ContributionRequestStatus::Pending)
         ->and(Institution::query()->where('status', InstitutionStatus::Pending->value)->count())->toBe(2);
 });
 
@@ -89,9 +86,8 @@ it('blocks approving a create when another pending update claims the same place'
     $create = approvalRecheckStagedCreate('Claimed Place Mosque', $locality + ['google_place_id' => 'update_claimed_place']);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($create, User::factory()->create()))
-        ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
-
-    expect($create->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
+        ->toThrow(ValidationException::class, approvalRecheckConflictMessage())
+        ->and($create->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
 });
 
 it('approves a clean create without self-blocking on its staged institution', function () {
@@ -122,9 +118,8 @@ it('blocks approving an update that moves onto a taken place', function () {
     ]);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($update, User::factory()->create()))
-        ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
-
-    expect($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
+        ->toThrow(ValidationException::class, approvalRecheckConflictMessage())
+        ->and($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
 });
 
 it('approves an update that keeps its own place without self-blocking', function () {
@@ -185,9 +180,8 @@ it('blocks approving a name-only update that duplicates a name in the same local
     ]);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($update, User::factory()->create()))
-        ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
-
-    expect($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
+        ->toThrow(ValidationException::class, approvalRecheckConflictMessage())
+        ->and($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
 });
 
 it('approves a name-only update with a unique name', function () {
@@ -285,9 +279,8 @@ it('blocks approving an update that moves onto a pending create claim', function
     ]);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($update, User::factory()->create()))
-        ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
-
-    expect($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
+        ->toThrow(ValidationException::class, approvalRecheckConflictMessage())
+        ->and($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
 });
 
 it('rejects an already-reviewed approval instead of silently succeeding', function () {
@@ -305,9 +298,8 @@ it('rejects an already-reviewed approval instead of silently succeeding', functi
     assert($approved instanceof ContributionRequest);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($staleView, User::factory()->create()))
-        ->toThrow(ContributionRequestAlreadyReviewedException::class, __('This request has already been reviewed. Please refresh to see its current status.'));
-
-    expect($create->fresh()?->status)->toBe(ContributionRequestStatus::Approved)
+        ->toThrow(ContributionRequestAlreadyReviewedException::class, __('This request has already been reviewed. Please refresh to see its current status.'))
+        ->and($create->fresh()?->status)->toBe(ContributionRequestStatus::Approved)
         ->and($create->fresh()?->reviewer_id)->toBe($firstReviewer->getKey())
         ->and($create->fresh()?->reviewer_note)->toBe('First review wins.')
         ->and((string) $create->fresh()?->reviewed_at)->toBe((string) $approved->reviewed_at)
@@ -379,9 +371,8 @@ it('blocks approving an update that moves an institution into a taken name and l
     ]);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($update, User::factory()->create()))
-        ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
-
-    expect($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
+        ->toThrow(ValidationException::class, approvalRecheckConflictMessage())
+        ->and($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
 });
 
 it('rejects a stale rejection after the request was approved', function () {
@@ -392,9 +383,8 @@ it('rejects a stale rejection after the request was approved', function () {
     app(ApproveContributionRequestAction::class)->handle($create, User::factory()->create());
 
     expect(fn (): ContributionRequest => app(RejectContributionRequestAction::class)->handle($staleView, User::factory()->create(), 'needs_more_evidence'))
-        ->toThrow(ContributionRequestNotPendingException::class, 'Only pending contribution requests can be rejected.');
-
-    expect($create->fresh()?->status)->toBe(ContributionRequestStatus::Approved);
+        ->toThrow(ContributionRequestNotPendingException::class, 'Only pending contribution requests can be rejected.')
+        ->and($create->fresh()?->status)->toBe(ContributionRequestStatus::Approved);
 });
 
 it('rejects a stale rejection after the request was already rejected', function () {
@@ -405,9 +395,8 @@ it('rejects a stale rejection after the request was already rejected', function 
     app(RejectContributionRequestAction::class)->handle($create, User::factory()->create(), 'needs_more_evidence');
 
     expect(fn (): ContributionRequest => app(RejectContributionRequestAction::class)->handle($staleView, User::factory()->create(), 'duplicate'))
-        ->toThrow(ContributionRequestNotPendingException::class, 'Only pending contribution requests can be rejected.');
-
-    expect($create->fresh()?->status)->toBe(ContributionRequestStatus::Rejected);
+        ->toThrow(ContributionRequestNotPendingException::class, 'Only pending contribution requests can be rejected.')
+        ->and($create->fresh()?->status)->toBe(ContributionRequestStatus::Rejected);
 });
 
 it('blocks approving an update with a nested Maps identity already claimed', function () {
@@ -427,9 +416,8 @@ it('blocks approving an update with a nested Maps identity already claimed', fun
     ]);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($update, User::factory()->create()))
-        ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
-
-    expect($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
+        ->toThrow(ValidationException::class, approvalRecheckConflictMessage())
+        ->and($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
 });
 
 it('treats a blank proposed name as absent when an update moves locality', function () {
@@ -449,9 +437,8 @@ it('treats a blank proposed name as absent when an update moves locality', funct
     ]);
 
     expect(fn (): ContributionRequest => app(ApproveContributionRequestAction::class)->handle($update, User::factory()->create()))
-        ->toThrow(ValidationException::class, approvalRecheckConflictMessage());
-
-    expect($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
+        ->toThrow(ValidationException::class, approvalRecheckConflictMessage())
+        ->and($update->fresh()?->status)->toBe(ContributionRequestStatus::Pending);
 });
 
 it('returns 503 when the Maps identity lock is held during admin API approval', function () {

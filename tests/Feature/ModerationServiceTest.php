@@ -20,8 +20,6 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
@@ -48,8 +46,8 @@ describe('Event Submission', function () {
 
         $this->service->submitForModeration($event);
 
-        expect((string) $event->fresh()->status)->toBe('pending');
-        expect(SignalEvent::query()->where('event_name', 'moderation.event.submitted')->exists())->toBeTrue();
+        expect((string) $event->fresh()->status)->toBe('pending')
+            ->and(SignalEvent::query()->where('event_name', 'moderation.event.submitted')->exists())->toBeTrue();
         Notification::assertSentTo($moderator, EventSubmittedNotification::class);
     });
 
@@ -66,8 +64,8 @@ describe('Event Submission', function () {
 
         $this->service->submitForModeration($event);
 
-        expect((string) $event->fresh()->status)->toBe('pending');
-        expect($event->fresh()->published_at)->toBeNull();
+        expect((string) $event->fresh()->status)->toBe('pending')
+            ->and($event->fresh()->published_at)->toBeNull();
     });
 });
 
@@ -85,11 +83,11 @@ describe('Event Approval', function () {
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
 
-        expect($review)->toBeInstanceOf(ModerationReview::class);
-        expect($review->type)->toBe(ModerationActionType::Approve);
-        expect((string) $event->fresh()->status)->toBe('approved');
-        expect($event->fresh()->published_at)->not->toBeNull();
-        expect(SignalEvent::query()->where('event_name', 'moderation.event.approved')->exists())->toBeTrue();
+        expect($review)->toBeInstanceOf(ModerationReview::class)
+            ->and($review->type)->toBe(ModerationActionType::Approve)
+            ->and((string) $event->fresh()->status)->toBe('approved')
+            ->and($event->fresh()->published_at)->not->toBeNull()
+            ->and(SignalEvent::query()->where('event_name', 'moderation.event.approved')->exists())->toBeTrue();
     });
 
     it('notifies submitter on approval', function () {
@@ -195,9 +193,9 @@ describe('Event Needs Changes', function () {
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
 
-        expect($review->type)->toBe(ModerationActionType::ChangesRequested);
-        expect($review->reason)->toBe('incomplete_info');
-        expect((string) $event->fresh()->status)->toBe('needs_changes');
+        expect($review->type)->toBe(ModerationActionType::ChangesRequested)
+            ->and($review->reason)->toBe('incomplete_info')
+            ->and((string) $event->fresh()->status)->toBe('needs_changes');
 
         // Package inbox maps submission_needs_changes → event_updated.
         $this->assertDatabaseHas('notification_inboxes', [
@@ -228,9 +226,9 @@ describe('Event Rejection', function () {
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
 
-        expect($review->type)->toBe(ModerationActionType::Reject);
-        expect((string) $event->fresh()->status)->toBe('rejected');
-        expect(SignalEvent::query()->where('event_name', 'moderation.event.rejected')->exists())->toBeTrue();
+        expect($review->type)->toBe(ModerationActionType::Reject)
+            ->and((string) $event->fresh()->status)->toBe('rejected')
+            ->and(SignalEvent::query()->where('event_name', 'moderation.event.rejected')->exists())->toBeTrue();
 
         // Package inbox maps submission_rejected → event_cancelled.
         $this->assertDatabaseHas('notification_inboxes', [
@@ -261,12 +259,12 @@ describe('Event Cancellation', function () {
         $this->service->cancel($event, $moderator, 'Venue emergency closure.');
 
         $event->refresh();
-        expect((string) $event->status)->toBe('cancelled');
-        expect($event->published_at)->not->toBeNull();
+        expect((string) $event->status)->toBe('cancelled')
+            ->and($event->published_at)->not->toBeNull();
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
-        expect($review)->toBeInstanceOf(ModerationReview::class);
-        expect($review->type)->toBe(ModerationActionType::Cancelled);
+        expect($review)->toBeInstanceOf(ModerationReview::class)
+            ->and($review->type)->toBe(ModerationActionType::Cancelled);
 
         // Package inbox maps submission_cancelled → event_cancelled.
         $this->assertDatabaseHas('notification_inboxes', [
@@ -347,8 +345,8 @@ describe('Event Reconsideration', function () {
         expect((string) $event->fresh()->status)->toBe('pending');
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
-        expect($review->type)->toBe(ModerationActionType::Reconsidered);
-        expect($review->actioned_by_id)->toBe($moderator->id);
+        expect($review->type)->toBe(ModerationActionType::Reconsidered)
+            ->and($review->actioned_by_id)->toBe($moderator->id);
     });
 });
 
@@ -363,8 +361,8 @@ describe('Revert to Draft', function () {
 
         $this->service->revertToDraft($event, $moderator, 'Reverting to draft for submitter.');
 
-        expect((string) $event->fresh()->status)->toBe('draft');
-        expect($event->fresh()->published_at)->toBeNull();
+        expect((string) $event->fresh()->status)->toBe('draft')
+            ->and($event->fresh()->published_at)->toBeNull();
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
         expect($review->type)->toBe(ModerationActionType::RevertedToDraft);
@@ -399,7 +397,7 @@ describe('Re-moderation', function () {
         expect((string) $event->fresh()->status)->toBe('pending');
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->where('actionable_type', (new Event)->getMorphClass())->latest()->first();
-        expect($review->type)->toBe(ModerationActionType::Remoderated);
-        expect($review->actioned_by_id)->toBe($moderator->id);
+        expect($review->type)->toBe(ModerationActionType::Remoderated)
+            ->and($review->actioned_by_id)->toBe($moderator->id);
     });
 });

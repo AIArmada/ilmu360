@@ -18,11 +18,11 @@ use App\Features\Rewards\Actions\Enrollment\EnrollRewardProgramMemberAction;
 use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\Rewards\Api\MemberEnrollmentSnapshot;
 use App\Features\Rewards\EntryPoints\Livewire\Pages\Dashboard\RewardMemberIndex;
+use App\Features\Rewards\Support\PublishedProgramVersionsAdapter;
 use App\Models\User;
 use App\Shared\Rewards\PublishedProgramVersions;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Features\Rewards\Support\PublishedProgramVersionsAdapter;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -31,8 +31,6 @@ use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
-
-uses(RefreshDatabase::class);
 
 final class Rw2bRecordingMemberEnrollment implements MemberEnrollment
 {
@@ -45,7 +43,7 @@ final class Rw2bRecordingMemberEnrollment implements MemberEnrollment
     /** @var list<array{programId: string, memberId: string, recipientType: string, versionId: ?string, acceptedVia: string}> */
     public array $reaccepts = [];
 
-    public function __construct(private MemberEnrollment $inner) {}
+    public function __construct(private readonly MemberEnrollment $inner) {}
 
     public function enroll(
         string $programId,
@@ -56,7 +54,7 @@ final class Rw2bRecordingMemberEnrollment implements MemberEnrollment
         bool $recordSignal = true,
         ?string $acceptedVia = null,
     ): ?MemberEnrollmentSnapshot {
-        $this->enrollments[] = compact('programId', 'memberId', 'recipientType', 'versionId', 'surface', 'recordSignal', 'acceptedVia');
+        $this->enrollments[] = ['programId' => $programId, 'memberId' => $memberId, 'recipientType' => $recipientType, 'versionId' => $versionId, 'surface' => $surface, 'recordSignal' => $recordSignal, 'acceptedVia' => $acceptedVia];
 
         return $this->inner->enroll($programId, $memberId, $recipientType, $versionId, $surface, $recordSignal, $acceptedVia);
     }
@@ -67,7 +65,7 @@ final class Rw2bRecordingMemberEnrollment implements MemberEnrollment
         string $recipientType,
         ?string $reason = null,
     ): void {
-        $this->leaves[] = compact('programId', 'memberId', 'recipientType', 'reason');
+        $this->leaves[] = ['programId' => $programId, 'memberId' => $memberId, 'recipientType' => $recipientType, 'reason' => $reason];
 
         $this->inner->leave($programId, $memberId, $recipientType, $reason);
     }
@@ -79,7 +77,7 @@ final class Rw2bRecordingMemberEnrollment implements MemberEnrollment
         ?string $versionId = null,
         string $acceptedVia = 'member-portal',
     ): ?MemberEnrollmentSnapshot {
-        $this->reaccepts[] = compact('programId', 'memberId', 'recipientType', 'versionId', 'acceptedVia');
+        $this->reaccepts[] = ['programId' => $programId, 'memberId' => $memberId, 'recipientType' => $recipientType, 'versionId' => $versionId, 'acceptedVia' => $acceptedVia];
 
         return $this->inner->reaccept($programId, $memberId, $recipientType, $versionId, $acceptedVia);
     }
@@ -362,7 +360,7 @@ it('records the web enrollment signal once and never on api enrollment', functio
 });
 
 it('keeps the root enrollment action deleted and the feature free of root types', function (): void {
-    expect(is_file(app_path('Actions/Rewards/EnrollRewardProgramMemberAction.php')))->toBeFalse();
+    expect(app_path('Actions/Rewards/EnrollRewardProgramMemberAction.php'))->not->toBeFile();
 
     $featureFiles = File::files(app_path('Features/Rewards/Actions/Enrollment'));
 
@@ -391,7 +389,7 @@ it('keeps the root enrollment action deleted and the feature free of root types'
 it('keeps the activity reward business key in Shared vocabulary', function (): void {
     $transitionId = 'user:'.Str::uuid();
 
-    expect(is_file(app_path('Support/ShareTracking/ActivityRewardBusinessKey.php')))->toBeFalse()
+    expect(app_path('Support/ShareTracking/ActivityRewardBusinessKey.php'))->not->toBeFile()
         ->and(ActivityRewardBusinessKey::for(ShareOutcomeType::Signup, $transitionId))
         ->toBe('activity:signup:'.$transitionId)
         ->and(ActivityRewardBusinessKey::parse('activity:signup:'.$transitionId)['source_transition_id'])

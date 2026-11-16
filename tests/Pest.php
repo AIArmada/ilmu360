@@ -340,7 +340,7 @@ function withGlobalOwnerContext(callable $callback): mixed
 
 function ensureTestLivewireOwnerContext(): void
 {
-    if (OwnerContext::hasOverride() || OwnerContext::resolve() !== null) {
+    if (OwnerContext::hasOverride() || OwnerContext::resolve() instanceof \Illuminate\Database\Eloquent\Model) {
         return;
     }
 
@@ -445,8 +445,6 @@ function fakeGeneratedImageUpload(string $name = 'image.png', int $width = 1200,
     $temporaryPath = tempnam(sys_get_temp_dir(), 'ilmu360-test-image-');
 
     if ($temporaryPath === false) {
-        imagedestroy($image);
-
         throw new RuntimeException('Unable to allocate temporary image fixture path.');
     }
 
@@ -454,7 +452,6 @@ function fakeGeneratedImageUpload(string $name = 'image.png', int $width = 1200,
 
     if (! @rename($temporaryPath, $imagePath)) {
         @unlink($temporaryPath);
-        imagedestroy($image);
 
         throw new RuntimeException('Unable to prepare temporary image fixture path.');
     }
@@ -465,8 +462,6 @@ function fakeGeneratedImageUpload(string $name = 'image.png', int $width = 1200,
         'webp' => function_exists('imagewebp') && imagewebp($image, $imagePath, 90),
         default => imagepng($image, $imagePath),
     };
-
-    imagedestroy($image);
 
     if (! $encoded || ! is_file($imagePath) || filesize($imagePath) === 0) {
         @unlink($imagePath);
@@ -628,21 +623,19 @@ function prayerCompleteMonth(string $yearMonth, string $source = 'jakim:v2/WLY01
 
 function refreshUmmahMonthPayload(): array
 {
-    $day = function (string $date): array {
-        return [
-            'date' => $date,
-            'prayer_times' => [
-                'imsak' => '05:30', 'fajr' => '05:40', 'sunrise' => '06:58', 'dhuhr' => '12:59',
-                'asr' => '16:15', 'maghrib' => '19:01', 'isha' => '20:10',
-            ],
-            'prayer_datetimes' => [
-                'imsak' => "{$date}T05:30:00+08:00", 'fajr' => "{$date}T05:40:00+08:00",
-                'sunrise' => "{$date}T06:58:00+08:00", 'dhuhr' => "{$date}T12:59:00+08:00",
-                'asr' => "{$date}T16:15:00+08:00", 'maghrib' => "{$date}T19:01:00+08:00",
-                'isha' => "{$date}T20:10:00+08:00",
-            ],
-        ];
-    };
+    $day = (fn(string $date): array => [
+        'date' => $date,
+        'prayer_times' => [
+            'imsak' => '05:30', 'fajr' => '05:40', 'sunrise' => '06:58', 'dhuhr' => '12:59',
+            'asr' => '16:15', 'maghrib' => '19:01', 'isha' => '20:10',
+        ],
+        'prayer_datetimes' => [
+            'imsak' => "{$date}T05:30:00+08:00", 'fajr' => "{$date}T05:40:00+08:00",
+            'sunrise' => "{$date}T06:58:00+08:00", 'dhuhr' => "{$date}T12:59:00+08:00",
+            'asr' => "{$date}T16:15:00+08:00", 'maghrib' => "{$date}T19:01:00+08:00",
+            'isha' => "{$date}T20:10:00+08:00",
+        ],
+    ]);
 
     return [
         'success' => true,

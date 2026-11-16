@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Venues;
 
-use App\Platform\Models\MorphModelResolver;
 use App\Models\Venue;
+use App\Platform\Models\MorphModelResolver;
 
 /**
  * Delete a venue through the owning feature.

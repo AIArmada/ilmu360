@@ -17,8 +17,6 @@ use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->sharer = User::factory()->create([
         'name' => 'WP3 Sharer',

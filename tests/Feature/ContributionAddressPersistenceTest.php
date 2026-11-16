@@ -250,9 +250,8 @@ it('rejects a non-uuid country selection on a sparse address update', function (
             'country_id' => 123,
             'line1' => 'Jalan Baharu',
         ],
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->primaryAddress()->line1)->toBe('Jalan Asal');
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->primaryAddress()->line1)->toBe('Jalan Asal');
 });
 
 it('does not synthesize person addresses from flat top-level address fields', function () {

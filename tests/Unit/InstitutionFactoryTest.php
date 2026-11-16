@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('generates a type-matching name when built with ofType', function (InstitutionType $type, array $prefixes) {
     $institution = withGlobalOwnerContext(fn () => Institution::factory()->ofType($type)->create());

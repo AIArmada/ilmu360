@@ -261,8 +261,8 @@ PHP);
 
         $analysis = runOwnedWriteAnalysis($project);
 
-        expect($analysis['exitCode'])->toBe(0, $analysis['stderr'].$analysis['stdout']);
-        expect(decodeOwnedWriteReport($analysis['stdout'])['totals'])->toBe(['errors' => 0, 'file_errors' => 0]);
+        expect($analysis['exitCode'])->toBe(0, $analysis['stderr'].$analysis['stdout'])
+            ->and(decodeOwnedWriteReport($analysis['stdout'])['totals'])->toBe(['errors' => 0, 'file_errors' => 0]);
     } finally {
         $project->remove();
     }
@@ -896,9 +896,9 @@ PHP);
             'rule' => 'architecture.writeLocation',
             'file' => 'app/Models/Concerns/HasUserRestoration.php',
             'target' => 'table:unknown',
-            'model' => 'Laravel\\Sanctum\\PersonalAccessToken',
+            'model' => \Laravel\Sanctum\PersonalAccessToken::class,
             'relation' => 'tokens',
-            'relation_owner' => 'App\\Models\\User',
+            'relation_owner' => \App\Models\User::class,
             'reason' => 'The exact Sanctum token relation remains in the account lifecycle trait.',
             'owner' => 'Identity',
             'expires' => '2999-12-31',

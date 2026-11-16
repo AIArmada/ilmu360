@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 beforeEach(function (): void {
     app(SelectionCatalogCache::class)->bustAll();
@@ -40,9 +40,8 @@ it('caches and refreshes the title catalog by version', function (): void {
         'sort_order' => 2,
     ]);
 
-    expect($catalog->titleOptions())->toHaveKey((string) $secondTitle->getKey());
-
-    expect($catalog->titleSearchOptions('ust'))->toMatchArray([
+    expect($catalog->titleOptions())->toHaveKey((string) $secondTitle->getKey())
+        ->and($catalog->titleSearchOptions('ust'))->toMatchArray([
         (string) $firstTitle->getKey() => 'Ustaz',
         (string) $secondTitle->getKey() => 'Ustazah',
     ]);

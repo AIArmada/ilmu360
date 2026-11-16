@@ -6,15 +6,15 @@ namespace App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplicati
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSummary;
-use App\Features\Persons\Api\PersonLookup;
-use App\Features\Persons\Api\PersonSummary;
-use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\PersonSummary;
 use App\Platform\Media\StagedUploadFactory;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\AccountDirectory;
@@ -327,7 +327,7 @@ class Create extends Component implements HasForms
     private function canonicalSubjectId(): string
     {
         return $this->subjectType === MembershipApplicationSubjectType::Person->value
-            ? (string) ($this->subjectSlug ?? $this->subjectId)
+            ? $this->subjectSlug ?? $this->subjectId
             : $this->subjectId;
     }
 

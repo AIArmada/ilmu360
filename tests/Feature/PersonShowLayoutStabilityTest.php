@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\Person;
 
 it('gates bottom-anchored decor on settled load and sizes the header logo', function () {

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -28,27 +28,19 @@ it('opens after consecutive failures and short-circuits without HTTP', function 
     Http::fake(['api.aladhan.com/*' => Http::response([], 500)]);
     $provider = app(AladhanPrayerProvider::class);
     $query = new PrayerQuery('ID', '2026-10-15', 'Asia/Jakarta', -6.2, 106.8);
-
-    try {
+    expect(function () use ($provider, $query) {
         $provider->dailyPrayers($query);
         $this->fail('Expected ProviderUnavailable.');
-    } catch (ProviderUnavailable) {
-    }
-
-    try {
+    })->toThrow(ProviderUnavailable::class)
+        ->and(function () use ($provider, $query) {
         $provider->dailyPrayers($query);
         $this->fail('Expected ProviderUnavailable.');
-    } catch (ProviderUnavailable) {
-    }
-
-    expect(app(PrayerCircuitBreaker::class)->state('aladhan'))->toBe(['failures' => 2, 'open' => true]);
-
-    try {
+    })->toThrow(ProviderUnavailable::class)
+        ->and(app(PrayerCircuitBreaker::class)->state('aladhan'))->toBe(['failures' => 2, 'open' => true])
+        ->and(function () use ($provider, $query) {
         $provider->dailyPrayers($query);
         $this->fail('Expected an open-circuit ProviderUnavailable.');
-    } catch (ProviderUnavailable $exception) {
-        expect($exception->getMessage())->toBe('Aladhan circuit is open.');
-    }
+    })->toThrow(ProviderUnavailable::class, 'Aladhan circuit is open.');
 
     Http::assertSentCount(2);
 });
@@ -57,34 +49,26 @@ it('counts auth failures toward the open circuit', function (int $status) {
     Http::fake(['api.aladhan.com/*' => Http::response([], $status)]);
     $provider = app(AladhanPrayerProvider::class);
     $query = new PrayerQuery('ID', '2026-10-15', 'Asia/Jakarta', -6.2, 106.8);
-
-    try {
+    expect(function () use ($provider, $query, $status) {
         $provider->dailyPrayers($query);
         $this->fail("Expected ProviderUnavailable for HTTP {$status}.");
-    } catch (ProviderUnavailable) {
-    }
-
-    try {
+    })->toThrow(ProviderUnavailable::class)
+        ->and(function () use ($provider, $query, $status) {
         $provider->dailyPrayers($query);
         $this->fail("Expected ProviderUnavailable for HTTP {$status}.");
-    } catch (ProviderUnavailable) {
-    }
-
-    expect(app(PrayerCircuitBreaker::class)->state('aladhan'))->toBe(['failures' => 2, 'open' => true]);
+    })->toThrow(ProviderUnavailable::class)
+        ->and(app(PrayerCircuitBreaker::class)->state('aladhan'))->toBe(['failures' => 2, 'open' => true]);
 })->with([401, 403]);
 
 it('never trips the breaker on unpublished 404s', function () {
     Http::fake(['api.aladhan.com/*' => Http::response([], 404)]);
     $provider = app(AladhanPrayerProvider::class);
     $query = new PrayerQuery('ID', '2026-10-15', 'Asia/Jakarta', -6.2, 106.8);
-
-    try {
+    expect(function () use ($provider, $query) {
         $provider->dailyPrayers($query);
         $this->fail('Expected ProviderUnavailable for HTTP 404.');
-    } catch (ProviderUnavailable) {
-    }
-
-    expect(app(PrayerCircuitBreaker::class)->state('aladhan'))->toBe(['failures' => 0, 'open' => false]);
+    })->toThrow(ProviderUnavailable::class)
+        ->and(app(PrayerCircuitBreaker::class)->state('aladhan'))->toBe(['failures' => 0, 'open' => false]);
 });
 
 it('resets the count on success', function () {
@@ -191,7 +175,7 @@ it('writes the failure counter with atomic primitives only, so interleaved failu
 
     // The open key is still put at the threshold; the counter itself must
     // never see any put at all.
-    expect($counterPuts)->toBe([])
+    expect($counterPuts)->toBeEmpty()
         ->and(array_column($spy->puts, 0))->toContain('prayer:v3:breaker:aladhan:open');
 
     config(['prayer.cache.store' => null]);

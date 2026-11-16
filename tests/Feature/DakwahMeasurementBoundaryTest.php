@@ -27,12 +27,12 @@ test('invalid reporting starts withhold measurements consistently across readers
         $user,
     );
 
-    expect(ShareTrackingMeasurement::reportingStart())->toBeNull();
-    expect(ShareTrackingMeasurement::status())->toBe('not_configured');
-    expect($canonical['status'])->toBe('not_configured');
-    expect($analytics->summaryForUser($user)['visits'])->toBe(0);
-    expect($analytics->providerBreakdownForUser($user))->toBeEmpty();
-    expect($analytics->linksForUser($user)->first()->lastSharedAt)->toBeNull();
+    expect(ShareTrackingMeasurement::reportingStart())->toBeNull()
+        ->and(ShareTrackingMeasurement::status())->toBe('not_configured')
+        ->and($canonical['status'])->toBe('not_configured')
+        ->and($analytics->summaryForUser($user)['visits'])->toBe(0)
+        ->and($analytics->providerBreakdownForUser($user))->toBeEmpty()
+        ->and($analytics->linksForUser($user)->first()->lastSharedAt)->toBeNull();
 })->with([
     'missing' => null,
     'empty' => '',
@@ -46,8 +46,8 @@ test('invalid reporting starts withhold measurements consistently across readers
 test('absolute reporting starts retain their declared representation', function (string $reportingStart, string $expected): void {
     config(['share-tracking.reporting.reporting_start' => $reportingStart]);
 
-    expect(ShareTrackingMeasurement::reportingStart())->toBe($expected);
-    expect(ShareTrackingMeasurement::status())->toBe('active');
+    expect(ShareTrackingMeasurement::reportingStart())->toBe($expected)
+        ->and(ShareTrackingMeasurement::status())->toBe('active');
 })->with([
     'date' => ['2026-10-01', '2026-10-01'],
     'trimmed' => [' 2026-10-01 ', '2026-10-01'],
@@ -91,9 +91,9 @@ test('landing browser history remains visible in channel breakdowns without visi
         'event_submissions' => 0,
     ];
 
-    expect($analytics->summaryForUser($user)['distinct_browsers'])->toBe(1);
-    expect($analytics->providerBreakdownForUser($user)->firstWhere('provider', 'telegram'))->toBe($expected);
-    expect($analytics->providerBreakdownForLink($linkData)->firstWhere('provider', 'telegram'))->toBe($expected);
+    expect($analytics->summaryForUser($user)['distinct_browsers'])->toBe(1)
+        ->and($analytics->providerBreakdownForUser($user)->firstWhere('provider', 'telegram'))->toBe($expected)
+        ->and($analytics->providerBreakdownForLink($linkData)->firstWhere('provider', 'telegram'))->toBe($expected);
 });
 
 function dakwahBoundaryFacts(AffiliateLink $linkedPage, AffiliateLink $factOwner, CarbonInterface $at): AffiliateAttribution
@@ -166,24 +166,24 @@ test('future facts are excluded from user and link measurements even later on th
         'event_checkins' => 0,
         'event_submissions' => 0,
         'total_outcomes' => 1,
-    ]);
-    expect($analytics->summaryForLink($linkData))->toMatchArray([
+    ])
+        ->and($analytics->summaryForLink($linkData))->toMatchArray([
         'outbound_shares' => 1,
         'visits' => 1,
         'distinct_browsers' => 1,
         'signups' => 1,
         'outcomes' => 1,
-    ]);
-    expect($analytics->linksForUser($user)->first()->visitsCount)->toBe(1);
-    expect($analytics->providerBreakdownForUser($user)->sum('visits'))->toBe(1);
-    expect($analytics->providerBreakdownForLink($linkData)->sum('visits'))->toBe(1);
-    expect($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('visits'))->toBe(1);
-    expect($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('outcomes'))->toBe(1);
-    expect($analytics->outcomeBreakdownForLink($linkData)->sum('count'))->toBe(1);
-    expect($analytics->recentVisitsForLink($linkData))->toHaveCount(1);
-    expect($analytics->recentOutcomesForLink($linkData))->toHaveCount(1);
-    expect($analytics->recentOutcomesForUser($user))->toHaveCount(1);
-    expect($analytics->activityWindowForLink($linkData)['last_visit_at']->equalTo(now()->subMinute()))->toBeTrue();
+    ])
+        ->and($analytics->linksForUser($user)->first()->visitsCount)->toBe(1)
+        ->and($analytics->providerBreakdownForUser($user)->sum('visits'))->toBe(1)
+        ->and($analytics->providerBreakdownForLink($linkData)->sum('visits'))->toBe(1)
+        ->and($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('visits'))->toBe(1)
+        ->and($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('outcomes'))->toBe(1)
+        ->and($analytics->outcomeBreakdownForLink($linkData)->sum('count'))->toBe(1)
+        ->and($analytics->recentVisitsForLink($linkData))->toHaveCount(1)
+        ->and($analytics->recentOutcomesForLink($linkData))->toHaveCount(1)
+        ->and($analytics->recentOutcomesForUser($user))->toHaveCount(1)
+        ->and($analytics->activityWindowForLink($linkData)['last_visit_at']->equalTo(now()->subMinute()))->toBeTrue();
 })->with([
     'later today' => 1,
     'tomorrow' => 24,
@@ -203,8 +203,8 @@ test('link detail excludes foreign affiliate facts incorrectly pointing at an ow
     $analytics = app(ShareTrackingAnalyticsService::class);
     $linkData = $analytics->findLinkForUser($user, $link->id);
 
-    expect($analytics->summaryForUser($user)['total_outcomes'])->toBe(0);
-    expect($analytics->summaryForLink($linkData))->toBe([
+    expect($analytics->summaryForUser($user)['total_outcomes'])->toBe(0)
+        ->and($analytics->summaryForLink($linkData))->toBe([
         'outbound_shares' => 0,
         'visits' => 0,
         'distinct_browsers' => 0,
@@ -213,14 +213,14 @@ test('link detail excludes foreign affiliate facts incorrectly pointing at an ow
         'event_registrations' => 0,
         'event_checkins' => 0,
         'event_submissions' => 0,
-    ]);
-    expect($analytics->providerBreakdownForLink($linkData))->toBeEmpty();
-    expect($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('visits'))->toBe(0);
-    expect($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('outcomes'))->toBe(0);
-    expect($analytics->outcomeBreakdownForLink($linkData))->toBeEmpty();
-    expect($analytics->recentVisitsForLink($linkData))->toBeEmpty();
-    expect($analytics->recentOutcomesForLink($linkData))->toBeEmpty();
-    expect($analytics->activityWindowForLink($linkData)['latest_activity_at'])->toBeNull();
+    ])
+        ->and($analytics->providerBreakdownForLink($linkData))->toBeEmpty()
+        ->and($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('visits'))->toBe(0)
+        ->and($analytics->dailyPerformanceForLink($linkData, 14, 'UTC')->sum('outcomes'))->toBe(0)
+        ->and($analytics->outcomeBreakdownForLink($linkData))->toBeEmpty()
+        ->and($analytics->recentVisitsForLink($linkData))->toBeEmpty()
+        ->and($analytics->recentOutcomesForLink($linkData))->toBeEmpty()
+        ->and($analytics->activityWindowForLink($linkData)['latest_activity_at'])->toBeNull();
 });
 
 test('deactivated links keep their historical detail report readable without creating a replacement link', function (): void {
@@ -237,7 +237,7 @@ test('deactivated links keep their historical detail report readable without cre
         ->assertSuccessful()
         ->assertSee('Historical events');
 
-    expect(AffiliateLink::query()->count())->toBe(1);
-    expect($analytics->summaryForUser($user)['visits'])->toBe(1);
-    expect($analytics->summaryForLink($analytics->findLinkForUser($user, $link->id))['signups'])->toBe(1);
+    expect(AffiliateLink::query()->count())->toBe(1)
+        ->and($analytics->summaryForUser($user)['visits'])->toBe(1)
+        ->and($analytics->summaryForLink($analytics->findLinkForUser($user, $link->id))['signups'])->toBe(1);
 });

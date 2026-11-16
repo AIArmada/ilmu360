@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -61,11 +61,9 @@ it('parses Aladhan timings in the query timezone into UTC anchors', function () 
         ->and($dto->source)->toBe('aladhan:17/Shafi')
         ->and($dto->date)->toBe('2026-10-15');
 
-    Http::assertSent(function ($request) {
-        return str_ends_with(strtok($request->url(), '?'), '/timings/15-10-2026')
-            && (int) $request['method'] === 17
-            && (int) $request['school'] === 0;
-    });
+    Http::assertSent(fn($request) => str_ends_with(strtok($request->url(), '?'), '/timings/15-10-2026')
+        && (int) $request['method'] === 17
+        && (int) $request['school'] === 0);
 });
 
 it('uses the Hanafi school when the madhab requires it', function () {
@@ -73,9 +71,7 @@ it('uses the Hanafi school when the madhab requires it', function () {
 
     app(AladhanPrayerProvider::class)->dailyPrayers(aladhanQuery('Hanafi'));
 
-    Http::assertSent(function ($request) {
-        return (int) $request['school'] === 1;
-    });
+    Http::assertSent(fn($request) => (int) $request['school'] === 1);
 });
 
 it('strips timezone suffixes from timing strings', function () {
@@ -99,11 +95,10 @@ it('rejects payloads whose date echo does not match the query', function () {
 it('reports unavailable on errors and missing coordinates', function () {
     Http::fake(['api.aladhan.com/*' => Http::response([], 500)]);
 
-    try {
+    expect(function () {
         app(AladhanPrayerProvider::class)->dailyPrayers(aladhanQuery());
         $this->fail('Expected ProviderUnavailable for HTTP 500.');
-    } catch (ProviderUnavailable) {
-    }
+    })->toThrow(ProviderUnavailable::class);
 
     $query = new PrayerQuery('MY', '2026-10-15', 'Asia/Kuala_Lumpur', zone: 'WLY01');
 

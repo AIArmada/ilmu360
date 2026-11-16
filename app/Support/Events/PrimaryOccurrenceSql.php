@@ -92,9 +92,6 @@ class PrimaryOccurrenceSql
         };
     }
 
-    /**
-     * @param  PostgresConnection|SQLiteConnection|MySqlConnection  $connection
-     */
     private static function groupKeyExists(string $eventsTable, PostgresConnection|SQLiteConnection|MySqlConnection $connection): string
     {
         return match ($connection->getDriverName()) {

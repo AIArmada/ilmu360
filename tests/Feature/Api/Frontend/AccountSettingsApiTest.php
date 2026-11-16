@@ -10,8 +10,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 it('normalizes missing optional account settings fields as empty strings', function () {
     $user = User::factory()->create([
         'name' => 'Blank Profile User',
@@ -130,12 +128,10 @@ it('returns the updated account settings profile payload after saving', function
         'friday_prayer_institution_ids' => [$fridayInstitution->id],
         'email_verified_at' => $user->email_verified_at?->toIso8601String(),
         'phone_verified_at' => $user->phone_verified_at?->toIso8601String(),
-    ]);
-
-    expect($user->name)->toBe('Updated API User')
+    ])
+        ->and($user->name)->toBe('Updated API User')
         ->and($user->timezone)->toBe('Asia/Kuala_Lumpur')
-        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)
-        ->toContain($dailyInstitution->id)
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)->toContain($dailyInstitution->id)
         ->toContain($secondDailyInstitution->id)
         ->toHaveCount(2)
         ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBe([$fridayInstitution->id]);
@@ -212,8 +208,8 @@ it('clears prayer institution preferences with empty arrays', function () {
 
     expect($response->json('data.profile.daily_prayer_institution_ids'))->toBe([])
         ->and($response->json('data.profile.friday_prayer_institution_ids'))->toBe([])
-        ->and(count(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds))->toBe(0)
-        ->and(count(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds))->toBe(0);
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)->toBeEmpty()
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBeEmpty();
 });
 
 it('rejects inactive or unknown prayer institution ids', function () {

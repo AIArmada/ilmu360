@@ -7,7 +7,7 @@ use App\Platform\Cache\VersionedCache;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('remembers a value under the current version until the version is bumped', function (): void {
     $versions = app(CacheVersionStore::class);

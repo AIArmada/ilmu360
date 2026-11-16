@@ -10,14 +10,14 @@ use App\Features\Communications\Api\PushDestinationDetails;
 use App\Shared\Auth\UserMorphType;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class RegisterPushDestinationAction
+final readonly class RegisterPushDestinationAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly FindPushDestinationByInstallationAction $findDestination,
-        private readonly SyncPushDestinationDetailsAction $syncDestination,
-        private readonly UserMorphType $userMorphType,
+        private FindPushDestinationByInstallationAction $findDestination,
+        private SyncPushDestinationDetailsAction $syncDestination,
+        private UserMorphType $userMorphType,
     ) {}
 
     public function handle(string $accountId, string $installationId, PushDestinationDetails $details): CommunicationDestination

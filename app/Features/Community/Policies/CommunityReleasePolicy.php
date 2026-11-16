@@ -24,7 +24,7 @@ final class CommunityReleasePolicy
             && $user->hasAnyRole(['super_admin', 'admin', 'moderator', 'editor', 'viewer']);
     }
 
-    public function view(?AccountActor $user, CommunityRelease $release): bool
+    public function view(?AccountActor $user): bool
     {
         return $this->viewAny($user);
     }

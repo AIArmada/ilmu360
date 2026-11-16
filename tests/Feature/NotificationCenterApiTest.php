@@ -5,8 +5,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 it('requires authentication for notification center api endpoints', function () {
     $this->getJson('/api/v1/notifications')->assertUnauthorized();
     $this->getJson('/api/v1/notification-settings')->assertUnauthorized();

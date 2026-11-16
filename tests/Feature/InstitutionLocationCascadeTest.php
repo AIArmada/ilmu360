@@ -116,7 +116,7 @@ it('filters institutions down the Singapore planning cascade without a state row
 
     expect($resolver->districtRoleForCountry((string) $singapore->getKey()))->toBe('region')
         ->and($resolver->subdivisionRoleForCountry((string) $singapore->getKey()))->toBe('planning_area')
-        ->and($resolver->stateMaps((string) $singapore->getKey())['options'])->toBe([]);
+        ->and($resolver->stateMaps((string) $singapore->getKey())['options'])->toBeEmpty();
 
     Livewire::test('pages.institutions.index')
         ->set('country', 'singapore')

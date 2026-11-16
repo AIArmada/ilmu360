@@ -2,7 +2,6 @@
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Forms\EventContributionFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
@@ -10,11 +9,10 @@ use App\Models\Reference;
 use App\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 /**
  * @param  array<int, mixed>  $components

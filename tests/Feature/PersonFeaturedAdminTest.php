@@ -89,10 +89,9 @@ it('rejects homepage curation by non administrators even through direct writes',
     $this->actingAs($member);
 
     expect(fn () => $person->update(['is_featured' => true]))
-        ->toThrow(AuthorizationException::class);
-    expect($person->fresh()->is_featured)->toBeFalse();
-
-    expect(Person::factory()->create()->is_featured)->toBeFalse();
+        ->toThrow(AuthorizationException::class)
+        ->and($person->fresh()->is_featured)->toBeFalse()
+        ->and(Person::factory()->create()->is_featured)->toBeFalse();
 });
 
 it('preserves hidden featured positions and audits filtered reordering', function () {

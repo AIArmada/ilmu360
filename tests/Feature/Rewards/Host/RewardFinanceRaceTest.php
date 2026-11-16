@@ -35,7 +35,6 @@ use Symfony\Component\Process\Process;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardFinanceWorkerDb;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
-use Tests\Support\RealDriverFixture;
 
 function financeRaceReadyDir(string $case): string
 {
@@ -62,7 +61,6 @@ function runFinanceRacePair(string $database, string|array $modes, array $payloa
 {
     $readyDir = financeRaceReadyDir($case);
     file_put_contents($readyDir.'/payload.json', json_encode($payload, JSON_THROW_ON_ERROR));
-
 
     $worker = __DIR__.'/RewardFinanceRaceWorker.php';
 
@@ -127,14 +125,14 @@ function financeRaceFulfilledAward(string $prefix, string $source): array
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact($source, $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Points, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         $source, CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
 
     $staff = RewardLedgerFixtures::staffId();
 
-    $fulfilled = (new TransitionRewardAwardAction(null, $reader))->handle(
+    $fulfilled = new TransitionRewardAwardAction(null, $reader)->handle(
         $result->award, RewardAwardStatus::Fulfilled, 'user', $staff, 'staff', 'fulfill',
         null, null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
@@ -427,7 +425,7 @@ it('closes coupon-use-vs-revocation to exactly one winner on real drivers', func
             expect($use['error'] ?? '')->toContain('has expired')
                 ->and($issued->refresh()->status)->toBe(RewardBenefitGrantStatus::Revoked)
                 ->and($usages)->toBe(0)
-                ->and($voucher->refresh()->status instanceof Expired)->toBeTrue()
+                ->and($voucher->refresh()->status)->toBeInstanceOf(Expired::class)
                 ->and($buckets->available)->toBe(10)
                 ->and(RewardBenefitStockLedger::balances($item->refresh())['available'])->toBe(3);
         }
@@ -516,17 +514,15 @@ it('refuses concurrent over-reservation beyond capacity on real drivers', functi
             'user', $staff, 'staff',
         );
 
-        $slotPayload = function (string $member, string $key) use ($program, $item): array {
-            return [
-                'recipient_type' => 'user',
-                'recipient_id' => $member,
-                'family_key' => $program->family_key,
-                'item_id' => (string) $item->getKey(),
-                'quantity' => 1,
-                'redemption_key' => $key,
-                'decided_at' => '2026-06-17T00:00:00Z',
-            ];
-        };
+        $slotPayload = (fn(string $member, string $key): array => [
+            'recipient_type' => 'user',
+            'recipient_id' => $member,
+            'family_key' => $program->family_key,
+            'item_id' => (string) $item->getKey(),
+            'quantity' => 1,
+            'redemption_key' => $key,
+            'decided_at' => '2026-06-17T00:00:00Z',
+        ]);
 
         [$first, $second] = runFinanceRacePair($database, ['redeem', 'redeem'], [
             'slots' => [$slotPayload($memberA, 'race-stockcap-a'), $slotPayload($memberB, 'race-stockcap-b')],
@@ -609,17 +605,15 @@ it('refuses a raced same-key cross-recipient redeem on real drivers', function (
             'user', $staff, 'staff',
         );
 
-        $slotPayload = function (string $member) use ($program, $item): array {
-            return [
-                'recipient_type' => 'user',
-                'recipient_id' => $member,
-                'family_key' => $program->family_key,
-                'item_id' => (string) $item->getKey(),
-                'quantity' => 1,
-                'redemption_key' => 'race-xkey-1',
-                'decided_at' => '2026-06-17T00:00:00Z',
-            ];
-        };
+        $slotPayload = (fn(string $member): array => [
+            'recipient_type' => 'user',
+            'recipient_id' => $member,
+            'family_key' => $program->family_key,
+            'item_id' => (string) $item->getKey(),
+            'quantity' => 1,
+            'redemption_key' => 'race-xkey-1',
+            'decided_at' => '2026-06-17T00:00:00Z',
+        ]);
 
         [$first, $second] = runFinanceRacePair($database, ['redeem', 'redeem'], [
             'slots' => [$slotPayload($memberA), $slotPayload($memberB)],

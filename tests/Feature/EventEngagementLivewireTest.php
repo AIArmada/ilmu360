@@ -6,8 +6,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 it('toggles event saves via livewire actions', function () {
     $user = User::factory()->create();
     $event = Event::factory()->create([
@@ -96,13 +94,13 @@ it('toggles event going from the events index cards', function () {
 
     $component->call('toggleGoing', $event->id);
 
-    expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue();
-    expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(1);
+    expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue()
+        ->and(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(1);
 
     $component->call('toggleGoing', $event->id);
 
-    expect($event->goingBy()->forResponder($user)->active()->exists())->toBeFalse();
-    expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(0);
+    expect($event->goingBy()->forResponder($user)->active()->exists())->toBeFalse()
+        ->and(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(0);
 });
 
 it('toggles event going from the featured homepage cards', function () {

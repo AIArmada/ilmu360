@@ -1,17 +1,15 @@
 <?php
 
 use App\Data\EventDiscoveryCriteriaFactory;
-use App\Shared\Events\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Services\PostgresEventDiscovery;
 use App\Services\PublicScheduleDiscoveryService;
+use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 function tarawihFilterEvent(string $title, ?PrayerReference $reference, PrayerOffset $offset, string $label): Event
 {
@@ -67,11 +65,8 @@ it('excludes isyak events from the tarawih filter on both discovery paths', func
 
     expect(tarawihPostgresTitles(EventPrayerTime::SelepasTarawih->value))
         ->toContain('Tarawih Night')
-        ->not->toContain('Isyak Night');
-
-    expect(tarawihScheduleTitles(EventPrayerTime::SelepasTarawih->value))
-        ->toContain('Tarawih Night')
-        ->not->toContain('Isyak Night');
+        ->not->toContain('Isyak Night')
+        ->and(tarawihScheduleTitles(EventPrayerTime::SelepasTarawih->value))->toContain('Tarawih Night')->not->toContain('Isyak Night');
 });
 
 it('excludes tarawih events from the isyak filter on both discovery paths', function () {
@@ -79,9 +74,6 @@ it('excludes tarawih events from the isyak filter on both discovery paths', func
 
     expect(tarawihPostgresTitles(EventPrayerTime::SelepasIsyak->value))
         ->toContain('Isyak Night')
-        ->not->toContain('Tarawih Night');
-
-    expect(tarawihScheduleTitles(EventPrayerTime::SelepasIsyak->value))
-        ->toContain('Isyak Night')
-        ->not->toContain('Tarawih Night');
+        ->not->toContain('Tarawih Night')
+        ->and(tarawihScheduleTitles(EventPrayerTime::SelepasIsyak->value))->toContain('Isyak Night')->not->toContain('Tarawih Night');
 });

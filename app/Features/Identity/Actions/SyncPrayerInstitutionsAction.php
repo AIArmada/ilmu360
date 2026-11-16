@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class SyncPrayerInstitutionsAction
 {
-    private const USER_PRAYER_INSTITUTIONS_TABLE = 'user_prayer_institutions';
+    private const string USER_PRAYER_INSTITUTIONS_TABLE = 'user_prayer_institutions';
 
     /**
      * @param  list<string>  $institutionIds

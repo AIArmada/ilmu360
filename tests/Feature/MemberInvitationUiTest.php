@@ -21,8 +21,6 @@ use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(PermissionSeeder::class);

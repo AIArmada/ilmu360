@@ -18,8 +18,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 function checkoutEvent(array $attributes = []): Event
 {
     $event = Event::factory()->create(array_merge([

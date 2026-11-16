@@ -38,7 +38,7 @@ class RewardPayoutRequestPolicy
     public function approve(AccountActor $user, RewardPayoutRequest $request): bool
     {
         return $this->canOperateOn($user, $request)
-            && (string) $request->requested_by_id !== (string) $user->actorId();
+            && (string) $request->requested_by_id !== $user->actorId();
     }
 
     public function submit(AccountActor $user, RewardPayoutRequest $request): bool
@@ -49,7 +49,7 @@ class RewardPayoutRequestPolicy
     public function confirm(AccountActor $user, RewardPayoutRequest $request): bool
     {
         return $this->canOperateOn($user, $request)
-            && (string) $request->requested_by_id !== (string) $user->actorId();
+            && (string) $request->requested_by_id !== $user->actorId();
     }
 
     public function reconcile(AccountActor $user, RewardPayoutRequest $request): bool
@@ -79,7 +79,7 @@ class RewardPayoutRequestPolicy
             return false;
         }
 
-        return (string) $recipientType !== $user->actorType() || (string) $recipientId !== (string) $user->actorId();
+        return (string) $recipientType !== $user->actorType() || (string) $recipientId !== $user->actorId();
     }
 
     private function isRecipient(AccountActor $user, RewardPayoutRequest $request): bool
@@ -88,6 +88,6 @@ class RewardPayoutRequestPolicy
 
         return $award instanceof RewardAward
             && (string) $award->recipient_type === $user->actorType()
-            && (string) $award->recipient_id === (string) $user->actorId();
+            && (string) $award->recipient_id === $user->actorId();
     }
 }

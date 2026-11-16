@@ -215,9 +215,8 @@ it('rejects a differently named pending institution with the same CID from a fea
         'address' => [
             'google_feature_id' => '0x808f778c55555555:0xffffffffffffffff',
         ],
-    ]))->toThrow(ValidationException::class);
-
-    expect(Institution::query()->count())->toBe(1);
+    ]))->toThrow(ValidationException::class)
+        ->and(Institution::query()->count())->toBe(1);
 });
 
 it('uses the Google Place ID when a CID is unavailable', function () {
@@ -241,9 +240,8 @@ it('uses the Google Place ID when a CID is unavailable', function () {
         'address' => [
             'google_place_id' => mb_strtolower('ChIJ_verified_place_without_cid'),
         ],
-    ]))->not->toThrow(ValidationException::class);
-
-    expect(fn () => EnsureUniqueContributionCreateAction::run(ContributionSubjectType::Institution, [
+    ]))->not->toThrow(ValidationException::class)
+        ->and(fn() => EnsureUniqueContributionCreateAction::run(ContributionSubjectType::Institution, [
         'name' => 'Another unrelated name',
         'address' => [
             'google_place_id' => 'ChIJ_verified_place_without_cid',

@@ -94,6 +94,7 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
     #[\Override]
     public $incrementing = false;
 
+    #[\Override]
     protected $table = 'users';
 
     #[\Override]

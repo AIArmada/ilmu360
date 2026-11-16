@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Shared\Events\EventCategoryCatalog;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
+use App\Shared\Events\EventCategoryCatalog;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class SavedSearchFactory extends Factory
 {
+    #[\Override]
     protected $model = SavedSearch::class;
 
     /**

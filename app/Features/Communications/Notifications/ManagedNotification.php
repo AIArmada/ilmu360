@@ -21,7 +21,6 @@ final class ManagedNotification extends Notification implements CommunicationCon
     public function __construct(public readonly ManagedNotificationMessage $message) {}
 
     /**
-     * @param  mixed  $notifiable
      * @return list<string>
      */
     public function via(mixed $notifiable): array

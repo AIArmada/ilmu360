@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Shared\Events\Enums\EventFormat;
+use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Features\Prayer\Services\JakimZoneResolver;
@@ -11,10 +11,10 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\PrayerTimeExpressionResolver;
+use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Shared\Submission\SubmissionContextResolver;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -23,8 +23,6 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     fakePrayerTimesApi();

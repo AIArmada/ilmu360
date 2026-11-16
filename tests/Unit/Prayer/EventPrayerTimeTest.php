@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('maps sebelum subuh to the fajr anchor fifteen minutes before', function () {
     expect(EventPrayerTime::SebelumSubuh->toPrayerReference())->toBe(PrayerReference::Fajr)

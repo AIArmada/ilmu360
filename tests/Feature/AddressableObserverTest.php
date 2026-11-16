@@ -8,8 +8,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Scout\Jobs\MakeSearchable;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
     Queue::fake();
     config()->set('scout.queue', [

@@ -8,12 +8,12 @@ use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Features\Institutions\Actions\GenerateInstitutionSlugAction;
-use App\Features\Places\Actions\Venues\GenerateVenueSlugAction;
-use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
+use App\Features\Institutions\Actions\GenerateInstitutionSlugAction;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Places\Actions\Venues\GenerateVenueSlugAction;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
 use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
 use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
@@ -36,8 +36,6 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
-
-uses(RefreshDatabase::class);
 
 it('registers public slug route binders during app boot', function () {
     foreach (['event', 'institution', 'person', 'venue', 'reference'] as $parameter) {

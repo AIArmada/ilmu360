@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Places\Actions\Spaces;
 
 use App\Models\Space;
-
 use Illuminate\Support\Facades\DB;
 
 /**

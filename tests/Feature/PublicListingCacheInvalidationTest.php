@@ -1,9 +1,9 @@
 <?php
 
-use App\Features\Persons\Api\PersonHomepageStats;
-use App\Features\Institutions\Api\InstitutionHomepageStats;
-use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\Events\Api\EventHomepageStats;
+use App\Features\Institutions\Api\InstitutionHomepageStats;
+use App\Features\Persons\Api\PersonHomepageStats;
+use App\Features\References\Api\ReferenceHomepageStats;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventKeyPerson;

@@ -124,9 +124,8 @@ function wp3ClaimRaceCase(TestCase $testCase): void
         expect($results)->toBe([
             ShareGuestClaimResult::Claimed->value,
             ShareGuestClaimResult::ClaimedByOther->value,
-        ]);
-
-        expect(AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->count())->toBe(1);
+        ])
+            ->and(AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->count())->toBe(1);
 
         $claim = AffiliateClaim::query()->where('affiliate_id', $guestAffiliateId)->firstOrFail();
         $winnerId = (string) $first['result'] === ShareGuestClaimResult::Claimed->value
@@ -292,9 +291,8 @@ function wp3SlugForcedRaceCase(TestCase $testCase): void
         $converged->deactivate();
 
         expect(fn () => app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $raceUrl, 'Majlis', 'web'))
-            ->toThrow(InvalidArgumentException::class);
-
-        expect(AffiliateLink::query()->where('affiliate_id', $affiliate->getKey())->count())->toBe(2)
+            ->toThrow(InvalidArgumentException::class)
+            ->and(AffiliateLink::query()->where('affiliate_id', $affiliate->getKey())->count())->toBe(2)
             ->and(Link::query()->withoutOwnerScope()->count())->toBe($managedBefore);
     } finally {
         wp3RaceTeardown($database, $previous);
@@ -381,9 +379,8 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
             ->and((string) $worker['url'])->toBe((string) $commit['url'])
             ->and($worker['reissued_credential'])->toBeNull()
             ->and($worker['reissued_capability'])->toBeNull()
-            ->and($commit['reissued'])->toBeFalse();
-
-        expect($worker['attempted_at'])->toBeLessThan($commit['committed_at'])
+            ->and($commit['reissued'])->toBeFalse()
+            ->and($worker['attempted_at'])->toBeLessThan($commit['committed_at'])
             ->and($worker['returned_at'])->toBeGreaterThan($commit['commit_started_at'])
             ->and($worker['returned_at'] - $worker['attempted_at'])->toBeGreaterThan(1.0);
 
@@ -407,9 +404,8 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
             'Majlis',
             'web',
             $requestForRace()
-        ))->toThrow(InvalidArgumentException::class);
-
-        expect(AffiliateLink::query()->where('affiliate_id', $affiliateId)->count())->toBe(2)
+        ))->toThrow(InvalidArgumentException::class)
+            ->and(AffiliateLink::query()->where('affiliate_id', $affiliateId)->count())->toBe(2)
             ->and(Link::query()->withoutOwnerScope()->count())->toBe($managedBefore);
     } finally {
         wp3RaceTeardown($database, $previous);

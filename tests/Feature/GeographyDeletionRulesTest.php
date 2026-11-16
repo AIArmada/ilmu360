@@ -3,8 +3,6 @@
 use App\Models\Institution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('allows deleting an unused country record', function () {
     $country = ensureTestMalaysiaCountry();
 

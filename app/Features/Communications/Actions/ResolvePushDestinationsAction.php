@@ -10,12 +10,12 @@ use App\Shared\Auth\UserMorphType;
 use Illuminate\Database\Eloquent\Collection;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class ResolvePushDestinationsAction
+final readonly class ResolvePushDestinationsAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly UserMorphType $userMorphType,
+        private UserMorphType $userMorphType,
     ) {}
 
     /**

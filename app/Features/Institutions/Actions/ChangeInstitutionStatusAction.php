@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Actions;
 
 use App\Models\Institution;
-
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;

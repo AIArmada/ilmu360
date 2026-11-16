@@ -65,7 +65,7 @@ function cslaRecoverInWorkerProcess(string $database, string $touchpointId): arr
             PHP_BINARY,
             $worker,
             '--database='.$database,
-            '--app-url='.(string) config('app.url'),
+            '--app-url='.config('app.url'),
             '--touchpoint-id='.$touchpointId,
         ],
         env: ['APP_ENV' => 'testing'],
@@ -79,7 +79,7 @@ function cslaRecoverInWorkerProcess(string $database, string $touchpointId): arr
 
     expect($process->getExitCode())->toBe(0, 'Late-arrival worker failed: '.$output.' '.$process->getErrorOutput())
         ->and($decoded)->toBeArray()
-        ->and((bool) ($decoded['ok'] ?? false))->toBeTrue('Late-arrival worker reported failure: '.$output);
+        ->and($decoded['ok'] ?? false)->toBeTruthy('Late-arrival worker reported failure: '.$output);
 
     $report = $decoded['report'] ?? [];
 

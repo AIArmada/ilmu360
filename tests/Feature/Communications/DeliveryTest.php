@@ -212,9 +212,8 @@ it('rejects external delivery results without a complete frozen fence', function
             (string) $communication->getKey(),
             (string) $delivery->getKey(),
             (string) $attempt->getKey(),
-        )))->toBeFalse();
-
-        expect(DB::transaction(fn (): bool => app(DeliveryFencing::class)->recordExternalFailure(
+        )))->toBeFalse()
+            ->and(DB::transaction(fn (): bool => app(DeliveryFencing::class)->recordExternalFailure(
             (string) $communication->getKey(),
             (string) $delivery->getKey(),
             (string) $attempt->getKey(),

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Models\ShareSourceAttributionReceipt;
@@ -9,13 +10,10 @@ use App\Platform\FeatureCatalog;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     Queue::fake();

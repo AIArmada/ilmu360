@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class MembershipApplicationFactory extends Factory
 {
+    #[\Override]
     protected $model = MembershipApplication::class;
 
     public function definition(): array

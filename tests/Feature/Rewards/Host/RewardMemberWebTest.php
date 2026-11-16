@@ -25,8 +25,6 @@ use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 function webMemberProgram(string $prefix, RewardProgramMode $mode = RewardProgramMode::Points): array
 {
     [$program, $version] = RewardLedgerFixtures::seedVersionedProgram($prefix, $mode);

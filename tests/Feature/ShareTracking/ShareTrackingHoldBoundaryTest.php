@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Features\ShareTracking\Support\ShareMetricDefinitions;
 use App\Models\ShareCohortProjection;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
@@ -11,14 +12,11 @@ use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
-use App\Features\ShareTracking\Support\ShareMetricDefinitions;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('keeps the analytics readers as documented root adapters', function (string $class, string $relativePath): void {
-    $file = (new ReflectionClass($class))->getFileName();
+    $file = new ReflectionClass($class)->getFileName();
 
     expect(realpath((string) $file))->toBe(realpath(base_path($relativePath)))
         ->and((string) $file)->not->toStartWith(app_path('Features/ShareTracking'));
@@ -89,11 +87,7 @@ it('freezes cohort projection identity and allows only observed to participated'
     }
 
     expect(fn () => $projection->fresh()?->forceFill(['stage' => ShareCohortProjection::STAGE_PARTICIPATED])->save())
-        ->not->toThrow(LogicException::class);
-
-    expect(fn () => $projection->fresh()?->forceFill(['stage' => ShareCohortProjection::STAGE_OBSERVED])->save())
-        ->toThrow(LogicException::class, 'Share cohort projection stages move observed -> participated only.');
-
-    expect(fn () => $projection->fresh()?->delete())
-        ->toThrow(LogicException::class, 'Share cohort projections cannot be deleted.');
+        ->not->toThrow(LogicException::class)
+        ->and(fn() => $projection->fresh()?->forceFill(['stage' => ShareCohortProjection::STAGE_OBSERVED])->save())->toThrow(LogicException::class, 'Share cohort projection stages move observed -> participated only.')
+        ->and(fn() => $projection->fresh()?->delete())->toThrow(LogicException::class, 'Share cohort projections cannot be deleted.');
 });

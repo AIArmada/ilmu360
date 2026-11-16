@@ -13,12 +13,12 @@ use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Enums\RegistrationScope;
 use App\Enums\TaxonomyTerm\DomainTermCode;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Forms\Components\Select;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
 use App\Shared\Cache\SelectionCatalogCache;
-use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -356,26 +356,26 @@ class CreateAdvanced extends Component implements HasForms
                                         ->native(false)
                                         ->required()
                                         ->helperText(__('Semua Peringkat Umur menggantikan empat kumpulan umur khusus.'))
-                                        ->afterStateUpdatedJs(<<<'JS'
+                                        ->afterStateUpdatedJs(<<<'JS_WRAP'
                                             const ageGroups = Array.isArray($state) ? $state : []
                                             const allAges = 'all_ages'
                                             const specificAgeGroups = ['adults', 'youth', 'children', 'warga_emas']
                                             let normalizedAgeGroups = ageGroups
-
+                                        
                                             if (ageGroups.includes(allAges)) {
                                                 normalizedAgeGroups = [allAges]
                                             } else if (specificAgeGroups.every((group) => ageGroups.includes(group))) {
                                                 normalizedAgeGroups = [allAges]
                                             }
-
+                                        
                                             if (JSON.stringify(normalizedAgeGroups) !== JSON.stringify(ageGroups)) {
                                                 $set('age_group', normalizedAgeGroups)
                                             }
-
+                                        
                                             if (normalizedAgeGroups.includes('children') || normalizedAgeGroups.includes(allAges)) {
                                                 $set('children_allowed', true)
                                             }
-                                        JS),
+                                        JS_WRAP),
                                     Select::make('languages')
                                         ->label(__('Bahasa'))
                                         ->options(fn (): array => $this->languageOptions())
@@ -901,9 +901,9 @@ class CreateAdvanced extends Component implements HasForms
         $form['default_event_category_ids'] = $form['event_category_ids'];
         $form['event_format'] = (string) ($form['event_format'] ?? $form['default_event_format'] ?? EventFormat::Physical->value);
         $form['default_event_format'] = $form['event_format'];
-        $form['cover'] = $form['cover'] ?? null;
-        $form['poster'] = $form['poster'] ?? null;
-        $form['gallery'] = $form['gallery'] ?? [];
+        $form['cover'] ??= null;
+        $form['poster'] ??= null;
+        $form['gallery'] ??= [];
 
         $preparedSubmission = $prepareAdvancedParentProgramSubmissionAction->handle(
             $user,
@@ -921,7 +921,6 @@ class CreateAdvanced extends Component implements HasForms
                 timezone: $preparedSubmission['timezone'],
                 primaryOrganizer: $preparedSubmission['primary_organizer'],
                 locationInstitutionId: $preparedSubmission['location_institution_id'],
-                locationVenueId: is_string($form['location_venue_id'] ?? null) ? $form['location_venue_id'] : null,
                 organization: null,
                 registrationMode: (bool) ($validated['form']['registration_required'] ?? false)
                     ? RegistrationMode::Required
@@ -929,6 +928,7 @@ class CreateAdvanced extends Component implements HasForms
                 pricingMode: PricingMode::from((string) $validated['form']['pricing_mode']),
                 tickets: (array) $validated['form']['tickets'],
                 seating: (array) ($this->form['seating'] ?? []),
+                locationVenueId: is_string($form['location_venue_id'] ?? null) ? $form['location_venue_id'] : null,
             );
         } catch (Throwable $throwable) {
             report($throwable);
@@ -1320,16 +1320,8 @@ class CreateAdvanced extends Component implements HasForms
 
     protected function ticketStateHasSeating(mixed $value): bool
     {
-        foreach ((array) $value as $ticket) {
-            if (
-                is_array($ticket)
-                && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value
-            ) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any((array) $value, fn($ticket) => is_array($ticket)
+        && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value);
     }
 
     /** @return array<string, string> */

@@ -31,8 +31,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->sharer = User::factory()->create();
     $this->event = Event::factory()->create([
@@ -219,7 +217,7 @@ it('splits outcomes into valid, unknown, reversed, rejected, and unattributed ca
 
     $make = function (ShareOutcomeType $type = ShareOutcomeType::EventCheckin) use ($cookie, $at): AffiliateConversion {
         $actor = User::factory()->create();
-        $key = ShareOutcomeBusinessKey::for($type, 'checkin:'.((string) Str::uuid()));
+        $key = ShareOutcomeBusinessKey::for($type, 'checkin:'.(Str::uuid()));
         smrRecordOutcome($type, $key, $actor, $cookie, $at);
 
         return AffiliateConversion::query()->where('idempotency_key', hash('sha256', $key))->firstOrFail();
@@ -233,7 +231,7 @@ it('splits outcomes into valid, unknown, reversed, rejected, and unattributed ca
     $pending = $make();
     $pending->forceFill(['status' => 'pending'])->save();
 
-    $reversedKey = ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid()));
+    $reversedKey = ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.(Str::uuid()));
     $reversedActor = User::factory()->create();
     smrRecordOutcome(ShareOutcomeType::EventCheckin, $reversedKey, $reversedActor, $cookie, $at);
     app(ReverseShareOutcomeAction::class)->handle($reversedKey, 'source-corrected', $this->sharer);
@@ -246,7 +244,7 @@ it('splits outcomes into valid, unknown, reversed, rejected, and unattributed ca
     $lonely = User::factory()->create();
     smrRecordOutcome(
         ShareOutcomeType::EventCheckin,
-        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
+        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.(Str::uuid())),
         $lonely,
         null,
         $at,
@@ -341,13 +339,9 @@ it('withholds measurements before the reporting start and rejects bad input', fu
     );
 
     expect($unknown['totals']['recorded_shares'])->toBe(0)
-        ->and($unknown['scope'])->toBe('member');
-
-    expect(fn () => (new ShareMetricReader)->summarize('Mars/Olympus', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31')))
-        ->toThrow(InvalidArgumentException::class, 'timezone');
-
-    expect(fn () => (new ShareMetricReader)->summarize('UTC', CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-12-31')))
-        ->toThrow(InvalidArgumentException::class, 'bound');
+        ->and($unknown['scope'])->toBe('member')
+        ->and(fn() => (new ShareMetricReader)->summarize('Mars/Olympus', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31')))->toThrow(InvalidArgumentException::class, 'timezone')
+        ->and(fn() => (new ShareMetricReader)->summarize('UTC', CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-12-31')))->toThrow(InvalidArgumentException::class, 'bound');
 });
 
 it('excludes facts before the canonical reporting start', function (): void {

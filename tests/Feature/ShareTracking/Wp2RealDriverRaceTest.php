@@ -173,7 +173,7 @@ function wp2DifferentSharerRaceCase(TestCase $testCase): void
         $winnerIds = AffiliateAttribution::query()->pluck('id')->map(static fn ($id): string => (string) $id)->all();
 
         expect($receipt->isAttributed())->toBeTrue()
-            ->and(in_array((string) $receipt->attribution_id, $winnerIds, true))->toBeTrue()
+            ->and((string) $receipt->attribution_id)->toBeIn($winnerIds)
             ->and(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->count())->toBe(1)
             ->and(AffiliateConversion::query()->count())->toBe(1)
             ->and(ShareEffectReceipt::query()->count())->toBe(1);
@@ -296,7 +296,7 @@ function wp2SelectionOrderedLeg(string $order): void
             $aAttributions = AffiliateAttribution::query()
                 ->where('affiliate_link_id', $linkA->getKey())
                 ->get();
-            $aAttributionIds = array_map('strval', $aAttributions->modelKeys());
+            $aAttributionIds = array_map(strval(...), $aAttributions->modelKeys());
             expect(AffiliateAttribution::query()->count())->toBe(3)
                 ->and($aAttributions)->toHaveCount(2)
                 ->and($aAttributionIds)->toContain($initialId)
@@ -417,7 +417,7 @@ function wp2CorrectionRaceCase(TestCase $testCase): void
             $status = $conversion->status;
 
             $value = $status instanceof ConversionStatus
-                ? (string) $status->getValue()
+                ? $status->getValue()
                 : (string) $status;
 
             expect($value)->toBe('reversed')
@@ -426,7 +426,7 @@ function wp2CorrectionRaceCase(TestCase $testCase): void
             $status = $conversion->status;
 
             $value = $status instanceof ConversionStatus
-                ? (string) $status->getValue()
+                ? $status->getValue()
                 : (string) $status;
 
             expect($value)->toBe('approved')
@@ -465,9 +465,9 @@ function wp2NavigationLandingRaceCase(TestCase $testCase): void
         $winnerB = AffiliateAttribution::query()->where('affiliate_link_id', $linkB->getKey())->latest('first_seen_at')->firstOrFail();
         $selection = ShareBrowserSelection::query()->firstOrFail();
 
-        expect(ShareBrowserSelection::query()->count())->toBe(1);
-        expect((string) $selection->current_attribution_id)->toBe((string) $winnerB->getKey());
-        expect(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(2);
+        expect(ShareBrowserSelection::query()->count())->toBe(1)
+            ->and((string) $selection->current_attribution_id)->toBe((string) $winnerB->getKey())
+            ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(2);
     } finally {
         wp2RaceTeardown($database, $previous);
     }
@@ -513,23 +513,23 @@ function wp2InheritCorrectionRaceCase(TestCase $testCase): void
 
         $sourceConversion = AffiliateConversion::query()->where('idempotency_key', hash('sha256', $sourceKey))->firstOrFail();
         $sourceStatus = $sourceConversion->status;
-        $sourceValue = $sourceStatus instanceof ConversionStatus ? (string) $sourceStatus->getValue() : (string) $sourceStatus;
+        $sourceValue = $sourceStatus instanceof ConversionStatus ? $sourceStatus->getValue() : (string) $sourceStatus;
         expect($sourceValue)->toBe('reversed');
 
         $childConversion = AffiliateConversion::query()->where('idempotency_key', hash('sha256', $childKey))->first();
 
         if ($childConversion instanceof AffiliateConversion) {
             $childStatus = $childConversion->status;
-            $childValue = $childStatus instanceof ConversionStatus ? (string) $childStatus->getValue() : (string) $childStatus;
-            expect($childValue)->toBe('reversed');
-            expect(ShareEffectReceipt::query()->where('source_id', $childKey)->firstOrFail()->status)->toBe(ShareEffectStatus::Cancelled);
+            $childValue = $childStatus instanceof ConversionStatus ? $childStatus->getValue() : (string) $childStatus;
+            expect($childValue)->toBe('reversed')
+                ->and(ShareEffectReceipt::query()->where('source_id', $childKey)->firstOrFail()->status)->toBe(ShareEffectStatus::Cancelled);
         } else {
-            expect(ShareSourceAttributionReceipt::query()->where('business_key', $childKey)->firstOrFail()->isAttributed())->toBeFalse();
-            expect(ShareEffectReceipt::query()->where('source_id', $childKey)->count())->toBe(0);
+            expect(ShareSourceAttributionReceipt::query()->where('business_key', $childKey)->firstOrFail()->isAttributed())->toBeFalse()
+                ->and(ShareEffectReceipt::query()->where('source_id', $childKey)->count())->toBe(0);
         }
 
-        expect(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $childKey))->whereNotIn('status', ['rejected', 'reversed'])->count())->toBe(0);
-        expect(ShareEffectReceipt::query()->where('source_id', $childKey)->where('status', ShareEffectStatus::Succeeded->value)->count())->toBe(0);
+        expect(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $childKey))->whereNotIn('status', ['rejected', 'reversed'])->count())->toBe(0)
+            ->and(ShareEffectReceipt::query()->where('source_id', $childKey)->where('status', ShareEffectStatus::Succeeded->value)->count())->toBe(0);
     } finally {
         wp2RaceTeardown($database, $previous);
     }

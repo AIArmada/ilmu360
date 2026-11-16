@@ -5,8 +5,6 @@ use App\Models\Institution;
 use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('extracts instagram username from full profile url and resolves canonical url', function () {
     $person = Person::factory()->create();
 

@@ -15,8 +15,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 function parityPublicAttributes(array $overrides = []): array
 {
     return array_merge([
@@ -546,7 +544,7 @@ it('reuses eager-loaded primary places without per-item queries', function (): v
         $event->resolvedLocationName();
     }
 
-    expect(DB::getQueryLog())->toHaveCount(0);
+    expect(DB::getQueryLog())->toBeEmpty();
 
     $events->loadMissing('displayOccurrence.media');
     DB::flushQueryLog();

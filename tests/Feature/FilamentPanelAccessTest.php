@@ -12,8 +12,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });

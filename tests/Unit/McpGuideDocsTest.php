@@ -8,7 +8,7 @@ use App\Support\Api\Member\MemberResourceMutationService;
 use App\Support\Api\Member\MemberResourceRegistry;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 function liveWritableAdminResourceKeys(): array
 {

@@ -9,12 +9,12 @@ use App\Features\Communications\Api\NotificationChannel;
 use App\Shared\Auth\UserMorphType;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class FindPushDestinationByInstallationAction
+final readonly class FindPushDestinationByInstallationAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly UserMorphType $userMorphType,
+        private UserMorphType $userMorphType,
     ) {}
 
     public function handle(string $accountId, string $installationId): ?CommunicationDestination

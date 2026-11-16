@@ -1,13 +1,13 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Support\Authz\MemberPermissionGate;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;

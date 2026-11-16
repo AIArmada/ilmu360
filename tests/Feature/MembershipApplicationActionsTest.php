@@ -54,12 +54,10 @@ it('rejects a claim when the applicant is already a member', function () {
         $claimant,
         'I manage this speaker profile.',
     ))
-        ->toThrow(RuntimeException::class, 'membership_application_already_member');
-
-    expect(MembershipApplication::query()
+        ->toThrow(RuntimeException::class, 'membership_application_already_member')
+        ->and(MembershipApplication::query()
         ->where('subject_id', $person->getKey())
-        ->where('applicant_id', $claimant->getKey())
-        ->exists())->toBeFalse();
+        ->where('applicant_id', $claimant->getKey())->exists())->toBeFalse();
 });
 
 it('rejects a second pending claim for the same subject and applicant', function () {
@@ -80,12 +78,10 @@ it('rejects a second pending claim for the same subject and applicant', function
         $claimant,
         'I manage this speaker profile.',
     ))
-        ->toThrow(RuntimeException::class, 'membership_application_duplicate_pending');
-
-    expect(MembershipApplication::query()
+        ->toThrow(RuntimeException::class, 'membership_application_duplicate_pending')
+        ->and(MembershipApplication::query()
         ->where('subject_id', $person->getKey())
-        ->where('applicant_id', $claimant->getKey())
-        ->count())->toBe(1);
+        ->where('applicant_id', $claimant->getKey())->count())->toBe(1);
 });
 
 it('rejects a claim while a matching invitation is still pending', function () {
@@ -108,12 +104,10 @@ it('rejects a claim while a matching invitation is still pending', function () {
         $claimant,
         'I help manage this institution.',
     ))
-        ->toThrow(RuntimeException::class, 'membership_application_pending_invitation');
-
-    expect(MembershipApplication::query()
+        ->toThrow(RuntimeException::class, 'membership_application_pending_invitation')
+        ->and(MembershipApplication::query()
         ->where('subject_id', $institution->getKey())
-        ->where('applicant_id', $claimant->getKey())
-        ->exists())->toBeFalse();
+        ->where('applicant_id', $claimant->getKey())->exists())->toBeFalse();
 });
 
 it('approves a claim and grants editor membership', function () {
@@ -152,9 +146,8 @@ it('rejects a role that is not offered for application approval', function () {
         (string) $application->getKey(),
         (string) $reviewer->getKey(),
         'viewer',
-    ))->toThrow(InvalidArgumentException::class, 'Unsupported membership application approval role.');
-
-    expect($application->fresh()->status)->toBe(ApplicationStatus::Pending)
+    ))->toThrow(InvalidArgumentException::class, 'Unsupported membership application approval role.')
+        ->and($application->fresh()->status)->toBe(ApplicationStatus::Pending)
         ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeFalse();
 });
 

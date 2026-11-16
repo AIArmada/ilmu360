@@ -24,8 +24,6 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
@@ -179,10 +177,10 @@ it('shows redacted award history without counterpart identity', function (): voi
     $show = test()->getJson('/api/v1/rewards/awards/'.$award->getKey())->assertOk();
     $payload = $show->json('data');
 
-    expect($payload['component'])->toBe('recognition');
-    expect($payload['source']['outcome'])->toBe('signup');
-    expect($payload['source']['outcome_label'])->toBe('New member signup');
-    expect($payload['source']['source_date'])->toBe(CarbonImmutable::now('UTC')->toDateString());
+    expect($payload['component'])->toBe('recognition')
+        ->and($payload['source']['outcome'])->toBe('signup')
+        ->and($payload['source']['outcome_label'])->toBe('New member signup')
+        ->and($payload['source']['source_date'])->toBe(CarbonImmutable::now('UTC')->toDateString());
 
     $raw = $show->getContent();
     expect($raw)->not->toContain('actor_id')
@@ -193,8 +191,7 @@ it('shows redacted award history without counterpart identity', function (): voi
 
     // Awards carry decision reasons without staff actor identity.
     expect($payload['reasons'])->not->toBeEmpty();
-    expect($payload['reasons'][0])->toHaveKey('decided_by');
-    expect($payload['reasons'][0])->not->toHaveKey('actor_id');
+    expect($payload['reasons'][0])->toHaveKey('decided_by')->not->toHaveKey('actor_id');
 
     $referralAward = RewardAward::query()->create([
         'program_id' => $program->getKey(),
@@ -276,8 +273,8 @@ it('reports point balances only after fulfillment', function (): void {
 
     $balances = test()->getJson('/api/v1/rewards/balances')->assertOk();
     $balances->assertJsonFragment(['family_key' => $program->family_key, 'unit' => 'pts']);
-    expect($balances->json('data.0.buckets.available'))->toBe(10);
-    expect($balances->json('data.0.buckets.pending'))->toBe(0);
+    expect($balances->json('data.0.buckets.available'))->toBe(10)
+        ->and($balances->json('data.0.buckets.pending'))->toBe(0);
 
     test()->getJson('/api/v1/rewards/badges')->assertOk()->assertJson(['data' => []]);
 });

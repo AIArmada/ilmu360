@@ -147,7 +147,7 @@ final class Participants extends Component
     public function checkInParticipant(string $participantId): void
     {
         $event = $this->selectedEvent();
-        $this->authorizeManageAttendance($event);
+        $this->authorizeManageAttendance();
 
         if (! $this->checkInEnabled($event)) {
             $this->errorToast(__('Live check-in is turned off for this event.'));
@@ -182,7 +182,7 @@ final class Participants extends Component
         string $status,
     ): void {
         $event = $this->selectedEvent();
-        $this->authorizeManageAttendance($event);
+        $this->authorizeManageAttendance();
         $attendanceStatus = EventAttendanceStatus::tryFrom($status);
 
         if (! $attendanceStatus instanceof EventAttendanceStatus) {
@@ -234,7 +234,7 @@ final class Participants extends Component
     public function markSelectedAttendance(string $status): void
     {
         $event = $this->selectedEvent();
-        $this->authorizeManageAttendance($event);
+        $this->authorizeManageAttendance();
         $attendanceStatus = EventAttendanceStatus::tryFrom($status);
 
         if (! $attendanceStatus instanceof EventAttendanceStatus) {
@@ -255,49 +255,43 @@ final class Participants extends Component
         }
 
         try {
-            $updatedCount = OwnerContext::withOwner(null, function () use (
+            $updatedCount = OwnerContext::withOwner(null, fn(): int => DB::transaction(function () use (
                 $attendanceStatus,
                 $event,
                 $participantIds,
             ): int {
-                return DB::transaction(function () use (
-                    $attendanceStatus,
-                    $event,
-                    $participantIds,
-                ): int {
-                    $attendanceCommands = app(AttendanceCommands::class);
-                    $updatedCount = 0;
+                $attendanceCommands = app(AttendanceCommands::class);
+                $updatedCount = 0;
 
-                    foreach ($participantIds as $participantId) {
-                        $participant = $this->participantForAction($event, $participantId);
+                foreach ($participantIds as $participantId) {
+                    $participant = $this->participantForAction($event, $participantId);
 
-                        if ($attendanceStatus === EventAttendanceStatus::NotRecorded) {
-                            $attendanceCommands->clearAttendance(
-                                eventId: (string) $event->getKey(),
-                                participantId: (string) $participant->getKey(),
-                                actorId: (string) $this->currentUserOrAbort()->getKey(),
-                                occurrenceId: $this->selectedOccurrenceId($event),
-                                sessionId: $this->selectedSessionId($event),
-                                note: $this->normalizedNote(),
-                            );
-                        } else {
-                            $attendanceCommands->setParticipantAttendance(
-                                eventId: (string) $event->getKey(),
-                                participantId: (string) $participant->getKey(),
-                                status: $attendanceStatus->value,
-                                actorId: (string) $this->currentUserOrAbort()->getKey(),
-                                occurrenceId: $this->selectedOccurrenceId($event),
-                                sessionId: $this->selectedSessionId($event),
-                                note: $this->normalizedNote(),
-                            );
-                        }
-
-                        $updatedCount++;
+                    if ($attendanceStatus === EventAttendanceStatus::NotRecorded) {
+                        $attendanceCommands->clearAttendance(
+                            eventId: (string) $event->getKey(),
+                            participantId: (string) $participant->getKey(),
+                            actorId: (string) $this->currentUserOrAbort()->getKey(),
+                            occurrenceId: $this->selectedOccurrenceId($event),
+                            sessionId: $this->selectedSessionId($event),
+                            note: $this->normalizedNote(),
+                        );
+                    } else {
+                        $attendanceCommands->setParticipantAttendance(
+                            eventId: (string) $event->getKey(),
+                            participantId: (string) $participant->getKey(),
+                            status: $attendanceStatus->value,
+                            actorId: (string) $this->currentUserOrAbort()->getKey(),
+                            occurrenceId: $this->selectedOccurrenceId($event),
+                            sessionId: $this->selectedSessionId($event),
+                            note: $this->normalizedNote(),
+                        );
                     }
 
-                    return $updatedCount;
-                });
-            });
+                    $updatedCount++;
+                }
+
+                return $updatedCount;
+            }));
 
             $this->selectedParticipantIds = [];
             $this->attendanceNote = '';
@@ -753,7 +747,7 @@ final class Participants extends Component
         return $note === '' ? null : mb_substr($note, 0, 500);
     }
 
-    private function authorizeManageAttendance(Event $event): void
+    private function authorizeManageAttendance(): void
     {
         abort_unless($this->canManageAttendance(), 403);
     }

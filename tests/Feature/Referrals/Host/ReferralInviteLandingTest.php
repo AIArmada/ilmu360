@@ -17,8 +17,6 @@ use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 /** @return array{ReferralInvite, string} */
 function createLandingInvite(User $referrer, ?string $contact = null): array
 {

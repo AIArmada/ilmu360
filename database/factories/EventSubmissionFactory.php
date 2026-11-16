@@ -11,6 +11,7 @@ use App\Models\User;
 
 class EventSubmissionFactory extends PackageEventSubmissionFactory
 {
+    #[\Override]
     protected $model = EventSubmission::class;
 
     #[\Override]

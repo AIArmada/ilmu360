@@ -27,6 +27,7 @@ final class CommunityRelease extends Model
 {
     use HasUuids;
 
+    #[\Override]
     protected $table = 'community_releases';
 
     #[\Override]
@@ -55,11 +56,11 @@ final class CommunityRelease extends Model
 
     protected static function booted(): void
     {
-        static::updating(static function (): void {
+        self::updating(static function (): void {
             throw new LogicException('Published community releases are immutable.');
         });
 
-        static::deleting(static function (): void {
+        self::deleting(static function (): void {
             throw new LogicException('Community releases cannot be deleted.');
         });
     }

@@ -27,5 +27,5 @@ it('keeps critical app routes controller-backed so route caching stays safe', fu
         ->values()
         ->all();
 
-    expect($closureRoutes)->toBe([]);
+    expect($closureRoutes)->toBeEmpty();
 });

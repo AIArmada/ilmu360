@@ -48,6 +48,6 @@ it('renders canonical venue area names with batched address assignment and area 
             ->assertSeeText("Mukim Direktori {$number}");
     }
 
-    expect($assignmentQueryCount)->toBe(1);
-    expect($areaQueryCount)->toBe(1);
+    expect($assignmentQueryCount)->toBe(1)
+        ->and($areaQueryCount)->toBe(1);
 });

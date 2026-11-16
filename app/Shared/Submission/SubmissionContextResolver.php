@@ -22,12 +22,12 @@ use Illuminate\Validation\ValidationException;
  * normalization, and model/country/target/occurrence resolution. The
  * orchestrator calls these in phase order; this class never writes.
  */
-final class SubmissionContextResolver
+final readonly class SubmissionContextResolver
 {
     public function __construct(
-        private readonly SubmissionTimingPolicy $timing,
-        private readonly SpaceSelectionEligibility $spaceEligibilityResolver,
-        private readonly EntitySubmissionAccess $entitySubmissionAccess,
+        private SubmissionTimingPolicy $timing,
+        private SpaceSelectionEligibility $spaceEligibilityResolver,
+        private EntitySubmissionAccess $entitySubmissionAccess,
     ) {}
 
     /**
@@ -395,7 +395,7 @@ final class SubmissionContextResolver
         string $validationKeyPrefix,
     ): ?string {
         $raw = $validated['event_occurrence_id'] ?? null;
-        $hasSelection = ! ($raw === null || (is_string($raw) && trim($raw) === ''));
+        $hasSelection = $raw !== null && (!is_string($raw) || trim($raw) !== '');
 
         if (! $eventContainer instanceof Event) {
             if ($hasSelection) {

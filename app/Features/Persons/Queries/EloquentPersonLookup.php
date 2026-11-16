@@ -20,6 +20,7 @@ final readonly class EloquentPersonLookup implements PersonLookup
     public function resolveIdentifier(string $identifier): ?string
     {
         $entity = $this->entity($identifier);
+
         return $entity instanceof Person ? (string) $entity->getKey() : null;
     }
 
@@ -33,10 +34,10 @@ final readonly class EloquentPersonLookup implements PersonLookup
         $fallback = (string) $entity->getKey();
         $status = $entity->getAttribute('status');
         $status = $status instanceof BackedEnum ? (string) $status->value : (filled($status) ? (string) $status : null);
-        $kind = $entity->getAttribute('type');
-        $kind = $kind instanceof BackedEnum ? (string) $kind->value : (is_string($kind) && $kind !== '' ? $kind : null);
+        $entity->getAttribute('type');
         $slug = $entity->getAttribute('slug');
         $image = $entity->public_main_url;
+
         return new PersonSummary(
             id: $fallback,
             title: filled($entity->formatted_name) ? (string) $entity->formatted_name : $fallback,
@@ -48,19 +49,20 @@ final readonly class EloquentPersonLookup implements PersonLookup
         );
     }
 
-
     public function findReportSubject(string $id): ?ReportSubject
     {
         if (trim($id) === '') {
             return null;
         }
         $entity = Person::query()->find($id);
+
         return $entity instanceof Person ? $this->reportSubject($entity) : null;
     }
 
     public function resolveReportSubject(string $identifier): ?ReportSubject
     {
         $entity = $this->entity($identifier);
+
         return $entity instanceof Person ? $this->reportSubject($entity) : null;
     }
 
@@ -70,12 +72,14 @@ final readonly class EloquentPersonLookup implements PersonLookup
         if ($identifier === '') {
             return null;
         }
+
         return $this->resolver->first(Person::query(), 'persons.slug', $identifier);
     }
 
     private function reportSubject(Person $entity): ReportSubject
     {
         $id = (string) $entity->getKey();
+
         return new ReportSubject(
             type: ReportSubjectType::Person,
             id: $id,

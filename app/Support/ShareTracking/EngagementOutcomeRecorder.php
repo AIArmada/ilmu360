@@ -6,10 +6,10 @@ namespace App\Support\ShareTracking;
 
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Contracts\ShareTrackingContract;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Models\User;
 use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;

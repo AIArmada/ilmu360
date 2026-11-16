@@ -11,8 +11,6 @@ use Illuminate\Support\Facades\URL;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
-uses(RefreshDatabase::class);
-
 function createGuestEventSubmissionForClaim(string $email): EventSubmission
 {
     $submission = EventSubmission::factory()->create([
@@ -43,9 +41,9 @@ it('claims guest submissions matching the verified email', function () {
     foreach ([$first, $second] as $submission) {
         $fresh = $submission->fresh();
 
-        expect($fresh->submitter)->toBeInstanceOf(User::class);
-        expect((string) $fresh->submitter_id)->toBe((string) $user->getKey());
-        expect((string) $fresh->event->created_by_id)->toBe((string) $user->getKey());
+        expect($fresh->submitter)->toBeInstanceOf(User::class)
+            ->and((string) $fresh->submitter_id)->toBe((string) $user->getKey())
+            ->and((string) $fresh->event->created_by_id)->toBe((string) $user->getKey());
     }
 });
 
@@ -53,8 +51,8 @@ it('ignores submissions with a different email', function () {
     $user = User::factory()->create(['email' => 'claimer@example.com']);
     $submission = createGuestEventSubmissionForClaim('someone-else@example.com');
 
-    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0);
-    expect($submission->fresh()->submitter_id)->toBeNull();
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0)
+        ->and($submission->fresh()->submitter_id)->toBeNull();
 });
 
 it('ignores already-linked submissions', function () {
@@ -69,24 +67,24 @@ it('ignores already-linked submissions', function () {
     ]);
     $originalSubmitterId = $linked->submitter_id;
 
-    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0);
-    expect((string) $linked->fresh()->submitter_id)->toBe((string) $originalSubmitterId);
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0)
+        ->and((string) $linked->fresh()->submitter_id)->toBe((string) $originalSubmitterId);
 });
 
 it('does nothing for unverified users', function () {
     $user = User::factory()->unverified()->create(['email' => 'claimer@example.com']);
     $submission = createGuestEventSubmissionForClaim('claimer@example.com');
 
-    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0);
-    expect($submission->fresh()->submitter_id)->toBeNull();
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(0)
+        ->and($submission->fresh()->submitter_id)->toBeNull();
 });
 
 it('matches the submitter email case-insensitively', function () {
     $user = User::factory()->create(['email' => 'claimer@example.com']);
     $submission = createGuestEventSubmissionForClaim('CLAIMER@EXAMPLE.COM');
 
-    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(1);
-    expect((string) $submission->fresh()->submitter_id)->toBe((string) $user->getKey());
+    expect(app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey()))->toBe(1)
+        ->and((string) $submission->fresh()->submitter_id)->toBe((string) $user->getKey());
 });
 
 it('preserves an existing event creator when claiming', function () {
@@ -102,8 +100,8 @@ it('preserves an existing event creator when claiming', function () {
 
     $fresh = $submission->fresh();
 
-    expect((string) $fresh->submitter_id)->toBe((string) $user->getKey());
-    expect((string) $fresh->event->created_by_id)->toBe((string) $creator->getKey());
+    expect((string) $fresh->submitter_id)->toBe((string) $user->getKey())
+        ->and((string) $fresh->event->created_by_id)->toBe((string) $creator->getKey());
 });
 
 it('claims when the email address is verified', function () {
@@ -121,8 +119,8 @@ it('claims when the email address is verified', function () {
 
     $toast = session('toast');
 
-    expect($toast['type'] ?? null)->toBe('success');
-    expect((string) ($toast['message'] ?? ''))->toContain('1');
+    expect($toast['type'] ?? null)->toBe('success')
+        ->and((string) $toast['message'] ?? '')->toContain('1');
 });
 
 it('claims when the verification link is opened', function () {
@@ -137,8 +135,8 @@ it('claims when the verification link is opened', function () {
     $response = $this->actingAs($user)->get($url);
 
     $response->assertRedirect();
-    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
-    expect((string) $submission->fresh()->submitter_id)->toBe((string) $user->getKey());
+    expect($user->fresh()->hasVerifiedEmail())->toBeTrue()
+        ->and((string) $submission->fresh()->submitter_id)->toBe((string) $user->getKey());
     $response->assertSessionHas('toast.type', 'success');
 });
 

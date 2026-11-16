@@ -76,8 +76,8 @@ function wp1ContactUniquenessCase(): void
             $failure = $exception->getMessage();
         }
 
-        expect($failure)->not->toBeNull('Second primary on the same tuple must be rejected.');
-        expect((string) $failure)->toContain($indexName);
+        expect($failure)->not->toBeNull('Second primary on the same tuple must be rejected.')
+            ->and((string) $failure)->toContain($indexName);
 
         // Different purpose, type, and owner each allow their own primary.
         $insert($morph, (string) $ownerOne->getKey(), 'email', 'support', true, 'purpose-split@example.test');

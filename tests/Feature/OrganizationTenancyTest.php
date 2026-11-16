@@ -11,8 +11,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 it('creates a private organization through the authenticated API', function (): void {
     $user = User::factory()->create();
     Sanctum::actingAs($user);

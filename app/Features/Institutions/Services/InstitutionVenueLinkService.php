@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Services;
 
-use App\Models\Institution;
-
 use App\Features\Institutions\Actions\AddInstitutionVenueLinkAction;
 use App\Features\Institutions\Actions\DeleteInstitutionVenueLinksAction;
 use App\Features\Institutions\Actions\DemoteInstitutionVenuePrimaryAction;
@@ -13,6 +11,7 @@ use App\Features\Institutions\Actions\RemoveInstitutionVenueLinkAction;
 use App\Features\Institutions\Actions\SetInstitutionVenuePrimaryAction;
 use App\Features\Institutions\Actions\SyncInstitutionVenuesAction;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
+use App\Models\Institution;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;

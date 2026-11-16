@@ -23,8 +23,8 @@ test('daily breakdown labels retain the viewer local date west of UTC', function
     $response = $this->actingAs($user)->get(route('dakwah.links.show', ['link' => $link->id]))->assertSuccessful();
     $document = new DOMDocument;
     @$document->loadHTML($response->getContent());
-    $day = (new DOMXPath($document))->query('//*[@*[name()="wire:key"]="dakwah-day-2026-11-05"]')->item(0);
+    $day = new DOMXPath($document)->query('//*[@*[name()="wire:key"]="dakwah-day-2026-11-05"]')->item(0);
 
-    expect($day)->not->toBeNull();
-    expect($day->textContent)->toContain('5 Nov 2026');
+    expect($day)->not->toBeNull()
+        ->and($day->textContent)->toContain('5 Nov 2026');
 });

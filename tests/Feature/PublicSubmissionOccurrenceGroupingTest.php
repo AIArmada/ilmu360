@@ -160,7 +160,7 @@ it('creates a date-free institutional parent and preserves every contribution on
         ->and(EventReference::query()->where('event_occurrence_id', $occurrence->getKey())->where('referenceable_id', $reference->getKey())->exists())->toBeTrue()
         ->and($mediaSubject)->toBeInstanceOf(EventOccurrence::class)
         ->and($occurrence->getMedia('cover'))->toHaveCount(1)
-        ->and($event->getMedia('cover'))->toHaveCount(0)
+        ->and($event->getMedia('cover'))->toBeEmpty()
         ->and($event->card_image_url)->not->toBe(asset('images/placeholders/event-wide-v1.jpg'))
         ->and($occurrence->timezone)->toBe('Asia/Kuala_Lumpur')
         ->and($occurrence->starts_at->setTimezone('Asia/Kuala_Lumpur')->toDateString())->toBe($date);

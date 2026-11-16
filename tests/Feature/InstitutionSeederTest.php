@@ -29,8 +29,6 @@ use Database\Seeders\VenueSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('runs the full demo seeding pipeline in the expected order', function () {
 
     $calledSeederBatches = [];
@@ -44,39 +42,14 @@ it('runs the full demo seeding pipeline in the expected order', function () {
 
     $seeder->run();
 
-    expect($calledSeederBatches)->toContain([AddressingSeeder::class]);
-
-    expect($calledSeederBatches)->toContain([
-        PermissionSeeder::class,
-        RoleSeeder::class,
-        ScopedMemberRolesSeeder::class,
-        LanguageSeeder::class,
-        FoundationSeeder::class,
-        UserSeeder::class,
-    ]);
-
-    expect($calledSeederBatches)->toContain([FacilityTypeSeeder::class, VenueSpaceTypeSeeder::class, SpaceSeeder::class]);
-    expect($calledSeederBatches)->toContain([InstitutionSeeder::class]);
-    expect($calledSeederBatches)->toContain([VenueSeeder::class]);
-    expect($calledSeederBatches)->toContain([SpeakerSeeder::class]);
-
-    expect($calledSeederBatches)->toContain([
-        SeriesSeeder::class,
-        EventSeeder::class,
-        AdvancedEventSeeder::class,
-        ReferenceSeeder::class,
-        InspirationSeeder::class,
-        DonationChannelSeeder::class,
-        MediaLinkSeeder::class,
-    ]);
-
-    expect($calledSeederBatches)->toContain([
-        EventSubmissionSeeder::class,
-        ModerationReviewSeeder::class,
-        ReportSeeder::class,
-        SavedSearchSeeder::class,
-        RegistrationSeeder::class,
-    ]);
+    expect($calledSeederBatches)->toContain([AddressingSeeder::class])
+        ->toContain([PermissionSeeder::class, RoleSeeder::class, ScopedMemberRolesSeeder::class, LanguageSeeder::class, FoundationSeeder::class, UserSeeder::class])
+        ->toContain([FacilityTypeSeeder::class, VenueSpaceTypeSeeder::class, SpaceSeeder::class])
+        ->toContain([InstitutionSeeder::class])
+        ->toContain([VenueSeeder::class])
+        ->toContain([SpeakerSeeder::class])
+        ->toContain([SeriesSeeder::class, EventSeeder::class, AdvancedEventSeeder::class, ReferenceSeeder::class, InspirationSeeder::class, DonationChannelSeeder::class, MediaLinkSeeder::class])
+        ->toContain([EventSubmissionSeeder::class, ModerationReviewSeeder::class, ReportSeeder::class, SavedSearchSeeder::class, RegistrationSeeder::class]);
 
 });
 

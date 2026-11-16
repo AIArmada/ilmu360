@@ -26,7 +26,7 @@ class RewardPayeePolicy
         }
 
         return (string) $payee->recipient_type === $user->actorType()
-            && (string) $payee->recipient_id === (string) $user->actorId();
+            && (string) $payee->recipient_id === $user->actorId();
     }
 
     public function verify(AccountActor $user, ?RewardPayee $payee = null): bool
@@ -36,7 +36,7 @@ class RewardPayeePolicy
         }
 
         if ($payee instanceof RewardPayee) {
-            return (string) $payee->recipient_type !== $user->actorType() || (string) $payee->recipient_id !== (string) $user->actorId();
+            return (string) $payee->recipient_type !== $user->actorType() || (string) $payee->recipient_id !== $user->actorId();
         }
 
         return true;

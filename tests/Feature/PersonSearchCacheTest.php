@@ -36,7 +36,7 @@ it('shares one advancing version key across both public person-search bump entry
     $service->bustPublicSearchCache();
 
     expect(Cache::get('person_search_public_version_v2'))->toBe(3)
-        ->and($service->publicSearchIds($search))->toBe([]);
+        ->and($service->publicSearchIds($search))->toBeEmpty();
 
     Cache::put($resultKey(3), ['stale-person-id'], now()->addMinutes(10));
 
@@ -45,5 +45,5 @@ it('shares one advancing version key across both public person-search bump entry
     app(SyncPersonSearchProjectionAction::class)->bustPublicSearchCache();
 
     expect(Cache::get('person_search_public_version_v2'))->toBe(4)
-        ->and($service->publicSearchIds($search))->toBe([]);
+        ->and($service->publicSearchIds($search))->toBeEmpty();
 });

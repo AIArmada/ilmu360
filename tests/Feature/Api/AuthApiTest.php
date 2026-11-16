@@ -18,8 +18,6 @@ use Laravel\Socialite\Two\User as SocialiteUser;
 use Spatie\DeletedModels\Models\DeletedModel;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
     config()->set('services.google.client_id', 'google-client-id');
     config()->set('services.google.client_secret', 'google-client-secret');
@@ -252,10 +250,9 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
         'response_type' => 'going',
     ]);
     expect($engagementEvent->fresh())
-        ->not->toBeNull();
-
-    expect(withGlobalOwnerContext(fn (): int => app(EngagementCounterService::class)->countBookmarks($engagementEvent)))->toBe(0);
-    expect(withGlobalOwnerContext(fn (): int => app(EngagementCounterService::class)->countResponses($engagementEvent, 'going')))->toBe(0);
+        ->not->toBeNull()
+        ->and(withGlobalOwnerContext(fn (): int => app(EngagementCounterService::class)->countBookmarks($engagementEvent)))->toBe(0)
+        ->and(withGlobalOwnerContext(fn (): int => app(EngagementCounterService::class)->countResponses($engagementEvent, 'going')))->toBe(0);
 
     $deletedModel = DeletedModel::query()
         ->where('key', $user->id)
@@ -365,8 +362,8 @@ it('links an existing user during google api token exchange', function () {
     ])->assertOk()
         ->assertJsonPath('data.user.email', 'existing-google@example.test');
 
-    expect(User::query()->where('email', 'existing-google@example.test')->count())->toBe(1);
-    expect($user->fresh()?->email_verified_at)->not->toBeNull();
+    expect(User::query()->where('email', 'existing-google@example.test')->count())->toBe(1)
+        ->and($user->fresh()?->email_verified_at)->not->toBeNull();
 
     $this->assertDatabaseHas('socialite', [
         'user_id' => $user->id,

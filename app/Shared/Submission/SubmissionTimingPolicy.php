@@ -40,7 +40,7 @@ final class SubmissionTimingPolicy
      *
      * @var array<string, string>
      */
-    private const PREFERRED_SUBMISSION_TIMEZONES = [
+    private const array PREFERRED_SUBMISSION_TIMEZONES = [
         'AR' => 'America/Argentina/Buenos_Aires',
         'CY' => 'Asia/Nicosia',
         'DE' => 'Europe/Berlin',
@@ -57,7 +57,7 @@ final class SubmissionTimingPolicy
      * from now. Historical differences must not keep a timezone selector
      * visible; only divergence within this window requires a choice.
      */
-    private const EQUIVALENT_CLOCK_COMPARISON_YEARS = 10;
+    private const int EQUIVALENT_CLOCK_COMPARISON_YEARS = 10;
 
     /**
      * @return array<string, string>

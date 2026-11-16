@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Member;
 
-use App\Filament\Resources\Events\EventResource;
-use App\Filament\Resources\Events\EventResource as AhliEventResource;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
 use App\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
+use App\Filament\Resources\Events\EventResource;
+use App\Filament\Resources\Events\EventResource as AhliEventResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;

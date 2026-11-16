@@ -19,8 +19,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
-uses(RefreshDatabase::class);
-
 it('lists only publicly reachable statuses (approved, pending, cancelled)', function () {
     $approvedPublic = Event::factory()->create([
         'status' => 'approved',
@@ -821,7 +819,7 @@ it('serializes event detail payloads with poster metadata and included persons',
     expect(data_get($payload, 'poster_url'))->toBeString()->not->toBe('')
         ->and(data_get($payload, 'card_image_url'))->toBeString()->not->toBe('')
         ->and(data_get($payload, 'end_time_display'))->toBe('10:15 PM')
-        ->and(is_array(data_get($payload, 'persons.0')))->toBeTrue()
+        ->and(data_get($payload, 'persons.0'))->toBeArray()
         ->and(array_key_exists('pivot', data_get($payload, 'persons.0')))->toBeFalse();
 });
 

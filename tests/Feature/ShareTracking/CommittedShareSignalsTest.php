@@ -33,8 +33,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->sharer = User::factory()->create();
     $this->event = Event::factory()->create([
@@ -228,7 +226,7 @@ it('projects signals into cohort stages and resumes after partial drains', funct
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventCheckin,
-        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
+        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.(Str::uuid())),
         null,
         $actor,
         $request,
@@ -289,8 +287,8 @@ it('skips poison signals loudly without stalling the pipeline', function (): voi
     app(SignalEventIngestor::class)->handle($property, [
         'event_name' => CommittedShareSignalProducer::EVENT_NAME,
         'event_category' => CommittedShareSignalProducer::EVENT_CATEGORY,
-        'source_event_id' => 'committed-share:'.((string) Str::uuid()),
-        'idempotency_key' => 'committed-share:'.((string) Str::uuid()),
+        'source_event_id' => 'committed-share:'.(Str::uuid()),
+        'idempotency_key' => 'committed-share:'.(Str::uuid()),
         'occurred_at' => CarbonImmutable::parse('2026-05-12T08:00:00Z')->toIso8601String(),
         'properties' => [],
     ], true);
@@ -340,7 +338,7 @@ it('keeps the generic dispatcher away from committed-share work, both directions
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventCheckin,
-        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.((string) Str::uuid())),
+        ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.(Str::uuid())),
         null,
         $actor,
         $request,

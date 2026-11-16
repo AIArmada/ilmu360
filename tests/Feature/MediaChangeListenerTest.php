@@ -38,5 +38,5 @@ it('dispatches media changes to tagged listeners', function (): void {
         ->toContain('updated')
         ->toContain('deleted')
         ->and($listener->changes[0])->toBe('created')
-        ->and($listener->changes[array_key_last($listener->changes)])->toBe('deleted');
+        ->and(array_last($listener->changes))->toBe('deleted');
 });

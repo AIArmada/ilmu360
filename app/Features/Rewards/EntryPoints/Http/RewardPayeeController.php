@@ -8,8 +8,8 @@ use AIArmada\Rewards\Actions\RegisterRewardPayeeAction;
 use AIArmada\Rewards\Models\RewardPayee;
 use App\Features\Rewards\Support\RewardMemberPresenter;
 use App\Features\Rewards\Support\RewardPayoutMethods;
-use App\Platform\Http\FrontendController;
 use App\Platform\Api\ApiPagination;
+use App\Platform\Http\FrontendController;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -74,12 +74,12 @@ class RewardPayeeController extends FrontendController
         try {
             $payee = RegisterRewardPayeeAction::run(
                 $user->actorType(),
-                (string) $user->actorId(),
+                $user->actorId(),
                 $validated['method'],
                 $validated['account_ref'],
                 $validated['account_display'],
                 'user',
-                (string) $user->actorId(),
+                $user->actorId(),
                 'member',
             );
         } catch (InvalidArgumentException $exception) {

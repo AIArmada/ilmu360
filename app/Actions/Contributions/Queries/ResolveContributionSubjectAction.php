@@ -2,12 +2,12 @@
 
 namespace App\Actions\Contributions\Queries;
 
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Models\SlugOrUuidResolver;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use Illuminate\Database\Eloquent\Builder;
 use Lorisleiva\Actions\Concerns\AsAction;
 

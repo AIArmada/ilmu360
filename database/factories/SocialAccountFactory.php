@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class SocialAccountFactory extends Factory
 {
+    #[\Override]
     protected $model = SocialAccount::class;
 
     /**

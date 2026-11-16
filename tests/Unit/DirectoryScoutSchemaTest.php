@@ -4,7 +4,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('keeps directory search schemas free of fixed integer geography fields', function (): void {
     foreach ([Person::class, Institution::class] as $modelClass) {

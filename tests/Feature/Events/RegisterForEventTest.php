@@ -4,8 +4,6 @@ use App\Models\Event;
 use App\Models\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('creates a confirmed registration via the public api route', function () {
     $event = Event::factory()
         ->create([

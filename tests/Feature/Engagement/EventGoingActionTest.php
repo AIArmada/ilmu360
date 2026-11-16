@@ -48,7 +48,7 @@ function d4cGoingConversionStatus(AffiliateConversion $conversion): string
     $status = $conversion->status;
 
     return $status instanceof ConversionStatus
-        ? (string) $status->getValue()
+        ? $status->getValue()
         : (string) $status;
 }
 
@@ -171,7 +171,7 @@ it('records and reverses the going response through the engagement share outcome
             array $metadata,
             ?CarbonInterface $occurredAt,
         ) use (&$recorded): bool {
-            $recorded = compact('responseId', 'subject', 'actor', 'receivedRequest', 'metadata', 'occurredAt');
+            $recorded = ['responseId' => $responseId, 'subject' => $subject, 'actor' => $actor, 'receivedRequest' => $receivedRequest, 'metadata' => $metadata, 'occurredAt' => $occurredAt];
 
             return true;
         });
@@ -182,7 +182,7 @@ it('records and reverses the going response through the engagement share outcome
             string $reason,
             ?Authenticatable $actor,
         ) use (&$reversed): bool {
-            $reversed = compact('responseId', 'reason', 'actor');
+            $reversed = ['responseId' => $responseId, 'reason' => $reason, 'actor' => $actor];
 
             return true;
         });

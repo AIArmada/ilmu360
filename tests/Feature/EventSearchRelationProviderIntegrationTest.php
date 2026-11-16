@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use App\Shared\Events\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Features\References\Api\ReferenceQueries;
 use App\Models\Event;
 use App\Services\PostgresEventDiscovery;
 use App\Services\TypesenseEventDiscovery;
+use App\Shared\Events\EventCategoryCatalog;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use App\Support\EventDiscovery\FuzzyEventMatcher;
 use App\Support\Search\InstitutionSearchService;

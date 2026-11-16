@@ -37,7 +37,7 @@ class AdminGetMembershipApplicationReviewSchemaTool extends AbstractAdminTool
             ]);
 
             $application = $this->membershipApplications->find((string) $validated['record_key']);
-            abort_unless($application !== null, 404);
+            abort_unless($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail, 404);
 
             return [
                 'data' => [

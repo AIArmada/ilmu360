@@ -13,8 +13,6 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Assert;
 
-uses(RefreshDatabase::class);
-
 function pendingDupGuardErrors(callable $submit): array
 {
     try {

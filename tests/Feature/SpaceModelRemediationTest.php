@@ -6,6 +6,7 @@ use App\Data\Api\Event\EventPayloadData;
 use App\Features\Places\Actions\Spaces\AttachInstitutionSpaceAction;
 use App\Features\Places\Actions\Spaces\DetachInstitutionSpaceAction;
 use App\Features\Places\Actions\Spaces\SaveSpaceAction;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Filament\Resources\Spaces\RelationManagers\InstitutionsRelationManager;
 use App\Models\Event;
@@ -14,7 +15,6 @@ use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Policies\SpacePolicy;
-use App\Features\Places\Api\SpaceEligibility;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;
@@ -23,8 +23,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 it('enforces catalog and owner-scoped space eligibility for every selected id', function (): void {
     $institution = Institution::factory()->create();
@@ -45,17 +43,10 @@ it('enforces catalog and owner-scoped space eligibility for every selected id', 
 
     expect(array_keys($resolver->catalogOptions()))
         ->toContain((string) $catalog->getKey(), (string) $institutionSpace->getKey())
-        ->not->toContain((string) $venueSpace->getKey());
-
-    expect(array_keys($resolver->institutionOptions((string) $institution->getKey())))
-        ->toContain((string) $catalog->getKey(), (string) $institutionSpace->getKey())
-        ->not->toContain((string) $otherInstitutionSpace->getKey(), (string) $venueSpace->getKey());
-
-    expect(array_keys($resolver->venueOptions((string) $venue->getKey())))
-        ->toContain((string) $catalog->getKey(), (string) $venueSpace->getKey())
-        ->not->toContain((string) $otherVenueSpace->getKey());
-
-    expect(fn (): mixed => $resolver->validateVenueSelection((string) $venue->getKey(), [
+        ->not->toContain((string) $venueSpace->getKey())
+        ->and(array_keys($resolver->institutionOptions((string) $institution->getKey())))->toContain((string) $catalog->getKey(), (string) $institutionSpace->getKey())->not->toContain((string) $otherInstitutionSpace->getKey(), (string) $venueSpace->getKey())
+        ->and(array_keys($resolver->venueOptions((string) $venue->getKey())))->toContain((string) $catalog->getKey(), (string) $venueSpace->getKey())->not->toContain((string) $otherVenueSpace->getKey())
+        ->and(fn(): mixed => $resolver->validateVenueSelection((string) $venue->getKey(), [
         (string) $venueSpace->getKey(),
         (string) $otherVenueSpace->getKey(),
     ]))->toThrow(ValidationException::class);
@@ -80,9 +71,8 @@ it('uses scoped slug uniqueness and stores venue ownership', function (): void {
 
     expect($catalog->venue_id)->toBeNull()
         ->and($owned->venue_id)->toBe((string) $venue->getKey())
-        ->and($otherOwned->venue_id)->toBe((string) $otherVenue->getKey());
-
-    expect(fn (): mixed => $action->handle([
+        ->and($otherOwned->venue_id)->toBe((string) $otherVenue->getKey())
+        ->and(fn(): mixed => $action->handle([
         'name' => 'Duplicate Venue Hall',
         'slug' => 'shared-hall',
         'venue_id' => $venue->getKey(),
@@ -134,9 +124,8 @@ it('rejects inactive taxonomy codes and institution links on venue-owned spaces'
         'name' => 'Invalid Type',
         'slug' => 'invalid-type',
         'space_type' => 'hall',
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn (): mixed => $action->handle([
+    ]))->toThrow(ValidationException::class)
+        ->and(fn(): mixed => $action->handle([
         'name' => 'Venue Institution Space',
         'slug' => 'venue-institution-space',
         'venue_id' => (string) $venue->getKey(),
@@ -319,9 +308,8 @@ it('blocks deletion of spaces referenced by event locations', function (): void 
 
     $policy = new SpacePolicy;
 
-    expect($policy->delete($user, $space))->toBeFalse();
-    expect(fn (): bool => (bool) $space->delete())
-        ->toThrow(ValidationException::class);
+    expect($policy->delete($user, $space))->toBeFalse()
+        ->and(fn(): bool => (bool) $space->delete())->toThrow(ValidationException::class);
 
     $unreferenced = Space::factory()->create(['slug' => Str::slug('unreferenced-space').'-'.Str::random(5)]);
 

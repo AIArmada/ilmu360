@@ -104,7 +104,7 @@ if (! function_exists('shareCardPngChunkTypes')) {
     {
         $types = [];
 
-        if (substr($bytes, 0, 8) !== "\x89PNG\r\n\x1A\n") {
+        if (!str_starts_with($bytes, "\x89PNG\r\n\x1A\n")) {
             return $types;
         }
 
@@ -130,12 +130,12 @@ it('reports full readiness on the installed runtime', function (): void {
     $readiness = shareCardRenderer()->readiness();
 
     expect($readiness->ready)->toBeTrue()
-        ->and($readiness->missing)->toBe([])
+        ->and($readiness->missing)->toBeEmpty()
         ->and($readiness->pangoBinary)->not->toBeNull()
         ->and(is_executable((string) $readiness->pangoBinary))->toBeTrue()
         ->and($readiness->pangoVersion)->toMatch('/^\d+\.\d+/')
         ->and($readiness->fontRevision)->toMatch('/^fonts-[0-9a-f]{16}$/')
-        ->and(count($readiness->families))->toBe(5)
+        ->and($readiness->families)->toHaveCount(5)
         ->and(implode("\n", $readiness->notes))->toContain('system fallback disabled');
 });
 
@@ -312,7 +312,7 @@ it('emits exif-free png output with a minimal chunk set', function (): void {
 
     $types = shareCardPngChunkTypes((string) $result->pngBytes);
 
-    expect($types)->not->toBe([])
+    expect($types)->not->toBeEmpty()
         ->and($types[0])->toBe('IHDR')
         ->and(end($types))->toBe('IEND')
         ->and($types)->not->toContain('eXIf')
@@ -322,7 +322,7 @@ it('emits exif-free png output with a minimal chunk set', function (): void {
 it('keeps per-user and private fields out of the render contract', function (): void {
     $parameters = array_map(
         static fn (ReflectionParameter $parameter): string => $parameter->getName(),
-        (new ReflectionClass(ShareCardRenderInput::class))->getConstructor()->getParameters()
+        new ReflectionClass(ShareCardRenderInput::class)->getConstructor()->getParameters()
     );
 
     expect($parameters)->toBe([
@@ -430,5 +430,5 @@ it('holds no static or global state between renders', function (): void {
     expect($first->ok)->toBeTrue()
         ->and($second->ok)->toBeTrue()
         ->and($first->pngBytes)->toBe($second->pngBytes)
-        ->and((new ReflectionClass(PangoShareCardRenderer::class))->getStaticProperties())->toBe([]);
+        ->and(new ReflectionClass(PangoShareCardRenderer::class)->getStaticProperties())->toBeEmpty();
 });

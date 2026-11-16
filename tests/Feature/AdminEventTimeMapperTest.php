@@ -1,10 +1,10 @@
 <?php
 
+use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Features\Events\Support\AdminEventTimeMapper;
 use Illuminate\Validation\ValidationException;
 
 it('maps custom time fields to starts_at and absolute timing mode', function () {

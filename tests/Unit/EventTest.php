@@ -1,11 +1,11 @@
 <?php
 
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Person;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\Draft;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('active scope filters public visible statuses (approved, pending, cancelled)', function () {
     withGlobalOwnerContext(function (): void {

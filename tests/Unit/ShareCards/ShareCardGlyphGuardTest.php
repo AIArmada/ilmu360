@@ -121,15 +121,15 @@ it('measures coverage against the configured font set only', function (): void {
         'Ceramah 中文: தமிழ் و ملايو ꦗꦮ',
     ];
 
-    expect(ShareCardGlyphCoverage::missingVisibleCodepoints($allPaths, $matrixTitles))->toBe([])
+    expect(ShareCardGlyphCoverage::missingVisibleCodepoints($allPaths, $matrixTitles))->toBeEmpty()
         ->and(ShareCardGlyphCoverage::missingVisibleCodepoints($allPaths, ['Kuliah 🎉']))->toBe([0x1F389])
-        ->and(ShareCardGlyphCoverage::missingVisibleCodepoints($allPaths, [null, '']))->toBe([]);
+        ->and(ShareCardGlyphCoverage::missingVisibleCodepoints($allPaths, [null, '']))->toBeEmpty();
 
     $latinOnly = [$directory.'/NotoSans[wdth,wght].ttf'];
 
     expect(ShareCardGlyphCoverage::missingVisibleCodepoints($latinOnly, ['محاضرة']))->toContain(0x0627)
-        ->and(ShareCardGlyphCoverage::missingVisibleCodepoints([], ['Kuliah']))->not->toBe([])
-        ->and(ShareCardGlyphCoverage::missingVisibleCodepoints([$directory.'/does-not-exist.ttf'], ['Kuliah']))->not->toBe([]);
+        ->and(ShareCardGlyphCoverage::missingVisibleCodepoints([], ['Kuliah']))->not->toBeEmpty()
+        ->and(ShareCardGlyphCoverage::missingVisibleCodepoints([$directory.'/does-not-exist.ttf'], ['Kuliah']))->not->toBeEmpty();
 });
 
 it('keeps the unsupported-text failure contract truthful for future fallback', function (): void {

@@ -2,9 +2,9 @@
 
 namespace App\Actions\Contributions\Queries;
 
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Models\ContributionRequest;
 use App\Models\User;
-use App\Features\Contributions\Api\ContributionRequestReader;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveOwnContributionRequestAction

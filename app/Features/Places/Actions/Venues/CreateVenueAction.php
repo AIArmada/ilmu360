@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Places\Actions\Venues;
 
 use App\Models\Venue;
-
 use App\Shared\Directory\Enums\VenueType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
-use App\Models\Person;
-
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
+use App\Models\Person;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;

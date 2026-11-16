@@ -209,7 +209,7 @@ try {
         })(),
     };
 } catch (Throwable $exception) {
-    $fail(get_class($exception).': '.$exception->getMessage()."\n".$exception->getTraceAsString());
+    $fail($exception::class.': '.$exception->getMessage()."\n".$exception->getTraceAsString());
 }
 
 echo json_encode(['ok' => true, 'report' => $report], JSON_THROW_ON_ERROR)."\n";

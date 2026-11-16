@@ -22,8 +22,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 
-uses(RefreshDatabase::class);
-
 it('returns null when anchor type is not prayer', function () {
     $expression = EventTimeExpression::factory()->create([
         'time_mode' => 'fixed',

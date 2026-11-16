@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\Pages;
 
-use App\Features\Ai\Actions\UpdateAiModelPricingAction;
 use App\Features\Ai\Actions\DeleteAiModelPricingAction;
+use App\Features\Ai\Actions\UpdateAiModelPricingAction;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Features\Ai\Models\AiModelPricing;
 use Filament\Actions\DeleteAction;

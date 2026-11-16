@@ -41,8 +41,6 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 function bidProgram(string $prefix): array
 {
     [$program, $version] = RewardLedgerFixtures::seedVersionedProgram($prefix, RewardProgramMode::Points);
@@ -134,25 +132,19 @@ it('refuses same-key redemptions with changed item, quantity, adapter, or family
         'user', $member, 'member', null, CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
 
-    $replay = function (string $key, $tryItem, int $qty, string $adapter, string $family) use ($member) {
-        return function () use ($member, $key, $tryItem, $qty, $adapter, $family): void {
-            RedeemRewardBenefitAction::run(
-                'user', $member, $family, $tryItem, $qty, $key, $adapter,
-                'user', $member, 'member', null, CarbonImmutable::parse('2026-06-15T01:00:00Z'),
-            );
-        };
-    };
+    $replay = (fn(string $key, $tryItem, int $qty, string $adapter, string $family) => function () use ($member, $key, $tryItem, $qty, $adapter, $family): void {
+        RedeemRewardBenefitAction::run(
+            'user', $member, $family, $tryItem, $qty, $key, $adapter,
+            'user', $member, 'member', null, CarbonImmutable::parse('2026-06-15T01:00:00Z'),
+        );
+    });
 
     expect($replay('terms-key-1', $otherItem, 1, 'manual', $program->family_key))
-        ->toThrow(InvalidArgumentException::class, 'already bound to different terms');
-    expect($replay('terms-key-1', $item, 2, 'manual', $program->family_key))
-        ->toThrow(InvalidArgumentException::class, 'already bound to different terms');
-    expect($replay('terms-key-1', $item, 1, 'coupon', $program->family_key))
-        ->toThrow(InvalidArgumentException::class, 'already bound to different terms');
-    expect($replay('terms-key-1', $item, 1, 'manual', $other->family_key))
-        ->toThrow(InvalidArgumentException::class, 'already bound to different terms');
-
-    expect(RewardBenefitGrant::query()->where('grant_key', 'redeem:terms-key-1')->count())->toBe(1);
+        ->toThrow(InvalidArgumentException::class, 'already bound to different terms')
+        ->and($replay('terms-key-1', $item, 2, 'manual', $program->family_key))->toThrow(InvalidArgumentException::class, 'already bound to different terms')
+        ->and($replay('terms-key-1', $item, 1, 'coupon', $program->family_key))->toThrow(InvalidArgumentException::class, 'already bound to different terms')
+        ->and($replay('terms-key-1', $item, 1, 'manual', $other->family_key))->toThrow(InvalidArgumentException::class, 'already bound to different terms')
+        ->and(RewardBenefitGrant::query()->where('grant_key', 'redeem:terms-key-1')->count())->toBe(1);
 });
 
 it('replays identical-term redemptions onto the stored grant exactly once', function () {
@@ -271,9 +263,8 @@ it('binds issued coupon codes to the recipient at validation and usage', functio
     expect(fn () => RecordVoucherUsage::run(
         $code, new Money(2000, new Currency('MYR')), 'reward-benefit',
         ['idempotency_key' => 'ghost-use-1'],
-    ))->toThrow(InvalidVoucherException::class, 'another account');
-
-    expect(VoucherUsage::query()->whereHas('voucher', fn ($query) => $query->where('code', $code))->count())->toBe(0);
+    ))->toThrow(InvalidVoucherException::class, 'another account')
+        ->and(VoucherUsage::query()->whereHas('voucher', fn ($query) => $query->where('code', $code))->count())->toBe(0);
 
     // … while the recipient uses it normally.
     $usage = RecordVoucherUsage::run(
@@ -331,9 +322,8 @@ it('refuses consumption on a foreign usage row even when cited explicitly', func
     expect(fn () => ConsumeRewardBenefitAction::run(
         $issued, ['voucher_usage_id' => (string) $foreign->getKey()],
         'user', $memberId, 'member', CarbonImmutable::parse('2026-06-16T02:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'not redeemed by the grant recipient');
-
-    expect($issued->refresh()->status)->toBe(RewardBenefitGrantStatus::Issued);
+    ))->toThrow(InvalidArgumentException::class, 'not redeemed by the grant recipient')
+        ->and($issued->refresh()->status)->toBe(RewardBenefitGrantStatus::Issued);
 });
 
 it('refuses usage recording after revocation expires the coupon', function () {
@@ -361,9 +351,8 @@ it('refuses usage recording after revocation expires the coupon', function () {
         $issued, 'user', $operator, 'staff', 'unused-recall', CarbonImmutable::parse('2026-06-16T01:00:00Z'),
     );
 
-    expect($revoked->status)->toBe(RewardBenefitGrantStatus::Revoked);
-
-    expect(fn () => RecordVoucherUsage::run(
+    expect($revoked->status)->toBe(RewardBenefitGrantStatus::Revoked)
+        ->and(fn() => RecordVoucherUsage::run(
         (string) $issued->external_ref, new Money(2000, new Currency('MYR')), 'reward-benefit',
         ['idempotency_key' => 'late-use-1'], $member,
     ))->toThrow(VoucherExpiredException::class);
@@ -394,9 +383,8 @@ it('records manual recalls through the reachable action and refuses replays', fu
         $issued, 'RECALL-9', 'user', $operator, 'staff', CarbonImmutable::parse('2026-06-16T01:00:00Z'),
     );
 
-    expect($recorded->evidence['recall_reference'])->toBe('RECALL-9');
-
-    expect(fn () => RecordRewardBenefitRecallAction::run(
+    expect($recorded->evidence['recall_reference'])->toBe('RECALL-9')
+        ->and(fn() => RecordRewardBenefitRecallAction::run(
         $recorded->refresh(), 'RECALL-10', 'user', $operator, 'staff', CarbonImmutable::parse('2026-06-16T02:00:00Z'),
     ))->toThrow(InvalidArgumentException::class, 'already recorded');
 
@@ -456,9 +444,8 @@ it('refuses sequential over-reservation beyond capacity', function () {
     expect(fn () => RedeemRewardBenefitAction::run(
         'user', $second, $program->family_key, $item, 1, 'cap-2', 'manual',
         'user', $second, 'member', null, CarbonImmutable::parse('2026-06-15T01:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'Insufficient benefit stock');
-
-    expect(RewardBenefitStockLedger::balances($item->refresh())['available'])->toBe(0);
+    ))->toThrow(InvalidArgumentException::class, 'Insufficient benefit stock')
+        ->and(RewardBenefitStockLedger::balances($item->refresh())['available'])->toBe(0);
 });
 
 it('restores exactly once when cancel races nothing but replays the key', function () {
@@ -475,9 +462,8 @@ it('restores exactly once when cancel races nothing but replays the key', functi
         $grant, 'user', $member, 'member', 'changed-mind', CarbonImmutable::parse('2026-06-15T01:00:00Z'),
     );
 
-    expect($cancelled->status)->toBe(RewardBenefitGrantStatus::Revoked);
-
-    expect(fn () => CancelRewardBenefitGrantAction::run(
+    expect($cancelled->status)->toBe(RewardBenefitGrantStatus::Revoked)
+        ->and(fn() => CancelRewardBenefitGrantAction::run(
         $cancelled->refresh(), 'user', $member, 'member', 'again', CarbonImmutable::parse('2026-06-15T02:00:00Z'),
     ))->toThrow(InvalidArgumentException::class, 'Only reserved grants');
 

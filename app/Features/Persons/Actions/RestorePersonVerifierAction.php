@@ -6,7 +6,6 @@ namespace App\Features\Persons\Actions;
 
 use App\Models\Person;
 
-
 final readonly class RestorePersonVerifierAction
 {
     /**

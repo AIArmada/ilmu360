@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('rejects non-canonical MCP media descriptor field names', function () {
     $normalizer = app(McpFilePayloadNormalizer::class);

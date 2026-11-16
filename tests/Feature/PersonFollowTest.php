@@ -92,8 +92,8 @@ it('returns correct followingPersons relationship', function () {
         EngagementSubjectType::Person,
     );
 
-    expect($ids)->toHaveCount(2);
-    expect($ids)->toContain((string) $person1->id, (string) $person2->id);
+    expect($ids)->toHaveCount(2)
+        ->toContain((string) $person1->id, (string) $person2->id);
 });
 
 it('keeps follower records readable through engagement queries', function () {
@@ -104,10 +104,10 @@ it('keeps follower records readable through engagement queries', function () {
     OwnerContext::withOwner(null, fn () => $user1->follow($person));
     OwnerContext::withOwner(null, fn () => $user2->follow($person));
 
-    expect($person->follows()->active()->count())->toBe(2);
-    expect(OwnerContext::withOwner(null, fn () => $user1->isFollowing($person)))->toBeTrue();
-    expect(OwnerContext::withOwner(null, fn () => $user2->isFollowing($person)))->toBeTrue();
-    expect($user1->isFollowing(null))->toBeFalse();
+    expect($person->follows()->active()->count())->toBe(2)
+        ->and(OwnerContext::withOwner(null, fn () => $user1->isFollowing($person)))->toBeTrue()
+        ->and(OwnerContext::withOwner(null, fn () => $user2->isFollowing($person)))->toBeTrue()
+        ->and($user1->isFollowing(null))->toBeFalse();
 });
 
 it('cleans up followings when user is deleted', function () {

@@ -273,7 +273,7 @@ try {
         })(),
     };
 } catch (Throwable $exception) {
-    $fail(get_class($exception).': '.$exception->getMessage());
+    $fail($exception::class.': '.$exception->getMessage());
 }
 
 echo json_encode(['ok' => true, 'slot' => $slot] + $report, JSON_THROW_ON_ERROR)."\n";

@@ -4,10 +4,10 @@ namespace App\Filament\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\EventEscalationType;
-use App\Filament\Resources\Events\EventResource;
 use App\Actions\Events\Submission\ModerateEventOccurrenceSubmissionAction;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Reports\Api\ReportReader;
+use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;

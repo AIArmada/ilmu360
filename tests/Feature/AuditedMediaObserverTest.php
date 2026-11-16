@@ -6,8 +6,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
     config()->set('audit.console', true);
     config()->set('media-library.disk_name', 'public');
@@ -76,6 +74,6 @@ it('records audit when media collection is changed on an event', function () {
         ->latest('created_at')
         ->get();
 
-    expect($audits)->not->toBeEmpty();
-    expect($audits->first()?->event)->toBe('media_updated');
+    expect($audits)->not->toBeEmpty()
+        ->and($audits->first()?->event)->toBe('media_updated');
 });

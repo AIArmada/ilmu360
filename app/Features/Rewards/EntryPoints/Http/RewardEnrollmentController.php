@@ -34,7 +34,7 @@ class RewardEnrollmentController extends FrontendController
         try {
             $snapshot = app(MemberEnrollment::class)->enroll(
                 (string) $record->getKey(),
-                (string) $user->actorId(),
+                $user->actorId(),
                 $user->actorType(),
                 $validated['version_id'],
                 'api',
@@ -74,7 +74,7 @@ class RewardEnrollmentController extends FrontendController
         try {
             app(MemberEnrollment::class)->leave(
                 (string) $record->getKey(),
-                (string) $user->actorId(),
+                $user->actorId(),
                 $user->actorType(),
                 $validated['reason'] ?? null,
             );
@@ -115,7 +115,7 @@ class RewardEnrollmentController extends FrontendController
         try {
             $snapshot = app(MemberEnrollment::class)->reaccept(
                 (string) $record->getKey(),
-                (string) $user->actorId(),
+                $user->actorId(),
                 $user->actorType(),
                 $validated['version_id'],
                 $validated['accepted_via'] ?? 'api',

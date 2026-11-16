@@ -10,7 +10,7 @@ use League\OAuth2\Server\AuthorizationServer;
 use phpseclib4\Crypt\RSA;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('keeps valid raw passport keys in config', function (): void {
     $sandboxPath = storage_path('framework/testing/passport-raw-'.Str::uuid());
@@ -29,11 +29,11 @@ it('keeps valid raw passport keys in config', function (): void {
     try {
         PassportKeyProvisioner::ensure();
 
-        expect(config('passport.private_key'))->toBe((string) $key);
-        expect(config('passport.public_key'))->toBe((string) $key->getPublicKey());
-        expect(File::exists(Passport::keyPath('oauth-private.key')))->toBeFalse();
-        expect(File::exists(Passport::keyPath('oauth-public.key')))->toBeFalse();
-        expect(app(AuthorizationServer::class))->toBeInstanceOf(AuthorizationServer::class);
+        expect(config('passport.private_key'))->toBe((string) $key)
+            ->and(config('passport.public_key'))->toBe((string) $key->getPublicKey())
+            ->and(File::exists(Passport::keyPath('oauth-private.key')))->toBeFalse()
+            ->and(File::exists(Passport::keyPath('oauth-public.key')))->toBeFalse()
+            ->and(app(AuthorizationServer::class))->toBeInstanceOf(AuthorizationServer::class);
     } finally {
         config()->set('passport.private_key', $originalPrivateKey);
         config()->set('passport.public_key', $originalPublicKey);
@@ -64,9 +64,9 @@ it('normalizes configured passport key file paths', function (): void {
     try {
         PassportKeyProvisioner::ensure();
 
-        expect(config('passport.private_key'))->toBe((string) $key);
-        expect(config('passport.public_key'))->toBe((string) $key->getPublicKey());
-        expect(app(AuthorizationServer::class))->toBeInstanceOf(AuthorizationServer::class);
+        expect(config('passport.private_key'))->toBe((string) $key)
+            ->and(config('passport.public_key'))->toBe((string) $key->getPublicKey())
+            ->and(app(AuthorizationServer::class))->toBeInstanceOf(AuthorizationServer::class);
     } finally {
         config()->set('passport.private_key', $originalPrivateKey);
         config()->set('passport.public_key', $originalPublicKey);
@@ -90,11 +90,11 @@ it('generates passport keys when none exist', function (): void {
     try {
         PassportKeyProvisioner::ensure();
 
-        expect(File::exists(Passport::keyPath('oauth-private.key')))->toBeTrue();
-        expect(File::exists(Passport::keyPath('oauth-public.key')))->toBeTrue();
-        expect(config('passport.private_key'))->toContain('BEGIN PRIVATE KEY');
-        expect(config('passport.public_key'))->toContain('BEGIN PUBLIC KEY');
-        expect(app(AuthorizationServer::class))->toBeInstanceOf(AuthorizationServer::class);
+        expect(File::exists(Passport::keyPath('oauth-private.key')))->toBeTrue()
+            ->and(File::exists(Passport::keyPath('oauth-public.key')))->toBeTrue()
+            ->and(config('passport.private_key'))->toContain('BEGIN PRIVATE KEY')
+            ->and(config('passport.public_key'))->toContain('BEGIN PUBLIC KEY')
+            ->and(app(AuthorizationServer::class))->toBeInstanceOf(AuthorizationServer::class);
     } finally {
         config()->set('passport.private_key', $originalPrivateKey);
         config()->set('passport.public_key', $originalPublicKey);

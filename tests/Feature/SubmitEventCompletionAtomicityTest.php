@@ -110,9 +110,8 @@ it('persists guest contacts privately with NONE admission and a single UTC occur
         ->and($contacts->every(fn ($contact): bool => $contact->is_public === false))->toBeTrue()
         ->and($submission->target_type)->toBeNull()
         ->and($submission->target_id)->toBeNull()
-        ->and($submission->event_session_id)->toBeNull();
-
-    expect(SignalEvent::query()->where('event_name', 'moderation.event.submitted')->where('properties->event_id', $event->getKey())->exists())->toBeTrue();
+        ->and($submission->event_session_id)->toBeNull()
+        ->and(SignalEvent::query()->where('event_name', 'moderation.event.submitted')->where('properties->event_id', $event->getKey())->exists())->toBeTrue();
 
     $occurrences = EventOccurrence::query()->where('event_id', $event->getKey())->get();
 
@@ -141,15 +140,11 @@ it('rolls back the submission when share tracking fails', function () {
             'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
         ]),
     );
-
-    try {
+    expect(function () use ($component) {
         $component->call('submit');
         $this->fail('Share tracking failure must roll back the submission.');
-    } catch (RuntimeException $exception) {
-        expect($exception->getMessage())->toBe('tracking down');
-    }
-
-    expect(Event::query()->where('title', 'Tracking Failure Submission')->exists())->toBeFalse();
+    })->toThrow(RuntimeException::class, 'tracking down')
+        ->and(Event::query()->where('title', 'Tracking Failure Submission')->exists())->toBeFalse();
 });
 
 it('records the share outcome in the submission transaction', function () {
@@ -211,14 +206,13 @@ it('rolls the graph back and suppresses after-commit effects when completion fai
         ]),
     );
 
-    expect(fn () => $component->call('submit'))->toThrow(RuntimeException::class, 'moderation down');
-
-    expect(Event::query()->where('title', 'Rolled Back Submission')->exists())->toBeFalse()
+    expect(fn () => $component->call('submit'))->toThrow(RuntimeException::class, 'moderation down')
+        ->and(Event::query()->where('title', 'Rolled Back Submission')->exists())->toBeFalse()
         ->and(EventSubmission::query()->count())->toBe(0)
         ->and(EventOccurrence::query()->count())->toBe(0);
 
     Notification::assertNothingSent();
-    expect(Storage::disk('public')->allFiles())->toBe([]);
+    expect(Storage::disk('public')->allFiles())->toBeEmpty();
 });
 
 it('removes partial uploads when a submission media callback fails', function () {
@@ -237,11 +231,10 @@ it('removes partial uploads when a submission media callback fails', function ()
             $model->addMedia(UploadedFile::fake()->image('cover.png', 1600, 900))->toMediaCollection('cover', 'public');
             throw new RuntimeException('Partial upload failure.');
         },
-    ))->toThrow(RuntimeException::class, 'Partial upload failure.');
-
-    expect(Event::query()->where('title', 'Atomicity Submission')->exists())->toBeFalse()
+    ))->toThrow(RuntimeException::class, 'Partial upload failure.')
+        ->and(Event::query()->where('title', 'Atomicity Submission')->exists())->toBeFalse()
         ->and(EventSubmission::query()->count())->toBe(0)
-        ->and(Storage::disk('public')->allFiles())->toBe([]);
+        ->and(Storage::disk('public')->allFiles())->toBeEmpty();
 });
 
 it('rejects unavailable references and unknown languages before persistence', function (string $field, string $invalidKind) {

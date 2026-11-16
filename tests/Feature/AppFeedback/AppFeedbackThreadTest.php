@@ -113,7 +113,6 @@ it('rejects a reply when the feedback was closed after it was loaded', function 
     AppFeedback::query()->whereKey($stale->getKey())->update(['status' => 'declined']);
 
     expect(fn () => app(PostAppFeedbackMessageAction::class)->handle($owner, $stale, 'Balasan lewat.'))
-        ->toThrow(ValidationException::class);
-
-    expect($stale->messages()->count())->toBe(0);
+        ->toThrow(ValidationException::class)
+        ->and($stale->messages()->count())->toBe(0);
 });

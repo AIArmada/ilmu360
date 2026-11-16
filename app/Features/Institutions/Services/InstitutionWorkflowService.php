@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Services;
 
-use App\Models\InstitutionName;
-
 use App\Features\Institutions\Actions\ApplyInstitutionContributionAction;
 use App\Features\Institutions\Actions\ChangeInstitutionStatusAction;
 use App\Features\Institutions\Actions\CreateInstitutionAction;
@@ -20,6 +18,7 @@ use App\Features\Institutions\Actions\SyncInstitutionRelationsAction;
 use App\Features\Institutions\Actions\VerifyPendingInstitutionsAction;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Models\Institution;
+use App\Models\InstitutionName;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use Illuminate\Database\Eloquent\Model;

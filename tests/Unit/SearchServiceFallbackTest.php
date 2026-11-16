@@ -21,7 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 beforeEach(function (): void {
     $request = app()->make('request');
@@ -138,13 +138,10 @@ it('refreshes the person search index when middle or family names change', funct
     ]);
 
     expect(DB::table('persons')->where('id', $person->getKey())->value('searchable_name'))
-        ->toBe('ahmad ibn rahman ahmad');
-
-    expect(DB::table('person_search_terms')
+        ->toBe('ahmad ibn rahman ahmad')
+        ->and(DB::table('person_search_terms')
         ->where('person_id', $person->getKey())
-        ->pluck('term')
-        ->all())
-        ->toEqualCanonicalizing(['ahmad', 'ibn', 'rahman']);
+        ->pluck('term')->all())->toEqualCanonicalizing(['ahmad', 'ibn', 'rahman']);
 });
 
 it('can score a person when the local searchable name is empty', function () {

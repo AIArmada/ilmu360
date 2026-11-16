@@ -18,8 +18,6 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
     $this->seed(PermissionSeeder::class);

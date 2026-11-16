@@ -140,8 +140,6 @@ try {
                 $correction = app(ReverseShareOutcomeAction::class)->handle(
                     (string) ($payload['business_key'] ?? ''),
                     'wp2_race_correction',
-                    null,
-                    null,
                 );
 
                 return [
@@ -161,7 +159,6 @@ try {
             $outcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
                 type: $type,
                 businessKey: (string) $payload['business_key'],
-                subject: null,
                 actor: $actor,
                 request: $buildRequest(is_string($cookie) ? $cookie : null),
                 metadata: ['wp2_race_slot' => $slot],
@@ -224,15 +221,11 @@ try {
                 $sourceCorrection = app(ReverseShareOutcomeAction::class)->handle(
                     (string) ($payload['source_key'] ?? ''),
                     'wp2_race_correction',
-                    null,
-                    null,
                 );
 
                 $childCorrection = app(ReverseShareOutcomeAction::class)->handle(
                     (string) ($payload['child_key'] ?? ''),
                     'wp2_race_correction',
-                    null,
-                    null,
                 );
 
                 return [
@@ -251,7 +244,6 @@ try {
                 type: ShareOutcomeType::EventCheckin,
                 businessKey: (string) $payload['child_key'],
                 sourceBusinessKey: (string) $payload['source_key'],
-                subject: null,
                 actor: $actor,
                 metadata: ['wp2_race_slot' => $slot],
             );
@@ -286,7 +278,6 @@ try {
                     participants: $participants,
                     buyerId: (string) $buyer->getKey(),
                     agreement: ['version' => 'event-participation-v1'],
-                    discountCode: null,
                     idempotencyKey: (string) ($payload['key'] ?? ''),
                     request: $buildRequest(is_string($cookie) ? $cookie : null),
                 );
@@ -301,7 +292,7 @@ try {
         })(),
     });
 } catch (Throwable $exception) {
-    $fail(get_class($exception).': '.$exception->getMessage());
+    $fail($exception::class.': '.$exception->getMessage());
 }
 
 echo json_encode(['ok' => true, 'slot' => $slot] + $report, JSON_THROW_ON_ERROR)."\n";

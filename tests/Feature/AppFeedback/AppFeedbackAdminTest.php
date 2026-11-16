@@ -198,9 +198,8 @@ it('guards internal note updates through the action', function () {
         $moderator,
         $feedback,
         'Nota dalaman.',
-    ))->toThrow(AuthorizationException::class);
-
-    expect($feedback->fresh()->internal_notes)->toBeNull();
+    ))->toThrow(AuthorizationException::class)
+        ->and($feedback->fresh()->internal_notes)->toBeNull();
 });
 
 it('replies to feedback from the admin view action', function () {

@@ -7,12 +7,12 @@ namespace App\Features\SlugRedirects\Actions;
 use App\Features\SlugRedirects\Models\SlugRedirect;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class CreateSlugRedirectAction
+final readonly class CreateSlugRedirectAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly PrepareSlugRedirectInputAction $prepareSlugRedirectInputAction,
+        private PrepareSlugRedirectInputAction $prepareSlugRedirectInputAction,
     ) {}
 
     public function handle(

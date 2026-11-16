@@ -27,11 +27,11 @@ use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Events\Commerce\RecordTicketAffiliateCommissionsAction;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Checkout\RecordTicketAffiliateCommissionsStep;
-use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\ShareEffectReceipt;
 use App\Models\User;
+use App\Shared\ShareTracking\ShareEffectStatus;
 use App\States\EventStatus\Approved as EventApproved;
 use App\States\EventStatus\Transitions\CancelEvent;
 use Illuminate\Support\Str;
@@ -246,7 +246,7 @@ it('records one pending conversion per paid registration from the frozen commerc
         ->and($conversions)->toHaveCount(2);
 
     foreach ($conversions as $conversion) {
-        expect($conversion->status)->toBeInstanceOf('AIArmada\\Affiliates\\States\\PendingConversion')
+        expect($conversion->status)->toBeInstanceOf(\AIArmada\Affiliates\States\PendingConversion::class)
             ->and($conversion->subtotal_minor)->toBeIn([4500, 4501])
             ->and($conversion->value_minor)->toBe($conversion->subtotal_minor)
             ->and($conversion->commission_minor)->toBe((int) round($conversion->subtotal_minor * 0.1))
@@ -266,13 +266,13 @@ it('blocks commission for affiliate-owner self purchases and free registrations'
     $selfPurchase = seedTicketAffiliateCommissionCheckout(selfPurchase: true);
     $selfIds = array_map(static fn (Registration $registration): string => (string) $registration->getKey(), $selfPurchase['registrations']);
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($selfPurchase['session'], $selfIds))->toBe([])
+    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($selfPurchase['session'], $selfIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 
     $free = seedTicketAffiliateCommissionCheckout(grandTotal: 0, unitPrice: 0, discountAmount: 0, taxAmount: 0);
     $freeIds = array_map(static fn (Registration $registration): string => (string) $registration->getKey(), $free['registrations']);
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($free['session'], $freeIds))->toBe([])
+    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($free['session'], $freeIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -280,7 +280,7 @@ it('does not pay commercial commission for a share-purpose affiliate', function 
     $fixture = seedTicketAffiliateCommissionCheckout(affiliatePurpose: 'share_member');
     $registrationIds = array_map(static fn (Registration $registration): string => (string) $registration->getKey(), $fixture['registrations']);
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBe([])
+    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -293,7 +293,7 @@ it('requires frozen commercial purpose and active program membership', function 
     );
 
     expect(app(RecordTicketAffiliateCommissionsAction::class)
-        ->handle($share['session'], $shareRegistrationIds))->toBe([])
+        ->handle($share['session'], $shareRegistrationIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 
     $inactiveProgram = seedTicketAffiliateCommissionCheckout();
@@ -305,7 +305,7 @@ it('requires frozen commercial purpose and active program membership', function 
     );
 
     expect(app(RecordTicketAffiliateCommissionsAction::class)
-        ->handle($inactiveProgram['session'], $inactiveProgramIds))->toBe([])
+        ->handle($inactiveProgram['session'], $inactiveProgramIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 
     $inactiveMembership = seedTicketAffiliateCommissionCheckout();
@@ -318,7 +318,7 @@ it('requires frozen commercial purpose and active program membership', function 
     );
 
     expect(app(RecordTicketAffiliateCommissionsAction::class)
-        ->handle($inactiveMembership['session'], $inactiveMembershipIds))->toBe([])
+        ->handle($inactiveMembership['session'], $inactiveMembershipIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -331,7 +331,7 @@ it('blocks commission when a commercial affiliate is paused or deactivated', fun
             $fixture['registrations'],
         );
 
-        expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBe([])
+        expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBeEmpty()
             ->and(AffiliateConversion::query()->count())->toBe(0);
     }
 });
@@ -346,7 +346,7 @@ it('fails closed when the paid order has no frozen checkout actor', function ():
         $fixture['registrations'],
     );
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBe([])
+    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -372,7 +372,7 @@ it('reverses ticket commissions for cancelled, rejected and refunded registratio
             ->firstOrFail();
 
         expect($conversion->reversed_at)->not->toBeNull()
-            ->and($conversion->status)->toBeInstanceOf('AIArmada\\Affiliates\\States\\ReversedConversion');
+            ->and($conversion->status)->toBeInstanceOf(\AIArmada\Affiliates\States\ReversedConversion::class);
     }
 });
 
@@ -388,7 +388,7 @@ it('reverses pending ticket commissions when the event is cancelled', function (
     expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toHaveCount(2);
 
     $moderator = User::factory()->create();
-    (new CancelEvent($event, $moderator))->handle();
+    new CancelEvent($event, $moderator)->handle();
 
     foreach ($registrationIds as $registrationId) {
         $conversion = AffiliateConversion::query()

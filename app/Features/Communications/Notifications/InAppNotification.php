@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Communications\Notifications;
 
 use App\Features\Communications\Api\InAppNotificationMessage;

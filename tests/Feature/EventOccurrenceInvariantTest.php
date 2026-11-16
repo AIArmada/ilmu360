@@ -31,9 +31,8 @@ it('rejects event approval when the event has no occurrence', function (): void 
     $event->forceFill(['status' => 'pending'])->saveQuietly();
 
     expect(fn () => app(ModerationService::class)->approve($event))
-        ->toThrow(ValidationException::class);
-
-    expect((string) $event->fresh()->status)->toBe('pending')
+        ->toThrow(ValidationException::class)
+        ->and((string) $event->fresh()->status)->toBe('pending')
         ->and($event->fresh()->published_at)->toBeNull();
 });
 
@@ -59,9 +58,8 @@ it('does not allow deleting the last occurrence from a published event', functio
     $occurrence = $event->occurrences()->firstOrFail();
 
     expect(fn (): bool => (bool) $occurrence->delete())
-        ->toThrow(ValidationException::class);
-
-    expect(EventOccurrence::query()->whereKey($occurrence)->exists())->toBeTrue();
+        ->toThrow(ValidationException::class)
+        ->and(EventOccurrence::query()->whereKey($occurrence)->exists())->toBeTrue();
 });
 
 it('allows deleting one occurrence while another occurrence remains', function (): void {

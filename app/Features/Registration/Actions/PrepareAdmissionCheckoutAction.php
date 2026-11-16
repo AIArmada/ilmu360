@@ -310,7 +310,7 @@ final readonly class PrepareAdmissionCheckoutAction implements AdmissionCheckout
 
         $ticketEvent = EventTicketScope::event($ticketType);
 
-        if (!$ticketEvent instanceof \AIArmada\Events\Models\Event || $ticketEvent->isNot($event)) {
+        if (! $ticketEvent instanceof PackageEvent || $ticketEvent->isNot($event)) {
             throw new InvalidArgumentException('The selected ticket does not belong to this event.');
         }
 

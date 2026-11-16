@@ -50,8 +50,6 @@ use Spatie\Permission\PermissionRegistrar;
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\assertDatabaseMissing;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -593,9 +591,8 @@ it('restores a deleted user together with key relationships and child records', 
     ]);
 
     expect($ownedEvent->fresh()->owner_id)->toBe($user->id)
-        ->and($submittedEvent->fresh()->owner_id)->toBe($user->id);
-
-    expect($eventSubmission->fresh()->submitter_id)->toBe($user->id);
+        ->and($submittedEvent->fresh()->owner_id)->toBe($user->id)
+        ->and($eventSubmission->fresh()->submitter_id)->toBe($user->id);
     assertDatabaseHas('contribution_requests', [
         'id' => $contributionRequest->id,
         'proposer_id' => $user->id,

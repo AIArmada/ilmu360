@@ -66,8 +66,8 @@ it('supports unknown authors and clears authors with explicit null', function ()
         'status' => 'verified',
     ]);
 
-    expect($reference->effectiveAuthorsStructured())->toBe([])
-        ->and($reference->effectiveAuthorNames())->toBe('');
+    expect($reference->effectiveAuthorsStructured())->toBeEmpty()
+        ->and($reference->effectiveAuthorNames())->toBeEmpty();
 
     saveReferenceForTest([
         'title' => 'Unknown Authors Work',
@@ -83,7 +83,7 @@ it('supports unknown authors and clears authors with explicit null', function ()
         'status' => 'verified',
     ], $reference);
 
-    expect($reference->fresh()->authorIdsValue())->toBe([])
+    expect($reference->fresh()->authorIdsValue())->toBeEmpty()
         ->and(ReferenceContributor::query()->count())->toBe(0);
 });
 
@@ -94,9 +94,8 @@ it('rejects unknown and non-visible author ids', function (): void {
         'title' => 'Bad Author Work',
         'author_ids' => [(string) $rejected->getKey()],
         'status' => 'verified',
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn (): Reference => saveReferenceForTest([
+    ]))->toThrow(ValidationException::class)
+        ->and(fn(): Reference => saveReferenceForTest([
         'title' => 'Bad Author Work',
         'author_ids' => ['00000000-0000-0000-0000-000000000000'],
         'status' => 'verified',
@@ -134,8 +133,8 @@ it('inherits effective authors from the root work without storing child links', 
         'status' => 'verified',
     ]);
 
-    expect($edition->authorIdsValue())->toBe([])
-        ->and($part->authorIdsValue())->toBe([])
+    expect($edition->authorIdsValue())->toBeEmpty()
+        ->and($part->authorIdsValue())->toBeEmpty()
         ->and($edition->fresh()->effectiveAuthorNames())->toBe('Root Work Author')
         ->and($part->fresh()->effectiveAuthorNames())->toBe('Root Work Author')
         ->and(ReferenceContributor::query()->count())->toBe(1)
@@ -163,7 +162,7 @@ it('drops stored author links when a work becomes a child record', function (): 
         'part_number' => '1',
     ]);
 
-    expect($reference->fresh()->authorIdsValue())->toBe([])
+    expect($reference->fresh()->authorIdsValue())->toBeEmpty()
         ->and(ReferenceContributor::query()->count())->toBe(0);
 });
 
@@ -197,7 +196,7 @@ it('drops stored author links when a work becomes a child with a simultaneous ti
 
     $fresh = $reference->fresh();
 
-    expect($fresh->authorIdsValue())->toBe([])
+    expect($fresh->authorIdsValue())->toBeEmpty()
         ->and(ReferenceContributor::query()->where('reference_id', $reference->getKey())->count())->toBe(0)
         ->and($fresh->effectiveAuthorNames())->toBe('Simultaneous Parent Author')
         ->and($parent->fresh()->authorIdsValue())->toBe($parentAuthorsBefore)
@@ -222,9 +221,8 @@ it('validates reference language codes against the languages catalog', function 
         'status' => 'verified',
     ], $reference);
 
-    expect($cleared->language)->toBeNull();
-
-    expect(fn (): Reference => saveReferenceForTest([
+    expect($cleared->language)->toBeNull()
+        ->and(fn(): Reference => saveReferenceForTest([
         'title' => 'Bad Language Work',
         'language' => 'xx',
         'status' => 'verified',
@@ -239,10 +237,9 @@ it('validates language codes on the direct model path without language aliases',
         'language' => 'ar',
     ]);
 
-    expect($reference->language)->toBe('ar');
-
-    expect(fn (): mixed => $reference->update(['language' => 'xx']))->toThrow(ValidationException::class);
-    expect(fn (): mixed => Reference::factory()->create([
+    expect($reference->language)->toBe('ar')
+        ->and(fn(): mixed => $reference->update(['language' => 'xx']))->toThrow(ValidationException::class)
+        ->and(fn(): mixed => Reference::factory()->create([
         'title' => 'Direct Model Bad Language',
         'language' => 'xx',
     ]))->toThrow(ValidationException::class);
@@ -263,7 +260,7 @@ it('serializes structured authors and friendly language labels in reference payl
         'status' => 'verified',
     ]);
 
-    $item = ReferenceListData::fromModel($reference->fresh(), null)->toArray();
+    $item = ReferenceListData::fromModel($reference->fresh())->toArray();
 
     expect($item['authors'])->toBe([
         ['id' => (string) $author->getKey(), 'name' => 'Payload Author', 'slug' => (string) $author->slug],
@@ -357,9 +354,8 @@ it('blocks deleting a person linked as a reference contributor', function (): vo
         'status' => 'verified',
     ]);
 
-    expect(fn (): ?bool => $author->delete())->toThrow(ValidationException::class);
-
-    expect(Person::query()->whereKey($author->getKey())->exists())->toBeTrue();
+    expect(fn (): ?bool => $author->delete())->toThrow(ValidationException::class)
+        ->and(Person::query()->whereKey($author->getKey())->exists())->toBeTrue();
 
     $reference->delete();
 
@@ -429,13 +425,11 @@ it('validates quick-created author identity without inventing name or gender', f
     expect(fn (): string => ReferenceAuthorFormSchema::quickCreateUsing([
         'name' => '   ',
         'gender' => 'male',
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn (): string => ReferenceAuthorFormSchema::quickCreateUsing([
+    ]))->toThrow(ValidationException::class)
+        ->and(fn(): string => ReferenceAuthorFormSchema::quickCreateUsing([
         'name' => str_repeat('a', 256),
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn (): string => ReferenceAuthorFormSchema::quickCreateUsing([
+    ]))->toThrow(ValidationException::class)
+        ->and(fn(): string => ReferenceAuthorFormSchema::quickCreateUsing([
         'name' => 'Invalid Gender Author',
         'gender' => 'unknown',
     ]))->toThrow(ValidationException::class);
@@ -450,9 +444,8 @@ it('validates quick-created author identity without inventing name or gender', f
         ->and($author->gender)->toBeNull()
         ->and($author->status)->toBe('pending')
         ->and($author->speaker_status)->toBe(SpeakerStatus::Inactive)
-        ->and($author->members()->count())->toBe(0);
-
-    expect(Person::query()->where('name', 'Unknown Author')->exists())->toBeFalse();
+        ->and($author->members()->count())->toBe(0)
+        ->and(Person::query()->where('name', 'Unknown Author')->exists())->toBeFalse();
 });
 
 it('scopes author selection to visible persons and disambiguates duplicate names', function (): void {
@@ -599,7 +592,7 @@ it('clears authors with explicit null or empty array through the direct admin ed
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($reference->fresh()->authorIdsValue())->toBe([])
+    expect($reference->fresh()->authorIdsValue())->toBeEmpty()
         ->and(ReferenceContributor::query()->where('reference_id', $reference->getKey())->count())->toBe(0);
 
     $reference->syncContributors(ReferenceContributorRole::Author, (new Person)->getMorphClass(), [(string) $author->getKey()]);
@@ -618,7 +611,7 @@ it('clears authors with explicit null or empty array through the direct admin ed
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($reference->fresh()->authorIdsValue())->toBe([]);
+    expect($reference->fresh()->authorIdsValue())->toBeEmpty();
 });
 
 it('preserves authors when the admin payload omits them', function (): void {
@@ -638,7 +631,7 @@ it('preserves authors when the admin payload omits them', function (): void {
 
     $workflow->syncRelations($referenceId, ['author_ids' => null]);
 
-    expect($reference->fresh()->authorIdsValue())->toBe([]);
+    expect($reference->fresh()->authorIdsValue())->toBeEmpty();
 });
 
 it('shows inherited authors on child quick creates without storing duplicates', function (): void {
@@ -663,7 +656,7 @@ it('shows inherited authors on child quick creates without storing duplicates', 
 
     $part = Reference::query()->findOrFail($id);
 
-    expect($part->authorIdsValue())->toBe([])
+    expect($part->authorIdsValue())->toBeEmpty()
         ->and($part->effectiveAuthorNames())->toBe('Picker Author')
         ->and($work->fresh()->authorIdsValue())->toBe([(string) $author->getKey()])
         ->and(ReferenceContributor::query()->count())->toBe(1);
@@ -718,7 +711,7 @@ it('covers new author strings in the en, ms, ms_MY, and id catalogs', function (
 
         foreach ($keys as $key) {
             expect($translations)->toHaveKey($key)
-                ->and(trim((string) $translations[$key]))->not->toBe('');
+                ->and(trim((string) $translations[$key]))->not->toBeEmpty();
         }
     }
 });

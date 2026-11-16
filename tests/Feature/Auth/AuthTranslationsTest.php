@@ -61,5 +61,5 @@ it('has Malay translations for every auth view string', function () {
         ->values()
         ->all();
 
-    expect($missing)->toBe([]);
+    expect($missing)->toBeEmpty();
 });

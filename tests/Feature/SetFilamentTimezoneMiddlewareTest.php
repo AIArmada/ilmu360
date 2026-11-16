@@ -44,9 +44,7 @@ function runTimezoneMiddleware(?string $header = null, ?string $cookie = null, ?
 
 it('stores timezone from X-Timezone header', function () {
     $result = runTimezoneMiddleware(header: 'Asia/Jakarta');
-
-    expect($result['resolved_timezone'])->toBe('Asia/Jakarta');
-    expect($result['status_code'])->toBe(200);
+    expect($result)->toMatchArray(['resolved_timezone' => 'Asia/Jakarta', 'status_code' => 200]);
 });
 
 it('prioritizes X-Timezone header over cookie and session', function () {
@@ -149,8 +147,8 @@ it('does not persist fallback timezone to authenticated user when request timezo
 
     $result = runTimezoneMiddleware();
 
-    expect($result['resolved_timezone'])->toBe('Asia/Kuala_Lumpur');
-    expect($user->fresh()?->timezone)->toBeNull();
+    expect($result['resolved_timezone'])->toBe('Asia/Kuala_Lumpur')
+        ->and($user->fresh()?->timezone)->toBeNull();
 });
 
 it('persists user_timezone request input to authenticated user profile when null', function () {

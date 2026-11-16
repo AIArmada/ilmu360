@@ -1,22 +1,20 @@
 <?php
 
 use AIArmada\Communications\Models\CommunicationDestination;
+use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Communications\Api\NotificationCatalog;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
 use App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard\AccountSettings;
 use App\Models\Institution;
 use App\Models\User;
 use App\Notifications\Auth\VerifyEmailNotification;
-use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Features\Communications\Api\NotificationCatalog;
 use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 it('renders the account settings page with profile and notifications tabs', function () {
     expect(route('account-settings'))->toEndWith('/tetapan');
@@ -222,14 +220,12 @@ it('updates account settings and resets verification when contact details change
         ->and($user->gender)->toBe('female')
         ->and($user->date_of_birth?->format('Y-m-d'))->toBe('1990-05-15')
         ->and($user->email_verified_at)->toBeNull()
-        ->and($user->phone_verified_at)->toBeNull();
-
-    expect(CommunicationDestination::query()
+        ->and($user->phone_verified_at)->toBeNull()
+        ->and(CommunicationDestination::query()
         ->where('recipient_type', $user->getMorphClass())
         ->where('recipient_id', $user->id)
         ->where('channel', 'email')
-        ->pluck('address')
-        ->all())->toBe(['updated@example.test']);
+        ->pluck('address')->all())->toBe(['updated@example.test']);
 
     $newDestination = CommunicationDestination::query()
         ->where('recipient_type', $user->getMorphClass())
@@ -504,7 +500,7 @@ it('saves multiple prayer institution preferences and preserves contact verifica
         ->toContain($dailyInstitution->id)
         ->toContain($secondDailyInstitution->id)
         ->toHaveCount(2)
-        ->and(count(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds))->toBe(0)
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBeEmpty()
         ->and($user->email_verified_at)->not->toBeNull()
         ->and($user->phone_verified_at)->not->toBeNull();
 
@@ -516,7 +512,7 @@ it('saves multiple prayer institution preferences and preserves contact verifica
 
     $user->refresh();
 
-    expect(count(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds))->toBe(0)
+    expect(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)->toBeEmpty()
         ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBe([$fridayInstitution->id]);
 
     $component
@@ -552,8 +548,8 @@ it('saves multiple prayer institution preferences and preserves contact verifica
 
     $user->refresh();
 
-    expect(count(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds))->toBe(0)
-        ->and(count(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds))->toBe(0)
+    expect(app(AccountPreferences::class)->read((string) $user->getKey())->dailyPrayerInstitutionIds)->toBeEmpty()
+        ->and(app(AccountPreferences::class)->read((string) $user->getKey())->fridayPrayerInstitutionIds)->toBeEmpty()
         ->and($user->email_verified_at)->not->toBeNull()
         ->and($user->phone_verified_at)->not->toBeNull();
 });

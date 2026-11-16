@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 it('deletes the registration subtree when a registration is deleted', function () {
     $event = Event::factory()->create();
     $user = User::factory()->create();
@@ -127,9 +125,8 @@ it('refuses to delete a registration subtree that crosses event boundaries', fun
     ]);
     $registrationIds = [(string) $registration->getKey(), (string) $foreignChild->getKey()];
 
-    expect(fn () => $registration->delete())->toThrow(LogicException::class);
-
-    expect(DB::table('event_registrations')->whereIn('id', $registrationIds)->count())->toBe(2)
+    expect(fn () => $registration->delete())->toThrow(LogicException::class)
+        ->and(DB::table('event_registrations')->whereIn('id', $registrationIds)->count())->toBe(2)
         ->and(DB::table('event_registration_participants')->whereIn('event_registration_id', $registrationIds)->count())->toBe(2);
 });
 
@@ -145,9 +142,8 @@ it('refuses to delete a registration subtree with a parent cycle', function (): 
         'parent_registration_id' => $child->getKey(),
     ]);
 
-    expect(fn () => $registration->delete())->toThrow(LogicException::class);
-
-    expect(DB::table('event_registrations')->whereIn('id', $registrationIds)->count())->toBe(2)
+    expect(fn () => $registration->delete())->toThrow(LogicException::class)
+        ->and(DB::table('event_registrations')->whereIn('id', $registrationIds)->count())->toBe(2)
         ->and(DB::table('event_registration_participants')->whereIn('event_registration_id', $registrationIds)->count())->toBe(2);
 });
 

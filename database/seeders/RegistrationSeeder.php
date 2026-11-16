@@ -95,8 +95,8 @@ class RegistrationSeeder extends Seeder
                                 type: 'email',
                                 purpose: 'general',
                                 value: $email,
-                                isPublic: true,
                                 isPrimary: true,
+                                isPublic: true,
                             ));
 
                             $phone = $user['phone'] ?? null;
@@ -107,8 +107,8 @@ class RegistrationSeeder extends Seeder
                                     purpose: 'general',
                                     value: $phone,
                                     countryCode: config('contacting.defaults.country_code', 'MY'),
-                                    isPublic: true,
                                     isPrimary: true,
+                                    isPublic: true,
                                 ));
                             }
                         }

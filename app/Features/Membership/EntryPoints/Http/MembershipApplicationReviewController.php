@@ -31,7 +31,7 @@ class MembershipApplicationReviewController extends FrontendController
         $this->requireAdmin($request);
 
         $application = $this->membershipApplications->find($recordKey);
-        abort_unless($application !== null, 404);
+        abort_unless($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail, 404);
 
         return response()->json([
             'data' => [
@@ -61,7 +61,7 @@ class MembershipApplicationReviewController extends FrontendController
         $account = $this->requireAdmin($request);
 
         $application = $this->membershipApplications->find($recordKey);
-        abort_unless($application !== null, 404);
+        abort_unless($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail, 404);
 
         $validated = $request->validate([
             'action' => ['required', 'string', Rule::in(['approve', 'reject'])],

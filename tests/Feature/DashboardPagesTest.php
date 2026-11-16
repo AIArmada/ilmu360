@@ -3,11 +3,9 @@
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Filament\Resources\Events\EventResource;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Features\SavedSearches\Models\SavedSearch;
+use App\Filament\Resources\Events\EventResource;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Models\Event;
@@ -19,6 +17,8 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Space;
 use App\Models\User;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Support\Authz\MemberRoleCatalog;
 use Filament\Tables\Enums\PaginationMode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,18 +26,16 @@ use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
 
 it('requires authentication for user and institution dashboards', function () {
-    expect(route('dashboard'))->toEndWith('/dashboard');
-    expect(route('account-settings'))->toEndWith('/tetapan');
-    expect(route('dashboard.institutions'))->toEndWith('/dashboard/institusi');
-    expect(route('dashboard.institutions.events'))->toEndWith('/dashboard/institusi/senarai-majlis');
-    expect(route('dashboard.institutions.submit-event'))->toEndWith('/dashboard/institusi/tambah-majlis');
+    expect(route('dashboard'))->toEndWith('/dashboard')
+        ->and(route('account-settings'))->toEndWith('/tetapan')
+        ->and(route('dashboard.institutions'))->toEndWith('/dashboard/institusi')
+        ->and(route('dashboard.institutions.events'))->toEndWith('/dashboard/institusi/senarai-majlis')
+        ->and(route('dashboard.institutions.submit-event'))->toEndWith('/dashboard/institusi/tambah-majlis');
 
     $this->get('/dashboard')->assertRedirect(route('login'));
     $this->get('/notifications')->assertRedirect(route('login'));
@@ -567,8 +565,8 @@ it('loads filament table assets after the core filament scripts on the instituti
 
     $html = $response->getContent();
 
-    expect($html)->toBeString();
-    expect(strpos((string) $html, '/js/filament/support/support.js'))->toBeLessThan(strpos((string) $html, '/js/filament/tables/tables.js'));
+    expect($html)->toBeString()
+        ->and(strpos((string) $html, '/js/filament/support/support.js'))->toBeLessThan(strpos((string) $html, '/js/filament/tables/tables.js'));
 });
 
 it('merges overlapping planner relationships into one calendar entry', function () {
@@ -1131,7 +1129,7 @@ it('lets institution owners and admins add members and manage scoped roles from 
         ->assertHasNoErrors();
 
     expect($institution->fresh()->members()->whereKey($memberUser->id)->exists())->toBeFalse()
-        ->and(app(MemberRoleCatalog::class)->roleNamesFor($memberUser->fresh(), MemberSubjectType::Institution))->toBe([]);
+        ->and(app(MemberRoleCatalog::class)->roleNamesFor($memberUser->fresh(), MemberSubjectType::Institution))->toBeEmpty();
 });
 
 it('only lets institution owners and admins manage members and never removes owners', function () {

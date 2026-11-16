@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Data\Events\SubmitEventFormContext;
 use App\Enums\TaxonomyTerm\DomainTermCode;
+use App\Features\Places\Api\SpaceEligibility;
 use App\Features\References\Api\ReferenceQueries;
 use App\Forms\Components\Select;
 use App\Forms\InstitutionFormSchema;
@@ -18,7 +19,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Shared\Cache\SelectionCatalogCache;
-use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -73,7 +73,7 @@ use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
  * Pure function of the per-request context plus live Filament Get/Set state:
  * every closure re-evaluates from current form state, never from a snapshot.
  */
-final class EventSubmissionFormSchema
+final readonly class EventSubmissionFormSchema
 {
     public const string REVIEW_STEP_ID = 'form.semak-sebelum-hantar::data::wizard-step';
 
@@ -82,8 +82,8 @@ final class EventSubmissionFormSchema
     private const string AGAMA_KEROHANIAN_CODE = DomainTermCode::AgamaKerohanian->value;
 
     public function __construct(
-        private readonly SubmitEventFormContext $context,
-        private readonly SubmitEventOptionsProvider $options,
+        private SubmitEventFormContext $context,
+        private SubmitEventOptionsProvider $options,
     ) {}
 
     public function form(Schema $schema, ?string $wizardStep): Schema
@@ -557,31 +557,31 @@ final class EventSubmissionFormSchema
                                 ->options(EventAgeGroup::class)
                                 ->closeOnSelect()
                                 ->multiple()
-                                ->afterStateUpdatedJs(<<<'JS'
-                            const ageGroups = Array.isArray($state) ? $state : [];
-                            const previousAgeGroups = Array.isArray($old) ? $old : [];
-                            const allAges = 'all_ages';
-                            const specificAgeGroups = ['adults', 'youth', 'children', 'warga_emas'];
-                            let normalizedAgeGroups = ageGroups;
-
-                            if (ageGroups.length === 1 && ageGroups[0] === allAges) {
-                                normalizedAgeGroups = [allAges];
-                            } else if (ageGroups.includes(allAges) && ! previousAgeGroups.includes(allAges)) {
-                                normalizedAgeGroups = [allAges];
-                            } else if (ageGroups.includes(allAges)) {
-                                normalizedAgeGroups = ageGroups.filter((group) => group !== allAges);
-                            } else if (specificAgeGroups.every((group) => ageGroups.includes(group))) {
-                                normalizedAgeGroups = [allAges];
-                            }
-
-                            if (JSON.stringify(normalizedAgeGroups) !== JSON.stringify(ageGroups)) {
-                                $set('age_group', normalizedAgeGroups);
-                            }
-
-                            if (normalizedAgeGroups.includes('children') || normalizedAgeGroups.includes(allAges)) {
-                                $set('children_allowed', true);
-                            }
-                        JS)
+                                ->afterStateUpdatedJs(<<<'JS_WRAP'
+                                    const ageGroups = Array.isArray($state) ? $state : [];
+                                    const previousAgeGroups = Array.isArray($old) ? $old : [];
+                                    const allAges = 'all_ages';
+                                    const specificAgeGroups = ['adults', 'youth', 'children', 'warga_emas'];
+                                    let normalizedAgeGroups = ageGroups;
+                                
+                                    if (ageGroups.length === 1 && ageGroups[0] === allAges) {
+                                        normalizedAgeGroups = [allAges];
+                                    } else if (ageGroups.includes(allAges) && ! previousAgeGroups.includes(allAges)) {
+                                        normalizedAgeGroups = [allAges];
+                                    } else if (ageGroups.includes(allAges)) {
+                                        normalizedAgeGroups = ageGroups.filter((group) => group !== allAges);
+                                    } else if (specificAgeGroups.every((group) => ageGroups.includes(group))) {
+                                        normalizedAgeGroups = [allAges];
+                                    }
+                                
+                                    if (JSON.stringify(normalizedAgeGroups) !== JSON.stringify(ageGroups)) {
+                                        $set('age_group', normalizedAgeGroups);
+                                    }
+                                
+                                    if (normalizedAgeGroups.includes('children') || normalizedAgeGroups.includes(allAges)) {
+                                        $set('children_allowed', true);
+                                    }
+                                JS_WRAP)
                                 ->afterStateUpdatedJs($this->progressUpdateJs())
                                 ->afterStateUpdated(function (mixed $state, Set $set): void {
                                     $normalizedAgeGroups = self::normalizeAgeGroupState($state);
@@ -957,7 +957,7 @@ final class EventSubmissionFormSchema
                             ->label(__('Institusi'))
                             ->options(fn (Get $get): array => $this->options->institutionOptions(
                                 $this->context->submitter,
-                                self::resolveSubmissionCountryId($get('submission_country_id')),
+                                $this->resolveSubmissionCountryId($get('submission_country_id')),
                                 $this->context->scopedInstitution,
                             ))
                             ->searchable()
@@ -1084,7 +1084,7 @@ final class EventSubmissionFormSchema
                             ->label(__('Institusi'))
                             ->options(fn (Get $get): array => $this->options->institutionOptions(
                                 $this->context->submitter,
-                                self::resolveSubmissionCountryId($get('submission_country_id')),
+                                $this->resolveSubmissionCountryId($get('submission_country_id')),
                                 $this->context->scopedInstitution,
                             ))
                             ->searchable()
@@ -1101,7 +1101,7 @@ final class EventSubmissionFormSchema
                         ->native(false)
                         ->label(__('Lokasi'))
                         ->options(fn (Get $get): array => $this->options->venueOptions(
-                            self::resolveSubmissionCountryId($get('submission_country_id')),
+                            $this->resolveSubmissionCountryId($get('submission_country_id')),
                         ))
                         ->searchable()
                         ->preload()
@@ -1409,7 +1409,7 @@ final class EventSubmissionFormSchema
         // preserved as the choice when linked to the country (prefill plan),
         // so a later choice cannot reinterpret a UTC-derived wall clock.
         $timing = app(SubmissionTimingPolicy::class);
-        $countryId = self::resolveSubmissionCountryId($get('submission_country_id'));
+        $countryId = $this->resolveSubmissionCountryId($get('submission_country_id'));
         $submittedTimezone = $get('submission_timezone');
         $submittedTimezone = is_string($submittedTimezone)
             && in_array($submittedTimezone, $timing->countryTimezones($countryId), true)
@@ -1472,7 +1472,7 @@ final class EventSubmissionFormSchema
 
     private function clearCountryMismatchedEntitySelections(Get $get, Set $set): void
     {
-        $countryId = self::resolveSubmissionCountryId($get('submission_country_id'));
+        $countryId = $this->resolveSubmissionCountryId($get('submission_country_id'));
 
         if ($countryId === null) {
             return;
@@ -1815,7 +1815,7 @@ final class EventSubmissionFormSchema
         $resolvedCountryId = app(SubmissionTimingPolicy::class)->resolveSubmissionCountryId($countryId);
         $timezones = app(SubmissionTimingPolicy::class)->countryTimezones($resolvedCountryId);
 
-        return array_combine($timezones, $timezones) ?: [];
+        return array_combine($timezones, $timezones);
     }
 
     public static function isSubmissionTimezoneRequired(mixed $countryId = null): bool
@@ -1958,7 +1958,7 @@ final class EventSubmissionFormSchema
         return null;
     }
 
-    private static function resolveSubmissionCountryId(mixed $countryId = null): ?string
+    private function resolveSubmissionCountryId(mixed $countryId = null): ?string
     {
         return app(SubmissionTimingPolicy::class)->resolveSubmissionCountryId($countryId, 'MY');
     }

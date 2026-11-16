@@ -22,11 +22,9 @@ it('keeps only one default donation channel per owner when creating a new defaul
         'is_default' => true,
     ]);
 
-    expect($firstDefault->fresh()->is_default)->toBeFalse();
-    expect($newDefault->fresh()->is_default)->toBeTrue();
-    expect(
-        $institution->donationChannels()->where('is_default', true)->count()
-    )->toBe(1);
+    expect($firstDefault->fresh()->is_default)->toBeFalse()
+        ->and($newDefault->fresh()->is_default)->toBeTrue()
+        ->and($institution->donationChannels()->where('is_default', true)->count())->toBe(1);
 });
 
 it('keeps only one default donation channel per owner when updating an existing channel to default', function () {
@@ -51,9 +49,7 @@ it('keeps only one default donation channel per owner when updating an existing 
 
     $otherChannel->update(['is_default' => true]);
 
-    expect($firstDefault->fresh()->is_default)->toBeFalse();
-    expect($otherChannel->fresh()->is_default)->toBeTrue();
-    expect(
-        $institution->donationChannels()->where('is_default', true)->count()
-    )->toBe(1);
+    expect($firstDefault->fresh()->is_default)->toBeFalse()
+        ->and($otherChannel->fresh()->is_default)->toBeTrue()
+        ->and($institution->donationChannels()->where('is_default', true)->count())->toBe(1);
 });

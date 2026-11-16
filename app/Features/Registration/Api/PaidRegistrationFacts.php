@@ -11,7 +11,7 @@ namespace App\Features\Registration\Api;
 interface PaidRegistrationFacts
 {
     /**
-     * @param list<string> $registrationIds
+     * @param  list<string>  $registrationIds
      * @return list<string>
      */
     public function paidRegistrationIds(array $registrationIds): array;

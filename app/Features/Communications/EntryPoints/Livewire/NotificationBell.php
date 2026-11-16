@@ -192,6 +192,7 @@ class NotificationBell extends Component
             ->map(function (NotificationInboxMessageSnapshot $message) use ($timezone): array {
                 $createdAt = CarbonImmutable::parse($message->createdAt ?? CarbonImmutable::now());
                 $localCreatedAt = $createdAt->setTimezone($timezone);
+
                 return [
                     'id' => $message->id,
                     'title' => $message->title,

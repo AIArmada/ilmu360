@@ -559,13 +559,10 @@ it('renders the book title on public event and series cards without parentheses'
         ->toContain('Kuliah Indeks Artikel')
         ->toContain('Bulugh al-Maram')
         ->not->toContain('(Bulugh al-Maram)')
-        ->and(substr_count((string) $eventsIndexHtml, 'Bulugh al-Maram'))->toBe(1);
-
-    expect($seriesPageHtml)
-        ->toContain('Kuliah Indeks Kitab')
+        ->and(substr_count((string) $eventsIndexHtml, 'Bulugh al-Maram'))->toBe(1)
+        ->and($seriesPageHtml)->toContain('Kuliah Indeks Kitab')
         ->toContain('Kuliah Indeks Artikel')
-        ->toContain('Bulugh al-Maram')
-        ->not->toContain('(Bulugh al-Maram)')
+        ->toContain('Bulugh al-Maram')->not->toContain('(Bulugh al-Maram)')
         ->and(substr_count((string) $seriesPageHtml, 'Bulugh al-Maram'))->toBe(1);
 });
 
@@ -914,8 +911,8 @@ it('records guest submissions without a submitter id', function () {
             ->where('value', $email))
         ->first());
 
-    expect($submission)->not->toBeNull();
-    expect($submission->submitter_id)->toBeNull();
-    expect(withGlobalOwnerContext(fn () => Event::query()->whereKey($submission->event_id)->exists()))->toBeTrue();
-    expect(withGlobalOwnerContext(fn () => $submission->contactMethods()->where('type', ContactMethodType::Email->value)->where('value', $email)->exists()))->toBeTrue();
+    expect($submission)->not->toBeNull()
+        ->and($submission->submitter_id)->toBeNull()
+        ->and(withGlobalOwnerContext(fn () => Event::query()->whereKey($submission->event_id)->exists()))->toBeTrue()
+        ->and(withGlobalOwnerContext(fn () => $submission->contactMethods()->where('type', ContactMethodType::Email->value)->where('value', $email)->exists()))->toBeTrue();
 });

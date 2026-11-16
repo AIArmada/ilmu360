@@ -3,13 +3,11 @@
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Data\EventDiscoveryCriteriaFactory;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Shared\Events\Enums\EventFormat;
+use App\Features\Contributions\Actions\ApproveContributionRequestAction;
+use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
+use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
@@ -21,10 +19,12 @@ use App\Models\User;
 use App\Services\PostgresEventDiscovery;
 use App\Services\PrayerTimeExpressionResolver;
 use App\Services\PublicScheduleDiscoveryService;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Features\Events\Support\AdminEventFormStateBuilder;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -36,8 +36,6 @@ use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -693,10 +691,8 @@ it('preserves non-default prayer offsets on API direct title-only edits', functi
         ->and($expression?->relation)->toBe($offset->minutes() < 0 ? 'before' : 'after')
         ->and($expression?->offset_minutes)->toBe(abs($offset->minutes()))
         ->and($expression?->display_label)->toBe($offset->displayText(PrayerReference::Maghrib))
-        ->and($event->starts_at->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
-
-    expect(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh())?->toIso8601String())
-        ->toBe($expectedStart->utc()->toIso8601String());
+        ->and($event->starts_at->toIso8601String())->toBe($expectedStart->utc()->toIso8601String())
+        ->and(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh())?->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
 })->with([
     'before 30' => [PrayerOffset::Before30],
     'after 30' => [PrayerOffset::After30],
@@ -735,10 +731,8 @@ it('preserves non-default prayer offsets when a title-only proposal is approved'
         ->and($expression?->relation)->toBe($offset->minutes() < 0 ? 'before' : 'after')
         ->and($expression?->offset_minutes)->toBe(abs($offset->minutes()))
         ->and($expression?->display_label)->toBe($offset->displayText(PrayerReference::Maghrib))
-        ->and($event->starts_at->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
-
-    expect(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh())?->toIso8601String())
-        ->toBe($expectedStart->utc()->toIso8601String());
+        ->and($event->starts_at->toIso8601String())->toBe($expectedStart->utc()->toIso8601String())
+        ->and(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh())?->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
 })->with([
     'before 30' => [PrayerOffset::Before30],
     'after 30' => [PrayerOffset::After30],

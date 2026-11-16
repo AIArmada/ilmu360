@@ -9,8 +9,8 @@ use AIArmada\Rewards\Models\RewardAppeal;
 use AIArmada\Rewards\Models\RewardAppealDecision;
 use AIArmada\Rewards\Models\RewardAward;
 use App\Features\Rewards\Support\RewardMemberPresenter;
-use App\Platform\Http\FrontendController;
 use App\Platform\Api\ApiPagination;
+use App\Platform\Http\FrontendController;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -72,7 +72,7 @@ class RewardAppealController extends FrontendController
             $appeal = OpenRewardAppealAction::run(
                 $record,
                 'user',
-                (string) $user->actorId(),
+                $user->actorId(),
                 'member',
                 $validated['reason'],
             );
@@ -99,7 +99,7 @@ class RewardAppealController extends FrontendController
 
         if (! $award instanceof RewardAward
             || (string) $award->recipient_type !== $user->actorType()
-            || (string) $award->recipient_id !== (string) $user->actorId()
+            || (string) $award->recipient_id !== $user->actorId()
         ) {
             abort(404);
         }

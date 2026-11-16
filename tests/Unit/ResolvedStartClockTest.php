@@ -1,17 +1,17 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Models\Institution;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('honors a valid provider clock on submit', function () {
     $startsAt = app(SubmissionTimingPolicy::class)->resolveStartsAt(

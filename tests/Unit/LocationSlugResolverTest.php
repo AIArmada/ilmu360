@@ -5,7 +5,7 @@ use App\Support\Location\LocationSlugResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('maps country slugs from names with an id roundtrip', function () {
     withGlobalOwnerContext(function (): void {
@@ -90,7 +90,7 @@ it('returns ID-keyed state options gated by the provider', function () {
         $resolver = app(LocationSlugResolver::class);
 
         expect($resolver->stateOptionsForCountry($malaysiaId))->toBe([(string) $geo['state']->getKey() => 'Negeri Pilihan Unit'])
-            ->and($resolver->stateOptionsForCountry((string) $singapore->getKey()))->toBe([])
-            ->and($resolver->stateOptionsForCountry(null))->toBe([]);
+            ->and($resolver->stateOptionsForCountry((string) $singapore->getKey()))->toBeEmpty()
+            ->and($resolver->stateOptionsForCountry(null))->toBeEmpty();
     });
 });

@@ -3,7 +3,7 @@
 use App\Features\Prayer\Services\DistrictZoneMatcher;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('matches district names to zones within a state', function (string $candidate, string $stateCode, string $zone) {
     expect(app(DistrictZoneMatcher::class)->matchZone($candidate, $stateCode))->toBe($zone);

@@ -133,7 +133,8 @@ final class CreateEvent extends Component
         if (! $this->ticketSeatingEnabled()) {
             return false;
         }
-        return array_any((array) ($this->form['tickets'] ?? []), fn($ticket) => is_array($ticket) && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value);
+
+        return array_any((array) ($this->form['tickets'] ?? []), fn ($ticket) => is_array($ticket) && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value);
     }
 
     public function submit(CreateOrganizationEventAction $createOrganizationEvent): mixed

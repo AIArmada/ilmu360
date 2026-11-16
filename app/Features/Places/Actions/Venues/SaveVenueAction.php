@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Venues;
 
-use App\Platform\Models\MorphModelResolver;
 use App\Models\Venue;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\VenueType;
 use BackedEnum;
 use Illuminate\Http\UploadedFile;
@@ -32,7 +32,7 @@ final readonly class SaveVenueAction
      */
     public function handle(array $data, ?Venue $venue = null): Venue
     {
-        $creating = $venue === null;
+        $creating = !$venue instanceof \App\Models\Venue;
         $venue ??= new Venue;
 
         if (! $creating) {

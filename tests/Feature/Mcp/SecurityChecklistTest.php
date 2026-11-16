@@ -17,8 +17,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
@@ -32,8 +30,7 @@ it('preserves omitted address fields in the shared address payload', function ()
     ]);
 
     expect($payload)
-        ->toHaveKey('country_id')
-        ->toHaveKey('line1')
+        ->toHaveKeys(['country_id', 'line1'])
         ->and($payload['country_id'])->toBe((string) $country->getKey())
         ->and($payload['line1'])->toBe('Jalan Duta')
         ->and($payload)->not->toHaveKey('lat')
@@ -123,8 +120,8 @@ it('syncs venue facility codes as VenueFacility records', function (): void {
     $fresh = $venue->fresh();
     $fresh->load('facilities.facilityType');
 
-    expect($fresh->facilities)->toHaveCount(2);
-    expect($fresh->facilities->pluck('facilityType.code')->sort()->values()->all())->toBe(['parking', 'women_section']);
+    expect($fresh->facilities)->toHaveCount(2)
+        ->and($fresh->facilities->pluck('facilityType.code')->sort()->values()->all())->toBe(['parking', 'women_section']);
 });
 
 it('replaces only general venue facilities and preserves space-scoped rows', function (): void {

@@ -12,8 +12,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 it('registers a push destination through the api', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);

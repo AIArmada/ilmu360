@@ -9,8 +9,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 it('returns the notification settings catalog and bootstrapped user state', function () {
     $user = User::factory()->create([
         'email' => 'notify@example.test',

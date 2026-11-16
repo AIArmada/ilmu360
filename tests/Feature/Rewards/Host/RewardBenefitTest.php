@@ -51,8 +51,6 @@ use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 function benefitStaff(int $count = 4): array
 {
     $ids = [];
@@ -108,9 +106,8 @@ it('creates and retires catalog items with frozen terms', function () {
     );
 
     expect($item->status)->toBe(RewardBenefitItemStatus::Active)
-        ->and(RewardBenefitStockLedger::balances($item)['available'])->toBe(10);
-
-    expect(fn () => CreateRewardBenefitItemAction::run(
+        ->and(RewardBenefitStockLedger::balances($item)['available'])->toBe(10)
+        ->and(fn() => CreateRewardBenefitItemAction::run(
         $program, 'bad-both', 'Bad', ['x'], 100, 'pts', true, 10, 'user', $staff, 'staff',
     ))->toThrow(InvalidArgumentException::class, 'either a point cost or direct entitlement');
 
@@ -147,14 +144,12 @@ it('redeems, fulfills, and consumes a point-funded benefit exactly', function ()
         'user', $memberId, 'member', null, CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
 
-    expect((string) $replay->getKey())->toBe((string) $grant->getKey());
-
-    expect(fn () => RedeemRewardBenefitAction::run(
+    expect((string) $replay->getKey())->toBe((string) $grant->getKey())
+        ->and(fn() => RedeemRewardBenefitAction::run(
         'user', $memberId, $program->family_key, $item, 4, 'red-002', 'manual',
         'user', $memberId, 'member', null, CarbonImmutable::parse('2026-06-15T01:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class);
-
-    expect(benefitBalances($memberId, $program->family_key)['reserved'])->toBe(400);
+    ))->toThrow(InvalidArgumentException::class)
+        ->and(benefitBalances($memberId, $program->family_key)['reserved'])->toBe(400);
 
     $issued = FulfillRewardBenefitAction::run(
         $grant, ['handoff_reference' => 'DESK-42'], 'user', $operator, 'staff',
@@ -338,7 +333,7 @@ it('fulfills a direct-entitlement benefit award through the catalog', function (
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact('src-ben-direct-1', $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Benefit, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         'src-ben-direct-1', CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
@@ -401,7 +396,7 @@ it('reverses a confirmed cash payout through recovery and settles the budget', f
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact('src-ben-cashrec-1', $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Cash, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         'src-ben-cashrec-1', CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );

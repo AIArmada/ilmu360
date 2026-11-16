@@ -253,7 +253,7 @@ it('loads the accounts for the AI usage log user column in one query', function 
 
     foreach ($accounts as $account) {
         AiUsageLog::query()->create([
-            'invocation_id' => 'inv-'.(string) $account->getKey(),
+            'invocation_id' => 'inv-'.$account->getKey(),
             'operation' => 'agent_prompt',
             'user_id' => $account->getKey(),
         ]);

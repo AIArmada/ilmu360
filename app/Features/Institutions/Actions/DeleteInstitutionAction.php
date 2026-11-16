@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
+use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Models\Institution;
 
 /**

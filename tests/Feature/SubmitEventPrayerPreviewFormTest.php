@@ -2,7 +2,6 @@
 
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
-use App\Shared\Events\Enums\EventFormat;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
@@ -12,6 +11,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Support\Submission\SubmitEventPrefill;
 use Carbon\CarbonImmutable;
@@ -53,7 +53,7 @@ it('clears prayer hints when the event date is removed', function () {
     $component = Livewire::test(Create::class)
         ->set('data.submission_country_id', (string) ensureTestMalaysiaCountry()->getKey())
         ->set('data.event_date', '2026-10-15')
-        ->set('data.event_date', null);
+        ->set('data.event_date');
 
     expect($component->get('data.prayer_preview'))->toBeNull();
 });

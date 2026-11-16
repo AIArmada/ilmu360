@@ -9,8 +9,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 it('renders the notifications inbox for authenticated users', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
@@ -135,19 +133,17 @@ it('filters unread notifications and marks them as read in the inbox component',
 it('filters by the inbox family stored on the notification row', function () {
     $user = User::factory()->create();
 
-    $makeNotification = function (NotificationFamily $family, string $title) use ($user): NotificationInbox {
-        return createTestRecord(NotificationInbox::class, [
-            'recipient_type' => $user->getMorphClass(),
-            'recipient_id' => $user->getKey(),
-            'family' => $family->value,
-            'priority' => NotificationPriority::Normal->value,
-            'trigger' => NotificationTrigger::EventCancelled->value,
-            'title' => $title,
-            'body' => 'Body',
-            'data' => ['action_url' => null],
-            'read_at' => null,
-        ]);
-    };
+    $makeNotification = (fn(NotificationFamily $family, string $title): NotificationInbox => createTestRecord(NotificationInbox::class, [
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => $family->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => $title,
+        'body' => 'Body',
+        'data' => ['action_url' => null],
+        'read_at' => null,
+    ]));
 
     $makeNotification(NotificationFamily::EventUpdate, 'Tracked event update');
     $makeNotification(NotificationFamily::FollowUp, 'Followed content update');

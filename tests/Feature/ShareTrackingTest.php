@@ -98,7 +98,7 @@ function shareExtractSharedUrlFromWhatsAppRedirect(TestResponse $response): stri
 {
     $location = (string) $response->headers->get('Location');
 
-    expect($location)->not->toBe('');
+    expect($location)->not->toBeEmpty();
 
     parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
 
@@ -186,9 +186,8 @@ test('multi-level commission payouts stay off while members can create share lin
 
     $hopTarget = (string) $this->get($sharedUrl)->assertRedirect()->headers->get('Location');
 
-    expect($hopTarget)->toContain('share=');
-
-    expect(AffiliateLink::count())->toBe(1);
+    expect($hopTarget)->toContain('share=')
+        ->and(AffiliateLink::count())->toBe(1);
 
     $this->actingAs($this->sharer)
         ->getJson(route('share.payload', [
@@ -428,9 +427,8 @@ test('share payload includes a tracking token for authenticated and anonymous sh
     $shareToken = (string) ($shareQuery['share'] ?? '');
 
     expect(preg_match('/^[a-z0-9]{16}$/', $shareToken))->toBe(1)
-        ->and($shareToken)->toBe((string) data_get($authenticatedPayload, 'tracking_token'));
-
-    expect($authenticatedHop)->not->toContain('origin=web');
+        ->and($shareToken)->toBe((string) data_get($authenticatedPayload, 'tracking_token'))
+        ->and($authenticatedHop)->not->toContain('origin=web');
 
     $guestHop = (string) $this->get((string) data_get($guestPayload, 'url'))->assertRedirect()->headers->get('Location');
 
@@ -690,9 +688,8 @@ test('share redirects record outbound shares for guest callers', function () {
     $hopTarget = (string) $this->get($sharedUrl)->assertRedirect()->headers->get('Location');
 
     expect($location)->toContain('whatsapp')
-        ->and($hopTarget)->toContain((string) config('share-tracking.query_parameter', 'share'));
-
-    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
+        ->and($hopTarget)->toContain((string) config('share-tracking.query_parameter', 'share'))
+        ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
 });
 
 test('share tracking records outbound shares for guest callers', function () {
@@ -712,7 +709,7 @@ test('share tracking records outbound shares for guest callers', function () {
     $trackingToken = (string) data_get($payload, 'tracking_token');
     $guestCredential = (string) data_get($payload, 'guest_credential');
 
-    expect($guestCredential)->toBeString()->not->toBe('');
+    expect($guestCredential)->toBeString()->not->toBeEmpty();
 
     $this->withHeader((string) config('share-tracking.guest_credential.header', 'X-Guest-Credential'), $guestCredential)
         ->postJson(route('share.track'), [
@@ -799,9 +796,9 @@ test('opening a shared link creates an attribution and landing visit', function 
     $response = $this->followingRedirects()->get($payload['url']);
 
     $response->assertOk();
-    expect($response->getCookie(config('share-tracking.cookie.name')))->not->toBeNull();
-    expect(AffiliateAttribution::count())->toBe(1);
-    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1);
+    expect($response->getCookie(config('share-tracking.cookie.name')))->not->toBeNull()
+        ->and(AffiliateAttribution::count())->toBe(1)
+        ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1);
 
     $visit = AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->first();
 
@@ -1413,9 +1410,8 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
 
     expect($recentVisits->first())->not->toBeNull()
         ->and($recentVisits->first()?->subjectType)->toBe('event')
-        ->and($recentVisits->first()?->subjectKey)->toBe($eventLink->subject_key);
-
-    expect($recentResponses->first())->not->toBeNull()
+        ->and($recentVisits->first()?->subjectKey)->toBe($eventLink->subject_key)
+        ->and($recentResponses->first())->not->toBeNull()
         ->and($recentResponses->first()?->subjectType)->toBe('event')
         ->and($recentResponses->first()?->subjectId)->toBe((string) $event->id)
         ->and($recentResponses->first()?->subjectKey)->toBe($eventLink->subject_key);
@@ -1591,9 +1587,9 @@ test('provider visitor counts read native channel fields', function () {
     $providerBreakdown = app(ShareTrackingAnalyticsService::class)
         ->providerBreakdownForUser($this->sharer);
 
-    expect($providerBreakdown)->toHaveCount(2);
-    expect($providerBreakdown->firstWhere('provider', 'telegram'))->toMatchArray(['visits' => 1, 'distinct_browsers' => 1]);
-    expect($providerBreakdown->firstWhere('provider', 'direct'))->toMatchArray(['visits' => 0, 'distinct_browsers' => 1]);
+    expect($providerBreakdown)->toHaveCount(2)
+        ->and($providerBreakdown->firstWhere('provider', 'telegram'))->toMatchArray(['visits' => 1, 'distinct_browsers' => 1])
+        ->and($providerBreakdown->firstWhere('provider', 'direct'))->toMatchArray(['visits' => 0, 'distinct_browsers' => 1]);
 });
 
 test('link outcome breakdown returns integer counts ordered by volume', function () {
@@ -1936,9 +1932,9 @@ test('share redirect route records outbound provider clicks without visitor visi
 
     $link = AffiliateLink::query()->firstOrFail();
 
-    expect(AffiliateLink::count())->toBe(1);
-    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(0);
-    expect(rawurldecode((string) $response->headers->get('Location')))->toContain('channel=whatsapp');
+    expect(AffiliateLink::count())->toBe(1)
+        ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(0)
+        ->and(rawurldecode((string) $response->headers->get('Location')))->toContain('channel=whatsapp');
 
     $this->assertDatabaseHas('affiliate_touchpoints', [
         'affiliate_id' => $link->affiliate_id,

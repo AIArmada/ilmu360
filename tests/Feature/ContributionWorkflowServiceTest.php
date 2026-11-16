@@ -270,8 +270,8 @@ it('applies structured event associations and languages through approval', funct
     ]);
     $malayId = languageId('ms');
     $arabicId = languageId('ar');
-    expect($malayId)->not->toBeNull();
-    expect($arabicId)->not->toBeNull();
+    expect($malayId)->not->toBeNull()
+        ->and($arabicId)->not->toBeNull();
     $event->syncLanguages([$malayId]);
     $person = Person::factory()->create([
         'status' => 'verified',

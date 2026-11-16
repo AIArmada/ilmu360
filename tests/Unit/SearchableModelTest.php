@@ -8,7 +8,7 @@ use App\Shared\Directory\Enums\InstitutionNameType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('builds the person searchable payload with title text and geography facets', function () {
     withGlobalOwnerContext(function (): void {

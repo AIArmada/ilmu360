@@ -50,13 +50,6 @@ use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 
-// R9 proof: the full setup -> enroll -> qualify -> hold/review -> fulfill ->
-// correct/recover path per mode through the REAL host source path (receipt +
-// conversion + production reader) and REAL distinct member/staff identities.
-// No fake source facts, no placeholder actor UUIDs.
-
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);

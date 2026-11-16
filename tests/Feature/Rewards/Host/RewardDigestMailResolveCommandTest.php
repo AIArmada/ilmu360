@@ -16,8 +16,8 @@ use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Communications\Api\NotificationTransport;
+use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Models\RewardDigestSlot;
@@ -36,8 +36,6 @@ use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\Feature\Rewards\Host\ResolveCmdThrowTransport;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
-
-uses(RefreshDatabase::class);
 
 function resolveCmdMailCount(): int
 {
@@ -115,12 +113,12 @@ function resolveCmdAmbiguous(string $prefix, string $source): array
         $reader = new FakeRewardSourceFactReader;
         $reader->seed(RewardLedgerFixtures::fact($source, $memberId));
 
-        $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+        $result = new EvaluateRewardEntitlementAction($reader)->handle(
             $program->refresh(), RewardComponent::Points, 'user', $memberId, RewardBeneficiaryRole::Recipient,
             $source, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
         );
 
-        (new TransitionRewardAwardAction(null, $reader))->handle(
+        new TransitionRewardAwardAction(null, $reader)->handle(
             $result->award, RewardAwardStatus::Approved, 'user', RewardLedgerFixtures::staffId(), 'staff', 'approve',
             null, null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
         );

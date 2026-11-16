@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Places\Actions\Spaces;
 
 use App\Models\Space;
-
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;

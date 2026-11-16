@@ -17,9 +17,9 @@ use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardProgram;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
-use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
@@ -110,7 +110,7 @@ final class RewardCharacterizationFixtures
         $reader = new FakeRewardSourceFactReader;
         $reader->seed(RewardLedgerFixtures::fact($source, $memberId));
 
-        (new EvaluateRewardEntitlementAction($reader))->handle(
+        new EvaluateRewardEntitlementAction($reader)->handle(
             $program, RewardComponent::Points, 'user', $memberId, RewardBeneficiaryRole::Recipient,
             $source, CarbonImmutable::parse($at),
         );
@@ -130,7 +130,7 @@ final class RewardCharacterizationFixtures
     {
         [$award, $reader] = self::evaluateAward($program, $user, $source, $at);
 
-        $approved = (new TransitionRewardAwardAction(null, $reader))->handle(
+        $approved = new TransitionRewardAwardAction(null, $reader)->handle(
             $award, RewardAwardStatus::Approved, 'user', RewardLedgerFixtures::staffId(), 'staff',
             'verified-ok', null, null, CarbonImmutable::parse($at),
         );

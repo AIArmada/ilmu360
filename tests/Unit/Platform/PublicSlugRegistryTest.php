@@ -10,7 +10,7 @@ use App\Models\Venue;
 use App\Platform\Routing\PublicSlugRegistry;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('registers the current public slug surfaces in a stable order', function (): void {
     $registry = app(PublicSlugRegistry::class);

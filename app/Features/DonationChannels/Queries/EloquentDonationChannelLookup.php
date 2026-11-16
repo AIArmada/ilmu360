@@ -22,6 +22,7 @@ final readonly class EloquentDonationChannelLookup implements DonationChannelLoo
             return null;
         }
         $key = (string) $channel->getKey();
+
         return new ReportSubject(
             type: ReportSubjectType::DonationChannel,
             id: $key,

@@ -70,7 +70,7 @@ class PersonFactory extends Factory
             : null;
         $givenName = trim(implode(' ', array_filter([$firstName, $secondName])));
         $connector = $isFemale ? 'binti' : 'bin';
-        $parentName = fake()->randomElement($parentNames);
+        fake()->randomElement($parentNames);
         $name = $givenName.' '.$connector;
 
         return [

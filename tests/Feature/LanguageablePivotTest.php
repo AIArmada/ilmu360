@@ -6,8 +6,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 it('persists UUID language ids in languageable pivot rows', function (): void {
     $language = Language::query()->where('code', 'ms')->firstOrFail();
     $series = Series::factory()->create();

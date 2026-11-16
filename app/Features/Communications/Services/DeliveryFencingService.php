@@ -10,9 +10,9 @@ use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Support\Delivery\GuardedDeliverySend;
 use Illuminate\Support\Facades\DB;
 
-final class DeliveryFencingService implements DeliveryFencing
+final readonly class DeliveryFencingService implements DeliveryFencing
 {
-    public function __construct(private readonly CommunicationRecorder $recorder) {}
+    public function __construct(private CommunicationRecorder $recorder) {}
 
     public function recordExternalSent(
         string $communicationId,
@@ -119,8 +119,7 @@ final class DeliveryFencingService implements DeliveryFencing
         ], true)) {
             return true;
         }
-
-        foreach ([
+        return array_any([
             'accepted_at',
             'sent_at',
             'received_at',
@@ -135,12 +134,6 @@ final class DeliveryFencingService implements DeliveryFencing
             'unsubscribed_at',
             'bounced_at',
             'complained_at',
-        ] as $timestamp) {
-            if ($delivery->{$timestamp} !== null) {
-                return true;
-            }
-        }
-
-        return false;
+        ], fn($timestamp) => $delivery->{$timestamp} !== null);
     }
 }

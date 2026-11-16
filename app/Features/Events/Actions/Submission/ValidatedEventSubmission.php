@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Events\Actions\Submission;
 
 use AIArmada\Events\Models\Event as PackageEvent;

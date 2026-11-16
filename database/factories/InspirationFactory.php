@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class InspirationFactory extends Factory
 {
+    #[\Override]
     protected $model = Inspiration::class;
 
     /**

@@ -29,8 +29,6 @@ use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
@@ -137,10 +135,8 @@ it('publishes a fixed month behind dual thresholds with per-cell dual gating', f
     );
 
     expect((string) $again->getKey())->toBe((string) $release->getKey())
-        ->and(CommunityRelease::query()->where('release_key', 'community:2026-05')->count())->toBe(1);
-
-    expect(fn () => $release->forceFill(['sharer_count' => 99])->save())
-        ->toThrow(LogicException::class, 'immutable');
+        ->and(CommunityRelease::query()->where('release_key', 'community:2026-05')->count())->toBe(1)
+        ->and(fn() => $release->forceFill(['sharer_count' => 99])->save())->toThrow(LogicException::class, 'immutable');
 
     // Below-threshold months refuse with honest insufficient-data.
     expect(fn () => PublishCommunityReleaseAction::run(
@@ -730,8 +726,8 @@ it('includes free and unlinked registrations while excluding purchasers with bou
             static fn (mixed $binding): bool => is_string($binding) && Str::contains($binding, $paidRegistrationIds),
         ));
 
-        expect($paidBindings)->toHaveCount(1);
-        expect(json_decode($paidBindings[0], true, flags: JSON_THROW_ON_ERROR))->toEqualCanonicalizing($paidRegistrationIds);
+        expect($paidBindings)->toHaveCount(1)
+            ->and(json_decode($paidBindings[0], true, flags: JSON_THROW_ON_ERROR))->toEqualCanonicalizing($paidRegistrationIds);
     }
 });
 

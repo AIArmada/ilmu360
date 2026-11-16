@@ -6,7 +6,6 @@ namespace App\Features\DonationChannels\Actions;
 
 use App\Models\DonationChannel;
 
-
 final readonly class RestoreDonationChannelVerifierAction
 {
     /**

@@ -2,11 +2,11 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\User;
 use App\Policies\ContributionRequestPolicy;
+use App\Shared\Contributions\Enums\ContributionRequestType;
 use Database\Seeders\PermissionSeeder;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -38,8 +38,8 @@ it('denies create request review to an entity owner who can update the entity', 
         'proposer_id' => $owner->getKey(),
     ])->setRelation('entity', $institution);
 
-    expect($owner->can('update', $institution))->toBeTrue();
-    expect(app(ContributionRequestPolicy::class)->review($owner, $request))->toBeFalse();
+    expect($owner->can('update', $institution))->toBeTrue()
+        ->and(app(ContributionRequestPolicy::class)->review($owner, $request))->toBeFalse();
 });
 
 it('denies update request review when its target entity is missing', function () {

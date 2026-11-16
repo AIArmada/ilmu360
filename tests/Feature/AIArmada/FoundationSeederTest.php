@@ -3,16 +3,14 @@
 use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Enums\TaxonomyTerm\DisciplineTermCode;
 use App\Enums\TaxonomyTerm\DomainTermCode;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\EventCategoryCatalog;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\seed;
-
-uses(RefreshDatabase::class);
 
 it('seeds EventRole rows from EventKeyPersonRole + organizer', function (): void {
     seed(FoundationSeeder::class);
@@ -43,9 +41,8 @@ it('seeds flat activity-first EventTaxonomy and EventTerm categories', function 
         ->get();
 
     expect($terms->whereNull('parent_id')->count())->toBe(8)
-        ->and($terms->whereNotNull('parent_id')->count())->toBe(0);
-
-    expect($terms->where('code', 'kuliah_ceramah')->first())->not->toBeNull()
+        ->and($terms->whereNotNull('parent_id')->count())->toBe(0)
+        ->and($terms->where('code', 'kuliah_ceramah')->first())->not->toBeNull()
         ->and($terms->where('code', 'kelas_kursus')->first())->not->toBeNull()
         ->and($terms->where('code', 'ilmu')->first())->toBeNull();
 });
@@ -94,16 +91,14 @@ it('links discipline terms to the religious domain for cascade filtering', funct
 
     expect($religiousId)->not->toBeNull();
 
-    $countUnder = static function (?string $domainId): int {
-        return EventTerm::query()
-            ->where('event_taxonomy_id', EventTaxonomy::query()->where('code', 'discipline')->value('id'))
-            ->where('is_active', true)
-            ->where(function ($query) use ($domainId): void {
-                $query->whereJsonContains('metadata->domain_ids', $domainId)
-                    ->orWhereNull('metadata->domain_ids');
-            })
-            ->count();
-    };
+    $countUnder = (static fn(?string $domainId): int => EventTerm::query()
+        ->where('event_taxonomy_id', EventTaxonomy::query()->where('code', 'discipline')->value('id'))
+        ->where('is_active', true)
+        ->where(function ($query) use ($domainId): void {
+            $query->whereJsonContains('metadata->domain_ids', $domainId)
+                ->orWhereNull('metadata->domain_ids');
+        })
+        ->count());
 
     expect($countUnder($religiousId))->toBe(count(DisciplineTermCode::cases()));
 

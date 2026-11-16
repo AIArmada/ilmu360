@@ -2,12 +2,12 @@
 
 namespace Database\Seeders\Concerns;
 
-use App\Shared\Events\Enums\EventFormat;
 use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Space;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventFormat;
 use Database\Seeders\SpaceSeeder;
 use Illuminate\Support\Str;
 

@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Process;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('clears end_time client-side only for custom times, never for prayer labels', function () {
     if (! Process::run('node --version')->successful()) {

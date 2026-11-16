@@ -4,12 +4,12 @@ namespace App\Observers;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
-use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\Institutions\Api\InstitutionListingCacheVersion;
-use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Institutions\Api\InstitutionListingCacheVersion;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Places\Api\VenueWorkflow;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

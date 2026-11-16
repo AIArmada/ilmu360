@@ -36,8 +36,6 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
@@ -88,7 +86,7 @@ function correctionHeldAward(string $prefix, string $source, RewardProgramMode $
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact($source, $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program, $mode === RewardProgramMode::Cash ? RewardComponent::Cash : RewardComponent::Points,
         'user', $memberId, RewardBeneficiaryRole::Recipient,
         $source, CarbonImmutable::parse('2026-06-15T00:00:00Z'),
@@ -109,7 +107,7 @@ function correctionRow(string $businessKey, string $reason = 'event-withdrawn'):
 
 function correctionApprove(RewardAward $award, $reader, string $staff, string $at = '2026-06-16T00:00:00Z'): RewardAward
 {
-    return (new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader))->handle(
+    return new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader)->handle(
         $award, RewardAwardStatus::Approved, 'user', $staff, 'staff', 'policy-ok', null, null, CarbonImmutable::parse($at),
     );
 }
@@ -126,7 +124,7 @@ it('reverses live awards for corrected sources and reports every outcome', funct
 
     // Already-terminal awards settle as skipped, never reprocessed.
     [$settled] = correctionHeldAward('corr-sweep-3', 'src-corr-term-1', RewardProgramMode::Cash);
-    (new TransitionRewardAwardAction(null, new FakeRewardSourceFactReader))->handle(
+    new TransitionRewardAwardAction(null, new FakeRewardSourceFactReader)->handle(
         $settled, RewardAwardStatus::Rejected, 'user', $staffId, 'staff', 'ineligible', null, null,
         CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
@@ -214,7 +212,7 @@ it('reverses fulfilled cash through recovery instead of blind transition', funct
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact('src-corr-cash-1', $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program->refresh(), RewardComponent::Cash, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         'src-corr-cash-1', CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
@@ -245,13 +243,13 @@ it('reverses fulfilled cash through recovery instead of blind transition', funct
         'user', $staffId, 'staff', CarbonImmutable::parse('2026-06-17T03:00:00Z'),
     );
 
-    $award = (new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader))->handle(
+    $award = new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader)->handle(
         $award->refresh(), RewardAwardStatus::Fulfilled, 'user', $staffId, 'staff', 'fulfill',
         null, null, CarbonImmutable::parse('2026-06-17T04:00:00Z'),
     );
 
     // Raw reversal of fulfilled cash refuses loudly — no silent skip.
-    expect(fn () => (new TransitionRewardAwardAction(null, $reader))->handle(
+    expect(fn () => new TransitionRewardAwardAction(null, $reader)->handle(
         $award->refresh(), RewardAwardStatus::Reversed, 'user', $staffId, 'staff', 'blind',
         null, null, CarbonImmutable::parse('2026-06-19T00:00:00Z'),
     ))->toThrow(InvalidArgumentException::class, 'fulfillment connector');

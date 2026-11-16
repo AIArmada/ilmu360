@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Features\DonationChannels\Actions;
 
 use App\Models\DonationChannel;
-
-use App\Features\DonationChannels\Actions\SaveDonationChannelAction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 

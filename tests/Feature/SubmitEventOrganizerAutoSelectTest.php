@@ -70,8 +70,8 @@ it('assigns the person as event person when person is the organizer', function (
 
     $occurrence = submittedOccurrenceByTitle('Auto Select Person Event');
     $personInvolvements = $occurrence->involvements()->where('role_code', 'speaker')->get();
-    expect($personInvolvements)->toHaveCount(1);
-    expect($personInvolvements->first()->involveable)->toBeInstanceOf(Person::class)
+    expect($personInvolvements)->toHaveCount(1)
+        ->and($personInvolvements->first()->involveable)->toBeInstanceOf(Person::class)
         ->and($personInvolvements->first()->involveable_id)->toBe((string) $fixtures['person']->id);
 
     $involvement = $occurrence->involvements()->where('role_code', 'organizer')->firstOrFail();

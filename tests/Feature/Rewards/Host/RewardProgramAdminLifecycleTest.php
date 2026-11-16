@@ -31,8 +31,6 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 it('runs a staff-managed funded programme through explicit enrolment and a direct check-in award', function (): void {
     Queue::fake([EvaluateRewardEntitlementJob::class]);
 
@@ -70,11 +68,9 @@ it('runs a staff-managed funded programme through explicit enrolment and a direc
     );
 
     $ready = TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Ready);
-    expect($ready->status)->toBe(RewardProgramStatus::Ready);
-
-    expect(fn () => TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active))
-        ->toThrow(InvalidArgumentException::class, 'no-confirmed-funding:MYR');
-    expect($program->refresh()->status)->toBe(RewardProgramStatus::Ready);
+    expect($ready->status)->toBe(RewardProgramStatus::Ready)
+        ->and(fn() => TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active))->toThrow(InvalidArgumentException::class, 'no-confirmed-funding:MYR')
+        ->and($program->refresh()->status)->toBe(RewardProgramStatus::Ready);
 
     $sourceRef = 'SLICE3-'.$family;
     RecordRewardFundingSourceAction::run(
@@ -119,7 +115,7 @@ it('runs a staff-managed funded programme through explicit enrolment and a direc
     $shareOutcomeKey = ShareOutcomeBusinessKey::eventCheckin((string) $checkin->getKey());
     $activityKey = ActivityRewardBusinessKey::for(
         ShareOutcomeType::EventCheckin,
-        'checkin:'.(string) $checkin->getKey(),
+        'checkin:'.$checkin->getKey(),
     );
 
     app(AffiliatesShareTrackingService::class)->recordOutcome(
@@ -133,7 +129,7 @@ it('runs a staff-managed funded programme through explicit enrolment and a direc
     expect($receipt->isAttributed())->toBeFalse();
     Queue::assertPushed(EvaluateRewardEntitlementJob::class, fn (EvaluateRewardEntitlementJob $job): bool => $job->businessKey === $activityKey);
 
-    (new EvaluateRewardEntitlementAction(app(RewardSourceFactReader::class)))->handle(
+    new EvaluateRewardEntitlementAction(app(RewardSourceFactReader::class))->handle(
         $active,
         RewardComponent::Points,
         'user',

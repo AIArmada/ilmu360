@@ -9,11 +9,11 @@ use App\Features\Institutions\Api\InstitutionSummary;
 use App\Models\Institution;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
+use App\Shared\Directory\DirectoryOption;
+use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectType;
 use BackedEnum;
-use App\Shared\Directory\DirectoryOption;
-use App\Shared\Directory\Enums\InstitutionStatus;
 
 final readonly class EloquentInstitutionLookup implements InstitutionLookup
 {
@@ -22,6 +22,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
     public function resolveIdentifier(string $identifier): ?string
     {
         $entity = $this->entity($identifier);
+
         return $entity instanceof Institution ? (string) $entity->getKey() : null;
     }
 
@@ -39,6 +40,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         $kind = $kind instanceof BackedEnum ? (string) $kind->value : (is_string($kind) && $kind !== '' ? $kind : null);
         $slug = $entity->getAttribute('slug');
         $image = $entity->hasMedia('logo') ? $entity->getFirstMediaUrl('logo', 'thumb') : null;
+
         return new InstitutionSummary(
             id: $fallback,
             title: filled($entity->display_name) ? (string) $entity->display_name : $fallback,
@@ -50,7 +52,6 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             institutionType: $kind,
         );
     }
-
 
     public function searchPrayerInstitutions(string $search, int $limit = 50): array
     {
@@ -69,7 +70,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
     }
 
     /**
-     * @param list<string> $institutionIds
+     * @param  list<string>  $institutionIds
      * @return array<string, string>
      */
     public function prayerInstitutionLabels(array $institutionIds): array
@@ -85,11 +86,12 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         foreach ($institutionIds as $institutionId) {
             $labels[$institutionId] ??= $institutionId;
         }
+
         return $labels;
     }
 
     /**
-     * @param list<string> $institutionIds
+     * @param  list<string>  $institutionIds
      * @return list<string>
      */
     public function selectablePrayerInstitutionIds(array $institutionIds): array
@@ -97,13 +99,14 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         if ($institutionIds === []) {
             return [];
         }
+
         return Institution::query()->where('institutions.status', InstitutionStatus::Verified->value)
             ->whereKey($institutionIds)->pluck('institutions.id')
             ->map(static fn (mixed $id): string => (string) $id)->values()->all();
     }
 
     /**
-     * @param list<string> $institutionIds
+     * @param  list<string>  $institutionIds
      * @return array<string, string|null>
      */
     public function rawNamesByIds(array $institutionIds): array
@@ -124,12 +127,14 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             return null;
         }
         $entity = Institution::query()->find($id);
+
         return $entity instanceof Institution ? $this->reportSubject($entity) : null;
     }
 
     public function resolveReportSubject(string $identifier): ?ReportSubject
     {
         $entity = $this->entity($identifier);
+
         return $entity instanceof Institution ? $this->reportSubject($entity) : null;
     }
 
@@ -139,12 +144,14 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         if ($identifier === '') {
             return null;
         }
+
         return $this->resolver->first(Institution::query(), 'institutions.slug', $identifier);
     }
 
     private function reportSubject(Institution $entity): ReportSubject
     {
         $id = (string) $entity->getKey();
+
         return new ReportSubject(
             type: ReportSubjectType::Institution,
             id: $id,

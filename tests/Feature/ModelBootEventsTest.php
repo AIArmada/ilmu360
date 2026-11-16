@@ -6,8 +6,6 @@ use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('sets verified_by on institution when status changes to verified', function () {
     $user = User::factory()->create();
     $this->actingAs($user);

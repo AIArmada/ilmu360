@@ -104,7 +104,7 @@ function wp2lcConversionStatus(AffiliateConversion $conversion): string
     $status = $conversion->status;
 
     return $status instanceof ConversionStatus
-        ? (string) $status->getValue()
+        ? $status->getValue()
         : (string) $status;
 }
 
@@ -772,7 +772,6 @@ it('freezes the paid-checkout intent decision once and never on retry', function
         participants: [wp2lcCheckoutParticipant('Checkout Buyer', true)],
         buyer: $buyer,
         agreement: ['version' => 'event-participation-v1'],
-        discountCode: null,
         idempotencyKey: 'wp2-checkout-probe',
         request: $attributedRequest,
     );
@@ -793,7 +792,6 @@ it('freezes the paid-checkout intent decision once and never on retry', function
         participants: [wp2lcCheckoutParticipant('Checkout Buyer', true)],
         buyer: $buyer,
         agreement: ['version' => 'event-participation-v1'],
-        discountCode: null,
         idempotencyKey: 'wp2-checkout-probe',
         request: new Request,
     );
@@ -830,7 +828,6 @@ it('inherits the frozen checkout decision for paid order registrations', functio
         participants: $participants,
         buyer: $buyer,
         agreement: ['version' => 'event-participation-v1'],
-        discountCode: null,
         idempotencyKey: 'wp2-checkout-inherit',
         request: $attributedRequest,
     );
@@ -965,19 +962,9 @@ it('fails checkout inheritance closed on unknown refs and self-credit', function
 
     $attributionId = (string) app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($selfRequest)?->id;
 
-    expect($attributionId)->not->toBe('');
-
-    expect(app(AffiliatesShareTrackingService::class)->recordCheckoutInheritedOutcome(
-        ShareOutcomeType::EventRegistration,
-        ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()),
-        $attributionId,
-        null,
-        $this->sharer,
-        [],
-        now(),
-    ))->toBeNull();
-
-    expect(ShareSourceAttributionReceipt::query()->count())->toBe(3)
+    expect($attributionId)->not->toBeEmpty()
+        ->and(app(AffiliatesShareTrackingService::class)->recordCheckoutInheritedOutcome(ShareOutcomeType::EventRegistration, ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()), $attributionId, null, $this->sharer, [], now()))->toBeNull()
+        ->and(ShareSourceAttributionReceipt::query()->count())->toBe(3)
         ->and(ShareSourceAttributionReceipt::query()->where('provenance', ShareSourceAttributionReceipt::PROVENANCE_CHECKOUT)->count())->toBe(3)
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
@@ -1155,7 +1142,6 @@ it('never late-credits an idempotent registration replay through a new cookie', 
         participants: $participants,
         registrantId: (string) $actor->getKey(),
         options: ['idempotency_key' => 'wp2-replay-probe'],
-        request: null,
     );
     $registrationId = (string) $first['primary_registration_id'];
     $businessKey = ShareOutcomeBusinessKey::eventRegistration($registrationId);
@@ -1265,8 +1251,8 @@ it('freezes missing checkout provenance unattributed and blocks later repair cre
     $session->forceFill(['payment_data' => $repaired])->save();
 
     $second = OwnerContext::withOwner(null, fn () => app(RecordCheckoutShareProvenanceStep::class)->handle($session->fresh()));
-    expect($second->isSuccessful())->toBeTrue();
-    expect(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail()->isAttributed())->toBeFalse()
+    expect($second->isSuccessful())->toBeTrue()
+        ->and(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail()->isAttributed())->toBeFalse()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -1348,8 +1334,8 @@ it('freezes mismatched checkout intents unattributed and blocks later repair cre
     $session->forceFill(['payment_data' => $repaired])->save();
 
     $second = OwnerContext::withOwner(null, fn () => app(RecordCheckoutShareProvenanceStep::class)->handle($session->fresh()));
-    expect($second->isSuccessful())->toBeTrue();
-    expect(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail()->isAttributed())->toBeFalse()
+    expect($second->isSuccessful())->toBeTrue()
+        ->and(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail()->isAttributed())->toBeFalse()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -1422,8 +1408,8 @@ it('uses the trusted intent timestamp for corrupt checkout provenance clocks', f
         ->where('business_key', ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()))
         ->firstOrFail();
 
-    expect($receipt->isAttributed())->toBeTrue();
-    expect($receipt->occurred_at->toIso8601String())->toBe($session->fresh()->created_at->toIso8601String());
+    expect($receipt->isAttributed())->toBeTrue()
+        ->and($receipt->occurred_at->toIso8601String())->toBe($session->fresh()->created_at->toIso8601String());
 });
 
 it('freezes paid registrations unattributed when scope cancels before fulfillment', function (): void {

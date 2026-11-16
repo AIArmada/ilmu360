@@ -261,8 +261,8 @@ it('records person affiliation sync audits on auditable subjects', function () {
         ->and($person?->institutions->firstWhere('id', $currentInstitution->id))->toBeNull()
         ->and($newAffiliation)->not->toBeNull()
         ->and($newAffiliation?->pivot?->position)->toBe('Mudir')
-        ->and((bool) $newAffiliation?->pivot?->is_primary)->toBeTrue()
-        ->and((bool) $secondaryAffiliation?->pivot?->is_primary)->toBeFalse()
+        ->and($newAffiliation?->pivot?->is_primary)->toBeTruthy()
+        ->and($secondaryAffiliation?->pivot?->is_primary)->toBeFalsy()
         ->and($syncAudit)->not->toBeNull()
         ->and($syncAudit?->event)->toBe('sync')
         ->and($syncAudit?->user_id)->toBe($administrator->id)
@@ -312,5 +312,5 @@ it('records person affiliation pivot updates when the institution is already att
         ->and($syncAudit?->old_values['institutions'][0]['position'] ?? null)->toBe('Imam')
         ->and($syncAudit?->new_values['institutions'][0]['position'] ?? null)->toBe('Mudir')
         ->and($person?->institutions->firstWhere('id', $institution->id)?->pivot?->position)->toBe('Mudir')
-        ->and((bool) $person?->institutions->firstWhere('id', $institution->id)?->pivot?->is_primary)->toBeTrue();
+        ->and($person?->institutions->firstWhere('id', $institution->id)?->pivot?->is_primary)->toBeTruthy();
 });

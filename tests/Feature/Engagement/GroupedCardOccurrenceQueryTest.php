@@ -74,5 +74,5 @@ it('renders grouped event cards without per-card occurrence queries', function (
         view('components.events.card', ['event' => $event])->render();
     }
 
-    expect($occurrenceQueries)->toBe([]);
+    expect($occurrenceQueries)->toBeEmpty();
 });

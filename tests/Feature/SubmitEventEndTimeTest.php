@@ -2,14 +2,14 @@
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\TimePicker;
@@ -104,10 +104,10 @@ it('can submit event with optional end time', function () {
         ->assertRedirect(route('submit-event.success'));
 
     $event = submittedOccurrenceByTitle('Event With End Time');
-    expect($event->ends_at)->not->toBeNull();
-    expect($event->timezone)->toBe('Asia/Kuala_Lumpur');
-    expect($event->ends_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('21:30');
-    expect($event->ends_at->timezone('UTC')->format('H:i'))->toBe('13:30');
+    expect($event->ends_at)->not->toBeNull()
+        ->and($event->timezone)->toBe('Asia/Kuala_Lumpur')
+        ->and($event->ends_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('21:30')
+        ->and($event->ends_at->timezone('UTC')->format('H:i'))->toBe('13:30');
     // Verify ends_at has same date as starts_at
     expect($event->ends_at->toDateString())->toBe($event->starts_at->toDateString());
 });
@@ -146,12 +146,12 @@ it('can submit event with custom time and end time', function () {
         ->assertRedirect(route('submit-event.success'));
 
     $event = submittedOccurrenceByTitle('Custom Time With End Time');
-    expect($event->timezone)->toBe('Asia/Kuala_Lumpur');
-    expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('10:00');
-    expect($event->ends_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('12:00');
-    expect($event->starts_at->timezone('UTC')->format('H:i'))->toBe('02:00');
-    expect($event->ends_at->timezone('UTC')->format('H:i'))->toBe('04:00');
-    expect($event->ends_at->toDateString())->toBe($event->starts_at->toDateString());
+    expect($event->timezone)->toBe('Asia/Kuala_Lumpur')
+        ->and($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('10:00')
+        ->and($event->ends_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('12:00')
+        ->and($event->starts_at->timezone('UTC')->format('H:i'))->toBe('02:00')
+        ->and($event->ends_at->timezone('UTC')->format('H:i'))->toBe('04:00')
+        ->and($event->ends_at->toDateString())->toBe($event->starts_at->toDateString());
 });
 
 it('uses the selected submission country timezone instead of the browser timezone when submitting', function () {
@@ -270,10 +270,10 @@ it('stores 08:00PM local as 12:00 UTC in database', function () {
 
     $event = submittedOccurrenceByTitle('KL 8PM UTC 12 Test');
 
-    expect($event->timezone)->toBe('Asia/Kuala_Lumpur');
-    expect($event->ends_at)->not->toBeNull();
-    expect($event->ends_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('20:00');
-    expect($event->ends_at->timezone('UTC')->format('H:i'))->toBe('12:00');
+    expect($event->timezone)->toBe('Asia/Kuala_Lumpur')
+        ->and($event->ends_at)->not->toBeNull()
+        ->and($event->ends_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('20:00')
+        ->and($event->ends_at->timezone('UTC')->format('H:i'))->toBe('12:00');
 });
 
 it('allows sebelum maghrib during ramadhan', function () {
@@ -294,8 +294,8 @@ it('allows sebelum maghrib during ramadhan', function () {
 
     $event = submittedOccurrenceByTitle('Ramadhan Sebelum Maghrib Valid');
 
-    expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:45');
-    expect($event->starts_at->timezone('UTC')->format('H:i'))->toBe('11:45');
+    expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:45')
+        ->and($event->starts_at->timezone('UTC')->format('H:i'))->toBe('11:45');
 });
 
 it('allows sebelum maghrib outside ramadhan', function () {

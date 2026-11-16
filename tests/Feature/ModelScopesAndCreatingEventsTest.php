@@ -6,8 +6,6 @@ use App\Models\Reference;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('filters active references to verified and pending status', function () {
     $verified = Reference::factory()->verified()->create();
     $pending = Reference::factory()->pending()->create();

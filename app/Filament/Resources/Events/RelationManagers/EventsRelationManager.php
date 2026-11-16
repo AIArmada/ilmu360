@@ -12,9 +12,12 @@ class EventsRelationManager extends RelationManager
 {
     use VerifiesRelationManagerOwnerContext;
 
+    #[\Override]
     protected static string $relationship = 'events';
 
+    #[\Override]
     protected static ?string $title = 'Events';
 
+    #[\Override]
     protected static ?string $relatedResource = EventResource::class;
 }

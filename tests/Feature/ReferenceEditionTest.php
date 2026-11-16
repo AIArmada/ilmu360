@@ -2,15 +2,14 @@
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Observers\ReferenceObserver;
+use App\Shared\Directory\Enums\ReferenceType;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Validation\ValidationException;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\NullEngine;
-
 
 function saveEditionReferenceForTest(array $data, ?Reference $reference = null): Reference
 {
@@ -50,10 +49,10 @@ it('rejects invalid hierarchy changes without orphaning children', function (): 
     $part = Reference::factory()->part()->create(['parent_id' => $edition->id]);
 
     expect(fn () => $edition->update(['record_kind' => 'part', 'part_type' => 'jilid', 'part_number' => '3']))
-        ->toThrow(ValidationException::class);
-    expect(fn () => $work->update(['type' => 'article']))->toThrow(ValidationException::class);
-    expect(fn () => Reference::factory()->edition()->create(['parent_id' => $part->id]))->toThrow(ValidationException::class);
-    expect(fn () => Reference::factory()->part()->create(['parent_id' => $part->id]))->toThrow(ValidationException::class);
+        ->toThrow(ValidationException::class)
+        ->and(fn() => $work->update(['type' => 'article']))->toThrow(ValidationException::class)
+        ->and(fn() => Reference::factory()->edition()->create(['parent_id' => $part->id]))->toThrow(ValidationException::class)
+        ->and(fn() => Reference::factory()->part()->create(['parent_id' => $part->id]))->toThrow(ValidationException::class);
 });
 
 it('persists bibliographic fields with normalized valid ISBNs through the save boundary', function (string $isbn, string $normalized): void {
@@ -69,7 +68,7 @@ it('persists bibliographic fields with normalized valid ISBNs through the save b
         ->and($reference->year)->toBe(2020)
         ->and($reference->language)->toBe('ar')
         ->and($reference->url)->toBe('https://example.com/book')
-        ->and($reference->socialProfiles)->toHaveCount(0)
+        ->and($reference->socialProfiles)->toBeEmpty()
         ->and($reference->isPubliclyVisible())->toBeTrue();
 })->with([
     ['978-0-306-40615-7', '9780306406157'],
@@ -117,11 +116,9 @@ it('refreshes part search identities after edition metadata changes', function (
     $edition->update(['edition_label' => 'Edisi Baharu']);
 
     $engine = Mockery::mock(NullEngine::class)->makePartial();
-    $engine->shouldReceive('update')->once()->withArgs(function ($models) use ($part): bool {
-        return $models->count() === 1
-            && $models->first()->getKey() === $part->getKey()
-            && str_contains($models->first()->toSearchableArray()['display_title'], 'Edisi Baharu');
-    });
+    $engine->shouldReceive('update')->once()->withArgs(fn($models): bool => $models->count() === 1
+        && $models->first()->getKey() === $part->getKey()
+        && str_contains($models->first()->toSearchableArray()['display_title'], 'Edisi Baharu'));
     app(EngineManager::class)->extend('reference-test', fn () => $engine);
     config()->set('scout.driver', 'reference-test');
     config()->set('scout.queue', false);

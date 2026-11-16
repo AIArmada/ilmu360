@@ -7,8 +7,6 @@ use App\Models\Space;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('keeps venue-change replace semantics for event-level spaces', function (): void {
     $institution = Institution::factory()->create();
     $oldVenue = Venue::factory()->create();
@@ -30,6 +28,6 @@ it('keeps venue-change replace semantics for event-level spaces', function (): v
         ->whereNull('event_session_id')
         ->get();
 
-    expect($locations->pluck('venue_space_id')->filter()->all())->toBe([])
+    expect($locations->pluck('venue_space_id')->filter()->all())->toBeEmpty()
         ->and($locations->firstWhere('location_role', 'primary')?->venue_id)->toBe((string) $newVenue->getKey());
 });

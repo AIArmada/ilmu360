@@ -5,9 +5,6 @@ declare(strict_types=1);
 use App\Features\Engagement\Api\GoingWindow;
 use App\Models\Event;
 
-/**
- * @return DateTimeImmutable
- */
 function engagementGoingMoment(string $value): DateTimeImmutable
 {
     return new DateTimeImmutable($value, new DateTimeZone('UTC'));

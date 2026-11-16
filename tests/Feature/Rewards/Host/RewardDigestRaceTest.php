@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use AIArmada\Communications\Enums\DeliveryStatus;
 use AIArmada\Communications\Jobs\DispatchManagedNotificationJob;
-use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\Communication;
+use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Rewards\Actions\EnrollRewardMemberAction;
@@ -17,19 +17,19 @@ use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
-use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Notifications\ManagedNotification;
+use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
-use App\Features\Communications\Api\AccountNotificationPreferences;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\ParallelTesting;
+use Illuminate\Mail\Transport\ArrayTransport;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Mail\Transport\ArrayTransport;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Process\Process;
@@ -235,14 +235,14 @@ function digestRaceDueSlot(string $prefix, string $source): array
 
     // Evaluated and approved at the same instant the raced workers plan
     // from, so the pre-existing awards section shares their ceiling day.
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program->refresh(), RewardComponent::Points, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         $source, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
 
     $staff = RewardLedgerFixtures::staffId();
 
-    (new TransitionRewardAwardAction(null, $reader))->handle(
+    new TransitionRewardAwardAction(null, $reader)->handle(
         $result->award, RewardAwardStatus::Approved, 'user', $staff, 'staff', 'approve',
         null, null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );

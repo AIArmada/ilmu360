@@ -28,8 +28,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->event = Event::factory()->create([
         'status' => 'approved',
@@ -303,5 +301,5 @@ it('withholds cohorts before the reporting start', function (): void {
     $report = (new ShareCohortAuthority)->summarize(CarbonImmutable::parse('2026-06-17T00:00:00Z'), 6);
 
     expect($report['status'])->toBe('not_configured')
-        ->and($report['cohorts'])->toBe([]);
+        ->and($report['cohorts'])->toBeEmpty();
 });

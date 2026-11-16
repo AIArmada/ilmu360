@@ -3,9 +3,6 @@
 namespace App\Filament\Resources\ContributionRequests\Support;
 
 use App\Filament\Resources\Events\EventResource;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
@@ -14,6 +11,9 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Contributions\Enums\ContributionSubjectType;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 

@@ -6,11 +6,11 @@ namespace App\Filament\Resources\Authz\UserResource\Pages;
 
 use AIArmada\Authz\Facades\Authz;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Filament\Resources\Events\EventResource;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Filament\Resources\Authz\UserResource;
+use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;

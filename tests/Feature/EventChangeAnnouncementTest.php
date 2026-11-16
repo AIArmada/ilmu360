@@ -28,8 +28,6 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
 
-uses(RefreshDatabase::class);
-
 it('publishes cancellation announcements and notifies committed users only once', function () {
     $administrator = eventChangeAdministrator();
     $institution = Institution::factory()->create();
@@ -75,13 +73,11 @@ it('publishes cancellation announcements and notifies committed users only once'
         ->and($notification->trigger->value)->toBe(NotificationTrigger::EventCancelled->value)
         ->and($notification->priority->value)->toBe(NotificationPriority::Urgent->value)
         ->and($notification->data['meta']['event_change_announcement_id'] ?? null)->toBe($announcement->id)
-        ->and($notification->data['meta']['replacement_event_id'] ?? null)->toBeNull();
-
-    expect(NotificationInbox::query()
+        ->and($notification->data['meta']['replacement_event_id'] ?? null)->toBeNull()
+        ->and(NotificationInbox::query()
         ->where('recipient_id', $follower->id)
         ->where('recipient_type', $follower->getMorphClass())
-        ->get()
-        ->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['meta']['fingerprint'] ?? null) === 'event-change:'.$announcement->id))->toBeFalse();
+        ->get()->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['meta']['fingerprint'] ?? null) === 'event-change:'.$announcement->id))->toBeFalse();
 });
 
 it('publishes repeat cancellation notices without reapplying occurrence transitions', function () {
@@ -196,9 +192,8 @@ it('rejects invalid venue and space selections in change announcements', functio
             'space_ids' => [],
         ],
         notify: false,
-    ))->toThrow(ValidationException::class);
-
-    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+    ))->toThrow(ValidationException::class)
+        ->and(fn() => app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $event,
         actor: $administrator,
         type: EventChangeType::LocationChanged,
@@ -208,22 +203,19 @@ it('rejects invalid venue and space selections in change announcements', functio
             'space_ids' => [(string) $foreignSpace->getKey()],
         ],
         notify: false,
-    ))->toThrow(ValidationException::class);
-
-    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+    ))->toThrow(ValidationException::class)
+        ->and(fn() => app(PublishEventChangeAnnouncementAction::class)->handle(
         event: $event,
         actor: $administrator,
         type: EventChangeType::LocationChanged,
         publicMessage: 'The event location changed.',
         changes: ['space_ids' => [123]],
         notify: false,
-    ))->toThrow(ValidationException::class);
-
-    expect(EventChangeAnnouncement::query()->where('event_id', $event->getKey())->exists())->toBeFalse()
+    ))->toThrow(ValidationException::class)
+        ->and(EventChangeAnnouncement::query()->where('event_id', $event->getKey())->exists())->toBeFalse()
         ->and($event->fresh()->institution_id)->toBe($event->institution_id)
-        ->and($event->fresh()->default_venue_id)->toBeNull();
-
-    expect($event->fresh()->locations()->pluck('id')->all())->toBe($existingLocationIds);
+        ->and($event->fresh()->default_venue_id)->toBeNull()
+        ->and($event->fresh()->locations()->pluck('id')->all())->toBe($existingLocationIds);
 });
 
 it('keeps ordinary edits out of the change announcement workflow', function () {
@@ -443,9 +435,8 @@ it('rejects self replacement announcements', function () {
         publicMessage: 'Ganti diri sendiri.',
         replacementEvent: $event,
         notify: false,
-    ))->toThrow(ValidationException::class);
-
-    expect(EventChangeAnnouncement::query()->where('event_id', $event->id)->exists())->toBeFalse();
+    ))->toThrow(ValidationException::class)
+        ->and(EventChangeAnnouncement::query()->where('event_id', $event->id)->exists())->toBeFalse();
 });
 
 it('rejects replacement chains that would loop back to the original event', function () {
@@ -473,12 +464,10 @@ it('rejects replacement chains that would loop back to the original event', func
         publicMessage: 'Pautan balik tidak dibenarkan.',
         replacementEvent: $original,
         notify: false,
-    ))->toThrow(ValidationException::class);
-
-    expect(EventChangeAnnouncement::query()
+    ))->toThrow(ValidationException::class)
+        ->and(EventChangeAnnouncement::query()
         ->where('event_id', $replacement->id)
-        ->where('replacement_event_id', $original->id)
-        ->exists())->toBeFalse();
+        ->where('replacement_event_id', $original->id)->exists())->toBeFalse();
 });
 
 it('rejects replacement events that are not publicly reachable', function () {
@@ -498,9 +487,8 @@ it('rejects replacement events that are not publicly reachable', function () {
         publicMessage: 'Majlis ganti tidak boleh dicapai umum.',
         replacementEvent: $privateReplacement,
         notify: false,
-    ))->toThrow(ValidationException::class);
-
-    expect(EventChangeAnnouncement::query()->where('event_id', $original->id)->exists())->toBeFalse();
+    ))->toThrow(ValidationException::class)
+        ->and(EventChangeAnnouncement::query()->where('event_id', $original->id)->exists())->toBeFalse();
 });
 
 it('allows person members for listed event persons to publish change announcements', function () {
@@ -546,9 +534,8 @@ it('rejects unauthorized actors from publishing change announcements', function 
         type: EventChangeType::TopicChanged,
         publicMessage: 'Perubahan tanpa kebenaran.',
         notify: false,
-    ))->toThrow(AuthorizationException::class);
-
-    expect(EventChangeAnnouncement::query()->where('event_id', $event->id)->exists())->toBeFalse();
+    ))->toThrow(AuthorizationException::class)
+        ->and(EventChangeAnnouncement::query()->where('event_id', $event->id)->exists())->toBeFalse();
 });
 
 it('prefers the newest replacement announcement when published timestamps tie', function () {

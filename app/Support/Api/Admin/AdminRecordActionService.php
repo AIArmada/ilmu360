@@ -183,7 +183,7 @@ final readonly class AdminRecordActionService
         if ($resourceClass === MembershipApplicationResource::class) {
             $application = $this->membershipApplications->find($recordKey);
 
-            if ($application !== null) {
+            if ($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail) {
                 $actions = [...$actions, ...$this->membershipApplicationWorkflowActions($application->application->status, $recordKey, $actor)];
             }
         }

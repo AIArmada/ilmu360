@@ -13,8 +13,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->sharer = User::factory()->create([
         'name' => 'WP1 Privacy Sharer',
@@ -140,9 +138,8 @@ it('records no visit for private dashboard account and admin navigation', functi
 
     $adminResponse = $this->actingAs($this->sharer)->withCookie($cookieName, $cookie)->get('/admin');
 
-    expect($adminResponse->status())->toBeIn([200, 302, 403]);
-
-    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1)
+    expect($adminResponse->status())->toBeIn([200, 302, 403])
+        ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1)
         ->and($attribution->fresh()->last_seen_at->equalTo($lastSeen))->toBeTrue();
 });
 

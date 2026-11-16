@@ -24,8 +24,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     $this->claimant = User::factory()->create([
         'name' => 'WP3 Claimant',
@@ -390,7 +388,7 @@ it('re-evaluates self credit after the claim without rewriting frozen attributio
     $landing->assertOk();
     $cookie = (string) $landing->getCookie((string) config('share-tracking.cookie.name'))?->getValue();
 
-    expect($cookie)->not->toBe('');
+    expect($cookie)->not->toBeEmpty();
 
     $attributionBefore = AffiliateAttribution::query()->firstOrFail();
 
@@ -577,9 +575,8 @@ it('requires explicit confirmation for every claim', function (): void {
         ->assertStatus(422);
 
     expect(fn () => app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], false))
-        ->toThrow(InvalidArgumentException::class);
-
-    expect(AffiliateClaim::query()->count())->toBe(0);
+        ->toThrow(InvalidArgumentException::class)
+        ->and(AffiliateClaim::query()->count())->toBe(0);
 });
 
 it('seals claimed history from later anonymous activity on the same browser', function (): void {
@@ -743,7 +740,7 @@ it('attributes later anonymous history to its own claimant, never the first', fu
     $landing->assertOk();
     $cookie = (string) $landing->getCookie((string) config('share-tracking.cookie.name'))?->getValue();
 
-    expect($cookie)->not->toBe('');
+    expect($cookie)->not->toBeEmpty();
 
     $requestFor = function (string $cookieValue): Request {
         $request = Request::create(route('events.index'), 'GET');
@@ -790,10 +787,8 @@ it('seals claimed history across native API transport with the same guarantees',
         ->postJson(route('api.client.share.claim'), ['confirm' => true]);
 
     $claim->assertOk();
-    expect($claim->json('result'))->toBe(ShareGuestClaimResult::Claimed->value);
-
-    expect(AffiliateCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))
-        ->toBe('revoked');
+    expect($claim->json('result'))->toBe(ShareGuestClaimResult::Claimed->value)
+        ->and(AffiliateCredential::query()->where('affiliate_id', $guestAffiliateId)->value('status'))->toBe('revoked');
 
     // Back to an anonymous native client for B's share.
     auth()->forgetGuards();
@@ -923,7 +918,7 @@ it('preserves settlement and the public redirect when a claimant is deleted', fu
     $landing->assertOk();
     $cookie = (string) $landing->getCookie((string) config('share-tracking.cookie.name'))?->getValue();
 
-    expect($cookie)->not->toBe('');
+    expect($cookie)->not->toBeEmpty();
 
     $stranger = User::factory()->create();
     $request = Request::create(route('events.show', $event), 'GET');

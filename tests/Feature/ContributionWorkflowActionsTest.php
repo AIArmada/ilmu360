@@ -222,12 +222,10 @@ it('rejects update requests when any supported entity already has a pending requ
         $entity,
         $proposer,
         ['title' => 'Updated title'],
-    ))->toThrow(ValidationException::class);
-
-    expect(ContributionRequest::query()
+    ))->toThrow(ValidationException::class)
+        ->and(ContributionRequest::query()
         ->where('entity_type', $entity->getMorphClass())
-        ->where('entity_id', $entity->getKey())
-        ->count())->toBe(1);
+        ->where('entity_id', $entity->getKey())->count())->toBe(1);
 })->with([
     'speaker' => ContributionSubjectType::Person,
     'institution' => ContributionSubjectType::Institution,
@@ -436,9 +434,8 @@ it('keeps user pending contribution lookups separate from entity wide pending lo
     );
 
     expect($resolvedRequest?->is($latestRequest))->toBeTrue()
-        ->and($resolvedRequest?->is($olderRequest))->toBeFalse();
-
-    expect($entityRequest?->is($otherProposerRequest))->toBeTrue();
+        ->and($resolvedRequest?->is($olderRequest))->toBeFalse()
+        ->and($entityRequest?->is($otherProposerRequest))->toBeTrue();
 });
 
 it('presents contribution subject labels and links', function () {
@@ -562,10 +559,8 @@ it('resolves reviewable contribution requests through the action layer', functio
 
     $resolvedRequest = app(ResolveReviewableContributionRequestAction::class)->handle($owner, $request->id);
 
-    expect($resolvedRequest->is($request))->toBeTrue();
-
-    expect(fn () => app(ResolveReviewableContributionRequestAction::class)->handle($stranger, $request->id))
-        ->toThrow(HttpException::class);
+    expect($resolvedRequest->is($request))->toBeTrue()
+        ->and(fn() => app(ResolveReviewableContributionRequestAction::class)->handle($stranger, $request->id))->toThrow(HttpException::class);
 });
 
 it('resolves only the proposer owned contribution request for cancel flows', function () {
@@ -578,8 +573,6 @@ it('resolves only the proposer owned contribution request for cancel flows', fun
 
     $resolvedRequest = app(ResolveOwnContributionRequestAction::class)->handle($owner, $request->id);
 
-    expect($resolvedRequest->is($request))->toBeTrue();
-
-    expect(fn () => app(ResolveOwnContributionRequestAction::class)->handle($stranger, $request->id))
-        ->toThrow(ModelNotFoundException::class);
+    expect($resolvedRequest->is($request))->toBeTrue()
+        ->and(fn() => app(ResolveOwnContributionRequestAction::class)->handle($stranger, $request->id))->toThrow(ModelNotFoundException::class);
 });

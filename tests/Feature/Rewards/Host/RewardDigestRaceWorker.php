@@ -5,22 +5,21 @@ declare(strict_types=1);
 // Permanent race worker for RewardDigestRaceTest. Executed only as a standalone
 // immediately when merely included, so test runners never execute it.
 
+use App\Features\Communications\Api\ManagedNotificationDelivery;
+use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Rewards\Actions\GratitudeDigests\CancelRewardDigestAction;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction;
-use App\Features\Communications\Api\ManagedNotificationDelivery;
-use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
 use App\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Tests\Support\RealDriverFixture;
 
@@ -314,7 +313,7 @@ try {
 
             $user = User::query()->whereKey((string) $p['user_id'])->firstOrFail();
             $slotRow = RewardDigestSlot::query()->whereKey((string) $p['slot_id'])->firstOrFail();
-            $deliveries = \AIArmada\Communications\Models\CommunicationDelivery::query()
+            $deliveries = AIArmada\Communications\Models\CommunicationDelivery::query()
                 ->where('communication_id', (string) $p['communication_id'])
                 ->orderBy('id')
                 ->get();
@@ -354,5 +353,5 @@ try {
 
     exit(0);
 } catch (Throwable $exception) {
-    $fail(get_class($exception).': '.$exception->getMessage());
+    $fail($exception::class.': '.$exception->getMessage());
 }

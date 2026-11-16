@@ -42,7 +42,7 @@ final readonly class ManagedNotificationDeliveryService implements ManagedNotifi
         return DB::transaction(function () use ($request): ?ManagedCommunicationSnapshot {
             $recipient = $this->accounts->resolveNotifiable($request->recipientId);
 
-            if ($recipient === null) {
+            if (!$recipient instanceof \Illuminate\Contracts\Auth\Authenticatable) {
                 return null;
             }
 

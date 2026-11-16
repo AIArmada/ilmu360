@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Symfony\Component\Process\Process;
-use PHPUnit\Framework\ExpectationFailedException;
 use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\ExpectationFailedException;
+use Symfony\Component\Process\Process;
 use Tests\Support\RealDriverFixture;
 
 it('accepts only the isolated PostgreSQL base connection', function (): void {

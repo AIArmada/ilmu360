@@ -11,8 +11,6 @@ use Illuminate\Support\Facades\Cache;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
-uses(RefreshDatabase::class);
-
 function handoffTokenFromCallback(string $state): string
 {
     $response = test()->get(route('socialite.callback', ['provider' => 'google', 'state' => $state]));
@@ -98,9 +96,8 @@ it('completes login on the canonical host and redirects to the intended page', f
 
     $response->assertRedirect($target);
     $this->assertAuthenticated();
-    expect(session()->has('url.intended'))->toBeFalse();
-
-    expect(User::query()->where('email', 'bridge@example.com')->count())->toBe(1);
+    expect(session()->has('url.intended'))->toBeFalse()
+        ->and(User::query()->where('email', 'bridge@example.com')->count())->toBe(1);
 });
 
 it('rejects a reused handoff token', function () {
@@ -144,8 +141,8 @@ it('rejects an expired handoff token', function () {
 });
 
 it('keeps handoff tokens short-lived', function () {
-    expect(OAuthTransactionStore::HANDOFF_TTL_SECONDS)->toBeLessThanOrEqual(300);
-    expect(OAuthTransactionStore::STATE_TTL_SECONDS)->toBeLessThanOrEqual(600);
+    expect(OAuthTransactionStore::HANDOFF_TTL_SECONDS)->toBeLessThanOrEqual(300)
+        ->and(OAuthTransactionStore::STATE_TTL_SECONDS)->toBeLessThanOrEqual(600);
 });
 
 it('rejects callbacks with a missing or unknown state', function () {

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 /** @extends Factory<SignupAttribution> */
 class SignupAttributionFactory extends Factory
 {
+    #[\Override]
     protected $model = SignupAttribution::class;
 
     /** @return array<string, mixed> */

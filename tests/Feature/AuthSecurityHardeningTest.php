@@ -7,8 +7,6 @@ use Illuminate\Http\Request;
 use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
 use Laravel\Fortify\Fortify;
 
-uses(RefreshDatabase::class);
-
 it('does not allow verification timestamps through mass assignment', function () {
     $user = new User;
 

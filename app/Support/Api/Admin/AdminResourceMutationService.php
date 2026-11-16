@@ -19,14 +19,14 @@ use AIArmada\References\Rules\Isbn;
 use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Enums\RegistrationScope;
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
-use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\References\Api\ReferenceWorkflow;
-use App\Features\Places\Api\SpaceWorkflow;
-use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Inspirations\Api\InspirationAdminContract;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Places\Api\SpaceWorkflow;
+use App\Features\Places\Api\VenueWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Filament\Resources\Events\EventResource;
@@ -768,9 +768,9 @@ class AdminResourceMutationService
      */
     private function saveDonationChannel(array $validated, User $actor, ?DonationChannel $record = null): DonationChannel
     {
-        Gate::forUser($actor)->authorize($record === null ? 'create' : 'update', $record ?? DonationChannel::class);
+        Gate::forUser($actor)->authorize($record instanceof \App\Models\DonationChannel ? 'update' : 'create', $record ?? DonationChannel::class);
 
-        $recordId = $record === null ? null : (string) $record->getKey();
+        $recordId = $record instanceof \App\Models\DonationChannel ? (string) $record->getKey() : null;
         $channelId = $this->donationChannels->save($validated, $recordId);
 
         return DonationChannel::query()->findOrFail($channelId);

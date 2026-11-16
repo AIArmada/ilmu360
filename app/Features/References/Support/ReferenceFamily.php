@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\References\Support;
 
 use App\Models\Reference;
-
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -84,7 +83,7 @@ final class ReferenceFamily
 
     /**
      * @param  list<string>  $referenceIds
-     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\Reference>  $query
+     * @param  \Illuminate\Database\Eloquent\Builder<Reference>  $query
      * @return list<string>
      */
     private static function expand(array $referenceIds, \Illuminate\Database\Eloquent\Builder $query): array
@@ -107,7 +106,7 @@ final class ReferenceFamily
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\Reference>
+     * @return \Illuminate\Database\Eloquent\Builder<Reference>
      */
     private static function activeQuery(): \Illuminate\Database\Eloquent\Builder
     {

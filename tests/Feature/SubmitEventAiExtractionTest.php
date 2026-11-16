@@ -1,14 +1,14 @@
 <?php
 
+use App\Features\Events\Api\EventMediaExtraction;
+use App\Features\Events\Api\EventMediaExtractionResult;
+use App\Livewire\Pages\SubmitEvent\Create;
+use App\Models\Institution;
+use App\Models\Person;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Features\Events\Api\EventMediaExtraction;
-use App\Features\Events\Api\EventMediaExtractionResult;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\UploadedFile;
@@ -82,10 +82,10 @@ it('extracts media data with AI and moves the wizard to review step', function (
 
     $state = $component->get('data');
 
-    expect($state['languages'] ?? [])->not->toBeEmpty();
-    expect($state['discipline_tags'] ?? [])->toContain((string) $disciplineTag->id);
-    expect($state['issue_tags'] ?? [])->toContain((string) $issueTag->id);
-    expect($state['poster'] ?? null)->not->toBeNull();
+    expect($state['languages'] ?? [])->not->toBeEmpty()
+        ->and($state['discipline_tags'] ?? [])->toContain((string) $disciplineTag->id)
+        ->and($state['issue_tags'] ?? [])->toContain((string) $issueTag->id)
+        ->and($state['poster'] ?? null)->not->toBeNull();
 
     $component->call('submit')->assertHasNoErrors()->assertRedirect(route('submit-event.success'));
 

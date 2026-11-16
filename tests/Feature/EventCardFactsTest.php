@@ -1,8 +1,8 @@
 <?php
 
-use App\Shared\Events\Enums\EventFormat;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Shared\Events\Enums\EventFormat;
 
 it('shows approval only for approved events independently of schedule notices', function (string $status, ?string $approvalLabel) {
     $event = Event::factory()->create(['status' => $status]);

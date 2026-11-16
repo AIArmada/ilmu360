@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Identity\Contributors;
 
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
+use App\Features\Identity\Api\AccountSubmissionEligibility;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\References\Api\ReferenceWorkflow;
-use App\Features\Identity\Api\AccountSubmissionEligibility;
 use App\Features\Places\Api\VenueWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Shared\Auth\AccountLifecycleContributor;
 
 /**
@@ -95,5 +95,4 @@ final readonly class VerificationAttributionContributor implements AccountLifecy
             ->values()
             ->all();
     }
-
 }

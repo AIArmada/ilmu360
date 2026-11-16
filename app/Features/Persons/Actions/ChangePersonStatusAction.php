@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions;
 
 use App\Models\Person;
-
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 

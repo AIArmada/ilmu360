@@ -4,8 +4,6 @@ use App\Data\Api\Event\EventPayloadData;
 use App\Models\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('keeps the stable event payload fields serialized at the API boundary', function () {
     $event = Event::factory()->featured()->create([
         'status' => 'approved',
@@ -20,10 +18,8 @@ it('keeps the stable event payload fields serialized at the API boundary', funct
         ->toHaveKey('event_categories')
         ->toHaveKey('change_announcements')
         ->toHaveKey('replacement_event')
-        ->toHaveKey('display_occurrence');
-
-    expect($payload['display_occurrence'])
-        ->toHaveKey('is_featured', true);
+        ->toHaveKey('display_occurrence')
+        ->and($payload['display_occurrence'])->toHaveKey('is_featured', true);
 });
 
 it('serializes package-native event fields', function () {

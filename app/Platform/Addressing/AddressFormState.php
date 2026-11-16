@@ -141,7 +141,7 @@ final class AddressFormState
             return null;
         }
 
-        $trimmed = trim((string) $value);
+        $trimmed = trim($value);
 
         if ($trimmed === '') {
             return null;

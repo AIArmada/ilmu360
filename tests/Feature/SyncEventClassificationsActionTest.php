@@ -5,8 +5,8 @@ use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
-use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Models\Event;
+use App\Shared\Taxonomy\EventTaxonomyCode;
 
 it('writes package classifications from domain and discipline fields', function () {
     OwnerContext::withOwner(null, function (): void {

@@ -4,7 +4,7 @@ use App\Features\Prayer\Api\PrayerClock;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('parses wall clocks into UTC anchors', function () {
     $anchor = PrayerClock::parseWallClock('19:02', '2026-10-15', 'Asia/Kuala_Lumpur');

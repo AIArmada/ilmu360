@@ -12,12 +12,12 @@ use App\Platform\Routing\PublicSlugResource;
 use Carbon\CarbonImmutable;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class RecordSlugRedirectAction
+final readonly class RecordSlugRedirectAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly PublicSlugRegistry $publicSlugRegistry,
+        private PublicSlugRegistry $publicSlugRegistry,
     ) {}
 
     public function handle(string $redirectableType, string $redirectableId, string $currentSlug, ?string $previousSlug): bool

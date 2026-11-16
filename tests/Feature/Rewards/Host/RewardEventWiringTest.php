@@ -25,8 +25,6 @@ use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 /**
  * @return array{0: mixed, 1: mixed}
  */
@@ -95,8 +93,8 @@ it('awards an enrolled sharer from the committed fact', function (): void {
         ->where('component', RewardComponent::Recognition->value)
         ->firstOrFail();
 
-    expect((string) $award->recipient_id)->toBe((string) $sharer->getKey());
-    expect($award->status)->toBe(RewardAwardStatus::Approved);
+    expect((string) $award->recipient_id)->toBe((string) $sharer->getKey())
+        ->and($award->status)->toBe(RewardAwardStatus::Approved);
 });
 
 it('dispatches award recheck when a correction commits', function (): void {
@@ -178,7 +176,7 @@ it('dispatches claimed-history evaluation on claim', function (): void {
     $attribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $guestAffiliateId,
         'affiliate_code' => 'GUEST-'.Str::upper(Str::random(8)),
-        'cookie_value' => 'rewire-'.((string) Str::uuid()),
+        'cookie_value' => 'rewire-'.(Str::uuid()),
     ]);
 
     RewardHostFixtures::receipt($key, 'user:'.$actor->getKey(), [

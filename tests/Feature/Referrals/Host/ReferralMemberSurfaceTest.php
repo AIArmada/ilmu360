@@ -15,8 +15,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 function memberReferralProgram(?int $maxInvites = null, ?int $inviteExpiryDays = 30): ReferralProgram
 {
     return CreateReferralProgram::run([

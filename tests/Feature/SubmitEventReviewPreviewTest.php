@@ -90,7 +90,6 @@ it('previews resolved country, organizer, venue, spaces, and speakers on the rev
         ->assertSee($person->formatted_name)
         ->assertSeeHtml(
             '<dd class="mt-1 text-sm leading-relaxed break-words font-medium text-slate-900">'.e(__('Penceramah')).'</dd>',
-            false,
         );
 
     $component
@@ -100,7 +99,6 @@ it('previews resolved country, organizer, venue, spaces, and speakers on the rev
         ->assertSee($institution->refresh()->display_name)
         ->assertSeeHtml(
             '<dd class="mt-1 text-sm leading-relaxed break-words font-medium text-slate-900">'.e(__('Institusi')).'</dd>',
-            false,
         );
 });
 

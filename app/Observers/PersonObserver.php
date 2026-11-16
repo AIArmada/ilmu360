@@ -4,10 +4,10 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Person;
 use App\Models\Reference;

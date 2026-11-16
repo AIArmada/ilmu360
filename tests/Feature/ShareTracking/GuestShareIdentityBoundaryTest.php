@@ -21,8 +21,8 @@ use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Auth\SignupAttributionContext;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
-use App\Support\Share\ShareProfileScope;
 use App\Shared\ShareTracking\ShareTrackingProfile;
+use App\Support\Share\ShareProfileScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -54,7 +54,7 @@ it('excludes unrelated package claims from share history and cleanup', function 
     ]);
     $analytics = app(AffiliatesShareTrackingAnalyticsService::class);
 
-    expect(ShareProfileScope::affiliateIdsForUser($user))->toBe([])
+    expect(ShareProfileScope::affiliateIdsForUser($user))->toBeEmpty()
         ->and($analytics->linksForUser($user))->toBeEmpty()
         ->and($analytics->findLinkForUser($user, (string) $link->getKey()))->toBeNull();
 
@@ -87,19 +87,19 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
     $request = Request::create(route('share.claim.show'));
     $request->headers->set('X-Claim-Capability', $payload['guest_claim_capability']);
     $context = new SignupAttributionContext(
-        affiliateSource: (new SignupAttributionSource(
+        affiliateSource: new SignupAttributionSource(
             SignupAttributionSourceType::ShareGuest,
             affiliateId: (string) $link->affiliate_id,
             affiliateLinkId: (string) $link->getKey(),
-        ))->toArray(),
+        )->toArray(),
     );
     $workflow = app(SignupAttributionWorkflow::class);
     $beforeAttribution = $workflow->recordForNewAccount((string) $signupBefore->getKey(), $context, true);
     expect($beforeAttribution->referrerAccountId)->toBeNull();
 
     OwnerContext::withOwner($unrelated, function () use ($claimant, $payload, $identityService, $request, $link, $unrelated): void {
-        expect($identityService->claimPageState($claimant, $request)['state'])->toBe('available');
-        expect(ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::Claimed)
+        expect($identityService->claimPageState($claimant, $request)['state'])->toBe('available')
+            ->and(ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::Claimed)
             ->and(ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::AlreadyClaimedByYou)
             ->and($identityService->claimPageState($claimant, $request)['state'])->toBe('claimed_by_you')
             ->and(ShareProfileScope::affiliateIdsForUser($claimant))->toContain((string) $link->affiliate_id);
@@ -126,7 +126,7 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
     expect($claim->fresh()->status)->toBe('revoked')
         ->and($claim->fresh()->revoked_at)->not->toBeNull()
         ->and($link->fresh()->deactivated_at)->not->toBeNull()
-        ->and(ShareProfileScope::affiliateIdsForUser($claimant))->toBe([])
+        ->and(ShareProfileScope::affiliateIdsForUser($claimant))->toBeEmpty()
         ->and(ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::ClaimedByOther)
         ->and(AffiliateClaim::query()->withoutGlobalScope(OwnerScope::class)->where('affiliate_id', $link->affiliate_id)->count())->toBe(1);
 })->with([

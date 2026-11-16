@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Features\Persons\Api\PersonHomepageStats;
-use App\Features\Institutions\Api\InstitutionHomepageStats;
-use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\Events\Api\EventHomepageStats;
 use App\Features\Events\Api\EventSearchCache;
+use App\Features\Institutions\Api\InstitutionHomepageStats;
+use App\Features\Persons\Api\PersonHomepageStats;
+use App\Features\References\Api\ReferenceHomepageStats;
 
-final class PublicListingsCache
+final readonly class PublicListingsCache
 {
     public function __construct(
-        private readonly EventSearchCache $eventSearchCache,
-        private readonly EventHomepageStats $eventHomepageStats,
-        private readonly PersonHomepageStats $personStats,
-        private readonly InstitutionHomepageStats $institutionStats,
-        private readonly ReferenceHomepageStats $referenceStats,
+        private EventSearchCache $eventSearchCache,
+        private EventHomepageStats $eventHomepageStats,
+        private PersonHomepageStats $personStats,
+        private InstitutionHomepageStats $institutionStats,
+        private ReferenceHomepageStats $referenceStats,
     ) {}
 
     public function bustHomepageStats(): void

@@ -45,6 +45,7 @@ final readonly class CompositeReportSubjectResolver implements ReportSubjectReso
     public function exists(string $typeKey, string $entityId): bool
     {
         $type = ReportSubjectType::tryFrom($typeKey);
+
         return $type instanceof ReportSubjectType && $entityId !== ''
             && $this->find($typeKey, $entityId) instanceof ReportSubject;
     }

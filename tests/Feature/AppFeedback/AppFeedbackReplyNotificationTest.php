@@ -19,7 +19,7 @@ it('builds the reply email with the message and thread link', function () {
         'body' => 'Kami sedang menyiasat isu ini.',
     ]);
 
-    $mail = (new AppFeedbackRepliedNotification($feedback, $message))->toMail($reporter);
+    $mail = new AppFeedbackRepliedNotification($feedback, $message)->toMail($reporter);
 
     expect($mail->subject)->toContain('Butang simpan gagal')
         ->and(implode("\n", $mail->introLines))->toContain('Kami sedang menyiasat isu ini.')

@@ -1,17 +1,15 @@
 <?php
 
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-
-uses(RefreshDatabase::class);
 
 it('creates an advanced event with an institution primary organizer', function () {
     $user = User::factory()->create();
@@ -44,9 +42,8 @@ it('creates an advanced event with an institution primary organizer', function (
     $event = Event::query()->findOrFail($response->json('data.event.id'));
 
     expect($response->json('data.event.title'))->toBe('Kuliah Maghrib Ramadan')
-        ->and($response->json('data.event.status'))->toBe('draft');
-
-    expect($event->created_by_type)->toBe($user->getMorphClass())
+        ->and($response->json('data.event.status'))->toBe('draft')
+        ->and($event->created_by_type)->toBe($user->getMorphClass())
         ->and($event->created_by_id)->toBe($user->getKey());
 });
 

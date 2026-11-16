@@ -28,8 +28,6 @@ use App\States\EventStatus\Transitions\CancelEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 
-uses(RefreshDatabase::class);
-
 it('sets cancelled_at when cancelling an event', function () {
     $moderator = User::factory()->create();
     $event = Event::factory()->create([

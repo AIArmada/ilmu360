@@ -6,7 +6,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
-uses(TestCase::class);
+pest()->extend(TestCase::class);
 
 it('offers zuhur only outside friday', function () {
     $policy = app(SubmissionTimingPolicy::class);

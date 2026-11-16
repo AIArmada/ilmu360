@@ -127,7 +127,6 @@ it('rejects undecodable optional labels but omits blank ones', function (): void
         brandLine: 'ilmu360°',
         scheduleLabel: 'Sabtu · 7:30 malam',
         venueLabel: '   ',
-        speakerLabel: null,
     ));
 
     expect($bad->ok)->toBeFalse()
@@ -319,9 +318,9 @@ it('keeps readiness and rendering aligned when a license copy is tampered with',
 
         $tamperedLicense = $manifest['licenses'][0]['file'];
         $licensePath = $fontDirectory.'/'.$tamperedLicense;
-        file_put_contents($licensePath, (string) file_get_contents($licensePath).'tampered');
+        file_put_contents($licensePath, file_get_contents($licensePath).'tampered');
 
-        $integrity = (new ShareCardFonts($fontDirectory))->verify();
+        $integrity = new ShareCardFonts($fontDirectory)->verify();
         $renderer = shareCardRenderer(fontDirectory: $fontDirectory, workDirectory: $workDirectory);
         $readiness = $renderer->readiness();
         $result = $renderer->render(new ShareCardRenderInput(
@@ -335,7 +334,7 @@ it('keeps readiness and rendering aligned when a license copy is tampered with',
             ->and(implode("\n", $integrity['missing']))->toContain("License file [{$tamperedLicense}] size mismatch.")
             ->and($readiness->ready)->toBeTrue()
             ->and($readiness->fontRevision)->toBe(ShareCardFonts::manifestRevision((string) $manifestBytes))
-            ->and($readiness->missing)->toBe([])
+            ->and($readiness->missing)->toBeEmpty()
             ->and($result->ok)->toBeTrue()
             ->and($result->error)->toBeNull()
             ->and($result->fontRevision)->toBe($readiness->fontRevision)

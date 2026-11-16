@@ -27,8 +27,6 @@ use App\Support\Events\EventModerationAdapter;
 use App\Support\Reports\CompositeReportSubjectResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('binds the events seams to their current implementations', function (): void {
     expect(app(GuestSubmissionClaims::class))->toBeInstanceOf(ClaimGuestSubmissionsAction::class)
         ->and(app(EventDeletion::class))->toBeInstanceOf(CleanupEventAction::class)

@@ -77,8 +77,8 @@ it('does not expose private people when publicly duplicating another event', fun
     $component->assertSet('data.persons', [$fixtures['public_speaker']->getKey()]);
     expect($component->get('data.other_key_people'))
         ->toHaveCount(1)
-        ->and(array_values($component->get('data.other_key_people'))[0]['display_name'])->toBe('Visible Moderator');
-    expect($component->html())->not->toContain('Private Contact', 'Private organizer notes');
+        ->and(array_first($component->get('data.other_key_people'))['display_name'])->toBe('Visible Moderator')
+        ->and($component->html())->not->toContain('Private Contact', 'Private organizer notes');
 })->with([
     'guest' => [null],
     'signed-in nonowner' => [fn (): User => User::factory()->create()],
@@ -95,9 +95,9 @@ it('retains private people for a duplicate owner and authorized session defaults
     $containerDefaults = SubmitEventPrefill::containerDefaults($fixtures['event'], $owner, (string) ensureTestMalaysiaCountry()->getKey());
 
     $component->assertSet('data.persons', [$fixtures['public_speaker']->getKey(), $fixtures['private_speaker']->getKey()]);
-    expect($component->get('data.other_key_people'))->toHaveCount(2);
-    expect($containerDefaults['persons'])->toBe([$fixtures['public_speaker']->getKey(), $fixtures['private_speaker']->getKey()]);
-    expect($containerDefaults['other_key_people'])->toHaveCount(2);
+    expect($component->get('data.other_key_people'))->toHaveCount(2)
+        ->and($containerDefaults['persons'])->toBe([$fixtures['public_speaker']->getKey(), $fixtures['private_speaker']->getKey()])
+        ->and($containerDefaults['other_key_people'])->toHaveCount(2);
 });
 
 it('defaults the driver selections and starts with sensible downstream values', function (): void {
@@ -352,7 +352,7 @@ it('adds custom time to the required progress fields only when selected', functi
         ->set('data.event_category_ids', eventCategoryId('aktiviti_keagamaan'))
         ->set('data.domain_tags', adaptiveSubmitEventTopicId('agama-kerohanian'))
         ->set('data.prayer_time', EventPrayerTime::SelepasMaghrib->value)
-        ->set('data.custom_time', null);
+        ->set('data.custom_time');
 
     $prayerDefaultProgress = $component->instance()->formProgress();
 
@@ -437,8 +437,8 @@ it('escapes quick-added and saved titles in suggestion labels', function (): voi
             $savedResults = $field->getSearchResults('Event');
             $quickResults = $field->getSearchResults('<svg onload=alert(2)>');
 
-            expect($savedResults[$title])->toContain('&lt;img')->not->toContain('<img');
-            expect(implode('', $quickResults))->toContain('&lt;svg')->not->toContain('<svg');
+            expect($savedResults[$title])->toContain('&lt;img')->not->toContain('<img')
+                ->and(implode('', $quickResults))->toContain('&lt;svg')->not->toContain('<svg');
 
             return true;
         });
@@ -451,9 +451,8 @@ it('escapes new taxonomy labels in quick-add results and selected values', funct
         ->set('data.'.$fieldName, [$label])
         ->assertFormFieldExists($fieldName, function (Select $field) use ($label): bool {
             expect(implode('', $field->getSearchResults($label)))
-                ->toContain('&lt;img')->not->toContain('<img');
-            expect($field->getOptionLabels()[$label])
-                ->toContain('&lt;img')->not->toContain('<img');
+                ->toContain('&lt;img')->not->toContain('<img')
+                ->and($field->getOptionLabels()[$label])->toContain('&lt;img')->not->toContain('<img');
 
             return true;
         });
@@ -496,7 +495,7 @@ it('does not resolve labels for speaker profiles the submitter cannot use', func
     Livewire::test(Create::class)
         ->set('data.persons', [$privatePerson->getKey()])
         ->assertFormFieldExists('persons', function (Select $field): bool {
-            expect($field->getOptionLabels())->toBe([]);
+            expect($field->getOptionLabels())->toBeEmpty();
 
             return true;
         });

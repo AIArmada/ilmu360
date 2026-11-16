@@ -226,7 +226,7 @@ it('records event submission creation in audits', function () {
         ->and($audit?->user_id)->toBe($administrator->getKey())
         ->and($audit?->event)->toBe('created')
         ->and($audit?->new_values['submitter_id'] ?? null)->toBe($administrator->getKey())
-        ->and(is_array($submissionData))->toBeTrue()
+        ->and($submissionData)->toBeArray()
         ->and($submissionData['submitter_name'] ?? null)->toBe($administrator->name)
         ->and($submissionData['notes'] ?? null)->toBe('Submitted from the public contribution flow.')
         ->and($audit?->auditable_type)->toBe($submission->getMorphClass())
@@ -252,6 +252,6 @@ it('redacts sensitive user fields in audits', function () {
 
     expect($audit)->not->toBeNull()
         ->and($audit?->event)->toBe('updated')
-        ->and(in_array($audit?->old_values['password'] ?? null, [null, '[redacted]'], true))->toBeTrue()
-        ->and(in_array($audit?->new_values['password'] ?? null, [null, '[redacted]'], true))->toBeTrue();
+        ->and($audit?->old_values['password'] ?? null)->toBeIn([null, '[redacted]'])
+        ->and($audit?->new_values['password'] ?? null)->toBeIn([null, '[redacted]']);
 });

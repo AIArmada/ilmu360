@@ -1,10 +1,10 @@
 <?php
 
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
+use App\Shared\Events\Enums\EventVisibility;
 use Livewire\Livewire;
 
 beforeEach(function () {

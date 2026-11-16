@@ -2,11 +2,11 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Bookmark;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use Livewire\Livewire;
 
 function linkSpeakerToEvent(Person $person, Event $event): void

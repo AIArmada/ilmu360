@@ -45,8 +45,6 @@ use Illuminate\Support\Str;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 function digestUser(array $settings = [], array $triggers = []): User
 {
     $user = User::factory()->create([
@@ -103,7 +101,7 @@ function digestApproveAward($program, User $user, string $source, string $at): a
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact($source, $memberId));
 
-    (new EvaluateRewardEntitlementAction($reader))->handle(
+    new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Points, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         $source, CarbonImmutable::parse($at),
     );
@@ -113,7 +111,7 @@ function digestApproveAward($program, User $user, string $source, string $at): a
         ->orderByDesc('created_at')
         ->firstOrFail();
 
-    $approved = (new TransitionRewardAwardAction(null, $reader))->handle(
+    $approved = new TransitionRewardAwardAction(null, $reader)->handle(
         $award, RewardAwardStatus::Approved, 'user', RewardLedgerFixtures::staffId(), 'staff',
         'verified-ok', null, null, CarbonImmutable::parse($at),
     );
@@ -254,7 +252,7 @@ it('plans a milestone section when a cycle achieves', function () {
     foreach (['src-r7-mile-1' => '2026-06-12T00:00:00Z', 'src-r7-mile-2' => '2026-06-13T00:00:00Z'] as $source => $occurred) {
         $reader->seed(RewardLedgerFixtures::fact($source, $memberId, $occurred, overrides: ['actorId' => $memberId, 'sharerId' => null]));
 
-        $result = (new RecordRewardMilestoneContributionAction($reader))->handle(
+        $result = new RecordRewardMilestoneContributionAction($reader)->handle(
             'user', $memberId, $program->family_key, 'three-checkins', 2, 30,
             RewardComponent::Points, ['type' => 'points', 'points' => 5, 'unit' => 'pts'],
             $source, 'user', $memberId, RewardBeneficiaryRole::Participant,
@@ -276,9 +274,8 @@ it('refuses unknown digest categories instead of storing them cosmetically', fun
 
     expect(fn () => PlanRewardGratitudeDigestAction::run(
         'user', (string) $user->getKey(), ['gratitude', 'weekly'], CarbonImmutable::parse('2026-06-15T10:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'Unknown digest category');
-
-    expect(RewardDigestSlot::query()->count())->toBe(0);
+    ))->toThrow(InvalidArgumentException::class, 'Unknown digest category')
+        ->and(RewardDigestSlot::query()->count())->toBe(0);
 });
 
 it('leaves no slot for non-user and opted-out recipients without failing awards', function () {
@@ -297,7 +294,7 @@ it('leaves no slot for non-user and opted-out recipients without failing awards'
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact('src-r7-optout-1', $stranger));
 
-    (new EvaluateRewardEntitlementAction($reader))->handle(
+    new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Points, 'user', $stranger, RewardBeneficiaryRole::Recipient,
         'src-r7-optout-1', CarbonImmutable::parse('2026-06-15T10:00:00Z'),
     );
@@ -305,7 +302,7 @@ it('leaves no slot for non-user and opted-out recipients without failing awards'
     $award = RewardAward::query()->where('source_business_key', 'src-r7-optout-1')->firstOrFail();
 
     // No User row: the award approves, planning yields no slot.
-    $approved = (new TransitionRewardAwardAction(null, $reader))->handle(
+    $approved = new TransitionRewardAwardAction(null, $reader)->handle(
         $award, RewardAwardStatus::Approved, 'user', RewardLedgerFixtures::staffId(), 'staff',
         'verified-ok', null, null, CarbonImmutable::parse('2026-06-15T10:00:00Z'),
     );
@@ -447,7 +444,7 @@ it('cancels planned slots on reversal when nothing remains, recalculates otherwi
     expect($slot->payload['total'])->toBe(2);
 
     // One of two reverses: the slot recalculates and stays planned.
-    (new TransitionRewardAwardAction(null, $reader))->handle(
+    new TransitionRewardAwardAction(null, $reader)->handle(
         $first, RewardAwardStatus::Reversed, 'user', $staff, 'staff',
         'source-invalid', null, null, CarbonImmutable::parse('2026-06-15T12:00:00Z'),
     );
@@ -456,7 +453,7 @@ it('cancels planned slots on reversal when nothing remains, recalculates otherwi
         ->and($slot->payload['total'])->toBe(1);
 
     // The last one reverses: nothing left, the slot cancels.
-    (new TransitionRewardAwardAction(null, $reader))->handle(
+    new TransitionRewardAwardAction(null, $reader)->handle(
         $second, RewardAwardStatus::Reversed, 'user', $staff, 'staff',
         'source-invalid', null, null, CarbonImmutable::parse('2026-06-15T13:00:00Z'),
     );
@@ -487,7 +484,7 @@ it('cancels queued transport on correction and redelivers recalculated material'
 
     // Correction while queued: the transport cancels, material
     // recalculates, the slot requeues for redelivery.
-    (new TransitionRewardAwardAction(null, $reader))->handle(
+    new TransitionRewardAwardAction(null, $reader)->handle(
         $first, RewardAwardStatus::Reversed, 'user', $staff, 'staff',
         'source-invalid', null, null, CarbonImmutable::parse('2026-06-15T12:00:00Z'),
     );
@@ -585,9 +582,8 @@ it('refuses cancellation after delivery and during ambiguous flight', function (
 
     expect(fn () => CancelRewardDigestAction::run(
         $slot->refresh(), 'too-late', 'user', $staff, 'staff', true, CarbonImmutable::parse('2026-06-15T12:00:00Z'),
-    ))->toThrow(InvalidArgumentException::class, 'in flight');
-
-    expect($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING);
+    ))->toThrow(InvalidArgumentException::class, 'in flight')
+        ->and($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENDING);
 
     // Late completion resolves the ambiguity: the slot sends.
     app(CommunicationRecorderService::class)->markSent(
@@ -598,9 +594,8 @@ it('refuses cancellation after delivery and during ambiguous flight', function (
 
     DispatchDueRewardDigestsAction::run(50, $slot->due_at->addMinutes(5));
 
-    expect($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENT);
-
-    expect(fn () => CancelRewardDigestAction::run(
+    expect($slot->refresh()->status)->toBe(RewardDigestSlot::STATUS_SENT)
+        ->and(fn() => CancelRewardDigestAction::run(
         $slot->refresh(), 'too-late', 'user', $staff, 'staff', true, CarbonImmutable::parse('2026-06-15T12:00:00Z'),
     ))->toThrow(InvalidArgumentException::class, 'already sent');
 });

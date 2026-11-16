@@ -7,8 +7,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Scout\Jobs\MakeSearchable;
 
-uses(RefreshDatabase::class);
-
 it('queues person reindexing when a person address changes', function () {
     Queue::fake();
     config()->set('scout.queue', [

@@ -2,15 +2,15 @@
 
 use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Livewire\Livewire;
@@ -131,8 +131,8 @@ it('allows authenticated members to submit locked institution and person entitie
         ->where('event_occurrence_id', $occurrence->getKey())
         ->where('role_code', 'organizer')
         ->first();
-    expect($organizerInvolvement?->involveable_id)->toBe((string) $lockedPerson->getKey());
-    expect($event?->institution_id)->toBe($lockedInstitution->id);
+    expect($organizerInvolvement?->involveable_id)->toBe((string) $lockedPerson->getKey())
+        ->and($event?->institution_id)->toBe($lockedInstitution->id);
 });
 
 it('forbids the institution-scoped dashboard submit flow for non-members', function () {
@@ -209,9 +209,8 @@ it('auto-approves institution-scoped dashboard submissions and locks the organiz
         ->where('role_code', 'organizer')
         ->first();
     expect($organizerInvolvement?->involveable)->toBeInstanceOf(Institution::class)
-        ->and($organizerInvolvement?->involveable_id)->toBe((string) $institution->getKey());
-
-    expect($event?->institution_id)->toBe($institution->id)
+        ->and($organizerInvolvement?->involveable_id)->toBe((string) $institution->getKey())
+        ->and($event?->institution_id)->toBe($institution->id)
         ->and($event?->published_at)->not->toBeNull();
 
     $this->get(route('events.show', $event))

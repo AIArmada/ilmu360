@@ -60,9 +60,8 @@ it('provisions repeatable active points, referral, benefit, milestones and demo 
         ->and(Hash::check('Ilmu360Demo!2026', User::query()->where('email', 'visitor.demo@ilmu360.test')->firstOrFail()->password))->toBeTrue();
 
     $exitCode = Artisan::call('app:share:activate-local-examples');
-    expect($exitCode)->toBe(0, Artisan::output());
-
-    expect(RewardProgram::query()->where('family_key', 'share-points-v1')->count())->toBe(1)
+    expect($exitCode)->toBe(0, Artisan::output())
+        ->and(RewardProgram::query()->where('family_key', 'share-points-v1')->count())->toBe(1)
         ->and($program->versions()->count())->toBe(1)
         ->and(ReferralProgram::query()->where('slug', 'ilmu360-share-community')->count())->toBe(1)
         ->and(RewardBenefitItem::query()->where('program_id', $program->getKey())->count())->toBe(1)
@@ -111,9 +110,8 @@ it('publishes corrected rules when rerun over stale local examples', function ()
     $stalePublishedVersion = $program->versions()->reorderDesc('version')->firstOrFail();
 
     expect(data_get($stalePublishedVersion->rules, 'components.0.variants.0.roles'))
-        ->toBe(['participant', 'sharer', 'purchaser']);
-
-    expect(Artisan::call('app:share:activate-local-examples'))->toBe(0, Artisan::output());
+        ->toBe(['participant', 'sharer', 'purchaser'])
+        ->and(Artisan::call('app:share:activate-local-examples'))->toBe(0, Artisan::output());
 
     $correctedVersion = $program->versions()->reorderDesc('version')->firstOrFail();
 
@@ -143,12 +141,8 @@ it('reports clearly when an existing local referral cannot be reactivated', func
     $referral = ReferralProgram::query()->where('slug', 'ilmu360-share-community')->firstOrFail();
     $referral->forceFill(['status' => ReferralProgramStatus::Paused])->save();
 
-    expect(Artisan::call('app:share:activate-local-examples'))->toBe(1);
-
-    expect(Artisan::output())
-        ->toContain('Existing referral program [ilmu360-share-community] has status [paused]')
-        ->toContain('no supported status transition')
-        ->not->toContain('immutable after creation');
-
-    expect($referral->fresh()->status)->toBe(ReferralProgramStatus::Paused);
+    expect(Artisan::call('app:share:activate-local-examples'))->toBe(1)
+        ->and(Artisan::output())->toContain('Existing referral program [ilmu360-share-community] has status [paused]')
+        ->toContain('no supported status transition')->not->toContain('immutable after creation')
+        ->and($referral->fresh()->status)->toBe(ReferralProgramStatus::Paused);
 });

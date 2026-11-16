@@ -22,8 +22,6 @@ use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 /**
  * @return array{affiliate: Affiliate, link: AffiliateLink, tracked: Link|null}
  */

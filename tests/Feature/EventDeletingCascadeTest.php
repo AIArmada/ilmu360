@@ -26,8 +26,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 it('deletes all related records when an event is deleted', function () {
     $event = Event::factory()->create();
     $occurrence = EventOccurrence::factory()->create(['event_id' => $event->id]);
@@ -216,12 +214,9 @@ it('rejects event deletion before cleanup when a registration tree crosses event
     $eventId = (string) $event->getKey();
     $registrationIds = [(string) $registration->getKey(), (string) $foreignChild->getKey()];
 
-    expect(fn () => $event->delete())->toThrow(LogicException::class);
-
-    expect(fn () => $event->primaryOccurrence?->delete())
-        ->toThrow(Illuminate\Validation\ValidationException::class);
-
-    expect(DB::table('events')->where('id', $eventId)->exists())->toBeTrue()
+    expect(fn () => $event->delete())->toThrow(LogicException::class)
+        ->and(fn() => $event->primaryOccurrence?->delete())->toThrow(Illuminate\Validation\ValidationException::class)
+        ->and(DB::table('events')->where('id', $eventId)->exists())->toBeTrue()
         ->and(DB::table('event_members')->where('event_id', $eventId)->where('user_id', $user->getKey())->exists())->toBeTrue()
         ->and(DB::table('event_registrations')->whereIn('id', $registrationIds)->count())->toBe(2)
         ->and(DB::table('event_registration_participants')->whereIn('event_registration_id', $registrationIds)->count())->toBe(2);

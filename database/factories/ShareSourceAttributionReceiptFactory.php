@@ -13,7 +13,7 @@ class ShareSourceAttributionReceiptFactory extends Factory
 {
     public function definition(): array
     {
-        $transitionId = 'user:'.((string) Str::uuid());
+        $transitionId = 'user:'.(Str::uuid());
 
         return [
             'namespace' => 'share-outcome',

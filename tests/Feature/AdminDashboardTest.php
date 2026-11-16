@@ -1,6 +1,5 @@
 <?php
 
-use App\Shared\Events\Enums\EventVisibility;
 use App\Filament\Pages\AdminDashboard;
 use App\Filament\Pages\ModerationQueue;
 use App\Filament\Resources\Events\EventResource;
@@ -16,6 +15,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Shared\Events\Enums\EventVisibility;
 use App\States\EventStatus\Draft;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -228,9 +228,8 @@ it('computes approval and event overview dashboard stats from the intended datas
             'value' => 1,
             'url' => VenueResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending',
         ],
-    ]);
-
-    expect(collect($overviewStats)->map(fn (Stat $stat): array => [
+    ])
+        ->and(collect($overviewStats)->map(fn (Stat $stat): array => [
         'label' => (string) $stat->getLabel(),
         'value' => (int) $stat->getValue(),
     ])->all())->toBe([

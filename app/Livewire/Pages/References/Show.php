@@ -22,7 +22,6 @@ use App\Shared\Auth\IntendedRedirect;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Collection;
@@ -217,7 +216,7 @@ class Show extends Component
                     return $leaf;
                 }
 
-                $sessions = $leaf->sessions->filter(fn($session): bool => $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
+                $sessions = $leaf->sessions->filter(fn ($session): bool => $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
                     && $reference->referenceable_type === $this->reference->getMorphClass()
                     && in_array((string) $reference->referenceable_id, $referenceIds, true)
                     && $reference->event_session_id === $session->getKey()))->values();

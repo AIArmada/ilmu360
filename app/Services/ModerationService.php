@@ -7,6 +7,7 @@ use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\Signals\SignalRecorder;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
@@ -14,7 +15,6 @@ use App\States\EventStatus\Draft;
 use App\States\EventStatus\NeedsChanges;
 use App\States\EventStatus\Pending;
 use App\States\EventStatus\Rejected;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

@@ -11,8 +11,6 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 
-uses(RefreshDatabase::class);
-
 it('routes only active account push installations as ordered immutable snapshots', function (): void {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
@@ -60,11 +58,9 @@ it('routes only active account push installations as ordered immutable snapshots
         ->and($destinations[0])->toBeInstanceOf(PushDestinationSnapshot::class)
         ->and($destinations[0]->id)->toBe((string) $primary->getKey())
         ->and($destinations[0]->fcmToken)->toBe('primary-token')
-        ->and($destinations[1]->id)->toBe((string) $secondary->getKey());
-
-    expect($destinations[0])->not->toBeInstanceOf(CommunicationDestination::class);
-    expect($user->routeNotificationFor(NotificationTransport::Push->value))
-        ->toBe((string) $user->getKey());
+        ->and($destinations[1]->id)->toBe((string) $secondary->getKey())
+        ->and($destinations[0])->not->toBeInstanceOf(CommunicationDestination::class)
+        ->and($user->routeNotificationFor(NotificationTransport::Push->value))->toBe((string) $user->getKey());
 });
 
 it('sends push notifications using tokens from destination snapshots', function (): void {

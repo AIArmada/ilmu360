@@ -12,8 +12,8 @@ use AIArmada\Rewards\Enums\RewardBenefitItemStatus;
 use AIArmada\Rewards\Models\RewardBenefitGrant;
 use AIArmada\Rewards\Models\RewardBenefitItem;
 use AIArmada\Rewards\Support\RewardBenefitStockLedger;
-use App\Platform\Http\FrontendController;
 use App\Platform\Api\ApiPagination;
+use App\Platform\Http\FrontendController;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -80,14 +80,14 @@ class RewardBenefitController extends FrontendController
 
         $item = RewardBenefitItem::query()->whereKey($validated['item_id'])->firstOrFail();
         $this->authorize('view', $item);
-        $this->authorize('redeem', [RewardBenefitGrant::class, (string) $user->actorId()]);
+        $this->authorize('redeem', [RewardBenefitGrant::class, $user->actorId()]);
 
         try {
             $grant = RedeemRewardBenefitAction::run(
-                $user->actorType(), (string) $user->actorId(), (string) $validated['family_key'],
+                $user->actorType(), $user->actorId(), (string) $validated['family_key'],
                 $item, (int) ($validated['quantity'] ?? 1), (string) $validated['redemption_key'],
                 (string) ($validated['adapter'] ?? 'manual'),
-                'user', (string) $user->actorId(), 'member',
+                'user', $user->actorId(), 'member',
             );
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
@@ -161,7 +161,7 @@ class RewardBenefitController extends FrontendController
 
         try {
             $consumed = ConsumeRewardBenefitAction::run(
-                $record, array_filter($validated), 'user', (string) $user->actorId(), 'member',
+                $record, array_filter($validated), 'user', $user->actorId(), 'member',
             );
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
@@ -188,7 +188,7 @@ class RewardBenefitController extends FrontendController
 
         try {
             $cancelled = CancelRewardBenefitGrantAction::run(
-                $record, 'user', (string) $user->actorId(), 'member', (string) $validated['reason'],
+                $record, 'user', $user->actorId(), 'member', (string) $validated['reason'],
             );
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);

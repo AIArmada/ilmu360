@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('exposes global roles through the account actor contract', function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -34,5 +34,5 @@ it('implements feedback eligibility through the segregated feedback actor contra
         ->and($user->canSubmitAppFeedback())->toBeTrue()
         ->and($user->canSubmitDirectoryFeedback())->toBeTrue()
         ->and($user->directoryFeedbackBanMessage())->toBeString()
-        ->and((new ReflectionClass(AccountActor::class))->hasMethod('canSubmitAppFeedback'))->toBeFalse();
+        ->and(new ReflectionClass(AccountActor::class)->hasMethod('canSubmitAppFeedback'))->toBeFalse();
 });

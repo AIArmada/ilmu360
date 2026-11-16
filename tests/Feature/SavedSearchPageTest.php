@@ -15,8 +15,6 @@ use App\Support\Location\VisitorCountryResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
-
 function savedSearchTerm(string $name): EventTerm
 {
     $taxonomy = EventTaxonomy::factory()->create();
@@ -552,8 +550,8 @@ it('allows authenticated users to edit a saved search name and notification', fu
         ->assertSet('editingId', null);
 
     $savedSearch->refresh();
-    expect($savedSearch->name)->toBe('Updated Name');
-    expect($savedSearch->notify)->toBe('weekly');
+    expect($savedSearch->name)->toBe('Updated Name')
+        ->and($savedSearch->notify)->toBe('weekly');
 });
 
 it('validates edit name field is required', function () {

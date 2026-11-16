@@ -8,8 +8,6 @@ use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
-uses(RefreshDatabase::class);
-
 test('authenticated user can list own registrations', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();

@@ -24,8 +24,6 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\RewardHostFixtures;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     setPermissionsTeamId(null);
     $this->seed(RoleSeeder::class);
@@ -84,29 +82,29 @@ function policySeed(string $prefix): array
 it('authorizes program reads for members and management for staff', function (): void {
     [$program, $member, $other] = policySeed('policy-program');
 
-    expect(Gate::forUser($member)->allows('viewAny', RewardProgram::class))->toBeTrue();
-    expect(Gate::forUser($member)->allows('view', $program))->toBeTrue();
-    expect(Gate::forUser($member)->allows('enroll', $program))->toBeTrue();
-    expect(Gate::forUser($member)->allows('leave', $program))->toBeTrue();
-    expect(Gate::forUser($member)->allows('create', RewardProgram::class))->toBeFalse();
-    expect(Gate::forUser($member)->allows('update', $program))->toBeFalse();
-    expect(Gate::forUser($other)->allows('leave', $program))->toBeFalse();
+    expect(Gate::forUser($member)->allows('viewAny', RewardProgram::class))->toBeTrue()
+        ->and(Gate::forUser($member)->allows('view', $program))->toBeTrue()
+        ->and(Gate::forUser($member)->allows('enroll', $program))->toBeTrue()
+        ->and(Gate::forUser($member)->allows('leave', $program))->toBeTrue()
+        ->and(Gate::forUser($member)->allows('create', RewardProgram::class))->toBeFalse()
+        ->and(Gate::forUser($member)->allows('update', $program))->toBeFalse()
+        ->and(Gate::forUser($other)->allows('leave', $program))->toBeFalse();
 
     $staff = User::factory()->create();
     policyAssignAdmin($staff);
-    expect(Gate::forUser($staff)->allows('create', RewardProgram::class))->toBeTrue();
-    expect(Gate::forUser($staff)->allows('transitionStatus', $program))->toBeTrue();
+    expect(Gate::forUser($staff)->allows('create', RewardProgram::class))->toBeTrue()
+        ->and(Gate::forUser($staff)->allows('transitionStatus', $program))->toBeTrue();
 
     [$draft] = RewardLedgerFixtures::seedVersionedProgram('policy-draft', RewardProgramMode::Recognition);
-    expect(Gate::forUser($member)->allows('view', $draft->refresh()))->toBeFalse();
-    expect(Gate::forUser($member)->allows('enroll', $draft->refresh()))->toBeFalse();
+    expect(Gate::forUser($member)->allows('view', $draft->refresh()))->toBeFalse()
+        ->and(Gate::forUser($member)->allows('enroll', $draft->refresh()))->toBeFalse();
 });
 
 it('denies guests every program surface', function (): void {
     [$program] = policySeed('policy-guest');
 
-    expect(Gate::allows('viewAny', RewardProgram::class))->toBeFalse();
-    expect(Gate::allows('view', $program))->toBeFalse();
+    expect(Gate::allows('viewAny', RewardProgram::class))->toBeFalse()
+        ->and(Gate::allows('view', $program))->toBeFalse();
 });
 
 it('limits fraud stewardship to super administrators and moderators', function (): void {
@@ -123,17 +121,16 @@ it('limits fraud stewardship to super administrators and moderators', function (
 it('scopes award reads to staff and the recipient', function (): void {
     [$program, $member, $other, $staff, $award] = policySeed('policy-award');
 
-    expect(Gate::forUser($member)->allows('view', $award))->toBeTrue();
-    expect(Gate::forUser($member)->allows('openAppeal', $award))->toBeTrue();
-    expect(Gate::forUser($member)->allows('approve', $award))->toBeFalse();
-    expect(Gate::forUser($other)->allows('view', $award))->toBeFalse();
-    expect(Gate::forUser($other)->allows('openAppeal', $award))->toBeFalse();
-
-    expect(Gate::forUser($staff)->allows('view', $award))->toBeTrue();
-    expect(Gate::forUser($staff)->allows('review', $award))->toBeTrue();
-    expect(Gate::forUser($staff)->allows('approve', $award))->toBeTrue();
-    expect(Gate::forUser($staff)->allows('reverse', $award))->toBeTrue();
-    expect(Gate::forUser($staff)->allows('dismissFraud', $award))->toBeTrue();
+    expect(Gate::forUser($member)->allows('view', $award))->toBeTrue()
+        ->and(Gate::forUser($member)->allows('openAppeal', $award))->toBeTrue()
+        ->and(Gate::forUser($member)->allows('approve', $award))->toBeFalse()
+        ->and(Gate::forUser($other)->allows('view', $award))->toBeFalse()
+        ->and(Gate::forUser($other)->allows('openAppeal', $award))->toBeFalse()
+        ->and(Gate::forUser($staff)->allows('view', $award))->toBeTrue()
+        ->and(Gate::forUser($staff)->allows('review', $award))->toBeTrue()
+        ->and(Gate::forUser($staff)->allows('approve', $award))->toBeTrue()
+        ->and(Gate::forUser($staff)->allows('reverse', $award))->toBeTrue()
+        ->and(Gate::forUser($staff)->allows('dismissFraud', $award))->toBeTrue();
 });
 
 it('denies staff self-decisions on recipient-owned awards', function (): void {
@@ -143,11 +140,11 @@ it('denies staff self-decisions on recipient-owned awards', function (): void {
 
     $award = RewardAward::query()->where('program_id', $program->getKey())->firstOrFail();
 
-    expect($award->status)->toBe(RewardAwardStatus::Approved);
-    expect(Gate::forUser($member)->allows('approve', $award))->toBeFalse();
-    expect(Gate::forUser($member)->allows('reverse', $award))->toBeFalse();
-    expect(Gate::forUser($member)->allows('dismissFraud', $award))->toBeFalse();
-    expect(Gate::forUser($member)->allows('view', $award))->toBeTrue();
+    expect($award->status)->toBe(RewardAwardStatus::Approved)
+        ->and(Gate::forUser($member)->allows('approve', $award))->toBeFalse()
+        ->and(Gate::forUser($member)->allows('reverse', $award))->toBeFalse()
+        ->and(Gate::forUser($member)->allows('dismissFraud', $award))->toBeFalse()
+        ->and(Gate::forUser($member)->allows('view', $award))->toBeTrue();
 });
 
 it('authorizes appeals for involved members and deciding staff', function (): void {
@@ -158,12 +155,12 @@ it('authorizes appeals for involved members and deciding staff', function (): vo
         'The contribution evidence looks wrong.',
     );
 
-    expect($appeal)->toBeInstanceOf(RewardAppeal::class);
-    expect(Gate::forUser($member)->allows('view', $appeal))->toBeTrue();
-    expect(Gate::forUser($other)->allows('view', $appeal))->toBeFalse();
-    expect(Gate::forUser($other)->allows('create', [RewardAppeal::class, $award]))->toBeFalse();
-    expect(Gate::forUser($member)->allows('create', [RewardAppeal::class, $award]))->toBeTrue();
-    expect(Gate::forUser($staff)->allows('decide', $appeal))->toBeTrue();
+    expect($appeal)->toBeInstanceOf(RewardAppeal::class)
+        ->and(Gate::forUser($member)->allows('view', $appeal))->toBeTrue()
+        ->and(Gate::forUser($other)->allows('view', $appeal))->toBeFalse()
+        ->and(Gate::forUser($other)->allows('create', [RewardAppeal::class, $award]))->toBeFalse()
+        ->and(Gate::forUser($member)->allows('create', [RewardAppeal::class, $award]))->toBeTrue()
+        ->and(Gate::forUser($staff)->allows('decide', $appeal))->toBeTrue();
 
     $staffAwardRecipient = User::factory()->create();
     policyAssignAdmin($staffAwardRecipient);

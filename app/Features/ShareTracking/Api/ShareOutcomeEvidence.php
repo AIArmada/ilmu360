@@ -14,8 +14,8 @@ final readonly class ShareOutcomeEvidence
     public const string UNKNOWN_CHANNEL = 'unknown';
 
     /**
-     * @param array<string, array{outcomes: int, sharers: int, participants: int}> $byChannel
-     * @param array<string, array{outcomes: int, sharers: int, participants: int}> $byOutcome
+     * @param  array<string, array{outcomes: int, sharers: int, participants: int}>  $byChannel
+     * @param  array<string, array{outcomes: int, sharers: int, participants: int}>  $byOutcome
      */
     public function __construct(
         public int $outcomeCount,

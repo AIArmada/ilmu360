@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\References\Services;
 
-use App\Models\Reference;
-
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Support\ReferenceFamily;
+use App\Models\Reference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;

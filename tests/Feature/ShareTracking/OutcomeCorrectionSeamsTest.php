@@ -24,8 +24,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
-uses(RefreshDatabase::class);
-
 function s2a2BusinessKey(): string
 {
     return ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
@@ -69,7 +67,7 @@ function s2a2ConversionStatus(AffiliateConversion $conversion): string
     $status = $conversion->status;
 
     return $status instanceof ConversionStatus
-        ? (string) $status->getValue()
+        ? $status->getValue()
         : (string) $status;
 }
 

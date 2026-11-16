@@ -20,6 +20,7 @@ final readonly class EloquentPlaceLookup implements PlaceLookup
             return null;
         }
         $venue = $this->resolver->first(Venue::query(), 'venues.slug', $identifier);
+
         return $venue instanceof Venue ? (string) $venue->getKey() : null;
     }
 
@@ -30,6 +31,7 @@ final readonly class EloquentPlaceLookup implements PlaceLookup
             return null;
         }
         $space = $this->resolver->first(Space::query(), 'venue_spaces.slug', $identifier);
+
         return $space instanceof Space ? (string) $space->getKey() : null;
     }
 }

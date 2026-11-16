@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
@@ -100,7 +98,7 @@ it('applies staged single and gallery media with the exact platform chain', func
             $galleryTwo->file_name,
         )
         ->and(Media::query()->whereKey($existingGallery->getKey())->exists())->toBeTrue()
-        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+        ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
 it('delegates staged donation QR media to the DonationChannels boundary and discards it', function (): void {
@@ -133,7 +131,7 @@ it('delegates staged donation QR media to the DonationChannels boundary and disc
 
     app(EventMedia::class)->applyStagedMedia($event, [$staged]);
 
-    expect($event->refresh()->getMedia('donation_qr'))->toHaveCount(0)
+    expect($event->refresh()->getMedia('donation_qr'))->toBeEmpty()
         ->and(Media::query()->whereKey($staged->getKey())->exists())->toBeFalse()
-        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(0);
+        ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });

@@ -24,8 +24,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 
-uses(RefreshDatabase::class);
-
 it('writes package notification inboxes when a public approved future event is published for followers', function () {
     Http::fake();
 

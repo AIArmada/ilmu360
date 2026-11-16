@@ -42,7 +42,7 @@ function fakeGitHubReporter(bool $fail = false, ?Closure $duringCreate = null): 
         {
             $this->calls[] = ['title' => $title, 'body' => $body];
 
-            if ($this->duringCreate !== null) {
+            if ($this->duringCreate instanceof \Closure) {
                 ($this->duringCreate)();
             }
 
@@ -122,9 +122,8 @@ it('does not create a second github issue for the same feedback', function () {
     $action->handle($admin, $feedback, 'Isu pertama', 'Ringkasan isu pertama yang disemak.');
 
     expect(fn () => $action->handle($admin, $feedback->fresh(), 'Isu kedua', 'Ringkasan isu kedua yang disemak.'))
-        ->toThrow(ValidationException::class);
-
-    expect($reporter->calls)->toHaveCount(1);
+        ->toThrow(ValidationException::class)
+        ->and($reporter->calls)->toHaveCount(1);
 });
 
 it('keeps local feedback when github escalation fails', function () {
@@ -194,9 +193,8 @@ it('refuses github escalation when the integration is not configured', function 
         $feedback,
         'Isu tanpa integrasi',
         'Ringkasan isu tanpa integrasi GitHub.',
-    ))->toThrow(ValidationException::class);
-
-    expect($reporter->calls)->toBe(0)
+    ))->toThrow(ValidationException::class)
+        ->and($reporter->calls)->toBe(0)
         ->and($feedback->fresh()->github_escalation_status)->toBe(AppFeedbackGitHubStatus::NotRequested);
 });
 
@@ -217,7 +215,7 @@ it('links an existing github issue without sending a request', function () {
 
     expect($result->github_escalation_status)->toBe(AppFeedbackGitHubStatus::Created)
         ->and($result->github_issue_number)->toBe(321)
-        ->and($reporter->calls)->toHaveCount(0);
+        ->and($reporter->calls)->toBeEmpty();
 });
 
 it('rejects a github issue url outside the configured repository', function () {
@@ -310,9 +308,8 @@ it('preserves a reconciled github issue when an in flight creation fails', funct
         $feedback,
         'Isu disemak',
         'Ringkasan isu yang telah disemak oleh pentadbir.',
-    ))->toThrow(ValidationException::class);
-
-    expect($reporter->calls)->toHaveCount(1);
+    ))->toThrow(ValidationException::class)
+        ->and($reporter->calls)->toHaveCount(1);
 
     $this->assertDatabaseHas('app_feedback', [
         'id' => $feedback->getKey(),

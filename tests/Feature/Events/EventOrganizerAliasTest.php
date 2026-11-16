@@ -9,8 +9,6 @@ use App\Models\User;
 use App\Shared\Events\OrganizerResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('writes organizer involvements and moderation actors using configured morph aliases', function (): void {
     $event = Event::factory()->create();
     $institution = Institution::factory()->create();

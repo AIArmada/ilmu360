@@ -5,8 +5,6 @@ use App\Features\Identity\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 it('shows the social profile avatar in the header when one is available', function () {
     $user = User::factory()->create(['name' => 'Saiffil Fariz']);
     SocialAccount::factory()->create([

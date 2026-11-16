@@ -12,12 +12,12 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final class PrepareSlugRedirectInputAction
+final readonly class PrepareSlugRedirectInputAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly PublicSlugRegistry $publicSlugRegistry,
+        private PublicSlugRegistry $publicSlugRegistry,
     ) {}
 
     /**

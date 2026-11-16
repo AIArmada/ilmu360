@@ -88,10 +88,8 @@ class PlaceOrder
 PHP);
 
     $result = $this->project->check();
-
-    expect($result['stderr'])->toBe('');
-    expect($result['exitCode'])->toBe(0);
-    expect(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
+    expect($result)->toMatchArray(['stderr' => '', 'exitCode' => 0])
+        ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
 });
 
 it('accepts parent delete only from the exact declared root model', function (): void {
@@ -134,7 +132,7 @@ PHP);
             'rule' => 'architecture.foreignWrite',
             'file' => 'app/Models/Space.php',
             'target' => 'table:venue_spaces',
-            'model' => 'App\\Models\\Space',
+            'model' => \App\Models\Space::class,
             'reason' => 'The exact root model preserves its owner-scoped delete lifecycle.',
             'owner' => 'Places',
             'expires' => '2999-12-31',
@@ -143,7 +141,7 @@ PHP);
             'rule' => 'architecture.foreignWrite',
             'file' => 'app/Models/Venue.php',
             'target' => 'table:venues',
-            'model' => 'App\\Models\\Venue',
+            'model' => \App\Models\Venue::class,
             'reason' => 'The exact root model preserves its owner-scoped delete lifecycle.',
             'owner' => 'Places',
             'expires' => '2999-12-31',
@@ -153,7 +151,7 @@ PHP);
     $exactModels = $this->project->check();
 
     expect($exactModels['exitCode'])->toBe(0, $exactModels['stderr'].$exactModels['stdout'])
-        ->and($exactModels['stderr'])->toBe('');
+        ->and($exactModels['stderr'])->toBeEmpty();
 
     $this->project->write('app/Models/Space.php', <<<'PHP'
 <?php
@@ -648,10 +646,10 @@ PHP);
         'rule' => 'architecture.writeLocation',
         'file' => 'app/Models/Concerns/HasUserRestoration.php',
         'target' => 'table:unknown',
-        'model' => 'Laravel\\Sanctum\\PersonalAccessToken',
+        'model' => \Laravel\Sanctum\PersonalAccessToken::class,
         'model_provider' => 'sanctum',
         'relation' => 'tokens',
-        'relation_owner' => 'App\\Models\\User',
+        'relation_owner' => \App\Models\User::class,
         'reason' => 'The exact Sanctum token relation remains in the account lifecycle trait.',
         'owner' => 'Identity',
         'expires' => '2999-12-31',
@@ -661,7 +659,7 @@ PHP);
     $traitException = $this->project->check();
 
     expect($traitException['exitCode'])->toBe(0, $traitException['stderr'].$traitException['stdout'])
-        ->and($traitException['stderr'])->toBe('')
+        ->and($traitException['stderr'])->toBeEmpty()
         ->and(json_decode($traitException['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
 
     $exception['file'] = 'app/Models/User.php';
@@ -708,7 +706,7 @@ PHP);
         'target' => 'table:unknown',
         'model' => 'Fixture\\Package\\UserToken',
         'relation' => 'tokens',
-        'relation_owner' => 'App\\Models\\User',
+        'relation_owner' => \App\Models\User::class,
         'reason' => 'Only the trait actually used by User may own its token relation write.',
         'owner' => 'Identity',
         'expires' => '2999-12-31',
@@ -788,10 +786,10 @@ it('rejects Sanctum model metadata on an unrelated table target', function (): v
         'rule' => 'architecture.writeLocation',
         'file' => 'app/Models/Concerns/HasUserRestoration.php',
         'target' => 'table:users',
-        'model' => 'Laravel\\Sanctum\\PersonalAccessToken',
+        'model' => \Laravel\Sanctum\PersonalAccessToken::class,
         'model_provider' => 'sanctum',
         'relation' => 'tokens',
-        'relation_owner' => 'App\\Models\\User',
+        'relation_owner' => \App\Models\User::class,
         'reason' => 'Sanctum metadata must stay scoped to token table exceptions.',
         'owner' => 'Identity',
         'expires' => '2999-12-31',
@@ -907,7 +905,7 @@ PHP);
     $result = $this->project->check();
 
     expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
-        ->and($result['stderr'])->toBe('')
+        ->and($result['stderr'])->toBeEmpty()
         ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
 });
 
@@ -1169,10 +1167,8 @@ PHP);
     ]);
 
     $result = $this->project->check();
-
-    expect($result['stderr'])->toBe('');
-    expect($result['exitCode'])->toBe(0);
-    expect(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
+    expect($result)->toMatchArray(['stderr' => '', 'exitCode' => 0])
+        ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
 });
 
 it('does not treat model builders as relation owners when both roles share a class', function (): void {

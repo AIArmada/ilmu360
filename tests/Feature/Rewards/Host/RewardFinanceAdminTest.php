@@ -41,8 +41,6 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function (): void {
 
     setPermissionsTeamId(null);
@@ -87,7 +85,7 @@ function financeAdminPayoutSetup(User $staff): array
     $reader = new FakeRewardSourceFactReader;
     $reader->seed(RewardLedgerFixtures::fact('src-admin-fin-1', $memberId));
 
-    $result = (new EvaluateRewardEntitlementAction($reader))->handle(
+    $result = new EvaluateRewardEntitlementAction($reader)->handle(
         $program, RewardComponent::Cash, 'user', $memberId, RewardBeneficiaryRole::Recipient,
         'src-admin-fin-1', CarbonImmutable::parse('2026-06-15T00:00:00Z'),
     );
@@ -97,7 +95,7 @@ function financeAdminPayoutSetup(User $staff): array
         'user', $verifier, 'staff', null, CarbonImmutable::parse('2026-06-16T00:00:00Z'),
     );
 
-    $approved = (new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader))->handle(
+    $approved = new TransitionRewardAwardAction(app(RewardFinancialReadinessChecker::class), $reader)->handle(
         $result->award, RewardAwardStatus::Approved, 'user', (string) $staff->getKey(), 'staff', 'policy-ok',
         null, null, CarbonImmutable::parse('2026-06-17T00:00:00Z'),
     );

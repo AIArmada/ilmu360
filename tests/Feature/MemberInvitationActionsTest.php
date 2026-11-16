@@ -34,9 +34,8 @@ it('creates a member invitation with the requested subject and role', function (
         ->and($invitation->email)->toBe('invitee@example.com')
         ->and($invitation->role)->toBe('admin')
         ->and($invitation->invited_by)->toBe($inviter->getKey())
-        ->and($invitation->token)->not->toBe('');
-
-    expect($invitation->token)->not->toBe('');
+        ->and($invitation->token)->not->toBeEmpty()
+        ->and($invitation->token)->not->toBeEmpty();
 });
 
 it('resolves raw invitation links against hashed stored tokens', function () {
@@ -51,7 +50,7 @@ it('resolves raw invitation links against hashed stored tokens', function () {
         now()->addWeek(),
     );
 
-    expect($invitation->token)->not->toBe('');
+    expect($invitation->token)->not->toBeEmpty();
 });
 
 it('rejects protected ownership roles for member invitations', function () {
@@ -236,9 +235,7 @@ it('rejects a duplicate pending invitation for the same subject and email', func
         'admin',
         $inviter,
         now()->addWeek(),
-    ))->toThrow(ValidationException::class);
-
-    expect(MemberInvitation::query()
-        ->where('subject_id', $institution->getKey())
-        ->count())->toBe(1);
+    ))->toThrow(ValidationException::class)
+        ->and(MemberInvitation::query()
+        ->where('subject_id', $institution->getKey())->count())->toBe(1);
 });

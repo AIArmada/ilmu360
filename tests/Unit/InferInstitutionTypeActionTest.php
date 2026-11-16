@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Actions\Institutions\InferInstitutionTypeAction;
 use App\Shared\Directory\Enums\InstitutionType;
 

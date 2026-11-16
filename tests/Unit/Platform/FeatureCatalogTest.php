@@ -83,7 +83,7 @@ PHP);
             'reason' => 'This exact root adapter writes the infrastructure cache.',
             'expires' => '2999-12-31',
         ],
-    ])->and(array_key_exists('store:infrastructure.root-cache', $catalog['owners']))->toBeFalse();
+    ])->and($catalog['owners'])->not->toHaveKey('store:infrastructure.root-cache');
 });
 
 it('rejects root store writers without exact class and store metadata', function (string $class, array $writer, ?string $file, string $message): void {
@@ -140,7 +140,7 @@ it('rejects root store writers without exact class and store metadata', function
     ],
     'unexpected metadata field' => [
         'App\\Platform\\Cache\\CacheWriter',
-        ['adapter' => 'cache', 'resource' => 'store:infrastructure.cache', 'reason' => 'A root cache writer.', 'expires' => '2999-12-31', 'model' => 'App\\Models\\User'],
+        ['adapter' => 'cache', 'resource' => 'store:infrastructure.cache', 'reason' => 'A root cache writer.', 'expires' => '2999-12-31', 'model' => \App\Models\User::class],
         null,
         'must declare adapter, resource, reason and expires',
     ],

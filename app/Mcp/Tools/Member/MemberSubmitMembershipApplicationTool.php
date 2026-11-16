@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
-use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;
 use App\Models\User;
 use App\Platform\Media\StagedUploadFactory;
+use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Support\Api\Member\MemberResourceService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use App\Support\Mcp\McpFilePayloadNormalizer;

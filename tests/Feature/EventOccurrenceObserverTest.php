@@ -7,8 +7,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Scout\Jobs\MakeSearchable;
 
-uses(RefreshDatabase::class);
-
 function searchableEvent(): Event
 {
     return Event::factory()->create([

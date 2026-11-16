@@ -7,17 +7,17 @@ use Illuminate\Validation\ValidationException;
 it('can create user with email only', function () {
     User::factory()->emailOnly()->create();
 
-    expect(User::count())->toBe(1);
-    expect(User::first()->email)->not->toBeNull();
-    expect(User::first()->phone)->toBeNull();
+    expect(User::count())->toBe(1)
+        ->and(User::first()->email)->not->toBeNull()
+        ->and(User::first()->phone)->toBeNull();
 });
 
 it('can create user with phone only', function () {
     User::factory()->phoneOnly()->create();
 
-    expect(User::count())->toBe(1);
-    expect(User::first()->phone)->not->toBeNull();
-    expect(User::first()->email)->toBeNull();
+    expect(User::count())->toBe(1)
+        ->and(User::first()->phone)->not->toBeNull()
+        ->and(User::first()->email)->toBeNull();
 });
 
 it('requires either email or phone when creating user', function () {
@@ -69,6 +69,6 @@ it('allows registering with email and phone together', function () {
         'password_confirmation' => 'password',
     ]);
 
-    expect($user->email)->toBe('test@example.com');
-    expect($user->phone)->toBe('+60123456789');
+    expect($user->email)->toBe('test@example.com')
+        ->and($user->phone)->toBe('+60123456789');
 });

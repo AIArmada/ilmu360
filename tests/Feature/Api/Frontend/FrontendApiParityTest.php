@@ -7,13 +7,13 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AffiliationType;
-use App\Features\Institutions\Api\InstitutionSearchCache;
-use App\Features\Persons\Api\PersonSearchCache;
-use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Features\Inspirations\Models\Inspiration;
+use App\Features\Institutions\Api\InstitutionSearchCache;
+use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\Persons\Api\PersonSearchCache;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\References\Api\ReferenceSearchCache;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Models\Affiliation;
 use App\Models\ContributionRequest;
@@ -168,9 +168,8 @@ it('exposes corrected frontend contract metadata', function () {
         ->and($shareAnalyticsFlow['filters']['sort'] ?? [])->toContain('recent', 'visits', 'signups', 'registrations', 'checkins', 'submissions')
         ->and($institutionsNearFlow['endpoint'] ?? null)->toContain('/api/v1/institutions/near')
         ->and($institutionsNearFlow['near_format'] ?? null)->toBe('lat,lng')
-        ->and($institutionsNearFlow['radius_parameter'] ?? null)->toBe('radius_km');
-
-    expect($mobileTelemetryContract['flow'] ?? null)->toBe('mobile_telemetry')
+        ->and($institutionsNearFlow['radius_parameter'] ?? null)->toBe('radius_km')
+        ->and($mobileTelemetryContract['flow'] ?? null)->toBe('mobile_telemetry')
         ->and($mobileTelemetryContract['endpoint'] ?? null)->toContain('/api/v1/mobile/telemetry/events')
         ->and($mobileTelemetryContract['bearer_auth_optional'] ?? null)->toBeTrue()
         ->and($mobileTelemetryContract['native_only'] ?? null)->toBeTrue()
@@ -785,7 +784,7 @@ it('accepts SVG institution logos on public contribution update suggestions', fu
         'subjectType' => 'institusi',
         'subject' => $institution->slug,
     ]), [
-        'logo' => UploadedFile::fake()->createWithContent('institution-logo.svg', $svg, 'image/svg+xml'),
+        'logo' => UploadedFile::fake()->createWithContent('institution-logo.svg', $svg),
     ], [
         'Accept' => 'application/json',
     ])
@@ -1522,10 +1521,10 @@ it('serializes institution directory payloads with card media aliases for mobile
         ->and(data_get($item, 'logo_url'))->toBeString()->not->toBe('')
         ->and(data_get($item, 'cover_url'))->toBeString()->not->toBe('')
         ->and(data_get($item, 'is_following'))->toBeTrue()
-        ->and(array_key_exists('location', $item))->toBeTrue()
-        ->and(array_key_exists('event_count', $item))->toBeFalse()
-        ->and(array_key_exists('image_url', $item))->toBeFalse()
-        ->and(array_key_exists('location_text', $item))->toBeFalse();
+        ->and($item)->toHaveKey('location')
+        ->and($item)->not->toHaveKey('event_count')
+        ->and($item)->not->toHaveKey('image_url')
+        ->and($item)->not->toHaveKey('location_text');
 });
 
 it('returns authenticated follow state in the frontend institution api', function () {
@@ -1844,7 +1843,7 @@ it('keeps placeholder institution imagery when no real media exists', function (
     expect(data_get($item, 'cover_url'))->toBeNull()
         ->and(data_get($item, 'logo_url'))->toBeString()->toContain('/images/placeholders/institution.png')
         ->and(data_get($item, 'public_image_url'))->toBe(data_get($item, 'logo_url'))
-        ->and(array_key_exists('image_url', $item))->toBeFalse();
+        ->and($item)->not->toHaveKey('image_url');
 });
 
 it('exposes the institution public image url in the frontend institution detail payload', function () {
@@ -2284,7 +2283,7 @@ it('creates person contribution requests with explicit country and institution f
 
     expect($person->primaryAddress()?->country_id)->toBe($singaporeId)
         ->and($person->institutions->firstWhere('id', $institution->getKey())?->pivot?->position)->toBe('Ustaz')
-        ->and((bool) $person->institutions->firstWhere('id', $institution->getKey())?->pivot?->is_primary)->toBeTrue()
+        ->and($person->institutions->firstWhere('id', $institution->getKey())?->pivot?->is_primary)->toBeTruthy()
         ->and($person->slug)->toEndWith('-sg')
         ->and(ContributionRequest::query()->where('entity_id', $person->getKey())->exists())->toBeTrue();
 });
@@ -3231,8 +3230,7 @@ it('returns all matching spaces without truncating the catalog payload', functio
 
     $responseIds = collect($response)->pluck('id')->all();
 
-    expect($spaces->map(fn (Space $space): string => (string) $space->getKey())->diff($responseIds)->all())
-        ->toBe([]);
+    expect($spaces->map(fn (Space $space): string => (string) $space->getKey())->diff($responseIds)->all())->toBeEmpty();
 });
 
 it('returns the institution workspace payload for the selected accessible institution', function () {
@@ -3889,7 +3887,7 @@ it('mirrors the public person page payload for app clients', function () {
         ->and($response->json('data.past_total'))->toBe(1)
         ->and(count($response->json('data.other_role_upcoming_participations')))->toBe(1)
         ->and($response->json('data.other_role_upcoming_total'))->toBe(1)
-        ->and(count($response->json('data.other_role_past_participations')))->toBe(0)
+        ->and($response->json('data.other_role_past_participations'))->toBeEmpty()
         ->and($response->json('data.other_role_past_total'))->toBe(0)
         ->and($response->json('data.other_role_upcoming_participations.0.role'))->toBe('moderator')
         ->and($response->json('data.other_role_upcoming_participations.0.role_label'))->toBe(EventKeyPersonRole::Moderator->getLabel())

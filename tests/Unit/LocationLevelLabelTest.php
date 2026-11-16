@@ -4,7 +4,7 @@ use App\Platform\Location\LocationLevelLabels;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+pest()->extend(TestCase::class)->use(RefreshDatabase::class);
 
 it('resolves location labels from the country provider when one exists', function (string $role, string $expected): void {
     app()->setLocale('en');

@@ -16,14 +16,14 @@ use App\Features\Communications\Api\PushDestinationSnapshot;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 
-final class PushDestinationService implements PushDestinationManagement
+final readonly class PushDestinationService implements PushDestinationManagement
 {
     public function __construct(
-        private readonly RegisterPushDestinationAction $registerDestination,
-        private readonly UpdatePushDestinationAction $updateDestination,
-        private readonly DeletePushDestinationAction $deleteDestination,
-        private readonly RemovePushDestinationAction $removeDestination,
-        private readonly ResolvePushDestinationsAction $resolveDestinations,
+        private RegisterPushDestinationAction $registerDestination,
+        private UpdatePushDestinationAction $updateDestination,
+        private DeletePushDestinationAction $deleteDestination,
+        private RemovePushDestinationAction $removeDestination,
+        private ResolvePushDestinationsAction $resolveDestinations,
     ) {}
 
     public function register(string $accountId, string $installationId, PushDestinationDetails $details): PushDestinationSnapshot

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Services;
 
+use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
-use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;
