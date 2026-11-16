@@ -25,6 +25,7 @@ class EventJsonLd extends Component
      * @param  string|null  $name  Title override for that date page.
      * @param  CarbonInterface|null  $startsAt  Date-level start time override.
      * @param  CarbonInterface|null  $endsAt  Date-level end time override.
+     * @param  Venue<\AIArmada\Events\Models\VenueSpace>|null  $venue  Scoped venue, including a package-level venue.
      */
     public function __construct(
         public Event $event,
