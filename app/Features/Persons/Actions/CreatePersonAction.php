@@ -34,6 +34,18 @@ final readonly class CreatePersonAction
         bool $syncRelations = true,
         bool $defaultGender = true,
     ): Person {
+        // Root-level country from quick-create is also an address relation.
+        if (! array_key_exists('address', $payload)
+            && is_string($payload['country_id'] ?? null)
+            && trim($payload['country_id']) !== '') {
+            $payload['address'] = array_filter([
+                'country_id' => $payload['country_id'],
+                'country_code' => $payload['country_code'] ?? null,
+                'state' => $payload['state'] ?? null,
+                'city' => $payload['city'] ?? null,
+            ], static fn (mixed $value): bool => $value !== null && $value !== '');
+        }
+
         $name = (string) ($payload['name'] ?? 'Person');
         $now = now();
         $attributes = [

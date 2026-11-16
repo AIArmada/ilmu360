@@ -48,7 +48,9 @@ it('uses unchanged persistent version keys', function (): void {
 
 it('composes the person version with the Events-owned involvement fingerprint', function (): void {
     $versions = app(PersonListingCacheVersion::class);
-    $table = (string) config('events.database.tables.event_involvements', 'event_involvements');
+    $originalTable = config('events.database.tables.event_involvements', 'event_involvements');
+    $table = 'test_event_involvements_fingerprint';
+    config()->set('events.database.tables.event_involvements', $table);
 
     Schema::create($table, function (Blueprint $blueprint): void {
         $blueprint->uuid('id')->primary();
@@ -75,5 +77,6 @@ it('composes the person version with the Events-owned involvement fingerprint', 
             ->and($personVersion)->toBe($baseVersion.'|1|'.$latestUpdate);
     } finally {
         Schema::dropIfExists($table);
+        config()->set('events.database.tables.event_involvements', $originalTable);
     }
 });

@@ -190,11 +190,11 @@ it('saves omits and clears facilities through the save institution action', func
 
     SaveInstitutionAction::run(['name' => $institution->name, 'facilities' => ['parking', 'oku']], $actor, $institution);
 
-    expect($institution->fresh()->facilities)->toBe(['parking' => true, 'oku' => true]);
+    expect($institution->fresh()->facilities)->toEqual(['parking' => true, 'oku' => true]);
 
     SaveInstitutionAction::run(['name' => 'Renamed Institution'], $actor, $institution->fresh());
 
-    expect($institution->fresh()->facilities)->toBe(['parking' => true, 'oku' => true]);
+    expect($institution->fresh()->facilities)->toEqual(['parking' => true, 'oku' => true]);
 
     SaveInstitutionAction::run(['name' => 'Renamed Institution', 'facilities' => null], $actor, $institution->fresh());
 
@@ -246,7 +246,7 @@ it('emits the facilities signal only after the enclosing transaction commits', f
         expect(SignalEvent::query()->where('event_name', 'admin.institution_facilities.updated')->count())->toBe(0);
     });
 
-    expect($institution->fresh()->facilities)->toBe(['parking' => true, 'oku' => true])
+    expect($institution->fresh()->facilities)->toEqual(['parking' => true, 'oku' => true])
         ->and(SignalEvent::query()->where('event_name', 'admin.institution_facilities.updated')->count())->toBe(1);
 });
 

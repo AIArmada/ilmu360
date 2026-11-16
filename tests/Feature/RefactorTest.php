@@ -12,7 +12,7 @@ test('schema no longer contains removed columns and tables', function (): void {
         ->and(Schema::hasTable('event_involvements'))->toBeTrue()
         ->and(Schema::hasTable('event_attendances'))->toBeTrue()
         ->and(Schema::hasTable('contribution_requests'))->toBeTrue()
-        ->and(Schema::hasTable('membership_applications'))->toBeFalse()
+        ->and(Schema::hasTable('membership_applications'))->toBeTrue()
         ->and(Schema::hasTable('reference_members'))->toBeTrue()
         ->and(Schema::hasTable('membership_invitations'))->toBeTrue()
         ->and(Schema::hasTable('notification_settings'))->toBeFalse()

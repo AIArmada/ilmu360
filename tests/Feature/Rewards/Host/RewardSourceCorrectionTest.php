@@ -202,7 +202,7 @@ it('reverses fulfilled cash through recovery instead of blind transition', funct
     TransitionRewardProgramStatusAction::run($program, RewardProgramStatus::Active);
 
     $memberId = (string) User::factory()->create()->getKey();
-    $version = $program->versions()->orderByDesc('seq')->firstOrFail();
+    $version = $program->versions()->orderByDesc('version')->firstOrFail();
 
     EnrollRewardMemberAction::run(
         $program->refresh(), 'user', $memberId, $version, 'member-portal', CarbonImmutable::parse('2026-06-10T00:00:00Z'),

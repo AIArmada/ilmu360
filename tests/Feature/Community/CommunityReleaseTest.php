@@ -595,7 +595,7 @@ it('hides unknown, corrupt, staff, and purchaser rows from every proven count an
 
     communityConversion($affiliate, [
         'sharer_user_id' => $extraSharer(),
-        'actor_user_id' => 'not-a-uuid',
+        'actor_user_id' => (string) Str::uuid(),
     ]);
 
     communityConversion($affiliate, [

@@ -98,16 +98,20 @@ it('fails open when the cache store is down', function () {
 it('opens from an empty database store', function () {
     // Unit scope runs without migrations; create the cache tables the
     // lifecycle lock needs, mirroring the shipped cache migration.
-    Schema::create('cache', function (Blueprint $table) {
-        $table->string('key')->primary();
-        $table->mediumText('value');
-        $table->bigInteger('expiration')->index();
-    });
-    Schema::create('cache_locks', function (Blueprint $table) {
-        $table->string('key')->primary();
-        $table->string('owner');
-        $table->bigInteger('expiration')->index();
-    });
+    if (! Schema::hasTable('cache')) {
+        Schema::create('cache', function (Blueprint $table): void {
+            $table->string('key')->primary();
+            $table->mediumText('value');
+            $table->bigInteger('expiration')->index();
+        });
+    }
+    if (! Schema::hasTable('cache_locks')) {
+        Schema::create('cache_locks', function (Blueprint $table): void {
+            $table->string('key')->primary();
+            $table->string('owner');
+            $table->bigInteger('expiration')->index();
+        });
+    }
 
     config(['prayer.cache.store' => 'database']);
     Cache::store('database')->flush();
@@ -126,16 +130,20 @@ it('opens from an empty database store', function () {
 });
 
 it('writes the failure counter with atomic primitives only, so interleaved failures cannot erase each other', function () {
-    Schema::create('cache', function (Blueprint $table) {
-        $table->string('key')->primary();
-        $table->mediumText('value');
-        $table->bigInteger('expiration')->index();
-    });
-    Schema::create('cache_locks', function (Blueprint $table) {
-        $table->string('key')->primary();
-        $table->string('owner');
-        $table->bigInteger('expiration')->index();
-    });
+    if (! Schema::hasTable('cache')) {
+        Schema::create('cache', function (Blueprint $table): void {
+            $table->string('key')->primary();
+            $table->mediumText('value');
+            $table->bigInteger('expiration')->index();
+        });
+    }
+    if (! Schema::hasTable('cache_locks')) {
+        Schema::create('cache_locks', function (Blueprint $table): void {
+            $table->string('key')->primary();
+            $table->string('owner');
+            $table->bigInteger('expiration')->index();
+        });
+    }
 
     // The database store lets the test observe every Repository::put —
     // the exact operation that lets a post-increment reset erase a

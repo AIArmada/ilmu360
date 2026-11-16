@@ -47,7 +47,7 @@ it('retains event facts and detaches only the account links', function (): void 
         'total_price' => 15000,
         'currency' => 'MYR',
         'status' => 'paid',
-        'external_order_item_id' => 'order-item-retain-1',
+        'external_order_item_id' => '00000000-0000-7000-8000-000000000071',
     ]);
 
     $checkin = EventCheckin::factory()->create([
@@ -96,7 +96,7 @@ it('retains event facts and detaches only the account links', function (): void 
     ]);
     assertDatabaseHas('event_registration_participants', ['id' => $participant->id]);
     assertDatabaseHas('event_registration_answers', ['id' => $answer->id, 'answer' => 'Vegetarian']);
-    assertDatabaseHas('event_registration_items', ['id' => $item->id, 'external_order_item_id' => 'order-item-retain-1']);
+    assertDatabaseHas('event_registration_items', ['id' => $item->id, 'external_order_item_id' => '00000000-0000-7000-8000-000000000071']);
     assertDatabaseHas('event_attendances', [
         'id' => $checkin->id,
         'attendee_type' => null,

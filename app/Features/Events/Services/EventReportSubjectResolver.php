@@ -11,6 +11,7 @@ use App\Shared\Reports\ReportSubject;
 use App\Shared\Reports\ReportSubjectPresentation;
 use App\Shared\Reports\ReportSubjectType;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
@@ -42,13 +43,13 @@ final readonly class EventReportSubjectResolver implements EventReportSubjectPro
     public function exists(string $typeKey, string $entityId): bool
     {
         return $this->typeOrNull($typeKey) === ReportSubjectType::Event
-            && trim($entityId) !== ''
+            && Str::isUuid(trim($entityId))
             && EventModel::query('event')->whereKey($entityId)->exists();
     }
 
     public function find(string $typeKey, string $entityId): ?ReportSubject
     {
-        if ($this->typeOrNull($typeKey) !== ReportSubjectType::Event || trim($entityId) === '') {
+        if ($this->typeOrNull($typeKey) !== ReportSubjectType::Event || ! Str::isUuid(trim($entityId))) {
             return null;
         }
 
