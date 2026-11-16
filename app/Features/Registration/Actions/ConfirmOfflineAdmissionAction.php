@@ -175,7 +175,7 @@ final readonly class ConfirmOfflineAdmissionAction
             // queued OrderPaid fulfillment is not guaranteed to run yet.
             $this->syncOrderRegistrations->handle(
                 orderId: (string) $result['order']->getKey(),
-                orderType: Order::class,
+                orderType: (string) $result['registration']->external_order_type,
                 eventType: 'paid',
                 registrationIds: [(string) $result['registration']->getKey()],
             );
