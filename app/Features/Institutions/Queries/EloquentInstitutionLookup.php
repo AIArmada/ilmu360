@@ -68,6 +68,10 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             ))->all();
     }
 
+    /**
+     * @param list<string> $institutionIds
+     * @return array<string, string>
+     */
     public function prayerInstitutionLabels(array $institutionIds): array
     {
         if ($institutionIds === []) {
@@ -84,6 +88,10 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         return $labels;
     }
 
+    /**
+     * @param list<string> $institutionIds
+     * @return list<string>
+     */
     public function selectablePrayerInstitutionIds(array $institutionIds): array
     {
         if ($institutionIds === []) {
@@ -94,6 +102,10 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             ->map(static fn (mixed $id): string => (string) $id)->values()->all();
     }
 
+    /**
+     * @param list<string> $institutionIds
+     * @return array<string, string|null>
+     */
     public function rawNamesByIds(array $institutionIds): array
     {
         if ($institutionIds === []) {
