@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Engagement;
+namespace App\Features\Engagement\Actions;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Ticketing\Enums\PricingMode;
@@ -16,10 +16,9 @@ use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Root going writer for the package-canonical response rows.
+ * Engagement-owned going writer for package-canonical response rows.
  *
- * The package engagement tables have no application owner, so this named
- * action stays in the root Actions namespace. It owns the response write,
+ * The package owns response storage; this feature owns the application orchestration. It owns the response write,
  * going-triggered free admission, counter recalculation and records the
  * event-going share outcome through the EngagementShareOutcomes contract; no
  * caller should reproduce that orchestration.

@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Engagement\MarkEventGoingAction;
-use App\Actions\Engagement\RemoveEventGoingAction;
+use App\Features\Engagement\Api\EventGoingCommands;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;
 use App\Http\Controllers\Controller;
@@ -62,7 +61,7 @@ class EventGoingController extends Controller
         title: 'Mark an event as going',
         description: 'Idempotently marks the target public event as going for the authenticated user when it is still engageable.',
     )]
-    public function store(Request $request, Event $event, MarkEventGoingAction $markEventGoingAction): JsonResponse
+    public function store(Request $request, Event $event, EventGoingCommands $eventGoingCommands): JsonResponse
     {
         $isPostponed = $event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true);
 
@@ -88,7 +87,7 @@ class EventGoingController extends Controller
             ], 403);
         }
 
-        $goingState = $markEventGoingAction->handle($event, $this->currentUser($request), $request);
+        $goingState = $eventGoingCommands->mark((string) $event->getKey(), (string) $this->currentUser($request)->getKey());
         $created = $goingState['status'] === 'created';
 
         return response()->json([
@@ -104,9 +103,9 @@ class EventGoingController extends Controller
         title: 'Remove going state',
         description: 'Idempotently removes the authenticated user\'s going state for the target event.',
     )]
-    public function destroy(Request $request, Event $event, RemoveEventGoingAction $removeEventGoingAction): JsonResponse
+    public function destroy(Request $request, Event $event, EventGoingCommands $eventGoingCommands): JsonResponse
     {
-        $result = $removeEventGoingAction->handle($event, $this->currentUser($request));
+        $result = $eventGoingCommands->remove((string) $event->getKey(), (string) $this->currentUser($request)->getKey());
 
         return response()->json([
             'message' => $result['deleted'] ? 'Going removed successfully.' : 'Event was not marked as going.',

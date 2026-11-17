@@ -10,8 +10,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Actions\Engagement\MarkEventGoingAction;
-use App\Actions\Engagement\RemoveEventGoingAction;
+use App\Features\Engagement\Api\EventGoingCommands;
 use App\Actions\Engagement\SaveEventAction;
 use App\Actions\Engagement\UnsaveEventAction;
 use App\Data\PublicScheduleLeaf;
@@ -938,7 +937,7 @@ class Show extends Component
         if ($this->{$stateProperty}) {
             $result = match ($relation) {
                 'savedEvents' => $this->unsaveEventForUser($user),
-                'goingEvents' => app(RemoveEventGoingAction::class)->handle($this->event, $user),
+                'goingEvents' => app(EventGoingCommands::class)->remove((string) $this->event->getKey(), (string) $user->getKey()),
                 default => ['deleted' => false, $countColumn => max(0, (int) ($this->event->{$countColumn} ?? 0))],
             };
 
@@ -952,7 +951,7 @@ class Show extends Component
         } else {
             $result = match ($relation) {
                 'savedEvents' => $this->saveEventForUser($user),
-                'goingEvents' => app(MarkEventGoingAction::class)->handle($this->event, $user, request()),
+                'goingEvents' => app(EventGoingCommands::class)->mark((string) $this->event->getKey(), (string) $user->getKey()),
                 default => ['status' => 'conflict', $countColumn => (int) ($this->event->{$countColumn} ?? 0)],
             };
 

@@ -114,3 +114,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 ### ShareTracking guest claim simplification
 - [x] Remove the root ClaimGuestShareProfileAction forwarding adapter. Callers now consume the existing scalar GuestShareClaims feature API directly, preserving result decisions and explicit consent.
 - [ ] Verify claim/replay/identity tests and boundary CI.
+
+
+### Engagement going cutover
+- [x] Move event-going and remove-going orchestration and package writes under Engagement; expose scalar EventGoingCommands.
+- [x] Update HTTP/Livewire to contract; keep private action tests for explicit Request attribution scenarios. Delete root actions.
+- [ ] Verify original eligibility, counts, idempotency, free admission and share attribution on CI.

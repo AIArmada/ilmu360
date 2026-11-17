@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Engagement;
+namespace App\Features\Engagement\Actions;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Models\Response;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Root remove-going writer for the package-canonical response rows.
+ * Engagement-owned remove-going writer for package-canonical response rows.
  *
  * Locks the caller's active response inside the same transaction that cancels
  * it, recalculates the counter and reverses the event-going share outcome

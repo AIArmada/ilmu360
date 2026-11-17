@@ -2,8 +2,7 @@
 
 namespace App\Livewire\Concerns;
 
-use App\Actions\Engagement\MarkEventGoingAction;
-use App\Actions\Engagement\RemoveEventGoingAction;
+use App\Features\Engagement\Api\EventGoingCommands;
 use App\Models\Event;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
@@ -42,12 +41,12 @@ trait TogglesEventGoing
             (string) $user->getKey(),
             (string) $event->getKey(),
         )) {
-            app(RemoveEventGoingAction::class)->handle($event, $user);
+            app(EventGoingCommands::class)->remove((string) $event->getKey(), (string) $user->getKey());
 
             return;
         }
 
-        app(MarkEventGoingAction::class)->handle($event, $user, request());
+        app(EventGoingCommands::class)->mark((string) $event->getKey(), (string) $user->getKey());
     }
 
     protected function eventAcceptsGoing(Event $event): bool
