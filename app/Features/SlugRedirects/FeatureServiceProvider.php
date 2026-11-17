@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\SlugRedirects;
 
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
-use App\Features\SlugRedirects\Api\SlugRedirectAdministration;
-use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Features\SlugRedirects\Actions\ResolvePublicSlugAction;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
+use App\Features\SlugRedirects\Api\SlugRedirectAdministration;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Features\SlugRedirects\Api\SlugRedirectLookup;
 use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\SlugRedirectResource;
 use App\Features\SlugRedirects\Integration\CanonicalSlugRedirectRecorder;

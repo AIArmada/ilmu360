@@ -75,7 +75,7 @@ class ResolvePublicSlugRedirect
 
             $resource = $this->publicSlugRegistry->resourceForType($resolved->modelType);
 
-            if ($resource === null) {
+            if (! $resource instanceof \App\Platform\Routing\PublicSlugResource) {
                 abort(404);
             }
 
