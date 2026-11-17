@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Commerce;
+namespace App\Features\Events\Actions\Commerce;
 
 use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateConversion;
 use AIArmada\Affiliates\Data\AffiliateConversionData;
@@ -17,7 +17,9 @@ use AIArmada\CommerceSupport\Support\OwnerTuple\OwnerTupleParser;
 use AIArmada\Events\Models\EventRegistrationItem;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderItem;
-use App\Models\Registration;
+use App\Features\Events\Api\TicketAffiliateCommissions;
+use App\Platform\Models\MorphModelResolver;
+use AIArmada\Events\Models\EventRegistration;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -28,12 +30,18 @@ use Illuminate\Support\Str;
  * Ticket commission value is the paid order-item net after discounts and
  * before tax, allocated evenly by registration with deterministic remainders.
  */
-final readonly class RecordTicketAffiliateCommissionsAction
+final readonly class RecordTicketAffiliateCommissionsAction implements TicketAffiliateCommissions
 {
     public function __construct(
         private CartManagerInterface $cartManager,
         private RecordAffiliateConversion $recordAffiliateConversion,
     ) {}
+
+    /** @param list<string> $registrationIds */
+    public function recordForCheckout(string $checkoutSessionId, array $registrationIds): array
+    {
+        return $this->handle(CheckoutSession::query()->findOrFail($checkoutSessionId), $registrationIds);
+    }
 
     /**
      * @param  array<int, string>  $registrationIds
@@ -173,7 +181,10 @@ final readonly class RecordTicketAffiliateCommissionsAction
             return [];
         }
 
-        $registrations = Registration::query()
+        $registrationModel = MorphModelResolver::resolve('registration');
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, EventRegistration> $registrations */
+        $registrations = $registrationModel::query()
             ->whereIn('id', $registrationIds)
             ->where('external_order_id', $order->getKey())
             ->with('items')
@@ -251,7 +262,7 @@ final readonly class RecordTicketAffiliateCommissionsAction
                         'subtotal' => $netAmount,
                         'total' => $netAmount,
                         'commission_currency' => (string) ($orderItem->currency ?: $order->currency),
-                        'subject_type' => Registration::class,
+                        'subject_type' => $registrationModel,
                         'subject_key' => $registrationId,
                         'subject_id' => $registrationId,
                         'source_ref' => $externalReference,

@@ -185,3 +185,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move default form projection to Events feature, expose scalar account-based AdvancedBuilderContext; delete old root action.
 - [x] Use owner-qualified AdvancedBuilderMembershipOptions, canonical morph-language lookup, and unchanged taxonomy/registration code values; update Livewire, frontend catalog and tests.
 - [ ] Confirm context defaults and authorization using CI.
+
+
+### Event ticket commission recording cutover
+- [x] Move frozen commercial ticket attribution recording into Events/Actions/Commerce behind scalar TicketAffiliateCommissions API.
+- [x] Keep canonical session/order/registration package rows, net allocation, idempotency and commission keys. Checkout and financial tests use the new contract; remove root action.
+- [ ] Verify paid/free, self-purchase, reversals, refunds and payout reservation behavior on Quality CI.

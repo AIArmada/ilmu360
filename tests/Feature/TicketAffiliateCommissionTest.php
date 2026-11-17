@@ -24,7 +24,7 @@ use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderItem;
 use AIArmada\Orders\States\Processing;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Events\Commerce\RecordTicketAffiliateCommissionsAction;
+use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
 use App\Checkout\RecordTicketAffiliateCommissionsStep;
 use App\Models\Event;
@@ -266,13 +266,13 @@ it('blocks commission for affiliate-owner self purchases and free registrations'
     $selfPurchase = seedTicketAffiliateCommissionCheckout(selfPurchase: true);
     $selfIds = array_map(static fn (Registration $registration): string => (string) $registration->getKey(), $selfPurchase['registrations']);
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($selfPurchase['session'], $selfIds))->toBeEmpty()
+    expect(app(TicketAffiliateCommissions::class)->recordForCheckout((string) $selfPurchase['session']->getKey(), $selfIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 
     $free = seedTicketAffiliateCommissionCheckout(grandTotal: 0, unitPrice: 0, discountAmount: 0, taxAmount: 0);
     $freeIds = array_map(static fn (Registration $registration): string => (string) $registration->getKey(), $free['registrations']);
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($free['session'], $freeIds))->toBeEmpty()
+    expect(app(TicketAffiliateCommissions::class)->recordForCheckout((string) $free['session']->getKey(), $freeIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -280,7 +280,7 @@ it('does not pay commercial commission for a share-purpose affiliate', function 
     $fixture = seedTicketAffiliateCommissionCheckout(affiliatePurpose: 'share_member');
     $registrationIds = array_map(static fn (Registration $registration): string => (string) $registration->getKey(), $fixture['registrations']);
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBeEmpty()
+    expect(app(TicketAffiliateCommissions::class)->recordForCheckout((string) $fixture['session']->getKey(), $registrationIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -292,8 +292,8 @@ it('requires frozen commercial purpose and active program membership', function 
         $share['registrations'],
     );
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)
-        ->handle($share['session'], $shareRegistrationIds))->toBeEmpty()
+    expect(app(TicketAffiliateCommissions::class)
+        ->recordForCheckout((string) $share['session']->getKey(), $shareRegistrationIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 
     $inactiveProgram = seedTicketAffiliateCommissionCheckout();
@@ -304,8 +304,8 @@ it('requires frozen commercial purpose and active program membership', function 
         $inactiveProgram['registrations'],
     );
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)
-        ->handle($inactiveProgram['session'], $inactiveProgramIds))->toBeEmpty()
+    expect(app(TicketAffiliateCommissions::class)
+        ->recordForCheckout((string) $inactiveProgram['session']->getKey(), $inactiveProgramIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 
     $inactiveMembership = seedTicketAffiliateCommissionCheckout();
@@ -317,8 +317,8 @@ it('requires frozen commercial purpose and active program membership', function 
         $inactiveMembership['registrations'],
     );
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)
-        ->handle($inactiveMembership['session'], $inactiveMembershipIds))->toBeEmpty()
+    expect(app(TicketAffiliateCommissions::class)
+        ->recordForCheckout((string) $inactiveMembership['session']->getKey(), $inactiveMembershipIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -331,7 +331,7 @@ it('blocks commission when a commercial affiliate is paused or deactivated', fun
             $fixture['registrations'],
         );
 
-        expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBeEmpty()
+        expect(app(TicketAffiliateCommissions::class)->recordForCheckout((string) $fixture['session']->getKey(), $registrationIds))->toBeEmpty()
             ->and(AffiliateConversion::query()->count())->toBe(0);
     }
 });
@@ -346,7 +346,7 @@ it('fails closed when the paid order has no frozen checkout actor', function ():
         $fixture['registrations'],
     );
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toBeEmpty()
+    expect(app(TicketAffiliateCommissions::class)->recordForCheckout((string) $fixture['session']->getKey(), $registrationIds))->toBeEmpty()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });
 
@@ -385,7 +385,7 @@ it('reverses pending ticket commissions when the event is cancelled', function (
     $event = Event::query()->findOrFail($fixture['registrations'][0]->event_id);
     $event->forceFill(['status' => EventApproved::class])->save();
 
-    expect(app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds))->toHaveCount(2);
+    expect(app(TicketAffiliateCommissions::class)->recordForCheckout((string) $fixture['session']->getKey(), $registrationIds))->toHaveCount(2);
 
     $moderator = User::factory()->create();
     new CancelEvent($event, $moderator)->handle();
@@ -406,7 +406,7 @@ it('finishes a registration refund and retries a payout-reserved commission reve
     $fixture = seedTicketAffiliateCommissionCheckout();
     $registration = $fixture['registrations'][0];
     $registrationIds = [(string) $registration->getKey(), (string) $fixture['registrations'][1]->getKey()];
-    app(RecordTicketAffiliateCommissionsAction::class)->handle($fixture['session'], $registrationIds);
+    app(TicketAffiliateCommissions::class)->recordForCheckout((string) $fixture['session']->getKey(), $registrationIds);
 
     $conversion = AffiliateConversion::query()
         ->where('external_reference', 'ticket:'.$fixture['order']->getKey().':registration:'.$registration->getKey())

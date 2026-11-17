@@ -8,7 +8,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Checkout\Data\StepResult;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
-use App\Actions\Events\Commerce\RecordTicketAffiliateCommissionsAction;
+use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
 use App\Models\Registration;
 use Illuminate\Support\Str;
@@ -17,7 +17,7 @@ use Throwable;
 final class RecordTicketAffiliateCommissionsStep extends AbstractCheckoutStep
 {
     public function __construct(
-        private readonly RecordTicketAffiliateCommissionsAction $recordCommissions,
+        private readonly TicketAffiliateCommissions $recordCommissions,
         private readonly ReverseTicketAffiliateCommissionAction $reverseCommissions,
     ) {}
 
@@ -47,7 +47,7 @@ final class RecordTicketAffiliateCommissionsStep extends AbstractCheckoutStep
             return $this->skipped('No event registrations were created.');
         }
 
-        $recordedIds = $this->recordCommissions->handle($session, $registrationIds);
+        $recordedIds = $this->recordCommissions->recordForCheckout((string) $session->getKey(), $registrationIds);
 
         if ($recordedIds === []) {
             return $this->skipped('No eligible commercial ticket commissions were recorded.');
