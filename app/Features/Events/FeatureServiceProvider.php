@@ -8,9 +8,9 @@ use App\Features\Events\Actions\Authoring\PrepareAdvancedParentProgramSubmission
 use App\Features\Events\Actions\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Features\Events\Actions\Authoring\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Features\Events\Actions\Authoring\SyncEventLocationsAction;
+use App\Features\Events\Actions\Authoring\SyncEventProjectionsAction;
 use App\Features\Events\Actions\Commerce\RecordTicketAffiliateCommissionsAction;
 use App\Features\Events\Actions\Commerce\ReverseTicketAffiliateCommissionAction;
-use App\Features\Events\Actions\Authoring\SyncEventProjectionsAction;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\Actions\ResolveRegistrationExportContextAction;

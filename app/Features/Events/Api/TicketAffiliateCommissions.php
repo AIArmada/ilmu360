@@ -11,7 +11,7 @@ namespace App\Features\Events\Api;
 interface TicketAffiliateCommissions
 {
     /**
-     * @param list<string> $registrationIds
+     * @param  list<string>  $registrationIds
      * @return list<string> IDs recorded during the attempt.
      */
     public function recordForCheckout(string $checkoutSessionId, array $registrationIds): array;

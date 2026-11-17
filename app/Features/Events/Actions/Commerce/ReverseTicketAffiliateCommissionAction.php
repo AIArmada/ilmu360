@@ -32,7 +32,7 @@ final readonly class ReverseTicketAffiliateCommissionAction implements TicketAff
 
         $reversal = $this->handle($registration, $reason);
 
-        return $reversal !== null ? (string) $reversal->getKey() : null;
+        return $reversal instanceof AffiliateConversion ? (string) $reversal->getKey() : null;
     }
 
     public function hasOpenPayoutReservation(string $conversionId): bool
