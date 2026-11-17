@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Contracts\ShareCards;
+namespace App\Shared\Media\ShareCards;
 
 /**
  * Explicit render output for one share card.

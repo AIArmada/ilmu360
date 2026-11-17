@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Contracts\CaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\CancelContributionRequestAction;
@@ -17,6 +16,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Shared\Captcha\CaptchaVerifier;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;

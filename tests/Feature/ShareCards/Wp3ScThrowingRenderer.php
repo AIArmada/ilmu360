@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\ShareCards;
 
-use App\Contracts\ShareCards\ShareCardReadiness;
-use App\Contracts\ShareCards\ShareCardRenderer;
-use App\Contracts\ShareCards\ShareCardRenderInput;
-use App\Contracts\ShareCards\ShareCardRenderResult;
+use App\Shared\Media\ShareCards\ShareCardReadiness;
+use App\Shared\Media\ShareCards\ShareCardRenderer;
+use App\Shared\Media\ShareCards\ShareCardRenderInput;
+use App\Shared\Media\ShareCards\ShareCardRenderResult;
 use RuntimeException;
 
 final class Wp3ScThrowingRenderer implements ShareCardRenderer

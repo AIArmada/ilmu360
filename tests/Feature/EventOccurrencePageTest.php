@@ -10,7 +10,7 @@ use App\Models\EventKeyPerson;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
-use App\Support\Events\PublicScheduleSlug;
+use App\Shared\Events\PublicScheduleSlug;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {

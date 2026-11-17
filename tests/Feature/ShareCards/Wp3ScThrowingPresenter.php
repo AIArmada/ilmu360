@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\ShareCards;
 
 use AIArmada\Events\Models\EventOccurrence;
-use App\Contracts\ShareCards\ShareCardRenderInput;
 use App\Models\Event;
+use App\Shared\Media\ShareCards\ShareCardRenderInput;
 use App\Support\ShareCards\ShareCardEventPresenter;
 use RuntimeException;
 

@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Contracts;
+namespace App\Platform\Captcha;
+
+use App\Shared\Captcha\CaptchaVerifier;
 
 /**
  * Null-object captcha verifier for environments without Turnstile configured.

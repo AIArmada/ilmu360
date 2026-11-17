@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Support\ShareCards;
+namespace App\Platform\Media\ShareCards;
 
-use App\Contracts\ShareCards\ShareCardError;
-use App\Contracts\ShareCards\ShareCardReadiness;
-use App\Contracts\ShareCards\ShareCardRenderer;
-use App\Contracts\ShareCards\ShareCardRenderInput;
-use App\Contracts\ShareCards\ShareCardRenderResult;
+use App\Shared\Media\ShareCards\ShareCardError;
+use App\Shared\Media\ShareCards\ShareCardReadiness;
+use App\Shared\Media\ShareCards\ShareCardRenderer;
+use App\Shared\Media\ShareCards\ShareCardRenderInput;
+use App\Shared\Media\ShareCards\ShareCardRenderResult;
 use GdImage;
 use Normalizer;
 use Throwable;

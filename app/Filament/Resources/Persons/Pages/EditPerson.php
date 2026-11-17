@@ -10,7 +10,7 @@ use App\Features\Persons\Api\PersonWorkflow;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
-use App\Support\Persons\PersonBioContent;
+use App\Shared\Persons\PersonBioContent;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Captcha;
 
-use App\Contracts\CaptchaVerifier;
+use App\Shared\Captcha\CaptchaVerifier;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 

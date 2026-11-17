@@ -1,8 +1,8 @@
 <?php
 
-use App\Contracts\ShareCards\ShareCardError;
-use App\Contracts\ShareCards\ShareCardRenderInput;
-use App\Support\ShareCards\PangoShareCardRenderer;
+use App\Platform\Media\ShareCards\PangoShareCardRenderer;
+use App\Shared\Media\ShareCards\ShareCardError;
+use App\Shared\Media\ShareCards\ShareCardRenderInput;
 
 if (! function_exists('shareCardFontsDir')) {
     function shareCardFontsDir(): string

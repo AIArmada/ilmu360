@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Events;
+namespace App\Shared\Events;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Event;
-use App\Support\Events\HeroBackdrop;
+use App\Shared\Events\HeroBackdrop;
 
 it('resolves a bundled hero backdrop from the site set', function (): void {
     expect(HeroBackdrop::randomUrl())->toBeIn(HeroBackdrop::urls());

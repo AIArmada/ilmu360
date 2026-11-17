@@ -9,7 +9,7 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Models\Event;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Support\Events\PublicScheduleSlug;
+use App\Shared\Events\PublicScheduleSlug;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 

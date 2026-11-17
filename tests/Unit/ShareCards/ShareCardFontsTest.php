@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\ShareCards\ShareCardFonts;
+use App\Platform\Media\ShareCards\ShareCardFonts;
 
 if (! function_exists('shareCardFontsDir')) {
     function shareCardFontsDir(): string

@@ -23,7 +23,7 @@ use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\TimingMode;
-use App\Support\Events\PublicScheduleSlug;
+use App\Shared\Events\PublicScheduleSlug;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;

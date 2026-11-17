@@ -4,7 +4,6 @@ namespace App\Http\Submission;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Contracts\CaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventSubmissionCompletion;
@@ -17,6 +16,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\EventOccurrenceSubmittedNotification;
+use App\Shared\Captcha\CaptchaVerifier;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;

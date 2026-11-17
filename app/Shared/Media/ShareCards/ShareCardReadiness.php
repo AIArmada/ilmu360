@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Contracts\ShareCards;
+namespace App\Shared\Media\ShareCards;
 
 /**
  * Capability report for the leaf renderer on this machine.

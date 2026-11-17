@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\ShareCards\ShareCardText;
+use App\Platform\Media\ShareCards\ShareCardText;
 
 it('normalizes required text to NFC with folded line breaks', function (): void {
     expect(ShareCardText::sanitizeRequired("e\xCC\x81disi", 80))->toBe('édisi')

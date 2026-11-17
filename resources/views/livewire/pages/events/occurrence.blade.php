@@ -12,7 +12,7 @@
     $occurrenceIsOnlyDate = $event->occurrences->count() <= 1;
     $occurrenceCanonicalUrl = $occurrenceIsOnlyDate
         ? route('events.show', $event)
-        : route('events.occurrence', [$event, \App\Support\Events\PublicScheduleSlug::occurrence($occurrence)]);
+        : route('events.occurrence', [$event, \App\Shared\Events\PublicScheduleSlug::occurrence($occurrence)]);
 @endphp
 @push('head')
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap">
@@ -220,9 +220,9 @@
     $heroImageUrl = $occurrenceCoverUrl ?? $occurrencePosterUrl;
     // Permanent ambient art: a rotating backdrop from the site's own set,
     // never the event cover. The cover itself lives in the body.
-    $heroBackdropUrl = \App\Support\Events\HeroBackdrop::randomUrl();
+    $heroBackdropUrl = \App\Shared\Events\HeroBackdrop::randomUrl();
     $hasRamadanClosingMobileHero = $event->slug === 'program-ramadan-tadabbur-qiyam-engku-ahmad-fadzil-my-10-11-26'
-        && \App\Support\Events\PublicScheduleSlug::occurrence($occurrence) === 'malam-penutup-tadabbur-qiyam';
+        && \App\Shared\Events\PublicScheduleSlug::occurrence($occurrence) === 'malam-penutup-tadabbur-qiyam';
     $occurrenceHasParticipation = $occurrenceCapacity !== null || $occurrencePolicy !== null || $tickets->isNotEmpty() || $detail->hasRegistration();
     // Two ways to take part: pick a ticket, or — when the majlis sells none —
     // go straight to checkout. Ticket sales gate the first; the second is gated

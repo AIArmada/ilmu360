@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Persons;
+namespace App\Shared\Persons;
 
 final class PersonBioContent
 {
