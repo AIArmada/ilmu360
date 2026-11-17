@@ -12,8 +12,8 @@ use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Support\ReferralProgramGuard;
 use App\Features\Referrals\Api\ReferralInvitations;
 use App\Platform\Models\MorphModelResolver;
-use Illuminate\Database\Eloquent\Model;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 
 /** Accepts a referral only when its invitee lands and presents a verified matching contact. */
 final readonly class ResolveReferralInviteLandingAction implements ReferralInvitations
