@@ -99,6 +99,8 @@ def main():
         raise RuntimeError("Root observer registration not found")
     app_text=app_text.replace(observer_reference+"\n","")
     app_text=app_text.replace("        AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);\n","")
+    if app_text.count("AffiliateTouchpoint") == 1:
+        app_text=app_text.replace("use AIArmada\\Affiliates\\Models\\AffiliateTouchpoint;\n","")
     app_provider.write_text(app_text)
 
     # The owning provider registers its own integration observer once.
