@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Engagement;
+namespace App\Features\Engagement\Actions;
 
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Root remove-save writer for the package-canonical bookmark rows.
+ * Engagement-owned remove-save writer for the package-canonical bookmark rows.
  *
  * Locks the caller's active bookmark inside the same transaction that removes
  * it, then reverses the event-save share outcome through the

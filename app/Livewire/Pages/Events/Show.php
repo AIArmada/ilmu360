@@ -11,8 +11,7 @@ use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Engagement\Api\EventGoingCommands;
-use App\Actions\Engagement\SaveEventAction;
-use App\Actions\Engagement\UnsaveEventAction;
+use App\Features\Engagement\Api\EventSaveCommands;
 use App\Data\PublicScheduleLeaf;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceCommands;
@@ -970,7 +969,7 @@ class Show extends Component
      */
     protected function saveEventForUser(User $user): array
     {
-        app(SaveEventAction::class)->handle($this->event, $user, request());
+        app(EventSaveCommands::class)->save((string) $this->event->getKey(), (string) $user->getKey());
 
         return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
     }
@@ -980,7 +979,7 @@ class Show extends Component
      */
     protected function unsaveEventForUser(User $user): array
     {
-        app(UnsaveEventAction::class)->handle($this->event, $user);
+        app(EventSaveCommands::class)->unsave((string) $this->event->getKey(), (string) $user->getKey());
 
         return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
     }

@@ -120,3 +120,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move event-going and remove-going orchestration and package writes under Engagement; expose scalar EventGoingCommands.
 - [x] Update HTTP/Livewire to contract; keep private action tests for explicit Request attribution scenarios. Delete root actions.
 - [ ] Verify original eligibility, counts, idempotency, free admission and share attribution on CI.
+
+
+### Engagement save cutover
+- [x] Move event bookmark save/remove actions and immutable result objects under Engagement. Public EventSaveCommands returns only scalar bookmark identity and created/removed flags.
+- [x] Replace API, event page and Livewire trait callers; delete old root paths.
+- [ ] Verify existing action tests plus Save API response parity and CI.

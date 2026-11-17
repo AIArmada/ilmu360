@@ -11,8 +11,7 @@ use AIArmada\Addressing\Support\AddressLocationScope;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Actions\Engagement\SaveEventAction;
-use App\Actions\Engagement\UnsaveEventAction;
+use App\Features\Engagement\Api\EventSaveCommands;
 use App\Data\PublicScheduleLeaf;
 use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\TogglesEventGoing;
@@ -1007,12 +1006,12 @@ class Index extends Component implements HasForms
         }
 
         if (app(EngagementReader::class)->hasSavedEvent((string) $user->getKey(), (string) $event->getKey())) {
-            app(UnsaveEventAction::class)->handle($event, $user);
+            app(EventSaveCommands::class)->unsave((string) $event->getKey(), (string) $user->getKey());
 
             return;
         }
 
-        app(SaveEventAction::class)->handle($event, $user, request());
+        app(EventSaveCommands::class)->save((string) $event->getKey(), (string) $user->getKey());
     }
 
     /**

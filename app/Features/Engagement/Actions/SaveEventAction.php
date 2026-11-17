@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Engagement;
+namespace App\Features\Engagement\Actions;
 
 use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Models\Event;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Root save writer for the package-canonical bookmark rows.
+ * Engagement-owned save writer for the package-canonical bookmark rows.
  *
  * The package engagement tables have no application owner, so this named
  * action stays in the root Actions namespace. It owns the manager write and

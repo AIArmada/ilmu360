@@ -2,8 +2,7 @@
 
 namespace App\Livewire\Concerns;
 
-use App\Actions\Engagement\SaveEventAction;
-use App\Actions\Engagement\UnsaveEventAction;
+use App\Features\Engagement\Api\EventSaveCommands;
 use App\Models\Event;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
@@ -37,12 +36,12 @@ trait TogglesEventSave
         }
 
         if (app(EngagementReader::class)->hasSavedEvent((string) $user->getKey(), (string) $event->getKey())) {
-            app(UnsaveEventAction::class)->handle($event, $user);
+            app(EventSaveCommands::class)->unsave((string) $event->getKey(), (string) $user->getKey());
 
             return;
         }
 
-        app(SaveEventAction::class)->handle($event, $user, request());
+        app(EventSaveCommands::class)->save((string) $event->getKey(), (string) $user->getKey());
     }
 
     /**

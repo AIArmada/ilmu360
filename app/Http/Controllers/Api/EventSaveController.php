@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
-use App\Actions\Engagement\SaveEventAction;
-use App\Actions\Engagement\UnsaveEventAction;
+use App\Features\Engagement\Api\EventSaveCommands;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventSave\EventSaveStateData;
 use App\Http\Controllers\Controller;
@@ -74,9 +73,9 @@ class EventSaveController extends Controller
 
         $user = $this->currentUser($request);
 
-        $result = app(SaveEventAction::class)->handle($event, $user, $request);
+        $result = app(EventSaveCommands::class)->save((string) $event->getKey(), (string) $user->getKey());
 
-        if ($result->bookmark === null) {
+        if ($result['bookmark_id'] === null) {
             return response()->json([
                 'error' => [
                     'code' => 'not_found',
@@ -85,7 +84,7 @@ class EventSaveController extends Controller
             ], 404);
         }
 
-        $created = $result->created;
+        $created = $result['created'];
         $engagementCounter = app(EngagementCounterService::class);
         $engagementCounter->recalculateBookmarks($event);
         $savesCount = $engagementCounter->value($event, 'bookmarks');
@@ -110,14 +109,14 @@ class EventSaveController extends Controller
     {
         $user = $this->currentUser($request);
 
-        $result = app(UnsaveEventAction::class)->handle($event, $user);
+        $removed = app(EventSaveCommands::class)->unsave((string) $event->getKey(), (string) $user->getKey());
 
         $engagementCounter = app(EngagementCounterService::class);
         $engagementCounter->recalculateBookmarks($event);
         $savesCount = $engagementCounter->value($event, 'bookmarks');
 
         return response()->json([
-            'message' => $result->removed ? 'Event save removed successfully.' : 'Event was not saved.',
+            'message' => $removed ? 'Event save removed successfully.' : 'Event was not saved.',
             'data' => EventSaveStateData::fromState(false, $savesCount)->toArray(),
             'meta' => [
                 'request_id' => request()->header('X-Request-ID', (string) Str::uuid()),
