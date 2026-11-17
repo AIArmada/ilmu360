@@ -6,51 +6,41 @@ namespace App\Features\Contributions\Actions;
 
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Events\Api\EventAuthoring;
-use App\Platform\Models\MorphModelResolver;
-use App\Models\Event;
-use App\Services\ContributionEntityMutationService;
-use App\Services\ModerationService;
-use Illuminate\Database\Eloquent\Model;
+use App\Features\Events\Api\EventModeration;
+use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\References\Api\ReferenceWorkflow;
 use Illuminate\Support\Facades\DB;
-use Lorisleiva\Actions\Concerns\AsAction;
+use InvalidArgumentException;
 
-class ApplyDirectContributionUpdateAction implements ContributionDirectUpdates
+/**
+ * Direct edits use the relevant entity owner's public authoring contract.
+ * Contributions owns the transaction; subject features own their mutations.
+ */
+final readonly class ApplyDirectContributionUpdateAction implements ContributionDirectUpdates
 {
-    use AsAction;
-
     public function __construct(
-        private readonly ContributionEntityMutationService $contributionEntityMutationService,
-        private readonly ModerationService $moderationService,
-        private readonly EventAuthoring $eventAuthoring,
+        private EventAuthoring $eventAuthoring,
+        private EventModeration $eventModeration,
+        private InstitutionWorkflow $institutions,
+        private PersonWorkflow $persons,
+        private ReferenceWorkflow $references,
     ) {}
 
-    /**
-     * @param  array<string, mixed>  $changes
-     */
     public function apply(string $entityType, string $entityId, array $changes): void
     {
-        $entity = MorphModelResolver::resolve($entityType)::query()->findOrFail($entityId);
-        $this->handle($entity, $changes);
-    }
+        DB::transaction(function () use ($entityType, $entityId, $changes): void {
+            $dirty = match ($entityType) {
+                'event' => $this->eventAuthoring->applyContributionUpdate($entityId, $changes),
+                'institution' => $this->institutions->applyContribution($entityId, $changes),
+                'person' => $this->persons->applyContribution($entityId, $changes),
+                'reference' => $this->references->applyContribution($entityId, $changes),
+                default => throw new InvalidArgumentException("Unsupported contribution subject [{$entityType}]."),
+            };
 
-    public function handle(Model $entity, array $changes): Model
-    {
-        return DB::transaction(function () use ($entity, $changes): Model {
-            $dirtyBeforeSave = $entity instanceof Event
-                ? $this->eventAuthoring->applyContributionUpdate((string) $entity->getKey(), $changes)
-                : $this->contributionEntityMutationService->apply($entity, $changes);
-
-            if ($entity instanceof Event) {
-                // The feature action resolves its own model; refresh the
-                // caller's instance so response presentation matches the save.
-                $entity->refresh();
-
-                if ($dirtyBeforeSave !== []) {
-                    $this->moderationService->handleSensitiveChange($entity, $dirtyBeforeSave);
-                }
+            if ($entityType === 'event' && $dirty !== []) {
+                $this->eventModeration->handleSensitiveChange($entityId, $dirty);
             }
-
-            return $entity;
         });
     }
 }
