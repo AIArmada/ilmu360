@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Organizations;
 
+use App\Features\Organizations\Actions\CreateOrganizationEventAction;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
+use App\Features\Organizations\Api\OrganizationEventCreator;
 use App\Features\Organizations\Api\OrganizationWorkspace;
 use App\Features\Organizations\Services\CurrentOrganizationResolver;
 use App\Features\Organizations\Services\OrganizationAccessService;
@@ -35,6 +37,7 @@ final class FeatureServiceProvider extends FeatureModule
         $this->app->bind(OrganizationAccess::class, OrganizationAccessService::class);
         $this->app->bind(OrganizationWorkspace::class, OrganizationWorkspaceService::class);
         $this->app->bind(OrganizationCommands::class, OrganizationCommandsService::class);
+        $this->app->bind(OrganizationEventCreator::class, CreateOrganizationEventAction::class);
         config(['organizations.resolver' => CurrentOrganizationResolver::class]);
     }
 }

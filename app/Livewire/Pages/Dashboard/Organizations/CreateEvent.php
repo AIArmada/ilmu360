@@ -8,7 +8,7 @@ use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Actions\Organizations\CreateOrganizationEventAction;
+use App\Features\Organizations\Api\OrganizationEventCreator;
 use App\Models\User;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
@@ -137,16 +137,16 @@ final class CreateEvent extends Component
         return array_any((array) ($this->form['tickets'] ?? []), fn ($ticket) => is_array($ticket) && (string) ($ticket['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::None->value);
     }
 
-    public function submit(CreateOrganizationEventAction $createOrganizationEvent): mixed
+    public function submit(OrganizationEventCreator $organizationEventCreator): mixed
     {
         $this->normalizeTicketSeatingForV1();
         $validated = $this->validate($this->rules());
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
 
-        $createOrganizationEvent->handle(
-            $user,
-            $this->organization(),
+        $organizationEventCreator->create(
+            (string) $user->getKey(),
+            $this->organizationId,
             $validated['form'],
         );
 

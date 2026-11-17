@@ -257,3 +257,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Keep seating disabled policy and nested DB transaction; ticket/configuration writes remain through EventAuthoring. Livewire and root Organization creation now call scalar API and hydrate models locally.
 - [x] Delete old CreateEventWithRegistrationAction without aliases.
 - [ ] Verify admin/event creation and Org-scoped ownership in CI.
+
+
+### Organization-owned event creation cutover
+- [x] Move organization authorization, local timezone validation and admission-event composition into Organizations feature, relying only on Events/Api/AdmissionEventCreator for event writes.
+- [x] Expose OrganizationEventCreator with scalar actor/organization IDs and event ID result. Update dashboard Livewire directly; no old root class.
+- [ ] Verify organization authorization, ticket creation and owner scoping in CI.

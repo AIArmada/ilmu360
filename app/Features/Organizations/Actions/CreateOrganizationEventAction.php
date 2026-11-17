@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Organizations;
+namespace App\Features\Organizations\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode;
@@ -10,15 +10,12 @@ use AIArmada\Organizations\Models\Organization;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Api\AdmissionEventCreator;
 use App\Features\Organizations\Api\OrganizationAccess;
-use App\Models\Event;
-use App\Models\User;
+use App\Features\Organizations\Api\OrganizationEventCreator;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class CreateOrganizationEventAction
+final readonly class CreateOrganizationEventAction implements OrganizationEventCreator
 {
-    use AsAction;
 
     public function __construct(
         private AdmissionEventCreator $admissionEventCreator,
@@ -28,12 +25,10 @@ final readonly class CreateOrganizationEventAction
     /**
      * @param  array<string, mixed>  $form
      */
-    public function handle(User $creator, Organization $organization, array $form): Event
+    public function create(string $actorId, string $organizationId, array $form): string
     {
-        $this->organizationAccess->authorizeCreateEvent(
-            (string) $creator->getKey(),
-            (string) $organization->getKey(),
-        );
+        $this->organizationAccess->authorizeCreateEvent($actorId, $organizationId);
+        $organization = Organization::query()->findOrFail($organizationId);
 
         $timezone = (string) ($form['timezone'] ?? config('app.timezone', 'UTC'));
         $startsAt = Carbon::parse((string) $form['starts_at'], $timezone)->utc();
@@ -46,9 +41,9 @@ final readonly class CreateOrganizationEventAction
         $registrationMode = RegistrationMode::from((string) $form['registration_mode']);
         $pricingMode = PricingMode::from((string) $form['pricing_mode']);
 
-        return OwnerContext::withOwner($organization, function () use ($creator, $organization, $form, $startsAt, $endsAt, $timezone, $registrationMode, $pricingMode): Event {
+        return OwnerContext::withOwner($organization, function () use ($actorId, $organization, $form, $startsAt, $endsAt, $timezone, $registrationMode, $pricingMode): string {
             $eventId = $this->admissionEventCreator->create(
-            actorId: (string) $creator->getKey(),
+            actorId: $actorId,
             form: [
                 'title' => (string) $form['title'],
                 'description' => $form['description'] ?? null,
@@ -73,9 +68,7 @@ final readonly class CreateOrganizationEventAction
             seating: (array) ($form['seating'] ?? []),
             );
 
-            return Event::query()->withoutOwnerScope()
-                ->with(['primaryOccurrence', 'ticketTypes', 'accessPolicies'])
-                ->findOrFail($eventId);
+            return $eventId;
         });
     }
 }
