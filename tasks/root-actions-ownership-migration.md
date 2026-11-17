@@ -289,3 +289,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move strict category normalization and community-only physical delivery rules into Events/Actions/Submission; expose through the existing EventSubmissions API.
 - [x] Preserve validation ordering and exact translated errors; remove the duplicate root helper and imports.
 - [ ] Confirm the category/format and public submission tests on Quality CI.
+
+
+### Public submission prayer clock ownership
+- [x] Move selected-location prayer provider lookup into Events/Actions/Submission, using the existing Prayer feature API and an EventSubmissions scalar boundary.
+- [x] Preserve provider fallback, local prayer time, country/state/district selection and invocation position before starts_at validation; delete the root private helper.
+- [ ] Verify cached prayer provider and fallback/DST submissions in CI.

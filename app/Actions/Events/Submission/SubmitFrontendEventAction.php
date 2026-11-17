@@ -11,7 +11,6 @@ use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissionOrganizerKind;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -21,7 +20,6 @@ use App\Notifications\EventOccurrenceSubmittedNotification;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\PrayerLocation;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\Submission\EntitySubmissionAccess;
@@ -30,7 +28,6 @@ use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Shared\Submission\SubmissionValues;
 use App\Shared\Submission\SubmitterContactRules;
 use Carbon\Carbon;
-use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -56,7 +53,6 @@ class SubmitFrontendEventAction
         private readonly ShareTrackingContract $shareTracking,
         private readonly SubmissionTimingPolicy $timing,
         private readonly SubmissionContextResolver $context,
-        private readonly ResolvePrayerStartClockAction $resolveStartClock,
     ) {}
 
     /**
@@ -138,13 +134,13 @@ class SubmitFrontendEventAction
 
         // Provider-backed start clock. Null unless the flag is on and provider
         // data is cached; the policy falls back to hardcoded estimates.
-        $resolvedStart = $this->resolveProviderStartClock(
+        $resolvedStart = $this->submissions->resolvePrayerStartClock(
             $targetInstitutionId,
             $targetVenueId,
             $submissionCountryIso2,
             $timezone,
-            $prayerTime,
-            $eventDate,
+            $prayerTime->value,
+            $eventDate->format('Y-m-d'),
         );
 
         $startsAt = $this->timing->resolveStartsAt(
@@ -448,32 +444,6 @@ class SubmitFrontendEventAction
                 ]);
             }
         }
-    }
-
-    /**
-     * @return array{clock: string, date: string, source: string, fetched_at: string, zone: string|null}|null
-     */
-    private function resolveProviderStartClock(
-        ?string $targetInstitutionId,
-        ?string $targetVenueId,
-        ?string $submissionCountryIso2,
-        string $timezone,
-        EventPrayerTime $prayerTime,
-        CarbonInterface $eventDate,
-    ): ?array {
-        $address = PrayerLocation::forTargets($targetVenueId, $targetInstitutionId);
-        $location = PrayerLocation::fromAddress($address, $submissionCountryIso2);
-
-        return $this->resolveStartClock->handle(
-            countryCode: $location['countryCode'] ?? 'MY',
-            date: $eventDate->format('Y-m-d'),
-            timezone: $timezone,
-            prayerTime: $prayerTime,
-            latitude: $location['latitude'],
-            longitude: $location['longitude'],
-            stateCode: $location['stateCode'],
-            districtCandidates: $location['districtCandidates'],
-        );
     }
 
     private function assertCaptchaIsValid(Request $request, ?string $captchaToken, string $validationKeyPrefix = ''): void

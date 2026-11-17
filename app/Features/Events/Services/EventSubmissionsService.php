@@ -10,6 +10,7 @@ use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
 use App\Features\Events\Actions\Submission\CompleteEventSubmissionWritesAction;
 use App\Features\Events\Actions\Submission\PersistNewEventSubmissionAction;
 use App\Features\Events\Actions\Submission\PersistSessionSubmissionAction;
+use App\Features\Events\Actions\Submission\ResolveEventSubmissionPrayerStartAction;
 use App\Features\Events\Actions\Submission\ReviewOccurrenceSubmissionAction;
 use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
@@ -35,6 +36,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
     public function __construct(
         private ValidateEventSubmissionInputAction $validateInput,
         private ValidateEventSubmissionCategoriesAction $categories,
+        private ResolveEventSubmissionPrayerStartAction $prayerStart,
         private PersistNewEventSubmissionAction $persistNewEvent,
         private PersistSessionSubmissionAction $persistSession,
         private ReviewOccurrenceSubmissionAction $reviewOccurrenceSubmission,
@@ -50,6 +52,24 @@ final readonly class EventSubmissionsService implements EventSubmissions
     public function normalizeCategories(array $state, string $prefix = ''): array
     {
         return $this->categories->normalize($state, $prefix);
+    }
+
+    public function resolvePrayerStartClock(
+        ?string $institutionId,
+        ?string $venueId,
+        ?string $countryCode,
+        string $timezone,
+        string $prayerTime,
+        string $eventDate,
+    ): ?array {
+        return $this->prayerStart->handle(
+            $institutionId,
+            $venueId,
+            $countryCode,
+            $timezone,
+            $prayerTime,
+            $eventDate,
+        );
     }
 
     public function assertCommunityPhysicalFormat(array $state, string $prefix = ''): void

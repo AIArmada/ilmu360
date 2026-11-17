@@ -30,6 +30,20 @@ interface EventSubmissions
      */
     public function normalizeCategories(array $state, string $prefix = ''): array;
 
+    /**
+     * Resolve cached provider prayer clock using scalar selections.
+     *
+     * @return array{clock: string, date: string, starts_at: string, source: string, fetched_at: string, zone: string|null, lat: float|null, lng: float|null, country: string}|null
+     */
+    public function resolvePrayerStartClock(
+        ?string $institutionId,
+        ?string $venueId,
+        ?string $countryCode,
+        string $timezone,
+        string $prayerTime,
+        string $eventDate,
+    ): ?array;
+
     /** @param array<string, mixed> $state */
     public function assertCommunityPhysicalFormat(array $state, string $prefix = ''): void;
 
