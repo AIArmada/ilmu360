@@ -116,3 +116,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "refactor: consolidate share-card, captcha and shared presentation contracts"
           git push origin HEAD:refactor
+
+# Rector baseline corrected for overridden EventSubmission table.
