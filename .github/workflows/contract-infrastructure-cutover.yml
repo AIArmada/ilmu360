@@ -90,7 +90,7 @@ jobs:
           git diff --cached --check
           composer architecture:test
           vendor/bin/phpstan analyse --no-progress --memory-limit=1G
-          vendor/bin/rector process --dry-run --no-progress
+          vendor/bin/rector process --dry-run
       - name: Run impacted media and captcha regression tests
         shell: bash
         run: |
