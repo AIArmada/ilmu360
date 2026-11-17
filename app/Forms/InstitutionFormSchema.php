@@ -3,7 +3,7 @@
 namespace App\Forms;
 
 use AIArmada\Addressing\Models\AddressCountry;
-use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
+use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Models\Institution;
 use App\Platform\Concurrency\MapsIdentityLock;
@@ -201,7 +201,7 @@ class InstitutionFormSchema
 
         $create = fn (): string => DB::transaction(function () use ($data, $schema, $addressData, $requireVerifiedMapsSelection): string {
             if ($requireVerifiedMapsSelection) {
-                app(EnsureUniqueContributionCreateAction::class)->handle(
+                app(ContributionSubmissionPreparation::class)->ensureUniqueCreate(
                     ContributionSubjectType::Institution,
                     [
                         'name' => $data['name'] ?? null,

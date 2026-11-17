@@ -3,6 +3,7 @@
 namespace App\Actions\Contributions\Submission;
 
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -21,8 +22,7 @@ class SubmitStagedContributionCreateAction
 
     public function __construct(
         protected ContributionEntityMutationService $contributionEntityMutationService,
-        protected EnsureUniqueContributionCreateAction $ensureUniqueContributionCreateAction,
-        protected NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
+        protected ContributionSubmissionPreparation $submissionPreparation,
         protected ContributionRequestLifecycle $contributionRequests,
         protected MapsIdentityLock $mapsIdentityLock,
     ) {}
@@ -39,10 +39,10 @@ class SubmitStagedContributionCreateAction
         string $validationKeyPrefix = '',
     ): Institution|Person|Reference {
         $create = fn (): Institution|Person|Reference => DB::transaction(function () use ($subjectType, $state, $user, $persistRelationships, $validationKeyPrefix): Institution|Person|Reference {
-            $submissionState = $this->normalizeContributionSubmissionAction->handle($state);
+            $submissionState = $this->submissionPreparation->normalize($state);
             $state = $submissionState['state'];
 
-            $this->ensureUniqueContributionCreateAction->handle($subjectType, $state, $validationKeyPrefix);
+            $this->submissionPreparation->ensureUniqueCreate($subjectType, $state, $validationKeyPrefix);
 
             $entity = match ($subjectType) {
                 ContributionSubjectType::Institution => $this->contributionEntityMutationService->createInstitution($state, $user),

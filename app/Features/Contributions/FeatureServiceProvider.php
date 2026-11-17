@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions;
 
+use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContributor;
 use App\Features\Contributions\Persistence\CacheVerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
 use App\Features\Contributions\Services\ContributionRequestLifecycleService;
+use App\Features\Contributions\Services\ContributionSubmissionPreparationService;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
+use App\Shared\Contributions\InstitutionClaimGuard;
 
 /**
  * Contributions owns contribution requests from C3 onward.
@@ -49,6 +53,8 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
         $this->app->bind(ContributionRequestLifecycle::class, ContributionRequestLifecycleService::class);
+        $this->app->bind(ContributionSubmissionPreparation::class, ContributionSubmissionPreparationService::class);
+        $this->app->bind(InstitutionClaimGuard::class, EnsureUniqueContributionCreateAction::class);
         $this->app->bind(VerifiedInstitutionMapsSelections::class, CacheVerifiedInstitutionMapsSelections::class);
 
         $this->app->tag([

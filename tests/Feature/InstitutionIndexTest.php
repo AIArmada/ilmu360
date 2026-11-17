@@ -4,7 +4,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
-use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
+use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Models\ContributionRequest;
 use App\Models\Event;

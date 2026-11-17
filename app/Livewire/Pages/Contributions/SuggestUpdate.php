@@ -7,11 +7,10 @@ use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
-use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
-use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
+
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -341,16 +340,14 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     public function submit(
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
-        ResolveContributionChangedPayloadAction $resolveContributionChangedPayloadAction,
-        NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
+        ContributionSubmissionPreparation $submissionPreparation,
         ContributionRequestLifecycle $contributionRequestLifecycle,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
         MapsIdentityLock $mapsIdentityLockAction,
     ): void {
         OwnerContext::withOwner(null, function () use (
             $applyDirectContributionUpdateAction,
-            $resolveContributionChangedPayloadAction,
-            $normalizeContributionSubmissionAction,
+            $submissionPreparation,
             $contributionRequestLifecycle,
             $ensureNoPendingContributionRequestAction,
             $mapsIdentityLockAction,
@@ -385,8 +382,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $submittedDonationRows,
                 $donationQrUploads,
                 $applyDirectContributionUpdateAction,
-                $resolveContributionChangedPayloadAction,
-                $normalizeContributionSubmissionAction,
+                $submissionPreparation,
                 $contributionRequestLifecycle,
                 $ensureNoPendingContributionRequestAction,
                 $user,
@@ -397,9 +393,9 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 );
 
                 $formState = $this->mergeVerifiedInstitutionMapsSelection($formState);
-                $submissionState = $normalizeContributionSubmissionAction->handle($formState);
+                $submissionState = $submissionPreparation->normalize($formState);
                 $state = $this->normalizeSubmissionState($submissionState['state']);
-                $changes = $resolveContributionChangedPayloadAction->handle(
+                $changes = $submissionPreparation->changedPayload(
                     $state,
                     $this->originalData + EventContributionUpdateStateMapper::provenanceOriginals($this->entity),
                 );
@@ -1268,7 +1264,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             : null;
 
         if (($cid !== null || ($canonicalPlaceId !== null && $canonicalPlaceId !== ''))
-            && app(EnsureUniqueContributionCreateAction::class)->institutionMapsIdentityTakenByOther(
+            && app(ContributionSubmissionPreparation::class)->institutionMapsIdentityTakenByOther(
                 $cid,
                 $canonicalPlaceId !== '' ? $canonicalPlaceId : null,
                 (string) $this->entity->getKey(),

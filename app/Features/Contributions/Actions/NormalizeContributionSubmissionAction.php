@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Contributions\Submission;
+namespace App\Features\Contributions\Actions;
 
 use App\Forms\SharedFormSchema;
 use Lorisleiva\Actions\Concerns\AsAction;

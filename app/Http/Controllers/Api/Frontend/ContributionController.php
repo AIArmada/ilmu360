@@ -14,11 +14,11 @@ use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
-use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
-use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
+
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Forms\SharedFormSchema;
@@ -479,8 +479,7 @@ class ContributionController extends FrontendController
         string $subject,
         Request $request,
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
-        ResolveContributionChangedPayloadAction $resolveContributionChangedPayloadAction,
-        NormalizeContributionSubmissionAction $normalizeContributionSubmissionAction,
+        ContributionSubmissionPreparation $submissionPreparation,
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
         ContributionRequestLifecycle $contributionRequestLifecycle,
         EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
@@ -543,7 +542,7 @@ class ContributionController extends FrontendController
         $validatedPayload = $suggestionValidator->validate();
         $validatedPayload = $this->normalizeSuggestionPayload($entity, $validatedPayload);
 
-        $submissionState = $normalizeContributionSubmissionAction->handle($validatedPayload);
+        $submissionState = $submissionPreparation->normalize($validatedPayload);
         $normalizedState = $submissionState['state'];
 
         if ($entity instanceof Event && $normalizedState !== []) {
@@ -562,7 +561,7 @@ class ContributionController extends FrontendController
         $comparableSubmissionState = $entity instanceof Person
             ? $this->apiInitialState($entity, $normalizedState)
             : $normalizedState;
-        $changes = $resolveContributionChangedPayloadAction->handle(
+        $changes = $submissionPreparation->changedPayload(
             $comparableSubmissionState,
             $comparableOriginalData + EventContributionUpdateStateMapper::provenanceOriginals($entity),
         );

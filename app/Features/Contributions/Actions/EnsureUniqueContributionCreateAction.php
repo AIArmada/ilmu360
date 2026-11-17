@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Contributions\Submission;
+namespace App\Features\Contributions\Actions;
 
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;

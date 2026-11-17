@@ -73,3 +73,9 @@ Repository guidance in `tasks/lessons.md`: use Pest and the quick architecture c
 ## Phase 1 architecture CI correction
 
 The first GitHub Quality run (44001740277) flagged four `feature-private` violations: the root middleware and AppServiceProvider imported the moved feature action directly. Corrected by making the action implement `SlugRedirects/Api/PublicSlugLookup`, returning a readonly scalar `ResolvedPublicSlug` instead of an Eloquent model. Root route adapters hydrate the registered model by identifier and retain the original request-attribute shape, redirect status, and mark-used semantics. The feature binds its own public contract. No private feature action import, alias, or old root path remains. CI must confirm this correction before marking the phase validated.
+
+
+### Contributions preparation cutover
+- [x] Move three submission-preparation actions (normalize, change diff and unique creation claim) into Contributions.
+- [x] Expose one public preparation contract to API, Livewire, staged-create and Institution form consumers. Bind InstitutionClaimGuard inside the owner.
+- [ ] Confirm CI boundary, type and behavior checks before marking this slice fully verified. Root query and staged entity orchestration remain for later slices.

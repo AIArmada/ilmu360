@@ -55,7 +55,6 @@ use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
-use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Checkout\ShareCheckoutStepContributor;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\NullCaptchaVerifier;
@@ -165,7 +164,6 @@ use App\Shared\Auth\UserMorphType;
 use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\ContributionRequestNotifier;
-use App\Shared\Contributions\InstitutionClaimGuard;
 use App\Shared\Directory\ReferenceScopedSearch;
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Discovery\SearchFilterLabels;
@@ -315,7 +313,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ContributionEntityState::class, ContributionEntityMutationService::class);
         $this->app->bind(ContributionRequestGuard::class, EnsureNoPendingContributionRequestAction::class);
         $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
-        $this->app->bind(InstitutionClaimGuard::class, EnsureUniqueContributionCreateAction::class);
         $this->app->tag([
             ModerationAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);

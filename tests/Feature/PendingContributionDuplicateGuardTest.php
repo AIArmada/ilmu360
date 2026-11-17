@@ -1,6 +1,6 @@
 <?php
 
-use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
+use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\User;
