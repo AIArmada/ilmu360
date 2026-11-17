@@ -1,6 +1,8 @@
 <?php
 
+use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Fortify\CreateNewUser;
+use App\Features\Identity\Models\SignupAttribution;
 use App\Models\User;
 use App\Shared\ShareTracking\SignupRecorder;
 use Illuminate\Http\Request;
@@ -120,5 +122,7 @@ it('rolls back account creation when the share signup recording fails', function
         'password' => 'Password123!',
         'password_confirmation' => 'Password123!',
     ]))->toThrow(RuntimeException::class, 'Share signup recording failed.')
-        ->and(User::query()->where('email', 'fortify-atomic@example.test')->exists())->toBeFalse();
+        ->and(User::query()->where('email', 'fortify-atomic@example.test')->exists())->toBeFalse()
+        ->and(SignupAttribution::query()->exists())->toBeFalse()
+        ->and(SignalEvent::query()->where('event_name', 'auth.signup.completed')->exists())->toBeFalse();
 });
