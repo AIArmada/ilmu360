@@ -98,9 +98,9 @@ render=render.replace(anchor,anchor+"\n\nuse App\\Shared\\Events\\EventShareCard
 anchor="class ShareCardService"
 if anchor not in render:raise RuntimeError("Render class not found")
 # ShareCardService class is non-final with no implements at the start.
-if "class ShareCardService\n{" not in render:raise RuntimeError("Render class declaration changed")
-render=render.replace("class ShareCardService\n{","class ShareCardService implements EventShareCardPrewarm\n{",1)
-needle="class ShareCardService implements EventShareCardPrewarm\n{"
+if "final readonly class ShareCardService\n{" not in render:raise RuntimeError("Render class declaration changed")
+render=render.replace("final readonly class ShareCardService\n{","final readonly class ShareCardService implements EventShareCardPrewarm\n{",1)
+needle="final readonly class ShareCardService implements EventShareCardPrewarm\n{"
 warm="""
     /**
      * Pre-warm a public event card with the same locale, timezone, and
