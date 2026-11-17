@@ -79,6 +79,14 @@ try {
         'app/Actions/Fortify/RecordSuccessfulLogin.php',
         'app/Actions/Fortify/ResetUserPassword.php',
     ];
+    // An allowlisted framework hook must exist. A deleted adapter may not
+    // leave behind a permanently ignored, stale architectural exception.
+    foreach ($fortifyEntrypoints as $entrypoint) {
+        if (! isset($paths[$entrypoint])) {
+            $report('stale-fortify-entrypoint', $entrypoint, 1, $entrypoint, 'Remove the obsolete Fortify exception or restore its actual framework adapter.');
+        }
+    }
+
     foreach ($paths as $relative => $path) {
         if (str_starts_with($relative, 'app/Actions/') && ! in_array($relative, $fortifyEntrypoints, true)) {
             $report('root-domain-action', $relative, 1, $relative, 'Move this domain action into its owning feature, or place a genuine HTTP transport adapter under app/Http.');

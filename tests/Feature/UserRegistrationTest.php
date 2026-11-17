@@ -2,6 +2,8 @@
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Models\User;
+use App\Shared\ShareTracking\SignupRecorder;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 it('can create user with email only', function () {
@@ -71,4 +73,53 @@ it('allows registering with email and phone together', function () {
 
     expect($user->email)->toBe('test@example.com')
         ->and($user->phone)->toBe('+60123456789');
+});
+
+it('records a completed Fortify signup through the share-tracking contract exactly once', function () {
+    $recorder = new class implements SignupRecorder
+    {
+        public int $calls = 0;
+
+        public ?string $accountId = null;
+
+        public function recordSignup(string $accountId, ?Request $request = null): void
+        {
+            $this->calls++;
+            $this->accountId = $accountId;
+        }
+    };
+
+    app()->instance(SignupRecorder::class, $recorder);
+
+    $user = app(CreateNewUser::class)->create([
+        'name' => 'Boundary Registration',
+        'email' => 'fortify-boundary@example.test',
+        'password' => 'Password123!',
+        'password_confirmation' => 'Password123!',
+    ]);
+
+    expect($recorder->calls)->toBe(1)
+        ->and($recorder->accountId)->toBe((string) $user->getKey())
+        ->and(User::query()->whereKey($user->getKey())->exists())->toBeTrue();
+});
+
+it('rolls back account creation when the share signup recording fails', function () {
+    $recorder = new class implements SignupRecorder
+    {
+        public function recordSignup(string $accountId, ?Request $request = null): void
+        {
+            throw new \RuntimeException('Share signup recording failed.');
+        }
+    };
+
+    app()->instance(SignupRecorder::class, $recorder);
+
+    expect(fn () => app(CreateNewUser::class)->create([
+        'name' => 'Atomic Registration',
+        'email' => 'fortify-atomic@example.test',
+        'password' => 'Password123!',
+        'password_confirmation' => 'Password123!',
+    ]))->toThrow(\RuntimeException::class, 'Share signup recording failed.');
+
+    expect(User::query()->where('email', 'fortify-atomic@example.test')->exists())->toBeFalse();
 });

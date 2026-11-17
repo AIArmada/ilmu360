@@ -280,7 +280,8 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 
 
 ### Fortify framework entrypoint audit
-- [x] Fortify/CreateNewUser is a framework registration contract adapter, not the owner of user writes. It now uses Shared/Auth/AccountAccess::create inside the existing signup transaction; the canonical account adapter owns persistence.
+- [x] Fortify/CreateNewUser implements Laravel Fortify's CreatesNewUsers contract; framework validation remains at this entrypoint while Shared/Auth/AccountAccess::create owns persistence within the existing atomic registration transaction.
+- [x] Replace CreateNewUser's direct concrete ShareTracking service call with the existing Shared/ShareTracking/SignupRecorder contract (already bound to ShareTrackingSignupRecorder). Add successful-once and rollback-on-failure registration coverage.
 - [x] Keep Fortify/RecordSuccessfulLogin as a Laravel login pipeline adapter and Fortify/ResetUserPassword as the Fortify password-reset contract adapter. Neither is a compatibility alias.
 - [ ] Verify registration validation, audit events, referral/attribution/signal rollback and password/login tests in Quality CI. Recheck root account writers separately in the wider ownership audit.
 
@@ -309,3 +310,14 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Architecture checker also rejects stale `App\\Actions\\...` imports and `::class` references across production, resources/Volt, tests, routes, configuration and tools.
 - [x] Remove temporary migration-audit workflow; canonical `composer architecture:test` runs the checks in regular Quality CI. No duplicate CI workflow or compatibility shims.
 - [ ] Verify architecture-test + Pest suite after checker consolidation.
+
+## Final ownership checkpoint (2026-11-17)
+
+- **Baseline**: 51 root Action PHP files in 10 folders.
+- **Current**: 3 conventional Fortify entrypoints (CreateNewUser, ResetUserPassword, RecordSuccessfulLogin). No other root Action classes remain. All 48 domain-related or non-Fortify root Actions have been cut over and their old files removed.
+- **Owner boundaries**: business workflows live in their owning Features, shared contracts or appropriate HTTP/Platform adapters. Package persistence stays with its canonical package. Fortify entrypoints exist because the Laravel/Fortify contracts and login pipeline require concrete adapters; they are not deprecated aliases.
+- **Enforced**: `tools/architecture-check.php` blocks any additional root Actions, dangling root-action imports (including Volt PHP), and now stale Fortify allowlist entries.
+- **Last fully green baseline**: GitHub Quality run [44045240113](https://github.com/AIArmada/ilmu360/actions/runs/44045240113) for commit `4f8e4a96843e72d808cc4c9aa86c81835b042e26` (including full configured Pest suite, architecture/PHPStan, Rector, Pint and browser smoke checks). The subsequent signup contract seam and its tests require a fresh Quality result.
+- **No backward compatibility**: no legacy root domain classes, aliases, forwarding shims or duplicated owner writers were retained to complete the cutover.
+
+This checkpoint supersedes stale per-slice unchecked CI reminders above where covered by the fully green baseline. Individual prior notes remain for tracing the rationale and verification history.
