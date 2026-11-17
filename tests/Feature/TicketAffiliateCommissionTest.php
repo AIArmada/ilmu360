@@ -24,7 +24,7 @@ use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderItem;
 use AIArmada\Orders\States\Processing;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Checkout\RecordTicketAffiliateCommissionsStep;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Models\Event;
@@ -438,7 +438,7 @@ it('finishes a registration refund and retries a payout-reserved commission reve
         ->and($receipt->status)->toBe(ShareEffectStatus::Pending);
 
     UpdatePayoutStatus::run($payout, 'cancelled');
-    app(DispatchShareEffectReceiptsAction::class)->handle(50, 'ticket-refund-test');
+    app(PendingShareEffects::class)->dispatch(50, 'ticket-refund-test');
 
     expect($conversion->fresh()->status)->toBeInstanceOf(ReversedConversion::class)
         ->and($receipt->fresh()->status)->toBe(ShareEffectStatus::Succeeded);

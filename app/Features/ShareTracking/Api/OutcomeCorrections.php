@@ -15,6 +15,12 @@ namespace App\Features\ShareTracking\Api;
 interface OutcomeCorrections
 {
     /**
+     * Must be invoked inside the receipt-processing transaction. Acquire a
+     * lock on any existing correction before deciding whether to project.
+     */
+    public function hasForBusinessKeyUnderLock(string $businessKey): bool;
+
+    /**
      * Record the correction for a reversed share outcome.
      *
      * The occurrence time is captured when the row is created. The row is

@@ -13,7 +13,7 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Models\Event;
 use App\Models\ShareCohortProjection;
@@ -309,7 +309,7 @@ it('keeps the generic dispatcher away from committed-share work, both directions
     // Signals live in the package log, not in effect receipts: the
     // dispatcher has nothing to steal and processes nothing.
     expect(ShareEffectReceipt::query()->count())->toBe(0)
-        ->and(DispatchShareEffectReceiptsAction::run(50))->toBe(0);
+        ->and(app(PendingShareEffects::class)->dispatch(50))->toBe(0);
 
     // A foreign effect row is explicitly not owned: ignored, never failed.
     $foreign = ShareEffectReceipt::query()->create([
@@ -322,7 +322,7 @@ it('keeps the generic dispatcher away from committed-share work, both directions
         'attempts' => 0,
     ]);
 
-    expect(DispatchShareEffectReceiptsAction::run(50))->toBe(0)
+    expect(app(PendingShareEffects::class)->dispatch(50))->toBe(0)
         ->and($foreign->refresh()->status)->toBe(ShareEffectStatus::Pending);
 
     // Owned projection effects still dispatch: ownership is explicit,
@@ -347,7 +347,7 @@ it('keeps the generic dispatcher away from committed-share work, both directions
     Carbon::setTestNow();
 
     expect(ShareEffectReceipt::query()->where('effect_type', 'projection')->where('status', ShareEffectStatus::Pending)->count())->toBe(1)
-        ->and(DispatchShareEffectReceiptsAction::run(50))->toBe(1)
+        ->and(app(PendingShareEffects::class)->dispatch(50))->toBe(1)
         ->and(ShareEffectReceipt::query()->where('effect_type', 'projection')->where('status', ShareEffectStatus::Succeeded)->count())->toBe(1)
         ->and($foreign->refresh()->status)->toBe(ShareEffectStatus::Pending);
 });

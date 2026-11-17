@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\ShareTracking;
 
-use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -13,9 +13,9 @@ use Illuminate\Console\Command;
 #[Description('Dispatch pending share-outcome effect receipts, recovering work lost to a crash after commit before enqueue.')]
 class DispatchShareEffectReceiptsCommand extends Command
 {
-    public function handle(DispatchShareEffectReceiptsAction $dispatch): int
+    public function handle(PendingShareEffects $dispatch): int
     {
-        $processed = $dispatch->handle((int) $this->option('limit'));
+        $processed = $dispatch->dispatch((int) $this->option('limit'));
 
         $this->info("Processed {$processed} pending share effect receipt(s).");
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
@@ -141,7 +141,7 @@ it('settles a ticket reversal effect through the dispatcher when its registratio
         reason: 'registration_refunded',
     );
 
-    expect(app(DispatchShareEffectReceiptsAction::class)->handle(10, 'seam-worker'))->toBe(1);
+    expect(app(PendingShareEffects::class)->dispatch(10, 'seam-worker'))->toBe(1);
 
     $row = ShareEffectReceipt::query()->whereKey($receipt->id)->sole();
 

@@ -10,7 +10,7 @@ declare(strict_types=1);
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Models\Event;
@@ -212,7 +212,7 @@ try {
             return ['cookie_returned' => is_string($encoded) && $encoded !== ''];
         })(),
         'dispatch' => (static function () use ($slot): array {
-            $processed = app(DispatchShareEffectReceiptsAction::class)->handle(50, 'wp2-race-worker-'.$slot);
+            $processed = app(PendingShareEffects::class)->dispatch(50, 'wp2-race-worker-'.$slot);
 
             return ['processed' => $processed];
         })(),

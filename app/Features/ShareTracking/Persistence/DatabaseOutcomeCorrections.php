@@ -22,6 +22,14 @@ use Illuminate\Support\Facades\DB;
  */
 final class DatabaseOutcomeCorrections implements OutcomeCorrections
 {
+    public function hasForBusinessKeyUnderLock(string $businessKey): bool
+    {
+        return ShareTrackingModel::query('share_outcome_correction')
+            ->where('business_key', $businessKey)
+            ->lockForUpdate()
+            ->exists();
+    }
+
     public function ensure(
         string $businessKey,
         string $conversionId,

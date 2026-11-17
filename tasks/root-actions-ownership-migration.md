@@ -197,3 +197,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move guarded ticket commission reversals and payout-reservation deferral into Events/Actions/Commerce, exposing scalar TicketAffiliateReversals.
 - [x] Update checkout compensation, cancellation, refund listeners and share-effect dispatcher with registration/conversion IDs and delete the old root action.
 - [ ] Verify exact conversion key, owner scope, deferred receipt lease and payout reservation conditions against Pest/Quality CI.
+
+
+### Share effect receipt dispatcher hard cutover
+- [x] Move leased projection/ticket-reversal consumer under ShareTracking, exposing PendingShareEffects to CLI and tests. Delete root dispatcher without alias.
+- [x] Keep projection-only effect type ownership, fenced lease token, receipt-first transaction/lock sequence, and ticket payout deferrals unchanged. Correction-row locked check stays feature-owned in OutcomeCorrections.
+- [ ] Verify effect idempotency, crash reclaim, concurrent correction and payout-race tests on Quality CI.

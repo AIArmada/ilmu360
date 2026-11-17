@@ -6,6 +6,7 @@ namespace App\Features\ShareTracking;
 
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
+use App\Features\ShareTracking\Actions\EffectReceipts\DispatchShareEffectReceiptsAction;
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
 use App\Features\ShareTracking\Actions\GuestProfiles\DetachTrackedShareLinkAction;
 use App\Features\ShareTracking\Actions\GuestProfiles\PruneAbandonedGuestProfilesAction;
@@ -28,6 +29,7 @@ use App\Features\ShareTracking\Api\OutboundShareAttributionWriter;
 use App\Features\ShareTracking\Api\OutboundShareTouchpointWriter;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\PassiveNavigationAttributionWriter;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\ShareOutcomeEvidenceReader;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
@@ -57,10 +59,9 @@ use App\Platform\FeatureModule;
  *   read used for active-attribution resolution.
  * - S2a1 effect receipts: `DatabaseEffectReceipts` owns freeze-once projection
  *   and ticket-reversal creation, the five-minute worker lease with fencing and
- *   terminal settlement, and cancellation by source. `AffiliatesShareTrackingService`,
- *   `DispatchShareEffectReceiptsAction`, `ReverseShareOutcomeAction` and
- *   `ReverseTicketAffiliateCommissionAction` keep their root orchestration and
- *   package writes.
+ *   terminal settlement, and cancellation by source. ShareTracking now owns
+ *   the effect dispatcher behind PendingShareEffects, while the Events-owned
+ *   TicketAffiliateReversals boundary handles guarded commission reversal.
  * - S2a2 outcome corrections: `DatabaseOutcomeCorrections` owns the idempotent
  *   correction create/replay. `ReverseShareOutcomeAction` keeps the outer
  *   reversal transaction, effect-lock and conversion-reversal order, monetary
@@ -118,6 +119,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(BrowserSelectionWriter::class, LockBrowserSelectionAction::class);
         $this->app->bind(CommittedShareSignals::class, DrainCommittedShareSignalsAction::class);
         $this->app->bind(EffectReceipts::class, DatabaseEffectReceipts::class);
+        $this->app->bind(PendingShareEffects::class, DispatchShareEffectReceiptsAction::class);
         $this->app->bind(FinancialObligationReader::class, DatabaseFinancialObligationReader::class);
         $this->app->bind(GuestProfilePruner::class, PruneAbandonedGuestProfilesAction::class);
         $this->app->bind(GuestShareClaims::class, ClaimGuestProfileAction::class);

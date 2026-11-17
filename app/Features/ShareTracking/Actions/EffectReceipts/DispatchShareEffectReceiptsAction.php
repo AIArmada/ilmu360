@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\ShareTracking;
+namespace App\Features\ShareTracking\Actions\EffectReceipts;
 
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
@@ -13,14 +13,13 @@ use AIArmada\Events\Models\EventRegistration;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
-use App\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Api\OutcomeCorrections;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class DispatchShareEffectReceiptsAction
+final readonly class DispatchShareEffectReceiptsAction implements PendingShareEffects
 {
-    use AsAction;
 
     /**
      * Effect types this dispatcher owns: downstream outcome projection
@@ -35,9 +34,10 @@ final readonly class DispatchShareEffectReceiptsAction
     public function __construct(
         private TicketAffiliateReversals $reverseTicketAffiliateCommission,
         private EffectReceipts $effectReceipts,
+        private OutcomeCorrections $outcomeCorrections,
     ) {}
 
-    public function handle(int $limit = 50, ?string $workerId = null): int
+    public function dispatch(int $limit = 50, ?string $workerId = null): int
     {
         $limit = max(1, min($limit, 200));
         $workerId ??= 'dispatch-'.gethostname().'-'.getmypid();
@@ -105,10 +105,7 @@ final readonly class DispatchShareEffectReceiptsAction
                 ? $status->getValue()
                 : (string) $status;
 
-            $correctionExists = ShareOutcomeCorrection::query()
-                ->where('business_key', $locked->sourceId)
-                ->lockForUpdate()
-                ->exists();
+            $correctionExists = $this->outcomeCorrections->hasForBusinessKeyUnderLock($locked->sourceId);
 
             if (in_array($value, ['rejected', 'reversed'], true) || $correctionExists) {
                 $this->effectReceipts->markCancelled($receiptId, $workerId, $leaseToken);

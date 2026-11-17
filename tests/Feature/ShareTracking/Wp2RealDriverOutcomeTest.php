@@ -28,7 +28,7 @@ use AIArmada\Affiliates\Services\FraudDetectionService;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Actions\ShareTracking\DispatchShareEffectReceiptsAction;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\Event;
 use App\Models\Registration;
@@ -434,13 +434,13 @@ function wp2DispatchRecoveryCase(TestCase $testCase): void
             wp2OutcomeRequest($cookie),
         );
 
-        $dispatcher = app(DispatchShareEffectReceiptsAction::class);
+        $dispatcher = app(PendingShareEffects::class);
 
         // Commit-before-dispatch recovery: the pending keyed receipt is
         // the durable gap coverage, applied exactly once.
-        expect($dispatcher->handle(50, 'wp2-worker-a'))->toBe(1)
+        expect($dispatcher->dispatch(50, 'wp2-worker-a'))->toBe(1)
             ->and((int) $link->fresh()->conversions)->toBe(1)
-            ->and($dispatcher->handle(50, 'wp2-worker-a'))->toBe(0)
+            ->and($dispatcher->dispatch(50, 'wp2-worker-a'))->toBe(0)
             ->and((int) $link->fresh()->conversions)->toBe(1);
 
         $receipt = ShareEffectReceipt::query()->firstOrFail();
@@ -466,7 +466,7 @@ function wp2DispatchRecoveryCase(TestCase $testCase): void
             'lease_expires_at' => CarbonImmutable::now()->subMinute(),
         ])->save();
 
-        expect($dispatcher->handle(50, 'wp2-worker-b'))->toBe(1)
+        expect($dispatcher->dispatch(50, 'wp2-worker-b'))->toBe(1)
             ->and((int) $link->fresh()->conversions)->toBe(2)
             ->and($stranded->fresh()->status)->toBe(ShareEffectStatus::Succeeded);
     } finally {
@@ -1013,7 +1013,7 @@ function wp2CorrectionDispatchCase(TestCase $testCase): void
             ->and($service->recordOutcome(ShareOutcomeType::EventSave, $validKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull()
             ->and(app(ReverseShareOutcomeAction::class)->handle($revokedKey, 'registration_cancelled', $actor))->not->toBeNull();
 
-        $processed = app(DispatchShareEffectReceiptsAction::class)->handle(10);
+        $processed = app(PendingShareEffects::class)->dispatch(10);
         expect($processed)->toBe(1)
             ->and(ShareEffectReceipt::query()->where('source_id', $revokedKey)->firstOrFail()->status)->toBe(ShareEffectStatus::Cancelled)
             ->and(ShareEffectReceipt::query()->where('source_id', $validKey)->firstOrFail()->status)->toBe(ShareEffectStatus::Succeeded)
@@ -1047,10 +1047,10 @@ function wp2LeaseFencingCase(TestCase $testCase): void
             'attempts' => 1,
         ])->save();
 
-        expect(app(DispatchShareEffectReceiptsAction::class)->handle(10))->toBe(1)
+        expect(app(PendingShareEffects::class)->dispatch(10))->toBe(1)
             ->and(ShareEffectReceipt::query()->whereKey($effect->getKey())->firstOrFail()->status)->toBe(ShareEffectStatus::Succeeded)
             ->and((int) $link->fresh()->conversions)->toBe(1)
-            ->and(app(DispatchShareEffectReceiptsAction::class)->handle(10))->toBe(0)
+            ->and(app(PendingShareEffects::class)->dispatch(10))->toBe(0)
             ->and((int) $link->fresh()->conversions)->toBe(1);
     } finally {
         wp2OutcomeTeardown($database, $previous);
