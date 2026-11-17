@@ -6,8 +6,8 @@ namespace App\Features\Contributions\Queries;
 
 use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Shared\Contributions\ContributionEntityState;
-use Illuminate\Database\Eloquent\Model;
 use App\Shared\Contributions\Support\ContributionEntityMetadata;
+use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveContributionUpdateContextAction implements ContributionUpdateContextReader

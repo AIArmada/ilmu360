@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Features\Engagement\Api\EventGoingCommands;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;
+use App\Features\Engagement\Api\EventGoingCommands;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;

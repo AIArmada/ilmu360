@@ -38,9 +38,6 @@ class ResolveContributionSubjectAction
      */
     private function resolveSlugOrUuid(Builder $query, string $slugColumn, string $subjectId): Model
     {
-        /** @var Model $record */
-        $record = $this->slugOrUuidResolver->firstOrFail($query, $slugColumn, $subjectId);
-
-        return $record;
+        return $this->slugOrUuidResolver->firstOrFail($query, $slugColumn, $subjectId);
     }
 }

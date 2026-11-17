@@ -24,7 +24,7 @@ final readonly class EventSaveCommandsService implements EventSaveCommands
             request(),
         );
 
-        return ['bookmark_id' => $result->bookmark !== null ? (string) $result->bookmark->getKey() : null, 'created' => $result->created];
+        return ['bookmark_id' => $result->bookmark instanceof \AIArmada\Engagement\Models\Bookmark ? (string) $result->bookmark->getKey() : null, 'created' => $result->created];
     }
 
     public function unsave(string $eventId, string $actorId): bool

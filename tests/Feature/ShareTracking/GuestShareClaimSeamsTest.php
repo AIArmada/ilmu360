@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ClaimRecipients;

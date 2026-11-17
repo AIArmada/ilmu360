@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Features\Engagement\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Engagement\Contracts\EngagementManager;
-use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Contracts\CanInteract;
+use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Contracts\Followable;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Model;
-use InvalidArgumentException;
+use AIArmada\Engagement\Models\Follow;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**

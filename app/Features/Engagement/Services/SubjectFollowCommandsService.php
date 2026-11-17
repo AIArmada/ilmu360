@@ -35,5 +35,4 @@ final readonly class SubjectFollowCommandsService implements SubjectFollowComman
             EngagementModels::actor($actorId),
         )->removed;
     }
-
 }

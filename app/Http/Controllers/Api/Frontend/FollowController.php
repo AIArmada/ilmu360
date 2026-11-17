@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Data\Api\Frontend\Follow\FollowStateData;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;

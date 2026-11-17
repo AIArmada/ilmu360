@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\Engagement\Actions;
 
-use AIArmada\Engagement\Contracts\EngagementCounterService;
-use AIArmada\Engagement\Models\Response;
 use AIArmada\Engagement\Contracts\CanInteract;
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Contracts\Respondable;
+use AIArmada\Engagement\Models\Response;
+use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
