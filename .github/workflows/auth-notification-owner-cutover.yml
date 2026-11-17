@@ -1,0 +1,13 @@
+name: One-time auth notification ownership
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/auth-notification-owner-cutover.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/auth-notification-owner-cutover.py
