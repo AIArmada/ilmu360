@@ -12,7 +12,7 @@ use App\Features\ShareTracking\Api\MarkedShareAffiliateIds;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Shared\ShareTracking\CommittedShareSignal;
-use App\Support\ShareTracking\ShareTrackingMeasurement;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;

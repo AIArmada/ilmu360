@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Jobs\ShareTracking;
+namespace App\Features\ShareTracking\EntryPoints\Jobs;
 
-use App\Support\Share\CommittedShareSignalProducer;
+use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;

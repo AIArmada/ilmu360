@@ -38,6 +38,7 @@ use App\Contracts\ShareTrackingContract;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
+use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\CreateLandingAttributionData;
 use App\Features\ShareTracking\Api\CreateOutboundShareAttributionData;
@@ -55,7 +56,6 @@ use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
 use App\Features\ShareTracking\Api\VisitTouchpointData;
 use App\Features\ShareTracking\Api\VisitTouchpointWriter;
-use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -69,11 +69,11 @@ use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareTrackingFinance;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\SealedGuestIdentityException;
 use App\Support\ShareTracking\ShareProfileNotEligibleException;
-use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Illuminate\Cookie\CookieValuePrefix;
 use Illuminate\Database\Eloquent\Builder;
@@ -677,7 +677,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         }
 
         try {
-            QualifyReferralFromShareOutcomeJob::dispatch($businessKey)->afterCommit();
+            app(ReferralOutcomeWorkflow::class)->scheduleQualification($businessKey);
         } catch (Throwable $exception) {
             Log::warning('Referral qualification dispatch failed after a committed share outcome.', [
                 'business_key' => $businessKey,

@@ -11,7 +11,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Models\User;
-use App\Support\ShareTracking\ShareTrackingMeasurement;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;

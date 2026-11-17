@@ -6,7 +6,7 @@ namespace App\Filament\Pages;
 
 use AIArmada\FilamentSignals\Pages\PageViewsReport;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
-use App\Support\ShareTracking\ShareTrackingMeasurement;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;

@@ -8,7 +8,7 @@ use App\Enums\ShareSubjectType;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Support\ShareTracking\ShareTrackingMeasurement;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;

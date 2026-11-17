@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
-use App\Support\ShareTracking\ShareTrackingMeasurement;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;

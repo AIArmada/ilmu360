@@ -10,7 +10,6 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Checkout\Contracts\StepContributor;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
@@ -105,7 +104,6 @@ use App\Observers\AddressAreaRelationshipObserver;
 use App\Observers\AddressCatalogObserver;
 use App\Observers\AddressCountryObserver;
 use App\Observers\AddressObserver;
-use App\Observers\CommittedShareTouchpointObserver;
 use App\Observers\EventKeyPersonObserver;
 use App\Observers\EventLocationSyncObserver;
 use App\Observers\EventObserver;
@@ -669,7 +667,6 @@ class AppServiceProvider extends ServiceProvider
         Venue::observe(VenueObserver::class);
         ShareSourceAttributionReceipt::observe(ShareSourceAttributionReceiptObserver::class);
         ShareOutcomeCorrection::observe(ShareOutcomeCorrectionObserver::class);
-        AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);
 
         app()->instance($registrationKey, true);
     }

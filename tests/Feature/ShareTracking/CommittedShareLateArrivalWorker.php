@@ -12,7 +12,7 @@ declare(strict_types=1);
 // the cursor already advanced elsewhere.
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Support\Share\CommittedShareSignalProducer;
+use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;

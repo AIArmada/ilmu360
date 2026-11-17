@@ -13,7 +13,7 @@ use App\Platform\Http\FrontendController;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Support\ShareTracking\ShareTrackingMeasurement;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

@@ -10,7 +10,7 @@
     $followingInstitutions = $this->followingInstitutions;
     $recentSavedSearches = $this->recentSavedSearches;
     $dakwahSummary = $this->dakwahSummary;
-    $dakwahMeasurementsAvailable = \App\Support\ShareTracking\ShareTrackingMeasurement::isConfigured();
+    $dakwahMeasurementsAvailable = \App\Shared\ShareTracking\ShareTrackingMeasurement::isConfigured();
     $shareRewardEnrollmentPrompt = $this->shareRewardEnrollmentPrompt;
 
     $dashboardStats = [

@@ -21,6 +21,11 @@ final readonly class ReferralOutcomeService implements ReferralOutcomeWorkflow
         $this->qualification->handle($businessKey);
     }
 
+    public function scheduleQualification(string $businessKey): void
+    {
+        \App\Features\Referrals\EntryPoints\Jobs\QualifyReferralFromShareOutcomeJob::dispatch($businessKey)->afterCommit();
+    }
+
     public function reverseRewards(string $businessKey, string $reason): void
     {
         $this->reversal->handle($businessKey, $reason);

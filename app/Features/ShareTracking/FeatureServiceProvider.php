@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking;
 
+use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\Actions\EffectReceipts\DispatchShareEffectReceiptsAction;
@@ -39,6 +40,7 @@ use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
 use App\Features\ShareTracking\Api\VisitTouchpointWriter;
+use App\Features\ShareTracking\EntryPoints\Observers\CommittedShareTouchpointObserver;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
@@ -117,6 +119,12 @@ use App\Platform\FeatureModule;
  */
 class FeatureServiceProvider extends FeatureModule
 {
+    public function boot(): void
+    {
+        parent::boot();
+        AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);
+    }
+
     public function register(): void
     {
         $this->commands([

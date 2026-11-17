@@ -7,11 +7,11 @@ use App\Models\ShareCohortProjection;
 use App\Services\ShareTracking\AdminShareAnalyticsService;
 use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
 use App\Services\ShareTrackingAnalyticsService;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use App\Shared\ShareTracking\ShareTrackingRetention;
 use App\Support\Share\ShareCohortAuthority;
 use App\Support\Share\ShareMetricReader;
 use App\Support\Share\ShareProfileScope;
-use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
 
 it('keeps the analytics readers as documented root adapters', function (string $class, string $relativePath): void {
@@ -24,7 +24,7 @@ it('keeps the analytics readers as documented root adapters', function (string $
     'affiliate analytics' => [AffiliatesShareTrackingAnalyticsService::class, 'app/Services/ShareTracking/AffiliatesShareTrackingAnalyticsService.php'],
     'admin analytics' => [AdminShareAnalyticsService::class, 'app/Services/ShareTracking/AdminShareAnalyticsService.php'],
     'metric reader' => [ShareMetricReader::class, 'app/Support/Share/ShareMetricReader.php'],
-    'measurement contract' => [ShareTrackingMeasurement::class, 'app/Support/ShareTracking/ShareTrackingMeasurement.php'],
+    'measurement contract' => [ShareTrackingMeasurement::class, 'app/Shared/ShareTracking/ShareTrackingMeasurement.php'],
     'profile scope' => [ShareProfileScope::class, 'app/Support/Share/ShareProfileScope.php'],
     'cohort authority' => [ShareCohortAuthority::class, 'app/Support/Share/ShareCohortAuthority.php'],
 ]);

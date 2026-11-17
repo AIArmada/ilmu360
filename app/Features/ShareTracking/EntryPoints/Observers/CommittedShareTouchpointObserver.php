@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Observers;
+namespace App\Features\ShareTracking\EntryPoints\Observers;
 
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Jobs\ShareTracking\ProduceCommittedShareSignalJob;
-use App\Support\Share\CommittedShareSignalProducer;
+use App\Features\ShareTracking\EntryPoints\Jobs\ProduceCommittedShareSignalJob;
+use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 
 /**
  * Fans committed outbound shares out to the Signals pipeline. Only
