@@ -66,7 +66,7 @@ final class ResolveDigestMailAmbiguityCommand extends Command
                 $deliveryId,
                 $decision,
                 'user',
-                (string) $actorOption,
+                $actorOption,
                 'admin',
                 is_string($providerMessageId) && $providerMessageId !== '' ? $providerMessageId : null,
                 is_string($reason) && $reason !== '' ? $reason : null,
