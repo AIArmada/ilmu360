@@ -6,12 +6,12 @@ use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
-use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
 
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionReviewAccess;
@@ -24,6 +24,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
+use App\Platform\Models\MorphModelResolver;
 use App\Platform\Location\DiscoverWebsiteSocialProfilesAction;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\GooglePlaceIdentity;
@@ -403,15 +404,16 @@ class ContributionController extends FrontendController
         string $subjectType,
         string $subject,
         Request $request,
-        ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
+        ContributionUpdateContextReader $contributionUpdateContextReader,
         ContributionSubjectPresenter $contributionSubjectPresenter,
         ContributionRequestReader $pendingContributionReader,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
 
-        $context = $resolveContributionUpdateContextAction->handle($subjectType, $subject);
-        $entity = $context['entity'];
+        $context = $contributionUpdateContextReader->resolve($subjectType, $subject);
+        /** @var Event|Institution|Person|Reference $entity */
+        $entity = MorphModelResolver::resolve($context['entity_type'])::query()->findOrFail($context['entity_id']);
         $initialState = $this->apiInitialState($entity, $context['initial_state']);
         $canDirectEdit = $user->can('update', $entity);
 
@@ -481,7 +483,7 @@ class ContributionController extends FrontendController
         string $subjectType,
         string $subject,
         Request $request,
-        ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
+        ContributionUpdateContextReader $contributionUpdateContextReader,
         ContributionSubmissionPreparation $submissionPreparation,
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
         ContributionRequestLifecycle $contributionRequestLifecycle,
@@ -493,8 +495,9 @@ class ContributionController extends FrontendController
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
 
-        $context = $resolveContributionUpdateContextAction->handle($subjectType, $subject);
-        $entity = $context['entity'];
+        $context = $contributionUpdateContextReader->resolve($subjectType, $subject);
+        /** @var Event|Institution|Person|Reference $entity */
+        $entity = MorphModelResolver::resolve($context['entity_type'])::query()->findOrFail($context['entity_id']);
         $publicInitialState = $this->apiInitialState($entity, $context['initial_state']);
         $comparableOriginalData = $entity instanceof Event
             ? $context['initial_state']

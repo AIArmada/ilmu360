@@ -3,11 +3,11 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
 
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
@@ -27,6 +27,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Platform\Concurrency\MapsIdentityLock;
+use App\Platform\Models\MorphModelResolver;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Platform\Location\GooglePlaceIdentity;
@@ -117,7 +118,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     public function mount(
         string $subjectType,
         string $subjectId,
-        ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
+        ContributionUpdateContextReader $contributionUpdateContextReader,
         ContributionSubjectPresenter $contributionSubjectPresenter,
     ): void {
         // Directory contribution pages operate on globally visible records. Keep the
@@ -127,7 +128,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
         OwnerContext::withOwner(null, function () use (
             $contributionSubjectPresenter,
-            $resolveContributionUpdateContextAction,
+            $contributionUpdateContextReader,
             $subjectId,
             $subjectType,
         ): void {
@@ -137,9 +138,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
             $this->subjectType = $resolvedSubjectType->value;
 
-            $context = $resolveContributionUpdateContextAction->handle($this->subjectType, $subjectId);
+            $context = $contributionUpdateContextReader->resolve($this->subjectType, $subjectId);
 
-            $this->entity = $context['entity'];
+            /** @var Event|Institution|Reference|Person $entity */
+            $entity = MorphModelResolver::resolve($context['entity_type'])::query()->findOrFail($context['entity_id']);
+            $this->entity = $entity;
             $this->originalData = $this->comparableOriginalData($context['initial_state']);
             $this->subjectPresentation = $contributionSubjectPresenter->present($this->entity);
 

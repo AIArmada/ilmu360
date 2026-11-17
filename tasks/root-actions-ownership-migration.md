@@ -97,3 +97,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move pending-approval and reviewable-request policy queries into Contributions/Queries.
 - [x] Expose scalar ID-only ContributionReviewAccess contract. Rehydrate response models at HTTP/member/admin adapters; retain 403 for unauthorized reviews, request status filtering and sorting.
 - [ ] Confirm source audit and affected CI results.
+
+
+### Contributions subject/update form context cutover
+- [x] Rehome slug-or-UUID contribution subject resolution and update-form state projection to Contributions/Queries.
+- [x] Expose ContributorUpdateContextReader with scalar entity identity and array-form contract; root HTTP/Livewire hydrate the entity through MorphModelResolver.
+- [ ] Verify route-binding/authorization parity, storage reads and Quality CI.

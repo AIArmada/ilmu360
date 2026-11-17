@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\Queries\ResolveContributionSubjectAction;
-use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
+use App\Features\Contributions\Queries\ResolveContributionSubjectAction;
+use App\Features\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Features\Contributions\Actions\NormalizeContributionSubmissionAction;
 use App\Features\Contributions\Actions\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;

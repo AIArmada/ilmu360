@@ -7,6 +7,7 @@ namespace App\Features\Contributions;
 use App\Features\Contributions\Actions\EnsureNoPendingContributionRequestAction;
 use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionRequestReader;
@@ -14,6 +15,7 @@ use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContributor;
 use App\Features\Contributions\Persistence\CacheVerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
+use App\Features\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Features\Contributions\Services\ContributionRequestLifecycleService;
 use App\Features\Contributions\Services\ContributionReviewAccessService;
 use App\Features\Contributions\Services\ContributionSubmissionPreparationService;
@@ -56,6 +58,7 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
+        $this->app->bind(ContributionUpdateContextReader::class, ResolveContributionUpdateContextAction::class);
         $this->app->bind(ContributionRequestLifecycle::class, ContributionRequestLifecycleService::class);
         $this->app->bind(ContributionReviewAccess::class, ContributionReviewAccessService::class);
         $this->app->bind(ContributionSubmissionPreparation::class, ContributionSubmissionPreparationService::class);

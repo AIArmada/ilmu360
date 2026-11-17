@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Contributions\Queries;
+namespace App\Features\Contributions\Queries;
 
 use App\Models\Event;
 use App\Models\Institution;
