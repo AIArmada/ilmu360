@@ -64,10 +64,10 @@ final readonly class EloquentEventEscalationTransport implements EventEscalation
     /** @return Collection<int, \\Illuminate\\Contracts\\Auth\\Authenticatable> */
     public function forRole(string $role): Collection
     {
-        return User::role($role)->get()
-            ->map(static fn (User $user): Authenticatable => $user)
-            ->values()
-            ->toBase();
+        /** @var Collection<int, Authenticatable> $recipients */
+        $recipients = User::role($role)->get();
+
+        return $recipients;
     }
 
     public function notify(string $eventId, string $notificationType, Collection $recipients): void
