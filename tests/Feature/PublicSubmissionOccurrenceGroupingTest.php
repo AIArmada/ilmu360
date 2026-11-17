@@ -12,7 +12,7 @@ use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSubmissionLog;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Events\Submission\SubmitFrontendEventAction;
+use App\Http\Submission\SubmitEventRequestHandler;
 use App\Data\Api\Event\EventPayloadData;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
@@ -108,7 +108,7 @@ it('creates a date-free institutional parent and preserves every contribution on
     $date = now()->addDays(8)->toDateString();
     $mediaSubject = null;
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Fiqh of Neighbourhoods',
             'event_date' => $date,
@@ -173,7 +173,7 @@ it('reuses the institution type and prayer slot while keeping old occurrence con
     $firstDate = now()->addDays(8)->toDateString();
     $secondDate = now()->addDays(15)->toDateString();
 
-    $first = app(SubmitFrontendEventAction::class)->handle(
+    $first = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Tajuk Pertama',
             'event_date' => $firstDate,
@@ -183,7 +183,7 @@ it('reuses the institution type and prayer slot while keeping old occurrence con
     );
     $firstOccurrenceId = (string) $first['occurrence']->getKey();
 
-    $second = app(SubmitFrontendEventAction::class)->handle(
+    $second = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Tajuk Kedua yang Berbeza',
             'description' => 'Huraian kedua kekal berasingan.',
@@ -224,11 +224,11 @@ it('assigns unique occurrence slugs when identical contributions share a parent 
         'persons' => [$speaker->getKey()],
     ]);
 
-    $first = app(SubmitFrontendEventAction::class)->handle(
+    $first = app(SubmitEventRequestHandler::class)->handle(
         state: $payload,
         request: publicOccurrenceGroupingRequest(),
     );
-    $second = app(SubmitFrontendEventAction::class)->handle(
+    $second = app(SubmitEventRequestHandler::class)->handle(
         state: $payload,
         request: publicOccurrenceGroupingRequest(),
     );
@@ -249,14 +249,14 @@ it('uses the nearest eligible future occurrence as the parent date without per-e
     $firstDate = now()->addDays(8)->toDateString();
     $secondDate = now()->addDays(15)->toDateString();
 
-    $first = app(SubmitFrontendEventAction::class)->handle(
+    $first = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Past Group Date',
             'event_date' => $firstDate,
         ]),
         request: publicOccurrenceGroupingRequest(),
     );
-    $second = app(SubmitFrontendEventAction::class)->handle(
+    $second = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Next Group Date',
             'event_date' => $secondDate,
@@ -287,7 +287,7 @@ it('uses the nearest eligible future occurrence as the parent date without per-e
 
 it('uses the nearest upcoming group occurrence in event listings and API date filters and sorting', function (): void {
     $institution = publicOccurrenceGroupingInstitution();
-    $first = app(SubmitFrontendEventAction::class)->handle(
+    $first = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Completed Earlier Occurrence',
             'event_date' => now()->addDays(8)->toDateString(),
@@ -301,7 +301,7 @@ it('uses the nearest upcoming group occurrence in event listings and API date fi
     ]);
 
     $nextStartDate = now()->addDays(16)->toDateString();
-    $second = app(SubmitFrontendEventAction::class)->handle(
+    $second = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Next Upcoming Occurrence',
             'event_date' => $nextStartDate,
@@ -349,7 +349,7 @@ it('uses the nearest upcoming group occurrence in event listings and API date fi
 
 it('matches the canonical parent identity and keeps each prayer expression on its occurrence', function (): void {
     $institution = publicOccurrenceGroupingInstitution();
-    $first = app(SubmitFrontendEventAction::class)->handle(
+    $first = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Shared Topic',
             'event_date' => now()->addDays(8)->toDateString(),
@@ -359,7 +359,7 @@ it('matches the canonical parent identity and keeps each prayer expression on it
 
     $event = $first['event'];
     $occurrence = $first['occurrence'];
-    $second = app(SubmitFrontendEventAction::class)->handle(
+    $second = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'New Canonical Matched Topic',
             'event_date' => now()->addDays(16)->toDateString(),
@@ -383,7 +383,7 @@ it('does not reuse a private or terminal parent candidate', function (): void {
         'event_date' => now()->addDays(8)->toDateString(),
     ]);
 
-    $private = app(SubmitFrontendEventAction::class)->handle(
+    $private = app(SubmitEventRequestHandler::class)->handle(
         state: $basePayload('Private Parent'),
         request: publicOccurrenceGroupingRequest(),
     );
@@ -392,13 +392,13 @@ it('does not reuse a private or terminal parent candidate', function (): void {
         'visibility' => 'private',
     ]);
 
-    $terminal = app(SubmitFrontendEventAction::class)->handle(
+    $terminal = app(SubmitEventRequestHandler::class)->handle(
         state: $basePayload('Public Parent'),
         request: publicOccurrenceGroupingRequest(),
     );
     DB::table('events')->where('id', $terminal['event']->getKey())->update(['status' => 'cancelled']);
 
-    $fresh = app(SubmitFrontendEventAction::class)->handle(
+    $fresh = app(SubmitEventRequestHandler::class)->handle(
         state: $basePayload('Fresh Parent'),
         request: publicOccurrenceGroupingRequest(),
     );
@@ -435,7 +435,7 @@ it('matches an existing ordinary event from its canonical institution category a
     ]);
     $originalOccurrenceId = (string) $existing->primaryOccurrence()->value('id');
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'A Different Contribution Topic',
             'event_date' => now()->addDays(16)->toDateString(),
@@ -492,7 +492,7 @@ it('does not adopt an existing parent with multiple canonical prayer slots', fun
         'display_label' => EventPrayerTime::SelepasSubuh->getLabel(),
     ]);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Maghrib Contribution',
             'event_date' => now()->addDays(16)->toDateString(),
@@ -519,7 +519,7 @@ it('renders the selected occurrence submission content on its public detail page
     ]);
     $reference = Reference::factory()->create(['title' => 'Occurrence Reference Only', 'status' => 'verified']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Occurrence Specific Topic',
             'description' => 'Occurrence specific description.',
@@ -603,7 +603,7 @@ it('filters public occurrence speakers, references and prayer slots while exclud
     $publicReference = Reference::factory()->create(['title' => 'Public Occurrence Source', 'status' => 'verified']);
     $draftReference = Reference::factory()->create(['title' => 'Draft Occurrence Source', 'status' => 'verified']);
 
-    $public = app(SubmitFrontendEventAction::class)->handle(
+    $public = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Public Prayer Slot Submission',
             'persons' => [$publicSpeaker->getKey()],
@@ -618,7 +618,7 @@ it('filters public occurrence speakers, references and prayer slots while exclud
     ]);
     $public['event']->refresh();
 
-    $draft = app(SubmitFrontendEventAction::class)->handle(
+    $draft = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Draft Prayer Slot Submission',
             'persons' => [$draftSpeaker->getKey()],
@@ -665,29 +665,29 @@ it('creates different parents for institution, category, prayer direction and cu
         'event_date' => now()->addDays(8)->toDateString(),
     ];
 
-    $sameInstitutionAndSlot = app(SubmitFrontendEventAction::class)->handle(
+    $sameInstitutionAndSlot = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($firstInstitution, $base + ['title' => 'First']),
         request: publicOccurrenceGroupingRequest(),
     );
-    $differentCategory = app(SubmitFrontendEventAction::class)->handle(
+    $differentCategory = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($firstInstitution, $base + [
             'title' => 'Forum',
             'event_category_ids' => [eventCategoryId('forum_diskusi')],
         ]),
         request: publicOccurrenceGroupingRequest(),
     );
-    $differentPrayerDirection = app(SubmitFrontendEventAction::class)->handle(
+    $differentPrayerDirection = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($firstInstitution, $base + [
             'title' => 'Before Maghrib',
             'prayer_time' => EventPrayerTime::SebelumMaghrib->value,
         ]),
         request: publicOccurrenceGroupingRequest(),
     );
-    $differentInstitution = app(SubmitFrontendEventAction::class)->handle(
+    $differentInstitution = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($otherInstitution, $base + ['title' => 'Other Mosque']),
         request: publicOccurrenceGroupingRequest(),
     );
-    $customTime = app(SubmitFrontendEventAction::class)->handle(
+    $customTime = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($firstInstitution, $base + [
             'title' => 'Custom Clock',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -695,7 +695,7 @@ it('creates different parents for institution, category, prayer direction and cu
         ]),
         request: publicOccurrenceGroupingRequest(),
     );
-    $secondCustomTime = app(SubmitFrontendEventAction::class)->handle(
+    $secondCustomTime = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($firstInstitution, $base + [
             'title' => 'Another Custom Clock',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -729,7 +729,7 @@ it('stores Tarawih as a label-only occurrence and does not group it with Isyak',
         'event_date' => now()->addDays(8)->toDateString(),
     ];
 
-    $tarawih = app(SubmitFrontendEventAction::class)->handle(
+    $tarawih = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, array_merge($base, [
             'title' => 'Tarawih',
             'event_date' => '2027-02-10',
@@ -737,7 +737,7 @@ it('stores Tarawih as a label-only occurrence and does not group it with Isyak',
         ])),
         request: publicOccurrenceGroupingRequest(),
     );
-    $isyak = app(SubmitFrontendEventAction::class)->handle(
+    $isyak = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, $base + [
             'title' => 'Isyak',
             'prayer_time' => EventPrayerTime::SelepasIsyak->value,
@@ -765,7 +765,7 @@ it('holds appends to approved parents for occurrence review without changing the
     $firstDate = now()->addDays(5)->toDateString();
     $secondDate = now()->addDays(10)->toDateString();
 
-    $first = app(SubmitFrontendEventAction::class)->handle(
+    $first = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Approved Parent Date',
             'event_date' => $firstDate,
@@ -779,7 +779,7 @@ it('holds appends to approved parents for occurrence review without changing the
     $registrationMode = $event->registration_mode;
     $accessPolicy = $event->accessPolicy()->firstOrFail()->only(['registration_required', 'walk_in_allowed']);
 
-    $second = app(SubmitFrontendEventAction::class)->handle(
+    $second = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Awaiting Review Date',
             'description' => 'Awaiting review only.',
@@ -834,7 +834,7 @@ it('holds appends to approved parents for occurrence review without changing the
 
 it('rejects an appended occurrence with actor, review reason and outcome telemetry', function (): void {
     $institution = publicOccurrenceGroupingInstitution();
-    $first = app(SubmitFrontendEventAction::class)->handle(
+    $first = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Approved Parent for Rejection',
             'event_date' => now()->addDays(6)->toDateString(),
@@ -843,7 +843,7 @@ it('rejects an appended occurrence with actor, review reason and outcome telemet
     );
     DB::table('events')->where('id', $first['event']->getKey())->update(['status' => 'approved']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Occurrence to Reject',
             'event_date' => now()->addDays(12)->toDateString(),

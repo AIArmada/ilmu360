@@ -5,7 +5,7 @@ namespace App\Livewire\Pages\SubmitEvent;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Actions\Events\Submission\SubmitFrontendEventAction;
+use App\Http\Submission\SubmitEventRequestHandler;
 use App\Data\Events\SubmitEventFormContext;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Features\Events\Api\EventInstitutionQuickAddMapsProof;
@@ -882,7 +882,7 @@ class Create extends Component implements HasActions, HasForms
         $eventContainer = $this->selectedEventContainer();
 
         try {
-            $result = app(SubmitFrontendEventAction::class)->handle(
+            $result = app(SubmitEventRequestHandler::class)->handle(
                 state: $state,
                 request: request(),
                 submitter: $this->submitterUser(),

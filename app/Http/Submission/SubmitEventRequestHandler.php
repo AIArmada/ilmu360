@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Events\Submission;
+namespace App\Http\Submission;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
@@ -33,16 +33,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Filesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Exceptions\RoleDoesNotExist;
 use Throwable;
 
-class SubmitFrontendEventAction
+final class SubmitEventRequestHandler
 {
-    use AsAction;
 
     public function __construct(
         private readonly EntitySubmissionAccess $entitySubmissionAccess,

@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Actions\Events\Submission\SubmitFrontendEventAction;
+use App\Http\Submission\SubmitEventRequestHandler;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
@@ -68,7 +68,7 @@ it('rejects a forged scoped institution the submitter does not belong to', funct
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
-    expect(fn () => app(SubmitFrontendEventAction::class)->handle(
+    expect(fn () => app(SubmitEventRequestHandler::class)->handle(
         state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $person->getKey(),
             'persons' => [$person->getKey()],
@@ -129,7 +129,7 @@ it('rejects session submissions to events the user cannot update', function () {
 
     $event->setPrimaryOrganizer($person);
 
-    expect(fn () => app(SubmitFrontendEventAction::class)->handle(
+    expect(fn () => app(SubmitEventRequestHandler::class)->handle(
         state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $person->getKey(),
             'persons' => [$person->getKey()],
@@ -161,7 +161,7 @@ it('does not treat the location institution as ownership for scoped containers',
     $event->setPrimaryOrganizer($organizerInstitution);
     $locationInstitution->members()->syncWithoutDetaching([$user->id]);
 
-    expect(fn () => app(SubmitFrontendEventAction::class)->handle(
+    expect(fn () => app(SubmitEventRequestHandler::class)->handle(
         state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
             'location_same_as_institution' => true,
             'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
@@ -252,7 +252,7 @@ it('rejects impossible dates and malformed times with prefixed errors instead of
 
     foreach (['2026-02-31', 'tomorrow', '12/31/2026', '2026-13-01'] as $eventDate) {
         try {
-            app(SubmitFrontendEventAction::class)->handle(
+            app(SubmitEventRequestHandler::class)->handle(
                 state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
                     'event_date' => $eventDate,
                     'primary_organizer_id' => $person->getKey(),
@@ -273,7 +273,7 @@ it('rejects impossible dates and malformed times with prefixed errors instead of
     }
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
                 'prayer_time' => EventPrayerTime::LainWaktu->value,
                 'custom_time' => '25:99',
@@ -312,7 +312,7 @@ it('validates space ownership before captcha with a prefixed key', function () {
     ]);
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
                 'primary_organizer_id' => $person->getKey(),
                 'persons' => [$person->getKey()],
@@ -346,7 +346,7 @@ it('rejects a venue that is no longer available for submission before captcha', 
     Http::fake();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
                 'primary_organizer_id' => $person->getKey(),
                 'persons' => [$person->getKey()],
@@ -375,7 +375,7 @@ it('does not persist forged physical locations on an online submission', functio
     $institution = Institution::factory()->create(['status' => 'rejected', 'allow_public_event_submission' => false]);
     $venue = Venue::factory()->create(['status' => 'rejected']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
             'event_format' => EventFormat::Online->value,
             'primary_organizer_id' => $person->getKey(),
@@ -405,7 +405,7 @@ it('rejects physical spaces on an online submission before captcha', function ()
     Http::fake();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
                 'event_format' => EventFormat::Online->value,
                 'primary_organizer_id' => $person->getKey(),
@@ -438,7 +438,7 @@ it('requires a guest submitter name at the shared submission boundary', function
     Http::fake();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitSecurityPayload($this->domainTag, $this->disciplineTag, [
                 'primary_organizer_id' => $person->getKey(),
                 'persons' => [$person->getKey()],

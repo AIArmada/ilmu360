@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Events\Submission\SubmitFrontendEventAction;
+use App\Http\Submission\SubmitEventRequestHandler;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
@@ -44,7 +44,7 @@ class EventSubmissionController extends FrontendController
     )]
     public function store(
         Request $request,
-        SubmitFrontendEventAction $submitFrontendEventAction,
+        SubmitEventRequestHandler $submitFrontendEventAction,
         MediaCollectionSync $mediaCollectionSync,
     ): JsonResponse {
         $user = $this->currentUser($request);

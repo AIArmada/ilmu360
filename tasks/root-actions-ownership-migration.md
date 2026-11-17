@@ -295,3 +295,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move selected-location prayer provider lookup into Events/Actions/Submission, using the existing Prayer feature API and an EventSubmissions scalar boundary.
 - [x] Preserve provider fallback, local prayer time, country/state/district selection and invocation position before starts_at validation; delete the root private helper.
 - [ ] Verify cached prayer provider and fallback/DST submissions in CI.
+
+
+### Public event submission HTTP entrypoint relocation
+- [x] Root `SubmitFrontendEventAction` was an HTTP orchestration adapter, not an Events table writer. Existing package/Events writes already belong to `EventSubmissions` and `EventSubmissionCompletion`.
+- [x] Move the request/CAPTCHA/media/share-attribution coordinator to `app/Http/Submission/SubmitEventRequestHandler.php`; update all API, Livewire and five focused test files, remove the old root Action in one atomic commit.
+- [x] Remove unused `AsAction` trait; no run/dispatch call sites or backwards-compatible action class retained.
+- [ ] Verify strict validation ordering (before one-use captcha), transaction rollback, media cleanup and share-outcome attribution in relevant Pest tests. This is an HTTP integration seam, not an excuse to move Events business writes outside its feature.

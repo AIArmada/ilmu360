@@ -7,7 +7,7 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Events\Submission\SubmitFrontendEventAction;
+use App\Http\Submission\SubmitEventRequestHandler;
 use App\Contracts\ShareTrackingContract;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Livewire\Pages\SubmitEvent\Create;
@@ -221,7 +221,7 @@ it('removes partial uploads when a submission media callback fails', function ()
     $tracker = $this->mock(ShareTrackingContract::class);
     $tracker->shouldNotReceive('recordOutcome');
 
-    expect(fn () => app(SubmitFrontendEventAction::class)->handle(
+    expect(fn () => app(SubmitEventRequestHandler::class)->handle(
         state: submitAtomicityPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
@@ -244,7 +244,7 @@ it('rejects unavailable references and unknown languages before persistence', fu
         : (string) Str::uuid();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitAtomicityPayload($this->domainTag, $this->disciplineTag, [
                 'primary_organizer_id' => $organizer->getKey(),
                 'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
@@ -329,7 +329,7 @@ it('deduplicates repeated persons instead of creating duplicate involvements', f
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
-    app(SubmitFrontendEventAction::class)->handle(
+    app(SubmitEventRequestHandler::class)->handle(
         state: submitAtomicityPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Deduped Persons Submission',
             'primary_organizer_id' => $person->getKey(),
@@ -406,7 +406,7 @@ it('keeps organizer and person authorization queries bounded with many persons',
         DB::flushQueryLog();
         DB::enableQueryLog();
 
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitAtomicityPayload($domainTag, $disciplineTag, [
                 'title' => $title,
                 'primary_organizer_id' => $organizer->getKey(),

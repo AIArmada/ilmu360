@@ -5,7 +5,7 @@ use AIArmada\Events\Models\EventAudienceProfile;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Events\Submission\SubmitFrontendEventAction;
+use App\Http\Submission\SubmitEventRequestHandler;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -92,7 +92,7 @@ it('rejects malformed structural input before captcha or writes', function (arra
     $eventsBefore = Event::query()->count();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, array_merge([
                 'primary_organizer_id' => $person->getKey(),
                 'persons' => [$person->getKey()],
@@ -177,7 +177,7 @@ it('requires the title and event categories', function () {
 
     foreach (['title', 'event_category_ids'] as $missing) {
         try {
-            app(SubmitFrontendEventAction::class)->handle(
+            app(SubmitEventRequestHandler::class)->handle(
                 state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
                     'primary_organizer_id' => $person->getKey(),
                     'persons' => [$person->getKey()],
@@ -205,7 +205,7 @@ it('accepts enum objects and applies omitted-key defaults', function () {
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
             'event_format' => EventFormat::Physical,
             'age_group' => [EventAgeGroup::AllAges],
@@ -233,7 +233,7 @@ it('accepts canonical localized description arrays', function () {
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
             'description' => ['ms' => 'Huraian majlis.', 'en' => 'Event description.'],
             'primary_organizer_id' => $person->getKey(),
@@ -271,7 +271,7 @@ it('persists localized descriptions to sessions as locale scalars', function () 
 
     app()->setLocale('ms');
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Localized Session Submission',
             'description' => ['ms' => 'Huraian sesi.', 'en' => 'Session description.'],
@@ -294,7 +294,7 @@ it('persists localized descriptions to sessions as locale scalars', function () 
 
     app()->setLocale('en');
 
-    $fallback = app(SubmitFrontendEventAction::class)->handle(
+    $fallback = app(SubmitEventRequestHandler::class)->handle(
         state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Fallback Session Submission',
             'description' => ['ms' => 'Hanya Bahasa Melayu.'],
@@ -348,7 +348,7 @@ it('persists canonical enums for blank optional enum input', function () {
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
             'event_format' => '',
             'visibility' => '  ',
@@ -450,7 +450,7 @@ it('rejects unknown event category ids before captcha or writes', function () {
     $eventsBefore = Event::query()->count();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
                 'event_category_ids' => [(string) Str::uuid()],
                 'primary_organizer_id' => $person->getKey(),
@@ -492,7 +492,7 @@ it('does not accept hidden taxonomy term selections outside the public form cont
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $person->getKey(),
             'persons' => [$person->getKey()],
@@ -518,7 +518,7 @@ it('rejects wrong-taxonomy event category selections without a prefix', function
     $eventsBefore = Event::query()->count();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
                 'event_category_ids' => [(string) $this->domainTag->getKey()],
                 'primary_organizer_id' => $person->getKey(),
@@ -562,7 +562,7 @@ it('rejects inactive event categories before captcha or writes', function () {
     $eventsBefore = Event::query()->count();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
                 'event_category_ids' => [(string) $inactive->getKey()],
                 'primary_organizer_id' => $person->getKey(),
@@ -595,7 +595,7 @@ it('rejects mixed valid and unknown event categories without silently dropping i
     $eventsBefore = Event::query()->count();
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
                 'event_category_ids' => [eventCategoryId('kuliah_ceramah'), (string) Str::uuid()],
                 'primary_organizer_id' => $person->getKey(),
@@ -645,7 +645,7 @@ it('accepts valid parent and child categories and normalizes canonically', funct
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitInputValidationPayload($this->domainTag, $this->disciplineTag, [
             'event_category_ids' => [(string) $parent->getKey(), (string) $child->getKey()],
             'primary_organizer_id' => $person->getKey(),

@@ -12,7 +12,7 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Events\Submission\SubmitFrontendEventAction;
+use App\Http\Submission\SubmitEventRequestHandler;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissionOrganizerKind;
@@ -128,7 +128,7 @@ it('leaves the parent untouched while linking the session canonically', function
     $parentReferenceIds = $event->fresh()->references()->pluck('references.id')->all();
     $parentEventReferenceIds = $event->fresh()->eventReferences()->pluck('id')->all();
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'persons' => [$sessionSpeaker->getKey()],
@@ -197,7 +197,7 @@ it('persists session location audiences links and prayer timing within its scope
         'time_expressions' => $event->timeExpressions()->pluck('id')->all(),
     ];
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'venue',
@@ -266,7 +266,7 @@ it('deletes the submitted session graph with its event container', function () {
     $organizer = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
     $event = submitSessionContainer($owner, $organizer);
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'venue',
@@ -299,7 +299,7 @@ it('removes failed session uploads while preserving the parent media', function 
     $parentPath = $parentMedia->getPathRelativeToRoot();
     $parentFiles = Storage::disk('public')->allFiles();
 
-    expect(fn () => app(SubmitFrontendEventAction::class)->handle(
+    expect(fn () => app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'venue',
@@ -335,7 +335,7 @@ it('attaches the session to the selected occurrence', function () {
         'visibility' => 'public',
     ]);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'event_occurrence_id' => (string) $second->getKey(),
             'primary_organizer_id' => $organizer->getKey(),
@@ -383,13 +383,13 @@ it('rejects foreign and terminal occurrences', function () {
         'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
     ];
 
-    expect(fn () => app(SubmitFrontendEventAction::class)->handle(
+    expect(fn () => app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, $base + ['event_occurrence_id' => (string) $foreignOccurrence->getKey()]),
         request: submitSessionRequest(),
         submitter: $owner,
         eventContainer: $event,
     ))->toThrow(ValidationException::class, 'bukan milik majlis ini')
-        ->and(fn () => app(SubmitFrontendEventAction::class)->handle(
+        ->and(fn () => app(SubmitEventRequestHandler::class)->handle(
             state: submitSessionPayload($this->domainTag, $this->disciplineTag, $base + ['event_occurrence_id' => (string) $cancelledOccurrence->getKey()]),
             request: submitSessionRequest(),
             submitter: $owner,
@@ -439,7 +439,7 @@ it('keeps no guest contacts for authenticated member session submits', function 
 
     // A guest cannot pass the container update policy, so the member owner
     // submits while guest contact fields travel with the payload.
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'venue',
@@ -479,14 +479,14 @@ it('uniquifies same-title session slugs within the event', function () {
         'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
     ];
 
-    $first = app(SubmitFrontendEventAction::class)->handle(
+    $first = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, $base),
         request: submitSessionRequest(),
         submitter: $owner,
         eventContainer: $event,
     );
 
-    $second = app(SubmitFrontendEventAction::class)->handle(
+    $second = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, $base),
         request: submitSessionRequest(),
         submitter: $owner,
@@ -504,7 +504,7 @@ it('syncs session references without touching parent references', function () {
     $event = submitSessionContainer($owner, $organizer);
     $reference = Reference::factory()->create(['status' => 'verified']);
 
-    app(SubmitFrontendEventAction::class)->handle(
+    app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'venue',
@@ -544,7 +544,7 @@ it('keeps session rows when parent references and languages resync', function ()
     $event->references()->attach((string) $parentRef->getKey(), ['sort_order' => 0]);
     $event->syncLanguages([languageId('en')]);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'venue',
@@ -623,7 +623,7 @@ it('requires an explicit occurrence selection for multi-date events before captc
     ]);
 
     try {
-        app(SubmitFrontendEventAction::class)->handle(
+        app(SubmitEventRequestHandler::class)->handle(
             state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
                 'primary_organizer_id' => $organizer->getKey(),
                 'location_type' => 'venue',
@@ -655,7 +655,7 @@ it('refuses to default to a terminal occurrence when no selection is given', fun
 
     $event->primaryOccurrence->update(['status' => EventOccurrence::CANCELLED]);
 
-    expect(fn () => app(SubmitFrontendEventAction::class)->handle(
+    expect(fn () => app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'venue',
@@ -686,7 +686,7 @@ it('resolves the single eligible occurrence when the other dates are terminal', 
     ]);
     $cancelled->update(['status' => EventOccurrence::CANCELLED]);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'venue',
@@ -712,7 +712,7 @@ it('reflects the saved private session visibility without touching the parent', 
     $parentStatus = (string) $event->fresh()->status;
     $parentRegistrationMode = $event->fresh()->registration_mode;
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'visibility' => EventVisibility::Private->value,
             'primary_organizer_id' => $organizer->getKey(),
@@ -748,7 +748,7 @@ it('keeps scoped session submissions honest with no parent auto-approval', funct
     $event->setPrimaryOrganizer($institution);
     $event = $event->fresh();
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'location_same_as_institution' => true,
             'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
@@ -782,7 +782,7 @@ it('displays the submitted session institution and its own address', function ()
     $event->forceFill(['visibility' => EventVisibility::Public, 'published_at' => now()])->save();
     $event->primaryOccurrence->update(['status' => 'published', 'visibility' => 'public']);
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $organizer->getKey(),
             'location_type' => 'institution',
@@ -827,7 +827,7 @@ it('retains the original prayer date on midnight-rolled session submissions', fu
         zoneOrCell: $base->zoneOrCell,
     )], 'MY');
 
-    $result = app(SubmitFrontendEventAction::class)->handle(
+    $result = app(SubmitEventRequestHandler::class)->handle(
         state: submitSessionPayload($this->domainTag, $this->disciplineTag, [
             'event_date' => $eventDate,
             'prayer_time' => EventPrayerTime::SelepasIsyak->value,
