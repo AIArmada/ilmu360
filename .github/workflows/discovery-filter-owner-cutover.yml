@@ -1,0 +1,13 @@
+name: Discovery filter ownership
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/discovery-filter-owner-cutover.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/discovery-filter-owner-cutover.py
