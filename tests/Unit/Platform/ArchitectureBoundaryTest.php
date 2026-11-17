@@ -9,6 +9,14 @@ beforeEach(function (): void {
     $place = $this->project->writer('Orders', 'PlaceOrder');
     $this->project->feature('Orders', ['table:orders' => [$place]]);
     $this->project->feature('Billing');
+    // Even minimal projects need the conventional Fortify entrypoints
+    // so the architecture checker can distinguish stale allowlist entries.
+    foreach (['CreateNewUser', 'RecordSuccessfulLogin', 'ResetUserPassword'] as $entrypoint) {
+        $this->project->write(
+            "app/Actions/Fortify/{$entrypoint}.php",
+            "<?php\nnamespace App\\Actions\\Fortify;\nclass {$entrypoint} {}\n",
+        );
+    }
     $this->project->write('app/Features/Orders/Models/Order.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\Models;
@@ -21,6 +29,19 @@ PHP);
 
 afterEach(function (): void {
     $this->project->remove();
+});
+
+it('rejects a stale Fortify framework adapter allowlist entry', function (): void {
+    unlink($this->project->path.'/app/Actions/Fortify/RecordSuccessfulLogin.php');
+
+    $result = $this->project->check();
+
+    expect($result)->toMatchArray(['exitCode' => 1, 'stderr' => '']);
+
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect(array_column($findings, 'rule'))->toBe(['stale-fortify-entrypoint'])
+        ->and(array_column($findings, 'target'))->toBe(['app/Actions/Fortify/RecordSuccessfulLogin.php']);
 });
 
 it('rejects references to another feature private model', function (string $source): void {
