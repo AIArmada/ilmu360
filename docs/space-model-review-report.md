@@ -305,7 +305,7 @@ Both scopes remain valid `EventLocation` targets under the existing eligibility 
 1. **Capacity (F4)**: does any product surface actually filter/plan by space capacity, or is it informational? This decides override-column vs. de-emphasis. (It is already public in API payloads either way.)
 2. **Type taxonomy (F3)**: confirm seed-and-propagate is preferred over removing the FK from `event_locations` (the package expects it — removal is the more invasive option).
 3. **History (F5)**: snapshot-only, or also freeze renames of spaces already referenced by events (warn + require new row)? Snapshot is the minimum; a "clone-and-switch" flow is the fuller option.
-4. **Quick-create**: `app/Forms/Components/Select.php` ships a `quickAdd` capability — should event forms allow inline creation of venue-owned spaces, and if so, through `SaveSpaceAction` (recommended) or directly?
+4. **Quick-create**: `app/Platform/Ui/Forms/Select.php` ships a `quickAdd` capability — should event forms allow inline creation of venue-owned spaces, and if so, through `SaveSpaceAction` (recommended) or directly?
 5. **Owner semantics**: should a venue event be allowed to attach an *unclaimed* catalog space (currently yes, by design)? Confirm this is intended for reporting purposes, or restrict to the venue's own rows + institutions' pivots.
 
 ---

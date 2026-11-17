@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
@@ -13,6 +12,7 @@ use App\Platform\Http\FrontendController;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareSubjectType;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Dedoc\Scramble\Attributes\Endpoint;

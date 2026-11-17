@@ -2,9 +2,9 @@
 
 namespace App\Actions\Fortify;
 
-use App\Concerns\PasswordValidationRules;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
+use App\Platform\Auth\PasswordValidationRules;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\ShareTracking\SignupRecorder;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Enums\TaxonomyTerm;
+namespace App\Shared\Taxonomy\Terms;
 
 enum SourceTermCode: string
 {

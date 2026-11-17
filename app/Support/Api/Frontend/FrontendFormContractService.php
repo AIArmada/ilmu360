@@ -4,7 +4,7 @@ namespace App\Support\Api\Frontend;
 
 use AIArmada\Persons\Enums\Gender;
 use App\Enums\MemberSubjectType;
-use App\Enums\RegistrationScope;
+use App\Features\Events\Api\RegistrationScope;
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\Identity\Api\AccountPreferences;

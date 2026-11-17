@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Organizations\Models\Organization;
-use App\Enums\RegistrationScope;
 use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\AdvancedProgramPreparation;
+use App\Features\Events\Api\RegistrationScope;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
 use App\Models\Event;

@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\RegistrationScope;
+use App\Features\Events\Api\RegistrationScope;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enums;
+namespace App\Features\Events\Api;
 
 /**
  * Registration scope used by the advanced event flow.

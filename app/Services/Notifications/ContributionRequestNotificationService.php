@@ -5,6 +5,7 @@ namespace App\Services\Notifications;
 use App\Features\Communications\Api\InAppNotificationPayload;
 use App\Features\Communications\Api\NotificationCatalog;
 use App\Features\Communications\Api\NotificationDispatch;
+use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
@@ -16,7 +17,6 @@ use App\Models\User;
 use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
-use App\Support\Notifications\NotificationDispatchData;
 use Illuminate\Support\Str;
 
 class ContributionRequestNotificationService implements ContributionRequestNotifier

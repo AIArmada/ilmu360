@@ -6,8 +6,8 @@ namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Enums\ReferenceRecordKind;
-use App\Enums\SpeakerStatus;
 use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Models\Person;
 use App\Models\Reference;

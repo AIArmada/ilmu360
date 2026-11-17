@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\EventChangeSeverity;
+use App\Features\Events\Api\EventChangeSeverity;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;

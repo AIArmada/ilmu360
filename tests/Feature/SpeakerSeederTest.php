@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Contacting\Models\SocialProfile;
-use App\Enums\SpeakerStatus;
+use App\Features\Persons\Api\SpeakerStatus;
 use App\Models\Person;
 use Database\Seeders\SpeakerSeeder;
 use Illuminate\Support\Facades\DB;

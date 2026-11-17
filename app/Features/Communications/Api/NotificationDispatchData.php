@@ -2,14 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Notifications;
+namespace App\Features\Communications\Api;
 
-use App\Features\Communications\Api\NotificationCadence;
-use App\Features\Communications\Api\NotificationPriority;
-use App\Features\Communications\Api\NotificationTrigger;
 use Carbon\CarbonInterface;
 
-readonly class NotificationDispatchData
+final readonly class NotificationDispatchData
 {
     /**
      * @param  array<string, mixed>  $meta

@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use App\Features\Communications\Api\NotificationCadence;
+use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
-use App\Support\Notifications\NotificationDispatchData;
 use Illuminate\Support\Str;
 
 class SavedSearchNotificationRecorder extends EventNotificationService

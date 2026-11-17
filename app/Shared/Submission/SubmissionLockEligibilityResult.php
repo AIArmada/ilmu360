@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Submission;
+namespace App\Shared\Submission;
 
 final readonly class SubmissionLockEligibilityResult
 {

@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\SpeakerStatus;
+use App\Features\Persons\Api\SpeakerStatus;
 use App\Models\Person;
 
 it('shows the first five eligible featured speakers in curated order', function () {

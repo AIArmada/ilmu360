@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enums;
+namespace App\Features\Events\Api;
 
 enum EventChangeSeverity: string
 {

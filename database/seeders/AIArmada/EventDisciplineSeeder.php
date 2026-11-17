@@ -6,9 +6,9 @@ namespace Database\Seeders\AIArmada;
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\TaxonomyTerm\DisciplineTermCode;
-use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Shared\Taxonomy\Terms\DisciplineTermCode;
+use App\Shared\Taxonomy\Terms\DomainTermCode;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 

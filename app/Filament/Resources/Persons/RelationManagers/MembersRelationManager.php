@@ -8,7 +8,7 @@ use App\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Models\Person;
 use App\Models\User;
 use App\Shared\Membership\MembershipSubjectType;
-use App\Support\Submission\PublicSubmissionUiEvents;
+use App\Shared\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;

@@ -62,7 +62,7 @@ Completed in code:
 20. Deep baseline compression pass (app/runtime only):
     - Fixed broad app/runtime typing and static-analysis issues across Filament resources/forms, API/auth controllers, Livewire pages, model relations, notifications, services, state classes, factories, migrations, and seeders.
     - Removed stale factories (`AuditLogFactory`, `EventTypeFactory`) that referenced non-existent models.
-    - Introduced typed custom select component (`App\Forms\Components\Select`) with concrete `closeOnSelect()` and `quickAdd()` passthrough to remove macro-only static-analysis blind spots.
+    - Introduced typed custom select component (`App\Platform\Ui\Forms\Select`) with concrete `closeOnSelect()` and `quickAdd()` passthrough to remove macro-only static-analysis blind spots.
     - Regenerated baseline to zero.
 21. Speaker quick-create UX/data completeness:
     - Enhanced submit-event speaker create-option flow with rich biography (`jsonb` + rich editor), main profile image upload, single affiliated institution selection, and institution-specific position capture on `institution_speaker` pivot.

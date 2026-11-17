@@ -4,7 +4,7 @@ namespace App\Models;
 
 use AIArmada\Events\Models\EventUpdate;
 use AIArmada\Events\Models\EventUpdateItem;
-use App\Enums\EventChangeSeverity;
+use App\Features\Events\Api\EventChangeSeverity;
 use App\Shared\Events\Enums\EventChangeType;
 use Database\Factories\EventChangeAnnouncementFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;

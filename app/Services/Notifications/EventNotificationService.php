@@ -3,14 +3,15 @@
 namespace App\Services\Notifications;
 
 use AIArmada\Events\Models\EventSubmission;
-use App\Enums\EventChangeSeverity;
 use App\Features\Communications\Api\InAppNotificationPayload;
 use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationCatalog;
 use App\Features\Communications\Api\NotificationDispatch;
+use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
+use App\Features\Events\Api\EventChangeSeverity;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\Event;
@@ -29,7 +30,6 @@ use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventReminderNotificationDispatch;
 use App\Support\Authz\MemberPermissionGate;
-use App\Support\Notifications\NotificationDispatchData;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;

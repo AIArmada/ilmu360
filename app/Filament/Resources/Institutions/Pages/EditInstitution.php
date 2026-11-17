@@ -10,7 +10,7 @@ use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\InstitutionName;
 use App\Models\User;
-use App\Support\Submission\PublicSubmissionUiEvents;
+use App\Shared\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;

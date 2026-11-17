@@ -2,8 +2,8 @@
 
 namespace App\Actions\Fortify;
 
-use App\Concerns\PasswordValidationRules;
 use App\Models\User;
+use App\Platform\Auth\PasswordValidationRules;
 use App\Shared\Auth\AccountAccess;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;

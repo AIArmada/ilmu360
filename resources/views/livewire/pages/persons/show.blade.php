@@ -13,7 +13,7 @@
 
 @section('title', $person->formatted_name . ' - ' . config('app.name'))
 @section('meta_description'){{ $metaDescription }}@endsection
-@section('meta_robots', ((string) $person->status === 'verified' && $person->speaker_status === \App\Enums\SpeakerStatus::Active) ? 'index, follow' : 'noindex, nofollow')
+@section('meta_robots', ((string) $person->status === 'verified' && $person->speaker_status === \App\Features\Persons\Api\SpeakerStatus::Active) ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('persons.show', $person))
 @section('og_image', $personShareImageUrl)
 @section('og_image_alt', __('Profil penceramah :name', ['name' => $person->formatted_name]))

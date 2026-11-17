@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Pages\Dashboard;
 
-use App\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareSubjectType;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;

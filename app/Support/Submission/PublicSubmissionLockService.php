@@ -7,6 +7,7 @@ use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Submission\SubmissionLockEligibilityResult;
 
 final readonly class PublicSubmissionLockService
 {

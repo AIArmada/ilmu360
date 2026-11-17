@@ -6,7 +6,7 @@ namespace App\Filament\Resources\Persons\Schemas;
 
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Persons\Enums\Gender;
-use App\Enums\SpeakerStatus;
+use App\Features\Persons\Api\SpeakerStatus;
 use App\Models\Person;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\AddressHierarchyFormatter;

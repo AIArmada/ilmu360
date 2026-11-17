@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\ShareTracking;
 
-use App\Enums\ShareSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Platform\Models\SlugOrUuidResolver;
+use App\Shared\ShareTracking\ShareSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;

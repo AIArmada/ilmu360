@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Enums\RegistrationScope;
+use App\Features\Events\Api\RegistrationScope;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\PlaceLookup;

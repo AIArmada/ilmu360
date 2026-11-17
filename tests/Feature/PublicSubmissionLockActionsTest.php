@@ -10,7 +10,7 @@ use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Submission\PublicSubmissionUiEvents;
+use App\Shared\Submission\PublicSubmissionUiEvents;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;

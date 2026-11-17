@@ -8,7 +8,7 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
 use AIArmada\FilamentPersons\Resources\PersonResource\Schemas\PersonForm as PackagePersonForm;
 use AIArmada\Persons\Enums\Gender;
-use App\Enums\SpeakerStatus;
+use App\Features\Persons\Api\SpeakerStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
 use App\Models\User;
