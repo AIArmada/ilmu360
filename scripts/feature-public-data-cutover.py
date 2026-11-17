@@ -8,18 +8,7 @@ from pathlib import Path
 
 ROOT = Path.cwd()
 PREFIXES = {
-    "Api/Event/EventMeData.php": ("Events", "EventMeData.php"),
-    "Api/EventCheckIn/EventCheckInStateData.php": ("Registration", "EventCheckInStateData.php"),
-    "Api/EventGoing/EventGoingResultData.php": ("Engagement", "EventGoingResultData.php"),
-    "Api/EventGoing/EventGoingStateData.php": ("Engagement", "EventGoingStateData.php"),
-    "Api/EventRegistration/EventRegistrationStatusData.php": ("Registration", "EventRegistrationStatusData.php"),
-    "Api/EventSave/EventSaveResultData.php": ("Engagement", "EventSaveResultData.php"),
-    "Api/EventSave/EventSaveStateData.php": ("Engagement", "EventSaveStateData.php"),
-    "Api/Frontend/Search/CountryData.php": ("Discovery", "CountryData.php"),
-    "Api/Frontend/Search/InstitutionDetailMediaData.php": ("Discovery", "InstitutionDetailMediaData.php"),
-    "Api/Frontend/Search/PersonGalleryItemData.php": ("Discovery", "PersonGalleryItemData.php"),
     "EventDiscoveryCriteria.php": ("Discovery", "EventDiscoveryCriteria.php"),
-    "EventDiscoveryCriteriaFactory.php": ("Discovery", "EventDiscoveryCriteriaFactory.php"),
     "ShareTracking/ShareTrackingAttributionData.php": ("ShareTracking", "ShareTrackingAttributionData.php"),
     "ShareTracking/ShareTrackingLinkData.php": ("ShareTracking", "ShareTrackingLinkData.php"),
     "ShareTracking/ShareTrackingOutcomeData.php": ("ShareTracking", "ShareTrackingOutcomeData.php"),
