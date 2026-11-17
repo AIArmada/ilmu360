@@ -113,3 +113,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "refactor: own event reminders and schedule under Events without legacy job"
           git push origin HEAD:refactor
+
+# One-time migration script executes at module top level.
