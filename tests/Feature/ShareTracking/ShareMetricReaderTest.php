@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\Event;
 use App\Models\User;
@@ -291,7 +291,7 @@ it('counts primary plus actively claimed guest history for the member scope', fu
 
     expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
 
-    app(ClaimGuestShareProfileAction::class)->handle($claimant, (string) $guest['guest_claim_capability'], true);
+    app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), (string) $guest['guest_claim_capability'], true);
 
     $member = (new ShareMetricReader)->summarize(
         'UTC',

@@ -7,7 +7,7 @@ use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
@@ -340,7 +340,7 @@ test('viewing claimed guest link analytics never prepares another link or change
         'title' => 'Guest shared speakers',
         'text' => 'Useful speakers',
     ]))->assertSuccessful()->json();
-    app(ClaimGuestShareProfileAction::class)->handle($user, $guest['guest_claim_capability'], true);
+    app(GuestShareClaims::class)->claim((string) $user->getKey(), $user->getMorphClass(), $guest['guest_claim_capability'], true);
     $link = AffiliateLink::query()->withoutGlobalScope('affiliate_owner')->firstOrFail();
     $memberProfileId = ShareProfileScope::primaryAffiliateId($user);
     expect($memberProfileId)->not->toBeNull()

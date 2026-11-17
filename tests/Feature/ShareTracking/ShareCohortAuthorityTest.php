@@ -13,7 +13,7 @@ use AIArmada\Affiliates\Enums\FraudSeverity;
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\Event;
 use App\Models\User;
@@ -208,7 +208,7 @@ function scoMatureWeek(TestCase $testCase): array
         (string) config('share-tracking.guest_credential.input') => (string) $guest['guest_credential'],
     ])->assertNoContent();
     Carbon::setTestNow();
-    app(ClaimGuestShareProfileAction::class)->handle($u10, (string) $guest['guest_claim_capability'], true);
+    app(GuestShareClaims::class)->claim((string) $u10->getKey(), $u10->getMorphClass(), (string) $guest['guest_claim_capability'], true);
 
     // Dismissed fraud is not fraud: still participating.
     $u11 = scoSignup($testCase, $founder, 'Cohort Eleven', 'cohort-11@example.test', CarbonImmutable::parse('2026-05-12T17:00:00Z'));

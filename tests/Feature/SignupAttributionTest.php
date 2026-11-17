@@ -13,7 +13,7 @@ use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Models\ReferralReward;
 use App\Actions\Referrals\ResolveReferralInviteLandingAction;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\Identity\Api\SignupAttributions;
 use App\Features\Identity\Api\SignupAttributionSnapshot;
 use App\Features\Identity\Api\SignupAttributionSource;
@@ -212,7 +212,7 @@ it('links guest signup history through an explicit claim while preserving the so
     expect($attribution?->referrerAccountId)->toBeNull()
         ->and(AffiliateClaim::query()->count())->toBe(0);
 
-    $result = ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true);
+    $result = app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), $payload['guest_claim_capability'], true);
 
     expect($result)->toBe(ShareGuestClaimResult::Claimed)
         ->and(signupAttributionRecordFor($invitee))->source_type->toBe(SignupAttributionSourceType::ShareGuest)->affiliate_id->toBe((string) $link->affiliate_id)->referrer_user_id->toBe((string) $claimant->getKey())

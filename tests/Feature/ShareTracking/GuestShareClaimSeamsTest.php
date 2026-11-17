@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
@@ -49,7 +49,7 @@ it('passes only scalars from the root action to the feature api', function (): v
 
     app()->instance(GuestShareClaims::class, $fake);
 
-    $result = app(ClaimGuestShareProfileAction::class)->handle($claimant, 'presented-capability', true);
+    $result = app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), 'presented-capability', true);
 
     expect($result)->toBe(ShareGuestClaimResult::RecipientIneligible)
         ->and($fake->calls)->toBe([[

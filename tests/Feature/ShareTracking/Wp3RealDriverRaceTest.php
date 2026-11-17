@@ -25,7 +25,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Links\Models\Link;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
@@ -581,7 +581,7 @@ function wp3ClaimBeforeDeleteRaceCase(TestCase $testCase): void
                     'user_id' => (string) $claimant->getKey(),
                 ],
             ], static function () use ($claimant, $capability): array {
-                $result = app(ClaimGuestShareProfileAction::class)->handle($claimant, $capability, true);
+                $result = app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), $capability, true);
 
                 $commitStartedAt = microtime(true);
 
@@ -664,9 +664,7 @@ function wp3DeletePreservesObligationsCase(TestCase $testCase): void
             ->where('custom_slug', (string) $payload['tracking_token'])
             ->value('affiliate_id');
 
-        expect(app(ClaimGuestShareProfileAction::class)->handle(
-            $claimant,
-            (string) $payload['guest_claim_capability'],
+        expect(app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), (string) $payload['guest_claim_capability'],
             true
         ))->toBe(ShareGuestClaimResult::Claimed);
 
@@ -771,7 +769,7 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
                 // The real claim commits while the worker's creation waits
                 // on the profile lock: the creation must seal afterwards,
                 // never land in the owned history.
-                $result = app(ClaimGuestShareProfileAction::class)->handle($claimant, $capability, true);
+                $result = app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), $capability, true);
 
                 $commitStartedAt = microtime(true);
 

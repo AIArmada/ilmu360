@@ -11,7 +11,7 @@ use AIArmada\Affiliates\Models\AffiliateCredential;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\Event;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
@@ -173,7 +173,7 @@ it('replays success idempotently to the original claimant without effects', func
 it('refuses competing claimants generically without leaking history', function (): void {
     $guest = wp3gcGuestShare();
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     $rival = $this->actingAs($this->rival)
         ->withCredentials()
@@ -265,7 +265,7 @@ it('treats expired capabilities as honestly unverifiable', function (): void {
 it('never silently inherits claimed history across logout and account switch', function (): void {
     $guest = wp3gcGuestShare();
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     // A different account on the same browser (same cookies) sees no
     // prompt and cannot take the history.
@@ -327,7 +327,7 @@ it('prompts an unclaimed browser on the dashboard without auto-claiming', functi
 it('revokes claims on claimant deletion without steal, reassign, or restore', function (): void {
     $guest = wp3gcGuestShare();
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     $this->claimant->delete();
 
@@ -391,7 +391,7 @@ it('re-evaluates self credit after the claim without rewriting frozen attributio
 
     $attributionBefore = AffiliateAttribution::query()->firstOrFail();
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $payload['guest_claim_capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $payload['guest_claim_capability'], true);
 
     // Frozen source attribution is untouched by the claim.
     expect((string) $attributionBefore->fresh()->affiliate_id)->toBe((string) $link->affiliate_id);
@@ -425,7 +425,7 @@ it('scopes ownership reads to primary plus actively claimed profiles', function 
 
     $this->get(route('events.show', $event).'?share='.$guest['token'])->assertOk();
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     $analytics = app(AffiliatesShareTrackingAnalyticsService::class);
     $summary = $analytics->summaryForUser($this->claimant);
@@ -573,7 +573,7 @@ it('requires explicit confirmation for every claim', function (): void {
         ->postJson(route('share.claim.store'), [])
         ->assertStatus(422);
 
-    expect(fn () => app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], false))
+    expect(fn () => app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], false))
         ->toThrow(InvalidArgumentException::class)
         ->and(AffiliateClaim::query()->count())->toBe(0);
 });
@@ -690,7 +690,7 @@ it('attributes later anonymous history to its own claimant, never the first', fu
     $event = wp3gcEvent();
     $guest = wp3gcGuestShare(route('events.show', $event));
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     $second = $this->withHeader('X-Guest-Credential', $guest['credential'])
         ->getJson(route('share.payload', [
@@ -837,7 +837,7 @@ it('seals claimed history across native API transport with the same guarantees',
 it('centralizes claim transitions in actions with no model-level mutation path', function (): void {
     $guest = wp3gcGuestShare();
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     $claim = AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
     $capability = AffiliateOwnershipCapability::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
@@ -877,7 +877,7 @@ it('centralizes claim transitions in actions with no model-level mutation path',
 it('revokes claims and disarms sources when the member profile is already gone', function (): void {
     $guest = wp3gcGuestShare();
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     $service = app(AffiliatesShareTrackingService::class);
     $service->findAffiliateForUser($this->claimant)->delete();
@@ -927,7 +927,7 @@ it('preserves settlement and the public redirect when a claimant is deleted', fu
 
     $conversionId = (string) AffiliateConversion::query()->value('id');
 
-    app(ClaimGuestShareProfileAction::class)->handle($this->claimant, $guest['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     $this->claimant->delete();
 

@@ -11,7 +11,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\Identity\Api\SignupAttributionSource;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
@@ -99,8 +99,8 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
 
     OwnerContext::withOwner($unrelated, function () use ($claimant, $payload, $identityService, $request, $link, $unrelated): void {
         expect($identityService->claimPageState($claimant, $request)['state'])->toBe('available')
-            ->and(ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::Claimed)
-            ->and(ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::AlreadyClaimedByYou)
+            ->and(app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::Claimed)
+            ->and(app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::AlreadyClaimedByYou)
             ->and($identityService->claimPageState($claimant, $request)['state'])->toBe('claimed_by_you')
             ->and(ShareProfileScope::affiliateIdsForUser($claimant))->toContain((string) $link->affiliate_id);
 
@@ -127,7 +127,7 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
         ->and($claim->fresh()->revoked_at)->not->toBeNull()
         ->and($link->fresh()->deactivated_at)->not->toBeNull()
         ->and(ShareProfileScope::affiliateIdsForUser($claimant))->toBeEmpty()
-        ->and(ClaimGuestShareProfileAction::run($claimant, $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::ClaimedByOther)
+        ->and(app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), $payload['guest_claim_capability'], true))->toBe(ShareGuestClaimResult::ClaimedByOther)
         ->and(AffiliateClaim::query()->withoutGlobalScope(OwnerScope::class)->where('affiliate_id', $link->affiliate_id)->count())->toBe(1);
 })->with([
     'global records excluded from owner scope' => false,

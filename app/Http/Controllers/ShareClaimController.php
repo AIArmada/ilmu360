@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
@@ -21,7 +21,7 @@ final class ShareClaimController extends Controller
 {
     public function __construct(
         private readonly AffiliatesShareTrackingService $shareTrackingService,
-        private readonly ClaimGuestShareProfileAction $claimAction,
+        private readonly GuestShareClaims $guestShareClaims,
     ) {}
 
     public function show(Request $request): View
@@ -47,7 +47,7 @@ final class ShareClaimController extends Controller
         ]);
 
         $presented = $this->shareTrackingService->presentedClaimCapability($request);
-        $result = $this->claimAction->handle($user, (string) $presented, true);
+        $result = $this->guestShareClaims->claim((string) $user->getKey(), $user->getMorphClass(), (string) $presented, true);
 
         if ($request->expectsJson()) {
             return $this->jsonResult($result);
@@ -112,7 +112,7 @@ final class ShareClaimController extends Controller
 
         // Validation above guarantees explicit confirmation, so the action
         // cannot throw for missing consent here.
-        $result = $this->claimAction->handle($user, (string) $presented, true);
+        $result = $this->guestShareClaims->claim((string) $user->getKey(), $user->getMorphClass(), (string) $presented, true);
 
         return $this->jsonResult($result);
     }

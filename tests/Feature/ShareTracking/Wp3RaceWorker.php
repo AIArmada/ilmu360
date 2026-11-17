@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Contracts\Console\Kernel;
@@ -133,9 +133,7 @@ try {
             $userIds = is_array($payload['user_ids'] ?? null) ? $payload['user_ids'] : [];
             $claimant = User::query()->whereKey((string) ($userIds[$slot] ?? ''))->firstOrFail();
 
-            $result = app(ClaimGuestShareProfileAction::class)->handle(
-                $claimant,
-                (string) ($payload['capability'] ?? ''),
+            $result = app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), (string) ($payload['capability'] ?? ''),
                 true
             );
 
@@ -151,9 +149,7 @@ try {
 
             $attemptedAt = microtime(true);
 
-            $result = app(ClaimGuestShareProfileAction::class)->handle(
-                $claimant,
-                (string) ($payload['capability'] ?? ''),
+            $result = app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), (string) ($payload['capability'] ?? ''),
                 true
             );
 

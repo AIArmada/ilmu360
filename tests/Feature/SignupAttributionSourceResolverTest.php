@@ -11,7 +11,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\Disabled;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Models\ShareBrowserSelection;
 use App\Models\User;
@@ -163,7 +163,7 @@ it('preserves an unclaimed guest share without inventing a referring account', f
 it('resolves the existing explicit guest claimant without changing the guest profile', function (): void {
     $fixture = signupResolverShareFixture();
     $claimant = User::factory()->create();
-    $result = ClaimGuestShareProfileAction::run($claimant, (string) $fixture['capability'], true);
+    $result = app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), (string) $fixture['capability'], true);
     expect($result)->toBe(ShareGuestClaimResult::Claimed);
 
     $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
@@ -177,7 +177,7 @@ it('resolves the existing explicit guest claimant without changing the guest pro
 it('does not resolve a revoked guest claimant', function (): void {
     $fixture = signupResolverShareFixture();
     $claimant = User::factory()->create();
-    ClaimGuestShareProfileAction::run($claimant, (string) $fixture['capability'], true);
+    app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), (string) $fixture['capability'], true);
     $hostClaim = AffiliateClaim::query()->where('affiliate_id', $fixture['affiliate']->getKey())->firstOrFail();
     app(RevokeAffiliateClaim::class)->handle($hostClaim);
 

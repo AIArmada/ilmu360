@@ -109,3 +109,8 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move ApplyDirectContributionUpdateAction to Contributions and expose scalar ContributionDirectUpdates API; delete old path.
 - [x] Replace API/Livewire/test callers, refresh the caller's entity after mutation; preserve transaction and moderation logic.
 - [ ] Run Quality CI and verify scope/behavior.
+
+
+### ShareTracking guest claim simplification
+- [x] Remove the root ClaimGuestShareProfileAction forwarding adapter. Callers now consume the existing scalar GuestShareClaims feature API directly, preserving result decisions and explicit consent.
+- [ ] Verify claim/replay/identity tests and boundary CI.

@@ -19,7 +19,7 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Actions\ShareTracking\ClaimGuestShareProfileAction;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
@@ -122,8 +122,7 @@ function smrIngestionRaceCase(TestCase $testCase): void
         app(AffiliatesShareTrackingService::class)->recordShareAction(
             'copy_link', null, (string) $guest['tracking_token'], $guestRequest,
         );
-        app(ClaimGuestShareProfileAction::class)->handle(
-            $member, (string) $guest['guest_claim_capability'], true,
+        app(GuestShareClaims::class)->claim((string) $member->getKey(), $member->getMorphClass(), (string) $guest['guest_claim_capability'], true,
         );
 
         // Window the raced facts into the mature signup window. Rows were
