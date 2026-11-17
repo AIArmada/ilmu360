@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
+use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -128,9 +128,10 @@ class ModerationService
             $event->status->transitionTo(Cancelled::class, $moderator, $note);
             $event->refresh();
 
-            app(ReverseEventParticipationOutcomesAction::class)->forEvent(
-                $event,
-                $moderator,
+            app(ParticipationOutcomeReversals::class)->reverse(
+                'event',
+                (string) $event->getKey(),
+                $moderator instanceof User ? (string) $moderator->getKey() : null,
                 'event_cancelled',
             );
         });

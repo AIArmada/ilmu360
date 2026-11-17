@@ -3,7 +3,7 @@
 namespace App\States\EventStatus\Transitions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
+use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
@@ -55,7 +55,7 @@ class CancelEvent extends Transition implements HasColor, HasIcon, HasLabel
             $this->event->last_state_change_at = now();
             $this->event->save();
             $this->event->resolveEscalations();
-            app(ReverseEventParticipationOutcomesAction::class)->forEvent($this->event, $moderator, 'event_cancelled');
+            app(ParticipationOutcomeReversals::class)->reverse('event', (string) $this->event->getKey(), (string) $moderator->getKey(), 'event_cancelled');
 
             // Cancelled events remain searchable so users can still discover status updates.
             $this->event->searchable();

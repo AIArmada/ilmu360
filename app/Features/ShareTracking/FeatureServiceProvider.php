@@ -14,6 +14,7 @@ use App\Features\ShareTracking\Actions\LandingAttribution\CreateLandingAttributi
 use App\Features\ShareTracking\Actions\LandingAttribution\TouchPassiveNavigationAttributionAction;
 use App\Features\ShareTracking\Actions\MemberProfiles\EnsureMemberAffiliateProfileAction;
 use App\Features\ShareTracking\Actions\OutboundAttribution\CreateOutboundShareAttributionAction;
+use App\Features\ShareTracking\Actions\Reversals\ReverseEventParticipationOutcomesAction;
 use App\Features\ShareTracking\Actions\Reversals\ReverseShareOutcomeAction;
 use App\Features\ShareTracking\Actions\Touchpoints\RecordOutboundShareTouchpointAction;
 use App\Features\ShareTracking\Actions\Touchpoints\RecordVisitTouchpointAction;
@@ -29,6 +30,7 @@ use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
 use App\Features\ShareTracking\Api\OutboundShareAttributionWriter;
 use App\Features\ShareTracking\Api\OutboundShareTouchpointWriter;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
+use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Features\ShareTracking\Api\PassiveNavigationAttributionWriter;
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\ShareOutcomeEvidenceReader;
@@ -130,6 +132,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(OutboundShareAttributionWriter::class, CreateOutboundShareAttributionAction::class);
         $this->app->bind(OutcomeCorrections::class, DatabaseOutcomeCorrections::class);
         $this->app->bind(ShareOutcomeReversals::class, ReverseShareOutcomeAction::class);
+        $this->app->bind(ParticipationOutcomeReversals::class, ReverseEventParticipationOutcomesAction::class);
         $this->app->bind(ShareOutcomeEvidenceReader::class, DatabaseShareOutcomeEvidenceReader::class);
         $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
         $this->app->bind(SourceReceiptReader::class, DatabaseSourceReceiptReader::class);

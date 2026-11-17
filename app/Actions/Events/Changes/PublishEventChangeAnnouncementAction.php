@@ -2,7 +2,7 @@
 
 namespace App\Actions\Events\Changes;
 
-use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
+use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Enums\EventChangeSeverity;
 use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
@@ -75,9 +75,10 @@ class PublishEventChangeAnnouncementAction
             // transaction. Occurrence-scoped rows were already reversed by
             // the schedule listener; this covers event-level rows.
             if ($type === EventChangeType::Cancelled) {
-                app(ReverseEventParticipationOutcomesAction::class)->forEvent(
-                    $event,
-                    $actor,
+                app(ParticipationOutcomeReversals::class)->reverse(
+                    'event',
+                    (string) $event->getKey(),
+                    (string) $actor->getKey(),
                     'event_cancelled',
                 );
             }

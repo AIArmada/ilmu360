@@ -229,3 +229,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Preserve package-owned state writes inside DB::transaction, perform share reversal in the same reject transaction, record Signals after commit, and deliver notifications through a shared root adapter using DB::afterCommit.
 - [x] Update Filament moderation queue and event-submission tests, remove root action in the same commit. No legacy classes or aliases.
 - [ ] Confirm architecture, approve/reject/share rollback, signals, submitter/guest notifications with CI tests.
+
+
+### Cancellation participation outcome cutover
+- [x] Registration now owns FOR UPDATE registration/check-in ID reads through ParticipationSourceIds (event/occurrence/session scoped); selecting IDs preserves the original registration-before-checkin lock order.
+- [x] ShareTracking owns cancellation coordination via scalar ParticipationOutcomeReversals, delegates ticket money reversal to Events and frozen share reversal to its existing ShareOutcomeReversals contract.
+- [x] Update synchronous listener, event cancellation/moderation, change announcements and replay tests; delete the root action in the same commit. No old aliases or duplicate code.
+- [ ] Confirm rollback, scope isolation, correction idempotency and CI architecture/Pest checks before marking verified.

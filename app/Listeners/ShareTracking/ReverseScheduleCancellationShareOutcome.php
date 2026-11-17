@@ -7,7 +7,7 @@ namespace App\Listeners\ShareTracking;
 use AIArmada\Events\Events\EventCancelled;
 use AIArmada\Events\Events\EventOccurrenceCancelled;
 use AIArmada\Events\Events\EventSessionCancelled;
-use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
+use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 
 /**
  * Reverse participation share outcomes when a schedule scope is cancelled
@@ -23,20 +23,20 @@ use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
 final readonly class ReverseScheduleCancellationShareOutcome
 {
     public function __construct(
-        private ReverseEventParticipationOutcomesAction $reverseParticipation,
+        private ParticipationOutcomeReversals $reverseParticipation,
     ) {}
 
     public function handle(EventCancelled|EventOccurrenceCancelled|EventSessionCancelled $event): void
     {
         match (true) {
-            $event instanceof EventOccurrenceCancelled => $this->reverseParticipation->forOccurrence(
-                $event->occurrence, null, 'occurrence_cancelled',
+            $event instanceof EventOccurrenceCancelled => $this->reverseParticipation->reverse(
+                'occurrence', (string) $event->occurrence->getKey(), null, 'occurrence_cancelled',
             ),
-            $event instanceof EventSessionCancelled => $this->reverseParticipation->forSession(
-                $event->session, null, 'session_cancelled',
+            $event instanceof EventSessionCancelled => $this->reverseParticipation->reverse(
+                'session', (string) $event->session->getKey(), null, 'session_cancelled',
             ),
-            default => $this->reverseParticipation->forEvent(
-                $event->target, null, 'event_cancelled',
+            default => $this->reverseParticipation->reverse(
+                'event', (string) $event->target->getKey(), null, 'event_cancelled',
             ),
         };
     }

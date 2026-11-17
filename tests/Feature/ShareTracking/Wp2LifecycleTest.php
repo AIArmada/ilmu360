@@ -30,7 +30,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
+use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Checkout\RecordCheckoutShareProvenanceStep;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
@@ -1048,7 +1048,7 @@ it('reverses participation outcomes on event cancel while preserving contributio
         ->and(ShareEffectReceipt::query()->where('source_id', $checkinKey)->firstOrFail()->status)->toBe(ShareEffectStatus::Cancelled);
 
     // Correction retries stay idempotent: no duplicate entries.
-    app(ReverseEventParticipationOutcomesAction::class)->forEvent($event->fresh(), $moderator, 'event_cancelled');
+    app(ParticipationOutcomeReversals::class)->reverse('event', (string) $event->getKey(), (string) $moderator->getKey(), 'event_cancelled');
 
     expect(ShareOutcomeCorrection::query()->count())->toBe(2);
 });
