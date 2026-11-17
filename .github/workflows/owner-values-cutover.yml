@@ -1,4 +1,4 @@
-name: One-time domain value ownership
+name: Domain value ownership
 on:
   push:
     branches: [refactor]
@@ -8,6 +8,95 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
     steps:
       - uses: actions/checkout@v6
-      - run: python3 scripts/owner-values-cutover.py
+        with:
+          fetch-depth: 0
+      - name: Install Commerce sources
+        run: git clone --depth 1 https://github.com/AIArmada/commerce.git ../commerce
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
+          coverage: none
+          tools: composer:v2
+      - name: Install dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          touch database/database.sqlite
+          composer install --no-interaction --no-progress --prefer-dist
+      - name: Capture command and route baseline
+        run: |
+          php artisan route:list --json > /tmp/routes.before
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.before
+      - name: Move values and generic primitives
+        run: python3 scripts/owner-values-cutover.py
+      - name: Verify transport parity
+        run: |
+          composer dump-autoload --no-scripts --optimize
+          php artisan optimize:clear
+          php artisan route:list --json > /tmp/routes.after
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.after
+          diff -u /tmp/commands.before /tmp/commands.after
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/routes.before'))==json.load(open('/tmp/routes.after'))
+          print("Routes preserved")
+          PY
+      - name: Architecture, PHPStan, Pint and Rector
+        run: |
+          git add -A
+          vendor/bin/pint --dirty
+          git add -A
+          git diff --cached --check
+          composer architecture:test
+          vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+          vendor/bin/rector process --dry-run
+      - name: Behavior tests for domain values and web forms
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t tests < <(find tests -name '*Test.php' | grep -Ei 'Taxonomy|Speaker|ShareTracking|Contribution|SubmissionLock' | LC_ALL=C sort | head -n 10 || true)
+          echo "Selected ${#tests[@]} regression tests"
+          if (( ${#tests[@]} > 0 )); then vendor/bin/pest --compact "${tests[@]}"; fi
+      - name: Lint and commit without migration scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r f; do php -l "$f" >/dev/null; done < <(git diff --cached --name-only --diff-filter=ACMR | grep -E '^app/.*\.php$')
+          rm -f scripts/owner-values-cutover.py .github/workflows/owner-values-cutover.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "ilmu360-refactor-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "refactor: relocate enums and shared primitives to explicit owners"
+          git push origin HEAD:refactor
