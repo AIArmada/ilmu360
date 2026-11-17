@@ -216,3 +216,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Rehome correction and nonmonetary reversal orchestration to ShareTracking with public ShareOutcomeReversals and OutcomeCorrectionSnapshot, no root alias.
 - [x] Preserve correction lock ordering, monetary guard, referral afterCommit and observer, and receipt-first conversion locks. Checkout, moderation, participation and engagement send scalar actor IDs.
 - [ ] Verify concurrent replay, settlement and referral reversal tests on Quality CI.
+
+
+### Public route binding query-budget regression
+- [x] Root route binder first resolves current slug/UUID through the shared SlugOrUuidResolver and directly reuses the hydrated model. Only missing identifiers fall through to the SlugRedirects public lookup.
+- [x] This removes the extra lookup introduced by scalar public-slug resolution while retaining redirects, 301 usage tracking and 404 behavior. The existing occurrence-page query-budget test remains at 56 (not relaxed).
+- [ ] Confirm the targeted EventOccurrencePageTest and SlugRedirectFeatureTest in Quality CI; do not mark verified solely from code inspection.

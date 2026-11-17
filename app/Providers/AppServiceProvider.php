@@ -137,6 +137,7 @@ use App\Platform\Auth\EloquentUserMorphType;
 use App\Platform\Media\EloquentMediaCollectionSync;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
+use App\Platform\Models\SlugOrUuidResolver;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\ResourceSearchAdapter;
@@ -695,7 +696,33 @@ class AppServiceProvider extends ServiceProvider
                     throw new ModelNotFoundException;
                 }
 
-                $resolved = app(PublicSlugLookup::class)->resolve($publicSlugParameter, trim($value));
+                $value = trim($value);
+                $resource = app(PublicSlugRegistry::class)->resourceForParameter($publicSlugParameter);
+
+                // A current canonical slug is already resolved by this model
+                // lookup. Reuse that hydrated model for route binding instead
+                // of resolving it to a scalar ID and querying it again.
+                if ($resource instanceof PublicSlugResource) {
+                    $prototype = new $resource->modelClass;
+                    $currentModel = app(SlugOrUuidResolver::class)->first(
+                        $prototype->newQuery(),
+                        $prototype->qualifyColumn('slug'),
+                        $value,
+                    );
+
+                    if ($currentModel instanceof Model) {
+                        request()->attributes->set("public_slug_resolution.{$publicSlugParameter}", [
+                            'model' => $currentModel,
+                            'redirect_to' => null,
+                            'slug_redirect_id' => null,
+                        ]);
+
+                        return $currentModel;
+                    }
+                }
+
+                // Only unresolved identifiers need the SlugRedirects lookup.
+                $resolved = app(PublicSlugLookup::class)->resolve($publicSlugParameter, $value);
                 $resource = app(PublicSlugRegistry::class)->resourceForType($resolved->modelType);
 
                 if (! $resource instanceof PublicSlugResource) {
