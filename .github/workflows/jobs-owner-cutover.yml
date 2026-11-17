@@ -108,3 +108,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "refactor: move referral and share-signal jobs into owning features"
           git push origin HEAD:refactor
+
+# Public referral dispatch and feature-owned observer register all private jobs.
