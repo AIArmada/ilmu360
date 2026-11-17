@@ -118,3 +118,5 @@ jobs:
           git push origin HEAD:refactor
 
 # Restore invariant Auth contract collection type in escalation adapter.
+
+# Explicit upcast of trusted Eloquent role collection at transport seam.
