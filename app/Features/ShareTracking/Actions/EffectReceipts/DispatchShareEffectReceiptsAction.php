@@ -20,7 +20,6 @@ use Illuminate\Support\Str;
 
 final readonly class DispatchShareEffectReceiptsAction implements PendingShareEffects
 {
-
     /**
      * Effect types this dispatcher owns: downstream outcome projection
      * effects (conversion/link payloads). Every other effect type

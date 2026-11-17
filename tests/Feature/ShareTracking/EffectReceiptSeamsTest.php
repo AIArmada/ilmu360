@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\EffectReceipts;
+use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Models\ShareEffectReceipt;
