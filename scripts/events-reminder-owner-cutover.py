@@ -121,5 +121,3 @@ if "DispatchEventReminderNotifications" in routes.read_text():
     raise RuntimeError("Old schedule or root import still exists")
 print("Events reminder job rehomed; single schedule moved to Events; shared dispatch contract is bound. No old job class or schedule left.")
 
-if __name__=="__main__":
-    main()
