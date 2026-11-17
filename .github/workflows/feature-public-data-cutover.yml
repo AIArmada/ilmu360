@@ -1,0 +1,14 @@
+name: Feature public data migration
+on:
+  push:
+    branches: [refactor]
+    paths:
+      - .github/workflows/feature-public-data-cutover.yml
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/feature-public-data-cutover.py
