@@ -1,4 +1,4 @@
-name: One-time auth listener ownership
+name: Auth listener Platform ownership
 on:
   push:
     branches: [refactor]
@@ -8,6 +8,109 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
     steps:
       - uses: actions/checkout@v6
-      - run: python3 scripts/auth-listener-owner-cutover.py
+        with:
+          fetch-depth: 0
+      - name: Install commerce sources
+        run: git clone --depth 1 https://github.com/AIArmada/commerce.git ../commerce
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
+          coverage: none
+          tools: composer:v2
+      - name: Install locked dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          touch database/database.sqlite
+          composer install --no-interaction --no-progress --prefer-dist
+      - name: Capture routes, commands and discovered auth listeners
+        run: |
+          php artisan route:list --json > /tmp/routes.before
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.before
+          php artisan event:list --no-ansi > /tmp/events.before
+          grep -q 'ClaimGuestSubmissionsOnVerified' /tmp/events.before
+          grep -q 'RecordVerifiedEmail' /tmp/events.before
+          grep -q 'SendRegisteredUserEmails' /tmp/events.before
+      - name: Move auth event listeners and register explicitly
+        run: python3 scripts/auth-listener-owner-cutover.py
+      - name: Verify event listener identity and single registration
+        run: |
+          composer dump-autoload --no-scripts --optimize
+          php artisan optimize:clear
+          php artisan route:list --json > /tmp/routes.after
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.after
+          php artisan event:list --no-ansi > /tmp/events.after
+          diff -u /tmp/commands.before /tmp/commands.after
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/routes.before')) == json.load(open('/tmp/routes.after'))
+          before=open('/tmp/events.before').read()
+          after=open('/tmp/events.after').read()
+          for name in ('ClaimGuestSubmissionsOnVerified','RecordVerifiedEmail','SendRegisteredUserEmails'):
+              old='App\\Listeners\\Auth\\'+name
+              new='App\\Platform\\Auth\\Listeners\\'+name
+              assert before.count(old)==1,(name,'missing or duplicate before')
+              assert after.count(new)==1,(name,'missing or duplicate after')
+              assert old not in after,(name,'stale old listener')
+          print('All 3 event listeners registered exactly once and public transport preserved')
+          PY
+      - name: Validate architecture, PHPStan, Pint and Rector
+        run: |
+          git add -A
+          vendor/bin/pint --dirty
+          git add -A
+          git diff --cached --check
+          composer architecture:test
+          vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+          vendor/bin/rector process --dry-run
+      - name: Test auth signup and guest-submission workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          vendor/bin/pest --compact tests/Feature/Auth/AuthenticationTest.php tests/Feature/SignupAttributionAuthTest.php
+          mapfile -t extra < <(find tests -name '*Test.php' | grep -Ei 'GuestSubmission|EmailVerif' | LC_ALL=C sort | head -n 3 || true)
+          if (( ${#extra[@]} > 0 )); then vendor/bin/pest --compact "${extra[@]}"; fi
+      - name: Lint and remove one-time artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r f; do php -l "$f" >/dev/null; done < <(git diff --cached --name-only --diff-filter=ACMR | grep -E '^app/.*\.php$')
+          test ! -d app/Listeners/Auth || test -z "$(find app/Listeners/Auth -type f)"
+          rm -f scripts/auth-listener-owner-cutover.py .github/workflows/auth-listener-owner-cutover.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "ilmu360-refactor-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "refactor: relocate authentication event listeners into Platform"
+          git push origin HEAD:refactor
