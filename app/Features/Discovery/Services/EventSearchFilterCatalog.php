@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Discovery;
+namespace App\Features\Discovery\Services;
 
 use App\Shared\Discovery\SearchFilterCatalog;
 use App\Shared\Events\Enums\EventAgeGroup;

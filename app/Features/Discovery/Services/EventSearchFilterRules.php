@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Discovery;
+namespace App\Features\Discovery\Services;
 
 use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Events\Models\EventTaxonomy;

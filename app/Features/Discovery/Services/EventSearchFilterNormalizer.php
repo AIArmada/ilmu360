@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Discovery;
+namespace App\Features\Discovery\Services;
 
 use App\Shared\Discovery\SearchFilterKeys;
 use App\Shared\Discovery\SearchFilterNormalizer;

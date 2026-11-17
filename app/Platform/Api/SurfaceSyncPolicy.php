@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Api;
+namespace App\Platform\Api;
 
 final class SurfaceSyncPolicy
 {
