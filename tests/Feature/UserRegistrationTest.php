@@ -108,7 +108,7 @@ it('rolls back account creation when the share signup recording fails', function
     {
         public function recordSignup(string $accountId, ?Request $request = null): void
         {
-            throw new \RuntimeException('Share signup recording failed.');
+            throw new RuntimeException('Share signup recording failed.');
         }
     };
 
@@ -119,7 +119,6 @@ it('rolls back account creation when the share signup recording fails', function
         'email' => 'fortify-atomic@example.test',
         'password' => 'Password123!',
         'password_confirmation' => 'Password123!',
-    ]))->toThrow(\RuntimeException::class, 'Share signup recording failed.');
-
-    expect(User::query()->where('email', 'fortify-atomic@example.test')->exists())->toBeFalse();
+    ]))->toThrow(RuntimeException::class, 'Share signup recording failed.')
+        ->and(User::query()->where('email', 'fortify-atomic@example.test')->exists())->toBeFalse();
 });
