@@ -42,6 +42,20 @@ dest.parent.mkdir(parents=True,exist_ok=True)
 dest.write_text(text)
 source.unlink()
 
+# The app's audited subclass inherits its table name from the package;
+# declare the literal owned table so the feature's model dependency is
+# provably Events-owned, not a broad exception to the boundary checker.
+submission_model = ROOT / "app/Models/EventSubmission.php"
+model_source = submission_model.read_text()
+model_needle = "    use AuditsModelChanges, HasContactMethods;"
+if model_needle not in model_source or "protected $table" in model_source:
+    raise RuntimeError("Unexpected EventSubmission model ownership declaration")
+submission_model.write_text(model_source.replace(
+    model_needle,
+    model_needle + "\n\n    protected $table = 'event_submissions';",
+    1,
+))
+
 f=ROOT/page
 current=f.read_text()
 if "use App\\Services\\Signals\\ProductSignalsInsightsService;" not in current:
