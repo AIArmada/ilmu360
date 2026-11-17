@@ -2,6 +2,8 @@
 
 namespace App\Features\SlugRedirects\Actions;
 
+use App\Features\SlugRedirects\Api\PublicSlugLookup;
+use App\Features\SlugRedirects\Api\ResolvedPublicSlug;
 use App\Features\SlugRedirects\Api\SlugRedirectLookup;
 use App\Features\SlugRedirects\Api\SlugRedirectMatch;
 use App\Platform\Models\SlugOrUuidResolver;
@@ -10,7 +12,7 @@ use App\Platform\Routing\PublicSlugResource;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
-final readonly class ResolvePublicSlugAction
+final readonly class ResolvePublicSlugAction implements PublicSlugLookup
 {
     public function __construct(
         private PublicSlugRegistry $publicSlugRegistry,
@@ -18,20 +20,13 @@ final readonly class ResolvePublicSlugAction
         private SlugRedirectLookup $slugRedirectLookup,
     ) {}
 
-    /**
-     * @return array{model: Model, redirect_to: string|null, slug_redirect_id: string|null}
-     */
-    public function handle(string $parameter, string $value): array
+    public function resolve(string $parameter, string $value): ResolvedPublicSlug
     {
         $resource = $this->publicSlugRegistry->resourceForParameter($parameter);
         $resolvedModel = $this->resolveCurrentModel($resource, $value);
 
         if ($resolvedModel instanceof Model) {
-            return [
-                'model' => $resolvedModel,
-                'redirect_to' => null,
-                'slug_redirect_id' => null,
-            ];
+            return $this->resultFor($resolvedModel);
         }
 
         $sourcePath = $this->publicSlugRegistry->pathForParameter($parameter, $value);
@@ -46,15 +41,21 @@ final readonly class ResolvePublicSlugAction
                 : null;
 
             if ($slugRedirect instanceof SlugRedirectMatch && $redirectable instanceof Model && $redirectTo !== null) {
-                return [
-                    'model' => $redirectable,
-                    'redirect_to' => $redirectTo,
-                    'slug_redirect_id' => $slugRedirect->id,
-                ];
+                return $this->resultFor($redirectable, $redirectTo, $slugRedirect->id);
             }
         }
 
         $this->throwNotFound($resource, $value);
+    }
+
+    private function resultFor(Model $model, ?string $redirectTo = null, ?string $slugRedirectId = null): ResolvedPublicSlug
+    {
+        return new ResolvedPublicSlug(
+            modelType: $model->getMorphClass(),
+            modelId: (string) $model->getKey(),
+            redirectTo: $redirectTo,
+            slugRedirectId: $slugRedirectId,
+        );
     }
 
     private function resolveCurrentModel(?PublicSlugResource $resource, string $value): ?Model

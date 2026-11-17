@@ -65,7 +65,7 @@ use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventOccurrenceDeletionPreflight;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\ShareTracking\Api\ShareAnalytics;
-use App\Features\SlugRedirects\Actions\ResolvePublicSlugAction;
+use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
 use App\Listeners\ShareTracking\ReverseScheduleCancellationShareOutcome;
@@ -701,11 +701,22 @@ class AppServiceProvider extends ServiceProvider
                     throw new ModelNotFoundException;
                 }
 
-                $resolved = app(ResolvePublicSlugAction::class)->handle($publicSlugParameter, trim($value));
+                $resolved = app(PublicSlugLookup::class)->resolve($publicSlugParameter, trim($value));
+                $resource = app(PublicSlugRegistry::class)->resourceForType($resolved->modelType);
 
-                request()->attributes->set("public_slug_resolution.{$publicSlugParameter}", $resolved);
+                if (! $resource instanceof PublicSlugResource) {
+                    throw new ModelNotFoundException;
+                }
 
-                return $resolved['model'];
+                $model = $resource->modelClass::query()->findOrFail($resolved->modelId);
+
+                request()->attributes->set("public_slug_resolution.{$publicSlugParameter}", [
+                    'model' => $model,
+                    'redirect_to' => $resolved->redirectTo,
+                    'slug_redirect_id' => $resolved->slugRedirectId,
+                ]);
+
+                return $model;
             });
         }
 

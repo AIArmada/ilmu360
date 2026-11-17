@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Features\SlugRedirects\Actions\ResolvePublicSlugAction;
+use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Platform\Routing\PublicSlugRegistry;
 use Closure;
@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ResolvePublicSlugRedirect
 {
     public function __construct(
-        private readonly ResolvePublicSlugAction $resolvePublicSlugAction,
+        private readonly PublicSlugLookup $publicSlugLookup,
         private readonly SlugRedirectCommands $slugRedirectCommands,
         private readonly PublicSlugRegistry $publicSlugRegistry,
     ) {}
@@ -63,17 +63,23 @@ class ResolvePublicSlugRedirect
                 abort(404);
             }
 
-            $resolved = $this->resolvePublicSlugAction->handle($parameter, trim($value));
+            $resolved = $this->publicSlugLookup->resolve($parameter, trim($value));
 
-            if ($resolved['redirect_to'] !== null && in_array($request->getMethod(), ['GET', 'HEAD'], true)) {
-                if ($resolved['slug_redirect_id'] !== null) {
-                    $this->slugRedirectCommands->markUsed($resolved['slug_redirect_id']);
+            if ($resolved->redirectTo !== null && in_array($request->getMethod(), ['GET', 'HEAD'], true)) {
+                if ($resolved->slugRedirectId !== null) {
+                    $this->slugRedirectCommands->markUsed($resolved->slugRedirectId);
                 }
 
-                return redirect()->to($resolved['redirect_to'], 301);
+                return redirect()->to($resolved->redirectTo, 301);
             }
 
-            $route->setParameter($parameter, $resolved['model']);
+            $resource = $this->publicSlugRegistry->resourceForType($resolved->modelType);
+
+            if ($resource === null) {
+                abort(404);
+            }
+
+            $route->setParameter($parameter, $resource->modelClass::query()->findOrFail($resolved->modelId));
         }
 
         return $next($request);

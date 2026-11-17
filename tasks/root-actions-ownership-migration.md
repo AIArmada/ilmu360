@@ -66,3 +66,8 @@ Started 2026-11-17. Baseline commit: `2e574bdbbb48b3a07770edafd79883df3f0ff423`.
 The initial 51-file source and manifest inventory was read through the GitHub connector on `refactor`. Call-site discovery from a working checked-out repository and execution of Laravel/Pest/static analysis **were not available from this connector session**. Source-review classification is not a substitute for these gates. Do not mark a later phase complete without checking all runtime references, registration surfaces and behavior.
 
 Repository guidance in `tasks/lessons.md`: use Pest and the quick architecture checker for per-slice verification; reserve PHPStan, Rector and Pint for the final pass. Do not weaken existing behavior or install backwards-compatibility shims to get a green check.
+
+
+## Phase 1 architecture CI correction
+
+The first GitHub Quality run (44001740277) flagged four `feature-private` violations: the root middleware and AppServiceProvider imported the moved feature action directly. Corrected by making the action implement `SlugRedirects/Api/PublicSlugLookup`, returning a readonly scalar `ResolvedPublicSlug` instead of an Eloquent model. Root route adapters hydrate the registered model by identifier and retain the original request-attribute shape, redirect status, and mark-used semantics. The feature binds its own public contract. No private feature action import, alias, or old root path remains. CI must confirm this correction before marking the phase validated.

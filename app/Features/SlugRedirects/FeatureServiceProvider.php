@@ -7,6 +7,8 @@ namespace App\Features\SlugRedirects;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use App\Features\SlugRedirects\Api\SlugRedirectAdministration;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
+use App\Features\SlugRedirects\Actions\ResolvePublicSlugAction;
+use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Features\SlugRedirects\Api\SlugRedirectLookup;
 use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\SlugRedirectResource;
 use App\Features\SlugRedirects\Integration\CanonicalSlugRedirectRecorder;
@@ -26,6 +28,7 @@ final class FeatureServiceProvider extends FeatureModule
         $this->app->bind(SlugRedirectCommands::class, SlugRedirectCommandsService::class);
         $this->app->bind(SlugRedirectAdministration::class, SlugRedirectAdministrationService::class);
         $this->app->bind(SlugRedirectLookup::class, DatabaseSlugRedirectLookup::class);
+        $this->app->bind(PublicSlugLookup::class, ResolvePublicSlugAction::class);
         $this->app->bind(SlugRedirectRecorder::class, CanonicalSlugRedirectRecorder::class);
         $this->app->make(FilamentResourceRegistry::class)->register(SlugRedirectResource::class);
     }
