@@ -270,3 +270,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Keep cancellations and participation reversals in the source DB transaction. Root notification adapter resolves announcement models only for delivery.
 - [x] Convert EventChangeAnnouncement and notification tests to the feature API with a test-only hydration helper; delete the runtime root action, no compatibility aliases.
 - [ ] Verify cancellation/authorization/replacement-chain/severity/notification assertions on CI.
+
+
+### Public submission completion cutover
+- [x] Events/Actions/Submission now owns completeWrites and parent moderation through scalar EventSubmissionCompletion API.
+- [x] The root request transport keeps original request attribution, three session/grouped/parent outcome payloads, and DB::afterCommit moderator notification, all still called inside the existing submission transaction.
+- [x] Remove root CompleteFrontendEventSubmissionAction; no alias, duplicate implementation or compatibility class.
+- [ ] Verify atomic rollback, notification and share-outcome replay with Pest and architecture CI.

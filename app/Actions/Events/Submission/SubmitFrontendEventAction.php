@@ -5,16 +5,21 @@ namespace App\Actions\Events\Submission;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Contracts\CaptchaVerifier;
+use App\Contracts\ShareTrackingContract;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissionOrganizerKind;
 use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Notifications\EventOccurrenceSubmittedNotification;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
@@ -27,16 +32,19 @@ use App\Shared\Submission\SubmissionContextResolver;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Shared\Submission\SubmissionValues;
 use App\Shared\Submission\SubmitterContactRules;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Filesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\Permission\Exceptions\RoleDoesNotExist;
 use Throwable;
 
 class SubmitFrontendEventAction
@@ -48,7 +56,8 @@ class SubmitFrontendEventAction
         private readonly CaptchaVerifier $turnstileVerifier,
         private readonly EventAuthoring $authoring,
         private readonly EventSubmissions $submissions,
-        private readonly CompleteFrontendEventSubmissionAction $completeSubmission,
+        private readonly EventSubmissionCompletion $submissionCompletion,
+        private readonly ShareTrackingContract $shareTracking,
         private readonly SubmissionTimingPolicy $timing,
         private readonly SubmissionContextResolver $context,
         private readonly ResolvePrayerStartClockAction $resolveStartClock,
@@ -262,7 +271,7 @@ class SubmitFrontendEventAction
                     $persistRelationships($mediaSubject);
                 }
 
-                $this->completeSubmission->handle(
+                $this->completeAndRecordSubmissionOutcome(
                     event: $event,
                     submission: $submission,
                     state: $validated,
@@ -321,6 +330,118 @@ class SubmitFrontendEventAction
             'parent_created' => $persisted['parent_created'] ?? true,
             'occurrence_pending_review' => $persisted['occurrence_pending_review'] ?? false,
         ];
+    }
+
+    /**
+     * Complete the submission, then record its request-bound share outcome.
+     * Both calls run inside the original submission transaction.
+     *
+     * @param array<string, mixed> $state
+     */
+    private function completeAndRecordSubmissionOutcome(
+        Event $event,
+        EventSubmission $submission,
+        array $state,
+        ?User $submitter,
+        bool $sessionSubmission,
+        bool $autoApproved,
+        ?Request $request = null,
+        ?EventOccurrence $occurrence = null,
+        bool $parentCreated = true,
+        bool $groupedSubmission = false,
+        bool $occurrencePendingReview = false,
+    ): void {
+        $this->submissionCompletion->complete(
+            eventId: (string) $event->getKey(),
+            submissionId: (string) $submission->getKey(),
+            state: $state,
+            submitterId: $submitter instanceof User ? (string) $submitter->getKey() : null,
+            sessionSubmission: $sessionSubmission,
+            autoApproved: $autoApproved,
+            parentCreated: $parentCreated,
+        );
+
+        if ($sessionSubmission) {
+            $this->shareTracking->recordOutcome(
+                type: ShareOutcomeType::EventSubmission,
+                businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
+                subject: $event,
+                actor: $submitter,
+                request: $request ?? request(),
+                metadata: [
+                    'submission_id' => $submission->getKey(),
+                    'session_submission' => true,
+                    'event_occurrence_id' => $occurrence?->getKey(),
+                ],
+                occurredAt: Carbon::instance($submission->created_at ?? now()),
+            );
+
+            return;
+        }
+
+        if (! $parentCreated) {
+            if ($occurrencePendingReview && $occurrence instanceof EventOccurrence) {
+                $this->notifyOccurrenceNeedsReview($event, $occurrence);
+            }
+
+            $this->shareTracking->recordOutcome(
+                type: ShareOutcomeType::EventSubmission,
+                businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
+                subject: $event,
+                actor: $submitter,
+                request: $request ?? request(),
+                metadata: [
+                    'submission_id' => $submission->getKey(),
+                    'event_occurrence_id' => $occurrence?->getKey(),
+                    'grouped_submission' => $groupedSubmission,
+                    'occurrence_pending_review' => $occurrencePendingReview,
+                ],
+                occurredAt: Carbon::instance($submission->created_at ?? now()),
+            );
+
+            return;
+        }
+
+        $event->refresh();
+
+        $this->shareTracking->recordOutcome(
+            type: ShareOutcomeType::EventSubmission,
+            businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
+            subject: $event,
+            actor: $submitter,
+            request: $request ?? request(),
+            metadata: [
+                'submission_id' => $submission->getKey(),
+                'event_occurrence_id' => $occurrence?->getKey(),
+                'grouped_submission' => $groupedSubmission,
+            ],
+            occurredAt: Carbon::instance($submission->created_at ?? now()),
+        );
+    }
+
+    private function notifyOccurrenceNeedsReview(Event $event, EventOccurrence $occurrence): void
+    {
+        DB::afterCommit(function () use ($event, $occurrence): void {
+            try {
+                $moderators = User::role(['moderator', 'super_admin'])->get();
+
+                if ($moderators->isNotEmpty()) {
+                    Notification::send($moderators, new EventOccurrenceSubmittedNotification($event, $occurrence));
+                }
+            } catch (RoleDoesNotExist $exception) {
+                Log::warning('Could not notify moderators about a submitted event occurrence.', [
+                    'event_id' => (string) $event->getKey(),
+                    'event_occurrence_id' => (string) $occurrence->getKey(),
+                    'exception' => $exception,
+                ]);
+            } catch (Throwable $exception) {
+                Log::warning('Occurrence submission notification failed after submit.', [
+                    'event_id' => (string) $event->getKey(),
+                    'event_occurrence_id' => (string) $occurrence->getKey(),
+                    'exception' => $exception,
+                ]);
+            }
+        });
     }
 
     private function removeFailedSubmissionMedia(HasMedia $subject): void
