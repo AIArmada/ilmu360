@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Rules;
+namespace App\Platform\Validation\Rules;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Addressing\Support\CountryAddressProfileResolver;

@@ -32,7 +32,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Models\MorphModelResolver;
-use App\Rules\ValidAreaAssignmentRoles;
+use App\Platform\Validation\Rules\ValidAreaAssignmentRoles;
 use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;

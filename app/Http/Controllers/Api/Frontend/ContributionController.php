@@ -29,7 +29,7 @@ use App\Platform\Location\GooglePlaceIdentity;
 use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Models\MorphModelResolver;
-use App\Rules\ValidAreaAssignmentRoles;
+use App\Platform\Validation\Rules\ValidAreaAssignmentRoles;
 use App\Services\ContributionEntityMutationService;
 use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
