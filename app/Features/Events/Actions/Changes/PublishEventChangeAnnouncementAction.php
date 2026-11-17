@@ -8,8 +8,6 @@ use App\Platform\Models\MorphModelResolver;
 use App\Shared\Events\EventChangeNoticeNotifier;
 use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Models\Event;
-use App\Models\EventChangeAnnouncement;
-use App\Models\EventKeyPerson;
 use App\Shared\Events\Enums\EventChangeType;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -354,11 +352,15 @@ final readonly class PublishEventChangeAnnouncementAction implements EventChange
                 'name' => $this->spaceName($event),
             ],
             'persons' => $event->personKeyPeople
-                ->map(fn (EventKeyPerson $keyPerson): array => [
-                    'id' => $keyPerson->person instanceof Model ? (string) $keyPerson->person->getKey() : null,
-                    'name' => $keyPerson->person instanceof Model ? $keyPerson->person->getAttribute('name') : $keyPerson->display_name,
-                    'slug' => $keyPerson->person instanceof Model ? $keyPerson->person->getAttribute('slug') : null,
-                ])
+                ->map(static function (Model $keyPerson): array {
+                    $person = $keyPerson->getRelationValue('person');
+
+                    return [
+                        'id' => $person instanceof Model ? (string) $person->getKey() : null,
+                        'name' => $person instanceof Model ? $person->getAttribute('name') : $keyPerson->getAttribute('display_name'),
+                        'slug' => $person instanceof Model ? $person->getAttribute('slug') : null,
+                    ];
+                })
                 ->values()
                 ->all(),
             'references' => $event->references
