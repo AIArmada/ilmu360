@@ -1,0 +1,13 @@
+name: Discovery cache ownership migration
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/discovery-cache-ownership.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/discovery-cache-ownership.py
