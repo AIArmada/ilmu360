@@ -13,6 +13,7 @@ class EventSubmission extends PackageEventSubmission implements Auditable
 {
     use AuditsModelChanges, HasContactMethods;
 
+    #[\Override]
     protected $table = 'event_submissions';
 
     /**
