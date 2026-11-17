@@ -44,7 +44,7 @@ use App\\Platform\\Auth\\Listeners\\RecordVerifiedEmail;
 use App\\Platform\\Auth\\Listeners\\SendRegisteredUserEmails;
 use Illuminate\\Auth\\Events\\Registered;
 use Illuminate\\Auth\\Events\\Verified;
-use Illuminate\\Support\\Facades\\Event;
+use Illuminate\\Support\\Facades\\Event as EventFacade;
 """
 provider=provider.replace(ns,ns+"\n\n"+imports,1)
 boot="    public function boot(): void\n    {\n"
@@ -52,9 +52,9 @@ if boot not in provider:raise RuntimeError("App provider boot changed")
 provider=provider.replace(boot,boot+"""
         // Explicit registration replaces Laravel's old app/Listeners/Auth discovery.
         // Preserve registered-email and verified-email after-commit listeners.
-        Event::listen(Registered::class, SendRegisteredUserEmails::class);
-        Event::listen(Verified::class, ClaimGuestSubmissionsOnVerified::class);
-        Event::listen(Verified::class, RecordVerifiedEmail::class);
+        EventFacade::listen(Registered::class, SendRegisteredUserEmails::class);
+        EventFacade::listen(Verified::class, ClaimGuestSubmissionsOnVerified::class);
+        EventFacade::listen(Verified::class, RecordVerifiedEmail::class);
 
 """,1)
 PROVIDER.write_text(provider)
