@@ -25,6 +25,7 @@ class ModerationService
 {
     public function __construct(
         private readonly ShareOutcomeReversals $reverseShareOutcome,
+        private readonly ParticipationOutcomeReversals $participationOutcomeReversals,
         private readonly SignalRecorder $signals,
     ) {}
 
@@ -128,7 +129,7 @@ class ModerationService
             $event->status->transitionTo(Cancelled::class, $moderator, $note);
             $event->refresh();
 
-            app(ParticipationOutcomeReversals::class)->reverse(
+            $this->participationOutcomeReversals->reverse(
                 'event',
                 (string) $event->getKey(),
                 $moderator instanceof User ? (string) $moderator->getKey() : null,
