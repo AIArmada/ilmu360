@@ -48,6 +48,7 @@ jobs:
           tools: composer:v2
       - name: Install
         env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
