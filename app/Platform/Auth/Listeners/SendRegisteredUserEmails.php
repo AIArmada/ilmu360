@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Platform\Auth\Listeners;
 
 use App\Models\User;
-use App\Notifications\Auth\WelcomeNotification;
+use App\Platform\Auth\Notifications\WelcomeNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

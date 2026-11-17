@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\User;
-use App\Notifications\Auth\ResetPasswordNotification;
-use App\Notifications\Auth\VerifyEmailNotification;
-use App\Notifications\Auth\WelcomeNotification;
+use App\Platform\Auth\Notifications\ResetPasswordNotification;
+use App\Platform\Auth\Notifications\VerifyEmailNotification;
+use App\Platform\Auth\Notifications\WelcomeNotification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 

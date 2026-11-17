@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\User;
-use App\Notifications\Auth\VerifyEmailNotification;
-use App\Notifications\Auth\WelcomeNotification;
+use App\Platform\Auth\Notifications\VerifyEmailNotification;
+use App\Platform\Auth\Notifications\WelcomeNotification;
 use Illuminate\Support\Facades\Notification;
 
 it('sends welcome and verification emails when a new web user registers', function () {
