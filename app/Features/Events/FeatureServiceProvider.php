@@ -84,6 +84,7 @@ use App\Features\Events\Support\ScopedEventDeletionScope;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
+use App\Shared\Auth\GuestEventSubmissionClaims;
 use App\Shared\Events\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Shared\Events\EventCategoryPolicyResolver;
 use Illuminate\Support\Facades\Schedule;
@@ -168,6 +169,7 @@ class FeatureServiceProvider extends FeatureModule
         ]);
 
         $this->app->bind(GuestSubmissionClaims::class, ClaimGuestSubmissionsAction::class);
+        $this->app->bind(GuestEventSubmissionClaims::class, ClaimGuestSubmissionsAction::class);
         $this->app->bind(EventReportSubjectProvider::class, EventReportSubjectResolver::class);
         $this->app->bind(RegistrationExportAccess::class, ResolveRegistrationExportContextAction::class);
 

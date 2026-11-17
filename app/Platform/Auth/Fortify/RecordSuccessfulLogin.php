@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Fortify;
+namespace App\Platform\Auth\Fortify;
 
-use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Models\User;
+use App\Shared\Auth\GuestEventSubmissionClaims;
 use App\Shared\Auth\GuestSubmissionNotice;
 use App\Shared\Signals\SignalRecorder;
 use Closure;
@@ -32,7 +32,7 @@ final class RecordSuccessfulLogin
             );
 
             GuestSubmissionNotice::flash(
-                app(GuestSubmissionClaims::class)->claimForAccount((string) $user->getKey())
+                app(GuestEventSubmissionClaims::class)->claimForAccount((string) $user->getKey())
             );
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Identity;
 
+use App\Features\Identity\Actions\RecordNewAccountAttributionAction;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Features\Identity\Api\AccountPreferences;
@@ -26,6 +27,7 @@ use App\Features\Identity\Services\SocialAccountsService;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
+use App\Shared\Auth\NewAccountAttribution;
 use Illuminate\Contracts\Foundation\Application;
 
 class FeatureServiceProvider extends FeatureModule
@@ -36,6 +38,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AccountPreferences::class, AccountPreferencesService::class);
         $this->app->bind(SignupAttributions::class, SignupAttributionsService::class);
         $this->app->bind(SignupAttributionWorkflow::class, SignupAttributionWorkflowService::class);
+        $this->app->bind(NewAccountAttribution::class, RecordNewAccountAttributionAction::class);
         $this->app->bind(AccountAdministration::class, AccountAdministrationService::class);
         $this->app->bind(SocialAccounts::class, SocialAccountsService::class);
 

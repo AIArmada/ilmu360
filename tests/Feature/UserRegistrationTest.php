@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Fortify\CreateNewUser;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Models\User;
+use App\Platform\Auth\Fortify\CreateNewUser;
 use App\Shared\ShareTracking\SignupRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;

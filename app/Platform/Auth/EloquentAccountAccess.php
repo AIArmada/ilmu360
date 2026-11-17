@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Auth;
 
-use App\Actions\Fortify\CreateNewUser;
 use App\Models\User;
+use App\Platform\Auth\Fortify\CreateNewUser;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountProfile;

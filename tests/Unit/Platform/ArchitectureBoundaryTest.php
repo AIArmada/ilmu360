@@ -13,7 +13,7 @@ beforeEach(function (): void {
     // so the architecture checker can distinguish stale allowlist entries.
     foreach (['CreateNewUser', 'RecordSuccessfulLogin', 'ResetUserPassword'] as $entrypoint) {
         $this->project->write(
-            "app/Actions/Fortify/{$entrypoint}.php",
+            "app/Platform/Auth/Fortify/{$entrypoint}.php",
             "<?php\nnamespace App\\Actions\\Fortify;\nclass {$entrypoint} {}\n",
         );
     }
@@ -32,7 +32,7 @@ afterEach(function (): void {
 });
 
 it('rejects a stale Fortify framework adapter allowlist entry', function (): void {
-    unlink($this->project->path.'/app/Actions/Fortify/RecordSuccessfulLogin.php');
+    unlink($this->project->path.'/app/Platform/Auth/Fortify/RecordSuccessfulLogin.php');
 
     $result = $this->project->check();
 
@@ -41,7 +41,7 @@ it('rejects a stale Fortify framework adapter allowlist entry', function (): voi
     $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
 
     expect(array_column($findings, 'rule'))->toBe(['stale-fortify-entrypoint'])
-        ->and(array_column($findings, 'target'))->toBe(['app/Actions/Fortify/RecordSuccessfulLogin.php']);
+        ->and(array_column($findings, 'target'))->toBe(['app/Platform/Auth/Fortify/RecordSuccessfulLogin.php']);
 });
 
 it('rejects references to another feature private model', function (string $source): void {

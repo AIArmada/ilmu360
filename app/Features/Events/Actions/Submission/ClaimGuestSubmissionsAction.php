@@ -7,6 +7,7 @@ namespace App\Features\Events\Actions\Submission;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Support\EventModel;
+use App\Shared\Auth\GuestEventSubmissionClaims;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * Authentication code calls the GuestSubmissionClaims boundary instead of
  * writing event-submission or event attribution state itself.
  */
-final class ClaimGuestSubmissionsAction implements GuestSubmissionClaims
+final class ClaimGuestSubmissionsAction implements GuestEventSubmissionClaims, GuestSubmissionClaims
 {
     use AsAction;
 

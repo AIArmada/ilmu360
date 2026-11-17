@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Actions\Fortify;
+namespace App\Platform\Auth\Fortify;
 
-use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
 use App\Platform\Auth\PasswordValidationRules;
 use App\Shared\Auth\AccountAccess;
+use App\Shared\Auth\NewAccountAttribution;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\ShareTracking\SignupRecorder;
 use App\Shared\Signals\SignalRecorder;
@@ -56,7 +56,7 @@ class CreateNewUser implements CreatesNewUsers
             ]);
             $user = User::query()->findOrFail($profile->id);
 
-            app(SignupAttributionWorkflow::class)->recordForNewAccount(
+            app(NewAccountAttribution::class)->recordForNewAccount(
                 (string) $user->getKey(),
                 app(SignupAttributionContextResolver::class)->resolve(request()),
                 true,

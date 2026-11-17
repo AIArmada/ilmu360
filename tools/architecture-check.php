@@ -75,9 +75,9 @@ try {
     // Conventional Fortify contracts/pipeline are framework entrypoints, not
     // business Actions. All other actions belong in their owning features.
     $fortifyEntrypoints = [
-        'app/Actions/Fortify/CreateNewUser.php',
-        'app/Actions/Fortify/RecordSuccessfulLogin.php',
-        'app/Actions/Fortify/ResetUserPassword.php',
+        'app/Platform/Auth/Fortify/CreateNewUser.php',
+        'app/Platform/Auth/Fortify/RecordSuccessfulLogin.php',
+        'app/Platform/Auth/Fortify/ResetUserPassword.php',
     ];
     // An allowlisted framework hook must exist. A deleted adapter may not
     // leave behind a permanently ignored, stale architectural exception.

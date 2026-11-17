@@ -153,7 +153,7 @@ Exact role assignment and package permission names must be confirmed from `datab
 
 | ID | Feature | Status | Evidence |
 |---|---|---|---|
-| AUTH-001 | Registration and login | Confirmed | Fortify routes/config; `routes/web.php`; `app/Actions/Fortify/CreateNewUser.php`; auth tests |
+| AUTH-001 | Registration and login | Confirmed | Fortify routes/config; `routes/web.php`; `app/Platform/Auth/Fortify/CreateNewUser.php`; auth tests |
 | AUTH-002 | Google OAuth | Confirmed in code | `SocialiteController`; `/oauth/{provider}/redirect|callback` |
 | AUTH-003 | Password reset and email verification | Confirmed in code | Fortify controllers; auth notifications; `/forgot-password` route in graph |
 | CAT-001 | Public event listing/detail | Confirmed | `routes/web.php`; `app/Livewire/Pages/Events/*`; `app/Models/Event.php` |
@@ -267,7 +267,7 @@ Authenticated users can submit institution/speaker records or suggest updates; r
 ### `AUTH-001` Account registration and authentication
 
 **Status:** Confirmed  **Priority:** Critical  **Users:** Visitors, members  
-**Source evidence:** `routes/web.php`; Fortify configuration/controllers; `app/Actions/Fortify/CreateNewUser.php`; auth notifications; API auth controller.
+**Source evidence:** `routes/web.php`; Fortify configuration/controllers; `app/Platform/Auth/Fortify/CreateNewUser.php`; auth notifications; API auth controller.
 
 #### Purpose
 

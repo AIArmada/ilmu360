@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
-use App\Actions\Fortify\CreateNewUser;
-use App\Actions\Fortify\RecordSuccessfulLogin;
-use App\Actions\Fortify\ResetUserPassword;
+use App\Platform\Auth\Fortify\CreateNewUser;
+use App\Platform\Auth\Fortify\RecordSuccessfulLogin;
+use App\Platform\Auth\Fortify\ResetUserPassword;
 use App\Shared\Auth\IntendedRedirect;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
