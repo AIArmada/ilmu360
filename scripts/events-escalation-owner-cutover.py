@@ -308,6 +308,16 @@ for dirname in ("app","resources","tests","bootstrap","config","routes","databas
         after=before.replace(oldcls.replace("\\","\\\\"),newcls.replace("\\","\\\\")).replace(oldcls,newcls)
         if before!=after:p.write_text(after)
 
+# Tests must dispatch the job via Laravel's call container, which injects
+# its newly explicit transport and Events writer. No no-argument compatibility
+# handle is retained in the production queue implementation.
+escalation_test=ROOT/"tests/Feature/EventEscalationTest.php"
+test_source=escalation_test.read_text()
+old_invocation="(new EscalatePendingEvents)->handle();"
+if test_source.count(old_invocation)!=7:
+    raise RuntimeError("Expected all six test scenarios with seven direct invocations")
+escalation_test.write_text(test_source.replace(old_invocation,"app()->call([new EscalatePendingEvents, 'handle']);"))
+
 # Feature-private queue class must never be imported by a root component.
 for dirname in ("app","bootstrap","config","routes"):
     for p in (ROOT/dirname).rglob("*.php"):
