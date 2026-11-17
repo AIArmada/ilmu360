@@ -116,3 +116,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "refactor: eliminate root Jobs via Events-owned escalation writer and transport"
           git push origin HEAD:refactor
+
+# Restore invariant Auth contract collection type in escalation adapter.
