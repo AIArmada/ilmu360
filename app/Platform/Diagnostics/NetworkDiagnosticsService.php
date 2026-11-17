@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Diagnostics;
+namespace App\Platform\Diagnostics;
 
 use App\Support\Diagnostics\NetworkDiagnosticsEnvironment;
 use InvalidArgumentException;

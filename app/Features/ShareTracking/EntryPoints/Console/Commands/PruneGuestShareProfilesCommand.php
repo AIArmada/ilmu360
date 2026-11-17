@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands\ShareTracking;
+namespace App\Features\ShareTracking\EntryPoints\Console\Commands;
 
 use App\Features\ShareTracking\Api\GuestProfilePruner;
 use App\Shared\ShareTracking\ShareTrackingRetention;

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Platform\Mcp\Commands;
 
 use App\Models\User;
-use App\Support\Mcp\McpTokenManager;
+use App\Platform\Mcp\McpTokenManager;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;

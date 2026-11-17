@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\NetworkDiagnosticsRequest;
-use App\Services\Diagnostics\NetworkDiagnosticsService;
+use App\Platform\Diagnostics\NetworkDiagnosticsService;
 use Illuminate\Contracts\View\View;
 
 class NetworkDiagnosticsController extends Controller

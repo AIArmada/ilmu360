@@ -604,7 +604,7 @@ Mcp::web('/mcp/member', MemberServer::class)
     ]);
 ```
 
-**Token Manager** (app/Support/Mcp/McpTokenManager.php):
+**Token Manager** (app/Platform/Mcp/McpTokenManager.php):
 - Validates token abilities
 - Supports personal access tokens with specific abilities: `admin_mcp_ability` and `member_mcp_ability`
 

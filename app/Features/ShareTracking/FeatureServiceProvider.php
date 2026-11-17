@@ -119,6 +119,12 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->commands([
+            EntryPoints\Console\Commands\DispatchShareEffectReceiptsCommand::class,
+            EntryPoints\Console\Commands\DrainCommittedShareSignalsCommand::class,
+            EntryPoints\Console\Commands\PruneGuestShareProfilesCommand::class,
+        ]);
+
         $this->app->bind(BrowserSelectionWriter::class, LockBrowserSelectionAction::class);
         $this->app->bind(CommittedShareSignals::class, DrainCommittedShareSignalsAction::class);
         $this->app->bind(EffectReceipts::class, DatabaseEffectReceipts::class);

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Platform\Media\Commands;
 
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Media\MediaPathGenerator;

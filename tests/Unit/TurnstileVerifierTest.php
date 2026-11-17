@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\Captcha\TurnstileVerifier;
+use App\Platform\Captcha\TurnstileVerifier;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;

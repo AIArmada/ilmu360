@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Features\Institutions\EntryPoints\Console\Commands;
 
-use App\Models\Reference;
+use App\Models\Institution;
 use App\Platform\Search\AbstractIndexToScout;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 
-#[Description('Import all searchable references into the configured Scout driver')]
-#[Signature('search:index-references
+#[Description('Import all searchable institutions into the configured Scout driver')]
+#[Signature('search:index-institutions
                             {--fresh : Flush the current Scout index before importing}
                             {--chunk=500 : Number of records to process per chunk}')]
-class IndexReferencesToTypesense extends AbstractIndexToScout
+class IndexInstitutionsToTypesense extends AbstractIndexToScout
 {
     protected function searchableModel(): string
     {
-        return Reference::class;
+        return Institution::class;
     }
 
     protected function searchableLabel(): string
     {
-        return 'reference';
+        return 'institution';
     }
 }

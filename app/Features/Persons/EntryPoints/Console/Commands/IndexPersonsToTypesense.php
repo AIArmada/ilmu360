@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Features\Persons\EntryPoints\Console\Commands;
 
-use App\Models\Institution;
+use App\Models\Person;
 use App\Platform\Search\AbstractIndexToScout;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 
-#[Description('Import all searchable institutions into the configured Scout driver')]
-#[Signature('search:index-institutions
+#[Description('Import all searchable persons into the configured Scout driver')]
+#[Signature('search:index-persons
                             {--fresh : Flush the current Scout index before importing}
                             {--chunk=500 : Number of records to process per chunk}')]
-class IndexInstitutionsToTypesense extends AbstractIndexToScout
+class IndexPersonsToTypesense extends AbstractIndexToScout
 {
     protected function searchableModel(): string
     {
-        return Institution::class;
+        return Person::class;
     }
 
     protected function searchableLabel(): string
     {
-        return 'institution';
+        return 'person';
     }
 }

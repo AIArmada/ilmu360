@@ -25,6 +25,10 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->commands([
+            EntryPoints\Console\Commands\IndexReferencesToTypesense::class,
+        ]);
+
         $this->app->bind(ReferenceSearchCache::class, ReferenceSearchCacheStore::class);
         $this->app->bind(ReferenceWorkflow::class, ReferenceWorkflowService::class);
         $this->app->bind(ReferenceQueries::class, ReferenceQueryService::class);

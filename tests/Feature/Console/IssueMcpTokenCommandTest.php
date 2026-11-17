@@ -3,7 +3,7 @@
 use AIArmada\Authz\Models\Role;
 use App\Models\Institution;
 use App\Models\User;
-use App\Support\Mcp\McpTokenManager;
+use App\Platform\Mcp\McpTokenManager;
 use Illuminate\Support\Str;
 
 it('issues a bearer token for an admin-capable user', function () {

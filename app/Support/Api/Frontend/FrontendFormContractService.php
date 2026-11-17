@@ -10,6 +10,7 @@ use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Models\Language;
 use App\Models\User;
+use App\Platform\Mcp\McpTokenManager;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Events\Enums\EventAgeGroup;
@@ -23,7 +24,6 @@ use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Api\SurfaceSyncPolicy;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Documentation\DocumentationLibrary;
-use App\Support\Mcp\McpTokenManager;
 
 class FrontendFormContractService
 {

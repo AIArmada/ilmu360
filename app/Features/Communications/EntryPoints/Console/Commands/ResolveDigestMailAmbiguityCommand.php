@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Features\Communications\EntryPoints\Console\Commands;
 
 use App\Features\Communications\Api\ManagedNotificationDelivery;
-use App\Models\User;
+use App\Shared\Auth\AccountDirectory;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Help;
 use Illuminate\Console\Attributes\Signature;
@@ -17,7 +17,7 @@ use InvalidArgumentException;
 #[Signature('rewards:resolve-digest-mail-ambiguity {delivery : Ambiguous mail delivery id (UUID, Sending with an unresolved attempt)} {decision : Resolution decision: sent|failed} {--actor= : Resolving operator user id (must exist and hold super_admin/admin; verified, never self-claimed)} {--provider-message-id= : Provider message id observed in mail logs (required when decision=sent, 1..191 chars)} {--reason= : Verified non-delivery evidence/reason (required when decision=failed, 1..191 chars, provider confirmed never accepted)}')]
 final class ResolveDigestMailAmbiguityCommand extends Command
 {
-    public function handle(ManagedNotificationDelivery $communications): int
+    public function handle(ManagedNotificationDelivery $communications, AccountDirectory $accounts): int
     {
         $deliveryId = (string) $this->argument('delivery');
         $decision = (string) $this->argument('decision');
@@ -49,15 +49,13 @@ final class ResolveDigestMailAmbiguityCommand extends Command
             return self::INVALID;
         }
 
-        $operator = User::query()->whereKey($actorOption)->first();
-
-        if (! $operator instanceof User) {
+        if (! $accounts->exists($actorOption)) {
             $this->error('Unknown operator; resolution requires an existing staff/admin user.');
 
             return self::FAILURE;
         }
 
-        if (! $operator->hasAnyRole(['super_admin', 'admin'])) {
+        if (! array_intersect(['super_admin', 'admin'], $accounts->roles($actorOption))) {
             $this->error('Operator lacks resolution rights; super_admin/admin required.');
 
             return self::FAILURE;
@@ -68,7 +66,7 @@ final class ResolveDigestMailAmbiguityCommand extends Command
                 $deliveryId,
                 $decision,
                 'user',
-                (string) $operator->getKey(),
+                (string) $actorOption,
                 'admin',
                 is_string($providerMessageId) && $providerMessageId !== '' ? $providerMessageId : null,
                 is_string($reason) && $reason !== '' ? $reason : null,
@@ -83,7 +81,7 @@ final class ResolveDigestMailAmbiguityCommand extends Command
             ? 'provider_message_id='.($providerMessageId)
             : 'reason='.($reason);
 
-        $this->info("Resolved mail delivery {$resolution->deliveryId} as {$decision} ({$resolution->status}; {$evidence}; actor=user:{$operator->getKey()}:admin). No mail sent.");
+        $this->info("Resolved mail delivery {$resolution->deliveryId} as {$decision} ({$resolution->status}; {$evidence}; actor=user:{$actorOption}:admin). No mail sent.");
 
         return self::SUCCESS;
     }

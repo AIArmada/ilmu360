@@ -31,6 +31,10 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->commands([
+            EntryPoints\Console\Commands\IndexInstitutionsToTypesense::class,
+        ]);
+
         $this->app->bind(InstitutionWorkflow::class, InstitutionWorkflowService::class);
         $this->app->bind(InstitutionMapsSelection::class, ResolveInstitutionMapsPlaceSelectionAction::class);
         $this->app->bind(InstitutionVenueLinks::class, InstitutionVenueLinkService::class);

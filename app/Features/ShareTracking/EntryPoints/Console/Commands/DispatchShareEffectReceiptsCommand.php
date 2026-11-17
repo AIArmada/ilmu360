@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands\ShareTracking;
+namespace App\Features\ShareTracking\EntryPoints\Console\Commands;
 
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use Illuminate\Console\Attributes\Description;

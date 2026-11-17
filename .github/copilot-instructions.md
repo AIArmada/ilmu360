@@ -332,7 +332,7 @@ Use this accessor for cards, previews, and social image fallback behavior.
 
 ### Migration helper command
 - `app: media:migrate-structure`
-- File: `app/Console/Commands/MigrateMediaToNewStructure.php`
+- File: `app/Platform/Media/Commands/MigrateMediaToNewStructure.php`
 - Supports:
   - `--dry-run`
   - `--force`

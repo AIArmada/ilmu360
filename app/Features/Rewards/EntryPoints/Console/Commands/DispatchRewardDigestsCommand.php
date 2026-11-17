@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Features\Rewards\EntryPoints\Console\Commands;
 
 use App\Features\Rewards\Api\GratitudeDigest;
 use Illuminate\Console\Attributes\Description;

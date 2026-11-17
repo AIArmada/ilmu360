@@ -5,7 +5,7 @@ use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
 use App\Models\Institution;
 use App\Models\User;
-use App\Support\Mcp\McpTokenManager;
+use App\Platform\Mcp\McpTokenManager;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 

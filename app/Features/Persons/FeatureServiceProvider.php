@@ -26,6 +26,10 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->commands([
+            EntryPoints\Console\Commands\IndexPersonsToTypesense::class,
+        ]);
+
         $this->app->bind(PersonWorkflow::class, PersonWorkflowService::class);
         $this->app->bind(PersonSearchCache::class, PersonSearchCacheStore::class);
         $this->app->bind(PersonSubmissionOptionsCache::class, PersonSubmissionOptionsCacheStore::class);

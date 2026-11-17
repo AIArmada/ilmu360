@@ -616,8 +616,8 @@ Useful environment variables:
 - `app/Support/Mcp/McpWriteSchemaFormatter.php` — sanitized MCP write-schema formatter.
 - `app/Support/Mcp/McpFilePayloadNormalizer.php` — JSON file descriptor staging and validation for MCP writes.
 - `tests/Unit/McpGuideDocsTest.php` — MCP guide regression coverage for verified resource and CRUD claims.
-- `app/Console/Commands/IssueMcpToken.php` — command for issuing scoped tokens.
-- `app/Support/Mcp/McpTokenManager.php` — token issuance, listing, and revocation logic.
+- `app/Platform/Mcp/Commands/IssueMcpToken.php` — command for issuing scoped tokens.
+- `app/Platform/Mcp/McpTokenManager.php` — token issuance, listing, and revocation logic.
 - `tests/Feature/Mcp/AdminServerTest.php` — admin MCP regression coverage.
 - `tests/Feature/Mcp/MemberServerTest.php` — member MCP regression coverage.
 - `tests/Feature/Mcp/LocalServerRegistrationTest.php` — local MCP registration coverage.

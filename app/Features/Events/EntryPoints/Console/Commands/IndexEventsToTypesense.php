@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Features\Events\EntryPoints\Console\Commands;
 
 use App\Models\Event;
 use App\Platform\Search\AbstractIndexToScout;

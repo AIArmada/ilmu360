@@ -124,6 +124,10 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->commands([
+            EntryPoints\Console\Commands\DispatchRewardDigestsCommand::class,
+        ]);
+
         $this->app->bind(GratitudeDigest::class, GratitudeDigestAction::class);
         $this->app->bind(MemberEnrollment::class, EnrollRewardProgramMemberAction::class);
         $this->app->bind(PublishedProgramVersions::class, PublishedProgramVersionsAdapter::class);

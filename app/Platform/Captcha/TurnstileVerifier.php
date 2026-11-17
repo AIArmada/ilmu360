@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Captcha;
+namespace App\Platform\Captcha;
 
 use App\Contracts\CaptchaVerifier;
 use Illuminate\Support\Facades\Http;

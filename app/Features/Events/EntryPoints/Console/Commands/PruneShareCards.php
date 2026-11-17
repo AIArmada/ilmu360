@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Console\Commands;
+namespace App\Features\Events\EntryPoints\Console\Commands;
 
 use App\Features\Events\Api\EventShareCardCache;
 use Illuminate\Console\Attributes\Description;

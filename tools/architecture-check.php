@@ -138,7 +138,7 @@ try {
         'app/Models/Concerns/HasUserRestoration.php' => 'tokens',
         'app/Platform/Auth/EloquentAccountAccess.php' => 'currentAccessToken',
         'app/Platform/Auth/EloquentAccountSettingsStore.php' => 'tokens',
-        'app/Support/Mcp/McpTokenManager.php' => 'tokens',
+        'app/Platform/Mcp/McpTokenManager.php' => 'tokens',
     ];
     $sanctumRegistrationCount = 0;
     $sanctumClassName = static function (Node\Name $name): string {

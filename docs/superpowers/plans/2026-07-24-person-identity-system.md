@@ -2751,7 +2751,7 @@ git mv app/Support/Search/SpeakerSearchService.php app/Support/Search/PersonSear
 
 ```bash
 git mv app/Jobs/BackfillSpeakerSlugs.php app/Jobs/BackfillPersonSlugs.php
-git mv app/Console/Commands/IndexSpeakersToTypesense.php app/Console/Commands/IndexPersonsToTypesense.php
+git mv app/Console/Commands/IndexSpeakersToTypesense.php app/Features/Persons/EntryPoints/Console/Commands/IndexPersonsToTypesense.php
 git mv app/Console/Commands/ReindexSpeakerSearch.php app/Console/Commands/ReindexPersonSearch.php
 git mv app/Console/Commands/QueueBackfillSpeakerSlugs.php app/Console/Commands/QueueBackfillPersonSlugs.php
 ```

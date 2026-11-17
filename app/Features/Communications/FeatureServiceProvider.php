@@ -45,6 +45,10 @@ final class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->commands([
+            EntryPoints\Console\Commands\ResolveDigestMailAmbiguityCommand::class,
+        ]);
+
         $this->app->bind(AccountNotificationPreferences::class, NotificationSettingsService::class);
         $this->app->bind(NotificationInboxManagement::class, NotificationInboxManagementService::class);
         $this->app->bind(NotificationDispatch::class, NotificationDispatchService::class);

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Services\Diagnostics\NetworkDiagnosticsService;
+use App\Platform\Diagnostics\NetworkDiagnosticsService;
 use App\Support\Diagnostics\NetworkDiagnosticsEnvironment;
 use Mockery\MockInterface;
 

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "root_store_writers": {
-    "App\\Console\\Commands\\MigrateMediaToNewStructure": {
+    "App\\Platform\\Media\\Commands\\MigrateMediaToNewStructure": {
       "adapter": "filesystem",
       "resource": "store:infrastructure.media-library-files",
       "reason": "The root media maintenance command moves files in configured media storage.",
@@ -101,7 +101,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Support/Mcp/McpTokenManager.php",
+      "file": "app/Platform/Mcp/McpTokenManager.php",
       "target": "table:unknown",
       "model": "Laravel\\Sanctum\\PersonalAccessToken",
       "model_provider": "sanctum",

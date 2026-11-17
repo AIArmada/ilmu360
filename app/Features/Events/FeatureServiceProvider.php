@@ -148,6 +148,11 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->commands([
+            EntryPoints\Console\Commands\IndexEventsToTypesense::class,
+            EntryPoints\Console\Commands\PruneShareCards::class,
+        ]);
+
         config()->set('filament-events.resources.term_form_extensions', [
             ...array_values((array) config('filament-events.resources.term_form_extensions', [])),
             TermDomainMappingExtension::class,
