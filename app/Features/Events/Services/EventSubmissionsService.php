@@ -14,8 +14,8 @@ use App\Features\Events\Actions\Submission\ResolveEventSubmissionPrayerStartActi
 use App\Features\Events\Actions\Submission\ReviewOccurrenceSubmissionAction;
 use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
-use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionCategoriesAction;
+use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Support\EventModel;

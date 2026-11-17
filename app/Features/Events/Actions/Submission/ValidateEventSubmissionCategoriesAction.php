@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
 final readonly class ValidateEventSubmissionCategoriesAction
 {
     /** @param array<string, mixed> $validated
-     *  @return array<string, mixed>
+     * @return array<string, mixed>
      */
     public function normalize(array $validated, string $validationKeyPrefix = ''): array
     {
@@ -34,6 +34,7 @@ final readonly class ValidateEventSubmissionCategoriesAction
         }
 
         $validated['event_category_ids'] = $catalog->validateTermIds($knownCategoryIds);
+
         return $validated;
     }
 

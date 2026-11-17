@@ -39,18 +39,17 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Exceptions\RoleDoesNotExist;
 use Throwable;
 
-final class SubmitEventRequestHandler
+final readonly class SubmitEventRequestHandler
 {
-
     public function __construct(
-        private readonly EntitySubmissionAccess $entitySubmissionAccess,
-        private readonly CaptchaVerifier $turnstileVerifier,
-        private readonly EventAuthoring $authoring,
-        private readonly EventSubmissions $submissions,
-        private readonly EventSubmissionCompletion $submissionCompletion,
-        private readonly ShareTrackingContract $shareTracking,
-        private readonly SubmissionTimingPolicy $timing,
-        private readonly SubmissionContextResolver $context,
+        private EntitySubmissionAccess $entitySubmissionAccess,
+        private CaptchaVerifier $turnstileVerifier,
+        private EventAuthoring $authoring,
+        private EventSubmissions $submissions,
+        private EventSubmissionCompletion $submissionCompletion,
+        private ShareTrackingContract $shareTracking,
+        private SubmissionTimingPolicy $timing,
+        private SubmissionContextResolver $context,
     ) {}
 
     /**

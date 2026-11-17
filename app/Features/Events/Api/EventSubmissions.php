@@ -26,7 +26,7 @@ interface EventSubmissions
      * @param  array<string, mixed>  $state
      */
     /** @param array<string, mixed> $state
-     *  @return array<string, mixed>
+     * @return array<string, mixed>
      */
     public function normalizeCategories(array $state, string $prefix = ''): array;
 
