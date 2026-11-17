@@ -28,6 +28,7 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->commands([
             EntryPoints\Console\Commands\IndexPersonsToTypesense::class,
+            EntryPoints\Console\Commands\ReindexPersonSearch::class,
         ]);
 
         $this->app->bind(PersonWorkflow::class, PersonWorkflowService::class);

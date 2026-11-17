@@ -7,9 +7,10 @@ use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
+use App\Shared\Submission\PublicSubmissionLockSweeper;
 use App\Shared\Submission\SubmissionLockEligibilityResult;
 
-final readonly class PublicSubmissionLockService
+final readonly class PublicSubmissionLockService implements PublicSubmissionLockSweeper
 {
     public function __construct(
         private InstitutionSubmissionAccess $institutions,

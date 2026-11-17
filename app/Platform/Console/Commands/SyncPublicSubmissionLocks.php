@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Platform\Console\Commands;
 
-use App\Support\Submission\PublicSubmissionLockService;
+use App\Shared\Submission\PublicSubmissionLockSweeper;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
 #[Signature('app:sync-public-submission-locks')]
 class SyncPublicSubmissionLocks extends Command
 {
-    public function handle(PublicSubmissionLockService $lockService): int
+    public function handle(PublicSubmissionLockSweeper $lockService): int
     {
         $result = $lockService->sweepLockedEntities();
 

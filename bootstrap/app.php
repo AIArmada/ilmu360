@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
         App\Platform\Media\Commands\MigrateMediaToNewStructure::class,
         App\Platform\Mcp\Commands\IssueMcpToken::class,
+        App\Platform\Console\Commands\SyncPublicSubmissionLocks::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

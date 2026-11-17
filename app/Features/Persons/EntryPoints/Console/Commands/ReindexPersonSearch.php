@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Features\Persons\EntryPoints\Console\Commands;
 
-use App\Support\Search\PersonSearchService;
+use App\Features\Persons\Api\PersonSearchMaintenance;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -13,7 +13,7 @@ use Illuminate\Console\Command;
 class ReindexPersonSearch extends Command
 {
     public function __construct(
-        private readonly PersonSearchService $personSearchService,
+        private readonly PersonSearchMaintenance $personSearchService,
     ) {
         parent::__construct();
     }
