@@ -7,7 +7,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\Venue;
 use AIArmada\Events\Models\VenueSpace;
 use App\Features\Events\Api\EventShareCardCache;
-use App\Jobs\RenderShareCardJob;
+use App\Features\Events\EntryPoints\Jobs\RenderShareCardJob;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;

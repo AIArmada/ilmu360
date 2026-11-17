@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Jobs;
+namespace App\Features\Events\EntryPoints\Jobs;
 
-use App\Models\Event;
-use App\Services\ShareCards\ShareCardService;
+use App\Shared\Events\EventShareCardPrewarm;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -63,20 +62,10 @@ final class RenderShareCardJob implements ShouldBeUnique, ShouldQueue
         self::dispatch($eventId)->afterCommit();
     }
 
-    public function handle(ShareCardService $shareCards): void
+    public function handle(EventShareCardPrewarm $shareCards): void
     {
         try {
-            $event = Event::query()->whereKey($this->eventId)->first();
-
-            if (! $event instanceof Event || ! $event->isPubliclyReachable()) {
-                return;
-            }
-
-            $occurrence = $shareCards->resolveOccurrence($event, null);
-            $locale = ShareCardService::DEFAULT_LOCALE;
-            $displayTimezone = $shareCards->resolveDisplayTimezone($event);
-
-            $shareCards->renderForRequest($event, $occurrence, $locale, $displayTimezone);
+            $shareCards->prewarmEvent($this->eventId);
         } catch (Throwable $exception) {
             // Best-effort means best-effort: a warm must never fail the
             // write that triggered it (sync queue runs this inline). The

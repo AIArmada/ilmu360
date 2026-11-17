@@ -6,10 +6,10 @@ use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\ShareCardWarmScheduler;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
-use App\Jobs\RenderShareCardJob;
 use App\Models\Event;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use App\Services\PublicListingsCache;
@@ -54,7 +54,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
         $this->personCacheVersion->bump();
 
         if ($event->isPubliclyReachable()) {
-            RenderShareCardJob::prewarmForEvent($event->getKey());
+            app(ShareCardWarmScheduler::class)->prewarmForEvent($event->getKey());
         }
     }
 
@@ -93,7 +93,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
             'institution_id',
             'default_venue_id',
         ])) {
-            RenderShareCardJob::prewarmForEvent($event->getKey());
+            app(ShareCardWarmScheduler::class)->prewarmForEvent($event->getKey());
         }
 
         $needsSlugSync = $event->wasChanged(['title', 'timezone']);

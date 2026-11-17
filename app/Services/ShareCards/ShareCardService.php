@@ -10,6 +10,7 @@ use App\Features\Events\Api\EventShareCardCache;
 use App\Models\Event;
 use App\Platform\Media\ShareCards\PangoShareCardRenderer;
 use App\Platform\Media\ShareCards\ShareCardFonts;
+use App\Shared\Events\EventShareCardPrewarm;
 use App\Shared\Media\ShareCards\ShareCardError;
 use App\Shared\Media\ShareCards\ShareCardRenderer;
 use App\Shared\Media\ShareCards\ShareCardRenderInput;
@@ -37,8 +38,28 @@ use Throwable;
  * pixel. Any render failure, including an unsupported title script,
  * falls back to the existing cover image — never a silent omission.
  */
-final readonly class ShareCardService
+final readonly class ShareCardService implements EventShareCardPrewarm
 {
+    /**
+     * Pre-warm a public event card with the same locale, timezone, and
+     * occurrence selection as the former queue job. Rendering errors remain
+     * best-effort and are reported by the queue adapter.
+     */
+    public function prewarmEvent(string $eventId): void
+    {
+        $event = Event::query()->whereKey($eventId)->first();
+
+        if (! $event instanceof Event || ! $event->isPubliclyReachable()) {
+            return;
+        }
+
+        $occurrence = $this->resolveOccurrence($event, null);
+        $locale = self::DEFAULT_LOCALE;
+        $displayTimezone = $this->resolveDisplayTimezone($event);
+
+        $this->renderForRequest($event, $occurrence, $locale, $displayTimezone);
+    }
+
     public const string CACHE_VERSION = 'v1';
 
     public const string DEFAULT_LOCALE = 'ms';

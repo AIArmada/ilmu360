@@ -17,6 +17,7 @@ use App\Features\Events\Actions\Commerce\ReverseTicketAffiliateCommissionAction;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\Actions\ResolveRegistrationExportContextAction;
+use App\Features\Events\Actions\ScheduleShareCardWarmAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Actions\Submission\CompleteFrontendEventSubmissionAction;
 use App\Features\Events\Actions\Submission\ModerateEventOccurrenceSubmissionAction;
@@ -53,6 +54,7 @@ use App\Features\Events\Api\ProductSignalsDashboardCache;
 use App\Features\Events\Api\ProductSignalsInsights;
 use App\Features\Events\Api\RegistrationExportAccess;
 use App\Features\Events\Api\SeriesAuthoring;
+use App\Features\Events\Api\ShareCardWarmScheduler;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\Events\EntryPoints\Filament\TermDomainMappingExtension;
@@ -152,6 +154,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ShareCardWarmScheduler::class, ScheduleShareCardWarmAction::class);
         $this->app->bind(ProductSignalsInsights::class, ProductSignalsInsightsService::class);
         $this->commands([
             EntryPoints\Console\Commands\IndexEventsToTypesense::class,
