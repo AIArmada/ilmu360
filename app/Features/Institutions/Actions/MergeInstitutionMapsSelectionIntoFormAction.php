@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use App\Forms\SharedFormSchema;
+use App\Platform\Contributions\ContributionPayload;
 use BackedEnum;
 use Illuminate\Support\Arr;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -152,9 +152,9 @@ final class MergeInstitutionMapsSelectionIntoFormAction
         $candidate = $row['phone_value'] ?? $row['value'] ?? null;
         $current = $existing['phone_value'] ?? $existing['value'] ?? null;
 
-        if (SharedFormSchema::isPhoneContactType($this->rowType($row))) {
-            $candidate = SharedFormSchema::normalizedComparablePhoneValue($candidate);
-            $current = SharedFormSchema::normalizedComparablePhoneValue($current);
+        if (ContributionPayload::isPhoneContactType($this->rowType($row))) {
+            $candidate = ContributionPayload::normalizedComparablePhoneValue($candidate);
+            $current = ContributionPayload::normalizedComparablePhoneValue($current);
 
             return $candidate !== null && $candidate === $current;
         }

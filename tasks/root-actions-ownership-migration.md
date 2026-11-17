@@ -132,3 +132,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move follow/unfollow orchestration and results into Engagement, retain package-canonical rows and sharing attribution.
 - [x] Expose scalar SubjectFollowCommands; update API, directory cards and page callers; delete four root classes.
 - [ ] Verify eligibility, idempotency, share attribution, and package counters in CI.
+
+
+### Boundary cleanup from CI
+- [x] Use existing Platform AddressFormState and ContributionPayload normalization instead of depending on root SharedFormSchema from feature Actions.
+- [x] Resolve contribution subject models through the existing ContributionModel morph helper; use the already-shared ContributionEntityState projection contract for read/contract data.
+- [ ] Verify PHPStan architecture and state/contract parity.

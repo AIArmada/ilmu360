@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Actions;
 
-use App\Forms\SharedFormSchema;
+use App\Platform\Contributions\ContributionPayload;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class NormalizeContributionSubmissionAction
@@ -24,11 +24,11 @@ class NormalizeContributionSubmissionAction
         unset($state['proposer_note']);
 
         if (is_array($state['contactMethods'] ?? null)) {
-            $state['contactMethods'] = SharedFormSchema::normalizeContactRowsForComparison($state['contactMethods']);
+            $state['contactMethods'] = ContributionPayload::normalizeContactRowsForComparison($state['contactMethods']);
         }
 
         if (is_array($state['donation_channels'] ?? null)) {
-            $state['donation_channels'] = SharedFormSchema::normalizeDonationChannelRowsForComparison($state['donation_channels']);
+            $state['donation_channels'] = ContributionPayload::normalizeDonationChannelRowsForComparison($state['donation_channels']);
         }
 
         return [

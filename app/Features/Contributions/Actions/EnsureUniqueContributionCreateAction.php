@@ -2,10 +2,9 @@
 
 namespace App\Features\Contributions\Actions;
 
-use App\Forms\SharedFormSchema;
+use App\Features\Contributions\Support\ContributionModel;
+use App\Platform\Addressing\AddressFormState;
 use App\Models\ContributionRequest;
-use App\Models\Institution;
-use App\Models\Person;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\GooglePlaceIdentity;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
@@ -15,6 +14,7 @@ use App\Shared\Contributions\InstitutionClaimGuard;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -79,7 +79,7 @@ final readonly class EnsureUniqueContributionCreateAction implements Institution
     public function institutionDuplicateExists(array $state, ?string $excludeInstitutionId = null, bool $preNormalizedAddress = false): bool
     {
         $address = is_array($state['address'] ?? null)
-            ? ($preNormalizedAddress ? $state['address'] : SharedFormSchema::prepareAddressPersistenceData($state['address']))
+            ? ($preNormalizedAddress ? $state['address'] : AddressFormState::prepareAddressPersistenceData($state['address']))
             : [];
 
         $placeId = $this->normalizeIdentityString($address['google_place_id'] ?? null);
@@ -102,7 +102,7 @@ final readonly class EnsureUniqueContributionCreateAction implements Institution
         $cityId = self::normalizeNullableUuid($address['city_id'] ?? null);
         $assignments = AddressAssignments::normalize((array) ($address['area_assignments'] ?? []));
 
-        return Institution::query()
+        return ContributionModel::query('institution')
             ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->when($excludeInstitutionId !== null, fn (Builder $query) => $query->whereKeyNot($excludeInstitutionId))
             ->whereHas('addresses', function (Builder $query) use ($countryId, $stateId, $cityId, $assignments): void {
@@ -124,7 +124,7 @@ final readonly class EnsureUniqueContributionCreateAction implements Institution
                 }
             })
             ->get(['id', 'name'])
-            ->contains(fn (Institution $institution): bool => $this->normalizeComparableString($institution->name) === $name);
+            ->contains(fn (Model $institution): bool => $this->normalizeComparableString($institution->name) === $name);
     }
 
     /**
@@ -149,7 +149,7 @@ final readonly class EnsureUniqueContributionCreateAction implements Institution
     public function pendingInstitutionClaimExists(array $state, ?string $excludeRequestId = null, bool $preNormalizedAddress = false): bool
     {
         $address = is_array($state['address'] ?? null)
-            ? ($preNormalizedAddress ? $state['address'] : SharedFormSchema::prepareAddressPersistenceData($state['address']))
+            ? ($preNormalizedAddress ? $state['address'] : AddressFormState::prepareAddressPersistenceData($state['address']))
             : [];
 
         $placeId = $this->normalizeIdentityString($address['google_place_id'] ?? null);
@@ -393,7 +393,7 @@ final readonly class EnsureUniqueContributionCreateAction implements Institution
         }
 
         $localities = [];
-        $institutions = Institution::query()->whereKey($entityIds)->with('addresses.areaAssignments')->get();
+        $institutions = ContributionModel::query('institution')->whereKey($entityIds)->with('addresses.areaAssignments')->get();
 
         foreach ($institutions as $institution) {
             foreach ($institution->addresses as $address) {
@@ -450,7 +450,7 @@ final readonly class EnsureUniqueContributionCreateAction implements Institution
 
         $featureCid = $cid !== null ? GooglePlaceIdentity::hexCidFromDecimal($cid) : null;
 
-        $candidateInstitutions = Institution::query()
+        $candidateInstitutions = ContributionModel::query('institution')
             ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->when($excludeInstitutionId !== null, fn (Builder $query) => $query->whereKeyNot($excludeInstitutionId))
             ->whereHas('addresses', function (Builder $query) use ($cid, $placeId, $featureCid): void {
@@ -528,7 +528,7 @@ final readonly class EnsureUniqueContributionCreateAction implements Institution
         }
 
         $address = is_array($state['address'] ?? null)
-            ? SharedFormSchema::prepareAddressPersistenceData($state['address'])
+            ? AddressFormState::prepareAddressPersistenceData($state['address'])
             : [];
         $countryId = self::normalizeNullableUuid($address['country_id'] ?? null);
 
@@ -536,12 +536,12 @@ final readonly class EnsureUniqueContributionCreateAction implements Institution
             return false;
         }
 
-        return Person::query()
+        return ContributionModel::query('person')
             ->whereIn('status', ['verified', 'pending'])
             ->where('gender', $gender)
             ->whereHas('addresses', fn (Builder $query): Builder => $query->where('country_id', $countryId))
             ->get(['name', 'gender'])
-            ->contains(fn (Person $person): bool => $this->normalizeComparableString($person->name) === $name
+            ->contains(fn (Model $person): bool => $this->normalizeComparableString($person->name) === $name
                 && $this->normalizeComparableString($person->gender) === $gender);
     }
 

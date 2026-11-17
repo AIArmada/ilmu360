@@ -61,6 +61,14 @@ class ContributionEntityMutationService implements ContributionEntityState
         private readonly ReferenceWorkflow $referenceWorkflow,
     ) {}
 
+    /** @return array{accepts_partial_updates: bool, fields: list<array<string, mixed>>, conditional_rules: list<array<string, mixed>>, direct_edit_media_fields: list<string>} */
+    public function contractForId(string $entityType, string $entityId): array
+    {
+        $modelClass = MorphModelResolver::resolve($entityType);
+
+        return $this->contractFor($modelClass::query()->findOrFail($entityId));
+    }
+
     /** @return array<string, mixed> */
     public function stateFor(string $entityType, string $entityId): array
     {

@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Contributions\Queries;
 
 use App\Features\Contributions\Api\ContributionUpdateContextReader;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Services\ContributionEntityMutationService;
+use App\Shared\Contributions\ContributionEntityState;
+use Illuminate\Database\Eloquent\Model;
 use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -18,7 +15,7 @@ class ResolveContributionUpdateContextAction implements ContributionUpdateContex
     use AsAction;
 
     public function __construct(
-        protected ContributionEntityMutationService $contributionEntityMutationService,
+        protected ContributionEntityState $contributionEntityState,
         protected ResolveContributionSubjectAction $resolveContributionSubjectAction,
     ) {}
 
@@ -49,7 +46,7 @@ class ResolveContributionUpdateContextAction implements ContributionUpdateContex
 
     /**
      * @return array{
-     *     entity: Event|Institution|Reference|Person,
+     *     entity: Model,
      *     entity_type: string,
      *     entity_id: string,
      *     initial_state: array<string, mixed>,
@@ -70,8 +67,8 @@ class ResolveContributionUpdateContextAction implements ContributionUpdateContex
             'entity' => $entity,
             'entity_type' => $entityMetadata['entity_type'],
             'entity_id' => $entityMetadata['entity_id'],
-            'initial_state' => $this->contributionEntityMutationService->stateForEntity($entity),
-            'contract' => $this->contributionEntityMutationService->contractFor($entity),
+            'initial_state' => $this->contributionEntityState->stateFor($entityMetadata['entity_type'], $entityMetadata['entity_id']),
+            'contract' => $this->contributionEntityState->contractForId($entityMetadata['entity_type'], $entityMetadata['entity_id']),
         ];
     }
 }
