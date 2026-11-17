@@ -13,7 +13,6 @@ COMMANDS = {
     "IndexInstitutionsToTypesense.php": "Institutions",
     "IndexPersonsToTypesense.php": "Persons",
     "IndexReferencesToTypesense.php": "References",
-    "IssueMcpToken.php": "Identity",
     "PruneShareCards.php": "Events",
     "ResolveDigestMailAmbiguityCommand.php": "Communications",
     "ShareTracking/DispatchShareEffectReceiptsCommand.php": "ShareTracking",
@@ -22,6 +21,8 @@ COMMANDS = {
 EXTRA_MOVES = {
     "app/Console/Commands/MigrateMediaToNewStructure.php":
         "app/Platform/Media/Commands/MigrateMediaToNewStructure.php",
+    "app/Console/Commands/IssueMcpToken.php":
+        "app/Platform/Mcp/Commands/IssueMcpToken.php",
     "app/Services/Captcha/TurnstileVerifier.php":
         "app/Platform/Captcha/TurnstileVerifier.php",
     "app/Services/Diagnostics/NetworkDiagnosticsService.php":
@@ -115,11 +116,14 @@ def main() -> None:
 
     bootstrap = ROOT / "bootstrap/app.php"
     content = bootstrap.read_text()
-    command = r"\App\Platform\Media\Commands\MigrateMediaToNewStructure::class"
+    commands = [
+        r"\App\Platform\Media\Commands\MigrateMediaToNewStructure::class",
+        r"\App\Platform\Mcp\Commands\IssueMcpToken::class",
+    ]
     needle = "__DIR__.'/../app/Console/Commands',"
     if needle not in content:
         raise RuntimeError("Root command registration has changed")
-    bootstrap.write_text(content.replace(needle, needle + "\n        " + command + ","))
+    bootstrap.write_text(content.replace(needle, needle + "\n        " + ",\n        ".join(commands) + ","))
 
     for feature in ("Rewards", "ShareTracking"):
         provider = ROOT / PROVIDER.format(feature)
