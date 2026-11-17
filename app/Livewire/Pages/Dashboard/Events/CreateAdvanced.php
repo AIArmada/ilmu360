@@ -10,7 +10,7 @@ use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Actions\Events\Authoring\CreateEventWithRegistrationAction;
 use App\Features\Events\Api\AdvancedProgramPreparation;
-use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
+use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Enums\RegistrationScope;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Features\Places\Api\SpaceEligibility;
@@ -119,8 +119,8 @@ class CreateAdvanced extends Component implements HasForms
 
         $requestedInstitutionId = request()->query('institution');
         $requestedPersonId = request()->query('person');
-        $builderContext = app(ResolveAdvancedBuilderContextAction::class)->handle(
-            $user,
+        $builderContext = app(AdvancedBuilderContext::class)->forAccount(
+            (string) $user->getKey(),
             is_string($requestedInstitutionId) ? $requestedInstitutionId : null,
             is_string($requestedPersonId) ? $requestedPersonId : null,
         );

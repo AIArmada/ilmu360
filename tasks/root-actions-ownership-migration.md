@@ -179,3 +179,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Rehome organizer/location membership checks, schedule validation and UTC resolution behind a scalar AdvancedProgramPreparation feature API.
 - [x] Livewire rehydrates organizer model and Carbon UTC instants before canonical event creation. Delete root action.
 - [ ] Verify multi-session event creation, authorization and time windows on Quality CI.
+
+
+### Advanced builder default context cutover
+- [x] Move default form projection to Events feature, expose scalar account-based AdvancedBuilderContext; delete old root action.
+- [x] Use owner-qualified AdvancedBuilderMembershipOptions, canonical morph-language lookup, and unchanged taxonomy/registration code values; update Livewire, frontend catalog and tests.
+- [ ] Confirm context defaults and authorization using CI.

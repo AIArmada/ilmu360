@@ -1,15 +1,13 @@
 <?php
 
-namespace App\Actions\Events\Authoring;
+namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\RegistrationScope;
-use App\Enums\TaxonomyTerm\DomainTermCode;
-use App\Models\Language;
+use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
-use App\Models\User;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -17,15 +15,13 @@ use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Taxonomy\EventTaxonomyCode;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-class ResolveAdvancedBuilderContextAction
+final readonly class ResolveAdvancedBuilderContextAction implements AdvancedBuilderContext
 {
-    use AsAction;
 
     public function __construct(
-        protected AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
-        protected EventCategoryCatalog $categoryCatalog,
+        private AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
+        private EventCategoryCatalog $categoryCatalog,
     ) {}
 
     /**
@@ -35,12 +31,12 @@ class ResolveAdvancedBuilderContextAction
      *     default_form: array<string, mixed>
      * }
      */
-    public function handle(
-        User $user,
+    public function forAccount(
+        string $accountId,
         ?string $requestedInstitutionId = null,
         ?string $requestedPersonId = null,
     ): array {
-        $membershipOptions = $this->advancedBuilderMembershipOptions->forAccount((string) $user->getKey());
+        $membershipOptions = $this->advancedBuilderMembershipOptions->forAccount($accountId);
         $institutionOptions = $membershipOptions['institution_options'];
         $personOptions = $membershipOptions['person_options'];
 
@@ -68,9 +64,9 @@ class ResolveAdvancedBuilderContextAction
         $categoryIds = array_slice(array_keys($this->categoryCatalog->options()), 0, 1);
         $domainId = EventTerm::query()
             ->where('event_taxonomy_id', EventTaxonomy::query()->where('code', EventTaxonomyCode::Domain->value)->value('id'))
-            ->where('code', DomainTermCode::AgamaKerohanian->value)
+            ->where('code', 'agama-kerohanian')
             ->value('id');
-        $malayId = Language::query()->where('code', 'ms')->value('id');
+        $malayId = MorphModelResolver::resolve('language')::query()->where('code', 'ms')->value('id');
 
         return [
             'institution_options' => $institutionOptions,
@@ -115,7 +111,7 @@ class ResolveAdvancedBuilderContextAction
                 'persons' => $preferredPersonId !== null ? [$preferredPersonId] : [],
                 'other_key_people' => [],
                 'registration_required' => false,
-                'registration_mode' => RegistrationScope::Event->value,
+                'registration_mode' => 'event',
                 'check_in_enabled' => true,
                 'participant_identity' => 'none',
                 'refunds_enabled' => false,

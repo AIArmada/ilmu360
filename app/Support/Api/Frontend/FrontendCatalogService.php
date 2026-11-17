@@ -9,7 +9,7 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
+use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Enums\MemberSubjectType;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Forms\ReferenceAuthorFormSchema;
@@ -511,7 +511,7 @@ class FrontendCatalogService
      */
     public function advancedBuilderContext(User $user, ?string $requestedInstitutionId = null): array
     {
-        return app(ResolveAdvancedBuilderContextAction::class)->handle($user, $requestedInstitutionId);
+        return app(AdvancedBuilderContext::class)->forAccount((string) $user->getKey(), $requestedInstitutionId);
     }
 
     /**

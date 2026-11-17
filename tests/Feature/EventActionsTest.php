@@ -5,7 +5,7 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Api\AdvancedProgramPreparation;
-use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
+use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
@@ -58,7 +58,7 @@ it('resolves advanced builder context with requested institution defaults', func
     $secondaryInstitution->members()->syncWithoutDetaching([$user->id]);
     $preferredInstitution->members()->syncWithoutDetaching([$user->id]);
 
-    $context = app(ResolveAdvancedBuilderContextAction::class)->handle($user, $preferredInstitution->id);
+    $context = app(AdvancedBuilderContext::class)->forAccount((string) $user->getKey(), $preferredInstitution->id);
 
     expect($context['institution_options'])->toHaveKey($preferredInstitution->id, 'Masjid Pilihan')
         ->and($context['default_form'])->not->toHaveKey('organizer_type')
