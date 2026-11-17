@@ -922,11 +922,28 @@ class EventController extends Controller
         $parentStartsAtUserTimeSql = $this->startsAtUserTimeSqlExpression($offsetMinutes);
         $occurrenceStartsAtUserTimeSql = $this->occurrenceStartsAtUserTimeSqlExpression($offsetMinutes);
 
-        $query->where(function (Builder $dhuhaQuery) use ($parentStartsAtUserTimeSql, $occurrenceStartsAtUserTimeSql): void {
+        // An explicit prayer anchor defines the schedule bucket even when its
+        // resolved clock time falls in the Dhuha morning window. In particular,
+        // an occurrence must not cause a Subuh, Jumaat or Zuhur event to be
+        // included through the absolute-time fallback.
+        $excludedPrayerAnchors = [
+            PrayerReference::Fajr->value,
+            PrayerReference::Dhuhr->value,
+            PrayerReference::FridayPrayer->value,
+        ];
+
+        $query->whereDoesntHave('timeExpressions', static fn (Builder $timeQuery) => $timeQuery
+            ->where('anchor_type', 'prayer')
+            ->whereIn('anchor_code', $excludedPrayerAnchors));
+
+        $query->where(function (Builder $dhuhaQuery) use ($parentStartsAtUserTimeSql, $occurrenceStartsAtUserTimeSql, $excludedPrayerAnchors): void {
             $this->constrainDhuhaTimeScope($dhuhaQuery, $parentStartsAtUserTimeSql);
 
-            $dhuhaQuery->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($occurrenceStartsAtUserTimeSql): void {
+            $dhuhaQuery->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($occurrenceStartsAtUserTimeSql, $excludedPrayerAnchors): void {
                 $this->constrainPublicOccurrenceQuery($occurrenceQuery)
+                    ->whereDoesntHave('timeExpressions', static fn (Builder $timeQuery) => $timeQuery
+                        ->where('anchor_type', 'prayer')
+                        ->whereIn('anchor_code', $excludedPrayerAnchors))
                     ->where(function (Builder $occurrenceDhuhaQuery) use ($occurrenceStartsAtUserTimeSql): void {
                         $this->constrainDhuhaTimeScope($occurrenceDhuhaQuery, $occurrenceStartsAtUserTimeSql);
                     });
