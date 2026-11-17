@@ -25,6 +25,14 @@ interface EventSubmissions
      *
      * @param  array<string, mixed>  $state
      */
+    /** @param array<string, mixed> $state
+     *  @return array<string, mixed>
+     */
+    public function normalizeCategories(array $state, string $prefix = ''): array;
+
+    /** @param array<string, mixed> $state */
+    public function assertCommunityPhysicalFormat(array $state, string $prefix = ''): void;
+
     public function assertCatalogSelectionsAreAvailable(array $state, string $prefix = ''): void;
 
     /**

@@ -14,6 +14,7 @@ use App\Features\Events\Actions\Submission\ReviewOccurrenceSubmissionAction;
 use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
+use App\Features\Events\Actions\Submission\ValidateEventSubmissionCategoriesAction;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Support\EventModel;
@@ -33,6 +34,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
 {
     public function __construct(
         private ValidateEventSubmissionInputAction $validateInput,
+        private ValidateEventSubmissionCategoriesAction $categories,
         private PersistNewEventSubmissionAction $persistNewEvent,
         private PersistSessionSubmissionAction $persistSession,
         private ReviewOccurrenceSubmissionAction $reviewOccurrenceSubmission,
@@ -43,6 +45,16 @@ final readonly class EventSubmissionsService implements EventSubmissions
     public function validate(array $state, string $prefix = ''): array
     {
         return $this->validateInput->handle($state, $prefix);
+    }
+
+    public function normalizeCategories(array $state, string $prefix = ''): array
+    {
+        return $this->categories->normalize($state, $prefix);
+    }
+
+    public function assertCommunityPhysicalFormat(array $state, string $prefix = ''): void
+    {
+        $this->categories->assertCommunityPhysicalFormat($state, $prefix);
     }
 
     public function assertCatalogSelectionsAreAvailable(array $state, string $prefix = ''): void

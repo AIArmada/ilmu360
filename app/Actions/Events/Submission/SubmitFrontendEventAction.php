@@ -19,10 +19,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\EventOccurrenceSubmittedNotification;
 use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerLocation;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
@@ -35,7 +32,6 @@ use App\Shared\Submission\SubmitterContactRules;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -86,21 +82,7 @@ class SubmitFrontendEventAction
         // omitted.
         $validated = $this->submissions->validate($state, $validationKeyPrefix);
 
-        // Semantic boundary: unknown, wrong-taxonomy, or inactive category IDs
-        // must fail here. Catalog normalization silently drops such IDs, so an
-        // unchecked result could turn a required selection into [].
-        $catalog = app(EventCategoryCatalog::class);
-        $requestedCategoryIds = is_array($validated['event_category_ids'] ?? null) ? $validated['event_category_ids'] : [];
-        $normalizedRequestedCategoryIds = array_values(array_unique(array_map(static fn (mixed $id): string => (string) $id, $requestedCategoryIds)));
-        $knownCategoryIds = $catalog->validTermIds($normalizedRequestedCategoryIds);
-
-        if (array_diff($normalizedRequestedCategoryIds, $knownCategoryIds) !== []) {
-            throw ValidationException::withMessages([
-                SubmissionValues::prefixedKey('event_category_ids', $validationKeyPrefix) => __('Pilihan kategori majlis tidak sah.'),
-            ]);
-        }
-
-        $validated['event_category_ids'] = $catalog->validateTermIds($knownCategoryIds);
+        $validated = $this->submissions->normalizeCategories($validated, $validationKeyPrefix);
         $validated = $this->context->normalizeScopedInstitutionState($validated, $scopedInstitution, $validationKeyPrefix);
         $validated = $this->context->normalizeSpaceSelection($validated);
 
@@ -130,14 +112,7 @@ class SubmitFrontendEventAction
         SubmitterContactRules::assertSubmitterContactsAreValid($validated, $submitter, $validationKeyPrefix);
         $this->entitySubmissionAccess->assertSubmissionEntitiesMatchCountry($validated, $organizerKind, $submissionCountryId, $scopedInstitution, $validationKeyPrefix);
 
-        if (
-            $this->hasCommunityCategorySelection($validated['event_category_ids'] ?? [], $validationKeyPrefix)
-            && (($validated['event_format'] ?? EventFormat::Physical->value) !== EventFormat::Physical->value)
-        ) {
-            throw ValidationException::withMessages([
-                SubmissionValues::prefixedKey('event_format', $validationKeyPrefix) => __('Jenis majlis komuniti mesti menggunakan format fizikal.'),
-            ]);
-        }
+        $this->submissions->assertCommunityPhysicalFormat($validated, $validationKeyPrefix);
 
         $prayerTime = $this->timing->resolvePrayerTime($validated['prayer_time'] ?? null, $validationKeyPrefix);
         $eventDate = $this->timing->parseEventDate($validated['event_date'] ?? null, $timezone, $validationKeyPrefix);
@@ -472,33 +447,6 @@ class SubmitFrontendEventAction
                     'exception' => $exception,
                 ]);
             }
-        }
-    }
-
-    private function hasCommunityCategorySelection(mixed $categoryIds, string $validationKeyPrefix = ''): bool
-    {
-        if ($categoryIds instanceof Collection) {
-            $categoryIds = $categoryIds->all();
-        }
-
-        if (! is_array($categoryIds)) {
-            $categoryIds = [$categoryIds];
-        }
-
-        try {
-            return app(EventCategoryPolicyResolver::class)->requiresPhysicalDelivery(
-                app(EventCategoryCatalog::class)->validateTermIds($categoryIds),
-            );
-        } catch (ValidationException $exception) {
-            $messages = [];
-
-            foreach ($exception->errors() as $fieldMessages) {
-                foreach ((array) $fieldMessages as $message) {
-                    $messages[SubmissionValues::prefixedKey('event_category_ids', $validationKeyPrefix)][] = $message;
-                }
-            }
-
-            throw ValidationException::withMessages($messages);
         }
     }
 

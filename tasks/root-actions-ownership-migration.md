@@ -283,3 +283,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Fortify/CreateNewUser is a framework registration contract adapter, not the owner of user writes. It now uses Shared/Auth/AccountAccess::create inside the existing signup transaction; the canonical account adapter owns persistence.
 - [x] Keep Fortify/RecordSuccessfulLogin as a Laravel login pipeline adapter and Fortify/ResetUserPassword as the Fortify password-reset contract adapter. Neither is a compatibility alias.
 - [ ] Verify registration validation, audit events, referral/attribution/signal rollback and password/login tests in Quality CI. Recheck root account writers separately in the wider ownership audit.
+
+
+### Public submission category validation cutover
+- [x] Move strict category normalization and community-only physical delivery rules into Events/Actions/Submission; expose through the existing EventSubmissions API.
+- [x] Preserve validation ordering and exact translated errors; remove the duplicate root helper and imports.
+- [ ] Confirm the category/format and public submission tests on Quality CI.
