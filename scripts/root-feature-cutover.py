@@ -13,7 +13,7 @@ COMMANDS = {
     "IndexInstitutionsToTypesense.php": "Institutions",
     "IndexPersonsToTypesense.php": "Persons",
     "IndexReferencesToTypesense.php": "References",
-    "IssueMcpToken.php": "Mcp",
+    "IssueMcpToken.php": "Identity",
     "PruneShareCards.php": "Events",
     "ResolveDigestMailAmbiguityCommand.php": "Communications",
     "ShareTracking/DispatchShareEffectReceiptsCommand.php": "ShareTracking",
