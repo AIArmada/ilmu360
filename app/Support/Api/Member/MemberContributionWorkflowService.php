@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Member;
 
-use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
@@ -27,7 +26,7 @@ final readonly class MemberContributionWorkflowService
 {
     public function __construct(
         private ResolvePendingContributionApprovalsAction $resolvePendingContributionApprovalsAction,
-        private ResolveOwnContributionRequestAction $resolveOwnContributionRequestAction,
+        private ContributionRequestReader $contributionRequestReader,
         private ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
         private ContributionSubjectPresenter $contributionSubjectPresenter,
         private ContributionRequestLifecycle $contributionRequestLifecycle,
@@ -38,7 +37,7 @@ final readonly class MemberContributionWorkflowService
      */
     public function list(User $actor): array
     {
-        $requestIds = app(ContributionRequestReader::class)->requestIdsForProposer((string) $actor->getKey());
+        $requestIds = $this->contributionRequestReader->requestIdsForProposer((string) $actor->getKey());
 
         $myRequests = $requestIds === []
             ? ContributionRequest::query()->whereRaw('1 = 0')->get()
@@ -117,7 +116,9 @@ final readonly class MemberContributionWorkflowService
      */
     public function cancel(string $requestId, User $actor): array
     {
-        $request = $this->resolveOwnContributionRequestAction->handle($actor, $requestId);
+        $request = ContributionRequest::query()->with('entity')->findOrFail(
+            $this->contributionRequestReader->findRequestIdForProposer((string) $actor->getKey(), $requestId)
+        );
         $this->contributionRequestLifecycle->cancel((string) $request->getKey(), (string) $actor->getKey());
 
         $request->refresh();

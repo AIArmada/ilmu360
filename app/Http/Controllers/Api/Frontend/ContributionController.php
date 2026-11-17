@@ -6,9 +6,7 @@ use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
-use App\Actions\Contributions\Queries\FindUserPendingContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
-use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
@@ -404,7 +402,6 @@ class ContributionController extends FrontendController
         Request $request,
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
         ContributionSubjectPresenter $contributionSubjectPresenter,
-        FindUserPendingContributionRequestAction $findUserPendingContributionRequestAction,
         ContributionRequestReader $pendingContributionReader,
     ): JsonResponse {
         $user = $this->requireUser($request);
@@ -437,8 +434,12 @@ class ContributionController extends FrontendController
                     $context['entity_type'],
                     $context['entity_id'],
                 ) !== null,
-                'latest_pending_request' => ($latestPendingRequest = $findUserPendingContributionRequestAction->handle($user, $entity)) instanceof ContributionRequest
-                    ? $this->contributionRequestData($latestPendingRequest, $user)
+                'latest_pending_request' => ($latestPendingId = $pendingContributionReader->pendingRequestIdForProposerAndEntity(
+                    (string) $user->getKey(),
+                    $entity->getMorphClass(),
+                    (string) $entity->getKey(),
+                )) !== null
+                    ? $this->contributionRequestData(ContributionRequest::query()->findOrFail($latestPendingId), $user)
                     : null,
             ],
             'meta' => [
@@ -692,11 +693,13 @@ class ContributionController extends FrontendController
     public function cancel(
         string $requestId,
         Request $request,
-        ResolveOwnContributionRequestAction $resolveOwnContributionRequestAction,
+        ContributionRequestReader $contributionRequestReader,
         ContributionRequestLifecycle $contributionRequestLifecycle,
     ): JsonResponse {
         $user = $this->requireUser($request);
-        $contributionRequest = $resolveOwnContributionRequestAction->handle($user, $requestId);
+        $contributionRequest = ContributionRequest::query()->with('entity')->findOrFail(
+            $contributionRequestReader->findRequestIdForProposer((string) $user->getKey(), $requestId)
+        );
         $contributionRequestLifecycle->cancel((string) $contributionRequest->getKey(), (string) $user->getKey());
 
         $cancelledRequest = ContributionRequest::query()

@@ -1,10 +1,8 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\Queries\FindUserPendingContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolveContributionSubjectAction;
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
-use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
 use App\Features\Contributions\Actions\NormalizeContributionSubmissionAction;
@@ -427,14 +425,18 @@ it('keeps user pending contribution lookups separate from entity wide pending lo
         'created_at' => now()->addHours(3),
     ]);
 
-    $resolvedRequest = app(FindUserPendingContributionRequestAction::class)->handle($proposer, $institution);
+    $resolvedRequestId = app(ContributionRequestReader::class)->pendingRequestIdForProposerAndEntity(
+        (string) $proposer->getKey(),
+        $institution->getMorphClass(),
+        (string) $institution->getKey(),
+    );
     $entityRequestId = app(ContributionRequestReader::class)->pendingRequestIdForEntity(
         $institution->getMorphClass(),
         (string) $institution->getKey(),
     );
 
-    expect($resolvedRequest?->is($latestRequest))->toBeTrue()
-        ->and($resolvedRequest?->is($olderRequest))->toBeFalse()
+    expect($resolvedRequestId)->toBe((string) $latestRequest->getKey())
+        ->and($resolvedRequestId)->not->toBe((string) $olderRequest->getKey())
         ->and($entityRequestId)->toBe((string) $otherProposerRequest->getKey());
 });
 
@@ -571,8 +573,13 @@ it('resolves only the proposer owned contribution request for cancel flows', fun
         'status' => ContributionRequestStatus::Pending,
     ]);
 
-    $resolvedRequest = app(ResolveOwnContributionRequestAction::class)->handle($owner, $request->id);
+    $reader = app(ContributionRequestReader::class);
+    $resolvedRequest = ContributionRequest::query()->with('entity')->findOrFail(
+        $reader->findRequestIdForProposer((string) $owner->getKey(), $request->id)
+    );
 
     expect($resolvedRequest->is($request))->toBeTrue()
-        ->and(fn () => app(ResolveOwnContributionRequestAction::class)->handle($stranger, $request->id))->toThrow(ModelNotFoundException::class);
+        ->and(fn () => ContributionRequest::query()->with('entity')->findOrFail(
+            $reader->findRequestIdForProposer((string) $stranger->getKey(), $request->id)
+        ))->toThrow(ModelNotFoundException::class);
 });

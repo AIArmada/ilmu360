@@ -6,7 +6,6 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
-use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Enums\MemberSubjectType;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
@@ -408,11 +407,13 @@ class Index extends Component implements HasForms
     public function cancel(
         string $requestId,
         ContributionRequestLifecycle $contributionRequestLifecycle,
-        ResolveOwnContributionRequestAction $resolveOwnContributionRequestAction,
+        ContributionRequestReader $contributionRequestReader,
     ): void {
         /** @var User $user */
         $user = auth()->user();
-        $request = $resolveOwnContributionRequestAction->handle($user, $requestId);
+        $request = ContributionRequest::query()->with('entity')->findOrFail(
+            $contributionRequestReader->findRequestIdForProposer((string) $user->getKey(), $requestId)
+        );
 
         $contributionRequestLifecycle->cancel((string) $request->getKey(), (string) $user->getKey());
     }

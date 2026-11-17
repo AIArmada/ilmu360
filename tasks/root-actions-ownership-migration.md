@@ -85,3 +85,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Remove duplicate root pending-entity query in favor of scalar `ContributionRequestReader::pendingRequestIdForEntity` with the same pending status and ordering.
 - [x] Move `EnsureNoPendingContributionRequestAction` into Contributions, bind the existing `ContributionRequestGuard` from the owning feature and update HTTP/Livewire/tests.
 - [ ] Verify affected CI and direct import audit.
+
+
+### Contributions user-owned request lookup consolidation
+- [x] Eliminate root FindUserPendingContributionRequestAction and ResolveOwnContributionRequestAction. Their one query each now belongs to Contributions/Queries/EloquentContributionRequestReader (scalar IDs).
+- [x] Update frontend/member/Livewire adapters to hydrate authorized request identifiers locally; keep 404 on unauthorized request access and original query ordering.
+- [ ] Confirm behavior and static analysis on Quality CI.

@@ -15,4 +15,6 @@ interface ContributionRequestReader
     public function findRequestIdForProposer(string $accountId, string $requestId): ?string;
 
     public function pendingRequestIdForEntity(string $entityType, string $entityId): ?string;
+
+    public function pendingRequestIdForProposerAndEntity(string $proposerId, string $entityType, string $entityId): ?string;
 }
