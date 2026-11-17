@@ -8,6 +8,7 @@ use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
 use App\Features\Membership\FeatureServiceProvider as MembershipFeatureServiceProvider;
+use App\Features\Membership\Services\EloquentMembershipSubjectCatalog;
 use App\Features\Membership\Services\MembershipApplicationsService;
 use App\Features\Membership\Services\MembershipAuthorizationService;
 use App\Features\Membership\Services\MembershipCommandsService;
@@ -28,7 +29,6 @@ use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Shared\Membership\MembershipSubjectType;
-use App\Support\Membership\EloquentMembershipSubjectCatalog;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
@@ -186,7 +186,7 @@ it('resolves membership subjects through directory, organization and event bound
         ->and(array_map(static fn ($subject): string => $subject->id, $catalog->forAccount($accountId, MembershipSubjectType::Organization)))
         ->toBe([(string) $organization->getKey()]);
 
-    $catalogSource = file_get_contents(base_path('app/Support/Membership/EloquentMembershipSubjectCatalog.php'));
+    $catalogSource = file_get_contents(base_path('app/Features/Membership/Services/EloquentMembershipSubjectCatalog.php'));
 
     expect($catalogSource)->toBeString()
         ->and($catalogSource)->not->toContain('App\\Models\\');

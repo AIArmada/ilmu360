@@ -10,6 +10,7 @@ use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index;
+use App\Features\Membership\Services\EloquentMembershipSubjectCatalog;
 use App\Features\Membership\Services\MembershipApplicationsService;
 use App\Features\Membership\Services\MembershipAuthorizationService;
 use App\Features\Membership\Services\MembershipCommandsService;
@@ -19,6 +20,7 @@ use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipDirectory;
+use App\Shared\Membership\MembershipSubjectCatalog;
 use Livewire\Livewire;
 
 /**
@@ -54,6 +56,7 @@ final class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);
         $this->app->bind(MembershipDirectory::class, MembershipDirectoryService::class);
         $this->app->bind(MembershipAuthorization::class, MembershipAuthorizationService::class);
         $this->app->bind(MembershipCommands::class, MembershipCommandsService::class);

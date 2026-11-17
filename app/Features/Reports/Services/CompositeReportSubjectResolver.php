@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Reports;
+namespace App\Features\Reports\Services;
 
 use App\Features\DonationChannels\Api\DonationChannelLookup;
 use App\Features\Events\Api\EventReportSubjectProvider;

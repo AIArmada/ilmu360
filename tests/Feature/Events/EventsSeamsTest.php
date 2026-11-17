@@ -13,6 +13,7 @@ use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Services\EventReportSubjectResolver;
 use App\Features\Events\Services\EventSubmissionsService;
 use App\Features\Events\Support\EventModel;
+use App\Features\Reports\Services\CompositeReportSubjectResolver;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
@@ -24,7 +25,6 @@ use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Events\EventModerationAdapter;
-use App\Support\Reports\CompositeReportSubjectResolver;
 
 it('binds the events seams to their current implementations', function (): void {
     expect(app(GuestSubmissionClaims::class))->toBeInstanceOf(ClaimGuestSubmissionsAction::class)

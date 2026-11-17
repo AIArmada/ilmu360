@@ -14,11 +14,13 @@ use App\Features\Reports\Models\Report;
 use App\Features\Reports\Persistence\ReportLifecycle as ReportLifecycleImplementation;
 use App\Features\Reports\Policies\ReportPolicy;
 use App\Features\Reports\Queries\DatabaseReportReader;
+use App\Features\Reports\Services\CompositeReportSubjectResolver;
 use App\Features\Reports\Services\ReportAdmin;
 use App\Features\Reports\Services\ReportCommands;
 use App\Features\Reports\Services\ReportTriage;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
+use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 
@@ -26,6 +28,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ReportSubjectResolver::class, CompositeReportSubjectResolver::class);
         $this->app->bind(ReportLifecycle::class, ReportLifecycleImplementation::class);
         $this->app->bind(ReportCommandsContract::class, ReportCommands::class);
         $this->app->bind(ReportReader::class, DatabaseReportReader::class);

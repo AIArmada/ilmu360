@@ -181,9 +181,7 @@ use App\Shared\Events\OccurrenceReviewNotifier;
 use App\Shared\Language\LanguageCatalog;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Membership\MembershipPermissionEvaluator;
-use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Shared\Registration\CheckInNotifier;
-use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\ShareTracking\ActiveAttribution;
 use App\Shared\ShareTracking\ClaimRecipients;
 use App\Shared\ShareTracking\GuestClaims;
@@ -205,10 +203,8 @@ use App\Support\Events\EventChangeNoticeNotificationAdapter;
 use App\Support\Events\EventOccurrenceReviewNotifier;
 use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
-use App\Support\Membership\EloquentMembershipSubjectCatalog;
 use App\Support\Moderation\ModerationAccountLifecycleContributor;
 use App\Support\Registration\EventNotificationCheckInNotifier;
-use App\Support\Reports\CompositeReportSubjectResolver;
 use App\Support\Rewards\CompositeRewardSourceFactReader;
 use App\Support\Rewards\ShareCorrectionKeySource;
 use App\Support\Search\Adapters\InstitutionResourceSearchAdapter;
@@ -305,7 +301,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(ScopedMembershipRoleStore::class, EloquentScopedMembershipRoleStore::class);
-        $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);
         $this->app->bind(MembershipPermissionEvaluator::class, MemberPermissionGate::class);
         $this->app->bind(AccountEventFacts::class, EloquentAccountEventFacts::class);
         $this->app->bind(OccurrenceReviewNotifier::class, EventOccurrenceReviewNotifier::class);
@@ -322,7 +317,6 @@ class AppServiceProvider extends ServiceProvider
             ModerationAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
 
-        $this->app->bind(ReportSubjectResolver::class, CompositeReportSubjectResolver::class);
         $this->app->bind(SavedSearchExecutor::class, EventSavedSearchExecutor::class);
         $this->app->bind(SavedSearchShareOutcomes::class, SavedSearchOutcomeRecorder::class);
         $this->app->bind(EngagementShareOutcomes::class, EngagementOutcomeRecorder::class);

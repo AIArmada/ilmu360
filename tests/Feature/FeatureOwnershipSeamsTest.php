@@ -25,6 +25,7 @@ use App\Features\Places\Services\SpaceWorkflowService;
 use App\Features\Places\Services\VenueWorkflowService;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Queries\EloquentReferenceLookup;
+use App\Features\Reports\Services\CompositeReportSubjectResolver;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
@@ -37,7 +38,6 @@ use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Reports\ReportSubjectResolver;
 use App\Support\Api\Frontend\FrontendCatalogService;
-use App\Support\Reports\CompositeReportSubjectResolver;
 
 it('binds the directory seams to their owning implementations', function (): void {
     expect(app(InstitutionLookup::class))->toBeInstanceOf(EloquentInstitutionLookup::class)
