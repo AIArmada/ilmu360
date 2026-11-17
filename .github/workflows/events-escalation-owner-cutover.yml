@@ -120,3 +120,5 @@ jobs:
 # Restore invariant Auth contract collection type in escalation adapter.
 
 # Explicit upcast of trusted Eloquent role collection at transport seam.
+
+# Tests now invoke the queued job through the Laravel container.
