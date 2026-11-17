@@ -44,7 +44,6 @@ use App\\Platform\\Auth\\Listeners\\RecordVerifiedEmail;
 use App\\Platform\\Auth\\Listeners\\SendRegisteredUserEmails;
 use Illuminate\\Auth\\Events\\Registered;
 use Illuminate\\Auth\\Events\\Verified;
-use Illuminate\\Support\\Facades\\Event as EventFacade;
 """
 provider=provider.replace(ns,ns+"\n\n"+imports,1)
 boot="    public function boot(): void\n    {\n"
