@@ -1,4 +1,4 @@
-name: One-time Fortify ownership
+name: Fortify platform ownership cutover
 on:
   push:
     branches: [refactor]
@@ -8,6 +8,94 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
     steps:
       - uses: actions/checkout@v6
-      - run: python3 scripts/fortify-platform-owner-cutover.py
+        with:
+          fetch-depth: 0
+      - name: Prepare commerce package sources
+        run: git clone --depth 1 https://github.com/AIArmada/commerce.git ../commerce
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
+          coverage: none
+          tools: composer:v2
+      - name: Install locked application dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          touch database/database.sqlite
+          composer install --no-interaction --no-progress --prefer-dist
+      - name: Capture HTTP routes and Artisan commands
+        run: |
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.before
+          php artisan route:list --json > /tmp/routes.before
+      - name: Move Fortify entrypoint implementations into Platform
+        run: python3 scripts/fortify-platform-owner-cutover.py
+      - name: Validate Fortify contract bindings and transport parity
+        run: |
+          composer dump-autoload --no-scripts --optimize
+          php artisan optimize:clear
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.after
+          php artisan route:list --json > /tmp/routes.after
+          diff -u /tmp/commands.before /tmp/commands.after
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/routes.before'))==json.load(open('/tmp/routes.after'))
+          print("HTTP route registration unchanged")
+          PY
+          php artisan tinker --execute="if (!(app(\\App\\Platform\\Auth\\Fortify\\CreateNewUser::class) instanceof \\Laravel\\Fortify\\Contracts\\CreatesNewUsers)) { throw new \\RuntimeException('Fortify creator unbound'); }"
+          php artisan tinker --execute="if (!(app(\\App\\Platform\\Auth\\Fortify\\ResetUserPassword::class) instanceof \\Laravel\\Fortify\\Contracts\\ResetsUserPasswords)) { throw new \\RuntimeException('Fortify reset unbound'); }"
+      - name: Check architecture, types, Pint and Rector
+        run: |
+          git add -A
+          vendor/bin/pint --dirty
+          git add -A
+          git diff --cached --check
+          composer architecture:test
+          vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+          vendor/bin/rector process --dry-run
+      - name: Verify registration, login and signup attribution behavior
+        run: |
+          vendor/bin/pest --compact             tests/Feature/Auth/AuthenticationTest.php             tests/Feature/Auth/RegistrationPageTest.php             tests/Feature/SignupAttributionAuthTest.php
+      - name: Syntax, no legacy actions and final commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r f; do php -l "$f" >/dev/null; done < <(git diff --cached --name-only --diff-filter=ACMR | grep -E '^app/.*\.php$')
+          test ! -d app/Actions || test -z "$(find app/Actions -type f)"
+          rm -f scripts/fortify-platform-owner-cutover.py .github/workflows/fortify-platform-owner-cutover.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "ilmu360-refactor-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "refactor: consolidate Laravel Fortify entrypoints under Platform Auth"
+          git push origin HEAD:refactor
