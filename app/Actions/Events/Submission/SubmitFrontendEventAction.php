@@ -7,10 +7,10 @@ use AIArmada\Events\Models\EventSession;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\ShareTrackingContract;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissionOrganizerKind;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -18,8 +18,6 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\EventOccurrenceSubmittedNotification;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
@@ -27,6 +25,8 @@ use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerLocation;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
+use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\Submission\EntitySubmissionAccess;
 use App\Shared\Submission\SubmissionContextResolver;
 use App\Shared\Submission\SubmissionTimingPolicy;
@@ -336,7 +336,7 @@ class SubmitFrontendEventAction
      * Complete the submission, then record its request-bound share outcome.
      * Both calls run inside the original submission transaction.
      *
-     * @param array<string, mixed> $state
+     * @param  array<string, mixed>  $state
      */
     private function completeAndRecordSubmissionOutcome(
         Event $event,

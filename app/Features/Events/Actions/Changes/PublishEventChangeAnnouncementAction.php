@@ -4,26 +4,25 @@ namespace App\Features\Events\Actions\Changes;
 
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventChangePublisher;
-use App\Platform\Models\MorphModelResolver;
-use App\Shared\Events\EventChangeNoticeNotifier;
 use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Models\Event;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\EventChangeNoticeNotifier;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Contracts\Auth\Authenticatable;
-use ValueError;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Throwable;
+use ValueError;
 
 final readonly class PublishEventChangeAnnouncementAction implements EventChangePublisher
 {
-
     /**
      * @param  array<string, mixed>  $changes
      */

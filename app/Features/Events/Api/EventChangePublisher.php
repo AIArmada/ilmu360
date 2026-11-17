@@ -10,7 +10,7 @@ use App\Shared\Events\Enums\EventChangeType;
 interface EventChangePublisher
 {
     /**
-     * @param array<string, mixed> $changes
+     * @param  array<string, mixed>  $changes
      * @return string Published announcement ID.
      */
     public function publish(

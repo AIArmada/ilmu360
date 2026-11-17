@@ -19,6 +19,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Enums\EventChangeSeverity;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\EventChangePublisher;
@@ -26,14 +27,13 @@ use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Models\Event;
+use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Models\EventChangeAnnouncement;
 use App\Models\User;
-use App\Enums\EventChangeSeverity;
-use App\Shared\Events\Enums\EventChangeType;
 use App\Services\PublicListingsCache;
 use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
@@ -1072,7 +1072,7 @@ function saveAdminEventForTest(array $data, User $actor, ?Event $event = null): 
  * Test-only model hydration for the Events public announcement contract.
  * Production code receives IDs and has no former root Action alias.
  *
- * @param array<string, mixed> $changes
+ * @param  array<string, mixed>  $changes
  */
 function publishEventChangeForTest(
     Event $event,
@@ -1091,7 +1091,7 @@ function publishEventChangeForTest(
         type: $type,
         publicMessage: $publicMessage,
         internalNote: $internalNote,
-        replacementEventId: $replacementEvent !== null ? (string) $replacementEvent->getKey() : null,
+        replacementEventId: $replacementEvent instanceof Event ? (string) $replacementEvent->getKey() : null,
         changes: $changes,
         notify: $notify,
         severity: $severity instanceof EventChangeSeverity ? $severity->value : $severity,
