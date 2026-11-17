@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Checkout;
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Checkout\Data\StepResult;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use App\Features\Events\Api\TicketAffiliateCommissions;
-use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
+use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Models\Registration;
 use Illuminate\Support\Str;
 use Throwable;
@@ -18,7 +17,7 @@ final class RecordTicketAffiliateCommissionsStep extends AbstractCheckoutStep
 {
     public function __construct(
         private readonly TicketAffiliateCommissions $recordCommissions,
-        private readonly ReverseTicketAffiliateCommissionAction $reverseCommissions,
+        private readonly TicketAffiliateReversals $reverseCommissions,
     ) {}
 
     public function getIdentifier(): string
@@ -77,7 +76,7 @@ final class RecordTicketAffiliateCommissionsStep extends AbstractCheckoutStep
             }
 
             try {
-                if ($this->reverseCommissions->handle($registration, 'checkout_compensated') instanceof AffiliateConversion) {
+                if ($this->reverseCommissions->reverse((string) $registration->getKey(), 'checkout_compensated') !== null) {
                     $reversed++;
                 }
             } catch (Throwable $exception) {

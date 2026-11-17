@@ -6,7 +6,7 @@ namespace App\Actions\ShareTracking;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
+use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
@@ -34,7 +34,7 @@ final readonly class ReverseEventParticipationOutcomesAction
 
     public function __construct(
         private ReverseShareOutcomeAction $reverseShareOutcome,
-        private ReverseTicketAffiliateCommissionAction $reverseTicketAffiliateCommission,
+        private TicketAffiliateReversals $reverseTicketAffiliateCommission,
     ) {}
 
     public function forEvent(Event|Model $event, ?User $actor, string $reason = 'event_cancelled'): void
@@ -88,7 +88,7 @@ final readonly class ReverseEventParticipationOutcomesAction
     private function reverseRegistrations(Builder $query, string $reason, ?User $actor): void
     {
         $query->lockForUpdate()->get()->each(function (Registration $registration) use ($reason, $actor): void {
-            $this->reverseTicketAffiliateCommission->handle($registration, $reason);
+            $this->reverseTicketAffiliateCommission->reverse((string) $registration->getKey(), $reason);
             $this->reverseShareOutcome->handle(
                 ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                 $reason,

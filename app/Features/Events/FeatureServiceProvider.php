@@ -9,6 +9,7 @@ use App\Features\Events\Actions\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Features\Events\Actions\Authoring\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Features\Events\Actions\Authoring\SyncEventLocationsAction;
 use App\Features\Events\Actions\Commerce\RecordTicketAffiliateCommissionsAction;
+use App\Features\Events\Actions\Commerce\ReverseTicketAffiliateCommissionAction;
 use App\Features\Events\Actions\Authoring\SyncEventProjectionsAction;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
@@ -42,6 +43,7 @@ use App\Features\Events\Api\ProductSignalsDashboardCache;
 use App\Features\Events\Api\RegistrationExportAccess;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Api\TicketAffiliateCommissions;
+use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\Events\EntryPoints\Filament\TermDomainMappingExtension;
 use App\Features\Events\Persistence\EventHomepageStatsCacheStore;
 use App\Features\Events\Persistence\EventInstitutionQuickAddMapsProofCacheStore;
@@ -169,6 +171,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventProjections::class, SyncEventProjectionsAction::class);
         $this->app->bind(SeriesAuthoring::class, SeriesAuthoringService::class);
         $this->app->bind(TicketAffiliateCommissions::class, RecordTicketAffiliateCommissionsAction::class);
+        $this->app->bind(TicketAffiliateReversals::class, ReverseTicketAffiliateCommissionAction::class);
 
         $moderationAdapter = config('events.moderation.adapter');
 

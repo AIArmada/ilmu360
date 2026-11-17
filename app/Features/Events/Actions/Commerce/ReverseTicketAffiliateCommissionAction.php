@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Events\Commerce;
+namespace App\Features\Events\Actions\Commerce;
 
 use AIArmada\Affiliates\Actions\Conversions\ReverseAffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateConversion;
@@ -12,16 +12,40 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\CommerceSupport\Support\OwnerTuple\OwnerTupleParser;
 use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
+use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\ShareTracking\Api\EffectReceipts;
 
-final readonly class ReverseTicketAffiliateCommissionAction
+final readonly class ReverseTicketAffiliateCommissionAction implements TicketAffiliateReversals
 {
     public function __construct(
         private ReverseAffiliateConversion $reverseAffiliateConversion,
         private EffectReceipts $effectReceipts,
     ) {}
 
-    public function handle(PackageEventRegistration $registration, string $reason): ?AffiliateConversion
+    public function reverse(string $registrationId, string $reason): ?string
+    {
+        $registration = PackageEventRegistration::query()->whereKey($registrationId)->first();
+
+        if (! $registration instanceof PackageEventRegistration) {
+            return null;
+        }
+
+        $reversal = $this->handle($registration, $reason);
+
+        return $reversal !== null ? (string) $reversal->getKey() : null;
+    }
+
+    public function hasOpenPayoutReservation(string $conversionId): bool
+    {
+        $conversion = AffiliateConversion::query()
+            ->withoutGlobalScope(OwnerScope::class)
+            ->whereKey($conversionId)
+            ->first();
+
+        return $conversion instanceof AffiliateConversion && $this->isPayoutReservationOpen($conversion);
+    }
+
+    private function handle(PackageEventRegistration $registration, string $reason): ?AffiliateConversion
     {
         $orderId = $registration->external_order_id;
 
@@ -46,7 +70,7 @@ final readonly class ReverseTicketAffiliateCommissionAction
             return null;
         }
 
-        if ($this->hasOpenPayoutReservation($conversion)) {
+        if ($this->isPayoutReservationOpen($conversion)) {
             $this->deferReversal($conversion, $registration, $reason);
 
             return null;
@@ -71,7 +95,7 @@ final readonly class ReverseTicketAffiliateCommissionAction
         return $reversal;
     }
 
-    public function hasOpenPayoutReservation(AffiliateConversion $conversion): bool
+    private function isPayoutReservationOpen(AffiliateConversion $conversion): bool
     {
         if (! is_string($conversion->affiliate_payout_id) || $conversion->affiliate_payout_id === '') {
             return false;

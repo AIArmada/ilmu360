@@ -7,7 +7,7 @@ namespace App\Listeners\ShareTracking;
 use AIArmada\Events\Events\EventRegistrationCancelled;
 use AIArmada\Events\Events\EventRegistrationRefunded;
 use AIArmada\Events\Events\EventRegistrationRejected;
-use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
+use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Models\EventCheckin;
 use App\Models\User;
@@ -28,7 +28,7 @@ final readonly class ReverseRegistrationShareOutcome
 {
     public function __construct(
         private ReverseShareOutcomeAction $reverseShareOutcome,
-        private ReverseTicketAffiliateCommissionAction $reverseTicketAffiliateCommission,
+        private TicketAffiliateReversals $reverseTicketAffiliateCommission,
     ) {}
 
     public function handle(EventRegistrationCancelled|EventRegistrationRejected|EventRegistrationRefunded $event): void
@@ -40,7 +40,7 @@ final readonly class ReverseRegistrationShareOutcome
             default => 'registration_cancelled',
         };
 
-        $this->reverseTicketAffiliateCommission->handle($event->registration, $reason);
+        $this->reverseTicketAffiliateCommission->reverse((string) $event->registration->getKey(), $reason);
 
         $this->reverseShareOutcome->handle(
             ShareOutcomeBusinessKey::eventRegistration((string) $event->registration->getKey()),

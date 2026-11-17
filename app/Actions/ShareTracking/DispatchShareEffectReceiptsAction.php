@@ -10,7 +10,7 @@ use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Affiliates\States\ReversedConversion;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Events\Models\EventRegistration;
-use App\Actions\Events\Commerce\ReverseTicketAffiliateCommissionAction;
+use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
 use App\Models\ShareOutcomeCorrection;
@@ -33,7 +33,7 @@ final readonly class DispatchShareEffectReceiptsAction
     public const array OWNED_EFFECT_TYPES = ['projection', 'ticket_affiliate_reversal'];
 
     public function __construct(
-        private ReverseTicketAffiliateCommissionAction $reverseTicketAffiliateCommission,
+        private TicketAffiliateReversals $reverseTicketAffiliateCommission,
         private EffectReceipts $effectReceipts,
     ) {}
 
@@ -157,7 +157,7 @@ final readonly class DispatchShareEffectReceiptsAction
             return true;
         }
 
-        $this->reverseTicketAffiliateCommission->handle($registration, $reason);
+        $this->reverseTicketAffiliateCommission->reverse((string) $registration->getKey(), $reason);
 
         $conversion = is_string($conversionId) && $conversionId !== ''
             ? AffiliateConversion::query()->withoutGlobalScope(OwnerScope::class)->whereKey($conversionId)->lockForUpdate()->first()
@@ -173,7 +173,7 @@ final readonly class DispatchShareEffectReceiptsAction
         }
 
         if ($conversion instanceof AffiliateConversion
-            && $this->reverseTicketAffiliateCommission->hasOpenPayoutReservation($conversion)) {
+            && $this->reverseTicketAffiliateCommission->hasOpenPayoutReservation((string) $conversion->getKey())) {
             $this->effectReceipts->releaseToPending($receipt->id, $workerId, $leaseToken);
 
             return true;

@@ -191,3 +191,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move frozen commercial ticket attribution recording into Events/Actions/Commerce behind scalar TicketAffiliateCommissions API.
 - [x] Keep canonical session/order/registration package rows, net allocation, idempotency and commission keys. Checkout and financial tests use the new contract; remove root action.
 - [ ] Verify paid/free, self-purchase, reversals, refunds and payout reservation behavior on Quality CI.
+
+
+### Event ticket commission reversal cutover
+- [x] Move guarded ticket commission reversals and payout-reservation deferral into Events/Actions/Commerce, exposing scalar TicketAffiliateReversals.
+- [x] Update checkout compensation, cancellation, refund listeners and share-effect dispatcher with registration/conversion IDs and delete the old root action.
+- [ ] Verify exact conversion key, owner scope, deferred receipt lease and payout reservation conditions against Pest/Quality CI.
