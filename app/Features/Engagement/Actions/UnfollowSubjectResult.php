@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Engagement;
+namespace App\Features\Engagement\Actions;
 
 /**
  * Immutable outcome of one unfollow attempt.

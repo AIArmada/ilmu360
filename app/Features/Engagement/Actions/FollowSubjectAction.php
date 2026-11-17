@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Engagement;
+namespace App\Features\Engagement\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
@@ -19,10 +19,9 @@ use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Root follow writer for the package-canonical follow rows.
+ * Engagement-owned follow writer for the package-canonical follow rows.
  *
- * The package engagement tables have no application owner, so this named
- * action stays in the root Actions namespace. It owns the manager write and
+ * The package owns follow storage; the feature owns orchestration. It owns the manager write and
  * records the follow share outcome through the EngagementShareOutcomes
  * contract; no caller should reproduce either.
  *

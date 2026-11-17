@@ -6,8 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Actions\Engagement\FollowSubjectAction;
-use App\Actions\Engagement\UnfollowSubjectAction;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Data\PublicScheduleLeaf;
 use App\Features\References\Api\ReferenceQueries;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
@@ -88,17 +87,17 @@ class Show extends Component
         }
 
         if ($this->isFollowing) {
-            app(UnfollowSubjectAction::class)->handle($this->reference, $user);
+            app(SubjectFollowCommands::class)->unfollow($this->reference->getMorphClass(), (string) $this->reference->getKey(), (string) $user->getKey());
             $this->isFollowing = false;
 
             return;
         }
 
-        app(FollowSubjectAction::class)->handle(
-            subject: $this->reference,
-            user: $user,
-            metadata: ['reference_id' => $this->reference->getKey()],
-            request: request(),
+        app(SubjectFollowCommands::class)->follow(
+            $this->reference->getMorphClass(),
+            (string) $this->reference->getKey(),
+            (string) $user->getKey(),
+            ['reference_id' => $this->reference->getKey()],
         );
         $this->isFollowing = true;
     }

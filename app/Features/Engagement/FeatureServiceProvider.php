@@ -8,9 +8,11 @@ use App\Features\Engagement\Actions\DeleteEventEngagementAction;
 use App\Features\Engagement\Api\EventEngagementDeletion;
 use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\Api\EventSaveCommands;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Engagement\Contributors\EngagementAccountLifecycleContributor;
 use App\Features\Engagement\Services\EventGoingCommandsService;
 use App\Features\Engagement\Services\EventSaveCommandsService;
+use App\Features\Engagement\Services\SubjectFollowCommandsService;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 
@@ -48,6 +50,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventEngagementDeletion::class, DeleteEventEngagementAction::class);
         $this->app->bind(EventGoingCommands::class, EventGoingCommandsService::class);
         $this->app->bind(EventSaveCommands::class, EventSaveCommandsService::class);
+        $this->app->bind(SubjectFollowCommands::class, SubjectFollowCommandsService::class);
 
         $this->app->tag([
             EngagementAccountLifecycleContributor::class,

@@ -6,8 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Engagement\FollowSubjectAction;
-use App\Actions\Engagement\UnfollowSubjectAction;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Data\PublicScheduleLeaf;
 use App\Features\References\Api\ReferenceQueries;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
@@ -91,17 +90,17 @@ class Show extends Component
         }
 
         if ($this->isFollowing) {
-            app(UnfollowSubjectAction::class)->handle($this->institution, $user);
+            app(SubjectFollowCommands::class)->unfollow($this->institution->getMorphClass(), (string) $this->institution->getKey(), (string) $user->getKey());
             $this->isFollowing = false;
 
             return;
         }
 
-        app(FollowSubjectAction::class)->handle(
-            subject: $this->institution,
-            user: $user,
-            metadata: ['institution_id' => $this->institution->getKey()],
-            request: request(),
+        app(SubjectFollowCommands::class)->follow(
+            $this->institution->getMorphClass(),
+            (string) $this->institution->getKey(),
+            (string) $user->getKey(),
+            ['institution_id' => $this->institution->getKey()],
         );
         $this->isFollowing = true;
     }

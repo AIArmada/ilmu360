@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Engagement\FollowSubjectAction;
-use App\Actions\Engagement\UnfollowSubjectAction;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Data\Api\Frontend\Follow\FollowStateData;
 use App\Models\Institution;
 use App\Models\Person;
@@ -23,8 +22,7 @@ use Illuminate\Http\Request;
 class FollowController extends FrontendController
 {
     public function __construct(
-        private readonly FollowSubjectAction $followSubject,
-        private readonly UnfollowSubjectAction $unfollowSubject,
+        private readonly SubjectFollowCommands $subjectFollowCommands,
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
     ) {}
 
@@ -59,14 +57,11 @@ class FollowController extends FrontendController
         $record = $this->resolveFollowable($type, $subject, $user);
 
         if (! $user->isFollowing($record)) {
-            $this->followSubject->handle(
-                subject: $record,
-                user: $user,
-                metadata: [
-                    'subject_id' => $record->getKey(),
-                    'subject_type' => $record->getMorphClass(),
-                ],
-                request: $request,
+            $this->subjectFollowCommands->follow(
+                $record->getMorphClass(),
+                (string) $record->getKey(),
+                (string) $user->getKey(),
+                ['subject_id' => $record->getKey(), 'subject_type' => $record->getMorphClass()],
             );
         }
 
@@ -89,7 +84,7 @@ class FollowController extends FrontendController
         $user = $this->requireUser($request);
         $record = $this->resolveFollowable($type, $subject, $user);
 
-        $this->unfollowSubject->handle($record, $user);
+        $this->subjectFollowCommands->unfollow($record->getMorphClass(), (string) $record->getKey(), (string) $user->getKey());
 
         return response()->json([
             'data' => $this->followData($record, $user),

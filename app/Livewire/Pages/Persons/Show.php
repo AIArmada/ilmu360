@@ -9,8 +9,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Actions\Engagement\FollowSubjectAction;
-use App\Actions\Engagement\UnfollowSubjectAction;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Data\PublicScheduleLeaf;
 use App\Enums\SpeakerStatus;
 use App\Livewire\Concerns\JoinsHierarchyAreaName;
@@ -109,17 +108,17 @@ class Show extends Component
         }
 
         if ($this->isFollowing) {
-            app(UnfollowSubjectAction::class)->handle($this->person, $user);
+            app(SubjectFollowCommands::class)->unfollow($this->person->getMorphClass(), (string) $this->person->getKey(), (string) $user->getKey());
             $this->isFollowing = false;
 
             return;
         }
 
-        app(FollowSubjectAction::class)->handle(
-            subject: $this->person,
-            user: $user,
-            metadata: ['person_id' => $this->person->getKey()],
-            request: request(),
+        app(SubjectFollowCommands::class)->follow(
+            $this->person->getMorphClass(),
+            (string) $this->person->getKey(),
+            (string) $user->getKey(),
+            ['person_id' => $this->person->getKey()],
         );
         $this->isFollowing = true;
     }

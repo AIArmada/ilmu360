@@ -2,8 +2,7 @@
 
 namespace App\Livewire\Components;
 
-use App\Actions\Engagement\FollowSubjectAction;
-use App\Actions\Engagement\UnfollowSubjectAction;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
 use App\Support\Engagement\DirectoryFollowSubjectResolver;
@@ -45,14 +44,14 @@ class DirectoryCardFollow extends Component
         }
 
         if ($user->isFollowing($subject)) {
-            app(UnfollowSubjectAction::class)->handle($subject, $user);
+            app(SubjectFollowCommands::class)->unfollow($subject->getMorphClass(), (string) $subject->getKey(), (string) $user->getKey());
             $this->isFollowing = false;
         } else {
-            app(FollowSubjectAction::class)->handle(
-                subject: $subject,
-                user: $user,
-                metadata: ["{$this->subjectType}_id" => $subject->getKey()],
-                request: request(),
+            app(SubjectFollowCommands::class)->follow(
+                $subject->getMorphClass(),
+                (string) $subject->getKey(),
+                (string) $user->getKey(),
+                ["{$this->subjectType}_id" => $subject->getKey()],
             );
             $this->isFollowing = true;
         }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Engagement;
+namespace App\Features\Engagement\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Root unfollow writer for the package-canonical follow rows.
+ * Engagement-owned unfollow writer for the package-canonical follow rows.
  *
  * Locks the caller's active follow row inside the same transaction that
  * removes it, then reverses the follow share outcome through the
