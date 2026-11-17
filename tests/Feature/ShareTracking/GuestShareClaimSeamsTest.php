@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
-use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ClaimRecipients;
@@ -20,7 +19,7 @@ it('binds the feature claim api and the shared recipient seam', function (): voi
         ->and(app(GuestClaims::class))->toBeInstanceOf(GuestClaimLookup::class);
 });
 
-it('passes only scalars from the root action to the feature api', function (): void {
+it('passes only scalars through the feature claim api', function (): void {
     $claimant = User::factory()->create();
 
     $fake = new class implements GuestShareClaims
@@ -63,12 +62,14 @@ it('passes only scalars from the root action to the feature api', function (): v
 it('preserves the explicit consent refusal inside the feature api', function (): void {
     $claimant = User::factory()->create();
 
-    expect(fn () => app(GuestShareClaims::class)->claim(
-        (string) $claimant->getKey(),
-        $claimant->getMorphClass(),
-        str_repeat('a', 64),
-        false,
-    ))->toThrow(
+    expect(static function () use ($claimant): void {
+        app(GuestShareClaims::class)->claim(
+            (string) $claimant->getKey(),
+            $claimant->getMorphClass(),
+            str_repeat('a', 64),
+            false,
+        );
+    })->toThrow(
         InvalidArgumentException::class,
         'Linking past anonymous shares needs your explicit confirmation.',
     );
