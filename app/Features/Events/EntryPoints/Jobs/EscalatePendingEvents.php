@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Jobs;
 
 use AIArmada\Events\Enums\EventEscalationType;
+use AIArmada\Events\Models\EventEscalation;
 use App\Features\Events\Actions\Escalations\RecordPendingEventEscalationAction;
 use App\Models\Event;
 use App\Shared\Events\EventEscalationTransport;
@@ -97,7 +98,7 @@ class EscalatePendingEvents implements ShouldQueue
     ): void {
         $escalation = $records->record($event, $type, $reason, $now);
 
-        if ($escalation === null) {
+        if (! $escalation instanceof EventEscalation) {
             return;
         }
 
