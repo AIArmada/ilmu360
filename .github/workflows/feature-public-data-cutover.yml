@@ -1,4 +1,4 @@
-name: Feature public data migration
+name: Feature data migration
 on:
   push:
     branches: [refactor]
