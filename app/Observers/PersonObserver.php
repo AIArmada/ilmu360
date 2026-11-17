@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\References\Models\ReferenceContributor;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonWorkflow;
@@ -12,7 +13,6 @@ use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Services\PublicListingsCache;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
@@ -27,7 +27,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         protected ReferenceWorkflow $referenceWorkflow,
         protected SlugRedirectCommands $slugRedirectCommands,
         protected PersonListingCacheVersion $personCacheVersion,
-        protected PublicListingsCache $publicListingsCache,
+        protected PublicListingsCacheInvalidator $publicListingsCache,
         protected PersonSearchService $personSearchService,
         protected ReferenceSearchService $referenceSearchService,
     ) {}

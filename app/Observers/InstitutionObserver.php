@@ -2,12 +2,12 @@
 
 namespace App\Observers;
 
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Institution;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Services\PublicListingsCache;
 use App\Support\Search\InstitutionSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -19,7 +19,7 @@ class InstitutionObserver implements ShouldHandleEventsAfterCommit
         protected InstitutionWorkflow $institutionWorkflow,
         protected SlugRedirectCommands $slugRedirectCommands,
         protected InstitutionListingCacheVersion $institutionCacheVersion,
-        protected PublicListingsCache $publicListingsCache,
+        protected PublicListingsCacheInvalidator $publicListingsCache,
         protected InstitutionSearchService $institutionSearchService,
     ) {}
 

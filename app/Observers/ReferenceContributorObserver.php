@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\References\Models\ReferenceContributor;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Services\PublicListingsCache;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -15,7 +15,7 @@ class ReferenceContributorObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         protected ReferenceWorkflow $referenceWorkflow,
         protected ReferenceSearchService $referenceSearchService,
-        protected PublicListingsCache $publicListingsCache,
+        protected PublicListingsCacheInvalidator $publicListingsCache,
     ) {}
 
     public function saved(ReferenceContributor $contributor): void

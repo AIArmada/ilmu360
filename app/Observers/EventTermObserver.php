@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\Events\Models\EventTerm;
-use App\Services\PublicListingsCache;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 final readonly class EventTermObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        private PublicListingsCache $publicListingsCache,
+        private PublicListingsCacheInvalidator $publicListingsCache,
         private SelectionCatalogCache $selectionCatalogCache,
     ) {}
 

@@ -2,11 +2,11 @@
 
 namespace App\Observers;
 
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Venue;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class VenueObserver implements ShouldHandleEventsAfterCommit
@@ -16,7 +16,7 @@ class VenueObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         protected VenueWorkflow $venueWorkflow,
         protected SlugRedirectCommands $slugRedirectCommands,
-        protected PublicListingsCache $publicListingsCache
+        protected PublicListingsCacheInvalidator $publicListingsCache
     ) {}
 
     public function saved(Venue $venue): void

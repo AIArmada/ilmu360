@@ -2,11 +2,11 @@
 
 namespace App\Observers;
 
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Reference;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Services\PublicListingsCache;
 use App\Support\Search\ReferenceSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -18,7 +18,7 @@ class ReferenceObserver implements ShouldHandleEventsAfterCommit
         protected ReferenceWorkflow $referenceWorkflow,
         protected SlugRedirectCommands $slugRedirectCommands,
         protected ReferenceSearchService $referenceSearchService,
-        protected PublicListingsCache $publicListingsCache,
+        protected PublicListingsCacheInvalidator $publicListingsCache,
     ) {}
 
     public function saved(Reference $reference): void

@@ -5,6 +5,7 @@ namespace App\Observers;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
 use AIArmada\Addressing\Support\AddressCountryResolver;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Institutions\Api\InstitutionWorkflow;
@@ -15,7 +16,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
-use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
@@ -28,7 +28,7 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
         protected VenueWorkflow $venueWorkflow,
         protected InstitutionListingCacheVersion $institutionCacheVersion,
         protected PersonListingCacheVersion $personCacheVersion,
-        protected PublicListingsCache $publicListingsCache,
+        protected PublicListingsCacheInvalidator $publicListingsCache,
         protected AddressCountryResolver $addressingCountryResolver,
     ) {}
 

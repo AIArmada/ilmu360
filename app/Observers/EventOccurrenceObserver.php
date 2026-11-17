@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Api\EventDeletionScope;
 use App\Features\Events\Api\ShareCardWarmScheduler;
 use App\Models\Event;
-use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
 
 final readonly class EventOccurrenceObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        private PublicListingsCache $publicListingsCache,
+        private PublicListingsCacheInvalidator $publicListingsCache,
         private EventDeletionScope $eventDeletionScope,
     ) {}
 

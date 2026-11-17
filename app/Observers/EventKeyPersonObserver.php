@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Models\EventKeyPerson;
-use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class EventKeyPersonObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
         protected PersonListingCacheVersion $personCacheVersion,
-        protected PublicListingsCache $publicListingsCache,
+        protected PublicListingsCacheInvalidator $publicListingsCache,
     ) {}
 
     public function created(EventKeyPerson $eventKeyPerson): void

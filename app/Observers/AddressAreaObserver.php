@@ -7,9 +7,9 @@ namespace App\Observers;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaRelationship;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Services\PublicListingsCache;
 use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +19,7 @@ class AddressAreaObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         private readonly InstitutionListingCacheVersion $institutionCacheVersion,
         private readonly PersonListingCacheVersion $personCacheVersion,
-        private readonly PublicListingsCache $publicListingsCache,
+        private readonly PublicListingsCacheInvalidator $publicListingsCache,
         private readonly SelectionCatalogCache $selectionCatalogCache,
     ) {}
 

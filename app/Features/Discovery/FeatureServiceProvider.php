@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery;
 
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
+use App\Features\Discovery\Services\PublicListingsCache;
 use App\Platform\FeatureModule;
 
 /**
@@ -34,4 +36,10 @@ use App\Platform\FeatureModule;
  * product-owned visibility filter and index URL mismatch until that decision
  * is made.
  */
-class FeatureServiceProvider extends FeatureModule {}
+class FeatureServiceProvider extends FeatureModule
+{
+    public function register(): void
+    {
+        $this->app->bind(PublicListingsCacheInvalidator::class, PublicListingsCache::class);
+    }
+}

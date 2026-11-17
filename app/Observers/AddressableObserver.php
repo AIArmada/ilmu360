@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Institutions\Api\InstitutionWorkflow;
@@ -14,7 +15,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
-use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
@@ -27,7 +27,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         private readonly VenueWorkflow $venueWorkflow,
         private readonly InstitutionListingCacheVersion $institutionCacheVersion,
         private readonly PersonListingCacheVersion $personCacheVersion,
-        private readonly PublicListingsCache $publicListingsCache,
+        private readonly PublicListingsCacheInvalidator $publicListingsCache,
     ) {}
 
     public function created(Addressable $addressable): void

@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Api\EventHomepageStats;
 use App\Features\Institutions\Api\InstitutionHomepageStats;
 use App\Features\Persons\Api\PersonHomepageStats;
@@ -11,7 +12,6 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
-use App\Services\PublicListingsCache;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -149,8 +149,8 @@ it('clears majlis listing cache when event is submitted from public submit form'
         ->assertRedirect(route('submit-event.success'));
 
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustHomepageStats();
-    app(PublicListingsCache::class)->bustMajlisListing();
+    app(PublicListingsCacheInvalidator::class)->bustHomepageStats();
+    app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
 
     assertMajlisCacheWasCleared($keys);
     assertHomepageStatsCacheWasCleared($homepageKeys);
@@ -163,8 +163,8 @@ it('clears majlis listing cache when events are edited or deleted', function () 
     $homepageKeysAfterPrimeForUpdate = primeHomepageStatsCache();
     $event->update(['title' => 'Updated '.Str::random(8)]);
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustHomepageStats();
-    app(PublicListingsCache::class)->bustMajlisListing();
+    app(PublicListingsCacheInvalidator::class)->bustHomepageStats();
+    app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterPrimeForUpdate);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterPrimeForUpdate);
 
@@ -172,8 +172,8 @@ it('clears majlis listing cache when events are edited or deleted', function () 
     $homepageKeysAfterPrimeForDelete = primeHomepageStatsCache();
     $event->delete();
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustHomepageStats();
-    app(PublicListingsCache::class)->bustMajlisListing();
+    app(PublicListingsCacheInvalidator::class)->bustHomepageStats();
+    app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterPrimeForDelete);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterPrimeForDelete);
 });
@@ -183,8 +183,8 @@ it('clears majlis listing cache when admin-managed related records are created',
     $homepageKeysAfterInstitutionPrime = primeHomepageStatsCache();
     Institution::factory()->create(['status' => 'verified']);
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustHomepageStats();
-    app(PublicListingsCache::class)->bustMajlisListing();
+    app(PublicListingsCacheInvalidator::class)->bustHomepageStats();
+    app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterInstitutionPrime);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterInstitutionPrime);
 
@@ -192,21 +192,21 @@ it('clears majlis listing cache when admin-managed related records are created',
     $homepageKeysAfterPersonPrime = primeHomepageStatsCache();
     Person::factory()->create(['status' => 'verified']);
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustHomepageStats();
-    app(PublicListingsCache::class)->bustMajlisListing();
+    app(PublicListingsCacheInvalidator::class)->bustHomepageStats();
+    app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterPersonPrime);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterPersonPrime);
 
     $keysAfterTagPrime = primeMajlisListingCache();
     submitEventTerm('issue');
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustMajlisListing();
+    app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterTagPrime);
 
     $keysAfterVenuePrime = primeMajlisListingCache();
     Venue::factory()->create(['status' => 'verified']);
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustMajlisListing();
+    app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterVenuePrime);
 });
 
@@ -227,7 +227,7 @@ it('clears homepage stats cache when event key people are created or deleted', f
     ]);
 
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustHomepageStats();
+    app(PublicListingsCacheInvalidator::class)->bustHomepageStats();
 
     assertHomepageStatsCacheWasCleared($homepageKeysAfterCreate);
 
@@ -235,13 +235,13 @@ it('clears homepage stats cache when event key people are created or deleted', f
     $eventKeyPerson->delete();
 
     // afterCommit observer events never fire: global RefreshDatabase rolls back
-    app(PublicListingsCache::class)->bustHomepageStats();
+    app(PublicListingsCacheInvalidator::class)->bustHomepageStats();
 
     assertHomepageStatsCacheWasCleared($homepageKeysAfterDelete);
 });
 
 it('clears majlis listing cache when geography records are created updated or deleted', function () {
-    $cache = app(PublicListingsCache::class);
+    $cache = app(PublicListingsCacheInvalidator::class);
 
     $keysAfterCountryCreate = primeMajlisListingCache();
     $country = ensureTestAddressCountry(

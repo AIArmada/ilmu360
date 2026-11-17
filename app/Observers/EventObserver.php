@@ -5,6 +5,7 @@ namespace App\Observers;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\ShareCardWarmScheduler;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
@@ -12,7 +13,6 @@ use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Models\Event;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
-use App\Services\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class EventObserver implements ShouldHandleEventsAfterCommit
@@ -25,7 +25,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
         protected SlugRedirectCommands $slugRedirectCommands,
         protected InstitutionListingCacheVersion $institutionCacheVersion,
         protected PersonListingCacheVersion $personCacheVersion,
-        protected PublicListingsCache $publicListingsCache
+        protected PublicListingsCacheInvalidator $publicListingsCache
     ) {}
 
     public function creating(Event $event): void

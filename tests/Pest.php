@@ -19,6 +19,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\EventChangePublisher;
@@ -31,7 +32,6 @@ use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Services\PublicListingsCache;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventFormat;
@@ -215,7 +215,7 @@ pest()->extend(TestCase::class)
         Cache::forget('submit_languages_safe_v2');
         Cache::forget('submit_venues_all_safe_v2');
 
-        app(PublicListingsCache::class)->bustMajlisListing();
+        app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
 
         // Seed title categories and titles for tests
         try {
