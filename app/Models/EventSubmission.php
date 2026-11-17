@@ -13,6 +13,8 @@ class EventSubmission extends PackageEventSubmission implements Auditable
 {
     use AuditsModelChanges, HasContactMethods;
 
+    protected $table = 'event_submissions';
+
     /**
      * The package factory builds package instances without the application
      * traits, so resolve the application factory explicitly.

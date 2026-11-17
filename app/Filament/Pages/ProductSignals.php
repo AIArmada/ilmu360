@@ -6,15 +6,15 @@ namespace App\Filament\Pages;
 
 use AIArmada\FilamentSignals\Pages\LiveActivityReport;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
+use App\Features\Events\Api\ProductSignalsInsights;
 use App\Platform\Time\UserTimezoneResolver;
-use App\Services\Signals\ProductSignalsInsightsService;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use UnitEnum;
 
 /**
- * @phpstan-import-type ProductSignalsDashboard from \App\Services\Signals\ProductSignalsInsightsService
+ * @phpstan-import-type ProductSignalsDashboard from \App\Features\Events\Api\ProductSignalsInsights
  */
 final class ProductSignals extends Page
 {
@@ -65,7 +65,7 @@ final class ProductSignals extends Page
     public ?string $liveActivityUrl = null;
 
     public function mount(
-        ProductSignalsInsightsService $insights,
+        ProductSignalsInsights $insights,
         ProductSignalsDashboardCache $dashboardCache,
     ): void {
         $this->report = $dashboardCache->rememberDashboard(

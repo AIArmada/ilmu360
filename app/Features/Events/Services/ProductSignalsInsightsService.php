@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Signals;
+namespace App\Features\Events\Services;
 
 use AIArmada\Signals\Models\SignalEvent;
+use App\Features\Events\Api\ProductSignalsInsights;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Platform\Time\UserDateTimeFormatter;
@@ -42,7 +43,7 @@ use Illuminate\Support\Collection;
  *     scorecard: array{zero_result_filters: list<array{key: string, count: int}>, supply_gaps: list<array{key: string, count: int}>, search_to_outcome: array{searches: int, with_results: int, conversion_rate: float}, moderation_minutes: array{median: float, p90: float}, imminent_pending: int}
  * }
  */
-final readonly class ProductSignalsInsightsService
+final readonly class ProductSignalsInsightsService implements ProductSignalsInsights
 {
     /**
      * @return ProductSignalsDashboard

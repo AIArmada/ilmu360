@@ -50,6 +50,7 @@ use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
+use App\Features\Events\Api\ProductSignalsInsights;
 use App\Features\Events\Api\RegistrationExportAccess;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Api\TicketAffiliateCommissions;
@@ -72,6 +73,7 @@ use App\Features\Events\Services\EventMediaExtractionService;
 use App\Features\Events\Services\EventMediaService;
 use App\Features\Events\Services\EventReportSubjectResolver;
 use App\Features\Events\Services\EventSubmissionsService;
+use App\Features\Events\Services\ProductSignalsInsightsService;
 use App\Features\Events\Services\SeriesAuthoringService;
 use App\Features\Events\Support\EventModel;
 use App\Features\Events\Support\ScopedEventDeletionScope;
@@ -148,6 +150,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ProductSignalsInsights::class, ProductSignalsInsightsService::class);
         $this->commands([
             EntryPoints\Console\Commands\IndexEventsToTypesense::class,
             EntryPoints\Console\Commands\PruneShareCards::class,
