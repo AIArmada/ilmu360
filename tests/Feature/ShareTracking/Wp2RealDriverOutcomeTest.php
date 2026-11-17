@@ -6,7 +6,7 @@ declare(strict_types=1);
 //
 // Every case runs the actual current application + affiliates flows
 // (captureRequest landings, recordOutcome/recordInheritedOutcome,
-// ReverseShareOutcomeAction, DispatchShareEffectReceiptsAction) against
+// ShareOutcomeReversals, PendingShareEffects) against
 // worker-namespaced databases built from the current original migrations
 // receipt-first freeze, the fraud/accounting rollback, the TTL/dedupe
 // edges, the dispatcher recovery, or the monetary guard were deleted,
@@ -28,7 +28,8 @@ use AIArmada\Affiliates\Services\FraudDetectionService;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
+use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Models\Event;
 use App\Models\Registration;
@@ -626,10 +627,10 @@ function wp2CorrectionCase(TestCase $testCase): void
             wp2OutcomeRequest($cookie),
         ))->not->toBeNull();
 
-        $reverser = app(ReverseShareOutcomeAction::class);
-        $correction = $reverser->handle($businessKey, 'save_removed', $actor);
+        $reverser = app(ShareOutcomeReversals::class);
+        $correction = $reverser->reverse($businessKey, 'save_removed', (string) $actor->getKey());
 
-        expect($correction)->toBeInstanceOf(ShareOutcomeCorrection::class)
+        expect($correction)->toBeInstanceOf(OutcomeCorrectionSnapshot::class)
             ->and(ShareOutcomeCorrection::query()->count())->toBe(1)
             ->and(wp2ConversionStatusValue(AffiliateConversion::query()->firstOrFail()))->toBe('reversed')
             ->and(ShareEffectReceipt::query()->firstOrFail()->status)->toBe(ShareEffectStatus::Cancelled);
@@ -638,9 +639,9 @@ function wp2CorrectionCase(TestCase $testCase): void
         // correction is idempotent under retry with different text.
         expect(ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail()->isAttributed())->toBeTrue();
 
-        $retry = $reverser->handle($businessKey, 'save_removed_retry', $actor);
+        $retry = $reverser->reverse($businessKey, 'save_removed_retry', (string) $actor->getKey());
 
-        expect((string) $retry->getKey())->toBe((string) $correction->getKey())
+        expect($retry->id)->toBe($correction->id)
             ->and(ShareOutcomeCorrection::query()->count())->toBe(1);
 
         // A conversion carrying posted money is never touched by the
@@ -661,7 +662,7 @@ function wp2CorrectionCase(TestCase $testCase): void
         $failure = null;
 
         try {
-            $reverser->handle($moneyKey, 'save_removed', $actor);
+            $reverser->reverse($moneyKey, 'save_removed', (string) $actor->getKey());
         } catch (InvalidArgumentException $exception) {
             $failure = $exception->getMessage();
         }
@@ -941,7 +942,7 @@ function wp2CancelledSourceInheritanceCase(TestCase $testCase): void
         $source = $service->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, null, $actor, wp2OutcomeRequest($cookie));
         expect($source)->not->toBeNull();
 
-        $correction = app(ReverseShareOutcomeAction::class)->handle($sourceKey, 'registration_cancelled', $actor);
+        $correction = app(ShareOutcomeReversals::class)->reverse($sourceKey, 'registration_cancelled', (string) $actor->getKey());
         expect($correction)->not->toBeNull()
             ->and(wp2ConversionStatusValue(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $sourceKey))->firstOrFail()))->toBe('reversed');
 
@@ -1011,7 +1012,7 @@ function wp2CorrectionDispatchCase(TestCase $testCase): void
         $validKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         expect($service->recordOutcome(ShareOutcomeType::EventSave, $revokedKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull()
             ->and($service->recordOutcome(ShareOutcomeType::EventSave, $validKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull()
-            ->and(app(ReverseShareOutcomeAction::class)->handle($revokedKey, 'registration_cancelled', $actor))->not->toBeNull();
+            ->and(app(ShareOutcomeReversals::class)->reverse($revokedKey, 'registration_cancelled', (string) $actor->getKey()))->not->toBeNull();
 
         $processed = app(PendingShareEffects::class)->dispatch(10);
         expect($processed)->toBe(1)

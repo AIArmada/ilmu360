@@ -10,11 +10,11 @@ declare(strict_types=1);
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Models\Event;
-use App\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
@@ -137,14 +137,14 @@ try {
     $report = OwnerContext::withOwner(null, fn (): array => match ($mode) {
         'outcome', 'correction' => (static function () use ($mode, $slot, $payload, $buildRequest): array {
             if ($mode === 'correction' && $slot === 1) {
-                $correction = app(ReverseShareOutcomeAction::class)->handle(
+                $correction = app(ShareOutcomeReversals::class)->reverse(
                     (string) ($payload['business_key'] ?? ''),
                     'wp2_race_correction',
                 );
 
                 return [
-                    'correction_id' => $correction instanceof ShareOutcomeCorrection
-                        ? (string) $correction->getKey()
+                    'correction_id' => $correction instanceof OutcomeCorrectionSnapshot
+                        ? (string) $correction->id
                         : null,
                 ];
             }
@@ -218,22 +218,22 @@ try {
         })(),
         'inherit_correction' => (static function () use ($slot, $payload): array {
             if ($slot === 1) {
-                $sourceCorrection = app(ReverseShareOutcomeAction::class)->handle(
+                $sourceCorrection = app(ShareOutcomeReversals::class)->reverse(
                     (string) ($payload['source_key'] ?? ''),
                     'wp2_race_correction',
                 );
 
-                $childCorrection = app(ReverseShareOutcomeAction::class)->handle(
+                $childCorrection = app(ShareOutcomeReversals::class)->reverse(
                     (string) ($payload['child_key'] ?? ''),
                     'wp2_race_correction',
                 );
 
                 return [
-                    'source_correction_id' => $sourceCorrection instanceof ShareOutcomeCorrection
-                        ? (string) $sourceCorrection->getKey()
+                    'source_correction_id' => $sourceCorrection instanceof OutcomeCorrectionSnapshot
+                        ? (string) $sourceCorrection->id
                         : null,
-                    'child_correction_id' => $childCorrection instanceof ShareOutcomeCorrection
-                        ? (string) $childCorrection->getKey()
+                    'child_correction_id' => $childCorrection instanceof OutcomeCorrectionSnapshot
+                        ? (string) $childCorrection->id
                         : null,
                 ];
             }

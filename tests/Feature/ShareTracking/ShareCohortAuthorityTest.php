@@ -13,7 +13,7 @@ use AIArmada\Affiliates\Enums\FraudSeverity;
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\Event;
 use App\Models\User;
@@ -165,10 +165,10 @@ function scoMatureWeek(TestCase $testCase): array
     $u6 = scoSignup($testCase, $founder, 'Cohort Six', 'cohort-6@example.test', CarbonImmutable::parse('2026-05-12T13:00:00Z'));
     scoFirstShare($testCase, $u6, CarbonImmutable::parse('2026-05-20T13:00:00Z'));
     $reversedParticipation = scoParticipation($testCase, $u6, CarbonImmutable::parse('2026-05-21T13:00:00Z'));
-    $correction = app(ReverseShareOutcomeAction::class)->handle(
+    $correction = app(ShareOutcomeReversals::class)->reverse(
         $reversedParticipation['business_key'],
         'source-corrected',
-        $founder,
+        (string) $founder->getKey(),
     );
     expect($correction)->not->toBeNull();
 

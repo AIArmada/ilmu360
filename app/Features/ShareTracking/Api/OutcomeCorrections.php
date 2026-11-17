@@ -20,6 +20,9 @@ interface OutcomeCorrections
      */
     public function hasForBusinessKeyUnderLock(string $businessKey): bool;
 
+    /** Lock and return an existing correction for idempotent replay. */
+    public function findByBusinessKeyUnderLock(string $businessKey): ?OutcomeCorrectionSnapshot;
+
     /**
      * Record the correction for a reversed share outcome.
      *

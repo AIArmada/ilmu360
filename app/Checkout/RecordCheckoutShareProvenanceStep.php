@@ -9,10 +9,10 @@ use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\Event;
 use App\Models\Registration;
-use App\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
@@ -27,7 +27,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
 {
     public function __construct(
         private readonly AffiliatesShareTrackingService $shareTracking,
-        private readonly ReverseShareOutcomeAction $reverseShareOutcome,
+        private readonly ShareOutcomeReversals $reverseShareOutcome,
     ) {}
 
     public function getIdentifier(): string
@@ -142,12 +142,12 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
 
         foreach ($registrationIds as $registrationId) {
             try {
-                $correction = $this->reverseShareOutcome->handle(
+                $correction = $this->reverseShareOutcome->reverse(
                     ShareOutcomeBusinessKey::eventRegistration($registrationId),
                     'checkout_compensated',
                 );
 
-                if ($correction instanceof ShareOutcomeCorrection) {
+                if ($correction instanceof OutcomeCorrectionSnapshot) {
                     $reversed++;
                 }
             } catch (Throwable $e) {

@@ -21,7 +21,7 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Vouchers\Models\Voucher;
 use AIArmada\Vouchers\States\Expired;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Features\Referrals\EntryPoints\Jobs\ReverseReferralRewardsForShareOutcomeJob;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
@@ -253,7 +253,7 @@ it('reverses fulfilled points and voucher sides when the qualifying source is ca
     new QualifyReferralFromShareOutcomeJob($sourceKey)->handle(app(ReferralOutcomeWorkflow::class));
 
     $registration->forceFill(['status' => 'cancelled'])->save();
-    ReverseShareOutcomeAction::run($sourceKey, 'registration-cancelled');
+    app(ShareOutcomeReversals::class)->reverse($sourceKey, 'registration-cancelled');
     Queue::assertPushed(ReverseReferralRewardsForShareOutcomeJob::class, fn (ReverseReferralRewardsForShareOutcomeJob $job): bool => $job->businessKey === $sourceKey);
     new ReverseReferralRewardsForShareOutcomeJob($sourceKey, 'registration-cancelled')->handle(app(ReferralOutcomeWorkflow::class));
 

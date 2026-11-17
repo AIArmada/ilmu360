@@ -30,6 +30,16 @@ final class DatabaseOutcomeCorrections implements OutcomeCorrections
             ->exists();
     }
 
+    public function findByBusinessKeyUnderLock(string $businessKey): ?OutcomeCorrectionSnapshot
+    {
+        $correction = ShareTrackingModel::query('share_outcome_correction')
+            ->where('business_key', $businessKey)
+            ->lockForUpdate()
+            ->first();
+
+        return $correction instanceof Model ? $this->snapshot($correction) : null;
+    }
+
     public function ensure(
         string $businessKey,
         string $conversionId,

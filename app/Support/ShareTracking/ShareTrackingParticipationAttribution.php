@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\EventCheckin;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
@@ -28,7 +28,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
 {
     public function __construct(
         private AffiliatesShareTrackingService $shareTracking,
-        private ReverseShareOutcomeAction $reverseShareOutcome,
+        private ShareOutcomeReversals $reverseShareOutcome,
     ) {}
 
     /**
@@ -135,10 +135,12 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         string $reason,
         ?string $actorId = null,
     ): void {
-        $this->reverseShareOutcome->handle(
+        $actor = $this->findActor($actorId);
+
+        $this->reverseShareOutcome->reverse(
             ShareOutcomeBusinessKey::eventCheckin($checkinId),
             $reason,
-            $this->findActor($actorId),
+            $actor instanceof User ? (string) $actor->getKey() : null,
         );
     }
 

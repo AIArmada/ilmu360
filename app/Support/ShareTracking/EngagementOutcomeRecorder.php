@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Contracts\ShareTrackingContract;
 use App\Models\User;
 use App\Shared\Engagement\EngagementShareOutcomes;
@@ -37,7 +37,7 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
 
     public function __construct(
         private ShareTrackingContract $shareTracking,
-        private ReverseShareOutcomeAction $reverse,
+        private ShareOutcomeReversals $reverse,
     ) {}
 
     public function recordBookmark(
@@ -167,10 +167,10 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
         string $reason,
         ?Authenticatable $actor,
     ): void {
-        $this->reverse->handle(
+        $this->reverse->reverse(
             $businessKey,
             $reason,
-            $actor instanceof User ? $actor : null,
+            $actor instanceof User ? (string) $actor->getKey() : null,
         );
     }
 

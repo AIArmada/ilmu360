@@ -7,6 +7,7 @@ namespace App\Actions\ShareTracking;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Api\TicketAffiliateReversals;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
@@ -33,7 +34,7 @@ final readonly class ReverseEventParticipationOutcomesAction
     use AsAction;
 
     public function __construct(
-        private ReverseShareOutcomeAction $reverseShareOutcome,
+        private ShareOutcomeReversals $reverseShareOutcome,
         private TicketAffiliateReversals $reverseTicketAffiliateCommission,
     ) {}
 
@@ -45,10 +46,10 @@ final readonly class ReverseEventParticipationOutcomesAction
             ->where('event_id', $event->getKey())
             ->lockForUpdate()
             ->pluck('id')
-            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->handle(
+            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->reverse(
                 ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
                 $reason,
-                $actor,
+                $actor instanceof User ? (string) $actor->getKey() : null,
             ));
     }
 
@@ -60,10 +61,10 @@ final readonly class ReverseEventParticipationOutcomesAction
             ->where('event_occurrence_id', $occurrence->getKey())
             ->lockForUpdate()
             ->pluck('id')
-            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->handle(
+            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->reverse(
                 ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
                 $reason,
-                $actor,
+                $actor instanceof User ? (string) $actor->getKey() : null,
             ));
     }
 
@@ -75,10 +76,10 @@ final readonly class ReverseEventParticipationOutcomesAction
             ->where('event_session_id', $session->getKey())
             ->lockForUpdate()
             ->pluck('id')
-            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->handle(
+            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->reverse(
                 ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
                 $reason,
-                $actor,
+                $actor instanceof User ? (string) $actor->getKey() : null,
             ));
     }
 
@@ -89,10 +90,10 @@ final readonly class ReverseEventParticipationOutcomesAction
     {
         $query->lockForUpdate()->get()->each(function (Registration $registration) use ($reason, $actor): void {
             $this->reverseTicketAffiliateCommission->reverse((string) $registration->getKey(), $reason);
-            $this->reverseShareOutcome->handle(
+            $this->reverseShareOutcome->reverse(
                 ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                 $reason,
-                $actor,
+                $actor instanceof User ? (string) $actor->getKey() : null,
             );
         });
     }

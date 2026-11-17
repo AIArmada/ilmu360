@@ -210,3 +210,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move ReverseReferralRewardsForShareOutcomeJob into Referrals/EntryPoints/Jobs, expose scheduleRewardReversal on ReferralOutcomeWorkflow and preserve afterCommit dispatch/catch semantics in the current outcome correction orchestrator.
 - [x] Update job and finance tests; extend architecture audit to reject deleted namespaces.
 - [ ] Verify reward queue idempotency, payout guard and worker behavior on Quality CI.
+
+
+### Share-outcome reversal hard cutover
+- [x] Rehome correction and nonmonetary reversal orchestration to ShareTracking with public ShareOutcomeReversals and OutcomeCorrectionSnapshot, no root alias.
+- [x] Preserve correction lock ordering, monetary guard, referral afterCommit and observer, and receipt-first conversion locks. Checkout, moderation, participation and engagement send scalar actor IDs.
+- [ ] Verify concurrent replay, settlement and referral reversal tests on Quality CI.

@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\Event;
 use App\Models\User;
@@ -233,7 +233,7 @@ it('splits outcomes into valid, unknown, reversed, rejected, and unattributed ca
     $reversedKey = ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.(Str::uuid()));
     $reversedActor = User::factory()->create();
     smrRecordOutcome(ShareOutcomeType::EventCheckin, $reversedKey, $reversedActor, $cookie, $at);
-    app(ReverseShareOutcomeAction::class)->handle($reversedKey, 'source-corrected', $this->sharer);
+    app(ShareOutcomeReversals::class)->reverse($reversedKey, 'source-corrected', (string) $this->sharer->getKey());
 
     $rejected = $make();
     $rejected->forceFill(['status' => 'rejected', 'rejected_at' => $at])->save();

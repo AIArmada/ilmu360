@@ -9,7 +9,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\States\EventModerationStatus\Approved as SubmissionApproved;
 use AIArmada\Events\States\EventModerationStatus\Pending as SubmissionPending;
 use AIArmada\Events\States\EventModerationStatus\Rejected as SubmissionRejected;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Events\Api\EventSubmissions;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Notification;
 final readonly class ModerateEventOccurrenceSubmissionAction
 {
     public function __construct(
-        private ReverseShareOutcomeAction $reverseShareOutcome,
+        private ShareOutcomeReversals $reverseShareOutcome,
         private SignalRecorder $signals,
         private EventSubmissions $eventSubmissions,
     ) {}
@@ -66,10 +66,10 @@ final readonly class ModerateEventOccurrenceSubmissionAction
                 $note,
             );
 
-            $this->reverseShareOutcome->handle(
+            $this->reverseShareOutcome->reverse(
                 ShareOutcomeBusinessKey::eventSubmission($result['submission_id']),
                 'submission_rejected',
-                $moderator,
+                (string) $moderator->getKey(),
             );
 
             return $this->rehydrateModerationModels($result);

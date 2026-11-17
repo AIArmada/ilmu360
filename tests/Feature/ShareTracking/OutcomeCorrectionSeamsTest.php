@@ -6,7 +6,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Referrals\EntryPoints\Jobs\ReverseReferralRewardsForShareOutcomeJob;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
@@ -219,13 +219,13 @@ it('records the correction row through the reversal while preserving reversal an
         linkId: (string) Str::uuid(),
     );
 
-    $correction = app(ReverseShareOutcomeAction::class)->handle($businessKey, 'save_removed', $actor);
+    $correction = app(ShareOutcomeReversals::class)->reverse($businessKey, 'save_removed', (string) $actor->getKey());
 
     expect($correction)->not->toBeNull();
 
     $row = ShareOutcomeCorrection::query()->where('business_key', $businessKey)->sole();
 
-    expect((string) $row->getKey())->toBe((string) $correction?->getKey())
+    expect((string) $row->getKey())->toBe($correction?->id)
         ->and($row->conversion_id)->toBe((string) $conversion->getKey())
         ->and($row->reason)->toBe('save_removed')
         ->and($row->actor_type)->toBe($actor->getMorphClass())
@@ -241,9 +241,9 @@ it('records the correction row through the reversal while preserving reversal an
 
     // Replaying the same reversal returns the same correction and never
     // rewrites its reason or re-fires the created observer.
-    $replayed = app(ReverseShareOutcomeAction::class)->handle($businessKey, 'different_reason');
+    $replayed = app(ShareOutcomeReversals::class)->reverse($businessKey, 'different_reason');
 
-    expect((string) $replayed?->getKey())->toBe((string) $row->getKey())
+    expect($replayed?->id)->toBe((string) $row->getKey())
         ->and(ShareOutcomeCorrection::query()->count())->toBe(1)
         ->and(ShareOutcomeCorrection::query()->sole()->reason)->toBe('save_removed');
 
@@ -255,7 +255,7 @@ it('records a null actor through the reversal', function (): void {
 
     [$businessKey] = s2a2ReversibleOutcome();
 
-    $correction = app(ReverseShareOutcomeAction::class)->handle($businessKey, 'registration_cancelled');
+    $correction = app(ShareOutcomeReversals::class)->reverse($businessKey, 'registration_cancelled');
 
     expect($correction)->not->toBeNull();
 

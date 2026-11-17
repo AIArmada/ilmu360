@@ -5,7 +5,7 @@ declare(strict_types=1);
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Contracts\ShareTrackingContract;
 use App\Features\Engagement\Contributors\EngagementAccountLifecycleContributor;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
@@ -32,7 +32,7 @@ function d4aEngagementOutcomeRecorder(): array
     $tracking = Mockery::mock(ShareTrackingContract::class);
 
     return [
-        new EngagementOutcomeRecorder($tracking, app(ReverseShareOutcomeAction::class)),
+        new EngagementOutcomeRecorder($tracking, app(ShareOutcomeReversals::class)),
         $tracking,
     ];
 }

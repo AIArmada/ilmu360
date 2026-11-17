@@ -14,6 +14,7 @@ use App\Features\ShareTracking\Actions\LandingAttribution\CreateLandingAttributi
 use App\Features\ShareTracking\Actions\LandingAttribution\TouchPassiveNavigationAttributionAction;
 use App\Features\ShareTracking\Actions\MemberProfiles\EnsureMemberAffiliateProfileAction;
 use App\Features\ShareTracking\Actions\OutboundAttribution\CreateOutboundShareAttributionAction;
+use App\Features\ShareTracking\Actions\Reversals\ReverseShareOutcomeAction;
 use App\Features\ShareTracking\Actions\Touchpoints\RecordOutboundShareTouchpointAction;
 use App\Features\ShareTracking\Actions\Touchpoints\RecordVisitTouchpointAction;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
@@ -31,6 +32,7 @@ use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\PassiveNavigationAttributionWriter;
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\ShareOutcomeEvidenceReader;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
@@ -63,9 +65,8 @@ use App\Platform\FeatureModule;
  *   the effect dispatcher behind PendingShareEffects, while the Events-owned
  *   TicketAffiliateReversals boundary handles guarded commission reversal.
  * - S2a2 outcome corrections: `DatabaseOutcomeCorrections` owns the idempotent
- *   correction create/replay. `ReverseShareOutcomeAction` keeps the outer
- *   reversal transaction, effect-lock and conversion-reversal order, monetary
- *   guard, and the correction observer dispatch.
+ *   correction create/replay. ShareOutcomeReversals owns the reversal
+ *   transaction, effect-lock/conversion ordering, monetary guard, and observer.
  * - S2b guest claims (landed): `ClaimGuestProfileAction` owns the guest claim
  *   orchestration behind `GuestShareClaims`, preserving the users → capability
  *   → guest affiliate → existing claim → recipient member affiliate → claim
@@ -128,6 +129,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(MemberAffiliateProfileWriter::class, EnsureMemberAffiliateProfileAction::class);
         $this->app->bind(OutboundShareAttributionWriter::class, CreateOutboundShareAttributionAction::class);
         $this->app->bind(OutcomeCorrections::class, DatabaseOutcomeCorrections::class);
+        $this->app->bind(ShareOutcomeReversals::class, ReverseShareOutcomeAction::class);
         $this->app->bind(ShareOutcomeEvidenceReader::class, DatabaseShareOutcomeEvidenceReader::class);
         $this->app->bind(SourceAttributionReceipts::class, DatabaseSourceAttributionReceipts::class);
         $this->app->bind(SourceReceiptReader::class, DatabaseSourceReceiptReader::class);

@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Actions\ShareTracking\ReverseEventParticipationOutcomesAction;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Log;
 class ModerationService
 {
     public function __construct(
-        private readonly ReverseShareOutcomeAction $reverseShareOutcome,
+        private readonly ShareOutcomeReversals $reverseShareOutcome,
         private readonly SignalRecorder $signals,
     ) {}
 
@@ -97,10 +97,10 @@ class ModerationService
                 ->lockForUpdate()
                 ->pluck('id')
                 ->each(function (mixed $submissionId) use ($moderator): void {
-                    $this->reverseShareOutcome->handle(
+                    $this->reverseShareOutcome->reverse(
                         ShareOutcomeBusinessKey::eventSubmission((string) $submissionId),
                         'submission_rejected',
-                        $moderator,
+                        (string) $moderator->getKey(),
                     );
                 });
         });

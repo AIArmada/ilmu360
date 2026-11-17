@@ -2,28 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\ShareTracking;
+namespace App\Features\ShareTracking\Actions\Reversals;
 
 use AIArmada\Affiliates\Actions\Conversions\ReverseAffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
-use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
-use App\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
+use App\Platform\Models\MorphModelResolver;
+use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareTrackingFinance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class ReverseShareOutcomeAction
+final readonly class ReverseShareOutcomeAction implements ShareOutcomeReversals
 {
-    use AsAction;
 
     public function __construct(
         private ReverseAffiliateConversion $reverseConversion,
@@ -32,11 +31,11 @@ final readonly class ReverseShareOutcomeAction
         private ReferralOutcomeWorkflow $referrals,
     ) {}
 
-    public function handle(
+    public function reverse(
         string $businessKey,
         string $reason,
-        ?User $actor = null,
-    ): ?ShareOutcomeCorrection {
+        ?string $actorId = null,
+    ): ?OutcomeCorrectionSnapshot {
         $businessKey = trim($businessKey);
         $reason = trim($reason);
 
@@ -76,10 +75,10 @@ final readonly class ReverseShareOutcomeAction
 
         ShareOutcomeBusinessKey::parse($businessKey, $outcomeType);
 
-        return DB::transaction(function () use ($businessKey, $reason, $actor): ?ShareOutcomeCorrection {
-            $existing = ShareOutcomeCorrection::query()->where('business_key', $businessKey)->lockForUpdate()->first();
+        return DB::transaction(function () use ($businessKey, $reason, $actorId): ?OutcomeCorrectionSnapshot {
+            $existing = $this->outcomeCorrections->findByBusinessKeyUnderLock($businessKey);
 
-            if ($existing instanceof ShareOutcomeCorrection) {
+            if ($existing instanceof OutcomeCorrectionSnapshot) {
                 return $existing;
             }
 
@@ -111,15 +110,21 @@ final readonly class ReverseShareOutcomeAction
 
             $this->effectReceipts->cancelPendingBySource($businessKey);
 
+            $actorType = null;
+            if ($actorId !== null) {
+                $userClass = MorphModelResolver::resolve('user');
+                $actorType = (new $userClass)->getMorphClass();
+            }
+
             $correction = $this->outcomeCorrections->ensure(
                 businessKey: $businessKey,
                 conversionId: (string) $conversion->getKey(),
                 reason: $reason,
-                actorType: $actor?->getMorphClass(),
-                actorId: $actor instanceof User ? (string) $actor->getKey() : null,
+                actorType: $actorType,
+                actorId: $actorId,
             );
 
-            return ShareOutcomeCorrection::query()->findOrFail($correction->id);
+            return $correction;
         }, 3);
     }
 }

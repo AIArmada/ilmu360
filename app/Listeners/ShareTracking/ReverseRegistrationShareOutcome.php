@@ -7,7 +7,7 @@ namespace App\Listeners\ShareTracking;
 use AIArmada\Events\Events\EventRegistrationCancelled;
 use AIArmada\Events\Events\EventRegistrationRefunded;
 use AIArmada\Events\Events\EventRegistrationRejected;
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Models\EventCheckin;
 use App\Models\User;
@@ -27,7 +27,7 @@ use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 final readonly class ReverseRegistrationShareOutcome
 {
     public function __construct(
-        private ReverseShareOutcomeAction $reverseShareOutcome,
+        private ShareOutcomeReversals $reverseShareOutcome,
         private TicketAffiliateReversals $reverseTicketAffiliateCommission,
     ) {}
 
@@ -42,20 +42,20 @@ final readonly class ReverseRegistrationShareOutcome
 
         $this->reverseTicketAffiliateCommission->reverse((string) $event->registration->getKey(), $reason);
 
-        $this->reverseShareOutcome->handle(
+        $this->reverseShareOutcome->reverse(
             ShareOutcomeBusinessKey::eventRegistration((string) $event->registration->getKey()),
             $reason,
-            $actor instanceof User ? $actor : null,
+            $actor instanceof User ? (string) $actor->getKey() : null,
         );
 
         EventCheckin::query()
             ->where('event_registration_id', $event->registration->getKey())
             ->lockForUpdate()
             ->pluck('id')
-            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->handle(
+            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->reverse(
                 ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
                 $reason,
-                $actor instanceof User ? $actor : null,
+                $actor instanceof User ? (string) $actor->getKey() : null,
             ));
     }
 }

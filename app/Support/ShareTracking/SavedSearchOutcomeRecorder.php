@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Actions\ShareTracking\ReverseShareOutcomeAction;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Contracts\ShareTrackingContract;
 use App\Models\User;
 use App\Shared\Auth\ResourceOwner;
@@ -19,7 +19,7 @@ final readonly class SavedSearchOutcomeRecorder implements SavedSearchShareOutco
 {
     public function __construct(
         private ShareTrackingContract $shareTracking,
-        private ReverseShareOutcomeAction $reverse,
+        private ShareOutcomeReversals $reverse,
     ) {}
 
     public function recordCreated(
@@ -45,10 +45,10 @@ final readonly class SavedSearchOutcomeRecorder implements SavedSearchShareOutco
         ?Authenticatable $actor,
         Request $request,
     ): void {
-        $this->reverse->handle(
+        $this->reverse->reverse(
             ShareOutcomeBusinessKey::savedSearch($savedSearchId),
             'saved_search_deleted',
-            $actor instanceof User ? $actor : null,
+            $actor instanceof User ? (string) $actor->getKey() : null,
         );
     }
 }
