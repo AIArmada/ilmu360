@@ -83,3 +83,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "refactor: move product signals reporting into Events behind public Api"
           git push origin HEAD:refactor
+
+# Model ownership is now explicit on EventSubmission.
