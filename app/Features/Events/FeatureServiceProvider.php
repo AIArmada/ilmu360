@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events;
 
 use App\Features\Events\Actions\Authoring\CreateEventWithInitialOccurrenceAction;
+use App\Features\Events\Actions\Authoring\CreateEventWithRegistrationAction;
 use App\Features\Events\Actions\Authoring\PrepareAdvancedParentProgramSubmissionAction;
 use App\Features\Events\Actions\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Features\Events\Actions\Authoring\ResolveAdvancedBuilderMembershipOptionsAction;
@@ -17,6 +18,7 @@ use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\Actions\ResolveRegistrationExportContextAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Actions\Submission\ModerateEventOccurrenceSubmissionAction;
+use App\Features\Events\Api\AdmissionEventCreator;
 use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\AdvancedBuilderContext;
@@ -156,6 +158,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AdvancedProgramPreparation::class, PrepareAdvancedParentProgramSubmissionAction::class);
         $this->app->bind(AdminEventWriter::class, AdminEventWriterService::class);
         $this->app->bind(AdvancedEventCreator::class, CreateEventWithInitialOccurrenceAction::class);
+        $this->app->bind(AdmissionEventCreator::class, CreateEventWithRegistrationAction::class);
         $this->app->bind(EventAccountOwnership::class, EventAccountOwnershipService::class);
         $this->app->bind(EventAuthoring::class, EventAuthoringService::class);
         $this->app->bind(EventDeletion::class, CleanupEventAction::class);

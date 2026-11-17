@@ -2,26 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Authoring;
+namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Organizations\Models\Organization;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
+use App\Features\Events\Api\AdmissionEventCreator;
 use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\User;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class CreateEventWithRegistrationAction
+final readonly class CreateEventWithRegistrationAction implements AdmissionEventCreator
 {
-    use AsAction;
 
     public function __construct(
         private AdvancedEventCreator $createEventWithInitialOccurrence,
@@ -33,49 +27,53 @@ final readonly class CreateEventWithRegistrationAction
      * @param  array<int, array<string, mixed>>  $tickets
      * @param  array<string, mixed>  $seating
      */
-    public function handle(
-        User $user,
+    public function create(
+        string $actorId,
         array $form,
-        Carbon $startsAt,
-        Carbon $endsAt,
+        string $startsAt,
+        string $endsAt,
         string $timezone,
-        Institution|Person|null $primaryOrganizer,
+        ?string $primaryOrganizerType,
+        ?string $primaryOrganizerId,
         ?string $locationInstitutionId,
-        ?Organization $organization,
-        RegistrationMode $registrationMode,
-        PricingMode $pricingMode,
+        ?string $organizationId,
+        string $registrationMode,
+        string $pricingMode,
         array $tickets,
         array $seating = [],
         ?string $locationVenueId = null,
-    ): Event {
+    ): string {
+        $registrationMode = RegistrationMode::from($registrationMode);
+        $pricingMode = PricingMode::from($pricingMode);
         $tickets = $this->normalizeTicketSeating($tickets);
         $seating = $this->ticketSeatingEnabled() ? $seating : [];
 
         return DB::transaction(function () use (
-            $user,
+            $actorId,
             $form,
             $startsAt,
             $endsAt,
             $timezone,
-            $primaryOrganizer,
+            $primaryOrganizerType,
+            $primaryOrganizerId,
             $locationInstitutionId,
-            $organization,
+            $organizationId,
             $registrationMode,
             $pricingMode,
             $tickets,
             $seating,
             $locationVenueId,
-        ): Event {
+        ): string {
             $eventId = $this->createEventWithInitialOccurrence->create(
-                actorId: (string) $user->getKey(),
+                actorId: $actorId,
                 form: $form,
-                startsAt: $startsAt->toIso8601String(),
-                endsAt: $endsAt->toIso8601String(),
+                startsAt: $startsAt,
+                endsAt: $endsAt,
                 timezone: $timezone,
-                primaryOrganizerType: $primaryOrganizer?->getMorphClass(),
-                primaryOrganizerId: $primaryOrganizer !== null ? (string) $primaryOrganizer->getKey() : null,
+                primaryOrganizerType: $primaryOrganizerType,
+                primaryOrganizerId: $primaryOrganizerId,
                 locationInstitutionId: $locationInstitutionId,
-                organizationId: $organization !== null ? (string) $organization->getKey() : null,
+                organizationId: $organizationId,
                 locationVenueId: $locationVenueId,
             );
             $event = Event::query()->withoutOwnerScope()->findOrFail($eventId);
@@ -86,7 +84,7 @@ final readonly class CreateEventWithRegistrationAction
                 $pricingMode,
                 $tickets,
                 $seating,
-            ): Event {
+            ): string {
                 $this->eventAuthoring->configureAdmission(
                     (string) $event->getKey(),
                     [
@@ -97,7 +95,7 @@ final readonly class CreateEventWithRegistrationAction
                     ],
                 );
 
-                return $event->fresh(['primaryOccurrence', 'ticketTypes', 'accessPolicies']) ?? $event;
+                return (string) $event->getKey();
             });
         });
     }

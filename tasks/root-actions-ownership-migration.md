@@ -250,3 +250,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Public AdvancedEventCreator accepts scalar actor/organizer/location identity and UTC date strings, returns ID; root advanced HTTP and admission action hydrate models as needed.
 - [x] Delete root CreateEventWithInitialOccurrenceAction; no aliases or forwarding classes.
 - [ ] Verify ownership scope, media, package schedule writes, and CI.
+
+
+### Advanced event registration cutover
+- [x] Move ticketing/registration orchestration into Events/Actions/Authoring behind AdmissionEventCreator public scalar API.
+- [x] Keep seating disabled policy and nested DB transaction; ticket/configuration writes remain through EventAuthoring. Livewire and root Organization creation now call scalar API and hydrate models locally.
+- [x] Delete old CreateEventWithRegistrationAction without aliases.
+- [ ] Verify admin/event creation and Org-scoped ownership in CI.

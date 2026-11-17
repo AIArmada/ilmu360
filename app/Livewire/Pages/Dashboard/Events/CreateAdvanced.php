@@ -8,7 +8,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Actions\Events\Authoring\CreateEventWithRegistrationAction;
+use App\Features\Events\Api\AdmissionEventCreator;
 use App\Enums\RegistrationScope;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Features\Events\Api\AdvancedBuilderContext;
@@ -887,7 +887,7 @@ class CreateAdvanced extends Component implements HasForms
     }
 
     public function submit(
-        CreateEventWithRegistrationAction $createEventWithRegistrationAction,
+        AdmissionEventCreator $admissionEventCreator,
         AdvancedProgramPreparation $advancedProgramPreparation,
     ): mixed {
         $this->applyContextDefaults();
@@ -914,26 +914,21 @@ class CreateAdvanced extends Component implements HasForms
             $this->contextPersonId !== '' ? $this->contextPersonId : null,
         );
 
-        $primaryOrganizerId = $preparedSubmission['primary_organizer_id'];
-        $primaryOrganizer = match ($preparedSubmission['primary_organizer_type']) {
-            'institution' => Institution::query()->findOrFail($primaryOrganizerId),
-            'person' => Person::query()->findOrFail($primaryOrganizerId),
-        };
-
         try {
-            $event = $createEventWithRegistrationAction->handle(
-                user: $user,
+            $eventId = $admissionEventCreator->create(
+                actorId: (string) $user->getKey(),
                 form: $form,
-                startsAt: Carbon::parse($preparedSubmission['program_starts_at']),
-                endsAt: Carbon::parse($preparedSubmission['program_ends_at']),
+                startsAt: $preparedSubmission['program_starts_at'],
+                endsAt: $preparedSubmission['program_ends_at'],
                 timezone: $preparedSubmission['timezone'],
-                primaryOrganizer: $primaryOrganizer,
+                primaryOrganizerType: $preparedSubmission['primary_organizer_type'],
+                primaryOrganizerId: $preparedSubmission['primary_organizer_id'],
                 locationInstitutionId: $preparedSubmission['location_institution_id'],
-                organization: null,
+                organizationId: null,
                 registrationMode: (bool) ($validated['form']['registration_required'] ?? false)
-                    ? RegistrationMode::Required
-                    : RegistrationMode::None,
-                pricingMode: PricingMode::from((string) $validated['form']['pricing_mode']),
+                    ? RegistrationMode::Required->value
+                    : RegistrationMode::None->value,
+                pricingMode: PricingMode::from((string) $validated['form']['pricing_mode'])->value,
                 tickets: (array) $validated['form']['tickets'],
                 seating: (array) ($this->form['seating'] ?? []),
                 locationVenueId: is_string($form['location_venue_id'] ?? null) ? $form['location_venue_id'] : null,
@@ -946,7 +941,7 @@ class CreateAdvanced extends Component implements HasForms
             return null;
         }
 
-        $query = ['event' => $event->id];
+        $query = ['event' => $eventId];
 
         if ($this->prefillPersonId !== '') {
             $query['person'] = $this->prefillPersonId;

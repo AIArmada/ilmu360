@@ -8,7 +8,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Ticketing\Enums\PricingMode;
-use App\Actions\Events\Authoring\CreateEventWithRegistrationAction;
+use App\Features\Events\Api\AdmissionEventCreator;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Models\Event;
 use App\Models\User;
@@ -21,7 +21,7 @@ final readonly class CreateOrganizationEventAction
     use AsAction;
 
     public function __construct(
-        private CreateEventWithRegistrationAction $createEventWithRegistration,
+        private AdmissionEventCreator $admissionEventCreator,
         private OrganizationAccess $organizationAccess,
     ) {}
 
@@ -46,8 +46,9 @@ final readonly class CreateOrganizationEventAction
         $registrationMode = RegistrationMode::from((string) $form['registration_mode']);
         $pricingMode = PricingMode::from((string) $form['pricing_mode']);
 
-        return OwnerContext::withOwner($organization, fn (): Event => $this->createEventWithRegistration->handle(
-            user: $creator,
+        return OwnerContext::withOwner($organization, function () use ($creator, $organization, $form, $startsAt, $endsAt, $timezone, $registrationMode, $pricingMode): Event {
+            $eventId = $this->admissionEventCreator->create(
+            actorId: (string) $creator->getKey(),
             form: [
                 'title' => (string) $form['title'],
                 'description' => $form['description'] ?? null,
@@ -59,16 +60,22 @@ final readonly class CreateOrganizationEventAction
                 'participant_identity' => (string) ($form['participant_identity'] ?? 'none'),
                 'refunds_enabled' => (bool) ($form['refunds_enabled'] ?? config('events.features.commerce.refunds_enabled_by_default', false)),
             ],
-            startsAt: $startsAt,
-            endsAt: $endsAt,
+            startsAt: $startsAt->toIso8601String(),
+            endsAt: $endsAt->toIso8601String(),
             timezone: $timezone,
-            primaryOrganizer: null,
+            primaryOrganizerType: null,
+            primaryOrganizerId: null,
             locationInstitutionId: null,
-            organization: $organization,
-            registrationMode: $registrationMode,
-            pricingMode: $pricingMode,
+            organizationId: (string) $organization->getKey(),
+            registrationMode: $registrationMode->value,
+            pricingMode: $pricingMode->value,
             tickets: (array) ($form['tickets'] ?? []),
             seating: (array) ($form['seating'] ?? []),
-        ));
+            );
+
+            return Event::query()->withoutOwnerScope()
+                ->with(['primaryOccurrence', 'ticketTypes', 'accessPolicies'])
+                ->findOrFail($eventId);
+        });
     }
 }
