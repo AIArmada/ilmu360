@@ -8,7 +8,7 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
-    timeout-minutes: 36
+    timeout-minutes: 37
     services:
       postgres:
         image: postgres:18
