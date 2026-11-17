@@ -1,0 +1,13 @@
+name: Domain read integrations ownership
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/domain-read-integrations-cutover.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/domain-read-integrations-cutover.py
