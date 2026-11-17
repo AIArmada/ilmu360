@@ -1,0 +1,47 @@
+name: Root feature consolidation audit
+on:
+  push:
+    branches: [refactor]
+    paths: ['.github/workflows/root-feature-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Analyze root ownership and dependencies
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from collections import Counter, defaultdict
+          import re
+          root=Path('app')
+          candidates=['Services','Support','Jobs','Listeners','Observers','Notifications','Console','Checkout','Contracts','Data','Enums','Forms','States','Rules','Mcp','Livewire','Http','Filament']
+          classes={}
+          for f in root.rglob('*.php'):
+              if f.parts[1] in ('Features','Platform','Shared'): continue
+              name='App\\'+'\\'.join(f.with_suffix('').parts[1:])
+              classes[name]=f
+          consumers=defaultdict(set)
+          text={}
+          rx=re.compile(r'App\\[A-Za-z_][A-Za-z0-9_]*(?:\\[A-Za-z_][A-Za-z0-9_]*)+')
+          for f in Path('.').rglob('*.php'):
+              if any(p in ('vendor','node_modules','.git','storage') for p in f.parts): continue
+              try: src=f.read_text()
+              except UnicodeDecodeError: continue
+              text[f]=src
+              for m in set(rx.findall(src)): consumers[m].add(str(f))
+          for prefix in candidates:
+              selected=[(n,p) for n,p in classes.items() if p.parts[1]==prefix]
+              if not selected: continue
+              print(f'=== {prefix}: {len(selected)} files ===')
+              for name,p in selected:
+                  src=text.get(p,'')
+                  deps=Counter(re.findall(r'App\\Features\\([A-Z][A-Za-z0-9]+)\\',src))
+                  owners=Counter(re.search(r'^app/Features/([^/]+)/',x).group(1) for x in consumers[name] if re.search(r'^app/Features/([^/]+)/',x))
+                  root_consumers=sum(not x.startswith('app/Features/') for x in consumers[name] if x!=str(p))
+                  if prefix in ('Services','Jobs','Listeners') or deps or owners:
+                      print(f'{str(p)} | feature_deps={dict(deps)} | feature_consumers={dict(owners)} | root_consumers={root_consumers}')
+          PY
