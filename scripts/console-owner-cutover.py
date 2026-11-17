@@ -10,6 +10,8 @@ import re
 ROOT = Path.cwd()
 PERSON_SOURCE = ROOT / "app/Console/Commands/ReindexPersonSearch.php"
 PERSON_TARGET = ROOT / "app/Features/Persons/EntryPoints/Console/Commands/ReindexPersonSearch.php"
+PERSON_CONTRACT = ROOT / "app/Features/Persons/Api/PersonSearchMaintenance.php"
+PERSON_SERVICE = ROOT / "app/Support/Search/PersonSearchService.php"
 LOCK_SOURCE = ROOT / "app/Console/Commands/SyncPublicSubmissionLocks.php"
 LOCK_TARGET = ROOT / "app/Platform/Console/Commands/SyncPublicSubmissionLocks.php"
 LOCK_CONTRACT = ROOT / "app/Shared/Submission/PublicSubmissionLockSweeper.php"
@@ -18,10 +20,10 @@ PERSON_PROVIDER = ROOT / "app/Features/Persons/FeatureServiceProvider.php"
 ROOT_PROVIDER = ROOT / "app/Providers/AppServiceProvider.php"
 BOOTSTRAP = ROOT / "bootstrap/app.php"
 
-for source in (PERSON_SOURCE, LOCK_SOURCE, LOCK_SERVICE, PERSON_PROVIDER, ROOT_PROVIDER, BOOTSTRAP):
+for source in (PERSON_SOURCE, LOCK_SOURCE, LOCK_SERVICE, PERSON_SERVICE, PERSON_PROVIDER, ROOT_PROVIDER, BOOTSTRAP):
     if not source.is_file():
         raise RuntimeError(f"Missing source: {source}")
-for dest in (PERSON_TARGET, LOCK_TARGET, LOCK_CONTRACT):
+for dest in (PERSON_TARGET, PERSON_CONTRACT, LOCK_TARGET, LOCK_CONTRACT):
     if dest.exists():
         raise RuntimeError(f"Destination already exists: {dest}")
 
@@ -38,7 +40,43 @@ PERSON_TARGET.write_text(person.replace(
     "namespace App\\Console\\Commands;",
     "namespace App\\Features\\Persons\\EntryPoints\\Console\\Commands;",
     1
+).replace(
+    "use App\\Support\\Search\\PersonSearchService;",
+    "use App\\Features\\Persons\\Api\\PersonSearchMaintenance;",
+    1
+).replace(
+    "PersonSearchService $personSearchService",
+    "PersonSearchMaintenance $personSearchService",
+    1
 ))
+PERSON_CONTRACT.parent.mkdir(parents=True, exist_ok=True)
+PERSON_CONTRACT.write_text("""<?php
+
+declare(strict_types=1);
+
+namespace App\\Features\\Persons\\Api;
+
+/** Index maintenance operations exposed to the Persons console entrypoint. */
+interface PersonSearchMaintenance
+{
+    public function searchIndexSchemaReady(): bool;
+
+    public function reindexAll(int $chunkSize = 100): int;
+}
+""")
+person_service = PERSON_SERVICE.read_text()
+if "class PersonSearchService implements PublicDiscoveryAdapter" not in person_service:
+    raise RuntimeError("Person search adapter declaration changed")
+person_service = person_service.replace(
+    "namespace App\\Support\\Search;",
+    "namespace App\\Support\\Search;\n\nuse App\\Features\\Persons\\Api\\PersonSearchMaintenance;",
+    1
+).replace(
+    "class PersonSearchService implements PublicDiscoveryAdapter",
+    "class PersonSearchService implements PublicDiscoveryAdapter, PersonSearchMaintenance",
+    1
+)
+PERSON_SERVICE.write_text(person_service)
 PERSON_SOURCE.unlink()
 
 LOCK_TARGET.parent.mkdir(parents=True, exist_ok=True)
@@ -108,7 +146,7 @@ if imports not in root:
     raise RuntimeError("App provider namespace changed")
 root = root.replace(
     imports,
-    imports + "\n\nuse App\\Shared\\Submission\\PublicSubmissionLockSweeper;\nuse App\\Support\\Submission\\PublicSubmissionLockService;",
+    imports + "\n\nuse App\\Features\\Persons\\Api\\PersonSearchMaintenance;\nuse App\\Support\\Search\\PersonSearchService;\nuse App\\Shared\\Submission\\PublicSubmissionLockSweeper;\nuse App\\Support\\Submission\\PublicSubmissionLockService;",
     1
 )
 registration = "        $this->app->bind(AccountDirectory::class, EloquentAccountDirectory::class);"
@@ -116,7 +154,7 @@ if registration not in root:
     raise RuntimeError("App provider registration insertion point missing")
 root = root.replace(
     registration,
-    registration + "\n        $this->app->bind(PublicSubmissionLockSweeper::class, PublicSubmissionLockService::class);",
+    registration + "\n        $this->app->bind(PersonSearchMaintenance::class, PersonSearchService::class);\n        $this->app->bind(PublicSubmissionLockSweeper::class, PublicSubmissionLockService::class);",
     1
 )
 ROOT_PROVIDER.write_text(root)
@@ -158,7 +196,7 @@ for old, new in old_classes.items():
                    for value in (old, old.replace("\\", "\\\\"))):
                 raise RuntimeError(f"Legacy namespace {old} remains in {file}")
 assert not PERSON_SOURCE.exists() and not LOCK_SOURCE.exists()
-assert PERSON_TARGET.is_file() and LOCK_TARGET.is_file()
+assert PERSON_TARGET.is_file() and PERSON_CONTRACT.is_file() and LOCK_TARGET.is_file()
 assert "PublicSubmissionLockSweeper" in LOCK_TARGET.read_text()
 print("Person search maintenance now belongs to Persons, and cross-domain submission lock CLI is a Platform adapter.")
 print("Old command classes deleted, exact CLI signatures retained, registration explicit and unique.")
