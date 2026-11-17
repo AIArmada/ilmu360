@@ -6,7 +6,7 @@ use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
-use App\Actions\Events\Authoring\ResolveAdvancedBuilderMembershipOptionsAction;
+use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
@@ -99,7 +99,7 @@ it('resolves advanced builder membership options from active member organizers o
     $activePerson->members()->syncWithoutDetaching([$user->id]);
     $inactivePerson->members()->syncWithoutDetaching([$user->id]);
 
-    $options = app(ResolveAdvancedBuilderMembershipOptionsAction::class)->handle($user);
+    $options = app(AdvancedBuilderMembershipOptions::class)->forAccount((string) $user->getKey());
 
     expect($options['institution_options'])->toBe([$activeInstitution->id => 'Masjid Aktif'])
         ->and($options['person_options'])->toBe([$activePerson->id => 'Person Aktif']);
