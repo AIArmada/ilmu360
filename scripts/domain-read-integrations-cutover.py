@@ -91,7 +91,7 @@ def main():
         for old in classes:
             if change_identifier(code,old,"")!=code or change_identifier(code,old.replace("\\","\\\\"),"")!=code:
                 raise RuntimeError("Legacy reference remains: "+old+" in "+str(f))
-        if f.suffix==".php" and "app/Features/" not in f.as_posix():
+        if f.suffix==".php" and f.as_posix().startswith(str(ROOT/"app")) and "/Features/" not in f.as_posix():
             for new in classes.values():
                 if "use "+new+";" in code:raise RuntimeError("Root imports feature private class "+new+" in "+str(f))
     for old,new in MOVES.items():
