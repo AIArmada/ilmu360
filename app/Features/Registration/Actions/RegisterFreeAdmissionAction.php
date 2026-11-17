@@ -43,6 +43,20 @@ final readonly class RegisterFreeAdmissionAction implements AdmissionRegistratio
      *     primary_registration_id: string|null
      * }
      */
+    public function hasActiveForUser(string $eventId, string $registrantId): bool
+    {
+        $registrationClass = MorphModelResolver::resolve('registration');
+        $userClass = MorphModelResolver::resolve('user');
+        $user = new $userClass;
+
+        return $registrationClass::query()
+            ->where('registrant_type', $user->getMorphClass())
+            ->where('registrant_id', $registrantId)
+            ->where('event_id', $eventId)
+            ->where('status', '!=', 'cancelled')
+            ->exists();
+    }
+
     public function registerFree(
         string $eventId,
         array $participants,

@@ -6,8 +6,11 @@ namespace App\Features\Engagement\Actions;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Models\Response;
-use App\Models\Event;
-use App\Models\User;
+use AIArmada\Engagement\Contracts\CanInteract;
+use AIArmada\Engagement\Contracts\EngagementManager;
+use AIArmada\Engagement\Contracts\Respondable;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -25,6 +28,7 @@ final readonly class RemoveEventGoingAction
     use AsAction;
 
     public function __construct(
+        private EngagementManager $engagement,
         private EngagementCounterService $engagementCounter,
         private EngagementShareOutcomes $shareOutcomes,
     ) {}
@@ -32,7 +36,7 @@ final readonly class RemoveEventGoingAction
     /**
      * @return array{deleted: bool, going_count: int}
      */
-    public function handle(Event $event, User $user): array
+    public function handle(Model&Respondable $event, Model&CanInteract&Authenticatable $user): array
     {
         return DB::transaction(function () use ($event, $user): array {
             $response = Response::query()
@@ -48,7 +52,7 @@ final readonly class RemoveEventGoingAction
             $deleted = $response instanceof Response;
 
             if ($deleted) {
-                $user->cancelResponse($event);
+                $this->engagement->cancelResponse($user, $event);
             }
 
             $this->engagementCounter->recalculateResponses($event, 'going');

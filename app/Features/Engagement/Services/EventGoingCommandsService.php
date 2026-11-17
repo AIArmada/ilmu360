@@ -7,8 +7,7 @@ namespace App\Features\Engagement\Services;
 use App\Features\Engagement\Actions\MarkEventGoingAction;
 use App\Features\Engagement\Actions\RemoveEventGoingAction;
 use App\Features\Engagement\Api\EventGoingCommands;
-use App\Models\Event;
-use App\Models\User;
+use App\Features\Engagement\Support\EngagementModels;
 
 final readonly class EventGoingCommandsService implements EventGoingCommands
 {
@@ -20,8 +19,8 @@ final readonly class EventGoingCommandsService implements EventGoingCommands
     public function mark(string $eventId, string $actorId): array
     {
         return $this->markAction->handle(
-            Event::query()->findOrFail($eventId),
-            User::query()->findOrFail($actorId),
+            EngagementModels::event($eventId),
+            EngagementModels::actor($actorId),
             request(),
         );
     }
@@ -29,8 +28,8 @@ final readonly class EventGoingCommandsService implements EventGoingCommands
     public function remove(string $eventId, string $actorId): array
     {
         return $this->removeAction->handle(
-            Event::query()->findOrFail($eventId),
-            User::query()->findOrFail($actorId),
+            EngagementModels::event($eventId),
+            EngagementModels::actor($actorId),
         );
     }
 }

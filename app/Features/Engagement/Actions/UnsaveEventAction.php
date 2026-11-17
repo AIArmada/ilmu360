@@ -6,8 +6,10 @@ namespace App\Features\Engagement\Actions;
 
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
-use App\Models\Event;
-use App\Models\User;
+use AIArmada\Engagement\Contracts\Bookmarkable;
+use AIArmada\Engagement\Contracts\CanInteract;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -28,7 +30,7 @@ final readonly class UnsaveEventAction
         private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
-    public function handle(Event $event, User $user): UnsaveEventResult
+    public function handle(Model&Bookmarkable $event, Model&CanInteract&Authenticatable $user): UnsaveEventResult
     {
         return DB::transaction(function () use ($event, $user): UnsaveEventResult {
             $bookmark = Bookmark::forBookmarker($user)

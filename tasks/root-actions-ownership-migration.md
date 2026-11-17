@@ -143,3 +143,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 ### Contribution reviewer dependency boundary
 - [x] Resolve actors through shared AccountDirectory and evaluate the existing registered review policy through Laravel Gate. Remove the now-unnecessary private policy/query wrappers.
 - [ ] Confirm existing admin/moderator/member rights and 403/404 behavior against Pest; no duplicate policy.
+
+
+### Engagement boundary cleanup (after architecture CI)
+- [x] Replace private cross-feature model imports in Engagement's ten moved actions and services with package engagement contracts plus morph-identity resolution. Entity models remain canonical in their owner features.
+- [x] Make event-going existing-admission lookup a Registration-owned public method rather than reading Registration's model directly from Engagement.
+- [x] Preserve transaction, package writes, attribution freeze, registration metadata and event counter semantics; verify package interface signatures.
+- [ ] Re-run architecture, PHPStan and full behavioral CI; no compatibility aliases or arch exceptions.

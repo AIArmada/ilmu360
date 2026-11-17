@@ -7,13 +7,7 @@ namespace App\Features\Engagement\Services;
 use App\Features\Engagement\Actions\FollowSubjectAction;
 use App\Features\Engagement\Actions\UnfollowSubjectAction;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Series;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
-use InvalidArgumentException;
+use App\Features\Engagement\Support\EngagementModels;
 
 final readonly class SubjectFollowCommandsService implements SubjectFollowCommands
 {
@@ -25,8 +19,8 @@ final readonly class SubjectFollowCommandsService implements SubjectFollowComman
     public function follow(string $subjectType, string $subjectId, string $actorId, array $metadata): array
     {
         $result = $this->followAction->handle(
-            $this->subject($subjectType, $subjectId),
-            User::query()->findOrFail($actorId),
+            EngagementModels::followable($subjectType, $subjectId),
+            EngagementModels::actor($actorId),
             $metadata,
             request(),
         );
@@ -38,19 +32,8 @@ final readonly class SubjectFollowCommandsService implements SubjectFollowComman
     {
         return $this->unfollowAction->handle(
             $this->subject($subjectType, $subjectId),
-            User::query()->findOrFail($actorId),
+            EngagementModels::actor($actorId),
         )->removed;
     }
 
-    /** @return Institution|Person|Reference|Series */
-    private function subject(string $type, string $id): Model
-    {
-        return match ($type) {
-            'institution' => Institution::query()->findOrFail($id),
-            'person' => Person::query()->findOrFail($id),
-            'reference' => Reference::query()->findOrFail($id),
-            'series' => Series::query()->findOrFail($id),
-            default => throw new InvalidArgumentException("Unsupported followable subject [{$type}]."),
-        };
-    }
 }

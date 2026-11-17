@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Engagement\Actions;
 
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Models\Event;
-use App\Models\User;
+use AIArmada\Engagement\Contracts\Bookmarkable;
+use AIArmada\Engagement\Contracts\CanInteract;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +17,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 /**
  * Engagement-owned save writer for the package-canonical bookmark rows.
  *
- * The package engagement tables have no application owner, so this named
- * action stays in the root Actions namespace. It owns the manager write and
+ * The package owns bookmark storage; the Engagement feature owns the manager write and
  * records the event-save share outcome through the EngagementShareOutcomes
  * contract; no caller should reproduce either.
  */
@@ -29,7 +30,7 @@ final readonly class SaveEventAction
         private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
-    public function handle(Event $event, User $user, ?Request $request = null): SaveEventResult
+    public function handle(Model&Bookmarkable $event, Model&CanInteract&Authenticatable $user, ?Request $request = null): SaveEventResult
     {
         return DB::transaction(function () use ($event, $user, $request): SaveEventResult {
             $bookmark = $this->engagement->bookmark($user, $event);

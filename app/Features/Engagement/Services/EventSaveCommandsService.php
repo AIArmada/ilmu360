@@ -7,8 +7,7 @@ namespace App\Features\Engagement\Services;
 use App\Features\Engagement\Actions\SaveEventAction;
 use App\Features\Engagement\Actions\UnsaveEventAction;
 use App\Features\Engagement\Api\EventSaveCommands;
-use App\Models\Event;
-use App\Models\User;
+use App\Features\Engagement\Support\EngagementModels;
 
 final readonly class EventSaveCommandsService implements EventSaveCommands
 {
@@ -20,8 +19,8 @@ final readonly class EventSaveCommandsService implements EventSaveCommands
     public function save(string $eventId, string $actorId): array
     {
         $result = $this->save->handle(
-            Event::query()->findOrFail($eventId),
-            User::query()->findOrFail($actorId),
+            EngagementModels::event($eventId),
+            EngagementModels::actor($actorId),
             request(),
         );
 
@@ -31,8 +30,8 @@ final readonly class EventSaveCommandsService implements EventSaveCommands
     public function unsave(string $eventId, string $actorId): bool
     {
         return $this->unsave->handle(
-            Event::query()->findOrFail($eventId),
-            User::query()->findOrFail($actorId),
+            EngagementModels::event($eventId),
+            EngagementModels::actor($actorId),
         )->removed;
     }
 }

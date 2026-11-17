@@ -7,11 +7,11 @@ namespace App\Features\Engagement\Actions;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Series;
-use App\Models\User;
+use AIArmada\Engagement\Contracts\CanInteract;
+use AIArmada\Engagement\Contracts\Followable;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +33,7 @@ final readonly class UnfollowSubjectAction
         private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
-    public function handle(Institution|Person|Reference|Series $subject, User $user): UnfollowSubjectResult
+    public function handle(Model&Followable $subject, Model&CanInteract&Authenticatable $user): UnfollowSubjectResult
     {
         return DB::transaction(function () use ($subject, $user): UnfollowSubjectResult {
             $follow = OwnerContext::withOwner(null, fn (): ?Follow => Follow::query()
@@ -62,13 +62,14 @@ final readonly class UnfollowSubjectAction
         });
     }
 
-    private function outcomeTypeFor(Institution|Person|Reference|Series $subject): ShareOutcomeType
+    private function outcomeTypeFor(Model&Followable $subject): ShareOutcomeType
     {
-        return match (true) {
-            $subject instanceof Institution => ShareOutcomeType::InstitutionFollow,
-            $subject instanceof Person => ShareOutcomeType::PersonFollow,
-            $subject instanceof Reference => ShareOutcomeType::ReferenceFollow,
-            $subject instanceof Series => ShareOutcomeType::SeriesFollow,
+        return match ($subject->getMorphClass()) {
+            'institution' => ShareOutcomeType::InstitutionFollow,
+            'person' => ShareOutcomeType::PersonFollow,
+            'reference' => ShareOutcomeType::ReferenceFollow,
+            'series' => ShareOutcomeType::SeriesFollow,
+            default => throw new InvalidArgumentException('Unsupported follow subject.'),
         };
     }
 }

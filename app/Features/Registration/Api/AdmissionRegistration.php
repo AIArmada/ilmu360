@@ -18,6 +18,9 @@ namespace App\Features\Registration\Api;
  */
 interface AdmissionRegistration
 {
+    /** Whether an active registration already exists for this user's event. */
+    public function hasActiveForUser(string $eventId, string $registrantId): bool;
+
     /**
      * @param  array<int, array<string, mixed>>  $participants
      * @param  array<string, mixed>  $options  Admission options passed to the vendor
