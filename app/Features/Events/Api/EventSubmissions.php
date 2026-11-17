@@ -21,11 +21,9 @@ interface EventSubmissions
     public function validate(array $state, string $prefix = ''): array;
 
     /**
-     * Assert selected languages and references are currently available.
+     * Reject unknown, inactive or wrong-taxonomy category selections.
      *
      * @param  array<string, mixed>  $state
-     */
-    /** @param array<string, mixed> $state
      * @return array<string, mixed>
      */
     public function normalizeCategories(array $state, string $prefix = ''): array;
@@ -47,6 +45,11 @@ interface EventSubmissions
     /** @param array<string, mixed> $state */
     public function assertCommunityPhysicalFormat(array $state, string $prefix = ''): void;
 
+    /**
+     * Assert selected languages and references are currently available.
+     *
+     * @param  array<string, mixed>  $state
+     */
     public function assertCatalogSelectionsAreAvailable(array $state, string $prefix = ''): void;
 
     /**
