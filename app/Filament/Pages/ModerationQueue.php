@@ -4,7 +4,7 @@ namespace App\Filament\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\EventEscalationType;
-use App\Actions\Events\Submission\ModerateEventOccurrenceSubmissionAction;
+use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Reports\Api\ReportReader;
 use App\Filament\Resources\Events\EventResource;
@@ -470,11 +470,11 @@ class ModerationQueue extends Page implements HasTable
                             ->label('Note (optional)')
                             ->rows(3),
                     ])
-                    ->action(function (EventSubmission $record, array $data, ModerateEventOccurrenceSubmissionAction $action): void {
+                    ->action(function (EventSubmission $record, array $data, OccurrenceSubmissionReviews $reviews): void {
                         $moderator = auth()->user();
 
                         abort_unless($moderator instanceof User, 403);
-                        $action->approve($record, $moderator, $data['note'] ?? null);
+                        $reviews->approve((string) $record->getKey(), $moderator->getMorphClass(), (string) $moderator->getKey(), $data['note'] ?? null);
                     }),
                 Action::make('reject_occurrence')
                     ->label('Reject')
@@ -500,11 +500,11 @@ class ModerationQueue extends Page implements HasTable
                             ->required()
                             ->rows(3),
                     ])
-                    ->action(function (EventSubmission $record, array $data, ModerateEventOccurrenceSubmissionAction $action): void {
+                    ->action(function (EventSubmission $record, array $data, OccurrenceSubmissionReviews $reviews): void {
                         $moderator = auth()->user();
 
                         abort_unless($moderator instanceof User, 403);
-                        $action->reject($record, $moderator, $data['reason_code'], $data['note']);
+                        $reviews->reject((string) $record->getKey(), $moderator->getMorphClass(), (string) $moderator->getKey(), $data['reason_code'], $data['note']);
                     }),
                 Action::make('view_event')
                     ->label('View Event')

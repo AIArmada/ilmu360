@@ -222,3 +222,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Root route binder first resolves current slug/UUID through the shared SlugOrUuidResolver and directly reuses the hydrated model. Only missing identifiers fall through to the SlugRedirects public lookup.
 - [x] This removes the extra lookup introduced by scalar public-slug resolution while retaining redirects, 301 usage tracking and 404 behavior. The existing occurrence-page query-budget test remains at 56 (not relaxed).
 - [ ] Confirm the targeted EventOccurrencePageTest and SlugRedirectFeatureTest in Quality CI; do not mark verified solely from code inspection.
+
+
+### Events occurrence review cutover
+- [x] Move occurrence approval/rejection orchestration to Events/Actions/Submission and expose scalar OccurrenceSubmissionReviews public API.
+- [x] Preserve package-owned state writes inside DB::transaction, perform share reversal in the same reject transaction, record Signals after commit, and deliver notifications through a shared root adapter using DB::afterCommit.
+- [x] Update Filament moderation queue and event-submission tests, remove root action in the same commit. No legacy classes or aliases.
+- [ ] Confirm architecture, approve/reject/share rollback, signals, submitter/guest notifications with CI tests.

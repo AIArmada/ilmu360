@@ -12,7 +12,7 @@ use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSubmissionLog;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Events\Submission\ModerateEventOccurrenceSubmissionAction;
+use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
 use App\Data\Api\Event\EventPayloadData;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
@@ -806,9 +806,10 @@ it('holds appends to approved parents for occurrence review without changing the
     $firstOccurrence->forceFill(['starts_at' => now()->subDays(1)])->save();
     $moderator = User::factory()->create();
 
-    app(ModerateEventOccurrenceSubmissionAction::class)->approve(
-        $submission,
-        $moderator,
+    app(OccurrenceSubmissionReviews::class)->approve(
+        (string) $submission->getKey(),
+        $moderator->getMorphClass(),
+        (string) $moderator->getKey(),
         'Schedule and venue verified.',
     );
 
@@ -851,9 +852,10 @@ it('rejects an appended occurrence with actor, review reason and outcome telemet
     );
     $moderator = User::factory()->create();
 
-    app(ModerateEventOccurrenceSubmissionAction::class)->reject(
-        $result['submission'],
-        $moderator,
+    app(OccurrenceSubmissionReviews::class)->reject(
+        (string) $result['submission']->getKey(),
+        $moderator->getMorphClass(),
+        (string) $moderator->getKey(),
         'inaccurate_details',
         'The submitted time could not be verified.',
     );
