@@ -101,3 +101,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "refactor: consolidate public DTOs under feature API contracts"
           git push origin HEAD:refactor
+
+# Public Api movement is limited to immutable domain values.
