@@ -56,7 +56,7 @@ use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
-use App\Actions\Slugs\ResolvePublicSlugAction;
+use App\Features\SlugRedirects\Actions\ResolvePublicSlugAction;
 use App\Checkout\ShareCheckoutStepContributor;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\NullCaptchaVerifier;

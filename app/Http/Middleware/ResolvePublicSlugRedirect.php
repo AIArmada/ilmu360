@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Actions\Slugs\ResolvePublicSlugAction;
+use App\Features\SlugRedirects\Actions\ResolvePublicSlugAction;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Platform\Routing\PublicSlugRegistry;
 use Closure;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Slugs;
+namespace App\Features\SlugRedirects\Actions;
 
 use App\Features\SlugRedirects\Api\SlugRedirectLookup;
 use App\Features\SlugRedirects\Api\SlugRedirectMatch;
