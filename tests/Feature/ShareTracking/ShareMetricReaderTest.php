@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\GuestShareClaims;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTracking\AdminShareAnalyticsService;

@@ -10,11 +10,11 @@ declare(strict_types=1);
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Registration\Api\AdmissionCheckout;
-use App\Features\ShareTracking\Api\PendingShareEffects;
-use App\Models\Event;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
+use App\Features\ShareTracking\Api\PendingShareEffects;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
+use App\Models\Event;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
@@ -144,7 +144,7 @@ try {
 
                 return [
                     'correction_id' => $correction instanceof OutcomeCorrectionSnapshot
-                        ? (string) $correction->id
+                        ? $correction->id
                         : null,
                 ];
             }
@@ -230,10 +230,10 @@ try {
 
                 return [
                     'source_correction_id' => $sourceCorrection instanceof OutcomeCorrectionSnapshot
-                        ? (string) $sourceCorrection->id
+                        ? $sourceCorrection->id
                         : null,
                     'child_correction_id' => $childCorrection instanceof OutcomeCorrectionSnapshot
-                        ? (string) $childCorrection->id
+                        ? $childCorrection->id
                         : null,
                 ];
             }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\ShareTracking;
 
-use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Contracts\ShareTrackingContract;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\User;
 use App\Shared\Auth\ResourceOwner;
 use App\Shared\ShareTracking\SavedSearchShareOutcomes;

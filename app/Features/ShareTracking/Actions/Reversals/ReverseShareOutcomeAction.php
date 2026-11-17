@@ -7,13 +7,13 @@ namespace App\Features\ShareTracking\Actions\Reversals;
 use AIArmada\Affiliates\Actions\Conversions\ReverseAffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
+use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Platform\Models\MorphModelResolver;
-use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Models\ShareSourceAttributionReceipt;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareTrackingFinance;
@@ -23,7 +23,6 @@ use InvalidArgumentException;
 
 final readonly class ReverseShareOutcomeAction implements ShareOutcomeReversals
 {
-
     public function __construct(
         private ReverseAffiliateConversion $reverseConversion,
         private EffectReceipts $effectReceipts,
@@ -116,15 +115,13 @@ final readonly class ReverseShareOutcomeAction implements ShareOutcomeReversals
                 $actorType = (new $userClass)->getMorphClass();
             }
 
-            $correction = $this->outcomeCorrections->ensure(
+            return $this->outcomeCorrections->ensure(
                 businessKey: $businessKey,
                 conversionId: (string) $conversion->getKey(),
                 reason: $reason,
                 actorType: $actorType,
                 actorId: $actorId,
             );
-
-            return $correction;
         }, 3);
     }
 }
