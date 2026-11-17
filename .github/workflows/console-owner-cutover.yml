@@ -81,6 +81,7 @@ jobs:
           print("Public routes unchanged")
           PY
           php artisan tinker --execute="if (!(app(\\App\\Shared\\Submission\\PublicSubmissionLockSweeper::class) instanceof \\App\\Support\\Submission\\PublicSubmissionLockService)) { throw new \\RuntimeException('Missing lock sweeper binding'); }"
+          php artisan tinker --execute="if (!(app(\\App\\Features\\Persons\\Api\\PersonSearchMaintenance::class) instanceof \\App\\Support\\Search\\PersonSearchService)) { throw new \\RuntimeException('Missing person search maintenance binding'); }"
       - name: Architecture, formatting, types and Rector
         run: |
           git add -A
