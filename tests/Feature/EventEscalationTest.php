@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\Events\Models\EventEscalation;
-use App\Jobs\EscalatePendingEvents;
+use App\Features\Events\EntryPoints\Jobs\EscalatePendingEvents;
 use App\Models\Event;
 use App\Models\User;
 use App\Notifications\EventEscalationNotification;
@@ -53,7 +53,7 @@ it('escalates at the 48-hour moderator SLA boundary only', function (): void {
     $atBoundary = pendingEventAt(now()->subHours(48));
     $beforeBoundary = pendingEventAt(now()->subHours(48)->addSecond());
 
-    (new EscalatePendingEvents)->handle();
+    app()->call([new EscalatePendingEvents, 'handle']);
 
     expect($atBoundary->fresh()->escalations()->where('type', EventEscalationType::ModeratorSla->value)->exists())->toBeTrue()
         ->and($beforeBoundary->fresh()->escalations)->toBeEmpty();
@@ -85,7 +85,7 @@ it('escalates to super admins only after 72 hours and a 24-hour moderator record
     ]);
     $tooRecentModeratorEscalation->forceFill(['created_at' => now()->subHours(23)->subSecond()])->saveQuietly();
 
-    (new EscalatePendingEvents)->handle();
+    app()->call([new EscalatePendingEvents, 'handle']);
 
     expect($eligible->fresh()->escalations()->where('type', EventEscalationType::SuperAdminSla->value)->exists())->toBeTrue()
         ->and($tooRecent->fresh()->escalations()->where('type', EventEscalationType::SuperAdminSla->value)->exists())->toBeFalse();
@@ -104,7 +104,7 @@ it('uses the imminent window when the event starts after 6 and at most 24 hours'
     $atTwentyFourHours = pendingEventAt(now(), now()->addHours(24));
     $atSixHours = pendingEventAt(now(), now()->addHours(6));
 
-    (new EscalatePendingEvents)->handle();
+    app()->call([new EscalatePendingEvents, 'handle']);
 
     expect($atTwentyFourHours->fresh()->escalations()->where('type', EventEscalationType::Imminent->value)->exists())->toBeTrue()
         ->and($atSixHours->fresh()->escalations()->where('type', EventEscalationType::Imminent->value)->exists())->toBeFalse()
@@ -124,7 +124,7 @@ it('uses the priority window when the event starts after 0 and at most 6 hours',
     $atSixHours = pendingEventAt(now(), now()->addHours(6));
     $alreadyStarted = pendingEventAt(now(), now()->subSecond());
 
-    (new EscalatePendingEvents)->handle();
+    app()->call([new EscalatePendingEvents, 'handle']);
 
     expect($atSixHours->fresh()->escalations()->where('type', EventEscalationType::Priority->value)->exists())->toBeTrue()
         ->and($alreadyStarted->fresh()->escalations)->toBeEmpty();
@@ -147,8 +147,8 @@ it('does not duplicate a decision or notification when the job is rerun', functi
     $event = pendingEventAt(now()->subHours(49));
     $moderator = User::role('moderator')->first();
 
-    (new EscalatePendingEvents)->handle();
-    (new EscalatePendingEvents)->handle();
+    app()->call([new EscalatePendingEvents, 'handle']);
+    app()->call([new EscalatePendingEvents, 'handle']);
 
     expect($event->fresh()->escalations)->toHaveCount(1);
     Notification::assertSentTo($moderator, EventEscalationNotification::class, 1);
@@ -170,7 +170,7 @@ it('excludes non-pending, started, and resolved matching escalations', function 
         'resolved_at' => now()->subMinute(),
     ]);
 
-    (new EscalatePendingEvents)->handle();
+    app()->call([new EscalatePendingEvents, 'handle']);
 
     expect($approved->fresh()->escalations)->toBeEmpty()
         ->and($resolved->fresh()->escalations)->toHaveCount(1)

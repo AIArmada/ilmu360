@@ -1,6 +1,5 @@
 <?php
 
-use App\Jobs\EscalatePendingEvents;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -42,14 +41,6 @@ Schedule::command('rewards:expire-point-lots')
     ->dailyAt('03:05')
     ->timezone('UTC')
     ->name('reward-point-lot-expiry')
-    ->withoutOverlapping();
-
-// SLA Escalation (per documentation B4a and B6b)
-// Runs hourly to check for pending events needing escalation
-Schedule::job(new EscalatePendingEvents)
-    ->hourly()
-    ->timezone('Asia/Kuala_Lumpur')
-    ->name('escalate-pending-events')
     ->withoutOverlapping();
 
 // Prune orphaned entities (institutions, persons, venues) with no events after 48 hours

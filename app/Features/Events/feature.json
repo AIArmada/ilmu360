@@ -143,6 +143,9 @@
     ],
     "store:product-signals-dashboard": [
       "App\\Features\\Events\\Persistence\\ProductSignalsDashboardCacheStore"
+    ],
+    "table:event_escalations": [
+      "App\\Features\\Events\\Actions\\Escalations\\RecordPendingEventEscalationAction"
     ]
   },
   "aliases": {

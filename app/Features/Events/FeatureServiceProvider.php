@@ -59,6 +59,7 @@ use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\Events\EntryPoints\Filament\TermDomainMappingExtension;
 use App\Features\Events\EntryPoints\Jobs\DispatchEventReminderNotifications;
+use App\Features\Events\EntryPoints\Jobs\EscalatePendingEvents;
 use App\Features\Events\Persistence\EventHomepageStatsCacheStore;
 use App\Features\Events\Persistence\EventInstitutionQuickAddMapsProofCacheStore;
 use App\Features\Events\Persistence\EventInvolvementFingerprintStore;
@@ -219,6 +220,14 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        if ($this->app->runningInConsole()) {
+            Schedule::job(new EscalatePendingEvents)
+                ->hourly()
+                ->timezone('Asia/Kuala_Lumpur')
+                ->name('escalate-pending-events')
+                ->withoutOverlapping();
+        }
 
         if ($this->app->runningInConsole()) {
             Schedule::job(new DispatchEventReminderNotifications)
