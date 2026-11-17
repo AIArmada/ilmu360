@@ -56,6 +56,7 @@ use App\\Models\\Event;
 use App\\Models\\User;
 use App\\Notifications\\EventEscalationNotification;
 use App\\Shared\\Events\\EventEscalationTransport;
+use Illuminate\\Contracts\\Auth\\Authenticatable;
 use Illuminate\\Support\\Collection;
 
 final readonly class EloquentEventEscalationTransport implements EventEscalationTransport
@@ -63,7 +64,10 @@ final readonly class EloquentEventEscalationTransport implements EventEscalation
     /** @return Collection<int, \\Illuminate\\Contracts\\Auth\\Authenticatable> */
     public function forRole(string $role): Collection
     {
-        return User::role($role)->get();
+        return User::role($role)->get()
+            ->map(static fn (User $user): Authenticatable => $user)
+            ->values()
+            ->toBase();
     }
 
     public function notify(string $eventId, string $notificationType, Collection $recipients): void
