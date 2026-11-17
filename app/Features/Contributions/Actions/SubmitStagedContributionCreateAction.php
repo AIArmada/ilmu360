@@ -35,38 +35,36 @@ final readonly class SubmitStagedContributionCreateAction implements StagedContr
         ?callable $persistRelationships = null,
         string $validationKeyPrefix = '',
     ): string {
-        $create = function () use ($subjectType, $state, $proposerId, $persistRelationships, $validationKeyPrefix): string {
-            return DB::transaction(function () use ($subjectType, $state, $proposerId, $persistRelationships, $validationKeyPrefix): string {
-                $normalized = $this->preparation->normalize($state);
-                $payload = $normalized['state'];
+        $create = (fn (): string => DB::transaction(function () use ($subjectType, $state, $proposerId, $persistRelationships, $validationKeyPrefix): string {
+            $normalized = $this->preparation->normalize($state);
+            $payload = $normalized['state'];
 
-                $this->preparation->ensureUniqueCreate($subjectType, $payload, $validationKeyPrefix);
+            $this->preparation->ensureUniqueCreate($subjectType, $payload, $validationKeyPrefix);
 
-                $entityId = match ($subjectType) {
-                    ContributionSubjectType::Institution => $this->institutions->createFromContribution($payload, $proposerId),
-                    ContributionSubjectType::Person => $this->persons->createFromContribution($payload, $proposerId),
-                    ContributionSubjectType::Reference => $this->references->createFromContribution($payload),
-                    default => throw new InvalidArgumentException("Unsupported contribution subject type [{$subjectType->value}]"),
-                };
+            $entityId = match ($subjectType) {
+                ContributionSubjectType::Institution => $this->institutions->createFromContribution($payload, $proposerId),
+                ContributionSubjectType::Person => $this->persons->createFromContribution($payload, $proposerId),
+                ContributionSubjectType::Reference => $this->references->createFromContribution($payload),
+                default => throw new InvalidArgumentException("Unsupported contribution subject type [{$subjectType->value}]"),
+            };
 
-                // Relationship and media writes must roll back if the request
-                // cannot be submitted. Never move this outside the transaction.
-                if ($persistRelationships !== null) {
-                    $persistRelationships($entityId);
-                }
+            // Relationship and media writes must roll back if the request
+            // cannot be submitted. Never move this outside the transaction.
+            if ($persistRelationships !== null) {
+                $persistRelationships($entityId);
+            }
 
-                $this->requests->submitCreate(
-                    $subjectType,
-                    $proposerId,
-                    Arr::except($payload, $this->mediaFieldsFor($subjectType)),
-                    $normalized['proposer_note'],
-                    $subjectType->value,
-                    $entityId,
-                );
+            $this->requests->submitCreate(
+                $subjectType,
+                $proposerId,
+                Arr::except($payload, $this->mediaFieldsFor($subjectType)),
+                $normalized['proposer_note'],
+                $subjectType->value,
+                $entityId,
+            );
 
-                return $entityId;
-            });
-        };
+            return $entityId;
+        }));
 
         return $subjectType === ContributionSubjectType::Institution
             ? $this->mapsIdentityLock->handle($state, $create)

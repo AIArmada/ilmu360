@@ -25,7 +25,7 @@ final readonly class DatabaseParticipationSourceIds implements ParticipationSour
     }
 
     /**
-     * @param class-string<\Illuminate\Database\Eloquent\Model> $modelClass
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $modelClass
      * @return list<string>
      */
     private function ids(string $modelClass, string $column, string $scopeId): array

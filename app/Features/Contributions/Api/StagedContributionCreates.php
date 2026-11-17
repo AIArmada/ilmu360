@@ -14,8 +14,8 @@ use App\Shared\Contributions\Enums\ContributionSubjectType;
 interface StagedContributionCreates
 {
     /**
-     * @param array<string, mixed> $state
-     * @param (callable(string): void)|null $persistRelationships Receives the new entity ID.
+     * @param  array<string, mixed>  $state
+     * @param  (callable(string): void)|null  $persistRelationships  Receives the new entity ID.
      * @return string The staged subject ID.
      */
     public function submit(

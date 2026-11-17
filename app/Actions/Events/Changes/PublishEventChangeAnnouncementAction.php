@@ -2,9 +2,9 @@
 
 namespace App\Actions\Events\Changes;
 
-use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Enums\EventChangeSeverity;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;

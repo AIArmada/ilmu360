@@ -83,7 +83,7 @@ final readonly class ModerateEventOccurrenceSubmissionAction implements Occurren
     }
 
     /**
-     * @param array{event_id: string, submission_id: string, occurrence_id: string} $result
+     * @param  array{event_id: string, submission_id: string, occurrence_id: string}  $result
      */
     private function recordOccurrenceModerationSignal(
         array $result,
