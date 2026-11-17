@@ -131,6 +131,9 @@ use App\Platform\Auth\EloquentAccountAccess;
 use App\Platform\Auth\EloquentAccountDirectory;
 use App\Platform\Auth\EloquentAccountSettingsStore;
 use App\Platform\Auth\EloquentUserMorphType;
+use App\Platform\Auth\Listeners\ClaimGuestSubmissionsOnVerified;
+use App\Platform\Auth\Listeners\RecordVerifiedEmail;
+use App\Platform\Auth\Listeners\SendRegisteredUserEmails;
 use App\Platform\Auth\PassportKeyProvisioner;
 use App\Platform\Captcha\NullCaptchaVerifier;
 use App\Platform\Captcha\TurnstileVerifier;
@@ -233,6 +236,8 @@ use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -400,6 +405,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
+        // Explicit registration replaces Laravel's old app/Listeners/Auth discovery.
+        // Preserve registered-email and verified-email after-commit listeners.
+        EventFacade::listen(Registered::class, SendRegisteredUserEmails::class);
+        EventFacade::listen(Verified::class, ClaimGuestSubmissionsOnVerified::class);
+        EventFacade::listen(Verified::class, RecordVerifiedEmail::class);
+
         PassportKeyProvisioner::ensure();
 
         Passport::authorizationView('mcp.authorize');
