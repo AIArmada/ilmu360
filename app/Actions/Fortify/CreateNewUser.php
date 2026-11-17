@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Models\User;
+use App\Shared\Auth\AccountAccess;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Signals\SignalRecorder;
@@ -45,14 +46,15 @@ class CreateNewUser implements CreatesNewUsers
         ])->validate();
 
         return DB::transaction(function () use ($input) {
-            $user = new User;
-
-            $user->forceFill([
+            // Identity's canonical account access adapter owns the user write.
+            // Keep the surrounding transaction for attribution and signal atomicity.
+            $profile = app(AccountAccess::class)->create([
                 'name' => $input['name'],
                 'email' => $input['email'] ?? null,
                 'phone' => $input['phone'] ?? null,
                 'password' => $input['password'],
-            ])->save();
+            ]);
+            $user = User::query()->findOrFail($profile->id);
 
             app(SignupAttributionWorkflow::class)->recordForNewAccount(
                 (string) $user->getKey(),

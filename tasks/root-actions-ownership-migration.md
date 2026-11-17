@@ -277,3 +277,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] The root request transport keeps original request attribution, three session/grouped/parent outcome payloads, and DB::afterCommit moderator notification, all still called inside the existing submission transaction.
 - [x] Remove root CompleteFrontendEventSubmissionAction; no alias, duplicate implementation or compatibility class.
 - [ ] Verify atomic rollback, notification and share-outcome replay with Pest and architecture CI.
+
+
+### Fortify framework entrypoint audit
+- [x] Fortify/CreateNewUser is a framework registration contract adapter, not the owner of user writes. It now uses Shared/Auth/AccountAccess::create inside the existing signup transaction; the canonical account adapter owns persistence.
+- [x] Keep Fortify/RecordSuccessfulLogin as a Laravel login pipeline adapter and Fortify/ResetUserPassword as the Fortify password-reset contract adapter. Neither is a compatibility alias.
+- [ ] Verify registration validation, audit events, referral/attribution/signal rollback and password/login tests in Quality CI. Recheck root account writers separately in the wider ownership audit.
