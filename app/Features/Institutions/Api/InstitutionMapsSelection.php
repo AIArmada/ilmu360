@@ -13,9 +13,9 @@ interface InstitutionMapsSelection
     public function resolve(string $placeId, string $validationKey): array;
 
     /**
-     * @param array<string, mixed> $formState
-     * @param array<string, mixed> $selection
-     * @param array<string, mixed>|null $previousSelection
+     * @param  array<string, mixed>  $formState
+     * @param  array<string, mixed>  $selection
+     * @param  array<string, mixed>|null  $previousSelection
      * @return array<string, mixed>
      */
     public function merge(array $formState, array $selection, ?array $previousSelection = null): array;

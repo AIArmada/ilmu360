@@ -10,14 +10,14 @@ use App\Shared\Contributions\Enums\ContributionSubjectType;
 interface ContributionSubmissionPreparation
 {
     /**
-     * @param array<string, mixed> $state
+     * @param  array<string, mixed>  $state
      * @return array{state: array<string, mixed>, proposer_note: string|null}
      */
     public function normalize(array $state): array;
 
     /**
-     * @param array<string, mixed> $state
-     * @param array<string, mixed> $originalData
+     * @param  array<string, mixed>  $state
+     * @param  array<string, mixed>  $originalData
      * @return array<string, mixed>
      */
     public function changedPayload(array $state, array $originalData): array;
