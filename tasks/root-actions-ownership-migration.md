@@ -58,7 +58,8 @@ Started 2026-11-17. Baseline commit: `2e574bdbbb48b3a07770edafd79883df3f0ff423`.
 - [ ] Preserve idempotency, effect lease and lock ordering, payout safety, and reward reversal semantics.
 
 ### Phase 7 — Fortify, Signals, final sweep (4 files)
-- [ ] Keep only justified framework/package entrypoints at root, reposition domain logic and routing helpers as needed.
+- [x] Move mobile telemetry's Signals-package ingestion adapter to Platform/Telemetry alongside ProductSignalRecorder and ProductSignalsClientContext, updating the frontend API action injection and deleting the root path.
+- [ ] Keep only justified framework/package entrypoints at root, reposition remaining domain logic and routing helpers as needed.
 - [ ] Search *all* production/test paths for retired symbols, stale path strings, duplicate registrations and unowned writes.
 - [ ] Run the final architecture/type checks, regular static analysis, Pint/Rector, full relevant Pest suite, route parity and CI.
 

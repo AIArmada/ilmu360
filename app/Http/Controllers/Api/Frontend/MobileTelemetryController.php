@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Signals\RecordMobileTelemetryBatchAction;
+use App\Platform\Telemetry\RecordMobileTelemetryBatchAction;
 use App\Http\Requests\Api\StoreMobileTelemetryRequest;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
