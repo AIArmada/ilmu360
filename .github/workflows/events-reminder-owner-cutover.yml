@@ -1,0 +1,115 @@
+name: One-time Events reminder ownership
+on:
+  push:
+    branches: [refactor]
+    paths: ['.github/workflows/events-reminder-owner-cutover.yml']
+permissions:
+  contents: write
+concurrency:
+  group: events-reminder-cutover-refactor
+  cancel-in-progress: false
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Obtain sibling Commerce sources
+        run: |
+          git clone --depth 1 https://github.com/AIArmada/commerce.git ../commerce
+          test -f ../commerce/packages/commerce-support/composer.json
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
+          coverage: none
+          tools: composer:v2
+      - name: Install dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          touch database/database.sqlite
+          composer install --no-interaction --no-progress --prefer-dist
+      - name: Capture command, HTTP and schedule baselines
+        run: |
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.before
+          php artisan route:list --json > /tmp/routes.before.json
+          php artisan schedule:list --no-ansi > /tmp/schedules.before
+          test "$(grep -c 'notification-reminders' /tmp/schedules.before)" -eq 1
+      - name: Directly relocate reminder job and its schedule
+        run: python3 scripts/events-reminder-owner-cutover.py
+      - name: Rebuild optimized autoload and confirm single registered reminder
+        run: |
+          composer dump-autoload --no-scripts --optimize
+          php artisan optimize:clear
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.after
+          php artisan route:list --json > /tmp/routes.after.json
+          php artisan schedule:list --no-ansi > /tmp/schedules.after
+          diff -u /tmp/commands.before /tmp/commands.after
+          test "$(grep -c 'notification-reminders' /tmp/schedules.after)" -eq 1
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/routes.before.json'))==json.load(open('/tmp/routes.after.json'))
+          print("HTTP routes unchanged, reminder schedule registered exactly once")
+          PY
+          php artisan tinker --execute="if (!(app(\\App\\Shared\\Events\\EventReminderNotificationDispatch::class) instanceof \\App\\Services\\Notifications\\EventNotificationService)) { throw new \\RuntimeException('Reminder integration unbound'); }"
+      - name: Format and enforce architecture and types
+        run: |
+          git add -A
+          vendor/bin/pint --dirty
+          git add -A
+          git diff --cached --check
+          composer architecture:test
+          vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+      - name: Targeted event notification tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t tests < <(find tests -name '*Test.php' | grep -Ei 'Reminder|Notification' | LC_ALL=C sort | head -n 8 || true)
+          printf 'Selected %s related test files\n' "${#tests[@]}"
+          if (( ${#tests[@]} > 0 )); then
+            vendor/bin/pest --compact "${tests[@]}"
+          fi
+      - name: Lint moved PHP
+        run: |
+          php -l app/Features/Events/EntryPoints/Jobs/DispatchEventReminderNotifications.php
+          php -l app/Shared/Events/EventReminderNotificationDispatch.php
+          php -l app/Services/Notifications/EventNotificationService.php
+      - name: Remove one-time files and commit
+        run: |
+          rm -f scripts/events-reminder-owner-cutover.py .github/workflows/events-reminder-owner-cutover.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "ilmu360-refactor-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "refactor: own event reminders and schedule under Events without legacy job"
+          git push origin HEAD:refactor
