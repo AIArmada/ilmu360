@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Data\ShareTracking;
+namespace App\Features\ShareTracking\Api\Data;
 
 use Carbon\CarbonInterface;
 

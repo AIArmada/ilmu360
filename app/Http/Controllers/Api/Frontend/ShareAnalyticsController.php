@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Data\ShareTracking\ShareTrackingLinkData;
-use App\Data\ShareTracking\ShareTrackingOutcomeData;
-use App\Data\ShareTracking\ShareTrackingVisitData;
 use App\Enums\ShareSubjectType;
+use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
 use App\Platform\Api\ApiPagination;
 use App\Platform\Http\FrontendController;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;

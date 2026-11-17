@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Contracts;
 
-use App\Data\ShareTracking\ShareTrackingAttributionData;
-use App\Data\ShareTracking\ShareTrackingLinkData;
-use App\Data\ShareTracking\ShareTrackingOutcomeData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonInterface;

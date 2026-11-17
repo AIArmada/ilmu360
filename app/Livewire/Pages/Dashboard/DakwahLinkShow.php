@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Pages\Dashboard;
 
-use App\Data\ShareTracking\ShareTrackingLinkData;
-use App\Data\ShareTracking\ShareTrackingOutcomeData;
-use App\Data\ShareTracking\ShareTrackingVisitData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;

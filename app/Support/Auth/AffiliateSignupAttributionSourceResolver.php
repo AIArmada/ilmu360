@@ -11,7 +11,7 @@ use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
-use App\Data\ShareTracking\ShareTrackingAttributionData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
 use App\Models\ShareBrowserSelection;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;

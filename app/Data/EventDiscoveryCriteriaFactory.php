@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Events\Enums\TimingMode;
 use Carbon\CarbonImmutable;

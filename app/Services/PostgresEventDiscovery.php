@@ -10,7 +10,7 @@ use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
 use App\Contracts\EventDiscoveryAdapter;
-use App\Data\EventDiscoveryCriteria;
+use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\References\Api\ReferenceQueries;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;

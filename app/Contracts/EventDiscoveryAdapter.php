@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts;
 
-use App\Data\EventDiscoveryCriteria;
+use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Models\Event;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
