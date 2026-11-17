@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
-use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
+use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Models\ShareOutcomeCorrection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -17,10 +17,10 @@ class ShareOutcomeCorrectionObserver
         $businessKey = (string) $correction->getAttribute('business_key');
 
         try {
-            ReverseReferralRewardsForShareOutcomeJob::dispatch(
+            app(ReferralOutcomeWorkflow::class)->scheduleRewardReversal(
                 $businessKey,
                 'source-correction:'.$correction->getAttribute('reason'),
-            )->afterCommit();
+            );
         } catch (Throwable $exception) {
             Log::warning('Referral reversal dispatch failed after recording a share correction.', [
                 'correction_id' => (string) $correction->getKey(),
