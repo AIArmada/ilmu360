@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\ShareTracking;
+namespace App\Shared\ShareTracking;
 
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;

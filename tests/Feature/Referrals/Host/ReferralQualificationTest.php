@@ -24,7 +24,7 @@ use AIArmada\Vouchers\States\Expired;
 use App\Actions\ShareTracking\ReverseShareOutcomeAction;
 use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Jobs\Referrals\QualifyReferralFromShareOutcomeJob;
-use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
+use App\Features\Referrals\EntryPoints\Jobs\ReverseReferralRewardsForShareOutcomeJob;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;

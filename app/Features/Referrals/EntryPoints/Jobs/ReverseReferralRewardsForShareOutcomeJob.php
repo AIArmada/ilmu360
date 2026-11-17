@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Jobs\Referrals;
+namespace App\Features\Referrals\EntryPoints\Jobs;
 
 use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use Illuminate\Bus\Queueable;

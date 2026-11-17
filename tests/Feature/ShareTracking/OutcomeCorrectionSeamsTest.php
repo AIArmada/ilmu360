@@ -11,7 +11,7 @@ use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
-use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
+use App\Features\Referrals\EntryPoints\Jobs\ReverseReferralRewardsForShareOutcomeJob;
 use App\Models\ShareEffectReceipt;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;

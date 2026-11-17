@@ -12,7 +12,7 @@ use App\Models\Event;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Support\ShareTracking\ShareTrackingFinance;
+use App\Shared\ShareTracking\ShareTrackingFinance;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 

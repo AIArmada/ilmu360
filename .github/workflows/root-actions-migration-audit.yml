@@ -22,6 +22,15 @@ jobs:
           grep -REn --include='*.php' 'InferInstitutionTypeAction|MergeInstitutionMapsSelectionIntoFormAction|ResolveInstitutionMapsPlaceSelectionAction' app tests config bootstrap routes || true
           echo '=== Current root Action files ==='
           find app/Actions -type f -name '*.php' | sort
+          echo '=== Assert no retired finance policy / referral job imports ==='
+          if grep -RnF --include='*.php' 'App\\Support\\ShareTracking\\ShareTrackingFinance' app tests config bootstrap routes tools; then
+            echo 'Retired ShareTrackingFinance namespace is still referenced.'
+            exit 1
+          fi
+          if grep -RnF --include='*.php' 'App\\Jobs\\Referrals\\ReverseReferralRewardsForShareOutcomeJob' app tests config bootstrap routes tools; then
+            echo 'Retired referral reversal job namespace is still referenced.'
+            exit 1
+          fi
       - name: Reject imports of removed root actions (including Volt/Blade)
         shell: bash
         run: |

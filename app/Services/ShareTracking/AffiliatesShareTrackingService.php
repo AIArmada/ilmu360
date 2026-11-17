@@ -72,7 +72,7 @@ use App\Shared\ShareTracking\ShareTrackingProfile;
 use App\Support\Share\ShareProfileScope;
 use App\Support\ShareTracking\SealedGuestIdentityException;
 use App\Support\ShareTracking\ShareProfileNotEligibleException;
-use App\Support\ShareTracking\ShareTrackingFinance;
+use App\Shared\ShareTracking\ShareTrackingFinance;
 use App\Support\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonInterface;
 use Illuminate\Cookie\CookieValuePrefix;

@@ -203,3 +203,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move leased projection/ticket-reversal consumer under ShareTracking, exposing PendingShareEffects to CLI and tests. Delete root dispatcher without alias.
 - [x] Keep projection-only effect type ownership, fenced lease token, receipt-first transaction/lock sequence, and ticket payout deferrals unchanged. Correction-row locked check stays feature-owned in OutcomeCorrections.
 - [ ] Verify effect idempotency, crash reclaim, concurrent correction and payout-race tests on Quality CI.
+
+
+### Referral reversal enqueue + share-finance policy seam
+- [x] Move canonical ShareTrackingFinance settlement guard into Shared/ShareTracking, replacing imports without duplicating policy or status forms.
+- [x] Move ReverseReferralRewardsForShareOutcomeJob into Referrals/EntryPoints/Jobs, expose scheduleRewardReversal on ReferralOutcomeWorkflow and preserve afterCommit dispatch/catch semantics in the current outcome correction orchestrator.
+- [x] Update job and finance tests; extend architecture audit to reject deleted namespaces.
+- [ ] Verify reward queue idempotency, payout guard and worker behavior on Quality CI.

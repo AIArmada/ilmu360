@@ -9,13 +9,13 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
-use App\Jobs\Referrals\ReverseReferralRewardsForShareOutcomeJob;
+use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Models\ShareOutcomeCorrection;
 use App\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Support\ShareTracking\ShareTrackingFinance;
+use App\Shared\ShareTracking\ShareTrackingFinance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -29,6 +29,7 @@ final readonly class ReverseShareOutcomeAction
         private ReverseAffiliateConversion $reverseConversion,
         private EffectReceipts $effectReceipts,
         private OutcomeCorrections $outcomeCorrections,
+        private ReferralOutcomeWorkflow $referrals,
     ) {}
 
     public function handle(
@@ -52,7 +53,7 @@ final readonly class ReverseShareOutcomeAction
         }
 
         try {
-            ReverseReferralRewardsForShareOutcomeJob::dispatch($businessKey, $reason)->afterCommit();
+            $this->referrals->scheduleRewardReversal($businessKey, $reason);
         } catch (\Throwable $exception) {
             Log::warning('Referral reversal dispatch failed while correcting a share outcome.', [
                 'business_key' => $businessKey,
