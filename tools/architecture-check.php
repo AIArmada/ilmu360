@@ -118,7 +118,7 @@ try {
                         continue;
                     }
 
-                    $line = substr_count(substr($content, 0, $offset), "\\n") + 1;
+                    $line = substr_count(substr($content, 0, $offset), "\n") + 1;
                     $report('dangling-root-action', $relative, $line, $className, 'Deleted root Action is still imported or referenced; update the caller to the new owner without aliases.');
                 }
             }
