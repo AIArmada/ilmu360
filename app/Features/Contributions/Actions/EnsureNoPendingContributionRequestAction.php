@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Contributions\Submission;
+namespace App\Features\Contributions\Actions;
 
-use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
-use App\Models\ContributionRequest;
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Shared\Contributions\ContributionRequestGuard;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -15,7 +14,7 @@ final readonly class EnsureNoPendingContributionRequestAction implements Contrib
     use AsAction;
 
     public function __construct(
-        private FindEntityPendingContributionRequestAction $findEntityPendingContributionRequestAction,
+        private ContributionRequestReader $contributionRequestReader,
     ) {}
 
     public function handle(string $entityType, string $entityId): void
@@ -25,7 +24,7 @@ final readonly class EnsureNoPendingContributionRequestAction implements Contrib
 
     public function ensureNoPending(string $entityType, string $entityId): void
     {
-        if (! $this->findEntityPendingContributionRequestAction->handle($entityType, $entityId) instanceof ContributionRequest) {
+        if ($this->contributionRequestReader->pendingRequestIdForEntity($entityType, $entityId) === null) {
             return;
         }
 

@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
 use App\Actions\Contributions\Queries\FindUserPendingContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolveContributionSubjectAction;
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
@@ -12,6 +11,7 @@ use App\Features\Contributions\Actions\NormalizeContributionSubmissionAction;
 use App\Features\Contributions\Actions\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionCreateRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
@@ -428,14 +428,14 @@ it('keeps user pending contribution lookups separate from entity wide pending lo
     ]);
 
     $resolvedRequest = app(FindUserPendingContributionRequestAction::class)->handle($proposer, $institution);
-    $entityRequest = app(FindEntityPendingContributionRequestAction::class)->handle(
+    $entityRequestId = app(ContributionRequestReader::class)->pendingRequestIdForEntity(
         $institution->getMorphClass(),
         (string) $institution->getKey(),
     );
 
     expect($resolvedRequest?->is($latestRequest))->toBeTrue()
         ->and($resolvedRequest?->is($olderRequest))->toBeFalse()
-        ->and($entityRequest?->is($otherProposerRequest))->toBeTrue();
+        ->and($entityRequestId)->toBe((string) $otherProposerRequest->getKey());
 });
 
 it('presents contribution subject labels and links', function () {

@@ -79,3 +79,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move three submission-preparation actions (normalize, change diff and unique creation claim) into Contributions.
 - [x] Expose one public preparation contract to API, Livewire, staged-create and Institution form consumers. Bind InstitutionClaimGuard inside the owner.
 - [ ] Confirm CI boundary, type and behavior checks before marking this slice fully verified. Root query and staged entity orchestration remain for later slices.
+
+
+### Contributions pending-request guard cutover
+- [x] Remove duplicate root pending-entity query in favor of scalar `ContributionRequestReader::pendingRequestIdForEntity` with the same pending status and ordering.
+- [x] Move `EnsureNoPendingContributionRequestAction` into Contributions, bind the existing `ContributionRequestGuard` from the owning feature and update HTTP/Livewire/tests.
+- [ ] Verify affected CI and direct import audit.

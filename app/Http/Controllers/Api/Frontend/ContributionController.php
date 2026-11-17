@@ -6,14 +6,12 @@ use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
-use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
 use App\Actions\Contributions\Queries\FindUserPendingContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Queries\ResolveOwnContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
 use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
-use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
 
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
@@ -36,6 +34,7 @@ use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use App\Platform\Media\MediaCollectionSync;
 use App\Rules\ValidAreaAssignmentRoles;
 use App\Services\ContributionEntityMutationService;
+use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Support\Events\EventContributionUpdateStateMapper;
@@ -406,7 +405,7 @@ class ContributionController extends FrontendController
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
         ContributionSubjectPresenter $contributionSubjectPresenter,
         FindUserPendingContributionRequestAction $findUserPendingContributionRequestAction,
-        FindEntityPendingContributionRequestAction $findEntityPendingContributionRequestAction,
+        ContributionRequestReader $pendingContributionReader,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
@@ -434,10 +433,10 @@ class ContributionController extends FrontendController
                     : [],
                 'subject_presentation' => $contributionSubjectPresenter->present($entity),
                 'can_direct_edit' => $canDirectEdit,
-                'pending_update_blocked' => $findEntityPendingContributionRequestAction->handle(
+                'pending_update_blocked' => $pendingContributionReader->pendingRequestIdForEntity(
                     $context['entity_type'],
                     $context['entity_id'],
-                ) instanceof ContributionRequest,
+                ) !== null,
                 'latest_pending_request' => ($latestPendingRequest = $findUserPendingContributionRequestAction->handle($user, $entity)) instanceof ContributionRequest
                     ? $this->contributionRequestData($latestPendingRequest, $user)
                     : null,
@@ -482,7 +481,7 @@ class ContributionController extends FrontendController
         ContributionSubmissionPreparation $submissionPreparation,
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
         ContributionRequestLifecycle $contributionRequestLifecycle,
-        EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
+        ContributionRequestGuard $contributionRequestGuard,
         ContributionSubjectPresenter $contributionSubjectPresenter,
         MediaCollectionSync $mediaCollectionSync,
         ContributionEntityMutationService $contributionEntityMutationService,
@@ -506,7 +505,7 @@ class ContributionController extends FrontendController
 
         abort_unless($user->can('view', $entity), 403);
 
-        $ensureNoPendingContributionRequestAction->handle(
+        $contributionRequestGuard->ensureNoPending(
             $context['entity_type'],
             $context['entity_id'],
         );

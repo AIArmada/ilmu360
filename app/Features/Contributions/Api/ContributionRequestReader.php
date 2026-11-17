@@ -13,4 +13,6 @@ interface ContributionRequestReader
     public function requestIdsForReviewer(string $accountId): array;
 
     public function findRequestIdForProposer(string $accountId, string $requestId): ?string;
+
+    public function pendingRequestIdForEntity(string $entityType, string $entityId): ?string;
 }

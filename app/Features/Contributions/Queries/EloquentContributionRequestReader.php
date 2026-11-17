@@ -29,6 +29,19 @@ final readonly class EloquentContributionRequestReader implements ContributionRe
             ->all();
     }
 
+    public function pendingRequestIdForEntity(string $entityType, string $entityId): ?string
+    {
+        $id = ContributionModel::modelClass()::query()
+            ->where('entity_type', $entityType)
+            ->where('entity_id', $entityId)
+            ->where('status', \App\Shared\Contributions\Enums\ContributionRequestStatus::Pending)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->value('id');
+
+        return $id !== null ? (string) $id : null;
+    }
+
     public function findRequestIdForProposer(string $accountId, string $requestId): ?string
     {
         $id = ContributionModel::modelClass()::query()

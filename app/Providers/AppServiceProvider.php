@@ -54,7 +54,6 @@ use AIArmada\Rewards\Contracts\RewardCorrectionKeySource;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
 use App\Checkout\ShareCheckoutStepContributor;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\NullCaptchaVerifier;
@@ -162,7 +161,6 @@ use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Contributions\ContributionEntityState;
-use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\ContributionRequestNotifier;
 use App\Shared\Directory\ReferenceScopedSearch;
 use App\Shared\Discovery\SearchFilterCatalog;
@@ -311,7 +309,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(EventEngagement::class, EloquentEngagementReader::class);
         $this->app->bind(SubjectFollows::class, EloquentEngagementReader::class);
         $this->app->bind(ContributionEntityState::class, ContributionEntityMutationService::class);
-        $this->app->bind(ContributionRequestGuard::class, EnsureNoPendingContributionRequestAction::class);
         $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
         $this->app->tag([
             ModerationAccountLifecycleContributor::class,

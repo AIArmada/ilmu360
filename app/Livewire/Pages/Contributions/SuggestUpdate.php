@@ -3,13 +3,12 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\Queries\FindEntityPendingContributionRequestAction;
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
-use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestAction;
 
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
@@ -32,6 +31,7 @@ use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Platform\Location\GooglePlaceIdentity;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\Enums\ContributionSubjectType;
 use App\Shared\Signals\SignalRecorder;
 use App\Support\Events\EventContributionUpdateStateMapper;
@@ -200,10 +200,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     #[Computed]
     public function pendingUpdateRequest(): ?ContributionRequest
     {
-        return app(FindEntityPendingContributionRequestAction::class)->handle(
+        $requestId = app(ContributionRequestReader::class)->pendingRequestIdForEntity(
             $this->entity->getMorphClass(),
             (string) $this->entity->getKey(),
         );
+
+        return $requestId !== null ? ContributionRequest::query()->find($requestId) : null;
     }
 
     /**
@@ -342,14 +344,14 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
         ContributionSubmissionPreparation $submissionPreparation,
         ContributionRequestLifecycle $contributionRequestLifecycle,
-        EnsureNoPendingContributionRequestAction $ensureNoPendingContributionRequestAction,
+        ContributionRequestGuard $contributionRequestGuard,
         MapsIdentityLock $mapsIdentityLockAction,
     ): void {
         OwnerContext::withOwner(null, function () use (
             $applyDirectContributionUpdateAction,
             $submissionPreparation,
             $contributionRequestLifecycle,
-            $ensureNoPendingContributionRequestAction,
+            $contributionRequestGuard,
             $mapsIdentityLockAction,
         ): void {
             $user = auth()->user();
@@ -384,10 +386,10 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $applyDirectContributionUpdateAction,
                 $submissionPreparation,
                 $contributionRequestLifecycle,
-                $ensureNoPendingContributionRequestAction,
+                $contributionRequestGuard,
                 $user,
             ): void {
-                $ensureNoPendingContributionRequestAction->handle(
+                $contributionRequestGuard->ensureNoPending(
                     $this->subjectType,
                     (string) $this->entity->getKey(),
                 );
