@@ -56,6 +56,7 @@ use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\Events\EntryPoints\Filament\TermDomainMappingExtension;
+use App\Features\Events\EntryPoints\Jobs\DispatchEventReminderNotifications;
 use App\Features\Events\Persistence\EventHomepageStatsCacheStore;
 use App\Features\Events\Persistence\EventInstitutionQuickAddMapsProofCacheStore;
 use App\Features\Events\Persistence\EventInvolvementFingerprintStore;
@@ -82,6 +83,7 @@ use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Shared\Events\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Shared\Events\EventCategoryPolicyResolver;
+use Illuminate\Support\Facades\Schedule;
 
 /**
  * Events owns event authoring, submissions, registration, and attendance.
@@ -214,6 +216,14 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        if ($this->app->runningInConsole()) {
+            Schedule::job(new DispatchEventReminderNotifications)
+                ->everyFifteenMinutes()
+                ->timezone('UTC')
+                ->name('notification-reminders')
+                ->withoutOverlapping();
+        }
 
         $this->app->make(PublicSlugRegistry::class)->prepend(new PublicSlugResource(
             parameter: 'event',

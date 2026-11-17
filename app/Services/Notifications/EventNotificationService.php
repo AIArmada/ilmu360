@@ -27,6 +27,7 @@ use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventReminderNotificationDispatch;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Notifications\NotificationDispatchData;
 use Carbon\CarbonImmutable;
@@ -34,7 +35,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
-class EventNotificationService
+class EventNotificationService implements EventReminderNotificationDispatch
 {
     public function __construct(
         protected NotificationDispatch $notificationDispatch,

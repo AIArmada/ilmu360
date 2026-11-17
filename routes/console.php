@@ -1,6 +1,5 @@
 <?php
 
-use App\Jobs\DispatchEventReminderNotifications;
 use App\Jobs\EscalatePendingEvents;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -9,13 +8,6 @@ use Illuminate\Support\Facades\Schedule;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
-
-// Notification reminders (2-hour and check-in windows)
-Schedule::job(new DispatchEventReminderNotifications)
-    ->everyFifteenMinutes()
-    ->timezone('UTC')
-    ->name('notification-reminders')
-    ->withoutOverlapping();
 
 // Committed-share signal projection (durable cursor, idempotent)
 Schedule::command('signals:drain-committed-shares')
