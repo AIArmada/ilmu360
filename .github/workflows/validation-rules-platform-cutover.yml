@@ -1,0 +1,13 @@
+name: One-time validation ownership
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/validation-rules-platform-cutover.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/validation-rules-platform-cutover.py
