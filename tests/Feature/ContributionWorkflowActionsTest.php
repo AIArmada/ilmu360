@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\NormalizeContributionSubmissionAction;
@@ -92,7 +92,7 @@ it('submits staged contribution create requests with shared entity metadata', fu
 it('submits staged institution contributions through the action layer', function () {
     $proposer = User::factory()->create();
 
-    $institution = app(SubmitStagedContributionCreateAction::class)->handle(
+    $institutionId = app(StagedContributionCreates::class)->submit(
         ContributionSubjectType::Institution,
         [
             'name' => 'Masjid Beraksi',
@@ -100,8 +100,9 @@ it('submits staged institution contributions through the action layer', function
             'description' => 'Institution created through staged action.',
             'proposer_note' => 'Please review this institution.',
         ],
-        $proposer,
+        (string) $proposer->getKey(),
     );
+    $institution = Institution::query()->findOrFail($institutionId);
 
     $request = ContributionRequest::query()->latest('created_at')->first();
 
@@ -119,7 +120,7 @@ it('submits staged institution contributions through the action layer', function
 it('submits staged person contributions through the action layer', function () {
     $proposer = User::factory()->create();
 
-    $person = app(SubmitStagedContributionCreateAction::class)->handle(
+    $personId = app(StagedContributionCreates::class)->submit(
         ContributionSubjectType::Person,
         [
             'name' => 'Person Beraksi',
@@ -127,8 +128,9 @@ it('submits staged person contributions through the action layer', function () {
             'bio' => 'Person created through staged action.',
             'proposer_note' => 'Please review this person.',
         ],
-        $proposer,
+        (string) $proposer->getKey(),
     );
+    $person = Person::query()->findOrFail($personId);
 
     $request = ContributionRequest::query()->latest('created_at')->first();
 

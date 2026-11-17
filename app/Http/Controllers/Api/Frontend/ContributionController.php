@@ -6,7 +6,7 @@ use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
-use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
@@ -102,7 +102,7 @@ class ContributionController extends FrontendController
     )]
     public function storeInstitution(
         Request $request,
-        SubmitStagedContributionCreateAction $submitStagedContributionCreateAction,
+        StagedContributionCreates $stagedCreates,
         MediaCollectionSync $mediaCollectionSync,
         FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
         ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
@@ -262,11 +262,12 @@ class ContributionController extends FrontendController
 
         $validated = $this->normalizeContributionAddressPayload($validated);
 
-        $institution = $submitStagedContributionCreateAction->handle(
+        $institutionId = $stagedCreates->submit(
             ContributionSubjectType::Institution,
             $validated,
-            $user,
-            function (Institution $institution) use ($request, $mediaCollectionSync): void {
+            (string) $user->getKey(),
+            function (string $institutionId) use ($request, $mediaCollectionSync): void {
+                $institution = Institution::query()->findOrFail($institutionId);
                 $mediaCollectionSync->syncSingle($institution, $request->file('cover'), 'cover');
                 $mediaCollectionSync->syncMultiple(
                     $institution,
@@ -275,6 +276,7 @@ class ContributionController extends FrontendController
                 );
             },
         );
+        $institution = Institution::query()->findOrFail($institutionId);
 
         return response()->json([
             'message' => __('Thank you. Your institution submission has been received. We will notify you if it is approved or rejected.'),
@@ -302,7 +304,7 @@ class ContributionController extends FrontendController
     )]
     public function storePerson(
         Request $request,
-        SubmitStagedContributionCreateAction $submitStagedContributionCreateAction,
+        StagedContributionCreates $stagedCreates,
         MediaCollectionSync $mediaCollectionSync,
     ): JsonResponse {
         $user = $this->requireUser($request);
@@ -352,11 +354,12 @@ class ContributionController extends FrontendController
         ]);
         $validated = $this->normalizeContributionAddressPayload($validated);
 
-        $person = $submitStagedContributionCreateAction->handle(
+        $personId = $stagedCreates->submit(
             ContributionSubjectType::Person,
             $validated,
-            $user,
-            function (Person $person) use ($request, $mediaCollectionSync): void {
+            (string) $user->getKey(),
+            function (string $personId) use ($request, $mediaCollectionSync): void {
+                $person = Person::query()->findOrFail($personId);
                 $mediaCollectionSync->syncSingle($person, $request->file('avatar'), 'avatar');
                 $mediaCollectionSync->syncSingle($person, $request->file('cover'), 'cover');
                 $mediaCollectionSync->syncMultiple(
@@ -366,6 +369,7 @@ class ContributionController extends FrontendController
                 );
             },
         );
+        $person = Person::query()->findOrFail($personId);
 
         return response()->json([
             'message' => __('Thank you. Your person submission has been received. We will notify you if it is approved or rejected.'),

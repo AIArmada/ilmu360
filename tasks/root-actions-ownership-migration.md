@@ -236,3 +236,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] ShareTracking owns cancellation coordination via scalar ParticipationOutcomeReversals, delegates ticket money reversal to Events and frozen share reversal to its existing ShareOutcomeReversals contract.
 - [x] Update synchronous listener, event cancellation/moderation, change announcements and replay tests; delete the root action in the same commit. No old aliases or duplicate code.
 - [ ] Confirm rollback, scope isolation, correction idempotency and CI architecture/Pest checks before marking verified.
+
+
+### Staged contribution create cutover
+- [x] The Contributions feature now owns atomic staged-create orchestration and the Google Maps identity lock through StagedContributionCreates.
+- [x] Institution/Person/Reference features remain the only entity writers; the public API returns a scalar ID. Transport relationship/media callbacks execute inside the same DB transaction and hydrate their models locally.
+- [x] Update Livewire/API and behavior tests and delete the former root action without compatibility aliases.
+- [ ] Verify transaction rollback, pending request model alias, race/uniqueness, and media callback parity in CI.

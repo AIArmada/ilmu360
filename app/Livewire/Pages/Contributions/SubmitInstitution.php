@@ -3,7 +3,7 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -223,9 +223,9 @@ class SubmitInstitution extends Component implements HasActions, HasForms
         RateLimiter::hit($key, 60);
     }
 
-    public function submit(SubmitStagedContributionCreateAction $submitStagedContributionCreateAction): void
+    public function submit(StagedContributionCreates $stagedCreates): void
     {
-        OwnerContext::withOwner(null, function () use ($submitStagedContributionCreateAction): void {
+        OwnerContext::withOwner(null, function () use ($stagedCreates): void {
             $user = auth()->user();
 
             abort_unless($user instanceof User, 403);
@@ -286,11 +286,12 @@ class SubmitInstitution extends Component implements HasActions, HasForms
             ]));
 
             try {
-                $submitStagedContributionCreateAction->handle(
+                $stagedCreates->submit(
                     ContributionSubjectType::Institution,
                     $state,
-                    $user,
-                    function (Institution $institution) use ($submittedDonationRows, $donationQrUploads): void {
+                    (string) $user->getKey(),
+                    function (string $institutionId) use ($submittedDonationRows, $donationQrUploads): void {
+                        $institution = Institution::query()->findOrFail($institutionId);
                         $this->contributionForm()->model($institution)->saveRelationships();
 
                         if ($donationQrUploads !== []) {

@@ -4,7 +4,7 @@ namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Forms\PersonContributionFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Person;
@@ -95,18 +95,19 @@ class SubmitPerson extends Component implements HasActions, HasForms
             ]);
     }
 
-    public function submit(SubmitStagedContributionCreateAction $submitStagedContributionCreateAction): void
+    public function submit(StagedContributionCreates $stagedCreates): void
     {
-        OwnerContext::withOwner(null, function () use ($submitStagedContributionCreateAction): void {
+        OwnerContext::withOwner(null, function () use ($stagedCreates): void {
             $user = auth()->user();
 
             abort_unless($user instanceof User, 403);
 
-            $submitStagedContributionCreateAction->handle(
+            $stagedCreates->submit(
                 ContributionSubjectType::Person,
                 $this->contributionForm()->getState(),
-                $user,
-                function (Person $person): void {
+                (string) $user->getKey(),
+                function (string $personId): void {
+                    $person = Person::query()->findOrFail($personId);
                     $this->contributionForm()->model($person)->saveRelationships();
                     session()->flash('contribution_submission_name', $person->formatted_name);
                 },

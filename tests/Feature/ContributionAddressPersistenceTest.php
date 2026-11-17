@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Persons\Actions\SyncPersonRelationsAction;
 use App\Forms\SharedFormSchema;
@@ -134,7 +134,7 @@ it('rolls back staged creates when area sync fails', function () {
     $geo = createTestPackageGeography();
 
     try {
-        app(SubmitStagedContributionCreateAction::class)->handle(
+        app(StagedContributionCreates::class)->submit(
             ContributionSubjectType::Institution,
             [
                 'name' => 'Masjid Gagal Tulis',
@@ -148,7 +148,7 @@ it('rolls back staged creates when area sync fails', function () {
                     ],
                 ],
             ],
-            $user,
+            (string) $user->getKey(),
         );
 
         $this->fail('Expected the unknown area role to fail area sync.');

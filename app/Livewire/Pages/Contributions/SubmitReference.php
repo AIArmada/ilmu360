@@ -3,7 +3,7 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Forms\ReferenceContributionFormSchema;
 use App\Models\Reference;
 use App\Models\User;
@@ -48,18 +48,19 @@ class SubmitReference extends Component implements HasActions, HasForms
             ->components(ReferenceContributionFormSchema::components(includeMedia: true));
     }
 
-    public function submit(SubmitStagedContributionCreateAction $submitStagedContributionCreateAction): void
+    public function submit(StagedContributionCreates $stagedCreates): void
     {
-        OwnerContext::withOwner(null, function () use ($submitStagedContributionCreateAction): void {
+        OwnerContext::withOwner(null, function () use ($stagedCreates): void {
             $user = auth()->user();
 
             abort_unless($user instanceof User, 403);
 
-            $submitStagedContributionCreateAction->handle(
+            $stagedCreates->submit(
                 ContributionSubjectType::Reference,
                 $this->contributionForm()->getState(),
-                $user,
-                function (Reference $reference): void {
+                (string) $user->getKey(),
+                function (string $referenceId): void {
+                    $reference = Reference::query()->withoutOwnerScope()->findOrFail($referenceId);
                     $this->contributionForm()->model($reference)->saveRelationships();
                     session()->flash('contribution_submission_name', $reference->displayTitle());
                 },
