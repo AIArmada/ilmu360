@@ -1,0 +1,13 @@
+name: One-time Fortify ownership
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/fortify-platform-owner-cutover.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/fortify-platform-owner-cutover.py
