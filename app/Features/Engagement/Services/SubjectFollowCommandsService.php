@@ -31,7 +31,7 @@ final readonly class SubjectFollowCommandsService implements SubjectFollowComman
     public function unfollow(string $subjectType, string $subjectId, string $actorId): bool
     {
         return $this->unfollowAction->handle(
-            $this->subject($subjectType, $subjectId),
+            EngagementModels::followable($subjectType, $subjectId),
             EngagementModels::actor($actorId),
         )->removed;
     }

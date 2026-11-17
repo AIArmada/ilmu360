@@ -150,3 +150,8 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Make event-going existing-admission lookup a Registration-owned public method rather than reading Registration's model directly from Engagement.
 - [x] Preserve transaction, package writes, attribution freeze, registration metadata and event counter semantics; verify package interface signatures.
 - [ ] Re-run architecture, PHPStan and full behavioral CI; no compatibility aliases or arch exceptions.
+
+
+### Engagement CI type correction
+- [x] Fix remaining subject method invocation in unfollow and reattach RegisterFreeAdmissionAction's registration PHPDoc after adding the active-admission query. CI proved **0 feature architecture violations** before these four PHPStan errors.
+- [ ] Confirm the corrected architecture/types and behavioral suite.

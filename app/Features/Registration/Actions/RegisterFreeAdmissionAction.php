@@ -35,14 +35,6 @@ final readonly class RegisterFreeAdmissionAction implements AdmissionRegistratio
         private ParticipationAttribution $attribution,
     ) {}
 
-    /**
-     * @param  array<int, array<string, mixed>>  $participants
-     * @param  array<string, mixed>  $options
-     * @return array{
-     *     registrations: list<array{registration_id: string, created: bool}>,
-     *     primary_registration_id: string|null
-     * }
-     */
     public function hasActiveForUser(string $eventId, string $registrantId): bool
     {
         $registrationClass = MorphModelResolver::resolve('registration');
@@ -57,6 +49,14 @@ final readonly class RegisterFreeAdmissionAction implements AdmissionRegistratio
             ->exists();
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $participants
+     * @param  array<string, mixed>  $options
+     * @return array{
+     *     registrations: list<array{registration_id: string, created: bool}>,
+     *     primary_registration_id: string|null
+     * }
+     */
     public function registerFree(
         string $eventId,
         array $participants,
