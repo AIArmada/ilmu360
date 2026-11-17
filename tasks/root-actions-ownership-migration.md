@@ -173,3 +173,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Replace the root SaveAdminEventAction with Events-owned AdminEventWriter. Initial pending/approved moderation sequence unchanged.
 - [x] Update Filament/admin API and prayer tests to rehydrate saved event IDs via the feature API; remove root file, no legacy alias.
 - [ ] Verify admin writes, moderation and prayer tests in CI.
+
+
+### Advanced parent program validation cutover
+- [x] Rehome organizer/location membership checks, schedule validation and UTC resolution behind a scalar AdvancedProgramPreparation feature API.
+- [x] Livewire rehydrates organizer model and Carbon UTC instants before canonical event creation. Delete root action.
+- [ ] Verify multi-session event creation, authorization and time windows on Quality CI.

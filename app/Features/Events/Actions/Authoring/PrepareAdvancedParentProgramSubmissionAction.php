@@ -1,37 +1,34 @@
 <?php
 
-namespace App\Actions\Events\Authoring;
+namespace App\Features\Events\Actions\Authoring;
 
-use App\Models\Institution;
-use App\Models\Person;
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
-use App\Models\User;
+use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\HardcodedPrayerFallback;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
 
-class PrepareAdvancedParentProgramSubmissionAction
+final readonly class PrepareAdvancedParentProgramSubmissionAction implements AdvancedProgramPreparation
 {
-    use AsAction;
 
     public function __construct(
-        protected AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
+        private AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
     ) {}
 
     /**
      * @param  array<string, mixed>  $form
      * @return array{
      *     timezone: string,
-     *     primary_organizer: Institution|Person,
+     *     primary_organizer_type: string,
+     *     primary_organizer_id: string,
      *     location_institution_id: ?string,
-     *     program_starts_at: Carbon,
-     *     program_ends_at: Carbon
+     *     program_starts_at: string,
+     *     program_ends_at: string
      * }
      */
-    public function handle(
-        User $user,
+    public function prepare(
+        string $accountId,
         array $form,
         ?string $lockedInstitutionId = null,
         ?string $lockedPersonId = null,
@@ -44,7 +41,7 @@ class PrepareAdvancedParentProgramSubmissionAction
         }
 
         $timezone = (string) $form['timezone'];
-        $primaryOrganizer = $this->resolvePrimaryOrganizer($user, (string) $form['primary_organizer_id']);
+        $primaryOrganizer = $this->resolvePrimaryOrganizer($accountId, (string) $form['primary_organizer_id']);
         $programStartsAt = Carbon::parse((string) $form['program_starts_at'], $timezone)->utc();
         $programEndsAt = Carbon::parse((string) $form['program_ends_at'], $timezone)->utc();
 
@@ -70,57 +67,50 @@ class PrepareAdvancedParentProgramSubmissionAction
 
         return [
             'timezone' => $timezone,
-            'primary_organizer' => $primaryOrganizer,
+            'primary_organizer_type' => $primaryOrganizer['type'],
+            'primary_organizer_id' => $primaryOrganizer['id'],
             'location_institution_id' => (string) ($form['location_type'] ?? 'institution') === 'venue'
                 ? null
                 : $this->resolveLocationInstitutionId(
-                    $user,
-                    $primaryOrganizer,
+                    $accountId,
+                    $primaryOrganizer['type'],
+                    $primaryOrganizer['id'],
                     $form['location_institution_id'] ?? null,
                 ),
-            'program_starts_at' => $programStartsAt,
-            'program_ends_at' => $programEndsAt,
+            'program_starts_at' => $programStartsAt->toIso8601String(),
+            'program_ends_at' => $programEndsAt->toIso8601String(),
         ];
     }
 
-    protected function resolvePrimaryOrganizer(User $user, string $primaryOrganizerId): Institution|Person
+    /** @return array{type: 'institution'|'person', id: string} */
+    private function resolvePrimaryOrganizer(string $accountId, string $primaryOrganizerId): array
     {
-        $membershipOptions = $this->advancedBuilderMembershipOptions->forAccount((string) $user->getKey());
+        $options = $this->advancedBuilderMembershipOptions->forAccount($accountId);
 
-        if (array_key_exists($primaryOrganizerId, $membershipOptions['institution_options'])) {
-            $institution = Institution::query()->find($primaryOrganizerId);
-
-            if ($institution instanceof Institution) {
-                return $institution;
-            }
+        if (array_key_exists($primaryOrganizerId, $options['institution_options'])) {
+            return ['type' => 'institution', 'id' => $primaryOrganizerId];
         }
 
-        if (array_key_exists($primaryOrganizerId, $membershipOptions['person_options'])) {
-            $person = Person::query()->find($primaryOrganizerId);
-
-            if ($person instanceof Person) {
-                return $person;
-            }
+        if (array_key_exists($primaryOrganizerId, $options['person_options'])) {
+            return ['type' => 'person', 'id' => $primaryOrganizerId];
         }
 
         abort(403);
     }
 
-    protected function resolveLocationInstitutionId(User $user, Institution|Person $primaryOrganizer, mixed $locationInstitutionId): ?string
+    private function resolveLocationInstitutionId(string $accountId, string $primaryOrganizerType, string $primaryOrganizerId, mixed $locationInstitutionId): ?string
     {
-        if ($primaryOrganizer instanceof Institution) {
-            return (string) $primaryOrganizer->getKey();
+        if ($primaryOrganizerType === 'institution') {
+            return $primaryOrganizerId;
         }
 
         if (! is_string($locationInstitutionId) || $locationInstitutionId === '') {
             return null;
         }
 
-        $membershipOptions = $this->advancedBuilderMembershipOptions->forAccount((string) $user->getKey());
+        $options = $this->advancedBuilderMembershipOptions->forAccount($accountId);
 
-        if (! array_key_exists($locationInstitutionId, $membershipOptions['institution_options'])) {
-            abort(403);
-        }
+        abort_unless(array_key_exists($locationInstitutionId, $options['institution_options']), 403);
 
         return $locationInstitutionId;
     }

@@ -9,12 +9,14 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Actions\Events\Authoring\CreateEventWithRegistrationAction;
-use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
+use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Enums\RegistrationScope;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Forms\Components\Select;
+use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
@@ -886,7 +888,7 @@ class CreateAdvanced extends Component implements HasForms
 
     public function submit(
         CreateEventWithRegistrationAction $createEventWithRegistrationAction,
-        PrepareAdvancedParentProgramSubmissionAction $prepareAdvancedParentProgramSubmissionAction,
+        AdvancedProgramPreparation $advancedProgramPreparation,
     ): mixed {
         $this->applyContextDefaults();
         $this->normalizeFormStateForValidation();
@@ -905,21 +907,27 @@ class CreateAdvanced extends Component implements HasForms
         $form['poster'] ??= null;
         $form['gallery'] ??= [];
 
-        $preparedSubmission = $prepareAdvancedParentProgramSubmissionAction->handle(
-            $user,
+        $preparedSubmission = $advancedProgramPreparation->prepare(
+            (string) $user->getKey(),
             $form,
             $this->contextInstitutionId !== '' ? $this->contextInstitutionId : null,
             $this->contextPersonId !== '' ? $this->contextPersonId : null,
         );
 
+        $primaryOrganizerId = $preparedSubmission['primary_organizer_id'];
+        $primaryOrganizer = match ($preparedSubmission['primary_organizer_type']) {
+            'institution' => Institution::query()->findOrFail($primaryOrganizerId),
+            'person' => Person::query()->findOrFail($primaryOrganizerId),
+        };
+
         try {
             $event = $createEventWithRegistrationAction->handle(
                 user: $user,
                 form: $form,
-                startsAt: $preparedSubmission['program_starts_at'],
-                endsAt: $preparedSubmission['program_ends_at'],
+                startsAt: Carbon::parse($preparedSubmission['program_starts_at']),
+                endsAt: Carbon::parse($preparedSubmission['program_ends_at']),
                 timezone: $preparedSubmission['timezone'],
-                primaryOrganizer: $preparedSubmission['primary_organizer'],
+                primaryOrganizer: $primaryOrganizer,
                 locationInstitutionId: $preparedSubmission['location_institution_id'],
                 organization: null,
                 registrationMode: (bool) ($validated['form']['registration_required'] ?? false)

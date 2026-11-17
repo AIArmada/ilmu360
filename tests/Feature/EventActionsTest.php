@@ -4,7 +4,7 @@ use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
+use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
@@ -33,7 +33,7 @@ it('prepares advanced parent program submissions with utc timestamps and resolve
     $person->members()->syncWithoutDetaching([$user->id]);
     $locationInstitution->members()->syncWithoutDetaching([$user->id]);
 
-    $prepared = app(PrepareAdvancedParentProgramSubmissionAction::class)->handle($user, [
+    $prepared = app(AdvancedProgramPreparation::class)->prepare((string) $user->getKey(), [
         'timezone' => 'Asia/Kuala_Lumpur',
         'primary_organizer_id' => $person->id,
         'location_institution_id' => $locationInstitution->id,
@@ -43,11 +43,11 @@ it('prepares advanced parent program submissions with utc timestamps and resolve
 
     expect($prepared)->not->toHaveKey('organizer_type')
         ->and($prepared)->not->toHaveKey('organizer_id')
-        ->and($prepared['primary_organizer'])->toBeInstanceOf(Person::class)
-        ->and($prepared['primary_organizer']->is($person))->toBeTrue()
+        ->and($prepared['primary_organizer_type'])->toBe('person')
+        ->and($prepared['primary_organizer_id'])->toBe((string) $person->getKey())
         ->and($prepared['location_institution_id'])->toBe($locationInstitution->id)
-        ->and($prepared['program_starts_at']->format('Y-m-d H:i:s'))->toBe('2026-04-10 12:00:00')
-        ->and($prepared['program_ends_at']->format('Y-m-d H:i:s'))->toBe('2026-04-10 14:00:00');
+        ->and(Carbon::parse($prepared['program_starts_at'])->format('Y-m-d H:i:s'))->toBe('2026-04-10 12:00:00')
+        ->and(Carbon::parse($prepared['program_ends_at'])->format('Y-m-d H:i:s'))->toBe('2026-04-10 14:00:00');
 });
 
 it('resolves advanced builder context with requested institution defaults', function () {
