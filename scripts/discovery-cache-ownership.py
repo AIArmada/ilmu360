@@ -105,6 +105,11 @@ for f in files():
         lambda m:interface,modified,
     )
     modified=modified.replace("app/Services/PublicListingsCache.php","app/Features/Discovery/Services/PublicListingsCache.php")
+    # Import replacement alone is insufficient: the observer/adapter short
+    # type hints must be updated to the actual public interface identifier.
+    if f != PROVIDER and f != TARGET and "use App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator;" in modified:
+        modified=re.sub(r"(?<![A-Za-z0-9_\\\\])PublicListingsCache(?![A-Za-z0-9_])",
+                        "PublicListingsCacheInvalidator",modified)
     if modified!=original:f.write_text(modified)
 
 for f in files():
