@@ -74,6 +74,8 @@ jobs:
           PY
           php artisan tinker --execute="if (!(app(\\App\\Platform\\Auth\\Fortify\\CreateNewUser::class) instanceof \\Laravel\\Fortify\\Contracts\\CreatesNewUsers)) { throw new \\RuntimeException('Fortify creator unbound'); }"
           php artisan tinker --execute="if (!(app(\\App\\Platform\\Auth\\Fortify\\ResetUserPassword::class) instanceof \\Laravel\\Fortify\\Contracts\\ResetsUserPasswords)) { throw new \\RuntimeException('Fortify reset unbound'); }"
+          php artisan tinker --execute="if (!(app(\\App\\Shared\\Auth\\NewAccountAttribution::class) instanceof \\App\\Features\\Identity\\Actions\\RecordNewAccountAttributionAction)) { throw new \\RuntimeException('New-account attribution port unbound'); }"
+          php artisan tinker --execute="if (!(app(\\App\\Shared\\Auth\\GuestEventSubmissionClaims::class) instanceof \\App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction)) { throw new \\RuntimeException('Guest submission claim port unbound'); }"
       - name: Check architecture, types, Pint and Rector
         run: |
           git add -A
