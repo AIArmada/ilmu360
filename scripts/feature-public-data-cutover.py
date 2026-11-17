@@ -5,6 +5,7 @@ The selected types are scalar value objects or public API response envelopes.
 No aliases, classmap fallbacks, duplicate files, or compatibility adapters.
 """
 from pathlib import Path
+import re
 
 ROOT = Path.cwd()
 PREFIXES = {
@@ -54,8 +55,9 @@ def main():
         original=file.read_text(encoding="utf-8")
         updated=original
         for old,new in sorted(classes.items(),key=lambda pair:-len(pair[0])):
-            updated=updated.replace(old.replace("\\","\\\\"),new.replace("\\","\\\\"))
-            updated=updated.replace(old,new)
+            escaped_old,escaped_new=old.replace("\\","\\\\"),new.replace("\\","\\\\")
+            updated=re.sub(r"(?<![A-Za-z0-9_])"+re.escape(escaped_old)+r"(?![A-Za-z0-9_])",lambda m: escaped_new,updated)
+            updated=re.sub(r"(?<![A-Za-z0-9_])"+re.escape(old)+r"(?![A-Za-z0-9_])",lambda m: new,updated)
         for old,new in sorted(MOVES.items(),key=lambda pair:-len(pair[0])):
             updated=updated.replace(old,new)
         if updated!=original:file.write_text(updated,encoding="utf-8")
@@ -65,7 +67,7 @@ def main():
     for file in files():
         text=file.read_text()
         for old in classes:
-            if old in text or old.replace("\\","\\\\") in text:
+            if re.search(r"(?<![A-Za-z0-9_])"+re.escape(old)+r"(?![A-Za-z0-9_])",text) or re.search(r"(?<![A-Za-z0-9_])"+re.escape(old.replace("\\","\\\\"))+r"(?![A-Za-z0-9_])",text):
                 raise RuntimeError(f"Stale legacy class {old} in {file}")
     print(f"Cut over {len(MOVES)} public value classes to their owning feature Api/Data packages.")
     for src,dst in MOVES.items():print(f"{src} -> {dst}")
