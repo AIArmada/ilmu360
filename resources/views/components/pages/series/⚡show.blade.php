@@ -1,8 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Engagement\FollowSubjectAction;
-use App\Actions\Engagement\UnfollowSubjectAction;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Event;
 use App\Models\Series;
@@ -60,14 +59,14 @@ new
             }
 
             if ($this->isFollowing) {
-                app(UnfollowSubjectAction::class)->handle($this->series, $user);
+                app(SubjectFollowCommands::class)->unfollow($this->series->getMorphClass(), (string) $this->series->getKey(), (string) $user->getKey());
                 $this->isFollowing = false;
             } else {
-                app(FollowSubjectAction::class)->handle(
-                    subject: $this->series,
-                    user: $user,
-                    metadata: ['series_id' => $this->series->getKey()],
-                    request: request(),
+                app(SubjectFollowCommands::class)->follow(
+                    $this->series->getMorphClass(),
+                    (string) $this->series->getKey(),
+                    (string) $user->getKey(),
+                    ['series_id' => $this->series->getKey()],
                 );
                 $this->isFollowing = true;
             }

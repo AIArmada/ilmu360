@@ -1,8 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Engagement\FollowSubjectAction;
-use App\Actions\Engagement\UnfollowSubjectAction;
+use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Features\References\Api\ReferenceQueries;
 use App\Models\Event;
@@ -125,13 +124,13 @@ new
             }
 
             if ($user->isFollowing($subject)) {
-                app(UnfollowSubjectAction::class)->handle($subject, $user);
+                app(SubjectFollowCommands::class)->unfollow($subject->getMorphClass(), (string) $subject->getKey(), (string) $user->getKey());
             } else {
-                app(FollowSubjectAction::class)->handle(
-                    subject: $subject,
-                    user: $user,
-                    metadata: ['reference_id' => $subject->getKey()],
-                    request: request(),
+                app(SubjectFollowCommands::class)->follow(
+                    $subject->getMorphClass(),
+                    (string) $subject->getKey(),
+                    (string) $user->getKey(),
+                    ['reference_id' => $subject->getKey()],
                 );
             }
 
