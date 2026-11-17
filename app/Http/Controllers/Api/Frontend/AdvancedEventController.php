@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Organizations\Models\Organization;
 use App\Actions\Events\Authoring\CreateEventWithInitialOccurrenceAction;
-use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
+use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Enums\RegistrationScope;
 use App\Features\Organizations\Api\OrganizationAccess;
+use App\Models\Institution;
+use App\Models\Person;
 use App\Features\Organizations\Api\OrganizationSummary;
 use App\Platform\Http\FrontendController;
 use App\Shared\Events\Enums\EventFormat;
@@ -16,6 +18,7 @@ use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 #[Group(
@@ -33,7 +36,7 @@ class AdvancedEventController extends FrontendController
     )]
     public function store(
         Request $request,
-        PrepareAdvancedParentProgramSubmissionAction $prepareAdvancedParentProgramSubmissionAction,
+        AdvancedProgramPreparation $advancedProgramPreparation,
         CreateEventWithInitialOccurrenceAction $createEventWithInitialOccurrenceAction,
         OrganizationAccess $organizationAccess,
     ): JsonResponse {
@@ -56,7 +59,11 @@ class AdvancedEventController extends FrontendController
             'registration_mode' => ['required', Rule::in(array_column(RegistrationScope::cases(), 'value'))],
         ]);
 
-        $preparedSubmission = $prepareAdvancedParentProgramSubmissionAction->handle($user, $validated);
+        $preparedSubmission = $advancedProgramPreparation->prepare((string) $user->getKey(), $validated);
+        $primaryOrganizer = match ($preparedSubmission['primary_organizer_type']) {
+            'institution' => Institution::query()->findOrFail($preparedSubmission['primary_organizer_id']),
+            'person' => Person::query()->findOrFail($preparedSubmission['primary_organizer_id']),
+        };
         $organization = null;
 
         if (filled($validated['organization_id'] ?? null)) {
@@ -73,10 +80,10 @@ class AdvancedEventController extends FrontendController
         $event = $createEventWithInitialOccurrenceAction->handle(
             $user,
             $validated,
-            $preparedSubmission['program_starts_at'],
-            $preparedSubmission['program_ends_at'],
+            Carbon::parse($preparedSubmission['program_starts_at']),
+            Carbon::parse($preparedSubmission['program_ends_at']),
             $preparedSubmission['timezone'],
-            $preparedSubmission['primary_organizer'],
+            $primaryOrganizer,
             $preparedSubmission['location_institution_id'],
             $organization,
         );
