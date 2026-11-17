@@ -11,7 +11,6 @@ use Illuminate\Validation\ValidationException;
 
 final readonly class PrepareAdvancedParentProgramSubmissionAction implements AdvancedProgramPreparation
 {
-
     public function __construct(
         private AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
     ) {}

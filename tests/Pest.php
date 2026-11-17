@@ -1055,7 +1055,7 @@ function googleOAuthHandoffToken(array $socialUserAttributes = [], array $redire
  * Test-only admin event model hydration; production consumers call the
  * Events-owned scalar AdminEventWriter instead of an obsolete root Action.
  *
- * @param array<string, mixed> $data
+ * @param  array<string, mixed>  $data
  */
 function saveAdminEventForTest(array $data, User $actor, ?Event $event = null): Event
 {

@@ -18,7 +18,6 @@ use App\Shared\Taxonomy\EventTaxonomyCode;
 
 final readonly class ResolveAdvancedBuilderContextAction implements AdvancedBuilderContext
 {
-
     public function __construct(
         private AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
         private EventCategoryCatalog $categoryCatalog,

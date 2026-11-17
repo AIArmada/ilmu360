@@ -8,7 +8,7 @@ namespace App\Features\Events\Api;
 interface AdvancedProgramPreparation
 {
     /**
-     * @param array<string, mixed> $form
+     * @param  array<string, mixed>  $form
      * @return array{
      *     timezone: string,
      *     primary_organizer_type: 'institution'|'person',

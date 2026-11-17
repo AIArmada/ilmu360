@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Organizations\Models\Organization;
 use App\Actions\Events\Authoring\CreateEventWithInitialOccurrenceAction;
-use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Enums\RegistrationScope;
+use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Features\Organizations\Api\OrganizationAccess;
+use App\Features\Organizations\Api\OrganizationSummary;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Features\Organizations\Api\OrganizationSummary;
 use App\Platform\Http\FrontendController;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
