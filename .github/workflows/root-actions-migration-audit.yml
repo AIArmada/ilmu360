@@ -1,0 +1,24 @@
+name: Root Actions Migration Audit
+
+on:
+  push:
+    branches: [refactor]
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    name: Inventory root Actions references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print root action imports and call sites
+        shell: bash
+        run: |
+          echo '=== Root action namespace references ==='
+          rg -n -F 'App\Actions\' app tests config bootstrap routes tools --glob '*.php' || true
+          echo '=== Short class-name references to Institution Maps actions ==='
+          rg -n 'InferInstitutionTypeAction|MergeInstitutionMapsSelectionIntoFormAction|ResolveInstitutionMapsPlaceSelectionAction' app tests config bootstrap routes --glob '*.php' || true
+          echo '=== Current root Action files ==='
+          find app/Actions -type f -name '*.php' | sort
