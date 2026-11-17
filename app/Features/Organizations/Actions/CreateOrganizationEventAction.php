@@ -16,7 +16,6 @@ use InvalidArgumentException;
 
 final readonly class CreateOrganizationEventAction implements OrganizationEventCreator
 {
-
     public function __construct(
         private AdmissionEventCreator $admissionEventCreator,
         private OrganizationAccess $organizationAccess,
@@ -41,8 +40,7 @@ final readonly class CreateOrganizationEventAction implements OrganizationEventC
         $registrationMode = RegistrationMode::from((string) $form['registration_mode']);
         $pricingMode = PricingMode::from((string) $form['pricing_mode']);
 
-        return OwnerContext::withOwner($organization, function () use ($actorId, $organization, $form, $startsAt, $endsAt, $timezone, $registrationMode, $pricingMode): string {
-            $eventId = $this->admissionEventCreator->create(
+        return OwnerContext::withOwner($organization, fn (): string => $this->admissionEventCreator->create(
             actorId: $actorId,
             form: [
                 'title' => (string) $form['title'],
@@ -66,9 +64,6 @@ final readonly class CreateOrganizationEventAction implements OrganizationEventC
             pricingMode: $pricingMode->value,
             tickets: (array) ($form['tickets'] ?? []),
             seating: (array) ($form['seating'] ?? []),
-            );
-
-            return $eventId;
-        });
+        ));
     }
 }

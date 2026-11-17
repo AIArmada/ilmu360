@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Organizations\Models\Organization;
-use App\Features\Events\Api\AdvancedEventCreator;
-use App\Models\Event;
 use App\Enums\RegistrationScope;
+use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
+use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Platform\Http\FrontendController;
@@ -19,7 +19,6 @@ use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 #[Group(
@@ -61,7 +60,7 @@ class AdvancedEventController extends FrontendController
         ]);
 
         $preparedSubmission = $advancedProgramPreparation->prepare((string) $user->getKey(), $validated);
-        $primaryOrganizer = match ($preparedSubmission['primary_organizer_type']) {
+        match ($preparedSubmission['primary_organizer_type']) {
             'institution' => Institution::query()->findOrFail($preparedSubmission['primary_organizer_id']),
             'person' => Person::query()->findOrFail($preparedSubmission['primary_organizer_id']),
         };

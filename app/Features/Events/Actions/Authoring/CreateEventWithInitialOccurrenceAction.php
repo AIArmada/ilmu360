@@ -15,11 +15,11 @@ use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\TimingMode;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Database\Eloquent\Model;
-use InvalidArgumentException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Creates the event container and its first scheduled occurrence.
@@ -27,14 +27,13 @@ use Illuminate\Support\Facades\DB;
  * Sessions are deliberately created beneath that occurrence; this action never
  * models an event as the child of another event.
  */
-final class CreateEventWithInitialOccurrenceAction implements AdvancedEventCreator
+final readonly class CreateEventWithInitialOccurrenceAction implements AdvancedEventCreator
 {
-
     public function __construct(
-        private readonly MediaCollectionSync $mediaSync,
-        private readonly EventAuthoring $authoring,
-        private readonly SpaceEligibility $spaceEligibilityResolver,
-        private readonly OrganizationAccess $organizationAccess,
+        private MediaCollectionSync $mediaSync,
+        private EventAuthoring $authoring,
+        private SpaceEligibility $spaceEligibilityResolver,
+        private OrganizationAccess $organizationAccess,
     ) {}
 
     /**

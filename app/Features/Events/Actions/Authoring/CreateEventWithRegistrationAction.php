@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class CreateEventWithRegistrationAction implements AdmissionEventCreator
 {
-
     public function __construct(
         private AdvancedEventCreator $createEventWithInitialOccurrence,
         private EventAuthoring $eventAuthoring,
