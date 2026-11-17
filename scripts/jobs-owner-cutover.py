@@ -63,6 +63,95 @@ def main():
             content=content.replace(old,new)
         if original!=content: path.write_text(content)
 
+
+    # Move the observer with the feature so neither its job nor its private
+    # signal producer leaks into the composition root.
+    original_observer=ROOT/"app/Observers/CommittedShareTouchpointObserver.php"
+    target_observer=ROOT/"app/Features/ShareTracking/EntryPoints/Observers/CommittedShareTouchpointObserver.php"
+    if not original_observer.is_file() or target_observer.exists():
+        raise RuntimeError("Observer in unexpected location")
+    observer_text=original_observer.read_text().replace(
+        "namespace App\\Observers;",
+        "namespace App\\Features\\ShareTracking\\EntryPoints\\Observers;",
+        1,
+    )
+    target_observer.parent.mkdir(parents=True,exist_ok=True)
+    target_observer.write_text(observer_text)
+    original_observer.unlink()
+
+    for path in files():
+        original=path.read_text()
+        modified=original.replace(
+            r"App\Observers\CommittedShareTouchpointObserver",
+            r"App\Features\ShareTracking\EntryPoints\Observers\CommittedShareTouchpointObserver",
+        )
+        modified=modified.replace(
+            r"App\\Observers\\CommittedShareTouchpointObserver",
+            r"App\\Features\\ShareTracking\\EntryPoints\\Observers\\CommittedShareTouchpointObserver",
+        )
+        if original!=modified: path.write_text(modified)
+
+    # Root AppServiceProvider must not depend on feature-private observers.
+    app_provider=ROOT/"app/Providers/AppServiceProvider.php"
+    app_text=app_provider.read_text()
+    observer_reference=r"use App\Features\ShareTracking\EntryPoints\Observers\CommittedShareTouchpointObserver;"
+    if observer_reference not in app_text or "AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);" not in app_text:
+        raise RuntimeError("Root observer registration not found")
+    app_text=app_text.replace(observer_reference+"\n","")
+    app_text=app_text.replace("        AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);\n","")
+    app_provider.write_text(app_text)
+
+    # The owning provider registers its own integration observer once.
+    share_provider=ROOT/"app/Features/ShareTracking/FeatureServiceProvider.php"
+    share_text=share_provider.read_text()
+    share_text=share_text.replace(
+        "namespace App\\Features\\ShareTracking;",
+        "namespace App\\Features\\ShareTracking;\n\nuse AIArmada\\Affiliates\\Models\\AffiliateTouchpoint;\nuse App\\Features\\ShareTracking\\EntryPoints\\Observers\\CommittedShareTouchpointObserver;",
+        1,
+    )
+    anchor="class FeatureServiceProvider extends FeatureModule\n{"
+    if anchor not in share_text: raise RuntimeError("ShareTracking provider declaration missing")
+    share_text=share_text.replace(anchor,anchor+"""
+    public function boot(): void
+    {
+        parent::boot();
+        AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);
+    }
+""",1)
+    share_provider.write_text(share_text)
+
+    # ShareTracking root adapter can only invoke Referrals through the public
+    # API; retain after-commit and swallowed-dispatch-failure semantics.
+    referrals_api=ROOT/"app/Features/Referrals/Api/ReferralOutcomeWorkflow.php"
+    api_text=referrals_api.read_text()
+    anchor="    public function qualify(string $businessKey): void;"
+    if anchor not in api_text: raise RuntimeError("Qualification API insertion failed")
+    api_text=api_text.replace(anchor,anchor+"\n\n    /** Queue qualification after the source transaction commits. */\n    public function scheduleQualification(string $businessKey): void;",1)
+    referrals_api.write_text(api_text)
+
+    referrals_service=ROOT/"app/Features/Referrals/Services/ReferralOutcomeService.php"
+    service_text=referrals_service.read_text()
+    anchor="    public function reverseRewards(string $businessKey, string $reason): void"
+    if anchor not in service_text: raise RuntimeError("Referral service insertion failed")
+    service_text=service_text.replace(anchor,"""    public function scheduleQualification(string $businessKey): void
+    {
+        \\App\\Features\\Referrals\\EntryPoints\\Jobs\\QualifyReferralFromShareOutcomeJob::dispatch($businessKey)->afterCommit();
+    }
+
+"""+anchor,1)
+    referrals_service.write_text(service_text)
+
+    tracking_service=ROOT/"app/Services/ShareTracking/AffiliatesShareTrackingService.php"
+    tracking_text=tracking_service.read_text()
+    job_import=r"use App\Features\Referrals\EntryPoints\Jobs\QualifyReferralFromShareOutcomeJob;"
+    if job_import not in tracking_text: raise RuntimeError("Qualification job import missing")
+    tracking_text=tracking_text.replace(job_import,r"use App\Features\Referrals\Api\ReferralOutcomeWorkflow;",1)
+    dispatch="QualifyReferralFromShareOutcomeJob::dispatch($businessKey)->afterCommit();"
+    if dispatch not in tracking_text: raise RuntimeError("Qualification dispatch missing")
+    tracking_text=tracking_text.replace(dispatch,"app(ReferralOutcomeWorkflow::class)->scheduleQualification($businessKey);",1)
+    tracking_service.write_text(tracking_text)
+
+
     # Update old architecture comments so there is no bogus statement about
     # root job/analytics ownership. Do not change business behavior.
     provider=ROOT/"app/Features/ShareTracking/FeatureServiceProvider.php"
