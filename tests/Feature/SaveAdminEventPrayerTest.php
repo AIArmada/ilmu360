@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
@@ -43,7 +42,7 @@ it('saves a localized admin date with providers enabled', function () {
         '2026-02-20' => prayerCacheDto('2026-02-20'),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Localized Admin Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -89,7 +88,7 @@ it('resolves an online event from the organizer institution like frontend submit
         ),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Online Organizer Zone Event',
         'primary_organizer_id' => $organizer->getKey(),
         'event_format' => EventFormat::Online->value,
@@ -133,7 +132,7 @@ it('preserves resolved timing on a title-only edit during provider unavailabilit
         '2026-02-20' => prayerCacheDto('2026-02-20'),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Preserved Timing Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -152,7 +151,7 @@ it('preserves resolved timing on a title-only edit during provider unavailabilit
     Cache::flush();
     config(['prayer.enabled' => false]);
 
-    $updated = app(SaveAdminEventAction::class)->handle(['title' => 'Renamed Timing Event'], $actor, $event->fresh());
+    $updated = saveAdminEventForTest(['title' => 'Renamed Timing Event'], $actor, $event->fresh());
 
     expect($updated->starts_at->toIso8601String())->toBe($expected->toIso8601String());
 
@@ -180,7 +179,7 @@ it('rejects prayer timings outside their calendar eligibility', function () {
 
     // Thursday Jumaat rejected without writes (2026-02-19 is Thursday).
     try {
-        app(SaveAdminEventAction::class)->handle($base + [
+        saveAdminEventForTest($base + [
             'title' => 'Thursday Jumaat Event',
             'event_date' => '2026-02-19',
             'prayer_time' => EventPrayerTime::SelepasJumaat->value,
@@ -194,7 +193,7 @@ it('rejects prayer timings outside their calendar eligibility', function () {
     expect(Event::query()->where('title', 'Thursday Jumaat Event')->exists())->toBeFalse();
 
     // Friday Jumaat passes.
-    $friday = app(SaveAdminEventAction::class)->handle($base + [
+    $friday = saveAdminEventForTest($base + [
         'title' => 'Friday Jumaat Event',
         'event_date' => '2026-02-20',
         'prayer_time' => EventPrayerTime::SelepasJumaat->value,
@@ -204,7 +203,7 @@ it('rejects prayer timings outside their calendar eligibility', function () {
 
     // Moving it to Thursday is rejected too.
     try {
-        app(SaveAdminEventAction::class)->handle(['event_date' => '2026-02-19'], $actor, $friday->fresh());
+        saveAdminEventForTest(['event_date' => '2026-02-19'], $actor, $friday->fresh());
 
         $this->fail('Expected ValidationException for the Thursday move.');
     } catch (ValidationException $exception) {
@@ -213,7 +212,7 @@ it('rejects prayer timings outside their calendar eligibility', function () {
 
     // Tarawih outside the declared evening window rejected without writes.
     try {
-        app(SaveAdminEventAction::class)->handle($base + [
+        saveAdminEventForTest($base + [
             'title' => 'Off Window Tarawih Event',
             'event_date' => '2026-03-20',
             'prayer_time' => EventPrayerTime::SelepasTarawih->value,
@@ -227,7 +226,7 @@ it('rejects prayer timings outside their calendar eligibility', function () {
     expect(Event::query()->where('title', 'Off Window Tarawih Event')->exists())->toBeFalse();
 
     // The declared boundary evening passes.
-    $tarawih = app(SaveAdminEventAction::class)->handle($base + [
+    $tarawih = saveAdminEventForTest($base + [
         'title' => 'Boundary Tarawih Event',
         'event_date' => '2026-03-19',
         'prayer_time' => EventPrayerTime::SelepasTarawih->value,
@@ -243,7 +242,7 @@ it('rejects unrelated edits when persisted timing violates calendar eligibility'
     $institution = Institution::factory()->create(['status' => 'verified']);
     $person = Person::factory()->create(['status' => 'verified']);
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Friday Jumaat Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -264,7 +263,7 @@ it('rejects unrelated edits when persisted timing violates calendar eligibility'
     $expression->forceFill(['metadata' => $metadata])->save();
 
     try {
-        app(SaveAdminEventAction::class)->handle(['title' => 'Renamed Jumaat Event'], $actor, $event->fresh());
+        saveAdminEventForTest(['title' => 'Renamed Jumaat Event'], $actor, $event->fresh());
 
         $this->fail('Expected ValidationException for the ineligible persisted timing.');
     } catch (ValidationException $exception) {
@@ -283,7 +282,7 @@ it('preserves complete provenance including country on a title-only edit during 
         '2026-02-20' => prayerCacheDto('2026-02-20'),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Provenance Country Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -306,7 +305,7 @@ it('preserves complete provenance including country on a title-only edit during 
     Cache::flush();
     config(['prayer.enabled' => false]);
 
-    $updated = app(SaveAdminEventAction::class)->handle(['title' => 'Renamed Country Event'], $actor, $event->fresh());
+    $updated = saveAdminEventForTest(['title' => 'Renamed Country Event'], $actor, $event->fresh());
 
     $after = EventTimeExpression::query()
         ->where('event_id', $updated->getKey())
@@ -356,7 +355,7 @@ it('preserves start, end, and provenance on a title-only edit when the fallback 
         '2026-02-20' => prayerCacheDto('2026-02-20'),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Timed Admin Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -378,7 +377,7 @@ it('preserves start, end, and provenance on a title-only edit when the fallback 
     Cache::flush();
     config(['prayer.enabled' => false]);
 
-    $updated = app(SaveAdminEventAction::class)->handle(['title' => 'Renamed Timed Event'], $actor, $event->fresh());
+    $updated = saveAdminEventForTest(['title' => 'Renamed Timed Event'], $actor, $event->fresh());
 
     expect($updated->starts_at->toIso8601String())->toBe($expectedStart->toIso8601String())
         ->and($updated->ends_at->toIso8601String())->toBe($expectedEnd->toIso8601String());
@@ -414,7 +413,7 @@ it('reopens a midnight-rolled event on its original prayer day', function () {
 
     app(PrayerTimesCache::class)->putMonthly('WLY01', '2026-02', ['2026-02-20' => $dto], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Rolled Isyak Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -436,7 +435,7 @@ it('reopens a midnight-rolled event on its original prayer day', function () {
     expect($form['event_date'])->toBe('2026-02-20');
 
     // Changing the end re-resolves Feb 20 Isha: the start must not shift to Feb 22.
-    $updated = app(SaveAdminEventAction::class)->handle(['end_time' => '01:30'], $actor, $event->fresh());
+    $updated = saveAdminEventForTest(['end_time' => '01:30'], $actor, $event->fresh());
     $expectedEnd = CarbonImmutable::parse('2026-02-21 01:30:00', 'Asia/Kuala_Lumpur')->utc();
 
     expect($updated->starts_at->toIso8601String())->toBe($expectedStart->toIso8601String())
@@ -457,7 +456,7 @@ it('stores admin Tarawih label-only and hydrates it back', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
     $person = Person::factory()->create(['status' => 'verified']);
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Admin Tarawih Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -486,7 +485,7 @@ it('stores admin Tarawih label-only and hydrates it back', function () {
     expect($form['prayer_time'])->toBe(EventPrayerTime::SelepasTarawih->value);
 
     // A title-only save keeps the label-only expression (not custom time).
-    $updated = app(SaveAdminEventAction::class)->handle(['title' => 'Renamed Tarawih Event'], $actor, $event->fresh());
+    $updated = saveAdminEventForTest(['title' => 'Renamed Tarawih Event'], $actor, $event->fresh());
 
     expect($updated->starts_at->toIso8601String())->toBe($expected->toIso8601String());
 
@@ -510,7 +509,7 @@ it('preserves non-default prayer offsets on title-only admin saves', function (P
         '2026-02-20' => prayerCacheDto('2026-02-20'),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Offset Prayer Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -525,7 +524,7 @@ it('preserves non-default prayer offsets on title-only admin saves', function (P
 
     rewritePrayerExpressionOffset($event, $offset, $expectedStart);
 
-    app(SaveAdminEventAction::class)->handle(['title' => 'Offset Prayer Event Renamed'], $actor, $event->fresh());
+    saveAdminEventForTest(['title' => 'Offset Prayer Event Renamed'], $actor, $event->fresh());
 
     $event = $event->fresh();
     $expression = EventTimeExpression::query()
@@ -585,7 +584,7 @@ it('derives ID country when an admin moves an event to an ID target without coun
         '2026-02-20' => prayerCacheDto('2026-02-20'),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Moving Prayer Event',
         'primary_organizer_id' => $malaysia->getKey(),
         'institution_id' => $malaysia->getKey(),
@@ -599,7 +598,7 @@ it('derives ID country when an admin moves an event to an ID target without coun
 
     // Move the physical target to ID, omitting country input: the new
     // address governs, not the inherited MY provenance.
-    $updated = app(SaveAdminEventAction::class)->handle([
+    $updated = saveAdminEventForTest([
         'institution_id' => $indonesia->getKey(),
     ], $actor, $event->fresh());
 
@@ -607,7 +606,7 @@ it('derives ID country when an admin moves an event to an ID target without coun
 
     // ID Ramadan eligibility applies: Feb 17 admits Tarawih while exact
     // MY would reject it.
-    $moved = app(SaveAdminEventAction::class)->handle([
+    $moved = saveAdminEventForTest([
         'event_date' => '2026-02-17',
         'prayer_time' => EventPrayerTime::SelepasTarawih->value,
     ], $actor, $updated->fresh());
@@ -627,7 +626,7 @@ it('derives ID country when an admin moves an online organizer to ID without cou
         '2026-02-20' => prayerCacheDto('2026-02-20'),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Moving Online Event',
         'primary_organizer_id' => $malaysia->getKey(),
         'event_format' => EventFormat::Online->value,
@@ -639,13 +638,13 @@ it('derives ID country when an admin moves an online organizer to ID without cou
 
     expect(adminPrayerCountry($event))->toBe('MY');
 
-    $updated = app(SaveAdminEventAction::class)->handle([
+    $updated = saveAdminEventForTest([
         'primary_organizer_id' => $indonesia->getKey(),
     ], $actor, $event->fresh());
 
     expect(adminPrayerCountry($updated->fresh()))->toBe('ID');
 
-    $moved = app(SaveAdminEventAction::class)->handle([
+    $moved = saveAdminEventForTest([
         'event_date' => '2026-02-17',
         'prayer_time' => EventPrayerTime::SelepasTarawih->value,
     ], $actor, $updated->fresh());
@@ -665,7 +664,7 @@ it('rejects explicit admin country input conflicting with the event location', f
         '2026-02-20' => prayerCacheDto('2026-02-20'),
     ], 'MY');
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Country Conflict Event',
         'primary_organizer_id' => $malaysia->getKey(),
         'institution_id' => $malaysia->getKey(),
@@ -678,7 +677,7 @@ it('rejects explicit admin country input conflicting with the event location', f
     $indonesiaCountryId = $indonesia->primaryAddress()->country_id;
 
     try {
-        app(SaveAdminEventAction::class)->handle([
+        saveAdminEventForTest([
             'submission_country_id' => (string) $indonesiaCountryId,
         ], $actor, $event->fresh());
 

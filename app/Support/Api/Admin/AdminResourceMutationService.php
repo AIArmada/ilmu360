@@ -16,7 +16,7 @@ use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
-use App\Actions\Events\Authoring\SaveAdminEventAction;
+use App\Features\Events\Api\AdminEventWriter;
 use App\Enums\RegistrationScope;
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Features\Events\Api\EventAuthoring;
@@ -84,7 +84,7 @@ class AdminResourceMutationService
         private readonly ReportAdminContract $reportAdmin,
         private readonly SaveAddressAreaAction $saveAddressAreaAction,
         private readonly DonationChannelWorkflow $donationChannels,
-        private readonly SaveAdminEventAction $saveAdminEventAction,
+        private readonly AdminEventWriter $adminEventWriter,
         private readonly EventAuthoring $eventAuthoring,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
@@ -93,6 +93,14 @@ class AdminResourceMutationService
         private readonly SpaceWorkflow $spaceWorkflow,
         private readonly VenueWorkflow $venueWorkflow,
     ) {}
+
+    /** @param array<string, mixed> $data */
+    private function persistAdminEvent(array $data, User $actor, ?Event $event = null): Event
+    {
+        $id = $this->adminEventWriter->save($data, (string) $actor->getKey(), $event?->getKey());
+
+        return Event::query()->with(['accessPolicy', 'references', 'series', 'classifications', 'keyPeople', 'languages', 'media', 'institution', 'venue', 'primaryLocation.venueSpace'])->findOrFail($id);
+    }
 
     /**
      * @param  class-string  $resourceClass
@@ -405,7 +413,7 @@ class AdminResourceMutationService
         return match ($resourceClass) {
             AddressAreaResource::class => $this->saveAddressAreaAction->handle($validated),
             DonationChannelResource::class => $this->saveDonationChannel($validated, $actor),
-            EventResource::class => $this->saveAdminEventAction->handle($validated, $actor),
+            EventResource::class => $this->persistAdminEvent($validated, $actor),
             InstitutionResource::class => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey())),
             ReferenceResource::class => Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($validated)),
             SeriesResource::class => Series::query()->with(['languages', 'media'])->findOrFail($this->seriesAuthoring->save($validated)),
@@ -444,7 +452,7 @@ class AdminResourceMutationService
                 ? $this->saveDonationChannel($validated, $actor, $record)
                 : throw new \RuntimeException('Expected donation channel record.'),
             EventResource::class => $record instanceof Event
-                ? $this->saveAdminEventAction->handle($validated, $actor, $record)
+                ? $this->persistAdminEvent($validated, $actor, $record)
                 : throw new \RuntimeException('Expected event record.'),
             InstitutionResource::class => $record instanceof Institution
                 ? Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey(), (string) $record->getKey()))

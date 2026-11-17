@@ -167,3 +167,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move organizer-membership option querying into Events, sourcing membership IDs via MembershipDirectory and morph-registered Institution/Person models.
 - [x] Expose scalar account ID -> choice arrays via AdvancedBuilderMembershipOptions; update both root builder workflows and delete their old root query action.
 - [ ] Verify advanced builder form and membership selection behavior in CI.
+
+
+### Admin event save hard cutover
+- [x] Replace the root SaveAdminEventAction with Events-owned AdminEventWriter. Initial pending/approved moderation sequence unchanged.
+- [x] Update Filament/admin API and prayer tests to rehydrate saved event IDs via the feature API; remove root file, no legacy alias.
+- [ ] Verify admin writes, moderation and prayer tests in CI.

@@ -6,7 +6,7 @@ namespace App\Filament\Resources\Events\Pages;
 
 use AIArmada\Events\Contracts\EventTemplateService;
 use AIArmada\Events\Models\EventTemplate;
-use App\Actions\Events\Authoring\SaveAdminEventAction;
+use App\Features\Events\Api\AdminEventWriter;
 use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
 use App\Models\User;
@@ -64,7 +64,9 @@ final class CreateEvent extends CreateRecord
 
     protected function handleRecordCreation(array $data): Event
     {
-        return app(SaveAdminEventAction::class)->handle($data, $this->authenticatedUser());
+        return Event::query()->with(['accessPolicy', 'references', 'series', 'classifications', 'keyPeople', 'languages', 'media', 'institution', 'venue', 'primaryLocation.venueSpace'])->findOrFail(
+            app(AdminEventWriter::class)->save($data, (string) $this->authenticatedUser()->getKey()),
+        );
     }
 
     private function authenticatedUser(): User

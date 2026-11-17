@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Events\Pages;
 
-use App\Actions\Events\Authoring\SaveAdminEventAction;
+use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\EventAuthoring;
 use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
@@ -47,7 +47,9 @@ final class EditEvent extends EditRecord
             throw new LogicException('The Event resource can only update event records.');
         }
 
-        return app(SaveAdminEventAction::class)->handle($data, $this->authenticatedUser(), $record);
+        return Event::query()->with(['accessPolicy', 'references', 'series', 'classifications', 'keyPeople', 'languages', 'media', 'institution', 'venue', 'primaryLocation.venueSpace'])->findOrFail(
+            app(AdminEventWriter::class)->save($data, (string) $this->authenticatedUser()->getKey(), (string) $record->getKey()),
+        );
     }
 
     private function authenticatedUser(): User

@@ -12,6 +12,7 @@ use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\Actions\ResolveRegistrationExportContextAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
+use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\EventAccountOwnership;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventDeletion;
@@ -43,6 +44,7 @@ use App\Features\Events\Persistence\EventSearchCacheStore;
 use App\Features\Events\Persistence\EventShareCardCacheStore;
 use App\Features\Events\Persistence\EventSubmissionOptionsCacheStore;
 use App\Features\Events\Persistence\ProductSignalsDashboardCacheStore;
+use App\Features\Events\Services\AdminEventWriterService;
 use App\Features\Events\Services\EventAccountOwnershipService;
 use App\Features\Events\Services\EventAuthoringService;
 use App\Features\Events\Services\EventCategoryCatalog;
@@ -138,6 +140,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(RegistrationExportAccess::class, ResolveRegistrationExportContextAction::class);
 
         $this->app->bind(AdvancedBuilderMembershipOptions::class, ResolveAdvancedBuilderMembershipOptionsAction::class);
+        $this->app->bind(AdminEventWriter::class, AdminEventWriterService::class);
         $this->app->bind(EventAccountOwnership::class, EventAccountOwnershipService::class);
         $this->app->bind(EventAuthoring::class, EventAuthoringService::class);
         $this->app->bind(EventDeletion::class, CleanupEventAction::class);

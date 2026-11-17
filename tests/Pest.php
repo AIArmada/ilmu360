@@ -20,12 +20,14 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\User;
 use App\Services\PublicListingsCache;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -1047,4 +1049,17 @@ function googleOAuthHandoffToken(array $socialUserAttributes = [], array $redire
     }
 
     return $token;
+}
+
+/**
+ * Test-only admin event model hydration; production consumers call the
+ * Events-owned scalar AdminEventWriter instead of an obsolete root Action.
+ *
+ * @param array<string, mixed> $data
+ */
+function saveAdminEventForTest(array $data, User $actor, ?Event $event = null): Event
+{
+    $id = app(AdminEventWriter::class)->save($data, (string) $actor->getKey(), $event?->getKey());
+
+    return Event::query()->with(['accessPolicy', 'references', 'series', 'classifications', 'keyPeople', 'languages', 'media', 'institution', 'venue', 'primaryLocation.venueSpace'])->findOrFail($id);
 }

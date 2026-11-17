@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
@@ -191,7 +190,7 @@ it('preserves a frontend Tarawih expression across an admin title-only save', fu
     expect($expression->anchor_code)->toBeNull();
 
     $actor = User::factory()->create();
-    $updated = app(SaveAdminEventAction::class)->handle(['title' => 'Renamed Tarawih Event'], $actor, $occurrence->event->fresh());
+    $updated = saveAdminEventForTest(['title' => 'Renamed Tarawih Event'], $actor, $occurrence->event->fresh());
 
     $expression = EventTimeExpression::query()
         ->where('event_occurrence_id', $occurrence->getKey())
@@ -227,7 +226,7 @@ it('duplicates a midnight-rolled event on its original prayer day', function () 
         zoneOrCell: $base->zoneOrCell,
     )], 'MY');
 
-    $source = app(SaveAdminEventAction::class)->handle([
+    $source = saveAdminEventForTest([
         'title' => 'Rolled Source Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -304,7 +303,7 @@ it('matches frontend country and start for an address-less online event', functi
     $actor = User::factory()->create();
     $person = Person::factory()->create(['status' => 'verified']);
 
-    $admin = app(SaveAdminEventAction::class)->handle([
+    $admin = saveAdminEventForTest([
         'title' => 'Address-less Online Admin Event',
         'primary_organizer_id' => $organizer->getKey(),
         'event_format' => EventFormat::Online->value,

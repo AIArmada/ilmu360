@@ -3,7 +3,6 @@
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Events\Authoring\SaveAdminEventAction;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
@@ -92,7 +91,7 @@ function contributionProviderEvent(User $actor, Institution $institution, string
 
     $person = Person::factory()->create(['status' => 'verified']);
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Provider Prayer Event',
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
@@ -135,7 +134,7 @@ function contributionOnlineMyEvent(User $actor): Event
 
     $person = Person::factory()->create(['status' => 'verified']);
 
-    $event = app(SaveAdminEventAction::class)->handle([
+    $event = saveAdminEventForTest([
         'title' => 'Online Prayer Event',
         'primary_organizer_id' => $person->getKey(),
         'persons' => [$person->getKey()],
