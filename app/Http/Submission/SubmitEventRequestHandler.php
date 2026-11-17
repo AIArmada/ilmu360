@@ -15,7 +15,7 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Notifications\EventOccurrenceSubmittedNotification;
+use App\Platform\Notifications\Events\EventOccurrenceSubmittedNotification;
 use App\Shared\Captcha\CaptchaVerifier;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventVisibility;

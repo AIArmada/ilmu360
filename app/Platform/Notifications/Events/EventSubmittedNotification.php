@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Notifications;
+namespace App\Platform\Notifications\Events;
 
 use App\Filament\Pages\ModerationQueue;
 use App\Models\Event;

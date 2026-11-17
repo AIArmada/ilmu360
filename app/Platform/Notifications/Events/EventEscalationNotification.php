@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Notifications;
+namespace App\Platform\Notifications\Events;
 
 use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;

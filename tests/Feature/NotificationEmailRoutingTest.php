@@ -10,11 +10,11 @@ use App\Features\Reports\Models\Report;
 use App\Features\Reports\Notifications\ReportResolvedNotification;
 use App\Models\Event;
 use App\Models\User;
-use App\Notifications\EventEscalationNotification;
-use App\Notifications\EventSubmittedNotification;
 use App\Platform\Auth\Notifications\ResetPasswordNotification;
 use App\Platform\Auth\Notifications\VerifyEmailNotification;
 use App\Platform\Auth\Notifications\WelcomeNotification;
+use App\Platform\Notifications\Events\EventEscalationNotification;
+use App\Platform\Notifications\Events\EventSubmittedNotification;
 
 it('routes mail notifications through the user email address and tracks destination verification', function () {
     $user = User::factory()->create([

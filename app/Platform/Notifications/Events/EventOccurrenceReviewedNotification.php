@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Notifications;
+namespace App\Platform\Notifications\Events;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Models\Event;

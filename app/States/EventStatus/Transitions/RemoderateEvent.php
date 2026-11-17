@@ -6,7 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
-use App\Notifications\EventSubmittedNotification;
+use App\Platform\Notifications\Events\EventSubmittedNotification;
 use App\Services\Notifications\EventNotificationService;
 use App\States\EventStatus\Pending;
 use Filament\Support\Colors\Color;

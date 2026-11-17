@@ -5,7 +5,7 @@ use AIArmada\Events\Models\EventEscalation;
 use App\Features\Events\EntryPoints\Jobs\EscalatePendingEvents;
 use App\Models\Event;
 use App\Models\User;
-use App\Notifications\EventEscalationNotification;
+use App\Platform\Notifications\Events\EventEscalationNotification;
 use App\States\EventStatus\Transitions\ApproveEvent;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;

@@ -6,7 +6,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
-use App\Notifications\EventSubmittedNotification;
+use App\Platform\Notifications\Events\EventSubmittedNotification;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

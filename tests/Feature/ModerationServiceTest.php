@@ -11,7 +11,7 @@ use App\Models\ModerationReview;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
-use App\Notifications\EventSubmittedNotification;
+use App\Platform\Notifications\Events\EventSubmittedNotification;
 use App\Services\ModerationService;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Database\Seeders\AIArmada\EventRoleSeeder;

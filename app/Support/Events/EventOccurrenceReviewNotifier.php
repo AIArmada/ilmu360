@@ -9,7 +9,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
-use App\Notifications\EventOccurrenceReviewedNotification;
+use App\Platform\Notifications\Events\EventOccurrenceReviewedNotification;
 use App\Shared\Events\OccurrenceReviewNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
