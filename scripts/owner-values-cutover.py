@@ -62,6 +62,16 @@ def main():
         dst.write_text(content)
         old.unlink()
 
+    # The root multi-domain submission coordinator previously used its
+    # sibling result type without an import; bind its new Shared value explicitly.
+    adapter=ROOT/"app/Support/Submission/PublicSubmissionLockService.php"
+    content=adapter.read_text()
+    namespace="namespace App\\Support\\Submission;"
+    if namespace not in content:raise RuntimeError("Submission lock adapter namespace changed")
+    adapter.write_text(content.replace(
+        namespace,namespace+"\n\nuse App\\Shared\\Submission\\SubmissionLockEligibilityResult;",1
+    ))
+
     for file in corpus():
         old_text=file.read_text()
         new_text=old_text
