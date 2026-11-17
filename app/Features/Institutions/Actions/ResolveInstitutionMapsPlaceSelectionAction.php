@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Institutions;
+namespace App\Features\Institutions\Actions;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Platform\Addressing\AddressAreaRoles;
 use App\Platform\Location\DiscoverWebsiteSocialProfilesAction;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
@@ -14,16 +15,32 @@ use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use Illuminate\Support\Arr;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class ResolveInstitutionMapsPlaceSelectionAction
+final readonly class ResolveInstitutionMapsPlaceSelectionAction implements InstitutionMapsSelection
 {
     use AsAction;
 
     public function __construct(
         private FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
         private InferInstitutionTypeAction $inferInstitutionTypeAction,
+        private MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
         private ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
         private DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
     ) {}
+
+    public function resolve(string $placeId, string $validationKey): array
+    {
+        return $this->handle($placeId, $validationKey);
+    }
+
+    public function merge(array $formState, array $selection, ?array $previousSelection = null): array
+    {
+        return $this->mergeInstitutionMapsSelectionIntoFormAction->handle($formState, $selection, $previousSelection);
+    }
+
+    public function inferType(array $place): ?\App\Shared\Directory\Enums\InstitutionType
+    {
+        return $this->inferInstitutionTypeAction->handle($place);
+    }
 
     /**
      * Resolve one Places result into the data shared by contribution and quick-add forms.

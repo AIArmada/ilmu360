@@ -6,8 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Actions\Events\Submission\SubmitFrontendEventAction;
-use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
-use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Data\Events\SubmitEventFormContext;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Features\Events\Api\EventInstitutionQuickAddMapsProof;
@@ -548,8 +547,7 @@ class Create extends Component implements HasActions, HasForms
     public function applyQuickAddInstitutionPlaceSelection(
         string $statePath,
         array $selection,
-        ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
-        MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
+        InstitutionMapsSelection $institutionMapsSelection,
     ): array {
         $ownerStatePath = $selection['ownerStatePath'] ?? null;
         $nonce = $selection['nonce'] ?? null;
@@ -577,12 +575,12 @@ class Create extends Component implements HasActions, HasForms
         $previousSelection = is_array($record['selection'] ?? null)
             ? $record['selection']
             : null;
-        $selectionData = $resolveInstitutionMapsPlaceSelectionAction->handle(
+        $selectionData = $institutionMapsSelection->resolve(
             $placeId,
             $context['address_path'].'.google_place_id',
         );
         $formState = data_get($this, $context['form_path'], []);
-        $merged = $mergeInstitutionMapsSelectionIntoFormAction->handle(
+        $merged = $institutionMapsSelection->merge(
             is_array($formState) ? $formState : [],
             $selectionData,
             $previousSelection,

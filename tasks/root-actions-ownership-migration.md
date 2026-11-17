@@ -36,8 +36,9 @@ Started 2026-11-17. Baseline commit: `2e574bdbbb48b3a07770edafd79883df3f0ff423`.
 - [ ] Run `php tools/architecture-check.php`, focused Pest slug redirect and route cache tests, and route parity in the same uncached environment. CI verification must be recorded separately; no claim of passing tests without execution.
 
 ### Phase 2 — Institutions (3 files)
-- [ ] Trace every caller including Filament forms, Livewire, API, configuration/class strings, and tests.
-- [ ] Consolidate the Maps/type/form actions under Institutions, remove old paths, verify package-derived addressing semantics and related contribution workflows.
+- [x] Inspect the three actions and their direct API/Livewire consumers and classification unit test.
+- [x] Move three actions into Institutions and expose one institution Maps API for lookup, classification and form merging. Direct cutover; delete root paths.
+- [ ] Confirm architecture, tests, and no-old-namespace checks on CI before closing the phase.
 
 ### Phase 3 — Contributions (13 files)
 - [ ] Trace all thirteen actions, outstanding root services, request reads, reviewer guards, staged create and direct-update paths.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Institutions;
+namespace App\Features\Institutions\Actions;
 
 use App\Shared\Directory\Enums\InstitutionType;
 use Lorisleiva\Actions\Concerns\AsAction;

@@ -17,7 +17,7 @@ use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestActio
 use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
 use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Actions\Institutions\InferInstitutionTypeAction;
+use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
@@ -107,7 +107,7 @@ class ContributionController extends FrontendController
         FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
         ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
         DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
-        InferInstitutionTypeAction $inferInstitutionTypeAction,
+        InstitutionMapsSelection $institutionMapsSelection,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
@@ -158,7 +158,7 @@ class ContributionController extends FrontendController
             'address.google_place_id',
         );
 
-        $institutionType = $validated['type'] ?? $inferInstitutionTypeAction->handle($place)?->value;
+        $institutionType = $validated['type'] ?? $institutionMapsSelection->inferType($place)?->value;
 
         if (! is_string($institutionType)) {
             throw ValidationException::withMessages([

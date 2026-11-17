@@ -10,8 +10,7 @@ use App\Actions\Contributions\Submission\EnsureNoPendingContributionRequestActio
 use App\Actions\Contributions\Submission\EnsureUniqueContributionCreateAction;
 use App\Actions\Contributions\Submission\NormalizeContributionSubmissionAction;
 use App\Actions\Contributions\Submission\ResolveContributionChangedPayloadAction;
-use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
-use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
@@ -215,8 +214,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     public function applyPlaceSelection(
         string $statePath,
         array $selection,
-        ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
-        MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
+        InstitutionMapsSelection $institutionMapsSelection,
         VerifiedInstitutionMapsSelections $verifiedMapsSelections,
     ): array {
         $this->hitMapsThrottle('select');
@@ -242,8 +240,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             'autofilled_name' => data_get($this->originalData, 'name'),
             'autofilled_type' => data_get($this->originalData, 'type'),
         ];
-        $selectionData = $resolveInstitutionMapsPlaceSelectionAction->handle($placeId, $statePath.'.google_place_id');
-        $merged = $mergeInstitutionMapsSelectionIntoFormAction->handle(
+        $selectionData = $institutionMapsSelection->resolve($placeId, $statePath.'.google_place_id');
+        $merged = $institutionMapsSelection->merge(
             is_array($this->data) ? $this->data : [],
             $selectionData,
             $previousSelection,

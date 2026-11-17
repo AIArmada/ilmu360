@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Institutions;
 
 use App\Features\Institutions\Actions\InstitutionSubmissionAccessAction;
+use App\Features\Institutions\Actions\ResolveInstitutionMapsPlaceSelectionAction;
 use App\Features\Institutions\Api\InstitutionHomepageStats;
+use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSearchCache;
@@ -30,6 +32,7 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(InstitutionWorkflow::class, InstitutionWorkflowService::class);
+        $this->app->bind(InstitutionMapsSelection::class, ResolveInstitutionMapsPlaceSelectionAction::class);
         $this->app->bind(InstitutionVenueLinks::class, InstitutionVenueLinkService::class);
         $this->app->bind(InstitutionSubmissionAccess::class, InstitutionSubmissionAccessAction::class);
         $this->app->bind(InstitutionSubmissionOptionsCache::class, InstitutionSubmissionOptionsCacheStore::class);

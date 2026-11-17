@@ -4,8 +4,7 @@ namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
-use App\Actions\Institutions\MergeInstitutionMapsSelectionIntoFormAction;
-use App\Actions\Institutions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -104,8 +103,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
     public function applyPlaceSelection(
         string $statePath,
         array $selection,
-        ResolveInstitutionMapsPlaceSelectionAction $resolveInstitutionMapsPlaceSelectionAction,
-        MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
+        InstitutionMapsSelection $institutionMapsSelection,
         VerifiedInstitutionMapsSelections $verifiedMapsSelections,
     ): array {
         $this->hitMapsThrottle('select');
@@ -125,8 +123,8 @@ class SubmitInstitution extends Component implements HasActions, HasForms
         }
 
         $previousSelection = $this->verifiedMapsSelection();
-        $selectionData = $resolveInstitutionMapsPlaceSelectionAction->handle($placeId, $statePath.'.google_place_id');
-        $merged = $mergeInstitutionMapsSelectionIntoFormAction->handle(
+        $selectionData = $institutionMapsSelection->resolve($placeId, $statePath.'.google_place_id');
+        $merged = $institutionMapsSelection->merge(
             is_array($this->data) ? $this->data : [],
             $selectionData,
             $previousSelection,

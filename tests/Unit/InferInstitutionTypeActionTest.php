@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Institutions\InferInstitutionTypeAction;
+use App\Features\Institutions\Actions\InferInstitutionTypeAction;
 use App\Shared\Directory\Enums\InstitutionType;
 
 it('maps supported Google place types to institution categories', function (string $googleType, InstitutionType $expected): void {
