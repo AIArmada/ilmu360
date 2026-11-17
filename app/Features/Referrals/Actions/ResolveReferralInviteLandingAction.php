@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Referrals;
+namespace App\Features\Referrals\Actions;
 
 use AIArmada\Referrals\Actions\AcceptReferralInvite;
 use AIArmada\Referrals\Enums\ReferralInviteStatus;
@@ -10,21 +10,34 @@ use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Exceptions\ReferralInviteNotFoundException;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Support\ReferralProgramGuard;
-use App\Models\User;
+use App\Features\Referrals\Api\ReferralInvitations;
+use App\Platform\Models\MorphModelResolver;
+use Illuminate\Database\Eloquent\Model;
 use Carbon\CarbonImmutable;
 
 /** Accepts a referral only when its invitee lands and presents a verified matching contact. */
-final readonly class ResolveReferralInviteLandingAction
+final readonly class ResolveReferralInviteLandingAction implements ReferralInvitations
 {
     public function __construct(
         private AcceptReferralInvite $acceptReferralInvite,
         private ReferralProgramGuard $programGuard,
     ) {}
 
-    /**
-     * @return array{outcome: string, invite: ReferralInvite|null}
-     */
-    public function handle(string $token, User $user): array
+    public function land(string $token, string $actorId): array
+    {
+        $user = MorphModelResolver::resolve('user')::query()->findOrFail($actorId);
+        $result = $this->handle($token, $user);
+        $invite = $result['invite'];
+
+        return [
+            'outcome' => $result['outcome'],
+            'invite_id' => $invite instanceof ReferralInvite ? (string) $invite->getKey() : null,
+            'program_id' => $invite instanceof ReferralInvite ? (string) $invite->program_id : null,
+        ];
+    }
+
+    /** @return array{outcome: string, invite: ReferralInvite|null} */
+    private function handle(string $token, Model $user): array
     {
         try {
             $invite = $this->programGuard->inviteByToken($token);
@@ -95,16 +108,16 @@ final readonly class ResolveReferralInviteLandingAction
     }
 
     /** @return list<string> */
-    private function verifiedContacts(User $user): array
+    private function verifiedContacts(Model $user): array
     {
         $contacts = [];
 
-        if ($user->email_verified_at !== null && is_string($user->email) && trim($user->email) !== '') {
-            $contacts[] = trim($user->email);
+        if ($user->getAttribute('email_verified_at') !== null && is_string($user->getAttribute('email')) && trim($user->getAttribute('email')) !== '') {
+            $contacts[] = trim($user->getAttribute('email'));
         }
 
-        if ($user->phone_verified_at !== null && is_string($user->phone) && trim($user->phone) !== '') {
-            $contacts[] = trim($user->phone);
+        if ($user->getAttribute('phone_verified_at') !== null && is_string($user->getAttribute('phone')) && trim($user->getAttribute('phone')) !== '') {
+            $contacts[] = trim($user->getAttribute('phone'));
         }
 
         return $contacts;

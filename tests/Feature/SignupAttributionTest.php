@@ -12,7 +12,7 @@ use AIArmada\Referrals\Actions\RevokeReferralInvite;
 use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Models\ReferralReward;
-use App\Actions\Referrals\ResolveReferralInviteLandingAction;
+use App\Features\Referrals\Api\ReferralInvitations;
 use App\Features\Identity\Api\SignupAttributions;
 use App\Features\Identity\Api\SignupAttributionSnapshot;
 use App\Features\Identity\Api\SignupAttributionSource;
@@ -109,7 +109,7 @@ it('retains the commercial signup referrer when a later source would credit a di
 it('does not infer signup attribution when an existing account accepts an invitation', function (): void {
     $existingUser = User::factory()->emailOnly()->create(['email' => 'existing-invitee@example.test'])->fresh();
     [$invite, , $token] = signupAcquisitionInvite('existing-invitee@example.test');
-    $result = app(ResolveReferralInviteLandingAction::class)->handle($token, $existingUser);
+    $result = app(ReferralInvitations::class)->land($token, (string) $existingUser->getKey());
 
     expect($result['outcome'])->toBe('accepted')
         ->and(recordSignupAttribution($existingUser, signupAcquisitionContext(invite: $invite), false))->toBeNull()

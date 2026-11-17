@@ -155,3 +155,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 ### Engagement CI type correction
 - [x] Fix remaining subject method invocation in unfollow and reattach RegisterFreeAdmissionAction's registration PHPDoc after adding the active-admission query. CI proved **0 feature architecture violations** before these four PHPStan errors.
 - [ ] Confirm the corrected architecture/types and behavioral suite.
+
+
+### Referrals feature hard cutover
+- [x] Add Referrals as an application feature without claiming vendor package tables.
+- [x] Rehome all three root referral actions, expose scalar invite/qualify/reversal APIs, change queues/public landing/tests and delete root originals.
+- [ ] Confirm replay, queue, reward idempotency and CI before closure.

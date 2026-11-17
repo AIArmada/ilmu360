@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs\Referrals;
 
-use App\Actions\Referrals\ReverseReferralRewardsForShareOutcomeAction;
+use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -25,10 +25,10 @@ final class ReverseReferralRewardsForShareOutcomeJob implements ShouldQueue
         public readonly string $reason,
     ) {}
 
-    public function handle(ReverseReferralRewardsForShareOutcomeAction $action): void
+    public function handle(ReferralOutcomeWorkflow $referrals): void
     {
         try {
-            $action->handle($this->businessKey, $this->reason);
+            $referrals->reverseRewards($this->businessKey, $this->reason);
         } catch (Throwable $exception) {
             Log::warning('Referral reward reversal job failed without affecting the source correction.', [
                 'business_key' => $this->businessKey,

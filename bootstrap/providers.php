@@ -24,6 +24,7 @@ use App\Features\Persons\FeatureServiceProvider as PersonsServiceProvider;
 use App\Features\Places\FeatureServiceProvider as PlacesServiceProvider;
 use App\Features\Prayer\FeatureServiceProvider;
 use App\Features\References\FeatureServiceProvider as ReferencesServiceProvider;
+use App\Features\Referrals\FeatureServiceProvider as ReferralsServiceProvider;
 use App\Features\Registration\FeatureServiceProvider as RegistrationServiceProvider;
 use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
 use App\Features\Rewards\FeatureServiceProvider as RewardsServiceProvider;
@@ -58,6 +59,7 @@ return [
     InstitutionsServiceProvider::class,
     PlacesServiceProvider::class,
     ReferencesServiceProvider::class,
+    ReferralsServiceProvider::class,
     DiscoveryServiceProvider::class,
     EngagementServiceProvider::class,
     EventsServiceProvider::class,

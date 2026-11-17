@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs\Referrals;
 
-use App\Actions\Referrals\QualifyReferralFromShareOutcomeAction;
+use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -22,10 +22,10 @@ final class QualifyReferralFromShareOutcomeJob implements ShouldQueue
 
     public function __construct(public readonly string $businessKey) {}
 
-    public function handle(QualifyReferralFromShareOutcomeAction $action): void
+    public function handle(ReferralOutcomeWorkflow $referrals): void
     {
         try {
-            $action->handle($this->businessKey);
+            $referrals->qualify($this->businessKey);
         } catch (Throwable $exception) {
             Log::warning('Referral qualification job failed without affecting the committed source outcome.', [
                 'business_key' => $this->businessKey,

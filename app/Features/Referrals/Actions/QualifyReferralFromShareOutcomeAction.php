@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Referrals;
+namespace App\Features\Referrals\Actions;
 
 use AIArmada\Referrals\Actions\FulfillReferralReward;
 use AIArmada\Referrals\Actions\QualifyReferral;
@@ -12,7 +12,8 @@ use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Models\User;
+use App\Platform\Models\MorphModelResolver;
+use Illuminate\Database\Eloquent\Model;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
@@ -43,9 +44,9 @@ final readonly class QualifyReferralFromShareOutcomeAction
             return;
         }
 
-        $invitee = User::query()->whereKey($source->actorId)->first();
+        $invitee = MorphModelResolver::resolve('user')::query()->whereKey($source->actorId)->first();
 
-        if (! $invitee instanceof User) {
+        if (! $invitee instanceof Model) {
             return;
         }
 

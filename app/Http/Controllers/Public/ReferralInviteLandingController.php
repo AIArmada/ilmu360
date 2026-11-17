@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
-use App\Actions\Referrals\ResolveReferralInviteLandingAction;
+use App\Features\Referrals\Api\ReferralInvitations;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;
@@ -31,25 +31,25 @@ final class ReferralInviteLandingController extends Controller
         $landingToken = is_string($stashedToken) && hash_equals($token, $stashedToken)
             ? $stashedToken
             : $token;
-        $result = app(ResolveReferralInviteLandingAction::class)->handle($landingToken, $user);
+        $result = app(ReferralInvitations::class)->land($landingToken, (string) $user->getKey());
         $outcome = $result['outcome'];
 
-        if ($outcome === 'accepted' && $result['invite'] !== null) {
+        if ($outcome === 'accepted' && $result['invite_id'] !== null) {
             try {
                 app(SignalRecorder::class)->record(
                     eventName: 'referrals.invite_accepted',
                     eventCategory: 'engagement',
                     actorId: (string) $user->getKey(),
                     properties: [
-                        'program_id' => (string) $result['invite']->program_id,
-                        'invite_id' => (string) $result['invite']->getKey(),
+                        'program_id' => $result['program_id'],
+                        'invite_id' => $result['invite_id'],
                         'surface' => 'invite-landing',
                     ],
                     request: $request,
                 );
             } catch (Throwable $exception) {
                 Log::warning('The referral invite was accepted but its product signal could not be recorded.', [
-                    'invite_id' => (string) $result['invite']->getKey(),
+                    'invite_id' => $result['invite_id'],
                     'exception' => $exception,
                 ]);
             }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Referrals;
+namespace App\Features\Referrals\Actions;
 
 use AIArmada\Referrals\Actions\ReverseReferralReward;
 use AIArmada\Referrals\Enums\ReferralRewardStatus;
