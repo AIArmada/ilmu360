@@ -77,3 +77,5 @@ jobs:
           git push origin HEAD:refactor
 
 # Cross-feature operator check uses the shared account directory boundary.
+
+# Platform owns the MCP credential CLI alongside its token adapter.
