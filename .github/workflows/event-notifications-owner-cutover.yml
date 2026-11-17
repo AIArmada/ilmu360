@@ -1,0 +1,13 @@
+name: One-time event notification ownership
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/event-notifications-owner-cutover.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/event-notifications-owner-cutover.py
