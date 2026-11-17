@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
+use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Features\Persons\Actions\SyncPersonRelationsAction;
 use App\Forms\SharedFormSchema;
@@ -87,7 +87,7 @@ it('preserves area assignments when direct updates omit them', function () {
 
     expect(AddressAreaAssignment::query()->where('address_id', $addressId)->count())->toBe(1);
 
-    app(ApplyDirectContributionUpdateAction::class)->handle($institution, [
+    app(ContributionDirectUpdates::class)->apply($institution->getMorphClass(), (string) $institution->getKey(), [
         'address' => [
             'country_id' => (string) $geo['country']->getKey(),
             'line1' => 'Jalan Baharu',
@@ -117,7 +117,7 @@ it('clears area assignments when direct updates explicitly empty them', function
 
     $addressId = (string) $institution->primaryAddress()->getKey();
 
-    app(ApplyDirectContributionUpdateAction::class)->handle($institution, [
+    app(ContributionDirectUpdates::class)->apply($institution->getMorphClass(), (string) $institution->getKey(), [
         'address' => [
             'country_id' => (string) $geo['country']->getKey(),
             'line1' => 'Jalan Kekal',
@@ -245,7 +245,7 @@ it('rejects a non-uuid country selection on a sparse address update', function (
         ],
     ], $user);
 
-    expect(fn () => app(ApplyDirectContributionUpdateAction::class)->handle($institution, [
+    expect(fn () => app(ContributionDirectUpdates::class)->apply($institution->getMorphClass(), (string) $institution->getKey(), [
         'address' => [
             'country_id' => 123,
             'line1' => 'Jalan Baharu',

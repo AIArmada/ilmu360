@@ -3,7 +3,7 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
+use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
@@ -343,14 +343,14 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     }
 
     public function submit(
-        ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
+        ContributionDirectUpdates $directUpdates,
         ContributionSubmissionPreparation $submissionPreparation,
         ContributionRequestLifecycle $contributionRequestLifecycle,
         ContributionRequestGuard $contributionRequestGuard,
         MapsIdentityLock $mapsIdentityLockAction,
     ): void {
         OwnerContext::withOwner(null, function () use (
-            $applyDirectContributionUpdateAction,
+            $directUpdates,
             $submissionPreparation,
             $contributionRequestLifecycle,
             $contributionRequestGuard,
@@ -385,7 +385,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $formState,
                 $submittedDonationRows,
                 $donationQrUploads,
-                $applyDirectContributionUpdateAction,
+                $directUpdates,
                 $submissionPreparation,
                 $contributionRequestLifecycle,
                 $contributionRequestGuard,
@@ -414,7 +414,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
                 if ($this->canDirectEdit()) {
                     if ($changes !== []) {
-                        $applyDirectContributionUpdateAction->handle($this->entity, $changes);
+                        $directUpdates->apply($this->entity->getMorphClass(), (string) $this->entity->getKey(), $changes);
+                        $this->entity->refresh();
                     }
 
                     if ($hasDirectEditMediaChange) {

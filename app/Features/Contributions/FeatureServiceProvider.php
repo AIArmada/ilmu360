@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions;
 
+use App\Features\Contributions\Actions\ApplyDirectContributionUpdateAction;
 use App\Features\Contributions\Actions\EnsureNoPendingContributionRequestAction;
 use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
+use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionReviewAccess;
@@ -59,6 +61,7 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
         $this->app->bind(ContributionUpdateContextReader::class, ResolveContributionUpdateContextAction::class);
+        $this->app->bind(ContributionDirectUpdates::class, ApplyDirectContributionUpdateAction::class);
         $this->app->bind(ContributionRequestLifecycle::class, ContributionRequestLifecycleService::class);
         $this->app->bind(ContributionReviewAccess::class, ContributionReviewAccessService::class);
         $this->app->bind(ContributionSubmissionPreparation::class, ContributionSubmissionPreparationService::class);

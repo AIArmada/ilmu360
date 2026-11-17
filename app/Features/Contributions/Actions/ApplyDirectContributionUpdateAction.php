@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Contributions\Submission;
+namespace App\Features\Contributions\Actions;
 
+use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Events\Api\EventAuthoring;
+use App\Platform\Models\MorphModelResolver;
 use App\Models\Event;
 use App\Services\ContributionEntityMutationService;
 use App\Services\ModerationService;
@@ -12,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-class ApplyDirectContributionUpdateAction
+class ApplyDirectContributionUpdateAction implements ContributionDirectUpdates
 {
     use AsAction;
 
@@ -25,6 +27,12 @@ class ApplyDirectContributionUpdateAction
     /**
      * @param  array<string, mixed>  $changes
      */
+    public function apply(string $entityType, string $entityId, array $changes): void
+    {
+        $entity = MorphModelResolver::resolve($entityType)::query()->findOrFail($entityId);
+        $this->handle($entity, $changes);
+    }
+
     public function handle(Model $entity, array $changes): Model
     {
         return DB::transaction(function () use ($entity, $changes): Model {

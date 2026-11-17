@@ -103,3 +103,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Rehome slug-or-UUID contribution subject resolution and update-form state projection to Contributions/Queries.
 - [x] Expose ContributorUpdateContextReader with scalar entity identity and array-form contract; root HTTP/Livewire hydrate the entity through MorphModelResolver.
 - [ ] Verify route-binding/authorization parity, storage reads and Quality CI.
+
+
+### Direct-update cutover
+- [x] Move ApplyDirectContributionUpdateAction to Contributions and expose scalar ContributionDirectUpdates API; delete old path.
+- [x] Replace API/Livewire/test callers, refresh the caller's entity after mutation; preserve transaction and moderation logic.
+- [ ] Run Quality CI and verify scope/behavior.

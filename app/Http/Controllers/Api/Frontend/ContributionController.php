@@ -6,7 +6,7 @@ use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
-use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
+use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
@@ -484,7 +484,7 @@ class ContributionController extends FrontendController
         Request $request,
         ContributionUpdateContextReader $contributionUpdateContextReader,
         ContributionSubmissionPreparation $submissionPreparation,
-        ApplyDirectContributionUpdateAction $applyDirectContributionUpdateAction,
+        ContributionDirectUpdates $directUpdates,
         ContributionRequestLifecycle $contributionRequestLifecycle,
         ContributionRequestGuard $contributionRequestGuard,
         ContributionSubjectPresenter $contributionSubjectPresenter,
@@ -581,7 +581,8 @@ class ContributionController extends FrontendController
 
         if ($canDirectEdit) {
             if ($changes !== []) {
-                $applyDirectContributionUpdateAction->handle($entity, $changes);
+                $directUpdates->apply($entity->getMorphClass(), (string) $entity->getKey(), $changes);
+                $entity->refresh();
             }
 
             if ($hasDirectEditMediaChange) {

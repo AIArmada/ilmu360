@@ -4,7 +4,7 @@ use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
+use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Actions\Events\Authoring\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Actions\Events\Authoring\ResolveAdvancedBuilderMembershipOptionsAction;
@@ -201,7 +201,7 @@ it('applies direct contribution edits without changing approved event state for 
         'ends_at' => now()->addDays(4)->addHour(),
     ]);
 
-    app(ApplyDirectContributionUpdateAction::class)->handle($event, [
+    app(ContributionDirectUpdates::class)->apply($event->getMorphClass(), (string) $event->getKey(), [
         'starts_at' => now()->addDays(8)->toDateTimeString(),
         'ends_at' => now()->addDays(8)->addHour()->toDateTimeString(),
     ]);
