@@ -4,6 +4,7 @@ namespace App\Actions\Events\Authoring;
 
 use App\Models\Institution;
 use App\Models\Person;
+use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Models\User;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\HardcodedPrayerFallback;
@@ -16,7 +17,7 @@ class PrepareAdvancedParentProgramSubmissionAction
     use AsAction;
 
     public function __construct(
-        protected ResolveAdvancedBuilderMembershipOptionsAction $resolveAdvancedBuilderMembershipOptionsAction,
+        protected AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
     ) {}
 
     /**
@@ -84,7 +85,7 @@ class PrepareAdvancedParentProgramSubmissionAction
 
     protected function resolvePrimaryOrganizer(User $user, string $primaryOrganizerId): Institution|Person
     {
-        $membershipOptions = $this->resolveAdvancedBuilderMembershipOptionsAction->handle($user);
+        $membershipOptions = $this->advancedBuilderMembershipOptions->forAccount((string) $user->getKey());
 
         if (array_key_exists($primaryOrganizerId, $membershipOptions['institution_options'])) {
             $institution = Institution::query()->find($primaryOrganizerId);
@@ -115,7 +116,7 @@ class PrepareAdvancedParentProgramSubmissionAction
             return null;
         }
 
-        $membershipOptions = $this->resolveAdvancedBuilderMembershipOptionsAction->handle($user);
+        $membershipOptions = $this->advancedBuilderMembershipOptions->forAccount((string) $user->getKey());
 
         if (! array_key_exists($locationInstitutionId, $membershipOptions['institution_options'])) {
             abort(403);

@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventTerm;
 use App\Enums\RegistrationScope;
 use App\Enums\TaxonomyTerm\DomainTermCode;
 use App\Models\Language;
+use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Models\User;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -23,7 +24,7 @@ class ResolveAdvancedBuilderContextAction
     use AsAction;
 
     public function __construct(
-        protected ResolveAdvancedBuilderMembershipOptionsAction $resolveAdvancedBuilderMembershipOptionsAction,
+        protected AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
         protected EventCategoryCatalog $categoryCatalog,
     ) {}
 
@@ -39,7 +40,7 @@ class ResolveAdvancedBuilderContextAction
         ?string $requestedInstitutionId = null,
         ?string $requestedPersonId = null,
     ): array {
-        $membershipOptions = $this->resolveAdvancedBuilderMembershipOptionsAction->handle($user);
+        $membershipOptions = $this->advancedBuilderMembershipOptions->forAccount((string) $user->getKey());
         $institutionOptions = $membershipOptions['institution_options'];
         $personOptions = $membershipOptions['person_options'];
 

@@ -161,3 +161,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Add Referrals as an application feature without claiming vendor package tables.
 - [x] Rehome all three root referral actions, expose scalar invite/qualify/reversal APIs, change queues/public landing/tests and delete root originals.
 - [ ] Confirm replay, queue, reward idempotency and CI before closure.
+
+
+### Advanced program builder organizer options
+- [x] Move organizer-membership option querying into Events, sourcing membership IDs via MembershipDirectory and morph-registered Institution/Person models.
+- [x] Expose scalar account ID -> choice arrays via AdvancedBuilderMembershipOptions; update both root builder workflows and delete their old root query action.
+- [ ] Verify advanced builder form and membership selection behavior in CI.

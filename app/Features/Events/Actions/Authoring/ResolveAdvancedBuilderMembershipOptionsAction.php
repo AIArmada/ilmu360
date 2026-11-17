@@ -2,50 +2,44 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Events\Authoring;
+namespace App\Features\Events\Actions\Authoring;
 
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\User;
+use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Illuminate\Database\Eloquent\Model;
 
-class ResolveAdvancedBuilderMembershipOptionsAction
+/**
+ * Authoring options are constrained by the actor's actual memberships and
+ * the current visibility of their institution/person records.
+ */
+final readonly class ResolveAdvancedBuilderMembershipOptionsAction implements AdvancedBuilderMembershipOptions
 {
-    use AsAction;
+    public function __construct(private MembershipDirectory $memberships) {}
 
-    public function __construct(
-        private readonly MembershipDirectory $memberships,
-    ) {}
-
-    /**
-     * @return array{
-     *     institution_options: array<string, string>,
-     *     person_options: array<string, string>
-     * }
-     */
-    public function handle(User $user): array
+    public function forAccount(string $accountId): array
     {
-        $accountId = (string) $user->getKey();
         $institutionIds = $this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution);
         $personIds = $this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Person);
 
         return [
             'institution_options' => $institutionIds === []
                 ? []
-                : Institution::query()
+                : MorphModelResolver::resolve('institution')::query()
                     ->whereKey($institutionIds)
                     ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
                     ->orderBy('name')
                     ->with('names')
                     ->get(['institutions.id', 'institutions.name'])
-                    ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
+                    ->mapWithKeys(static fn (Model $institution): array => [
+                        (string) $institution->getKey() => (string) $institution->getAttribute('display_name'),
+                    ])
                     ->all(),
             'person_options' => $personIds === []
                 ? []
-                : Person::query()
+                : MorphModelResolver::resolve('person')::query()
                     ->whereKey($personIds)
                     ->whereIn('status', ['verified', 'pending'])
                     ->orderBy('name')
