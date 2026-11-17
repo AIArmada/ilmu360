@@ -302,3 +302,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move the request/CAPTCHA/media/share-attribution coordinator to `app/Http/Submission/SubmitEventRequestHandler.php`; update all API, Livewire and five focused test files, remove the old root Action in one atomic commit.
 - [x] Remove unused `AsAction` trait; no run/dispatch call sites or backwards-compatible action class retained.
 - [ ] Verify strict validation ordering (before one-use captcha), transaction rollback, media cleanup and share-outcome attribution in relevant Pest tests. This is an HTTP integration seam, not an excuse to move Events business writes outside its feature.
+
+
+### Enforce final root Action exceptions
+- [x] Architecture checker permanently rejects domain files under `app/Actions` outside the three Fortify framework integration hooks.
+- [x] Architecture checker also rejects stale `App\\Actions\\...` imports and `::class` references across production, resources/Volt, tests, routes, configuration and tools.
+- [x] Remove temporary migration-audit workflow; canonical `composer architecture:test` runs the checks in regular Quality CI. No duplicate CI workflow or compatibility shims.
+- [ ] Verify architecture-test + Pest suite after checker consolidation.

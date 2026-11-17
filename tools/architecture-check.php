@@ -71,6 +71,60 @@ try {
         }
     }
     ksort($paths);
+
+    // Conventional Fortify contracts/pipeline are framework entrypoints, not
+    // business Actions. All other actions belong in their owning features.
+    $fortifyEntrypoints = [
+        'app/Actions/Fortify/CreateNewUser.php',
+        'app/Actions/Fortify/RecordSuccessfulLogin.php',
+        'app/Actions/Fortify/ResetUserPassword.php',
+    ];
+    foreach ($paths as $relative => $path) {
+        if (str_starts_with($relative, 'app/Actions/') && ! in_array($relative, $fortifyEntrypoints, true)) {
+            $report('root-domain-action', $relative, 1, $relative, 'Move this domain action into its owning feature, or place a genuine HTTP transport adapter under app/Http.');
+        }
+    }
+
+    // Check PHP, tests and Volt/Blade for references left behind after direct
+    // cutovers. Unlike the feature import guard, these can be broken even when
+    // no implementation file exists to inspect.
+    $actionPattern = 'App\\\\Actions\\\\[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)*';
+    $actionImportRegex = '/^\\s*use\\s+('.$actionPattern.')(?:\\s+as\\s+\\w+)?\\s*;/m';
+    $actionClassRegex = '/('.$actionPattern.')::class/';
+    foreach (['app', 'resources', 'tests', 'config', 'bootstrap', 'routes', 'database', 'tools'] as $directory) {
+        if (! is_dir($root.'/'.$directory)) {
+            continue;
+        }
+
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/'.$directory, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $relative = substr($file->getPathname(), strlen($root) + 1);
+            $content = file_get_contents($file->getPathname());
+            if (! is_string($content)) {
+                throw new RuntimeException('Could not read PHP file '.$relative);
+            }
+
+            foreach ([$actionImportRegex, $actionClassRegex] as $regex) {
+                if (preg_match_all($regex, $content, $matches, PREG_OFFSET_CAPTURE) === false) {
+                    throw new RuntimeException('Invalid root Action reference pattern.');
+                }
+                foreach ($matches[1] as [$className, $offset]) {
+                    $classPath = $root.'/app/'.str_replace('\\', '/', substr($className, strlen('App\\'))).'.php';
+                    if (is_file($classPath)) {
+                        continue;
+                    }
+
+                    $line = substr_count(substr($content, 0, $offset), "\\n") + 1;
+                    $report('dangling-root-action', $relative, $line, $className, 'Deleted root Action is still imported or referenced; update the caller to the new owner without aliases.');
+                }
+            }
+        }
+    }
+
     $effectiveSanctumTokenModel = 'Laravel\\Sanctum\\PersonalAccessToken';
     $sanctumExceptionRelations = [
         'app/Models/Concerns/HasUserRestoration.php' => 'tokens',
