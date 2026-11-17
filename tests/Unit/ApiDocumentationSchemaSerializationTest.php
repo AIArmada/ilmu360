@@ -1,17 +1,17 @@
 <?php
 
-use App\Support\ApiDocumentation\Schemas\AddressSelection;
-use App\Support\ApiDocumentation\Schemas\Country;
-use App\Support\ApiDocumentation\Schemas\EventParticipation;
-use App\Support\ApiDocumentation\Schemas\EventSummary;
-use App\Support\ApiDocumentation\Schemas\Institution;
-use App\Support\ApiDocumentation\Schemas\InstitutionDetailPage;
-use App\Support\ApiDocumentation\Schemas\InstitutionDetailResponse;
-use App\Support\ApiDocumentation\Schemas\Person;
-use App\Support\ApiDocumentation\Schemas\PersonDetailPage;
-use App\Support\ApiDocumentation\Schemas\PersonDetailResponse;
-use App\Support\ApiDocumentation\Schemas\PersonDirectoryResponse;
-use App\Support\ApiDocumentation\Schemas\PersonListItem;
+use App\Platform\ApiDocumentation\Schemas\AddressSelection;
+use App\Platform\ApiDocumentation\Schemas\Country;
+use App\Platform\ApiDocumentation\Schemas\EventParticipation;
+use App\Platform\ApiDocumentation\Schemas\EventSummary;
+use App\Platform\ApiDocumentation\Schemas\Institution;
+use App\Platform\ApiDocumentation\Schemas\InstitutionDetailPage;
+use App\Platform\ApiDocumentation\Schemas\InstitutionDetailResponse;
+use App\Platform\ApiDocumentation\Schemas\Person;
+use App\Platform\ApiDocumentation\Schemas\PersonDetailPage;
+use App\Platform\ApiDocumentation\Schemas\PersonDetailResponse;
+use App\Platform\ApiDocumentation\Schemas\PersonDirectoryResponse;
+use App\Platform\ApiDocumentation\Schemas\PersonListItem;
 
 it('serializes institution detail response schemas to nested arrays', function () {
     $response = new InstitutionDetailResponse(

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\Passport\PassportKeyProvisioner;
+use App\Platform\Auth\PassportKeyProvisioner;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;

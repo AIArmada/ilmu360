@@ -5,8 +5,8 @@ namespace App\Data\Api\Frontend\Search;
 use App\Models\Institution;
 use App\Models\InstitutionName;
 use App\Models\User;
+use App\Platform\Location\AddressHierarchyFormatter;
 use App\Shared\Directory\Enums\InstitutionType;
-use App\Support\Location\AddressHierarchyFormatter;
 use Spatie\LaravelData\Data;
 
 class InstitutionListData extends Data

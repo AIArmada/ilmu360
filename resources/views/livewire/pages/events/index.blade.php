@@ -172,7 +172,7 @@
     x-data="{
         ...window.ilmu360.geolocationPermission({
             initiallyGranted: @js($showsGeolocationControls),
-            cookieName: @js(\App\Support\Location\PublicGeolocationPermission::COOKIE_NAME),
+            cookieName: @js(\App\Platform\Location\PublicGeolocationPermission::COOKIE_NAME),
         }),
         filtersOpen: $wire.entangle('filtersPanelOpen'),
         locating: false,
@@ -719,7 +719,7 @@
                                                 ->implode(' · ');
                                         }
                                         $locationPrimaryText = is_string($primaryLocationName) && $primaryLocationName !== '' ? $primaryLocationName : null;
-                                        $locationSecondaryText = \App\Support\Location\AddressHierarchyFormatter::formatShort($addressModel) ?: null;
+                                        $locationSecondaryText = \App\Platform\Location\AddressHierarchyFormatter::formatShort($addressModel) ?: null;
 
                                         if ($locationPrimaryText === null && $locationSecondaryText === null) {
                                             $locationPrimaryText = $formatValue === \App\Shared\Events\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');

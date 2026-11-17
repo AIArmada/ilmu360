@@ -9,9 +9,9 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
+use App\Platform\Location\VisitorCountryResolver;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Location\VisitorCountryResolver;
 use Livewire\Livewire;
 
 function savedSearchTerm(string $name): EventTerm

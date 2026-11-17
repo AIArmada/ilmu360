@@ -10,7 +10,7 @@
     x-data="{
         ...window.ilmu360.geolocationPermission({
             initiallyGranted: @js($showsGeolocationControls),
-            cookieName: @js(\App\Support\Location\PublicGeolocationPermission::COOKIE_NAME),
+            cookieName: @js(\App\Platform\Location\PublicGeolocationPermission::COOKIE_NAME),
         }),
         filtersOpen: $wire.entangle('filtersPanelOpen'),
         locating: false,

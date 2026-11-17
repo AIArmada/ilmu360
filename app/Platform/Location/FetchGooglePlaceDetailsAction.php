@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Platform\Location;
 
-use App\Support\Location\GooglePlacesConfiguration;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;

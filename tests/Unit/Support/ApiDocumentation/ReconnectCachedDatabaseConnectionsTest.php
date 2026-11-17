@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\ApiDocumentation\ReconnectCachedDatabaseConnections;
+use App\Platform\ApiDocumentation\ReconnectCachedDatabaseConnections;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
+use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use Illuminate\Http\Request;
 
 it('uses the configured api domain for docs and base urls', function () {

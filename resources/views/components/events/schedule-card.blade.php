@@ -21,7 +21,7 @@
         ? $location->venue->primaryAddress()
         : null;
     $address ??= $event->resolvedLocationAddress();
-    $locationSecondary = \App\Support\Location\AddressHierarchyFormatter::formatShort($address) ?: null;
+    $locationSecondary = \App\Platform\Location\AddressHierarchyFormatter::formatShort($address) ?: null;
     $statusLabel = $event->public_change_badge_label;
     $statusClass = match (true) {
         (string) $event->status === 'pending' => 'border-amber-100 bg-amber-50 text-amber-700',

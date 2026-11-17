@@ -40,7 +40,7 @@
     $primaryAddress = $eventLocation?->primaryAddress()
         ?? $locationVenue?->primaryAddress()
         ?? $event->resolvedLocationAddress();
-    $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
+    $addressDisplayLines = \App\Platform\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $locationVenue?->name ?? $detail->locationLabel($eventLocation) ?? $event->resolvedLocationName();
     $hasLocationContent = filled($venueDisplayName) || $primaryAddress !== null;
     $lat = $primaryAddress?->latitude;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Mcp;
 
-use App\Support\Documentation\DocumentationLibrary;
+use App\Platform\Documentation\DocumentationLibrary;
 
 /**
  * @phpstan-type DocumentationRecord array{

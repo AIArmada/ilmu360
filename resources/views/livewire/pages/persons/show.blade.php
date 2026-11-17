@@ -24,7 +24,7 @@
         ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)
         : null;
     $bioText = trim($bioRenderer?->toText() ?? '');
-    $locationString = \App\Support\Location\AddressHierarchyFormatter::format($person->primaryAddress());
+    $locationString = \App\Platform\Location\AddressHierarchyFormatter::format($person->primaryAddress());
     $upcomingEvents = $this->upcomingEvents;
     $savedEventIds = $this->savedEventIds;
     $goingEventIds = $this->goingEventIds;
@@ -130,7 +130,7 @@
 
         return [
             is_string($primary) && trim($primary) !== '' ? $primary : null,
-            \App\Support\Location\AddressHierarchyFormatter::formatShort($address) ?: null,
+            \App\Platform\Location\AddressHierarchyFormatter::formatShort($address) ?: null,
         ];
     };
 

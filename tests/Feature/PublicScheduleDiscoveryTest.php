@@ -12,11 +12,11 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
+use App\Platform\Location\VisitorCountryResolver;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Support\Location\VisitorCountryResolver;
 use Livewire\Livewire;
 
 beforeEach(function (): void {

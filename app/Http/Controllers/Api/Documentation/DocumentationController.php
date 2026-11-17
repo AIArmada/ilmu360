@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Documentation;
 
 use App\Http\Controllers\Controller;
-use App\Support\Documentation\DocumentationLibrary;
+use App\Platform\Documentation\DocumentationLibrary;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

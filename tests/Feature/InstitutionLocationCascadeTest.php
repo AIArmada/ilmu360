@@ -6,7 +6,7 @@ use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use App\Models\Institution;
-use App\Support\Location\LocationSlugResolver;
+use App\Platform\Location\LocationSlugResolver;
 use Livewire\Livewire;
 
 use function Pest\Laravel\get;

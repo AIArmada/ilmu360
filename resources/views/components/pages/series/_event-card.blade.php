@@ -51,7 +51,7 @@
             @php
                 $locationName = $event->resolvedLocationName();
                 $locationAddress = $event->resolvedLocationAddress();
-                $locationSubtitle = \App\Support\Location\AddressHierarchyFormatter::format($locationAddress);
+                $locationSubtitle = \App\Platform\Location\AddressHierarchyFormatter::format($locationAddress);
             @endphp
 
             @if($locationName)

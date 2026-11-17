@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Venue;
-use App\Support\Location\LocationSlugResolver;
+use App\Platform\Location\LocationSlugResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -231,7 +231,7 @@ new
     // Listener updates travel as __dispatch calls; wire:target matches the call method, not syncFilters.
     $venueLoadingTarget = '__dispatch,gotoPage,nextPage,previousPage';
     $formatVenueLocation = static function ($addressModel): string {
-        $parts = \App\Support\Location\AddressHierarchyFormatter::parts($addressModel);
+        $parts = \App\Platform\Location\AddressHierarchyFormatter::parts($addressModel);
 
         return $parts === [] ? '-' : implode(', ', $parts);
     };

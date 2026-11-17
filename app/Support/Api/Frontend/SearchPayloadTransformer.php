@@ -9,8 +9,8 @@ use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use App\Data\Api\Frontend\Search\CountryData;
 use App\Platform\Location\AddressAssignments;
+use App\Platform\Location\AddressHierarchyFormatter;
 use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Support\Location\AddressHierarchyFormatter;
 use BackedEnum;
 use Illuminate\Support\Str;
 

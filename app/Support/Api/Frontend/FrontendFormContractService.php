@@ -10,6 +10,8 @@ use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Models\Language;
 use App\Models\User;
+use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
+use App\Platform\Documentation\DocumentationLibrary;
 use App\Platform\Mcp\McpTokenManager;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\Directory\Enums\InstitutionType;
@@ -22,8 +24,6 @@ use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Submission\SubmissionTimingPolicy;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use App\Support\Api\SurfaceSyncPolicy;
-use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
-use App\Support\Documentation\DocumentationLibrary;
 
 class FrontendFormContractService
 {

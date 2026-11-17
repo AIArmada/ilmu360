@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Documentation;
 
 use App\Http\Controllers\Controller;
-use App\Support\ApiDocumentation\ApiDocumentationConfigFactory;
+use App\Platform\ApiDocumentation\ApiDocumentationConfigFactory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Route;
 

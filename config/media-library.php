@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Jobs\Media\GenerateResponsiveImagesJob;
 use App\Platform\Media\AuditedMediaObserver;
+use App\Platform\Media\Jobs\GenerateResponsiveImagesJob;
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Media\MediaPathGenerator;
 use App\Platform\Media\MediaUrlGenerator;

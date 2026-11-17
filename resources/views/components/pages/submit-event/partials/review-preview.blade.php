@@ -151,7 +151,7 @@
         ->all();
 
     $languageIds = $asList($get('languages'));
-    $preferredLanguageLabels = \App\Support\Language\MalaysiaLanguageCatalog::labels();
+    $preferredLanguageLabels = \App\Platform\Language\MalaysiaLanguageCatalog::labels();
     $languageMap = \App\Models\Language::query()
         ->whereIn('id', $languageIds)
         ->get(['id', 'code', 'name'])

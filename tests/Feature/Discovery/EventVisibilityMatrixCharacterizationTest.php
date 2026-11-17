@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Platform\Location\VisitorCountryResolver;
 use App\Shared\Events\Enums\EventFormat;
-use App\Support\Location\VisitorCountryResolver;
 
 /**
  * D0 characterization: pin the visibility matrix that D1a applies.

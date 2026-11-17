@@ -2,10 +2,6 @@
 
 namespace App\Platform\Location;
 
-use App\Support\Location\GoogleMapsInputValues;
-use App\Support\Location\GoogleMapsRemoteLookup;
-use App\Support\Location\GoogleMapsUrlParser;
-use App\Support\Location\GooglePlacesConfiguration;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class NormalizeGoogleMapsInputAction

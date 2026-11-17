@@ -2,7 +2,6 @@
 
 namespace App\Platform\Diagnostics;
 
-use App\Support\Diagnostics\NetworkDiagnosticsEnvironment;
 use InvalidArgumentException;
 use PDO;
 use Throwable;

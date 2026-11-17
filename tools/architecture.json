@@ -37,7 +37,7 @@
       "reason": "The platform health check caches search-service reachability state.",
       "expires": "2027-06-30"
     },
-    "App\\Support\\ApiDocumentation\\ApiDocumentationDocumentResolver": {
+    "App\\Platform\\ApiDocumentation\\ApiDocumentationDocumentResolver": {
       "adapter": "cache",
       "resource": "store:infrastructure.api-documentation-cache",
       "reason": "The root API documentation resolver caches source-derived OpenAPI documents.",

@@ -1,10 +1,10 @@
 <?php
 
-use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
-use App\Support\ApiDocumentation\ApiDocumentationVersionResolver;
-use App\Support\ApiDocumentation\ApiRequestBodyExamplesExtension;
-use App\Support\ApiDocumentation\ApiSecurityRequirementExtension;
-use App\Support\ApiDocumentation\ApiWorkflowSchemasTransformer;
+use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
+use App\Platform\ApiDocumentation\ApiDocumentationVersionResolver;
+use App\Platform\ApiDocumentation\ApiRequestBodyExamplesExtension;
+use App\Platform\ApiDocumentation\ApiSecurityRequirementExtension;
+use App\Platform\ApiDocumentation\ApiWorkflowSchemasTransformer;
 use Dedoc\Scramble\Generator;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Auth\Middleware\Authenticate;

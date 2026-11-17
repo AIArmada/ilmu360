@@ -25,7 +25,7 @@
         ?? (($ownLocation ?? $occurrenceLocation)?->venue_id !== null
             ? null
             : $event->resolvedLocationAddress());
-    $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
+    $addressDisplayLines = \App\Platform\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $locationVenue?->name ?? $locationInstitution?->display_name ?? $detail->locationLabel($location) ?? $event->resolvedLocationName();
     $isOnlineOnly = (string) $event->delivery_mode === \App\Shared\Events\Enums\EventFormat::Online->value
         && $location === null

@@ -1,7 +1,7 @@
 <?php
 
 use App\Platform\Location\LocationLevelLabels;
-use App\Support\Location\LocationSlugResolver;
+use App\Platform\Location\LocationSlugResolver;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;

@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Models\State;
-use App\Support\Location\LocationSlugResolver;
+use App\Platform\Location\LocationSlugResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

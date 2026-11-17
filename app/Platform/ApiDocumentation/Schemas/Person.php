@@ -1,0 +1,76 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Platform\ApiDocumentation\Schemas;
+
+use Dedoc\Scramble\Attributes\SchemaName;
+use Illuminate\Contracts\Support\Arrayable;
+
+/**
+ * @phpstan-import-type AddressSelectionArray from AddressSelection
+ * @phpstan-import-type CountryArray from Country
+ *
+ * @phpstan-type PersonMediaArray array{avatar_url: string, cover_url: ?string, share_image_url: ?string}
+ * @phpstan-type PersonArray array{id: string, slug: string, name: string, middle_name: string|null, family_name: string|null, gender: string|null, formatted_name: string, bio: ?string, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: PersonMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
+ *
+ * @implements Arrayable<string, mixed>
+ */
+#[SchemaName('Person')]
+final readonly class Person implements Arrayable
+{
+    /**
+     * @param  array{avatar_url: string, cover_url: ?string, share_image_url: ?string}  $media
+     * @param  list<array<string, mixed>>  $gallery
+     * @param  list<array<string, mixed>>  $institutions
+     * @param  list<array<string, mixed>>  $contacts
+     * @param  list<array<string, mixed>>  $social_media
+     */
+    public function __construct(
+        public string $id,
+        public string $slug,
+        public string $name,
+        public ?string $middle_name,
+        public ?string $family_name,
+        public ?string $gender,
+        public string $formatted_name,
+        public ?string $bio,
+        public ?AddressSelection $address,
+        public ?Country $country,
+        public ?string $location,
+        public string $status,
+        public ?string $verified_by,
+        public bool $is_following,
+        public array $media,
+        public array $gallery,
+        public array $institutions,
+        public array $contacts,
+        public array $social_media,
+    ) {}
+
+    /** @return PersonArray */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'name' => $this->name,
+            'middle_name' => $this->middle_name,
+            'family_name' => $this->family_name,
+            'gender' => $this->gender,
+            'formatted_name' => $this->formatted_name,
+            'bio' => $this->bio,
+            'address' => $this->address?->toArray(),
+            'country' => $this->country?->toArray(),
+            'location' => $this->location,
+            'status' => $this->status,
+            'verified_by' => $this->verified_by,
+            'is_following' => $this->is_following,
+            'media' => $this->media,
+            'gallery' => $this->gallery,
+            'institutions' => $this->institutions,
+            'contacts' => $this->contacts,
+            'social_media' => $this->social_media,
+        ];
+    }
+}

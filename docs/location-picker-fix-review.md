@@ -16,7 +16,7 @@ Scope of changes (all in this session):
 |---|---|
 | `app/Livewire/Concerns/InteractsWithLocationPickerSelection.php` | Merge 3 default `area_assignments` role keys into the picker-resolved address |
 | `app/Forms/SharedFormSchema.php` | `->dehydratedWhenHidden(true)` on the hidden `city_id` select |
-| `app/Support/Location/AddressHierarchyFormatter.php` | New `subdivisionOrLocalityName()` (subdivision → postal_locality fallback) |
+| `app/Platform/Location/AddressHierarchyFormatter.php` | New `subdivisionOrLocalityName()` (subdivision → postal_locality fallback) |
 | `app/Filament/Resources/Institutions/Schemas/InstitutionInfolist.php` | Use it in "Mukim / Kawasan" row (file also contains pre-existing branch WIP) |
 | `app/Filament/Resources/Persons/Schemas/PersonInfolist.php` | Same as above |
 | `app/Livewire/Pages/SubmitEvent/Create.php` | Reuse the shared picker-selection trait so nested locations receive the same area-assignment defaults |

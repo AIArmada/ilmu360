@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\ApiDocumentation\ApiRequestBodyExamplesExtension;
+use App\Platform\ApiDocumentation\ApiRequestBodyExamplesExtension;
 use Dedoc\Scramble\GeneratorConfig;
 use Dedoc\Scramble\Infer;
 use Dedoc\Scramble\OpenApiContext;

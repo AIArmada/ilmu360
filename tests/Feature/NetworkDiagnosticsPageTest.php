@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Platform\Diagnostics\NetworkDiagnosticsEnvironment;
 use App\Platform\Diagnostics\NetworkDiagnosticsService;
-use App\Support\Diagnostics\NetworkDiagnosticsEnvironment;
 use Mockery\MockInterface;
 
 const NETWORK_DIAGNOSTICS_ENV_KEYS = [

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Platform\Location;
 
-use App\Support\Location\GooglePlaceAddressComponents;
-use App\Support\Location\GooglePlaceGeographyResolver;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;

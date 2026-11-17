@@ -9,7 +9,7 @@ use AIArmada\Persons\Enums\Gender;
 use App\Enums\SpeakerStatus;
 use App\Models\Person;
 use App\Platform\Location\AddressAssignments;
-use App\Support\Location\AddressHierarchyFormatter;
+use App\Platform\Location\AddressHierarchyFormatter;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;

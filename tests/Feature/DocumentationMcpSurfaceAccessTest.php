@@ -11,7 +11,7 @@ use App\Mcp\Tools\Member\MemberDocumentationFetchTool;
 use App\Mcp\Tools\Member\MemberDocumentationSearchTool;
 use App\Models\Institution;
 use App\Models\User;
-use App\Support\Documentation\DocumentationLibrary;
+use App\Platform\Documentation\DocumentationLibrary;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 

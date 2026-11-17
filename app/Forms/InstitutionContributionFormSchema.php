@@ -2,9 +2,9 @@
 
 namespace App\Forms;
 
+use App\Platform\Location\GooglePlacesConfiguration;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;
-use App\Support\Location\GooglePlacesConfiguration;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;

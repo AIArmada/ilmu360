@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Support\Diagnostics\NetworkDiagnosticsEnvironment;
+use App\Platform\Diagnostics\NetworkDiagnosticsEnvironment;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;

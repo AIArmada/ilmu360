@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\Filament\ContentVersionedJs;
+use App\Platform\Ui\ContentVersionedJs;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Support\Facades\Storage;

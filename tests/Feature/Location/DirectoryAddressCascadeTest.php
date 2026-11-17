@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Livewire\Pages\Events\Index;
-use App\Support\Location\VisitorCountryResolver;
+use App\Platform\Location\VisitorCountryResolver;
 use Filament\Forms\Components\Select;
 use Livewire\Livewire;
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Documentation;
 
 use App\Http\Controllers\Controller;
-use App\Support\ApiDocumentation\ApiDocumentationDocumentResolver;
+use App\Platform\ApiDocumentation\ApiDocumentationDocumentResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

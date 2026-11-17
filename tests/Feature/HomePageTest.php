@@ -14,6 +14,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
 use App\Models\Venue;
+use App\Platform\Location\VisitorCountryResolver;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Events\Enums\EventAgeGroup;
@@ -23,7 +24,6 @@ use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Support\Location\VisitorCountryResolver;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 

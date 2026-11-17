@@ -11,7 +11,7 @@ use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\Event;
 use App\Models\User;
-use App\Support\ApiDocumentation\ApiDocumentationConfigFactory;
+use App\Platform\ApiDocumentation\ApiDocumentationConfigFactory;
 use Dedoc\Scramble\Generator;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

@@ -180,7 +180,7 @@ new
 
         $parts = array_filter([
             $primaryLocationName,
-            ...\App\Support\Location\AddressHierarchyFormatter::parts($address),
+            ...\App\Platform\Location\AddressHierarchyFormatter::parts($address),
         ]);
 
         return $parts !== [] ? implode(', ', $parts) : (string) $primaryLocationName;

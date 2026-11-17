@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\Documentation\DocumentationLibrary;
+use App\Platform\Documentation\DocumentationLibrary;
 
 it('exposes the full curated documentation catalog through the public documentation api', function (): void {
     $documentationLibrary = app(DocumentationLibrary::class);
