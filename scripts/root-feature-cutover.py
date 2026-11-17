@@ -133,6 +133,25 @@ def main() -> None:
         )
         provider.write_text(content)
 
+
+    # Communication operations authorize an Identity actor through the existing
+    # public AccountDirectory boundary, never a foreign mutable User model.
+    command_path = ROOT / "app/Features/Communications/EntryPoints/Console/Commands/ResolveDigestMailAmbiguityCommand.php"
+    command_src = command_path.read_text()
+    substitutions = [
+        (r"use App\Models\User;", r"use App\Shared\Auth\AccountDirectory;"),
+        ("handle(ManagedNotificationDelivery $communications): int", "handle(ManagedNotificationDelivery $communications, AccountDirectory $accounts): int"),
+        ("$operator = User::query()->whereKey($actorOption)->first();", ""),
+        ("if (! $operator instanceof User)", "if (! $accounts->exists($actorOption))"),
+        ("if (! $operator->hasAnyRole(['super_admin', 'admin']))", "if (! array_intersect(['super_admin', 'admin'], $accounts->roles($actorOption)))"),
+        ("$operator->getKey()", "$actorOption"),
+    ]
+    for old, new in substitutions:
+        if old not in command_src:
+            raise RuntimeError("Expected Identity boundary usage not found: " + old)
+        command_src = command_src.replace(old, new)
+    command_path.write_text(command_src)
+
     for old in moves:
         if (ROOT / old).exists():
             raise RuntimeError(f"Old implementation survives: {old}")
