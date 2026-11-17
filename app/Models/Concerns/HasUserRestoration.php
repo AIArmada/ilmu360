@@ -13,7 +13,7 @@ use App\Features\Identity\Api\AccountLifecycle;
 use App\Models\User;
 use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use App\Support\ShareTracking\ShareTrackingFinance;
+use App\Shared\ShareTracking\ShareTrackingFinance;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
