@@ -7,8 +7,6 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
-use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
-use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
 use App\Actions\Contributions\Submission\ApplyDirectContributionUpdateAction;
 
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
@@ -16,6 +14,7 @@ use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
@@ -62,7 +61,7 @@ class ContributionController extends FrontendController
         title: 'List contribution requests and pending approvals',
         description: 'Returns the authenticated user\'s own contribution requests plus any pending approvals they are allowed to review.',
     )]
-    public function index(Request $request, ResolvePendingContributionApprovalsAction $resolvePendingContributionApprovalsAction): JsonResponse
+    public function index(Request $request, ContributionReviewAccess $contributionReviewAccess): JsonResponse
     {
         $user = $this->requireUser($request);
         $requestIds = app(ContributionRequestReader::class)->requestIdsForProposer((string) $user->getKey());
@@ -75,7 +74,11 @@ class ContributionController extends FrontendController
                 ->latest('created_at')
                 ->get();
 
-        $pendingApprovals = $resolvePendingContributionApprovalsAction->handle($user);
+        $pendingApprovals = ContributionRequest::query()
+            ->whereKey($contributionReviewAccess->pendingRequestIds((string) $user->getKey()))
+            ->with(['entity', 'proposer'])
+            ->latest('created_at')
+            ->get();
 
         return response()->json([
             'data' => [
@@ -625,11 +628,13 @@ class ContributionController extends FrontendController
     public function approve(
         string $requestId,
         Request $request,
-        ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
+        ContributionReviewAccess $contributionReviewAccess,
         ContributionRequestLifecycle $contributionRequestLifecycle,
     ): JsonResponse {
         $user = $this->requireUser($request);
-        $contributionRequest = $resolveReviewableContributionRequestAction->handle($user, $requestId);
+        $contributionRequest = ContributionRequest::query()->with('entity')->findOrFail(
+            $contributionReviewAccess->reviewableRequestId((string) $user->getKey(), $requestId)
+        );
         $reviewNote = $request->validate(['reviewer_note' => ['nullable', 'string', 'max:2000']])['reviewer_note'] ?? null;
 
         $contributionRequestLifecycle->approve((string) $contributionRequest->getKey(), (string) $user->getKey(), $reviewNote);
@@ -655,7 +660,7 @@ class ContributionController extends FrontendController
     public function reject(
         string $requestId,
         Request $request,
-        ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
+        ContributionReviewAccess $contributionReviewAccess,
         ContributionRequestLifecycle $contributionRequestLifecycle,
     ): JsonResponse {
         $user = $this->requireUser($request);
@@ -664,7 +669,9 @@ class ContributionController extends FrontendController
             'reviewer_note' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $contributionRequest = $resolveReviewableContributionRequestAction->handle($user, $requestId);
+        $contributionRequest = ContributionRequest::query()->with('entity')->findOrFail(
+            $contributionReviewAccess->reviewableRequestId((string) $user->getKey(), $requestId)
+        );
         $contributionRequestLifecycle->reject(
             (string) $contributionRequest->getKey(),
             (string) $user->getKey(),

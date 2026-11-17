@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Member;
 
-use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
-use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -25,9 +24,8 @@ use Illuminate\Validation\Rule;
 final readonly class MemberContributionWorkflowService
 {
     public function __construct(
-        private ResolvePendingContributionApprovalsAction $resolvePendingContributionApprovalsAction,
         private ContributionRequestReader $contributionRequestReader,
-        private ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
+        private ContributionReviewAccess $contributionReviewAccess,
         private ContributionSubjectPresenter $contributionSubjectPresenter,
         private ContributionRequestLifecycle $contributionRequestLifecycle,
     ) {}
@@ -47,7 +45,11 @@ final readonly class MemberContributionWorkflowService
                 ->latest('created_at')
                 ->get();
 
-        $pendingApprovals = $this->resolvePendingContributionApprovalsAction->handle($actor);
+        $pendingApprovals = ContributionRequest::query()
+            ->whereKey($this->contributionReviewAccess->pendingRequestIds((string) $actor->getKey()))
+            ->with(['entity', 'proposer'])
+            ->latest('created_at')
+            ->get();
 
         return [
             'data' => [
@@ -67,7 +69,9 @@ final readonly class MemberContributionWorkflowService
             'reviewer_note' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
-        $request = $this->resolveReviewableContributionRequestAction->handle($actor, $requestId);
+        $request = ContributionRequest::query()->with('entity')->findOrFail(
+            $this->contributionReviewAccess->reviewableRequestId((string) $actor->getKey(), $requestId)
+        );
         $this->contributionRequestLifecycle->approve(
             (string) $request->getKey(),
             (string) $actor->getKey(),
@@ -94,7 +98,9 @@ final readonly class MemberContributionWorkflowService
             'reviewer_note' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
-        $request = $this->resolveReviewableContributionRequestAction->handle($actor, $requestId);
+        $request = ContributionRequest::query()->with('entity')->findOrFail(
+            $this->contributionReviewAccess->reviewableRequestId((string) $actor->getKey(), $requestId)
+        );
         $this->contributionRequestLifecycle->reject(
             (string) $request->getKey(),
             (string) $actor->getKey(),

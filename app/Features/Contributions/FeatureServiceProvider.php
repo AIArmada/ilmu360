@@ -7,6 +7,7 @@ namespace App\Features\Contributions;
 use App\Features\Contributions\Actions\EnsureNoPendingContributionRequestAction;
 use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -14,6 +15,7 @@ use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContrib
 use App\Features\Contributions\Persistence\CacheVerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
 use App\Features\Contributions\Services\ContributionRequestLifecycleService;
+use App\Features\Contributions\Services\ContributionReviewAccessService;
 use App\Features\Contributions\Services\ContributionSubmissionPreparationService;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
@@ -55,6 +57,7 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
         $this->app->bind(ContributionRequestLifecycle::class, ContributionRequestLifecycleService::class);
+        $this->app->bind(ContributionReviewAccess::class, ContributionReviewAccessService::class);
         $this->app->bind(ContributionSubmissionPreparation::class, ContributionSubmissionPreparationService::class);
         $this->app->bind(InstitutionClaimGuard::class, EnsureUniqueContributionCreateAction::class);
         $this->app->bind(ContributionRequestGuard::class, EnsureNoPendingContributionRequestAction::class);

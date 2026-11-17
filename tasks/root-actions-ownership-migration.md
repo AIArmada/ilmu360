@@ -91,3 +91,9 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Eliminate root FindUserPendingContributionRequestAction and ResolveOwnContributionRequestAction. Their one query each now belongs to Contributions/Queries/EloquentContributionRequestReader (scalar IDs).
 - [x] Update frontend/member/Livewire adapters to hydrate authorized request identifiers locally; keep 404 on unauthorized request access and original query ordering.
 - [ ] Confirm behavior and static analysis on Quality CI.
+
+
+### Contributions reviewer access cutover
+- [x] Move pending-approval and reviewable-request policy queries into Contributions/Queries.
+- [x] Expose scalar ID-only ContributionReviewAccess contract. Rehydrate response models at HTTP/member/admin adapters; retain 403 for unauthorized reviews, request status filtering and sorting.
+- [ ] Confirm source audit and affected CI results.

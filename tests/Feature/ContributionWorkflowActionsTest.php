@@ -3,13 +3,12 @@
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\Queries\ResolveContributionSubjectAction;
 use App\Actions\Contributions\Queries\ResolveContributionUpdateContextAction;
-use App\Actions\Contributions\Queries\ResolvePendingContributionApprovalsAction;
-use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
 use App\Features\Contributions\Actions\NormalizeContributionSubmissionAction;
 use App\Features\Contributions\Actions\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\Submission\SubmitStagedContributionCreateAction;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionCreateRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
@@ -539,10 +538,10 @@ it('resolves only reviewable pending contribution approvals through the action l
 
     assignInstitutionOwnerForContributionActions($owner, $institution);
 
-    $pendingApprovals = app(ResolvePendingContributionApprovalsAction::class)->handle($owner);
+    $pendingApprovalIds = app(ContributionReviewAccess::class)->pendingRequestIds((string) $owner->getKey());
 
-    expect($pendingApprovals->pluck('id')->all())->toBe([$reviewableRequest->id])
-        ->and($pendingApprovals->contains(fn (ContributionRequest $request): bool => $request->is($hiddenCreateRequest)))->toBeFalse();
+    expect($pendingApprovalIds)->toBe([(string) $reviewableRequest->getKey()])
+        ->and($pendingApprovalIds)->not->toContain((string) $hiddenCreateRequest->getKey());
 });
 
 it('resolves reviewable contribution requests through the action layer', function () {
@@ -559,10 +558,10 @@ it('resolves reviewable contribution requests through the action layer', functio
 
     assignInstitutionOwnerForContributionActions($owner, $institution);
 
-    $resolvedRequest = app(ResolveReviewableContributionRequestAction::class)->handle($owner, $request->id);
+    $resolvedRequestId = app(ContributionReviewAccess::class)->reviewableRequestId((string) $owner->getKey(), $request->id);
 
-    expect($resolvedRequest->is($request))->toBeTrue()
-        ->and(fn () => app(ResolveReviewableContributionRequestAction::class)->handle($stranger, $request->id))->toThrow(HttpException::class);
+    expect($resolvedRequestId)->toBe((string) $request->getKey())
+        ->and(fn () => app(ContributionReviewAccess::class)->reviewableRequestId((string) $stranger->getKey(), $request->id))->toThrow(HttpException::class);
 });
 
 it('resolves only the proposer owned contribution request for cancel flows', function () {

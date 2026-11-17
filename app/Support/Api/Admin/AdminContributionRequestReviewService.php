@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
-use App\Actions\Contributions\Queries\ResolveReviewableContributionRequestAction;
+use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
@@ -20,7 +20,7 @@ final readonly class AdminContributionRequestReviewService
 
     public function __construct(
         private AdminResourceRegistry $registry,
-        private ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
+        private ContributionReviewAccess $contributionReviewAccess,
         private ContributionRequestLifecycle $contributionRequestLifecycle,
     ) {}
 
@@ -122,7 +122,9 @@ final readonly class AdminContributionRequestReviewService
 
     private function resolveContributionRequest(string $recordKey, User $actor): ContributionRequest
     {
-        $request = $this->resolveReviewableContributionRequestAction->handle($actor, $recordKey);
+        $request = ContributionRequest::query()->with('entity')->findOrFail(
+            $this->contributionReviewAccess->reviewableRequestId((string) $actor->getKey(), $recordKey)
+        );
 
         return $request->loadMissing(['entity', 'proposer', 'reviewer']);
     }
