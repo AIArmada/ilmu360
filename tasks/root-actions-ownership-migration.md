@@ -138,3 +138,8 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Use existing Platform AddressFormState and ContributionPayload normalization instead of depending on root SharedFormSchema from feature Actions.
 - [x] Resolve contribution subject models through the existing ContributionModel morph helper; use the already-shared ContributionEntityState projection contract for read/contract data.
 - [ ] Verify PHPStan architecture and state/contract parity.
+
+
+### Contribution reviewer dependency boundary
+- [x] Resolve actors through shared AccountDirectory and evaluate the existing registered review policy through Laravel Gate. Remove the now-unnecessary private policy/query wrappers.
+- [ ] Confirm existing admin/moderator/member rights and 403/404 behavior against Pest; no duplicate policy.
