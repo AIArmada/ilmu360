@@ -1,59 +1,65 @@
 <?php
 
-namespace App\Actions\Events\Changes;
+namespace App\Features\Events\Actions\Changes;
 
-use App\Enums\EventChangeSeverity;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventChangePublisher;
+use App\Platform\Models\MorphModelResolver;
+use App\Shared\Events\EventChangeNoticeNotifier;
 use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\User;
-use App\Services\Notifications\EventNotificationService;
 use App\Shared\Events\Enums\EventChangeType;
-use App\Support\Spaces\SpaceLocationPresenter;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Contracts\Auth\Authenticatable;
+use ValueError;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
 use Throwable;
 
-class PublishEventChangeAnnouncementAction
+final readonly class PublishEventChangeAnnouncementAction implements EventChangePublisher
 {
-    use AsAction;
 
     /**
      * @param  array<string, mixed>  $changes
      */
-    public function handle(
-        Event $event,
-        User $actor,
+    public function publish(
+        string $eventId,
+        string $actorId,
         EventChangeType|string $type,
         ?string $publicMessage,
         ?string $internalNote = null,
-        ?Event $replacementEvent = null,
+        ?string $replacementEventId = null,
         array $changes = [],
         bool $notify = true,
-        EventChangeSeverity|string|null $severity = null,
-    ): EventChangeAnnouncement {
-        if (! $actor->can('publishChange', $event)) {
+        ?string $severity = null,
+    ): string {
+        $event = Event::query()->withoutOwnerScope()->findOrFail($eventId);
+        $actor = MorphModelResolver::resolve('user')::query()->findOrFail($actorId);
+        abort_unless($actor instanceof Authenticatable, 404);
+        if (! Gate::forUser($actor)->allows('publishChange', $event)) {
             throw new AuthorizationException;
         }
+        $replacementEvent = $replacementEventId !== null
+            ? Event::query()->withoutOwnerScope()->findOrFail($replacementEventId)
+            : null;
 
         $type = $type instanceof EventChangeType
             ? $type
             : EventChangeType::from($type);
 
-        $severity = $severity instanceof EventChangeSeverity
+        $severity = is_string($severity) && $severity !== ''
             ? $severity
-            : (is_string($severity) && $severity !== ''
-                ? EventChangeSeverity::from($severity)
-                : $this->defaultSeverity($event, $type, $changes));
+            : $this->defaultSeverity($event, $type, $changes);
+        if (! in_array($severity, ['info', 'high', 'urgent'], true)) {
+            throw new ValueError("Invalid event change severity [{$severity}].");
+        }
 
         $this->validateReplacementEvent($event, $replacementEvent);
 
@@ -94,7 +100,7 @@ class PublishEventChangeAnnouncementAction
                 'created_by_type' => $actor->getMorphClass(),
                 'created_by_id' => (string) $actor->getKey(),
                 'update_type' => $type->value,
-                'severity' => $severity->value,
+                'severity' => $severity,
                 'message' => $message,
                 'title' => $message,
                 'notes' => $internalNote,
@@ -116,15 +122,11 @@ class PublishEventChangeAnnouncementAction
             return $announcementId;
         });
 
-        $announcement = EventChangeAnnouncement::query()->findOrFail($announcementId);
-
         if ($notify) {
-            app(EventNotificationService::class)->notifyEventChangeAnnouncement(
-                $announcement->fresh(['event', 'replacementEvent']) ?? $announcement,
-            );
+            app(EventChangeNoticeNotifier::class)->notify($announcementId);
         }
 
-        return $announcement;
+        return $announcementId;
     }
 
     /**
@@ -194,10 +196,10 @@ class PublishEventChangeAnnouncementAction
     /**
      * @param  array<string, mixed>  $changes
      */
-    private function defaultSeverity(Event $event, EventChangeType $type, array $changes): EventChangeSeverity
+    private function defaultSeverity(Event $event, EventChangeType $type, array $changes): string
     {
         if (in_array($type, [EventChangeType::Cancelled, EventChangeType::RescheduledEarlier], true)) {
-            return EventChangeSeverity::Urgent;
+            return 'urgent';
         }
 
         $changedStartsAt = $this->changedStartsAt($event, $changes);
@@ -205,22 +207,22 @@ class PublishEventChangeAnnouncementAction
 
         if ($changedStartsAt instanceof CarbonInterface) {
             if ($currentStartsAt instanceof CarbonInterface && $changedStartsAt->lessThan($currentStartsAt)) {
-                return EventChangeSeverity::Urgent;
+                return 'urgent';
             }
 
             if ($changedStartsAt->isBetween(now(), now()->addHours(24))) {
-                return EventChangeSeverity::Urgent;
+                return 'urgent';
             }
         }
 
         $startsAt = $event->starts_at;
 
         if ($startsAt instanceof CarbonInterface && $startsAt->isBetween(now(), now()->addHours(24))) {
-            return EventChangeSeverity::Urgent;
+            return 'urgent';
         }
 
         if (array_intersect(array_keys($changes), ['starts_at', 'ends_at', 'timezone', 'venue_id', 'space_id'])) {
-            return EventChangeSeverity::High;
+            return 'high';
         }
 
         return match ($type) {
@@ -232,8 +234,8 @@ class PublishEventChangeAnnouncementAction
             EventChangeType::ReplacementLinked,
             EventChangeType::Postponed,
             EventChangeType::RescheduledLater,
-            EventChangeType::ScheduleChanged => EventChangeSeverity::High,
-            default => EventChangeSeverity::Info,
+            EventChangeType::ScheduleChanged => 'high',
+            default => 'info',
         };
     }
 
@@ -315,6 +317,18 @@ class PublishEventChangeAnnouncementAction
     /**
      * @return array<string, mixed>
      */
+    private function spaceName(Event $event): ?string
+    {
+        $location = $event->primaryLocation;
+        if ($location === null) {
+            return null;
+        }
+
+        $snapshot = trim((string) ($location->space_name_snapshot ?? ''));
+
+        return $snapshot !== '' ? $snapshot : $location->venueSpace?->name;
+    }
+
     private function snapshot(Event $event): array
     {
         return [
@@ -337,20 +351,20 @@ class PublishEventChangeAnnouncementAction
             ],
             'space' => $event->primaryLocation?->venueSpace === null ? null : [
                 'id' => (string) $event->primaryLocation->venueSpace->getKey(),
-                'name' => SpaceLocationPresenter::name($event->primaryLocation),
+                'name' => $this->spaceName($event),
             ],
             'persons' => $event->personKeyPeople
                 ->map(fn (EventKeyPerson $keyPerson): array => [
-                    'id' => $keyPerson->person instanceof Person ? (string) $keyPerson->person->getKey() : null,
-                    'name' => $keyPerson->person instanceof Person ? $keyPerson->person->name : $keyPerson->display_name,
-                    'slug' => $keyPerson->person instanceof Person ? $keyPerson->person->slug : null,
+                    'id' => $keyPerson->person instanceof Model ? (string) $keyPerson->person->getKey() : null,
+                    'name' => $keyPerson->person instanceof Model ? $keyPerson->person->getAttribute('name') : $keyPerson->display_name,
+                    'slug' => $keyPerson->person instanceof Model ? $keyPerson->person->getAttribute('slug') : null,
                 ])
                 ->values()
                 ->all(),
             'references' => $event->references
-                ->map(fn (Reference $reference): array => [
+                ->map(fn (Model $reference): array => [
                     'id' => (string) $reference->getKey(),
-                    'title' => $reference->displayTitle(),
+                    'title' => $reference->getAttribute('display_title'),
                     'slug' => $reference->slug,
                 ])
                 ->values()

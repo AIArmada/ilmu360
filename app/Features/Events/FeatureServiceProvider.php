@@ -10,6 +10,7 @@ use App\Features\Events\Actions\Authoring\PrepareAdvancedParentProgramSubmission
 use App\Features\Events\Actions\Authoring\ResolveAdvancedBuilderContextAction;
 use App\Features\Events\Actions\Authoring\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Features\Events\Actions\Authoring\SyncEventLocationsAction;
+use App\Features\Events\Actions\Changes\PublishEventChangeAnnouncementAction;
 use App\Features\Events\Actions\Authoring\SyncEventProjectionsAction;
 use App\Features\Events\Actions\Commerce\RecordTicketAffiliateCommissionsAction;
 use App\Features\Events\Actions\Commerce\ReverseTicketAffiliateCommissionAction;
@@ -26,6 +27,7 @@ use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Features\Events\Api\EventAccountOwnership;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventChangePublisher;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventDeletionScope;
 use App\Features\Events\Api\EventHomepageStats;
@@ -161,6 +163,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AdmissionEventCreator::class, CreateEventWithRegistrationAction::class);
         $this->app->bind(EventAccountOwnership::class, EventAccountOwnershipService::class);
         $this->app->bind(EventAuthoring::class, EventAuthoringService::class);
+        $this->app->bind(EventChangePublisher::class, PublishEventChangeAnnouncementAction::class);
         $this->app->bind(EventDeletion::class, CleanupEventAction::class);
         $this->app->bind(EventOccurrenceDeletionPreflight::class, GuardEventOccurrenceDeletionAction::class);
         $this->app->scoped(EventDeletionScope::class, ScopedEventDeletionScope::class);

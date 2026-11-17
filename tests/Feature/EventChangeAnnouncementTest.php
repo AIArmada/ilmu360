@@ -2,7 +2,6 @@
 
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Actions\Events\Changes\PublishEventChangeAnnouncementAction;
 use App\Enums\EventChangeSeverity;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
@@ -45,7 +44,7 @@ it('publishes cancellation announcements and notifies committed users only once'
     ]);
     $follower->follow($institution);
 
-    $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
+    $announcement = publishEventChangeForTest(
         event: $event,
         actor: $administrator,
         type: EventChangeType::Cancelled,
@@ -83,7 +82,7 @@ it('publishes repeat cancellation notices without reapplying occurrence transiti
     $administrator = eventChangeAdministrator();
     $event = eventChangeApprovedEvent(['title' => 'Kuliah Dibatalkan']);
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $event,
         actor: $administrator,
         type: EventChangeType::Cancelled,
@@ -99,7 +98,7 @@ it('publishes repeat cancellation notices without reapplying occurrence transiti
 
     $this->travelTo(now()->addMinute());
 
-    $repeatAnnouncement = app(PublishEventChangeAnnouncementAction::class)->handle(
+    $repeatAnnouncement = publishEventChangeForTest(
         event: $event,
         actor: $administrator,
         type: EventChangeType::Cancelled,
@@ -130,7 +129,7 @@ it('applies venue and space changes through the event location boundary', functi
     $venue = Venue::factory()->create();
     $space = Space::factory()->create();
 
-    $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
+    $announcement = publishEventChangeForTest(
         event: $event,
         actor: $administrator,
         type: EventChangeType::LocationChanged,
@@ -153,7 +152,7 @@ it('applies venue and space changes through the event location boundary', functi
 
     $newInstitution = Institution::factory()->create();
 
-    $institutionAnnouncement = app(PublishEventChangeAnnouncementAction::class)->handle(
+    $institutionAnnouncement = publishEventChangeForTest(
         event: $event,
         actor: $administrator,
         type: EventChangeType::LocationChanged,
@@ -181,7 +180,7 @@ it('rejects invalid venue and space selections in change announcements', functio
     $foreignSpace = Space::factory()->create(['venue_id' => $otherVenue->getKey()]);
     $existingLocationIds = $event->locations()->pluck('id')->all();
 
-    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+    expect(fn () => publishEventChangeForTest(
         event: $event,
         actor: $administrator,
         type: EventChangeType::LocationChanged,
@@ -192,7 +191,7 @@ it('rejects invalid venue and space selections in change announcements', functio
         ],
         notify: false,
     ))->toThrow(ValidationException::class)
-        ->and(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+        ->and(fn () => publishEventChangeForTest(
             event: $event,
             actor: $administrator,
             type: EventChangeType::LocationChanged,
@@ -203,7 +202,7 @@ it('rejects invalid venue and space selections in change announcements', functio
             ],
             notify: false,
         ))->toThrow(ValidationException::class)
-        ->and(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+        ->and(fn () => publishEventChangeForTest(
             event: $event,
             actor: $administrator,
             type: EventChangeType::LocationChanged,
@@ -247,7 +246,7 @@ it('blocks registration and check-in surfaces for unknown postponements', functi
         'closes_at' => now()->addDay(),
     ]);
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $event,
         actor: $administrator,
         type: EventChangeType::Postponed,
@@ -278,7 +277,7 @@ it('keeps replacement event URLs separate from the original source of truth noti
         'ends_at' => now()->addDays(8)->addHours(2),
     ]);
 
-    $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
+    $announcement = publishEventChangeForTest(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -309,7 +308,7 @@ it('keeps replacement CTAs after later notices and resolves replacement chains',
         'slug' => 'kuliah-pengganti-terkini',
     ]);
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -318,7 +317,7 @@ it('keeps replacement CTAs after later notices and resolves replacement chains',
         notify: false,
     );
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $firstReplacement,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -327,7 +326,7 @@ it('keeps replacement CTAs after later notices and resolves replacement chains',
         notify: false,
     );
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $original,
         actor: $administrator,
         type: EventChangeType::Other,
@@ -364,7 +363,7 @@ it('keeps the latest reachable replacement CTA when later chain targets become u
         'slug' => 'kuliah-ganti-tidak-boleh-capai',
     ]);
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -373,7 +372,7 @@ it('keeps the latest reachable replacement CTA when later chain targets become u
         notify: false,
     );
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $firstReplacement,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -403,7 +402,7 @@ it('hides replacement links when the linked replacement event is no longer publi
         'slug' => 'kuliah-pengganti-tidak-lagi-umum',
     ]);
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -427,7 +426,7 @@ it('rejects self replacement announcements', function () {
         'title' => 'Kuliah Tidak Boleh Ganti Diri',
     ]);
 
-    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+    expect(fn () => publishEventChangeForTest(
         event: $event,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -447,7 +446,7 @@ it('rejects replacement chains that would loop back to the original event', func
         'title' => 'Kuliah Pengganti Gelung',
     ]);
 
-    app(PublishEventChangeAnnouncementAction::class)->handle(
+    publishEventChangeForTest(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -456,7 +455,7 @@ it('rejects replacement chains that would loop back to the original event', func
         notify: false,
     );
 
-    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+    expect(fn () => publishEventChangeForTest(
         event: $replacement,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -479,7 +478,7 @@ it('rejects replacement events that are not publicly reachable', function () {
         'visibility' => 'private',
     ]);
 
-    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+    expect(fn () => publishEventChangeForTest(
         event: $original,
         actor: $administrator,
         type: EventChangeType::ReplacementLinked,
@@ -507,7 +506,7 @@ it('allows person members for listed event persons to publish change announcemen
     $person->members()->syncWithoutDetaching([$editor->id]);
     $person->members()->updateExistingPivot($editor->id, ['role' => 'admin']);
 
-    $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
+    $announcement = publishEventChangeForTest(
         event: $event,
         actor: $editor,
         type: EventChangeType::TopicChanged,
@@ -527,7 +526,7 @@ it('rejects unauthorized actors from publishing change announcements', function 
         'title' => 'Kuliah Tanpa Kebenaran',
     ]);
 
-    expect(fn () => app(PublishEventChangeAnnouncementAction::class)->handle(
+    expect(fn () => publishEventChangeForTest(
         event: $event,
         actor: $actor,
         type: EventChangeType::TopicChanged,
@@ -745,7 +744,7 @@ it('marks schedule changes into the next 24 hours as urgent', function () {
     ]);
 
     try {
-        $announcement = app(PublishEventChangeAnnouncementAction::class)->handle(
+        $announcement = publishEventChangeForTest(
             event: $event,
             actor: $administrator,
             type: EventChangeType::ScheduleChanged,

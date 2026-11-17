@@ -263,3 +263,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Move organization authorization, local timezone validation and admission-event composition into Organizations feature, relying only on Events/Api/AdmissionEventCreator for event writes.
 - [x] Expose OrganizationEventCreator with scalar actor/organization IDs and event ID result. Update dashboard Livewire directly; no old root class.
 - [ ] Verify organization authorization, ticket creation and owner scoping in CI.
+
+
+### Published event change cutover
+- [x] Move announcement mutation, authorization, severity and snapshots into Events/Actions/Changes behind scalar EventChangePublisher API; return announcement ID.
+- [x] Keep cancellations and participation reversals in the source DB transaction. Root notification adapter resolves announcement models only for delivery.
+- [x] Convert EventChangeAnnouncement and notification tests to the feature API with a test-only hydration helper; delete the runtime root action, no compatibility aliases.
+- [ ] Verify cancellation/authorization/replacement-chain/severity/notification assertions on CI.

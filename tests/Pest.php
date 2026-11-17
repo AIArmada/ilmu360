@@ -21,13 +21,17 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\AdminEventWriter;
+use App\Features\Events\Api\EventChangePublisher;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Models\EventChangeAnnouncement;
 use App\Models\User;
+use App\Enums\EventChangeSeverity;
+use App\Shared\Events\Enums\EventChangeType;
 use App\Services\PublicListingsCache;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -1062,4 +1066,36 @@ function saveAdminEventForTest(array $data, User $actor, ?Event $event = null): 
     $id = app(AdminEventWriter::class)->save($data, (string) $actor->getKey(), $event?->getKey());
 
     return Event::query()->with(['accessPolicy', 'references', 'series', 'classifications', 'keyPeople', 'languages', 'media', 'institution', 'venue', 'primaryLocation.venueSpace'])->findOrFail($id);
+}
+
+/**
+ * Test-only model hydration for the Events public announcement contract.
+ * Production code receives IDs and has no former root Action alias.
+ *
+ * @param array<string, mixed> $changes
+ */
+function publishEventChangeForTest(
+    Event $event,
+    User $actor,
+    EventChangeType|string $type,
+    ?string $publicMessage,
+    ?string $internalNote = null,
+    ?Event $replacementEvent = null,
+    array $changes = [],
+    bool $notify = true,
+    EventChangeSeverity|string|null $severity = null,
+): EventChangeAnnouncement {
+    $id = app(EventChangePublisher::class)->publish(
+        eventId: (string) $event->getKey(),
+        actorId: (string) $actor->getKey(),
+        type: $type,
+        publicMessage: $publicMessage,
+        internalNote: $internalNote,
+        replacementEventId: $replacementEvent !== null ? (string) $replacementEvent->getKey() : null,
+        changes: $changes,
+        notify: $notify,
+        severity: $severity instanceof EventChangeSeverity ? $severity->value : $severity,
+    );
+
+    return EventChangeAnnouncement::query()->with(['event', 'replacementEvent'])->findOrFail($id);
 }

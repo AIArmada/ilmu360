@@ -2,7 +2,6 @@
 
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Actions\Events\Changes\PublishEventChangeAnnouncementAction;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Institution;
@@ -114,7 +113,7 @@ it('sends update alerts to saved users but no reminders for them', function () {
     $administrator->assignRole('super_admin');
 
     try {
-        app(PublishEventChangeAnnouncementAction::class)->handle(
+        publishEventChangeForTest(
             event: $event,
             actor: $administrator,
             type: EventChangeType::ScheduleChanged,
