@@ -311,9 +311,6 @@ final readonly class PublishEventChangeAnnouncementAction implements EventChange
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function spaceName(Event $event): ?string
     {
         $location = $event->primaryLocation;
@@ -326,6 +323,7 @@ final readonly class PublishEventChangeAnnouncementAction implements EventChange
         return $snapshot !== '' ? $snapshot : $location->venueSpace?->name;
     }
 
+    /** @return array<string, mixed> */
     private function snapshot(Event $event): array
     {
         return [
