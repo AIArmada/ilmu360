@@ -51,6 +51,16 @@ def main():
         new.parent.mkdir(parents=True,exist_ok=True)
         new.write_text(contents)
         old.unlink()
+    # The unmoved framework-facing criteria factory used its sibling value
+    # without an import; it must now explicitly depend on the public type.
+    factory=ROOT/"app/Data/EventDiscoveryCriteriaFactory.php"
+    factory_text=factory.read_text()
+    namespace="namespace App\\Data;"
+    if namespace not in factory_text:raise RuntimeError("Discovery factory namespace changed")
+    factory.write_text(factory_text.replace(
+        namespace,namespace+"\n\nuse App\\Features\\Discovery\\Api\\Data\\EventDiscoveryCriteria;",1
+    ))
+
     for file in files():
         original=file.read_text(encoding="utf-8")
         updated=original
