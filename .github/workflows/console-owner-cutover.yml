@@ -1,0 +1,13 @@
+name: Console entrypoint ownership
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/console-owner-cutover.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/console-owner-cutover.py
