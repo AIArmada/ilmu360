@@ -243,3 +243,10 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 - [x] Institution/Person/Reference features remain the only entity writers; the public API returns a scalar ID. Transport relationship/media callbacks execute inside the same DB transaction and hydrate their models locally.
 - [x] Update Livewire/API and behavior tests and delete the former root action without compatibility aliases.
 - [ ] Verify transaction rollback, pending request model alias, race/uniqueness, and media callback parity in CI.
+
+
+### Advanced initial occurrence creation cutover
+- [x] Move initial event/occurrence shell, classifications, venue/space, scheduling, organizer, media, and access policy orchestration into Events/Actions/Authoring.
+- [x] Public AdvancedEventCreator accepts scalar actor/organizer/location identity and UTC date strings, returns ID; root advanced HTTP and admission action hydrate models as needed.
+- [x] Delete root CreateEventWithInitialOccurrenceAction; no aliases or forwarding classes.
+- [ ] Verify ownership scope, media, package schedule writes, and CI.

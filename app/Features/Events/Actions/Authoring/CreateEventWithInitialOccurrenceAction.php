@@ -1,26 +1,25 @@
 <?php
 
-namespace App\Actions\Events\Authoring;
+namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Organizations\Models\Organization;
+use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventScheduleInput;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\TimingMode;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Creates the event container and its first scheduled occurrence.
@@ -28,9 +27,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * Sessions are deliberately created beneath that occurrence; this action never
  * models an event as the child of another event.
  */
-class CreateEventWithInitialOccurrenceAction
+final class CreateEventWithInitialOccurrenceAction implements AdvancedEventCreator
 {
-    use AsAction;
 
     public function __construct(
         private readonly MediaCollectionSync $mediaSync,
@@ -42,19 +40,32 @@ class CreateEventWithInitialOccurrenceAction
     /**
      * @param  array<string, mixed>  $form
      */
-    public function handle(
-        User $user,
+    public function create(
+        string $actorId,
         array $form,
-        Carbon $startsAt,
-        Carbon $endsAt,
+        string $startsAt,
+        string $endsAt,
         string $timezone,
-        Institution|Person|null $primaryOrganizer,
+        ?string $primaryOrganizerType,
+        ?string $primaryOrganizerId,
         ?string $locationInstitutionId,
-        ?Organization $organization = null,
+        ?string $organizationId = null,
         ?string $locationVenueId = null,
-    ): Event {
-        return DB::transaction(function () use ($user, $form, $startsAt, $endsAt, $timezone, $primaryOrganizer, $locationInstitutionId, $locationVenueId, $organization): Event {
-            if ($organization instanceof Organization) {
+    ): string {
+        $user = MorphModelResolver::resolve('user')::query()->findOrFail($actorId);
+        $organization = $organizationId !== null
+            ? MorphModelResolver::resolve('organization')::query()->findOrFail($organizationId)
+            : null;
+        $primaryOrganizer = match ($primaryOrganizerType) {
+            null => null,
+            'institution', 'person' => MorphModelResolver::resolve($primaryOrganizerType)::query()->findOrFail($primaryOrganizerId),
+            default => throw new InvalidArgumentException("Unsupported organizer type [{$primaryOrganizerType}]."),
+        };
+        $startsAt = Carbon::parse($startsAt);
+        $endsAt = Carbon::parse($endsAt);
+
+        return DB::transaction(function () use ($user, $form, $startsAt, $endsAt, $timezone, $primaryOrganizer, $locationInstitutionId, $locationVenueId, $organization): string {
+            if ($organization !== null) {
                 $this->organizationAccess->authorizeCreateEvent(
                     (string) $user->getKey(),
                     (string) $organization->getKey(),
@@ -78,7 +89,7 @@ class CreateEventWithInitialOccurrenceAction
                 $this->spaceEligibilityResolver->validateInstitutionSelection($locationInstitutionId, $spaceIds);
             }
 
-            $personSlugSegments = $primaryOrganizer instanceof Person
+            $personSlugSegments = ($primaryOrganizer instanceof Model && $primaryOrganizer->getMorphClass() === 'person')
                 ? $this->authoring->personSlugSegmentsForPersonIds([(string) $primaryOrganizer->getKey()])
                 : [];
 
@@ -167,7 +178,11 @@ class CreateEventWithInitialOccurrenceAction
                     (bool) $form['registration_required'],
                 );
 
-                $event->setPrimaryOrganizer($primaryOrganizer);
+                $this->authoring->syncPrimaryOrganizer(
+                    (string) $event->getKey(),
+                    $primaryOrganizer?->getMorphClass(),
+                    $primaryOrganizer !== null ? (string) $primaryOrganizer->getKey() : null,
+                );
 
                 $this->authoring->syncEventKeyPeople(
                     (string) $event->getKey(),
@@ -192,7 +207,7 @@ class CreateEventWithInitialOccurrenceAction
                 }
             });
 
-            return $event;
+            return (string) $event->getKey();
         });
     }
 

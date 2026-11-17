@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use AIArmada\Organizations\Models\Organization;
-use App\Actions\Events\Authoring\CreateEventWithInitialOccurrenceAction;
+use App\Features\Events\Api\AdvancedEventCreator;
+use App\Models\Event;
 use App\Enums\RegistrationScope;
 use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Features\Organizations\Api\OrganizationAccess;
@@ -37,7 +38,7 @@ class AdvancedEventController extends FrontendController
     public function store(
         Request $request,
         AdvancedProgramPreparation $advancedProgramPreparation,
-        CreateEventWithInitialOccurrenceAction $createEventWithInitialOccurrenceAction,
+        AdvancedEventCreator $advancedEventCreator,
         OrganizationAccess $organizationAccess,
     ): JsonResponse {
         $user = $this->requireUser($request);
@@ -77,16 +78,18 @@ class AdvancedEventController extends FrontendController
             $organization = Organization::query()->findOrFail($organizationSummary->id);
         }
 
-        $event = $createEventWithInitialOccurrenceAction->handle(
-            $user,
-            $validated,
-            Carbon::parse($preparedSubmission['program_starts_at']),
-            Carbon::parse($preparedSubmission['program_ends_at']),
-            $preparedSubmission['timezone'],
-            $primaryOrganizer,
-            $preparedSubmission['location_institution_id'],
-            $organization,
+        $eventId = $advancedEventCreator->create(
+            actorId: (string) $user->getKey(),
+            form: $validated,
+            startsAt: $preparedSubmission['program_starts_at'],
+            endsAt: $preparedSubmission['program_ends_at'],
+            timezone: $preparedSubmission['timezone'],
+            primaryOrganizerType: $preparedSubmission['primary_organizer_type'],
+            primaryOrganizerId: $preparedSubmission['primary_organizer_id'],
+            locationInstitutionId: $preparedSubmission['location_institution_id'],
+            organizationId: $organization !== null ? (string) $organization->getKey() : null,
         );
+        $event = Event::query()->withoutOwnerScope()->findOrFail($eventId);
 
         return response()->json([
             'data' => [

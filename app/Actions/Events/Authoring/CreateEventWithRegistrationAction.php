@@ -9,6 +9,7 @@ use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
+use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Models\Event;
 use App\Models\Institution;
@@ -23,7 +24,7 @@ final readonly class CreateEventWithRegistrationAction
     use AsAction;
 
     public function __construct(
-        private CreateEventWithInitialOccurrenceAction $createEventWithInitialOccurrence,
+        private AdvancedEventCreator $createEventWithInitialOccurrence,
         private EventAuthoring $eventAuthoring,
     ) {}
 
@@ -65,17 +66,19 @@ final readonly class CreateEventWithRegistrationAction
             $seating,
             $locationVenueId,
         ): Event {
-            $event = $this->createEventWithInitialOccurrence->handle(
-                user: $user,
+            $eventId = $this->createEventWithInitialOccurrence->create(
+                actorId: (string) $user->getKey(),
                 form: $form,
-                startsAt: $startsAt,
-                endsAt: $endsAt,
+                startsAt: $startsAt->toIso8601String(),
+                endsAt: $endsAt->toIso8601String(),
                 timezone: $timezone,
-                primaryOrganizer: $primaryOrganizer,
+                primaryOrganizerType: $primaryOrganizer?->getMorphClass(),
+                primaryOrganizerId: $primaryOrganizer !== null ? (string) $primaryOrganizer->getKey() : null,
                 locationInstitutionId: $locationInstitutionId,
-                organization: $organization,
+                organizationId: $organization !== null ? (string) $organization->getKey() : null,
                 locationVenueId: $locationVenueId,
             );
+            $event = Event::query()->withoutOwnerScope()->findOrFail($eventId);
 
             return OwnerContext::withOwner($event->owner, function () use (
                 $event,
