@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\ShareTracking;
+namespace App\Platform\Routing;
 
 use App\Models\Event;
 use App\Models\Institution;

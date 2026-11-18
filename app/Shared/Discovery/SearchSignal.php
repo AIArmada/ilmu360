@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Discovery;
+namespace App\Shared\Discovery;
 
 final class SearchSignal
 {

@@ -10,7 +10,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Services\ShareTracking\ShareTrackingUrlService;
+use App\Platform\Routing\ShareTrackingUrlService;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\ShareTracking\ShareSubjectType;
 use InvalidArgumentException;

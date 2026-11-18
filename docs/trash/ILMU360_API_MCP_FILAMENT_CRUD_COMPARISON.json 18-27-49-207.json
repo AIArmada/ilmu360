@@ -33,8 +33,8 @@
       "app/Mcp/Servers/MemberServer.php",
       "app/Mcp/Tools/Admin/*",
       "app/Mcp/Tools/Member/*",
-      "app/Support/Mcp/McpWriteSchemaFormatter.php",
-      "app/Support/Mcp/McpFilePayloadNormalizer.php"
+      "app/Platform/Mcp/McpWriteSchemaFormatter.php",
+      "app/Platform/Mcp/McpFilePayloadNormalizer.php"
     ],
     "verification": [
       "tests/Feature/Api/Admin/AdminApiTest.php",

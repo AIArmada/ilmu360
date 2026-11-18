@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Platform\Admin\AdminValidateOnlyRemediationPlanner;
 use App\Support\Api\Admin\AdminResourceService;
-use App\Support\Api\Admin\AdminValidateOnlyRemediationPlanner;
 use App\Support\Api\Admin\AdminWriteValidationFeedback;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

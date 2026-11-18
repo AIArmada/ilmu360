@@ -1459,7 +1459,7 @@ class McpAuthenticatedUserResolver {
 **Not in Official Docs** | **Custom Implementation**
 
 ```php
-// app/Support/Mcp/McpFilePayloadNormalizer.php
+// app/Platform/Mcp/McpFilePayloadNormalizer.php
 class McpFilePayloadNormalizer {
     // Converts JSON base64 file descriptors to Laravel UploadedFile
     public function normalize(array $payload): UploadedFile {

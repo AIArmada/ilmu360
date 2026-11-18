@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Admin;
 
 use App\Models\User;
+use App\Platform\Admin\AdminValidateOnlyRemediationPlanner;
+use App\Platform\Mcp\McpFilePayloadNormalizer;
 use App\Support\Api\Admin\AdminResourceService;
-use App\Support\Api\Admin\AdminValidateOnlyRemediationPlanner;
 use App\Support\Api\Admin\AdminWriteValidationFeedback;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
-use App\Support\Mcp\McpFilePayloadNormalizer;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;

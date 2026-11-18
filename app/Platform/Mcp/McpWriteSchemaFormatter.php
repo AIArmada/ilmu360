@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Mcp;
+namespace App\Platform\Mcp;
 
 final class McpWriteSchemaFormatter
 {

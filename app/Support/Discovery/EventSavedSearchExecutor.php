@@ -11,6 +11,7 @@ use App\Models\Event;
 use App\Models\User;
 use App\Services\EventSearchService;
 use App\Shared\Discovery\SearchFilterKeys;
+use App\Shared\Discovery\SearchSignal;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;

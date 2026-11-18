@@ -54,8 +54,8 @@ If code changes here, update this Markdown file, the JSON companion, and `tests/
 - `app/Mcp/Servers/MemberServer.php`
 - `app/Mcp/Tools/Admin/*`
 - `app/Mcp/Tools/Member/*`
-- `app/Support/Mcp/McpWriteSchemaFormatter.php`
-- `app/Support/Mcp/McpFilePayloadNormalizer.php`
+- `app/Platform/Mcp/McpWriteSchemaFormatter.php`
+- `app/Platform/Mcp/McpFilePayloadNormalizer.php`
 
 ### Verification
 

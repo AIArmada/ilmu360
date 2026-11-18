@@ -8,7 +8,7 @@ use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
-use App\Services\ShareTracking\ShareTrackingUrlService;
+use App\Platform\Routing\ShareTrackingUrlService;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use App\Support\ShareTracking\ShareDestinationPolicy;
 use Illuminate\Http\RedirectResponse;

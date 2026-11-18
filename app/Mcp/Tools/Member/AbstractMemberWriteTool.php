@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Member;
 
 use App\Models\User;
+use App\Platform\Mcp\McpFilePayloadNormalizer;
 use App\Support\Api\Member\MemberResourceService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
-use App\Support\Mcp\McpFilePayloadNormalizer;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;

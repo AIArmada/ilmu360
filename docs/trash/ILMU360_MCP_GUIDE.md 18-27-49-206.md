@@ -614,8 +614,8 @@ Useful environment variables:
 - `app/Mcp/Servers/AdminServer.php` — admin MCP server definition.
 - `app/Mcp/Servers/MemberServer.php` — member MCP server definition.
 - `app/Mcp/Resources/Docs/*` — verified markdown MCP resources exposed by both servers.
-- `app/Support/Mcp/McpWriteSchemaFormatter.php` — sanitized MCP write-schema formatter.
-- `app/Support/Mcp/McpFilePayloadNormalizer.php` — JSON file descriptor staging and validation for MCP writes.
+- `app/Platform/Mcp/McpWriteSchemaFormatter.php` — sanitized MCP write-schema formatter.
+- `app/Platform/Mcp/McpFilePayloadNormalizer.php` — JSON file descriptor staging and validation for MCP writes.
 - `tests/Unit/McpGuideDocsTest.php` — MCP guide regression coverage for verified resource and CRUD claims.
 - `app/Platform/Mcp/Commands/IssueMcpToken.php` — command for issuing scoped tokens.
 - `app/Platform/Mcp/McpTokenManager.php` — token issuance, listing, and revocation logic.

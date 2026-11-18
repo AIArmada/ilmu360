@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Api\Admin;
+namespace App\Platform\Admin;
 
 use Illuminate\Support\Arr;
 

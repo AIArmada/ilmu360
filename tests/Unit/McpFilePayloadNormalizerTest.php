@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\Mcp\McpFilePayloadNormalizer;
+use App\Platform\Mcp\McpFilePayloadNormalizer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;

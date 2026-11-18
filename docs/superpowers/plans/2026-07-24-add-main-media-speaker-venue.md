@@ -666,7 +666,7 @@ git commit -m "feat: display main photo on Venue show page"
 ### Task 14: MCP Tools — `main` field payload normalization
 
 **Files:**
-- Modify: `app/Support/Mcp/McpFilePayloadNormalizer.php`
+- Modify: `app/Platform/Mcp/McpFilePayloadNormalizer.php`
 
 **Interfaces:**
 - Consumes: `main` field name
@@ -685,7 +685,7 @@ vendor/bin/pest --parallel --filter="Mcp.*speaker|Mcp.*venue"
 - [ ] **Step 3: Commit:**
 
 ```bash
-git add app/Support/Mcp/McpFilePayloadNormalizer.php
+git add app/Platform/Mcp/McpFilePayloadNormalizer.php
 git commit -m "feat: add main to MCP file payload normalizer"
 ```
 
