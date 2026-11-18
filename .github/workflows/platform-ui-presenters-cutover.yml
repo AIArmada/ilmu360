@@ -1,0 +1,13 @@
+name: One-time UI presenter ownership
+on:
+  push:
+    branches: [refactor]
+    paths: [.github/workflows/platform-ui-presenters-cutover.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 scripts/platform-ui-presenters-cutover.py
