@@ -3,9 +3,9 @@
 namespace App\Platform\Api\Frontend\EntryPoints\Http;
 
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Platform\Api\Frontend\CatalogDispatcher;
 use App\Platform\Http\FrontendController;
 use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Platform\Api\Frontend\FrontendCatalogService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 class CatalogController extends FrontendController
 {
     public function __construct(
-        private readonly FrontendCatalogService $catalogs,
+        private readonly CatalogDispatcher $catalogs,
     ) {}
 
     #[Endpoint(

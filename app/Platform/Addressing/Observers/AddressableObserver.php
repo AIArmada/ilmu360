@@ -11,12 +11,8 @@ use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\Places\Models\Venue;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
 
 class AddressableObserver implements ShouldHandleEventsAfterCommit
 {
@@ -62,37 +58,44 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
 
         $subject = $addressable->addressable;
 
-        if ($subject instanceof Institution) {
-            $this->institutionWorkflow->syncSlugsForName($subject->name);
-            $this->syncSearchableModel($subject);
-            $this->syncSearchableEvents($subject->events()->get(['events.*']));
-            $this->publicListingsCache->bustMajlisListing();
-
+        if (! $subject instanceof Model) {
             return;
         }
 
-        if ($subject instanceof Person) {
-            if ($deletedAddress instanceof Address) {
-                $this->personWorkflow->syncSlugAfterAddressDeleted((string) $subject->getKey(), [
-                    'city' => $deletedAddress->city,
-                    'state' => $deletedAddress->state,
-                    'country_id' => $deletedAddress->country_id,
-                    'country_code' => $deletedAddress->country_code,
-                ]);
-            } else {
-                $this->personWorkflow->syncSlugsForName($subject->name);
-            }
-            $this->eventAuthoring->syncEventSlugsForPersonName($subject->name);
-            $this->syncSearchableModel($subject);
-            $this->publicListingsCache->bustMajlisListing();
+        $id = (string) $subject->getKey();
+        $name = (string) ($subject->name ?? '');
 
-            return;
-        }
+        switch ($subject->getMorphClass()) {
+            case 'institution':
+                $this->institutionWorkflow->syncSlugsForName($name);
+                $this->institutionWorkflow->syncSearchProjection($id);
+                $this->eventAuthoring->syncSearchableEventsByIds($subject->events()->pluck('id')->all());
+                $this->publicListingsCache->bustMajlisListing();
 
-        if ($subject instanceof Venue) {
-            $this->venueWorkflow->syncSlugsForName($subject->name);
-            $this->syncSearchableEvents($subject->events()->get(['events.*']));
-            $this->publicListingsCache->bustMajlisListing();
+                break;
+            case 'person':
+                if ($deletedAddress instanceof Address) {
+                    $this->personWorkflow->syncSlugAfterAddressDeleted($id, [
+                        'city' => $deletedAddress->city,
+                        'state' => $deletedAddress->state,
+                        'country_id' => $deletedAddress->country_id,
+                        'country_code' => $deletedAddress->country_code,
+                    ]);
+                } else {
+                    $this->personWorkflow->syncSlugsForName($name);
+                }
+
+                $this->eventAuthoring->syncEventSlugsForPersonName($name);
+                $this->personWorkflow->syncSearchProjection($id);
+                $this->publicListingsCache->bustMajlisListing();
+
+                break;
+            case 'venue':
+                $this->venueWorkflow->syncSlugsForName($name);
+                $this->eventAuthoring->syncSearchableEventsByIds($subject->events()->pluck('id')->all());
+                $this->publicListingsCache->bustMajlisListing();
+
+                break;
         }
     }
 
@@ -114,36 +117,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         }
     }
 
-    private function syncSearchableModel(Institution|Person $model): void
-    {
-        if ($model->shouldBeSearchable()) {
-            $model->searchable();
-
-            return;
-        }
-
-        $model->unsearchable();
-    }
-
     /**
      * @param  EloquentCollection<int, Event>  $events
      */
-    private function syncSearchableEvents(EloquentCollection $events): void
-    {
-        $searchableEvents = $events
-            ->filter(fn (Event $event): bool => $event->shouldBeSearchable())
-            ->values();
-
-        if ($searchableEvents->isNotEmpty()) {
-            $searchableEvents->searchable();
-        }
-
-        $unsearchableEvents = $events
-            ->reject(fn (Event $event): bool => $event->shouldBeSearchable())
-            ->values();
-
-        if ($unsearchableEvents->isNotEmpty()) {
-            $unsearchableEvents->unsearchable();
-        }
-    }
 }

@@ -2,16 +2,15 @@
 
 namespace App\Platform\Moderation\Models;
 
-use Database\Factories\ModerationReviewFactory;
-
 use AIArmada\Moderation\Models\ModerationAction;
+use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
+use Database\Factories\ModerationReviewFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use OwenIt\Auditing\Contracts\Auditable;
-use App\Features\Events\Models\Event;
-use App\Models\User;
 
 /**
  * App wrapper around package moderation actions used by moderation transitions
@@ -47,15 +46,15 @@ class ModerationReview extends ModerationAction implements Auditable
     {
         return $query
             ->where('actionable_id', $eventId)
-            ->where('actionable_type', (new Event)->getMorphClass());
+            ->where('actionable_type', (new (Relation::getMorphedModel('event')))->getMorphClass());
     }
 
     /**
-     * @return BelongsTo<Event, $this>
+     * @return BelongsTo<\Illuminate\Database\Eloquent\Model, $this>
      */
     public function event(): BelongsTo
     {
-        return $this->belongsTo(Event::class, 'actionable_id');
+        return $this->belongsTo((string) Relation::getMorphedModel('event'), 'actionable_id');
     }
 
     /**
@@ -70,5 +69,4 @@ class ModerationReview extends ModerationAction implements Auditable
     {
         return ModerationReviewFactory::new();
     }
-
 }

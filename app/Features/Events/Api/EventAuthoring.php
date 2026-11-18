@@ -127,6 +127,9 @@ interface EventAuthoring
 
     public function syncEventSlugsForPersonId(string $personId): bool;
 
+    /** @param list<string> $eventIds */
+    public function syncSearchableEventsByIds(array $eventIds): void;
+
     /**
      * @param  list<mixed>  $personIds
      * @return list<string>

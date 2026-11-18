@@ -56,6 +56,26 @@ try {
     $catalog = FeatureCatalog::load($root, $config['root_store_writers']);
     $owners = $catalog['owners'];
     $features = $catalog['features'];
+    $readAdapters = $config['read_adapters'] ?? [];
+    if (! is_array($readAdapters)) {
+        throw new RuntimeException('read_adapters must be a map of exact file paths.');
+    }
+    $readAdapterUsage = [];
+    foreach ($readAdapters as $adapterFile => $adapter) {
+        if (! is_string($adapterFile) || strpbrk($adapterFile, '*?') !== false
+            || ! is_array($adapter)
+            || ! is_string($adapter['owner'] ?? null) || trim($adapter['owner']) === ''
+            || ! is_string($adapter['reason'] ?? null) || trim($adapter['reason']) === ''
+            || ! is_string($adapter['removal_task'] ?? null) || trim($adapter['removal_task']) === ''
+            || ! is_string($adapter['expires'] ?? null)) {
+            throw new RuntimeException('Read adapters require exact file, owner, reason, removal_task and expires.');
+        }
+        $expiry = DateTimeImmutable::createFromFormat('!Y-m-d', $adapter['expires']);
+        if (! $expiry || $expiry->format('Y-m-d') !== $adapter['expires'] || $adapter['expires'] < gmdate('Y-m-d')) {
+            throw new RuntimeException('Invalid/expired read adapter: '.$adapterFile);
+        }
+        $readAdapterUsage[$adapterFile] = false;
+    }
 
     $paths = [];
     foreach (['app', 'routes', 'bootstrap', 'config'] as $directory) {
@@ -290,17 +310,15 @@ try {
             }
         }
 
-        $checkDependency = static function (string $target, int $line) use ($sourceFeature, $platform, $shared, $public, $models, $compositionRoot, $relative, $featureOf, $report, $features, $owners, $modelTables): void {
+        $checkDependency = static function (string $target, int $line) use ($sourceFeature, $platform, $shared, $public, $compositionRoot, $relative, $featureOf, $report, $features, $owners, $modelTables): void {
             $target = ltrim($target, '\\');
             $targetFeature = $featureOf($target);
             if ($targetFeature && ! isset($features[$targetFeature])) {
                 $report('missing-feature', $relative, $line, $target, 'Referenced feature has no discovered manifest.');
             }
-            $platformModelSeam = $platform && str_contains($target, '\\Models\\');
-
-            if (($platform || $shared) && $targetFeature && ! $platformModelSeam) {
+            if (($platform || $shared) && $targetFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
                 $report('platform-direction', $relative, $line, $target, 'Platform/Shared must not depend on concrete features; use a generic contract.');
-            } elseif (! $compositionRoot && ! str_contains($target, '\\Models\\') && $targetFeature && ($target !== "App\\Features\\{$targetFeature}\\FeatureServiceProvider" || ! in_array($relative, ['bootstrap/providers.php', 'config/app.php'], true)) && $targetFeature !== $sourceFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
+            } elseif (! $compositionRoot && ! ($sourceFeature && str_contains($target, '\\Models\\')) && $targetFeature && ($target !== "App\\Features\\{$targetFeature}\\FeatureServiceProvider" || ! in_array($relative, ['bootstrap/providers.php', 'config/app.php'], true)) && $targetFeature !== $sourceFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
                 $report('feature-private', $relative, $line, $target, "Call {$targetFeature} through App\\Features\\{$targetFeature}\\Api; private types cannot cross its boundary.");
             }
             if ($public && str_starts_with($target, 'App\\') && ! str_contains($target, '\\Api\\') && ! str_starts_with($target, 'App\\Shared\\')) {
@@ -338,6 +356,30 @@ try {
             }
             if ($node instanceof Node\Scalar\String_ && str_starts_with(ltrim($node->value, '\\'), 'App\\')) {
                 $checkDependency($node->value, $node->getStartLine());
+            }
+            if ($node instanceof Node\Expr\StaticCall && $node->class instanceof Node\Name) {
+                $resolved = $node->class->getAttribute('resolvedName');
+                $calledClass = ltrim($resolved instanceof Node\Name ? $resolved->toString() : $node->class->toString(), '\\');
+                $calledFeature = $featureOf($calledClass);
+                if ($sourceFeature && $calledFeature && $calledFeature !== $sourceFeature && str_contains($calledClass, '\\Models\\')) {
+                    if (isset($readAdapterUsage[$relative])) {
+                        $readAdapterUsage[$relative] = true;
+                    } else {
+                        $report('foreign-model-domain-operation', $relative, $node->getStartLine(), $calledClass, 'Cross-owner Eloquent static queries are not allowed; ask the owning feature Api for the read.');
+                    }
+                }
+            }
+            if ($node instanceof Node\Expr\New_ && $node->class instanceof Node\Name) {
+                $resolved = $node->class->getAttribute('resolvedName');
+                $constructed = ltrim($resolved instanceof Node\Name ? $resolved->toString() : $node->class->toString(), '\\');
+                $constructedFeature = $featureOf($constructed);
+                if ($sourceFeature && $constructedFeature && $constructedFeature !== $sourceFeature && str_contains($constructed, '\\Models\\')) {
+                    if (isset($readAdapterUsage[$relative])) {
+                        $readAdapterUsage[$relative] = true;
+                    } else {
+                        $report('foreign-model-domain-operation', $relative, $node->getStartLine(), $constructed, 'Cross-owner Eloquent models cannot be constructed directly; use the owning feature Action.');
+                    }
+                }
             }
             if ($models && $node instanceof Node\Stmt\PropertyProperty && $node->name->toString() === 'table'
                 && $node->default instanceof Node\Scalar\String_ && ($owners['table:'.$node->default->value] ?? null) !== $sourceFeature) {
@@ -1882,6 +1924,11 @@ try {
 
     if ($staleWriteExceptions !== []) {
         throw new RuntimeException(implode("\n", $staleWriteExceptions));
+    }
+    foreach ($readAdapterUsage as $adapterFile => $used) {
+        if (! $used) {
+            throw new RuntimeException('Remove stale read adapter: '.$adapterFile);
+        }
     }
 } catch (Throwable $error) {
     fwrite(STDERR, 'Architecture configuration/parser error: '.$error->getMessage()."\n");

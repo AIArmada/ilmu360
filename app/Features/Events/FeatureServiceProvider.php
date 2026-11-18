@@ -4,19 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events;
 
-use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
-use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
-use App\Features\Events\EntryPoints\Filament\Resources\Series\SeriesResource;
-use App\Features\Events\EntryPoints\Filament\Widgets\EventInventoryOverview;
-use App\Features\Events\EntryPoints\Filament\Widgets\PendingApprovalEventsWidget;
-use App\Platform\Admin\FilamentPageRegistry;
-use App\Platform\Admin\FilamentWidgetRegistry;
-use App\Platform\Admin\FilamentResourceRegistry;
-
 use AIArmada\Checkout\Contracts\StepContributor;
-use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
-
 use App\Features\Events\Actions\Authoring\CreateEventWithInitialOccurrenceAction;
 use App\Features\Events\Actions\Authoring\CreateEventWithRegistrationAction;
 use App\Features\Events\Actions\Authoring\PrepareAdvancedParentProgramSubmissionAction;
@@ -68,11 +56,21 @@ use App\Features\Events\Api\ProductSignalsInsights;
 use App\Features\Events\Api\RegistrationExportAccess;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Api\ShareCardWarmScheduler;
+use App\Features\Events\Api\TaxonomyCatalog;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
+use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
+use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
+use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\SeriesResource;
+use App\Features\Events\EntryPoints\Filament\Stats\PendingEventsStat;
 use App\Features\Events\EntryPoints\Filament\TermDomainMappingExtension;
+use App\Features\Events\EntryPoints\Filament\Widgets\EventInventoryOverview;
+use App\Features\Events\EntryPoints\Filament\Widgets\PendingApprovalEventsWidget;
 use App\Features\Events\EntryPoints\Jobs\DispatchEventReminderNotifications;
 use App\Features\Events\EntryPoints\Jobs\EscalatePendingEvents;
+use App\Features\Events\EntryPoints\Sitemap\EventSitemapUrls;
 use App\Features\Events\Persistence\EventHomepageStatsCacheStore;
 use App\Features\Events\Persistence\EventInstitutionQuickAddMapsProofCacheStore;
 use App\Features\Events\Persistence\EventInvolvementFingerprintStore;
@@ -90,10 +88,14 @@ use App\Features\Events\Services\EventMediaExtractionService;
 use App\Features\Events\Services\EventMediaService;
 use App\Features\Events\Services\EventReportSubjectResolver;
 use App\Features\Events\Services\EventSubmissionsService;
+use App\Features\Events\Services\PackageTaxonomyCatalog;
 use App\Features\Events\Services\ProductSignalsInsightsService;
 use App\Features\Events\Services\SeriesAuthoringService;
 use App\Features\Events\Support\EventModel;
 use App\Features\Events\Support\ScopedEventDeletionScope;
+use App\Platform\Admin\FilamentPageRegistry;
+use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Admin\FilamentWidgetRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -169,6 +171,11 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(TaxonomyCatalog::class, PackageTaxonomyCatalog::class);
+        $this->app->tag([PendingEventsStat::class], 'admin.stats');
+
+        $this->app->tag([EventSitemapUrls::class], 'sitemap.urls');
+
         if (interface_exists(StepContributor::class)) {
             $this->app->tag(TicketCheckoutStepContributor::class, 'checkout.steps');
         }

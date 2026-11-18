@@ -44,14 +44,15 @@ it('rejects a stale Fortify framework adapter allowlist entry', function (): voi
         ->and(array_column($findings, 'target'))->toBe(['app/Platform/Auth/Fortify/RecordSuccessfulLogin.php']);
 });
 
-it('rejects references to another feature private model', function (string $source): void {
+it('allows foreign feature model type and relation references', function (string $source): void {
     $this->project->write('app/Features/Billing/Actions/Charge.php', $source);
 
     $result = $this->project->check();
-    expect($result)->toMatchArray(['exitCode' => 1, 'stderr' => '']);
-    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
-    expect(array_column($findings, 'rule'))->toContain('feature-private')
-        ->and(array_column($findings, 'target'))->toContain('App\\Features\\Orders\\Models\\Order');
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'] ?? [];
+
+    expect($result['stderr'])->toBe('')
+        ->and(array_column($findings, 'rule'))->not->toContain('feature-private')
+        ->and(array_column($findings, 'rule'))->not->toContain('foreign-model-domain-operation');
 })->with([
     'aliased import' => [<<<'PHP'
 <?php
@@ -88,6 +89,62 @@ class Charge
 }
 PHP],
 ]);
+
+it('rejects cross-owner Eloquent model queries and construction', function (string $source): void {
+    $this->project->write('app/Features/Billing/Actions/Charge.php', $source);
+
+    $result = $this->project->check();
+    expect($result)->toMatchArray(['exitCode' => 1, 'stderr' => '']);
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+    expect(array_column($findings, 'rule'))->toContain('foreign-model-domain-operation')
+        ->and(array_column($findings, 'target'))->toContain('App\\Features\\Orders\\Models\\Order');
+})->with([
+    'static query' => [<<<'PHP'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
+class Charge
+{
+    public function handle(): void { Order::query()->first(); }
+}
+PHP],
+    'static create' => [<<<'PHP'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
+class Charge
+{
+    public function handle(): void { Order::create(['id' => 'x']); }
+}
+PHP],
+    'direct construction' => [<<<'PHP'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
+class Charge
+{
+    public function handle(): Order { return new Order; }
+}
+PHP],
+]);
+
+it('rejects platform imports of feature models', function (): void {
+    $this->project->write('app/Platform/Admin/Widget.php', <<<'PHP'
+<?php
+namespace App\Platform\Admin;
+use App\Features\Orders\Models\Order;
+class Widget
+{
+    public function handle(Order $order): void {}
+}
+PHP);
+
+    $result = $this->project->check();
+    expect($result)->toMatchArray(['exitCode' => 1, 'stderr' => '']);
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+    expect(array_column($findings, 'rule'))->toContain('platform-direction')
+        ->and(array_column($findings, 'target'))->toContain('App\\Features\\Orders\\Models\\Order');
+});
 
 it('allows a feature to use an app model whose table it owns', function (): void {
     $this->project->write('app/Models/Order.php', <<<'PHP'
@@ -153,7 +210,7 @@ PHP);
             'rule' => 'architecture.foreignWrite',
             'file' => 'app/Models/Space.php',
             'target' => 'table:venue_spaces',
-            'model' => App\Features\Places\Models\Space::class,
+            'model' => App\Models\Space::class,
             'reason' => 'The exact root model preserves its owner-scoped delete lifecycle.',
             'owner' => 'Places',
             'expires' => '2999-12-31',
@@ -162,7 +219,7 @@ PHP);
             'rule' => 'architecture.foreignWrite',
             'file' => 'app/Models/Venue.php',
             'target' => 'table:venues',
-            'model' => App\Features\Places\Models\Venue::class,
+            'model' => App\Models\Venue::class,
             'reason' => 'The exact root model preserves its owner-scoped delete lifecycle.',
             'owner' => 'Places',
             'expires' => '2999-12-31',
@@ -637,9 +694,10 @@ PHP);
 });
 
 it('consumes unknown package-model exceptions from the actual trait source only', function (): void {
-    $this->project->write('app/Models/Concerns/HasUserRestoration.php', <<<'PHP'
+    $this->project->feature('Identity');
+    $this->project->write('app/Features/Identity/Support/HasUserRestoration.php', <<<'PHP'
 <?php
-namespace App\Models\Concerns;
+namespace App\Features\Identity\Support;
 trait HasUserRestoration
 {
     protected function deleteAuthenticationState(): void
@@ -665,7 +723,7 @@ PHP);
 
     $exception = [
         'rule' => 'architecture.writeLocation',
-        'file' => 'app/Models/Concerns/HasUserRestoration.php',
+        'file' => 'app/Features/Identity/Support/HasUserRestoration.php',
         'target' => 'table:unknown',
         'model' => Laravel\Sanctum\PersonalAccessToken::class,
         'model_provider' => 'sanctum',
@@ -805,7 +863,7 @@ PHP);
 it('rejects Sanctum model metadata on an unrelated table target', function (): void {
     $this->project->configure([[
         'rule' => 'architecture.writeLocation',
-        'file' => 'app/Models/Concerns/HasUserRestoration.php',
+        'file' => 'app/Features/Identity/Support/HasUserRestoration.php',
         'target' => 'table:users',
         'model' => Laravel\Sanctum\PersonalAccessToken::class,
         'model_provider' => 'sanctum',

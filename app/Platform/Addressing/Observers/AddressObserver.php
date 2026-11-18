@@ -12,12 +12,8 @@ use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\Places\Models\Venue;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
 
 class AddressObserver implements ShouldHandleEventsAfterCommit
 {
@@ -68,28 +64,34 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
         foreach ($address->addressableLinks as $link) {
             $addressable = $link->addressable;
 
-            if ($addressable instanceof Institution) {
-                $this->institutionWorkflow->syncSlugsForName($addressable->name);
-                $this->syncSearchableModel($addressable);
-                $this->syncSearchableEvents($addressable->events()->get(['events.*']));
-                $this->publicListingsCache->bustMajlisListing();
-
+            if (! $addressable instanceof Model) {
                 continue;
             }
 
-            if ($addressable instanceof Person) {
-                $this->personWorkflow->syncSlugsForName($addressable->name);
-                $this->eventAuthoring->syncEventSlugsForPersonName($addressable->name);
-                $this->syncSearchableModel($addressable);
-                $this->publicListingsCache->bustMajlisListing();
+            $id = (string) $addressable->getKey();
+            $name = (string) ($addressable->name ?? '');
 
-                continue;
-            }
+            switch ($addressable->getMorphClass()) {
+                case 'institution':
+                    $this->institutionWorkflow->syncSlugsForName($name);
+                    $this->institutionWorkflow->syncSearchProjection($id);
+                    $this->eventAuthoring->syncSearchableEventsByIds($addressable->events()->pluck('id')->all());
+                    $this->publicListingsCache->bustMajlisListing();
 
-            if ($addressable instanceof Venue) {
-                $this->venueWorkflow->syncSlugsForName($addressable->name);
-                $this->syncSearchableEvents($addressable->events()->get(['events.*']));
-                $this->publicListingsCache->bustMajlisListing();
+                    break;
+                case 'person':
+                    $this->personWorkflow->syncSlugsForName($name);
+                    $this->eventAuthoring->syncEventSlugsForPersonName($name);
+                    $this->personWorkflow->syncSearchProjection($id);
+                    $this->publicListingsCache->bustMajlisListing();
+
+                    break;
+                case 'venue':
+                    $this->venueWorkflow->syncSlugsForName($name);
+                    $this->eventAuthoring->syncSearchableEventsByIds($addressable->events()->pluck('id')->all());
+                    $this->publicListingsCache->bustMajlisListing();
+
+                    break;
             }
         }
     }
@@ -112,36 +114,7 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
         }
     }
 
-    private function syncSearchableModel(Institution|Person $model): void
-    {
-        if ($model->shouldBeSearchable()) {
-            $model->searchable();
-
-            return;
-        }
-
-        $model->unsearchable();
-    }
-
     /**
      * @param  EloquentCollection<int, Event>  $events
      */
-    private function syncSearchableEvents(EloquentCollection $events): void
-    {
-        $searchableEvents = $events
-            ->filter(fn (Event $event): bool => $event->shouldBeSearchable())
-            ->values();
-
-        if ($searchableEvents->isNotEmpty()) {
-            $searchableEvents->searchable();
-        }
-
-        $unsearchableEvents = $events
-            ->reject(fn (Event $event): bool => $event->shouldBeSearchable())
-            ->values();
-
-        if ($unsearchableEvents->isNotEmpty()) {
-            $unsearchableEvents->unsearchable();
-        }
-    }
 }

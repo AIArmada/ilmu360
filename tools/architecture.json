@@ -736,14 +736,6 @@
       "expires": "2027-12-31"
     },
     {
-      "rule": "api-leak",
-      "file": "app/Features/Discovery/Api/EventDiscoveryAdapter.php",
-      "target": "App\\Features\\Events\\Models\\Event",
-      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
       "rule": "api-shape",
       "file": "app/Features/Discovery/Api/EventDiscoveryAdapter.php",
       "target": "Illuminate\\Contracts\\Pagination\\LengthAwarePaginator",
@@ -1912,14 +1904,6 @@
       "expires": "2027-12-31"
     },
     {
-      "rule": "api-leak",
-      "file": "app/Features/ShareTracking/Api/ShareTrackingContract.php",
-      "target": "App\\Models\\User",
-      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
-      "owner": "Platform",
-      "expires": "2027-12-31"
-    },
-    {
       "rule": "api-shape",
       "file": "app/Features/ShareTracking/Api/ShareTrackingContract.php",
       "target": "Illuminate\\Database\\Eloquent\\Model",
@@ -1937,226 +1921,10 @@
     },
     {
       "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressAreaObserver.php",
-      "target": "App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Discovery",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressAreaObserver.php",
-      "target": "App\\Features\\Institutions\\Api\\InstitutionListingCacheVersion",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressAreaObserver.php",
-      "target": "App\\Features\\Persons\\Api\\PersonListingCacheVersion",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressCountryObserver.php",
-      "target": "App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Discovery",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressCountryObserver.php",
-      "target": "App\\Features\\Institutions\\Api\\InstitutionListingCacheVersion",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressCountryObserver.php",
-      "target": "App\\Features\\Persons\\Api\\PersonListingCacheVersion",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
-      "target": "App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Discovery",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
-      "target": "App\\Features\\Events\\Api\\EventAuthoring",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
-      "target": "App\\Features\\Institutions\\Api\\InstitutionListingCacheVersion",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
-      "target": "App\\Features\\Institutions\\Api\\InstitutionWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
-      "target": "App\\Features\\Persons\\Api\\PersonListingCacheVersion",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
-      "target": "App\\Features\\Persons\\Api\\PersonWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
-      "target": "App\\Features\\Places\\Api\\VenueWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Places",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
-      "target": "App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Discovery",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
-      "target": "App\\Features\\Events\\Api\\EventAuthoring",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
-      "target": "App\\Features\\Institutions\\Api\\InstitutionListingCacheVersion",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
-      "target": "App\\Features\\Institutions\\Api\\InstitutionWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
-      "target": "App\\Features\\Persons\\Api\\PersonListingCacheVersion",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
-      "target": "App\\Features\\Persons\\Api\\PersonWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
-      "target": "App\\Features\\Places\\Api\\VenueWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Places",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
       "file": "app/Platform/Admin/EntryPoints/Filament/Pages/AhliDashboard.php",
       "target": "App\\Features\\Events\\EntryPoints\\Filament\\Widgets\\PendingApprovalEventsWidget",
       "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
       "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
-      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Pages\\ModerationQueue",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
-      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
-      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
-      "target": "App\\Features\\References\\EntryPoints\\Filament\\Resources\\References\\ReferenceResource",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "References",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
-      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Venues\\VenueResource",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Places",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
-      "target": "App\\Features\\Membership\\Api\\MembershipApplications",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Membership",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
-      "target": "App\\Features\\Reports\\Api\\ReportTriageContract",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Reports",
       "expires": "2027-12-31"
     },
     {
@@ -2203,110 +1971,6 @@
       "rule": "platform-direction",
       "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
       "target": "App\\Features\\Reports\\EntryPoints\\Admin\\AdminReportTriageService",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Reports",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
-      "target": "App\\Features\\Membership\\Api\\MembershipApplicationDetail",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Membership",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\DonationChannels\\Api\\DonationChannelWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "DonationChannels",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Events\\Api\\AdminEventWriter",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Events\\Api\\EventAuthoring",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Events\\Api\\RegistrationScope",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Events\\Api\\SeriesAuthoring",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Inspirations\\Api\\InspirationAdminContract",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Inspirations",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Institutions\\Api\\InstitutionWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Persons\\Api\\PersonWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Places\\Api\\SpaceWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Places",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Places\\Api\\VenueWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Places",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\References\\Api\\ReferenceWorkflow",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "References",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Reports\\Api\\ReportAdminContract",
       "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
       "owner": "Reports",
       "expires": "2027-12-31"
@@ -2437,118 +2101,6 @@
       "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
       "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
       "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/EntryPoints/Http/CatalogController.php",
-      "target": "App\\Features\\Membership\\Api\\MemberSubjectType",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Membership",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/EntryPoints/Http/ManifestController.php",
-      "target": "App\\Features\\Membership\\Api\\MemberSubjectType",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Membership",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
-      "target": "App\\Features\\Membership\\Api\\MemberSubjectType",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Membership",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
-      "target": "App\\Features\\Events\\Api\\AdvancedBuilderContext",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
-      "target": "App\\Features\\Places\\Api\\SpaceEligibility",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Places",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
-      "target": "App\\Features\\References\\EntryPoints\\Filament\\Forms\\ReferenceAuthorFormSchema",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "References",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
-      "target": "App\\Features\\Contributions\\Services\\EntitySubmissionAccess",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Contributions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
-      "target": "App\\Features\\Institutions\\Services\\InstitutionSearchService",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
-      "target": "App\\Features\\Persons\\Services\\PersonSearchService",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
-      "target": "App\\Features\\Membership\\Api\\MemberSubjectType",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Membership",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
-      "target": "App\\Features\\Events\\Api\\RegistrationScope",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
-      "target": "App\\Features\\GitHubIssues\\Api\\GitHubIssueReportContract",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "GitHubIssues",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
-      "target": "App\\Features\\GitHubIssues\\Api\\GitHubIssueReporterContract",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "GitHubIssues",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
-      "target": "App\\Features\\Identity\\Api\\AccountPreferences",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Identity",
       "expires": "2027-12-31"
     },
     {
@@ -2733,14 +2285,6 @@
       "target": "App\\Features\\Mcp\\Services\\MemberVerifiedDocumentationCatalog",
       "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
       "owner": "Mcp",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Language/EntryPoints/Http/LocaleController.php",
-      "target": "App\\Features\\Communications\\Api\\AccountNotificationPreferences",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Communications",
       "expires": "2027-12-31"
     },
     {
@@ -3047,5 +2591,439 @@
       "owner": "Contributions",
       "expires": "2027-12-31"
     }
-  ]
+  ],
+  "read_adapters": {
+    "app/Features/Contributions/EntryPoints/Filament/Forms/EventContributionFormSchema.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person, Series, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person, Series, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/EntryPoints/Filament/Forms/PersonContributionFormSchema.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Institution; no owner writes occur here.",
+      "removal_task": "Replace direct Institution Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/EntryPoints/Http/ContributionController.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/EntryPoints/Livewire/Pages/Index.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading EventSubmission, Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct EventSubmission, Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/EntryPoints/Livewire/Pages/SubmitInstitution.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Institution; no owner writes occur here.",
+      "removal_task": "Replace direct Institution Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/EntryPoints/Livewire/Pages/SubmitPerson.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Person; no owner writes occur here.",
+      "removal_task": "Replace direct Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/EntryPoints/Livewire/Pages/SubmitReference.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Reference; no owner writes occur here.",
+      "removal_task": "Replace direct Reference Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/Services/ContributionEntityStateService.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person, Reference; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person, Reference Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/Services/EntitySubmissionAccess.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Contributions/Services/SubmissionContextResolver.php": {
+      "owner": "Contributions",
+      "reason": "Temporary read-only ORM adapter reading Event, Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Event, Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Discovery/EntryPoints/Http/SearchController.php": {
+      "owner": "Discovery",
+      "reason": "Temporary read-only ORM adapter reading Event, EventKeyPerson, Institution, Person, Reference, Series, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Event, EventKeyPerson, Institution, Person, Reference, Series, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Discovery/Queries/DatabaseSearchFilterLabels.php": {
+      "owner": "Discovery",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person, Reference, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person, Reference, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Discovery/Services/EventSearchService.php": {
+      "owner": "Discovery",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Discovery/Services/PostgresEventDiscovery.php": {
+      "owner": "Discovery",
+      "reason": "Temporary read-only ORM adapter reading Event, Institution, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Event, Institution, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Discovery/Services/PublicScheduleDiscoveryService.php": {
+      "owner": "Discovery",
+      "reason": "Temporary read-only ORM adapter reading Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Discovery/Services/TypesenseEventDiscovery.php": {
+      "owner": "Discovery",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Engagement/EntryPoints/Http/EventGoingController.php": {
+      "owner": "Engagement",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Engagement/EntryPoints/Http/EventSaveController.php": {
+      "owner": "Engagement",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Engagement/EntryPoints/Http/FollowController.php": {
+      "owner": "Engagement",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person, Reference, Series; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person, Reference, Series Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Engagement/EntryPoints/Livewire/Concerns/TogglesEventGoing.php": {
+      "owner": "Engagement",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Engagement/EntryPoints/Livewire/Concerns/TogglesEventSave.php": {
+      "owner": "Engagement",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Engagement/Queries/EloquentEngagementReader.php": {
+      "owner": "Engagement",
+      "reason": "Temporary read-only ORM adapter reading Event, Institution, Person, Reference, Series, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Event, Institution, Person, Reference, Series, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Engagement/Services/DirectoryFollowSubjectResolver.php": {
+      "owner": "Engagement",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person, Reference; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person, Reference Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Checkout/RecordTicketAffiliateCommissionsStep.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Registration; no owner writes occur here.",
+      "removal_task": "Replace direct Registration Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Filament/Resources/Events/EventAdminContextFormExtension.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Reference; no owner writes occur here.",
+      "removal_task": "Replace direct Reference Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Filament/Widgets/PendingApprovalEventsWidget.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Http/AdvancedEventController.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Http/EventController.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading EventCheckin, Registration, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct EventCheckin, Registration, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Http/EventSubmissionController.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Institution; no owner writes occur here.",
+      "removal_task": "Replace direct Institution Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Livewire/Pages/Dashboard/Events/CreateAdvanced.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Reference, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Reference, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Livewire/Pages/Index.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person, Reference; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person, Reference Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Livewire/Pages/Show.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading EventCheckin, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct EventCheckin, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/EntryPoints/Livewire/Pages/SubmitEvent/EventSubmissionFormSchema.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/Notifications/EventNotificationService.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Registration; no owner writes occur here.",
+      "removal_task": "Replace direct Registration Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/Queries/EloquentAccountEventFacts.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading EventCheckin, Registration; no owner writes occur here.",
+      "removal_task": "Replace direct EventCheckin, Registration Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/Services/EventContributionUpdateStateMapper.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/Services/OrganizerResolver.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/Services/SubmitEventPrefill.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Events/States/EventStatus/Transitions/ApproveEvent.php": {
+      "owner": "Events",
+      "reason": "Temporary read-only ORM adapter reading Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Identity/EntryPoints/Filament/Resources/Authz/UserResource/Pages/ViewUser.php": {
+      "owner": "Identity",
+      "reason": "Temporary read-only ORM adapter reading Event, EventCheckin, EventSubmission, Registration; no owner writes occur here.",
+      "removal_task": "Replace direct Event, EventCheckin, EventSubmission, Registration Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Identity/EntryPoints/Livewire/Pages/Dashboard/UserDashboard.php": {
+      "owner": "Identity",
+      "reason": "Temporary read-only ORM adapter reading Event, EventCheckin, EventSubmission, Institution, Person, Reference, Registration, ShareSourceAttributionReceipt; no owner writes occur here.",
+      "removal_task": "Replace direct Event, EventCheckin, EventSubmission, Institution, Person, Reference, Registration, ShareSourceAttributionReceipt Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Institutions/EntryPoints/Http/InstitutionWorkspaceController.php": {
+      "owner": "Institutions",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Institutions/EntryPoints/Livewire/Pages/InstitutionDashboard.php": {
+      "owner": "Institutions",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Institutions/Models/Institution.php": {
+      "owner": "Institutions",
+      "reason": "Temporary read-only ORM adapter reading Person; no owner writes occur here.",
+      "removal_task": "Replace direct Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Institutions/Queries/InstitutionDirectoryQuery.php": {
+      "owner": "Institutions",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Membership/Services/MemberPermissionGate.php": {
+      "owner": "Membership",
+      "reason": "Temporary read-only ORM adapter reading Event, Institution, Person, Reference; no owner writes occur here.",
+      "removal_task": "Replace direct Event, Institution, Person, Reference Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Organizations/EntryPoints/Livewire/Pages/Index.php": {
+      "owner": "Organizations",
+      "reason": "Temporary read-only ORM adapter reading Institution, Person; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Organizations/EntryPoints/Livewire/Pages/Workspace.php": {
+      "owner": "Organizations",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Persons/EntryPoints/Filament/Resources/Persons/RelationManagers/AffiliationsRelationManager.php": {
+      "owner": "Persons",
+      "reason": "Temporary read-only ORM adapter reading Institution; no owner writes occur here.",
+      "removal_task": "Replace direct Institution Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Persons/EntryPoints/Livewire/Pages/PersonDashboard.php": {
+      "owner": "Persons",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Persons/EntryPoints/Livewire/Pages/Show.php": {
+      "owner": "Persons",
+      "reason": "Temporary read-only ORM adapter reading Event, EventKeyPerson; no owner writes occur here.",
+      "removal_task": "Replace direct Event, EventKeyPerson Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Persons/Observers/PersonObserver.php": {
+      "owner": "Persons",
+      "reason": "Temporary read-only ORM adapter reading Reference; no owner writes occur here.",
+      "removal_task": "Replace direct Reference Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Places/EntryPoints/Filament/Resources/Spaces/Schemas/SpaceForm.php": {
+      "owner": "Places",
+      "reason": "Temporary read-only ORM adapter reading Institution; no owner writes occur here.",
+      "removal_task": "Replace direct Institution Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Places/EntryPoints/Ui/SpaceLocationPresenter.php": {
+      "owner": "Places",
+      "reason": "Temporary read-only ORM adapter reading Institution; no owner writes occur here.",
+      "removal_task": "Replace direct Institution Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Prayer/Services/PrayerTimeExpressionResolver.php": {
+      "owner": "Prayer",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Prayer/Support/PrayerLocation.php": {
+      "owner": "Prayer",
+      "reason": "Temporary read-only ORM adapter reading Institution, Venue; no owner writes occur here.",
+      "removal_task": "Replace direct Institution, Venue Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/References/EntryPoints/Filament/Forms/ReferenceAuthorFormSchema.php": {
+      "owner": "References",
+      "reason": "Temporary read-only ORM adapter reading Person; no owner writes occur here.",
+      "removal_task": "Replace direct Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/References/EntryPoints/Livewire/Pages/Show.php": {
+      "owner": "References",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/References/Models/Reference.php": {
+      "owner": "References",
+      "reason": "Temporary read-only ORM adapter reading Person; no owner writes occur here.",
+      "removal_task": "Replace direct Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/References/Services/ReferenceSearchService.php": {
+      "owner": "References",
+      "reason": "Temporary read-only ORM adapter reading Person; no owner writes occur here.",
+      "removal_task": "Replace direct Person Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Registration/EntryPoints/Livewire/Pages/Checkout.php": {
+      "owner": "Registration",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Registration/EntryPoints/Livewire/Pages/Dashboard/Events/OfflineAdmissions.php": {
+      "owner": "Registration",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Registration/EntryPoints/Livewire/Pages/Dashboard/Events/Participants.php": {
+      "owner": "Registration",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Registration/EntryPoints/Livewire/Pages/Dashboard/Events/Refunds.php": {
+      "owner": "Registration",
+      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
+      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Rewards/Queries/ReferralRewardSourceFactReader.php": {
+      "owner": "Rewards",
+      "reason": "Temporary read-only ORM adapter reading ShareOutcomeCorrection; no owner writes occur here.",
+      "removal_task": "Replace direct ShareOutcomeCorrection Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Rewards/Queries/ShareAttributionRewardSourceFactReader.php": {
+      "owner": "Rewards",
+      "reason": "Temporary read-only ORM adapter reading ShareOutcomeCorrection, ShareSourceAttributionReceipt; no owner writes occur here.",
+      "removal_task": "Replace direct ShareOutcomeCorrection, ShareSourceAttributionReceipt Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/Rewards/Services/ShareCorrectionKeySource.php": {
+      "owner": "Rewards",
+      "reason": "Temporary read-only ORM adapter reading ShareOutcomeCorrection; no owner writes occur here.",
+      "removal_task": "Replace direct ShareOutcomeCorrection Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/ShareTracking/EntryPoints/Checkout/RecordCheckoutShareProvenanceStep.php": {
+      "owner": "ShareTracking",
+      "reason": "Temporary read-only ORM adapter reading Event, Registration; no owner writes occur here.",
+      "removal_task": "Replace direct Event, Registration Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/ShareTracking/EntryPoints/Listeners/ReverseRegistrationShareOutcome.php": {
+      "owner": "ShareTracking",
+      "reason": "Temporary read-only ORM adapter reading EventCheckin; no owner writes occur here.",
+      "removal_task": "Replace direct EventCheckin Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/ShareTracking/Policies/ShareDestinationPolicy.php": {
+      "owner": "ShareTracking",
+      "reason": "Temporary read-only ORM adapter reading Event, Institution, Person, Reference, Series; no owner writes occur here.",
+      "removal_task": "Replace direct Event, Institution, Person, Reference, Series Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/ShareTracking/Services/ShareTrackingParticipationAttribution.php": {
+      "owner": "ShareTracking",
+      "reason": "Temporary read-only ORM adapter reading EventCheckin; no owner writes occur here.",
+      "removal_task": "Replace direct EventCheckin Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    },
+    "app/Features/ShareTracking/Services/ShareTrackingUrlService.php": {
+      "owner": "ShareTracking",
+      "reason": "Temporary read-only ORM adapter reading Event, Institution, Person, Reference, Series; no owner writes occur here.",
+      "removal_task": "Replace direct Event, Institution, Person, Reference, Series Eloquent reads with the owning feature Api in this owner slice.",
+      "expires": "2027-03-31"
+    }
+  }
 }

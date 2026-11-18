@@ -144,6 +144,23 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
         return $this->generateInstitutionSlug->syncInstitutionSlug($this->institution($institutionId));
     }
 
+    public function syncSearchProjection(string $institutionId): void
+    {
+        $institution = Institution::query()->find($institutionId);
+
+        if (! $institution instanceof Institution) {
+            return;
+        }
+
+        if ($institution->shouldBeSearchable()) {
+            $institution->searchable();
+
+            return;
+        }
+
+        $institution->unsearchable();
+    }
+
     public function recordImportExclusion(string $source, string $externalRef, string $institutionId): void
     {
         $this->recordImportExclusion->handle($source, $externalRef, $institutionId);

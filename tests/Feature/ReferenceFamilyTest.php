@@ -2,10 +2,10 @@
 
 use App\Features\Events\Models\Event;
 use App\Features\References\Models\Reference;
+use App\Platform\Api\Frontend\CatalogDispatcher;
 use App\Shared\Directory\Enums\ReferencePartType;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Events\Enums\EventVisibility;
-use App\Platform\Api\Frontend\FrontendCatalogService;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Support\Carbon;
 
@@ -256,7 +256,7 @@ it('scopes edition detail and filters to its subtree while work includes every e
         ->toContain((string) $editionEvent->id)
         ->not->toContain((string) $directEvent->id);
 
-    $catalog = app(FrontendCatalogService::class)->references('Cetakan Ketiga');
+    $catalog = app(CatalogDispatcher::class)->references('Cetakan Ketiga');
     expect(collect($catalog)->keyBy('id')->get((string) $edition->id)['label'])
         ->toContain('Riyadhus Solihin', 'Cetakan Ketiga', 'Dar al-Kutub');
 });

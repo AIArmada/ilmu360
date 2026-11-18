@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer;
 
+use App\Features\Prayer\Api\PrayerInstitutionCatalog;
 use App\Features\Prayer\EntryPoints\Commands\PrayerStatsCommand;
 use App\Features\Prayer\EntryPoints\Commands\PrefetchPrayerTimes;
+use App\Features\Prayer\Services\PrayerInstitutionCatalogService;
 use App\Platform\FeatureModule;
 use App\Shared\Prayer\BuildPrayerPreviewAction;
 use App\Shared\Prayer\RamadanGate;
@@ -15,6 +17,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(PrayerInstitutionCatalog::class, PrayerInstitutionCatalogService::class);
         $this->mergeConfigFrom(__DIR__.'/Config/prayer.php', 'prayer');
 
         $this->app->bind(BuildPrayerPreviewAction::class, __NAMESPACE__.'\\Actions\\BuildPrayerPreviewAction');

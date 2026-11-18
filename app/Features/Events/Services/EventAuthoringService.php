@@ -148,6 +148,29 @@ final readonly class EventAuthoringService implements EventAuthoring
         return $this->generateEventSlug->syncEventSlugsForPersonId($personId);
     }
 
+    /**
+     * @param  list<string>  $eventIds
+     */
+    public function syncSearchableEventsByIds(array $eventIds): void
+    {
+        $events = Event::query()->whereKey($eventIds)->get();
+
+        if ($events->isEmpty()) {
+            return;
+        }
+
+        $searchable = $events->filter(fn (Event $event): bool => $event->shouldBeSearchable())->values();
+        $unsearchable = $events->reject(fn (Event $event): bool => $event->shouldBeSearchable())->values();
+
+        if ($searchable->isNotEmpty()) {
+            $searchable->searchable();
+        }
+
+        if ($unsearchable->isNotEmpty()) {
+            $unsearchable->unsearchable();
+        }
+    }
+
     public function personSlugSegmentsForPersonIds(array $personIds): array
     {
         return $this->generateEventSlug->personSlugSegmentsForPersonIds($personIds);

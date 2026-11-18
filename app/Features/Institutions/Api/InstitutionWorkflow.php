@@ -75,6 +75,8 @@ interface InstitutionWorkflow
 
     public function syncSlug(string $institutionId): bool;
 
+    public function syncSearchProjection(string $institutionId): void;
+
     public function recordImportExclusion(string $source, string $externalRef, string $institutionId): void;
 
     public function enforceSinglePrimaryName(string $nameId, string $institutionId, bool $isPrimary): void;

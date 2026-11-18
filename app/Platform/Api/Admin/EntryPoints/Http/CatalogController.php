@@ -3,7 +3,7 @@
 namespace App\Platform\Api\Admin\EntryPoints\Http;
 
 use App\Http\Controllers\Controller;
-use App\Platform\Api\Frontend\FrontendCatalogService;
+use App\Platform\Api\Frontend\CatalogDispatcher;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
 class CatalogController extends Controller
 {
     public function __construct(
-        private readonly FrontendCatalogService $catalogs,
+        private readonly CatalogDispatcher $catalogs,
     ) {}
 
     #[Endpoint(

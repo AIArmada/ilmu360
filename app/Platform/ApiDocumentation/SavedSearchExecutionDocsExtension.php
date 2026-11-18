@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Platform\ApiDocumentation;
 
-use App\Features\Events\Models\Event;
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\Generator\Reference;
@@ -16,6 +15,7 @@ use Dedoc\Scramble\Support\Generator\Types\IntegerType;
 use Dedoc\Scramble\Support\Generator\Types\ObjectType;
 use Dedoc\Scramble\Support\RouteInfo;
 use Dedoc\Scramble\Support\Type\ObjectType as InferObjectType;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
 
 final class SavedSearchExecutionDocsExtension extends OperationExtension
@@ -26,7 +26,7 @@ final class SavedSearchExecutionDocsExtension extends OperationExtension
             return;
         }
 
-        $eventReference = $this->openApiTransformer->transform(new InferObjectType(Event::class));
+        $eventReference = $this->openApiTransformer->transform(new InferObjectType((string) Relation::getMorphedModel('event')));
 
         $pagination = (new ObjectType)
             ->addProperty('page', new IntegerType)

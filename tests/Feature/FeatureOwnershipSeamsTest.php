@@ -2,42 +2,42 @@
 
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\DonationChannels\Api\DonationChannelLookup;
+use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\DonationChannels\Queries\EloquentDonationChannelLookup;
+use App\Features\Events\Models\Event;
 use App\Features\Identity\Api\AccountSubmissionEligibility;
 use App\Features\Identity\Services\AccountSubmissionEligibilityService;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Queries\EloquentInstitutionLookup;
 use App\Features\Institutions\Services\InstitutionVenueLinkService;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\Models\Person;
 use App\Features\Persons\Queries\EloquentPersonLookup;
 use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Features\Places\Api\PlaceLookup;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
+use App\Features\Places\Models\Space;
+use App\Features\Places\Models\Venue;
 use App\Features\Places\Queries\EloquentPlaceLookup;
 use App\Features\Places\Services\InstitutionSpaceLinkService;
 use App\Features\Places\Services\SpaceWorkflowService;
 use App\Features\Places\Services\VenueWorkflowService;
 use App\Features\References\Api\ReferenceLookup;
+use App\Features\References\Models\Reference;
 use App\Features\References\Queries\EloquentReferenceLookup;
 use App\Features\Reports\Services\CompositeReportSubjectResolver;
-use App\Features\DonationChannels\Models\DonationChannel;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
-use App\Features\Places\Models\Space;
 use App\Models\User;
-use App\Features\Places\Models\Venue;
+use App\Platform\Api\Frontend\CatalogDispatcher;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Reports\ReportSubjectResolver;
-use App\Platform\Api\Frontend\FrontendCatalogService;
 
 it('binds the directory seams to their owning implementations', function (): void {
     expect(app(InstitutionLookup::class))->toBeInstanceOf(EloquentInstitutionLookup::class)
@@ -85,7 +85,7 @@ it('reads owner summaries by id or slug and serves form options', function (): v
         ->and($institutions->find($institutionId) !== null)->toBeTrue()
         ->and($institutions->find('missing-record'))->toBeNull();
 
-    $options = collect(app(FrontendCatalogService::class)->submitInstitutions(null, 'Masjid Ilmu'))->keyBy('id');
+    $options = collect(app(CatalogDispatcher::class)->submitInstitutions(null, 'Masjid Ilmu'))->keyBy('id');
 
     expect($options->has($institutionId))->toBeTrue()
         ->and($options->get($institutionId)['label'] ?? null)->toBe($institution->display_name);
@@ -99,7 +99,7 @@ it('reads reference details by slug and finds the reference in the form catalog'
     ]);
 
     $detail = app(ReferenceLookup::class)->find((string) $reference->slug);
-    $options = collect(app(FrontendCatalogService::class)->references('Kitab Seam'))->keyBy('id');
+    $options = collect(app(CatalogDispatcher::class)->references('Kitab Seam'))->keyBy('id');
 
     expect($detail?->id)->toBe((string) $reference->getKey())
         ->and($detail?->title)->toBe($reference->displayTitle())
@@ -165,7 +165,7 @@ it('lists current directory records as scalar options', function (): void {
     $institution = Institution::factory()->create(['name' => 'Masjid Ujian']);
     $person = Person::factory()->create(['name' => 'Ahmad Ujian']);
 
-    $catalogs = app(FrontendCatalogService::class);
+    $catalogs = app(CatalogDispatcher::class);
     $institutionId = (string) $institution->getKey();
     $personId = (string) $person->getKey();
 

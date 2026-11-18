@@ -4,22 +4,24 @@ declare(strict_types=1);
 
 namespace App\Features\References;
 
-use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
-use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
-use App\Platform\Admin\FilamentResourceRegistry;
-
+use App\Features\References\Api\ReferenceCatalog;
 use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Api\ReferenceWorkflow;
+use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
+use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
+use App\Features\References\EntryPoints\Filament\Stats\PendingReferencesStat;
+use App\Features\References\Models\Reference;
 use App\Features\References\Persistence\ReferenceHomepageStatsCacheStore;
 use App\Features\References\Persistence\ReferenceSearchCacheStore;
 use App\Features\References\Queries\EloquentReferenceLookup;
 use App\Features\References\Queries\ReferenceResourceSearchAdapter;
+use App\Features\References\Services\EloquentReferenceCatalog;
 use App\Features\References\Services\ReferenceQueryService;
 use App\Features\References\Services\ReferenceWorkflowService;
-use App\Features\References\Models\Reference;
+use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -29,6 +31,9 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ReferenceCatalog::class, EloquentReferenceCatalog::class);
+        $this->app->tag([PendingReferencesStat::class], 'admin.stats');
+
         $this->commands([
             EntryPoints\Console\Commands\IndexReferencesToTypesense::class,
         ]);
