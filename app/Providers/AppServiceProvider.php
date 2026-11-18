@@ -16,12 +16,9 @@ use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Customers\Models\Customer;
-use AIArmada\Events\Events\EventCancelled;
-use AIArmada\Events\Events\EventOccurrenceCancelled;
 use AIArmada\Events\Events\EventRegistrationCancelled;
 use AIArmada\Events\Events\EventRegistrationRefunded;
 use AIArmada\Events\Events\EventRegistrationRejected;
-use AIArmada\Events\Events\EventSessionCancelled;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventLocation;
@@ -64,7 +61,6 @@ use App\Features\ShareTracking\Api\ShareAnalytics;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\ShareTracking\ReverseRegistrationShareOutcome;
-use App\Listeners\ShareTracking\ReverseScheduleCancellationShareOutcome;
 use App\Models\Affiliation;
 use App\Models\Audit as FilamentAudit;
 use App\Models\ContributionRequest;
@@ -469,14 +465,6 @@ class AppServiceProvider extends ServiceProvider
             EventFacade::listen(EventRegistrationRefunded::class, [ReverseRegistrationShareOutcome::class, 'handle']);
 
             app()->instance('share.registration_reversal.listeners.registered', true);
-        }
-
-        if (! app()->bound('share.schedule_reversal.listeners.registered')) {
-            EventFacade::listen(EventCancelled::class, [ReverseScheduleCancellationShareOutcome::class, 'handle']);
-            EventFacade::listen(EventOccurrenceCancelled::class, [ReverseScheduleCancellationShareOutcome::class, 'handle']);
-            EventFacade::listen(EventSessionCancelled::class, [ReverseScheduleCancellationShareOutcome::class, 'handle']);
-
-            app()->instance('share.schedule_reversal.listeners.registered', true);
         }
 
         if (! self::$languageSwitchConfigured) {

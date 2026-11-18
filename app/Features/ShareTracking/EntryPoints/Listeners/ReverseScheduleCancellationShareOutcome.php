@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Listeners\ShareTracking;
+namespace App\Features\ShareTracking\EntryPoints\Listeners;
 
 use AIArmada\Events\Events\EventCancelled;
 use AIArmada\Events\Events\EventOccurrenceCancelled;

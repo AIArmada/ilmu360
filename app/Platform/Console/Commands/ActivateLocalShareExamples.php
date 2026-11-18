@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Platform\Console\Commands;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Referrals\Actions\CreateReferralProgram;

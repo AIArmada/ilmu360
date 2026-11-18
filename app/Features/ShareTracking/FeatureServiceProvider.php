@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking;
 
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Events\Events\EventCancelled;
+use AIArmada\Events\Events\EventOccurrenceCancelled;
+use AIArmada\Events\Events\EventSessionCancelled;
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\Actions\EffectReceipts\DispatchShareEffectReceiptsAction;
@@ -40,6 +43,7 @@ use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
 use App\Features\ShareTracking\Api\VisitTouchpointWriter;
+use App\Features\ShareTracking\EntryPoints\Listeners\ReverseScheduleCancellationShareOutcome;
 use App\Features\ShareTracking\EntryPoints\Observers\CommittedShareTouchpointObserver;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
@@ -49,6 +53,7 @@ use App\Features\ShareTracking\Queries\AffiliateFinancialObligationReader as Dat
 use App\Features\ShareTracking\Queries\DatabaseMarkedShareAffiliateIds;
 use App\Features\ShareTracking\Queries\DatabaseShareOutcomeEvidenceReader;
 use App\Platform\FeatureModule;
+use Illuminate\Support\Facades\Event as EventFacade;
 
 /**
  * Share tracking claims all seven app tables named in feature.json: browser
@@ -123,6 +128,14 @@ class FeatureServiceProvider extends FeatureModule
     {
         parent::boot();
         AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);
+
+        if (! app()->bound('share.schedule_reversal.listeners.registered')) {
+            EventFacade::listen(EventCancelled::class, [ReverseScheduleCancellationShareOutcome::class, 'handle']);
+            EventFacade::listen(EventOccurrenceCancelled::class, [ReverseScheduleCancellationShareOutcome::class, 'handle']);
+            EventFacade::listen(EventSessionCancelled::class, [ReverseScheduleCancellationShareOutcome::class, 'handle']);
+
+            app()->instance('share.schedule_reversal.listeners.registered', true);
+        }
     }
 
     public function register(): void
