@@ -5,19 +5,18 @@ declare(strict_types=1);
 namespace App\Features\Discovery\Services;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Features\Discovery\Api\EventDiscoveryAdapter;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
-use App\Features\References\Api\ReferenceQueries;
 use App\Features\Events\Models\Event;
+use App\Features\References\Api\ReferenceQueries;
+use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Events\EventCategoryCatalog;
-use App\Features\Discovery\Services\EventDiscoveryFilterSet;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
-class TypesenseEventDiscovery implements EventDiscoveryAdapter
+class TypesenseEventDiscovery implements EventDiscoveryReader
 {
     public function __construct(
         private readonly EventDiscoveryFilterSet $filterSet,

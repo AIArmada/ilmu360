@@ -2,20 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Discovery\Api;
+namespace App\Platform\Search;
 
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
-use App\Features\Events\Models\Event;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-interface EventDiscoveryAdapter
+interface EventDiscoveryReader
 {
-    /** @return LengthAwarePaginator<int, Event> */
+    /** @return LengthAwarePaginator<int, mixed> */
     public function search(EventDiscoveryCriteria $criteria): LengthAwarePaginator;
 
-    /** @return LengthAwarePaginator<int, Event> */
+    /** @return LengthAwarePaginator<int, mixed> */
     public function nearby(EventDiscoveryCriteria $criteria): LengthAwarePaginator;
 
-    /** @return LengthAwarePaginator<int, Event> */
+    /** @return LengthAwarePaginator<int, mixed> */
     public function nearbyWithQuery(EventDiscoveryCriteria $criteria): LengthAwarePaginator;
 }

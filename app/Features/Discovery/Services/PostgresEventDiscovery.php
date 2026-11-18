@@ -9,13 +9,18 @@ use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
-use App\Features\Discovery\Api\EventDiscoveryAdapter;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
-use App\Features\References\Api\ReferenceQueries;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Queries\PrimaryLocationSql;
+use App\Features\Events\Queries\PrimaryOccurrenceSql;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Services\InstitutionSearchService;
+use App\Features\Persons\Services\PersonSearchService;
 use App\Features\Places\Models\Venue;
+use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Services\ReferenceSearchService;
+use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
@@ -24,13 +29,6 @@ use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Features\Discovery\Services\EventDiscoveryFilterSet;
-use App\Features\Discovery\Services\FuzzyEventMatcher;
-use App\Features\Events\Queries\PrimaryLocationSql;
-use App\Features\Events\Queries\PrimaryOccurrenceSql;
-use App\Features\Institutions\Services\InstitutionSearchService;
-use App\Features\Persons\Services\PersonSearchService;
-use App\Features\References\Services\ReferenceSearchService;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Connection;
@@ -39,7 +37,7 @@ use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Str;
 use Throwable;
 
-final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
+final readonly class PostgresEventDiscovery implements EventDiscoveryReader
 {
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
