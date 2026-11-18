@@ -80,9 +80,10 @@ jobs:
           after=open('/tmp/events.after').read()
           old='App\\Listeners\\ShareTracking\\ReverseScheduleCancellationShareOutcome'
           new='App\\Features\\ShareTracking\\EntryPoints\\Listeners\\ReverseScheduleCancellationShareOutcome'
-          assert before.count(old) >= 1,('baseline missing',before.count(old))
-          assert before.count(old)==after.count(new),('listener multiplicity mismatch',before.count(old),after.count(new))
+          assert before.count(old)>3,('expected duplicate old registrations',before.count(old))
+          assert after.count(new)==3,('one registration per event required',after.count(new))
           assert old not in after
+          print('Eliminated duplicated schedule reversal subscriptions:',before.count(old),'to',after.count(new))
           for event in ('EventCancelled','EventOccurrenceCancelled','EventSessionCancelled'):
               assert event in after,event
           print('Schedule reversal handlers preserved without duplicates')
