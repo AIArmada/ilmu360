@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Features\DonationChannels;
 
-use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\DonationChannelResource;
-use App\Platform\Admin\FilamentResourceRegistry;
-
 use App\Features\DonationChannels\Api\DonationChannelLookup;
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Features\DonationChannels\Api\DonationQrMedia;
+use App\Features\DonationChannels\EntryPoints\Admin\Resources\DonationChannelMutationHooks;
+use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Features\DonationChannels\Queries\EloquentDonationChannelLookup;
 use App\Features\DonationChannels\Services\DonationChannelWorkflowService;
 use App\Features\DonationChannels\Services\DonationQrMediaService;
+use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\FeatureModule;
 
 class FeatureServiceProvider extends FeatureModule
@@ -24,5 +25,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(DonationChannelLookup::class, EloquentDonationChannelLookup::class);
 
         $this->app->make(FilamentResourceRegistry::class)->register(DonationChannelResource::class);
+
+        $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(DonationChannelMutationHooks::class));
     }
 }

@@ -1970,14 +1970,6 @@
     {
       "rule": "platform-direction",
       "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\DonationChannels\\EntryPoints\\Filament\\Resources\\DonationChannels\\DonationChannelResource",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "DonationChannels",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
       "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
       "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
       "owner": "Events",
@@ -2013,22 +2005,6 @@
       "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Series\\SeriesResource",
       "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
       "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Spaces\\SpaceResource",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Places",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
-      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Venues\\VenueResource",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Places",
       "expires": "2027-12-31"
     },
     {

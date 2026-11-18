@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Admin\FilamentWidgetRegistry;
+use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Admin\AdminResourceHookRegistry;
 use App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\AuditResource;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +23,7 @@ class AdminRegistryServiceProvider extends ServiceProvider
         $this->app->singleton(FilamentResourceRegistry::class);
         $this->app->singleton(FilamentPageRegistry::class);
         $this->app->singleton(FilamentWidgetRegistry::class);
+        $this->app->singleton(AdminMutationHookRegistry::class);
         $this->app->singleton(AdminResourceHookRegistry::class);
 
         $this->app->make(FilamentResourceRegistry::class)->register(AuditResource::class);

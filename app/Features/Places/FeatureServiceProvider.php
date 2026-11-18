@@ -10,6 +10,7 @@ use App\Features\Places\Api\PlaceLookup;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
+use App\Features\Places\EntryPoints\Admin\Resources\PlaceMutationHooks;
 use App\Features\Places\EntryPoints\Filament\Resources\Spaces\SpaceResource;
 use App\Features\Places\EntryPoints\Filament\Resources\Venues\VenueResource;
 use App\Features\Places\EntryPoints\Filament\Stats\PendingVenuesStat;
@@ -21,6 +22,7 @@ use App\Features\Places\Services\SpaceEligibilityService;
 use App\Features\Places\Services\SpaceWorkflowService;
 use App\Features\Places\Services\VenueWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -48,6 +50,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(PlaceMutationHooks::class));
         $this->app->make(PublicSlugRegistry::class)->register(new PublicSlugResource(
             parameter: 'venue',
             routeName: 'venues.show',

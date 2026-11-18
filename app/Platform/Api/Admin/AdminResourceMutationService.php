@@ -11,50 +11,38 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
-use App\Features\DonationChannels\Api\DonationChannelWorkflow;
+use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Events\Api\SeriesAuthoring;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\SeriesResource;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\Series;
 use App\Features\Inspirations\Api\InspirationAdminContract;
 use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\Places\Api\SpaceWorkflow;
-use App\Features\Places\Api\VenueWorkflow;
-use App\Features\References\Api\ReferenceWorkflow;
-use App\Features\Reports\Api\ReportAdminContract;
-use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\DonationChannelResource;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
-use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
-use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
-use App\Features\Events\EntryPoints\Filament\Resources\Series\SeriesResource;
-use App\Features\Places\EntryPoints\Filament\Resources\Spaces\SpaceResource;
-use App\Features\Places\EntryPoints\Filament\Resources\Venues\VenueResource;
-use App\Platform\Ui\Forms\SharedFormSchema;
-use App\Features\DonationChannels\Models\DonationChannel;
-use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\Models\Person;
+use App\Features\References\Api\ReferenceWorkflow;
+use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\Models\Reference;
-use App\Features\Events\Models\Series;
-use App\Features\Places\Models\Space;
-use App\Models\User;
-use App\Features\Places\Models\Venue;
-use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
+use App\Features\Reports\Api\ReportAdminContract;
 use App\Features\Reports\Support\ReportModelClass;
-use App\Features\Contributions\Services\ContributionEntityStateService;
-use App\Shared\Directory\Enums\DonationChannelStatus;
+use App\Models\User;
+use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
+use App\Platform\Ui\Forms\SharedFormSchema;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Directory\Enums\ReferencePartType;
 use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Directory\Enums\VenueType;
 use App\Shared\Directory\InstitutionFacilities;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -64,12 +52,8 @@ use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Taxonomy\EventTaxonomyCode;
-use BackedEnum;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
@@ -83,15 +67,13 @@ class AdminResourceMutationService
         private readonly InspirationAdminContract $inspirationAdmin,
         private readonly ReportAdminContract $reportAdmin,
         private readonly SaveAddressAreaAction $saveAddressAreaAction,
-        private readonly DonationChannelWorkflow $donationChannels,
         private readonly AdminEventWriter $adminEventWriter,
         private readonly EventAuthoring $eventAuthoring,
         private readonly InstitutionWorkflow $institutionWorkflow,
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
         private readonly SeriesAuthoring $seriesAuthoring,
-        private readonly SpaceWorkflow $spaceWorkflow,
-        private readonly VenueWorkflow $venueWorkflow,
+        private readonly AdminMutationHookRegistry $hooks,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -109,16 +91,14 @@ class AdminResourceMutationService
     {
         return $this->isReportResource($resourceClass)
             || $this->isInspirationResource($resourceClass)
+            || $this->hooks->for($resourceClass) !== null
             || in_array($resourceClass, [
                 AddressAreaResource::class,
-                DonationChannelResource::class,
                 EventResource::class,
                 InstitutionResource::class,
                 ReferenceResource::class,
                 SeriesResource::class,
                 PersonResource::class,
-                SpaceResource::class,
-                VenueResource::class,
             ], true);
     }
 
@@ -157,6 +137,16 @@ class AdminResourceMutationService
             return $this->inspirationSchema($resourceKey, $operation, $record, $defaults);
         }
 
+        $hook = $this->hooks->for($resourceClass);
+
+        if ($hook !== null) {
+            $schema = $hook->schema($resourceClass, $resourceKey, $operation, $record, $defaults);
+
+            if ($schema !== null) {
+                return $schema;
+            }
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => [
                 'resource_key' => $resourceKey,
@@ -173,27 +163,6 @@ class AdminResourceMutationService
                     $this->catalog('country_id', route('api.admin.catalogs.countries', [], false)),
                 ],
                 'conditional_rules' => [],
-            ],
-            DonationChannelResource::class => [
-                'resource_key' => $resourceKey,
-                'operation' => $operation,
-                'method' => $updating ? 'PUT' : 'POST',
-                'endpoint' => $updating && $record instanceof Model
-                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
-                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
-                'content_type' => 'multipart/form-data',
-                'slug_behavior' => 'not_applicable',
-                'defaults' => $defaults,
-                'current_media' => $record instanceof DonationChannel ? $this->mediaState($record, ['qr']) : null,
-                'fields' => $this->donationChannelFields(),
-                'catalogs' => [],
-                'conditional_rules' => [
-                    ['field' => 'bank_name', 'required_when' => ['method' => ['bank_account']]],
-                    ['field' => 'account_number', 'required_when' => ['method' => ['bank_account']]],
-                    ['field' => 'duitnow_type', 'required_when' => ['method' => ['duitnow']]],
-                    ['field' => 'duitnow_value', 'required_when' => ['method' => ['duitnow']]],
-                    ['field' => 'ewallet_provider', 'required_when' => ['method' => ['ewallet']]],
-                ],
             ],
             EventResource::class => [
                 'resource_key' => $resourceKey,
@@ -274,35 +243,6 @@ class AdminResourceMutationService
                 'catalogs' => $this->addressCatalogs('address'),
                 'conditional_rules' => [],
             ],
-            SpaceResource::class => [
-                'resource_key' => $resourceKey,
-                'operation' => $operation,
-                'method' => $updating ? 'PUT' : 'POST',
-                'endpoint' => $updating && $record instanceof Model
-                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
-                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
-                'content_type' => 'application/json',
-                'slug_behavior' => 'user_provided',
-                'defaults' => $defaults,
-                'fields' => $this->spaceFields(),
-                'catalogs' => [],
-                'conditional_rules' => [],
-            ],
-            VenueResource::class => [
-                'resource_key' => $resourceKey,
-                'operation' => $operation,
-                'method' => $updating ? 'PUT' : 'POST',
-                'endpoint' => $updating && $record instanceof Model
-                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
-                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
-                'content_type' => 'multipart/form-data',
-                'slug_behavior' => 'auto_managed',
-                'defaults' => $defaults,
-                'current_media' => $record instanceof Venue ? $this->mediaState($record, ['main', 'cover', 'gallery']) : null,
-                'fields' => $this->venueFields($updating),
-                'catalogs' => $this->addressCatalogs('address'),
-                'conditional_rules' => [],
-            ],
             default => throw new \RuntimeException('Unsupported admin write resource.'),
         };
     }
@@ -321,16 +261,19 @@ class AdminResourceMutationService
             return $this->inspirationAdmin->rules($updating);
         }
 
+        $hook = $this->hooks->for($resourceClass);
+
+        if ($hook !== null && ($rules = $hook->rules($resourceClass, $updating)) !== null) {
+            return $rules;
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $this->addressAreaRules($updating),
-            DonationChannelResource::class => $this->donationChannelRules($updating),
             EventResource::class => $this->eventRules($updating),
             InstitutionResource::class => $this->institutionRules($updating),
             ReferenceResource::class => $this->referenceRules($updating),
             SeriesResource::class => $this->seriesRules($updating),
             PersonResource::class => $this->personRules($updating),
-            SpaceResource::class => $this->spaceRules($updating),
-            VenueResource::class => $this->venueRules($updating),
             default => [],
         };
     }
@@ -342,8 +285,10 @@ class AdminResourceMutationService
      */
     public function normalizeValidatedPayload(string $resourceClass, array $validated, ?Model $record = null): array
     {
-        if ($resourceClass === DonationChannelResource::class) {
-            return $this->normalizeDonationChannelPayload($validated, $record);
+        $hook = $this->hooks->for($resourceClass);
+
+        if ($hook !== null) {
+            $validated = $hook->normalize($resourceClass, $validated, $record);
         }
 
         if ($this->isReportResource($resourceClass)) {
@@ -410,9 +355,14 @@ class AdminResourceMutationService
             return $this->saveInspiration($resourceClass, $validated);
         }
 
+        $hook = $this->hooks->for($resourceClass);
+
+        if ($hook !== null && ($record = $hook->store($resourceClass, $validated, $actor)) !== null) {
+            return $record;
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $this->saveAddressAreaAction->handle($validated),
-            DonationChannelResource::class => $this->saveDonationChannel($validated, $actor),
             EventResource::class => $this->persistAdminEvent($validated, $actor),
             InstitutionResource::class => Institution::query()->findOrFail($this->institutionWorkflow->saveFromAdmin($validated, (string) $actor->getKey())),
             ReferenceResource::class => Reference::query()->withoutOwnerScope()->findOrFail($this->referenceWorkflow->saveFromAdmin($validated)),
@@ -420,8 +370,6 @@ class AdminResourceMutationService
             PersonResource::class => Person::query()->findOrFail(
                 $this->personWorkflow->saveFromAdmin($validated, (string) $actor->getKey()),
             ),
-            SpaceResource::class => Space::query()->findOrFail($this->spaceWorkflow->saveFromAdmin($validated)),
-            VenueResource::class => Venue::query()->findOrFail($this->venueWorkflow->saveFromAdmin($validated)),
             default => throw new \RuntimeException('Unsupported admin write resource.'),
         };
     }
@@ -444,13 +392,16 @@ class AdminResourceMutationService
             return $this->saveInspiration($resourceClass, $validated, (string) $record->getKey());
         }
 
+        $hook = $this->hooks->for($resourceClass);
+
+        if ($hook !== null && ($updated = $hook->update($resourceClass, $record, $validated, $actor)) !== null) {
+            return $updated;
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => $record instanceof AddressArea
                 ? $this->saveAddressAreaAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected address area record.'),
-            DonationChannelResource::class => $record instanceof DonationChannel
-                ? $this->saveDonationChannel($validated, $actor, $record)
-                : throw new \RuntimeException('Expected donation channel record.'),
             EventResource::class => $record instanceof Event
                 ? $this->persistAdminEvent($validated, $actor, $record)
                 : throw new \RuntimeException('Expected event record.'),
@@ -468,12 +419,6 @@ class AdminResourceMutationService
                     $this->personWorkflow->saveFromAdmin($validated, (string) $actor->getKey(), (string) $record->getKey()),
                 )
                 : throw new \RuntimeException('Expected person record.'),
-            SpaceResource::class => $record instanceof Space
-                ? Space::query()->findOrFail($this->spaceWorkflow->saveFromAdmin($validated, (string) $record->getKey()))
-                : throw new \RuntimeException('Expected space record.'),
-            VenueResource::class => $record instanceof Venue
-                ? Venue::query()->findOrFail($this->venueWorkflow->saveFromAdmin($validated, (string) $record->getKey()))
-                : throw new \RuntimeException('Expected venue record.'),
             default => throw new \RuntimeException('Unsupported admin write resource.'),
         };
     }
@@ -514,6 +459,12 @@ class AdminResourceMutationService
             return $this->inspirationAdmin->createDefaults();
         }
 
+        $hook = $this->hooks->for($resourceClass);
+
+        if ($hook !== null && ($defaults = $hook->defaultsForCreate($resourceClass)) !== null) {
+            return $defaults;
+        }
+
         return match ($resourceClass) {
             AddressAreaResource::class => [
                 'country_id' => null,
@@ -528,25 +479,6 @@ class AdminResourceMutationService
                 'source' => 'manual',
                 'source_id' => null,
                 'parent_source_id' => null,
-            ],
-            DonationChannelResource::class => [
-                'donatable_type' => (string) (new Institution)->getMorphClass(),
-                'donatable_id' => null,
-                'label' => null,
-                'recipient' => '',
-                'method' => 'bank_account',
-                'bank_code' => null,
-                'bank_name' => null,
-                'account_number' => null,
-                'duitnow_type' => null,
-                'duitnow_value' => null,
-                'ewallet_provider' => null,
-                'ewallet_handle' => null,
-                'ewallet_qr_payload' => null,
-                'reference_note' => null,
-                'status' => DonationChannelStatus::Pending->value,
-                'is_default' => false,
-                'clear_qr' => false,
             ],
             EventResource::class => $this->eventAuthoring->adminFormDefaults(),
             InstitutionResource::class => [
@@ -584,29 +516,6 @@ class AdminResourceMutationService
                 'clear_cover' => false,
                 'clear_gallery' => false,
             ],
-            VenueResource::class => [
-                'type' => VenueType::Dewan->value,
-                'status' => 'verified',
-                'facilities' => [],
-                'clear_main' => false,
-                'clear_cover' => false,
-                'clear_gallery' => false,
-            ],
-            SpaceResource::class => [
-                'name' => '',
-                'slug' => '',
-                'code' => null,
-                'space_type' => null,
-                'capacity' => null,
-                'status' => 'active',
-                'visibility' => 'public',
-                'level' => null,
-                'unit_no' => null,
-                'block' => null,
-                'wing' => null,
-                'institutions' => [],
-                'institution_space_overrides' => [],
-            ],
             default => [],
         };
     }
@@ -616,7 +525,15 @@ class AdminResourceMutationService
      */
     private function defaultsForRecord(Model $record): array
     {
-        $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $this->isInspirationModel($record) || $this->isReportModel($record) || $record instanceof Series || $record instanceof Space
+        foreach ($this->hooks->all() as $hooks) {
+            $hookDefaults = $hooks->defaultsForRecord($record);
+
+            if ($hookDefaults !== null) {
+                return $hookDefaults;
+            }
+        }
+
+        $defaults = $record instanceof AddressArea || $this->isInspirationModel($record) || $this->isReportModel($record) || $record instanceof Series
             ? []
             : $this->contributionEntityMutationService->stateForEntity($record);
 
@@ -639,28 +556,6 @@ class AdminResourceMutationService
 
         if ($this->isInspirationModel($record)) {
             $defaults = $this->inspirationAdmin->defaultsFor((string) $record->getKey());
-        }
-
-        if ($record instanceof DonationChannel) {
-            $defaults = [
-                'donatable_type' => (string) $record->donatable_type,
-                'donatable_id' => (string) $record->donatable_id,
-                'label' => $record->label,
-                'recipient' => $record->recipient,
-                'method' => (string) $record->method,
-                'bank_code' => $record->bank_code,
-                'bank_name' => $record->bank_name,
-                'account_number' => $record->account_number,
-                'duitnow_type' => $record->duitnow_type,
-                'duitnow_value' => $record->duitnow_value,
-                'ewallet_provider' => $record->ewallet_provider,
-                'ewallet_handle' => $record->ewallet_handle,
-                'ewallet_qr_payload' => $record->ewallet_qr_payload,
-                'reference_note' => $record->reference_note,
-                'status' => $record->status->value,
-                'is_default' => (bool) $record->is_default,
-                'clear_qr' => false,
-            ];
         }
 
         if ($this->isReportModel($record)) {
@@ -725,63 +620,7 @@ class AdminResourceMutationService
             $defaults = $this->eventAuthoring->adminFormState((string) $record->getKey());
         }
 
-        if ($record instanceof Venue) {
-            $defaults['status'] = $record->status;
-            $defaults['visibility'] = (string) ($record->visibility ?? 'public');
-            $defaults['clear_main'] = false;
-            $defaults['clear_cover'] = false;
-            $defaults['clear_gallery'] = false;
-        }
-
-        if ($record instanceof Space) {
-            $slug = $record->getAttribute('slug');
-
-            $defaults = [
-                'name' => $record->name,
-                'slug' => is_string($slug) ? $slug : '',
-                'code' => $record->code,
-                'space_type' => $record->space_type,
-                'capacity' => $record->capacity,
-                'status' => (string) $record->status,
-                'visibility' => (string) ($record->visibility ?? 'public'),
-                'level' => $record->level,
-                'unit_no' => $record->unit_no,
-                'block' => $record->block,
-                'wing' => $record->wing,
-                'institutions' => $record->institutions()->pluck('institutions.id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
-                'institution_space_overrides' => $record->institutions()
-                    ->get()
-                    ->map(fn (Institution $institution): array => [
-                        'institution_id' => (string) $institution->getKey(),
-                        'capacity' => ($pivot = $institution->getRelationValue('pivot')) instanceof Pivot
-                            ? $pivot->getAttribute('capacity')
-                            : null,
-                    ])
-                    ->filter(fn (array $override): bool => $override['capacity'] !== null)
-                    ->values()
-                    ->all(),
-            ];
-        }
-
         return $defaults;
-    }
-
-    private function recordKey(Model $record): string
-    {
-        return (string) $record->getRouteKey();
-    }
-
-    /**
-     * @param  array<string, mixed>  $validated
-     */
-    private function saveDonationChannel(array $validated, User $actor, ?DonationChannel $record = null): DonationChannel
-    {
-        Gate::forUser($actor)->authorize($record instanceof DonationChannel ? 'update' : 'create', $record ?? DonationChannel::class);
-
-        $recordId = $record instanceof DonationChannel ? (string) $record->getKey() : null;
-        $channelId = $this->donationChannels->save($validated, $recordId);
-
-        return DonationChannel::query()->findOrFail($channelId);
     }
 
     /**
@@ -934,148 +773,6 @@ class AdminResourceMutationService
     }
 
     /**
-     * @param  array<string, mixed>  $payload
-     * @return list<string>
-     */
-    private function destructiveMediaFields(array $payload): array
-    {
-        $fields = [];
-
-        foreach ($payload as $field => $value) {
-            if (! is_string($field) || ! str_starts_with($field, 'clear_') || $value !== true) {
-                continue;
-            }
-
-            $fields[] = $field;
-        }
-
-        return array_values(array_unique($fields));
-    }
-
-    private function destructiveMediaWarning(string $field): string
-    {
-        $label = ucwords(str_replace('_', ' ', substr($field, 6)));
-
-        return __('The :field flag will clear the existing :label media collection before saving.', [
-            'field' => $field,
-            'label' => $label,
-        ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    private function previewPayload(array $payload): array
-    {
-        $preview = [];
-
-        foreach ($payload as $key => $value) {
-            $preview[$key] = $this->previewValue($value);
-        }
-
-        return $preview;
-    }
-
-    private function previewValue(mixed $value): mixed
-    {
-        if ($value instanceof UploadedFile) {
-            return [
-                'file_name' => $value->getClientOriginalName(),
-                'mime_type' => $value->getClientMimeType(),
-                'size' => $value->getSize(),
-            ];
-        }
-
-        if (is_array($value)) {
-            return array_map($this->previewValue(...), $value);
-        }
-
-        return $value;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function imageMimeTypes(): array
-    {
-        return ['image/jpeg', 'image/png', 'image/webp'];
-    }
-
-    /**
-     * @param  array<string, mixed>  $validated
-     * @return array<string, mixed>
-     */
-    private function normalizeDonationChannelPayload(array $validated, ?Model $record = null): array
-    {
-        $ownerType = array_key_exists('donatable_type', $validated)
-            ? $validated['donatable_type']
-            : ($record instanceof DonationChannel ? (string) $record->donatable_type : null);
-
-        $ownerId = array_key_exists('donatable_id', $validated)
-            ? trim((string) $validated['donatable_id'])
-            : ($record instanceof DonationChannel ? (string) $record->donatable_id : '');
-
-        if (! is_string($ownerType) || ! in_array($ownerType, $this->donationChannelOwnerTypeValues(), true)) {
-            throw ValidationException::withMessages([
-                'donatable_type' => __('The selected donation channel owner type is invalid.'),
-            ]);
-        }
-
-        if ($ownerId === '') {
-            throw ValidationException::withMessages([
-                'donatable_id' => __('The selected donation channel owner is invalid.'),
-            ]);
-        }
-
-        $ownerModelClass = $this->donationChannelOwnerModelClass($ownerType);
-
-        if (! $ownerModelClass::query()->whereKey($ownerId)->exists()) {
-            throw ValidationException::withMessages([
-                'donatable_id' => __('The selected donation channel owner is invalid.'),
-            ]);
-        }
-
-        $validated['donatable_type'] = $ownerType;
-        $validated['donatable_id'] = $ownerId;
-
-        return $validated;
-    }
-
-    /**
-     * @return class-string<Model>
-     */
-    private function donationChannelOwnerModelClass(string $ownerType): string
-    {
-        return match ($ownerType) {
-            (string) (new Institution)->getMorphClass() => Institution::class,
-            (string) (new Person)->getMorphClass() => Person::class,
-            (string) (new Event)->getMorphClass() => Event::class,
-            default => throw new \RuntimeException('Unsupported donation channel owner type.'),
-        };
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function donationChannelOwnerTypeValues(): array
-    {
-        return [
-            (string) (new Institution)->getMorphClass(),
-            (string) (new Person)->getMorphClass(),
-            (string) (new Event)->getMorphClass(),
-        ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function logoMimeTypes(): array
-    {
-        return ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
-    }
-
-    /**
      * @return array<int, array<string, mixed>>
      */
     private function institutionFields(bool $updating): array
@@ -1151,95 +848,6 @@ class AdminResourceMutationService
         }
 
         return $fields;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function contactCollectionMeta(): array
-    {
-        return [
-            'collection_semantics' => $this->replaceCollectionSemantics(),
-            'item_schema' => $this->contactItemSchema(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function socialMediaCollectionMeta(): array
-    {
-        return [
-            'collection_semantics' => $this->replaceCollectionSemantics(),
-            'input_normalization' => [
-                'kind' => 'canonical_social_handle_storage',
-                'handle_platforms' => $this->socialHandlePlatforms(),
-                'canonical_storage' => [
-                    'identifier_field' => 'handle',
-                    'url_field' => 'url',
-                    'handle_platform_url_storage' => 'may_be_null_after_normalization',
-                ],
-            ],
-            'item_schema' => $this->socialMediaItemSchema(),
-        ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function socialHandlePlatforms(): array
-    {
-        return [
-            SocialPlatform::Facebook->value,
-            SocialPlatform::X->value,
-            SocialPlatform::Instagram->value,
-            SocialPlatform::Youtube->value,
-            SocialPlatform::Tiktok->value,
-            SocialPlatform::Telegram->value,
-            SocialPlatform::WhatsApp->value,
-            SocialPlatform::Linkedin->value,
-            SocialPlatform::Threads->value,
-        ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function donationChannelFields(): array
-    {
-        return [
-            $this->field('donatable_type', 'string', required: true, default: (string) (new Institution)->getMorphClass(), allowedValues: $this->donationChannelOwnerTypeValues(), meta: [
-                'mutation_semantics' => 'replace_scalar_with_canonical_owner_type',
-                'paired_with' => 'donatable_id',
-            ]),
-            $this->field('donatable_id', 'string', required: true, meta: [
-                'paired_with' => 'donatable_type',
-                'relation_lookup' => 'resolved_from_normalized_owner_type',
-            ]),
-            $this->field('label', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
-            $this->field('recipient', 'string', required: true, maxLength: 255),
-            $this->field('method', 'string', required: true, default: 'bank_account', allowedValues: ['bank_account', 'duitnow', 'ewallet'], meta: [
-                'mutation_semantics' => 'replace_scalar_with_method_partition_reset',
-                'switch_clears_fields' => [
-                    'bank_account' => ['duitnow_type', 'duitnow_value', 'ewallet_provider', 'ewallet_handle', 'ewallet_qr_payload'],
-                    'duitnow' => ['bank_code', 'bank_name', 'account_number', 'ewallet_provider', 'ewallet_handle', 'ewallet_qr_payload'],
-                    'ewallet' => ['bank_code', 'bank_name', 'account_number', 'duitnow_type', 'duitnow_value'],
-                ],
-            ]),
-            $this->field('bank_code', 'string', required: false, maxLength: 32, meta: $this->trimmedStringMutationMeta()),
-            $this->field('bank_name', 'string', required: false, maxLength: 255),
-            $this->field('account_number', 'string', required: false, maxLength: 64),
-            $this->field('duitnow_type', 'string', required: false, maxLength: 64),
-            $this->field('duitnow_value', 'string', required: false, maxLength: 255),
-            $this->field('ewallet_provider', 'string', required: false, maxLength: 64),
-            $this->field('ewallet_handle', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
-            $this->field('ewallet_qr_payload', 'string', required: false, meta: $this->trimmedStringMutationMeta()),
-            $this->field('reference_note', 'string', required: false, meta: $this->trimmedStringMutationMeta()),
-            $this->field('status', 'string', required: true, default: DonationChannelStatus::Pending->value, allowedValues: $this->enumValues(DonationChannelStatus::class)),
-            $this->field('is_default', 'boolean', required: false, default: false),
-            $this->field('qr', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
-            $this->field('clear_qr', 'boolean', required: false, default: false),
-        ];
     }
 
     /**
@@ -1383,99 +991,6 @@ class AdminResourceMutationService
             )),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
-            $this->field('clear_cover', 'boolean', required: false, default: false),
-            $this->field('clear_gallery', 'boolean', required: false, default: false),
-        ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function spaceFields(): array
-    {
-        return [
-            $this->field('name', 'string', required: true, maxLength: 255),
-            $this->field('slug', 'string', required: true, maxLength: 255, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'normalization' => ['trim' => true],
-                'uniqueness_scope' => 'venue_spaces.slug:venue_id',
-            ]),
-            $this->field('code', 'string', required: false, maxLength: 255),
-            $this->field('space_type', 'string', required: false, allowedValues: VenueSpaceType::query()->where('is_active', true)->pluck('code')->all()),
-            $this->field('capacity', 'integer', required: false, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'clear_semantics' => [
-                    'omitted' => 'preserve_existing',
-                    'explicit_null' => 'clear_to_null',
-                ],
-                'normalization' => [
-                    'empty_string_at_mutation_layer' => 'null',
-                    'integer_cast' => true,
-                    'minimum' => 1,
-                ],
-            ]),
-            $this->field('level', 'string', required: false, maxLength: 255),
-            $this->field('unit_no', 'string', required: false, maxLength: 255),
-            $this->field('block', 'string', required: false, maxLength: 255),
-            $this->field('wing', 'string', required: false, maxLength: 255),
-            $this->field('status', 'string', required: false, default: 'active', allowedValues: ['active', 'inactive']),
-            $this->field('visibility', 'string', required: false, default: 'public', allowedValues: ['public', 'unlisted', 'private']),
-            $this->field('institutions', 'array<string>', required: false, meta: $this->relationCollectionMeta(
-                'institutions',
-                submittedArray: 'replace_relation_sync',
-                safeClientStrategy: 'omit_field_to_preserve_or_send_full_institution_ids',
-            )),
-            $this->field('institution_space_overrides', 'array<object>', required: false, meta: [
-                'mutation_semantics' => 'replace_relation_pivot_payload',
-                'clear_semantics' => [
-                    'omitted' => 'preserve_existing',
-                    'empty_array' => 'clear_all_overrides',
-                ],
-                'item_shape' => [
-                    'institution_id' => 'uuid',
-                    'capacity' => 'integer|null',
-                ],
-            ]),
-        ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function venueFields(bool $updating): array
-    {
-        return [
-            $this->field('name', 'string', required: ! $updating, maxLength: 255),
-            $this->field('type', 'string', required: ! $updating, default: VenueType::Dewan->value, allowedValues: $this->enumValues(VenueType::class)),
-            $this->field('status', 'string', required: ! $updating, default: 'verified', allowedValues: ['pending', 'verified', 'rejected', 'inactive']),
-            $this->field('visibility', 'string', required: false, default: 'public', allowedValues: ['public', 'unlisted', 'private']),
-            $this->field('facilities', 'array<string>', required: false, allowedValues: $this->venueFacilityValues(), meta: $this->facilitiesCollectionMeta()),
-            $this->field('address', 'object', required: ! $updating, meta: [
-                'mutation_semantics' => 'deep_merge_when_present',
-                'clear_semantics' => [
-                    'omitted' => 'preserve_existing',
-                    'empty_object' => $updating ? 'delete_existing_address' : 'invalid_without_country',
-                    'explicit_null_children' => 'clear_supported_nullable_fields',
-                ],
-                'safe_client_strategy' => 'fetch_current_record_before_editing_nested_address',
-                'nested_field_omission' => 'preserve_existing',
-            ]),
-            $this->field('address.country_id', 'uuid', required: ! $updating, meta: [
-                'required_on_create' => true,
-                'required_on_update' => false,
-                'mutation_semantics' => 'replace_scalar',
-                'clear_semantics' => [
-                    'omitted_on_update' => 'preserve_existing_if_available',
-                    'explicit_null' => 'invalid_country_selection',
-                ],
-            ]),
-            $this->field('address.area_assignments', 'array<object>', required: false),
-            $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
-            $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
-            $this->field('main', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), meta: $this->singleMediaFieldMutationMeta('clear_main')),
-            $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
-            $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
-            $this->field('clear_main', 'boolean', required: false, default: false),
             $this->field('clear_cover', 'boolean', required: false, default: false),
             $this->field('clear_gallery', 'boolean', required: false, default: false),
         ];
@@ -1680,122 +1195,6 @@ class AdminResourceMutationService
     /**
      * @return array<string, mixed>
      */
-    private function contactItemSchema(): array
-    {
-        return [
-            'type' => 'object',
-            'paired_required_fields' => [
-                ['type', 'value'],
-            ],
-            'fields' => [
-                $this->field('type', 'string', required: false, allowedValues: $this->enumValues(ContactMethodType::class), meta: [
-                    'required_with' => ['value'],
-                ]),
-                $this->field('value', 'string', required: false, maxLength: 255, meta: [
-                    'required_with' => ['type'],
-                    'used_for_types' => [
-                        ContactMethodType::Phone->value,
-                        ContactMethodType::Whatsapp->value,
-                        ContactMethodType::Email->value,
-                    ],
-                ]),
-                $this->field('purpose', 'string', required: false, default: ContactPurpose::General->value, allowedValues: $this->enumValues(ContactPurpose::class)),
-                $this->field('is_public', 'boolean', required: false, default: true),
-                $this->field('sort_order', 'integer', required: false, meta: [
-                    'omitted' => 'assigned_from_payload_order_starting_at_1',
-                ]),
-            ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function socialMediaItemSchema(): array
-    {
-        return [
-            'type' => 'object',
-            'required_fields' => ['platform'],
-            'at_least_one_of' => ['handle', 'url'],
-            'fields' => [
-                $this->field('platform', 'string', required: false, allowedValues: $this->enumValues(SocialPlatform::class), meta: [
-                    'required_with' => ['handle', 'url'],
-                ]),
-                $this->field('handle', 'string', required: false, maxLength: 255, meta: [
-                    'required_without' => ['url'],
-                ]),
-                $this->field('url', 'string', required: false, maxLength: 255, meta: [
-                    'required_without' => ['handle'],
-                    'format' => 'url',
-                ]),
-                $this->field('sort_order', 'integer', required: false, meta: [
-                    'omitted' => 'assigned_from_payload_order_starting_at_1',
-                ]),
-            ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function facilitiesCollectionMeta(): array
-    {
-        return [
-            'collection_semantics' => $this->replaceCollectionSemantics(
-                itemIdsPreserved: null,
-                ordering: 'not_applicable_set_semantics',
-            ),
-            'input_normalization' => [
-                'kind' => 'facility_codes_to_relation',
-                'storage_shape' => 'venue_facilities.facility_type_id',
-                'replacement_scope' => 'general_venue_facilities_only',
-                'unknown_codes' => 'rejected',
-            ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function relationCollectionMeta(
-        string $relation,
-        string $submittedArray = 'replace_relation_sync',
-        ?bool $itemIdsPreserved = null,
-        ?string $ordering = null,
-        string $safeClientStrategy = 'omit_field_to_preserve_or_send_full_relation_ids',
-        string $omitted = 'preserve_existing_collection',
-    ): array {
-        return [
-            'relation' => $relation,
-            'collection_semantics' => $this->replaceCollectionSemantics(
-                submittedArray: $submittedArray,
-                itemIdsPreserved: $itemIdsPreserved,
-                ordering: $ordering,
-                safeClientStrategy: $safeClientStrategy,
-                omitted: $omitted,
-            ),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function singleMediaFieldMutationMeta(string $rawHttpClearFlag): array
-    {
-        return [
-            'mutation_semantics' => 'replace_single_media_collection',
-            'clear_semantics' => [
-                'omitted' => 'preserve_existing_collection',
-                'explicit_null' => 'preserve_existing_collection',
-                'submitted_file' => 'replace_collection',
-            ],
-            'raw_http_clear_flag' => $rawHttpClearFlag,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function eventKeyPersonItemSchema(): array
     {
         return [
@@ -1821,41 +1220,6 @@ class AdminResourceMutationService
                 $this->field('notes', 'string', required: false, maxLength: 500),
             ],
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function replaceCollectionSemantics(
-        string $submittedArray = 'replace_collection',
-        string $explicitNull = 'clear_collection',
-        string $emptyArray = 'clear_collection',
-        ?bool $itemIdsPreserved = false,
-        ?string $ordering = 'payload_order_sets_order_column_when_missing',
-        string $safeClientStrategy = 'fetch_modify_resend_full_collection',
-        string $omitted = 'preserve_existing_collection',
-    ): array {
-        return array_filter([
-            'omitted' => $omitted,
-            'explicit_null' => $explicitNull,
-            'empty_array' => $emptyArray,
-            'submitted_array' => $submittedArray,
-            'item_ids_preserved' => $itemIdsPreserved,
-            'ordering' => $ordering,
-            'safe_client_strategy' => $safeClientStrategy,
-        ], static fn (mixed $value): bool => $value !== null);
-    }
-
-    /**
-     * @param  class-string<BackedEnum>  $enumClass
-     * @return list<string|int>
-     */
-    private function enumValues(string $enumClass): array
-    {
-        return array_map(
-            static fn (BackedEnum $case): string|int => $case->value,
-            $enumClass::cases(),
-        );
     }
 
     /**
@@ -1918,36 +1282,6 @@ class AdminResourceMutationService
             'clear_logo' => ['sometimes', 'boolean'],
             'clear_cover' => ['sometimes', 'boolean'],
             'clear_gallery' => ['sometimes', 'boolean'],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function donationChannelRules(bool $updating): array
-    {
-        $required = $updating ? 'required' : 'required';
-        $maxUploadSize = 'max:'.$this->maxUploadSizeKb();
-
-        return [
-            'donatable_type' => [$required, 'string', Rule::in($this->donationChannelOwnerTypeValues())],
-            'donatable_id' => [$required, 'uuid'],
-            'label' => ['nullable', 'string', 'max:255'],
-            'recipient' => [$required, 'string', 'max:255'],
-            'method' => [$required, Rule::in(['bank_account', 'duitnow', 'ewallet'])],
-            'bank_code' => ['nullable', 'string', 'max:32'],
-            'bank_name' => ['nullable', 'string', 'max:255', 'required_if:method,bank_account'],
-            'account_number' => ['nullable', 'string', 'max:64', 'required_if:method,bank_account'],
-            'duitnow_type' => ['nullable', 'string', 'max:64', 'required_if:method,duitnow'],
-            'duitnow_value' => ['nullable', 'string', 'max:255', 'required_if:method,duitnow'],
-            'ewallet_provider' => ['nullable', 'string', 'max:64', 'required_if:method,ewallet'],
-            'ewallet_handle' => ['nullable', 'string', 'max:255'],
-            'ewallet_qr_payload' => ['nullable', 'string'],
-            'reference_note' => ['nullable', 'string'],
-            'status' => [$required, Rule::enum(DonationChannelStatus::class)],
-            'is_default' => ['sometimes', 'boolean'],
-            'qr' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
-            'clear_qr' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -2201,158 +1535,6 @@ class AdminResourceMutationService
             'clear_main' => ['sometimes', 'boolean'],
             'clear_cover' => ['sometimes', 'boolean'],
             'clear_gallery' => ['sometimes', 'boolean'],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function spaceRules(bool $updating): array
-    {
-        $required = $updating ? 'required' : 'required';
-
-        return [
-            'name' => [$required, 'string', 'max:255'],
-            'slug' => [$required, 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:255'],
-            'space_type' => ['nullable', Rule::exists((new VenueSpaceType)->getTable(), 'code')->where('is_active', true)],
-            'capacity' => ['nullable', 'integer', 'min:1'],
-            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
-            'visibility' => ['sometimes', Rule::in(['public', 'unlisted', 'private'])],
-            'level' => ['nullable', 'string', 'max:255'],
-            'unit_no' => ['nullable', 'string', 'max:255'],
-            'block' => ['nullable', 'string', 'max:255'],
-            'wing' => ['nullable', 'string', 'max:255'],
-            'institutions' => ['nullable', 'array'],
-            'institutions.*' => ['uuid', 'exists:institutions,id'],
-            'institution_space_overrides' => ['nullable', 'array'],
-            'institution_space_overrides.*.institution_id' => ['required', 'uuid', 'exists:institutions,id'],
-            'institution_space_overrides.*.capacity' => ['nullable', 'integer', 'min:1'],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function venueRules(bool $updating): array
-    {
-        $addressRule = $updating ? ['sometimes', 'array'] : ['required', 'array'];
-        $required = $updating ? 'sometimes' : 'required';
-        $maxUploadSize = 'max:'.$this->maxUploadSizeKb();
-
-        return [
-            'name' => [$required, 'string', 'max:255'],
-            'type' => [$required, Rule::enum(VenueType::class)],
-            'status' => [$required, Rule::in(['pending', 'verified', 'rejected', 'inactive'])],
-            'visibility' => ['sometimes', Rule::in(['public', 'unlisted', 'private'])],
-            'facilities' => ['nullable', 'array'],
-            'facilities.*' => ['string', Rule::in($this->venueFacilityValues())],
-            'address' => $addressRule,
-            'address.country_id' => [
-                $updating ? 'sometimes' : 'required',
-                'uuid',
-                Rule::exists(ModelResolver::countryClass(), 'id'),
-            ],
-            'address.area_assignments' => ['sometimes', 'array'],
-            'address.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
-            'address.line1' => ['nullable', 'string', 'max:255'],
-            'address.line2' => ['nullable', 'string', 'max:255'],
-            'address.postcode' => ['nullable', 'string', 'max:16'],
-            'address.latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'address.longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'address.google_maps_url' => ['nullable', 'url', 'max:2048'],
-            'address.google_place_id' => ['nullable', 'string', 'max:255'],
-            'address.google_feature_id' => ['nullable', 'string', 'max:255'],
-            'address.google_cid' => ['nullable', 'string', 'max:255'],
-            'address.google_entity_id' => ['nullable', 'string', 'max:255'],
-            'address.waze_url' => ['nullable', 'url', 'max:255'],
-            'contactMethods' => ['nullable', 'array'],
-            'contactMethods.*.type' => ['required_with:contactMethods.*.value', Rule::enum(ContactMethodType::class)],
-            'contactMethods.*.value' => ['required_with:contactMethods.*.type', 'string', 'max:255'],
-            'contactMethods.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
-            'contactMethods.*.is_public' => ['sometimes', 'boolean'],
-            'social_media' => ['nullable', 'array'],
-            'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
-            'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
-            'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
-            'gallery' => ['nullable', 'array'],
-            'gallery.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
-            'main' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
-            'clear_main' => ['sometimes', 'boolean'],
-            'clear_cover' => ['sometimes', 'boolean'],
-            'clear_gallery' => ['sometimes', 'boolean'],
-        ];
-    }
-
-    /**
-     * @param  Model&HasMedia  $record
-     * @param  list<string>  $collections
-     * @return array<string, mixed>
-     */
-    private function mediaState(Model $record, array $collections): array
-    {
-        $state = [];
-
-        foreach ($collections as $collection) {
-            $media = $record->getMedia($collection);
-
-            $state[$collection] = $media
-                ->map(fn ($item): array => [
-                    'id' => (int) $item->getKey(),
-                    'name' => $item->name,
-                    'file_name' => $item->file_name,
-                ])
-                ->values()
-                ->all();
-        }
-
-        return $state;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function addressCatalogs(string $prefix): array
-    {
-        return [
-            $this->catalog($prefix.'.country_id', route('api.admin.catalogs.countries', [], false)),
-            $this->catalog(
-                $prefix.'.area_assignments.administrative_district',
-                route('api.admin.catalogs.administrative-districts', [], false),
-                ['country_id' => '{'.$prefix.'.country_id}'],
-            ),
-            $this->catalog(
-                $prefix.'.area_assignments.administrative_subdivision',
-                route('api.admin.catalogs.administrative-subdivisions', [], false),
-                ['administrative_district' => '{'.$prefix.'.area_assignments.administrative_district}'],
-            ),
-        ];
-    }
-
-    /**
-     * @param  array<string, string>  $query
-     * @return array<string, mixed>
-     */
-    private function catalog(string $field, string $endpoint, array $query = []): array
-    {
-        return array_filter([
-            'field' => $field,
-            'endpoint' => $endpoint,
-            'query' => $query,
-        ], static fn (mixed $value): bool => $value !== []);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function venueFacilityValues(): array
-    {
-        return [
-            'parking',
-            'oku',
-            'women_section',
-            'ablution_area',
         ];
     }
 }
