@@ -825,63 +825,6 @@ class SharedFormSchema
     }
 
     /**
-     * Create social media entries for a model.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    public static function createSocialMediaFromData(Institution|Person|Venue|Reference $model, array $data): void
-    {
-        if (! empty($data['social_media'])) {
-            foreach ($data['social_media'] as $index => $social) {
-                $model->socialProfiles()->create([
-                    'platform' => $social['platform'],
-                    'purpose' => ContactPurpose::General->value,
-                    'url' => $social['url'] ?? null,
-                    'handle' => $social['handle'] ?? $social['username'] ?? null,
-                    'sort_order' => is_numeric($social['sort_order'] ?? $social['order_column'] ?? null)
-                        ? (int) ($social['sort_order'] ?? $social['order_column'])
-                        : $index + 1,
-                ]);
-            }
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    public static function createContactsFromData(Institution|Person $model, array $data): void
-    {
-        if (! isset($data['contactMethods']) || ! is_array($data['contactMethods'])) {
-            return;
-        }
-
-        foreach ($data['contactMethods'] as $index => $contact) {
-            if (! is_array($contact)) {
-                continue;
-            }
-
-            $type = $contact['type'] ?? $contact['category'] ?? null;
-            $value = self::isPhoneContactType($type)
-                ? ($contact['phone_value'] ?? ($contact['value'] ?? null))
-                : ($contact['value'] ?? null);
-
-            if (! filled($type) || ! filled($value)) {
-                continue;
-            }
-
-            $model->contactMethods()->create([
-                'type' => $type,
-                'purpose' => $contact['purpose'] ?? ContactPurpose::General->value,
-                'value' => self::normalizedContactValue($value) ?? $value,
-                'is_public' => (bool) ($contact['is_public'] ?? true),
-                'sort_order' => is_numeric($contact['sort_order'] ?? $contact['order_column'] ?? null)
-                    ? (int) ($contact['sort_order'] ?? $contact['order_column'])
-                    : $index + 1,
-            ]);
-        }
-    }
-
-    /**
      * State options from package `states` table (addresses.state_id).
      *
      * @return array<int|string, string>

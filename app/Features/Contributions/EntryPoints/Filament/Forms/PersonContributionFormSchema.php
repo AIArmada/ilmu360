@@ -6,9 +6,11 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
+use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\Select as SelectWithCloseOnSelect;
+use App\Platform\Ui\Forms\SharedFormSchema;
 use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -21,7 +23,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;
 
 class PersonContributionFormSchema
 {

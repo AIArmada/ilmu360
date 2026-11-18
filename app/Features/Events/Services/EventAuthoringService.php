@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Models\Event;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Actions\Authoring\ApplyChangeAnnouncementMutationsAction;
 use App\Features\Events\Actions\Authoring\ApplyEventContributionAction;
@@ -25,6 +24,7 @@ use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Api\AdminEventSaveResult;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventScheduleInput;
+use App\Features\Events\Models\Event;
 use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Events\Support\EventModel;
@@ -300,7 +300,7 @@ final readonly class EventAuthoringService implements EventAuthoring
         return AdminEventTimeMapper::normalizeForPersistence($data);
     }
 
-    /** @return \App\Features\Events\Models\Event */
+    /** @return Event */
     private function resolveEvent(string $eventId): Model
     {
         return EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);

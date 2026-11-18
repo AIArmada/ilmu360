@@ -39,7 +39,6 @@ final class OwnedWriteRule implements Rule
     private const WRITE_LOCATION = 'architecture.writeLocation';
 
     /** @var list<string> */
-    private const EXCEPTION_RULES = ['feature-private', self::FOREIGN_WRITE, self::WRITE_LOCATION];
 
     /** @var list<string> */
     private const WRITE_RULES = [self::FOREIGN_WRITE, self::WRITE_LOCATION];
@@ -295,14 +294,17 @@ final class OwnedWriteRule implements Rule
                 throw new RuntimeException("Invalid {$path} exception; expected an object.");
             }
             $rule = $this->exceptionField($exception, 'rule', $path);
+            if (! in_array($rule, self::WRITE_RULES, true)) {
+                continue;
+            }
             $file = $this->exceptionField($exception, 'file', $path);
             $target = $this->exceptionField($exception, 'target', $path);
             $this->exceptionField($exception, 'reason', $path);
             $this->exceptionField($exception, 'owner', $path);
             $expires = $this->exceptionField($exception, 'expires', $path);
             $model = $exception['model'] ?? null;
-            if (! in_array($rule, self::EXCEPTION_RULES, true) || strpbrk($file.$target, '*?') !== false) {
-                throw new RuntimeException("Invalid {$path} exception: allowed rule and exact file/target (no wildcard) required.");
+            if (strpbrk($file.$target, '*?') !== false) {
+                throw new RuntimeException("Invalid {$path} exception: exact file/target (no wildcard) required.");
             }
             if (str_starts_with($target, 'table:')
                 && (! is_string($model) || ! preg_match('/^[A-Za-z_][A-Za-z0-9_\\\\]*$/D', $model))) {
@@ -343,6 +345,9 @@ final class OwnedWriteRule implements Rule
     private function violation(string $message, string $identifier, string $file, string $target, array $modelClasses = []): array
     {
         $exceptionModels = $this->writeExceptions[$identifier][$file][$target] ?? [];
+        if ($modelClasses === [] && isset($exceptionModels['Illuminate\\Database\\Query\\Builder'])) {
+            return [];
+        }
         if (count($modelClasses) === 1 && isset($exceptionModels[$modelClasses[0]])) {
             return [];
         }

@@ -14,6 +14,7 @@ use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class AddressObserver implements ShouldHandleEventsAfterCommit
 {
@@ -75,7 +76,7 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
                 case 'institution':
                     $this->institutionWorkflow->syncSlugsForName($name);
                     $this->institutionWorkflow->syncSearchProjection($id);
-                    $this->eventAuthoring->syncSearchableEventsByIds($addressable->events()->pluck('id')->all());
+                    $this->eventAuthoring->syncSearchableEventsByIds($this->eventIds($addressable));
                     $this->publicListingsCache->bustMajlisListing();
 
                     break;
@@ -88,12 +89,26 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
                     break;
                 case 'venue':
                     $this->venueWorkflow->syncSlugsForName($name);
-                    $this->eventAuthoring->syncSearchableEventsByIds($addressable->events()->pluck('id')->all());
+                    $this->eventAuthoring->syncSearchableEventsByIds($this->eventIds($addressable));
                     $this->publicListingsCache->bustMajlisListing();
 
                     break;
             }
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function eventIds(Model $model): array
+    {
+        $events = $model->getRelationValue('events');
+
+        if (! $events instanceof Collection) {
+            return [];
+        }
+
+        return $events->pluck('id')->map(static fn (mixed $id): string => (string) $id)->all();
     }
 
     private function bumpDirectoryVersionsForAddress(Address $address): void

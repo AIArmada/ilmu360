@@ -32,91 +32,110 @@ final readonly class CatalogDispatcher
         private AdvancedBuilderContext $advancedBuilder,
     ) {}
 
+    /** @return list<array{id: string, label: string, iso2: string, key: string|null}> */
     public function countries(): array
     {
         return $this->addresses->countries();
     }
 
+    /** @return list<array{id: string, label: string, code: string|null}> */
     public function states(?string $countryId): array
     {
         return $this->addresses->states($countryId);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function cities(?string $stateId, ?string $countryId = null): array
     {
         return $this->addresses->cities($stateId, $countryId);
     }
 
+    /** @return list<array{id: string, label: string, type: string, level: int|null}> */
     public function administrativeDistricts(?string $countryId, ?string $stateId = null): array
     {
         return $this->addresses->administrativeDistricts($countryId, $stateId);
     }
 
+    /** @return list<array{id: string, label: string, type: string, level: int|null}> */
     public function administrativeSubdivisions(?string $districtId, ?string $countryId = null, ?string $stateId = null): array
     {
         return $this->addresses->administrativeSubdivisions($districtId, $countryId, $stateId);
     }
 
+    /** @return list<array{id: string, label: string, type: string, level: int|null}> */
     public function addressAreas(?string $countryId = null, ?string $parentId = null, ?int $level = null): array
     {
         return $this->addresses->addressAreas($countryId, $parentId, $level);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function languages(): array
     {
         return $this->languages->options();
     }
 
+    /** @return list<array{id: string, label: string, code: string}> */
     public function taxonomyTerms(string $taxonomyCode, ?string $search = null, int $limit = 50): array
     {
         return $this->taxonomy->terms($taxonomyCode, $search, $limit);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function references(?string $search = null, int $limit = 50): array
     {
         return $this->references->references($search, $limit);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function submitInstitutions(?User $user, ?string $search = null, int $limit = 50): array
     {
         return $this->submissions->institutions($user?->getKey() !== null ? (string) $user->getKey() : null, $search, $limit);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function submitPersons(?User $user, ?string $search = null, int $limit = 50): array
     {
         return $this->submissions->persons($user?->getKey() !== null ? (string) $user->getKey() : null, $search, $limit);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function referenceAuthors(?string $search = null, int $limit = 50): array
     {
         return $this->references->authors($search, $limit);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function venues(?string $search = null, int $limit = 50): array
     {
         return $this->places->venues($search, $limit);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function spaces(?string $institutionId = null): array
     {
         return $this->places->spaces($institutionId);
     }
 
+    /** @return list<array{id: string, label: string, slug: string}> */
     public function membershipApplicationSubjects(MemberSubjectType $subjectType, string $search): array
     {
         return $this->membershipSubjects->subjects($subjectType, $search);
     }
 
+    /** @return list<array{id: string, label: string}> */
     public function prayerInstitutions(string $search): array
     {
         return $this->prayerInstitutions->verifiedInstitutions($search);
     }
 
+    /** @return array<string, mixed> */
+    /** @return array<string, mixed> */
     public function advancedBuilderContext(User $user, ?string $requestedInstitutionId = null): array
     {
         return $this->advancedBuilder->forAccount((string) $user->getKey(), $requestedInstitutionId);
     }
 
+    /** @return array<string, string> */
     public function institutionRoleOptions(): array
     {
         return $this->institutions->roleOptions();

@@ -10,13 +10,18 @@ use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Models\Reference as PackageReference;
 use AIArmada\References\Models\ReferenceContributor;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventReferencePivot;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Persons\Models\Person;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Platform\Auditing\AuditsModelChanges;
 use App\Features\Reports\Support\ReportModelClass;
+use App\Models\User;
+use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Models\Support\RelatedModels;
 use App\Shared\Directory\Enums\ReferencePartType;
 use App\Shared\Directory\Enums\ReferenceType;
-use App\Platform\Models\Support\RelatedModels;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReferenceFactory;
@@ -39,8 +44,6 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Features\Events\Models\EventReferencePivot;
-use App\Features\Persons\Models\Person;
 
 /**
  * @property string $id
@@ -950,7 +953,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::user(), 'verified_by');
+        return $this->belongsTo(RelatedModels::user(User::class), 'verified_by');
     }
 
     /**
@@ -959,7 +962,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
     public function events(): BelongsToMany
     {
         return $this->morphToMany(
-            RelatedModels::event(),
+            RelatedModels::event(Event::class),
             'referenceable',
             config('events.database.tables.event_references', 'event_references'),
             'referenceable_id',
@@ -976,7 +979,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
      */
     public function memberInvitations(): HasMany
     {
-        return $this->hasMany(RelatedModels::memberInvitation(), 'subject_id')
+        return $this->hasMany(RelatedModels::memberInvitation(MemberInvitation::class), 'subject_id')
             ->where('subject_type', MemberSubjectType::Reference->value);
     }
 

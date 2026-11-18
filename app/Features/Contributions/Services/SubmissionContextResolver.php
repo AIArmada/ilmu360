@@ -6,15 +6,17 @@ namespace App\Features\Contributions\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Services\OrganizerResolver;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Shared\Events\Enums\EventFormat;
-use App\Features\Events\Services\OrganizerResolver;
 use App\Shared\Prayer\PrayerTargetSelector;
+use App\Shared\Submission\SpaceSelectionEligibility;
+use App\Shared\Submission\SubmissionValues;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use App\Features\Events\Support\SubmissionTimingPolicy;
 
 /**
  * Fail-closed context resolution for the event-submission pipeline.

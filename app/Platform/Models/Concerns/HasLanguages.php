@@ -18,7 +18,7 @@ trait HasLanguages
      */
     public function languages(): MorphToMany
     {
-        return $this->morphToMany(RelatedModels::language(), 'languageable', 'languageables');
+        return $this->morphToMany(RelatedModels::language(Language::class), 'languageable', 'languageables');
     }
 
     /**

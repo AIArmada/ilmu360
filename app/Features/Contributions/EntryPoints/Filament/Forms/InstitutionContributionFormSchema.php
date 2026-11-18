@@ -3,6 +3,7 @@
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
 use App\Platform\Location\GooglePlacesConfiguration;
+use App\Platform\Ui\Forms\SharedFormSchema;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Directory\Enums\InstitutionType;
 use Filament\Forms\Components\FileUpload;

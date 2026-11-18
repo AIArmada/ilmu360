@@ -2,11 +2,12 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
+use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
+use App\Platform\Ui\Forms\SharedFormSchema;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
-use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 
 class ReferenceContributionFormSchema
 {

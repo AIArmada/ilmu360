@@ -2590,6 +2590,240 @@
       "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
       "owner": "Contributions",
       "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
+      "target": "table:affiliate_balances",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateBalance",
+      "reason": "Canonical AIArmada Affiliates balance write through the package model; affiliates storage stays package-owned.",
+      "owner": "ShareTracking",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
+      "target": "table:affiliate_links",
+      "model": "AIArmada\\Affiliates\\Models\\AffiliateLink",
+      "reason": "Canonical AIArmada Affiliates link write through the package model; affiliates storage stays package-owned.",
+      "owner": "ShareTracking",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Registration/Models/Registration.php",
+      "target": "table:event_registrations",
+      "model": "App\\Features\\Registration\\Models\\Registration",
+      "reason": "Owned registration model lifecycle preserves package parent delete/restore behaviour.",
+      "owner": "Registration",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Contributions/EntryPoints/Livewire/Pages/SuggestUpdate.php",
+      "target": "table:media",
+      "model": "Spatie\\MediaLibrary\\MediaCollections\\Models\\Media",
+      "reason": "Spatie MediaLibrary staged-upload collection remains package-owned.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Membership/Persistence/EloquentScopedMembershipRoleStore.php",
+      "target": "table:model_has_permissions",
+      "model": "Illuminate\\Database\\Query\\Builder",
+      "reason": "Spatie Permission pivot storage stays package-owned; this adapter only scopes account rows.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Membership/Persistence/EloquentScopedMembershipRoleStore.php",
+      "target": "table:model_has_roles",
+      "model": "Illuminate\\Database\\Query\\Builder",
+      "reason": "Spatie Permission pivot storage stays package-owned; this adapter only scopes account rows.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Places/Models/Space.php",
+      "target": "table:venue_spaces",
+      "model": "App\\Features\\Places\\Models\\Space",
+      "reason": "Owned space model lifecycle preserves package parent delete behaviour and institution-link cleanup.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Places/Models/Venue.php",
+      "target": "table:venues",
+      "model": "App\\Features\\Places\\Models\\Venue",
+      "reason": "Owned venue model lifecycle preserves package parent delete behaviour and institution-link cleanup.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/Contributors/ModerationAccountLifecycleContributor.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Account lifecycle cleanup removes event moderation rows through the canonical package wrapper.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/Services/EventModerationAdapter.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Event moderation transitions record package moderation actions through the canonical wrapper.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/ApproveEvent.php",
+      "target": "table:events",
+      "model": "App\\Features\\Events\\Models\\Event",
+      "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/ApproveEvent.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Feature-owned event state transition records the package moderation action.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/CancelEvent.php",
+      "target": "table:events",
+      "model": "App\\Features\\Events\\Models\\Event",
+      "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/CancelEvent.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Feature-owned event state transition records the package moderation action.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/ReconsiderEvent.php",
+      "target": "table:events",
+      "model": "App\\Features\\Events\\Models\\Event",
+      "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/ReconsiderEvent.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Feature-owned event state transition records the package moderation action.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/RejectEvent.php",
+      "target": "table:events",
+      "model": "App\\Features\\Events\\Models\\Event",
+      "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/RejectEvent.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Feature-owned event state transition records the package moderation action.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/RemoderateEvent.php",
+      "target": "table:events",
+      "model": "App\\Features\\Events\\Models\\Event",
+      "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/RemoderateEvent.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Feature-owned event state transition records the package moderation action.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/RequestChanges.php",
+      "target": "table:events",
+      "model": "App\\Features\\Events\\Models\\Event",
+      "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/RequestChanges.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Feature-owned event state transition records the package moderation action.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/RevertToDraft.php",
+      "target": "table:events",
+      "model": "App\\Features\\Events\\Models\\Event",
+      "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/RevertToDraft.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Feature-owned event state transition records the package moderation action.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/SubmitForModeration.php",
+      "target": "table:events",
+      "model": "App\\Features\\Events\\Models\\Event",
+      "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/States/EventStatus/Transitions/SubmitForModeration.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Feature-owned event state transition records the package moderation action.",
+      "owner": "Events",
+      "expires": "2027-12-31"
     }
   ],
   "read_adapters": {

@@ -13,14 +13,20 @@ use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Features\DonationChannels\Concerns\HasDonationChannels;
+use App\Features\Events\Models\Event;
+use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Space;
+use App\Features\Places\Models\Venue;
+use App\Features\Reports\Support\ReportModelClass;
+use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
-use App\Features\Reports\Support\ReportModelClass;
+use App\Platform\Models\Support\RelatedModels;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Directory\InstitutionFacilities;
-use App\Platform\Models\Support\RelatedModels;
 use Carbon\CarbonInterface;
 use Database\Factories\InstitutionFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -42,9 +48,6 @@ use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Features\Persons\Models\Person;
-use App\Features\Places\Models\Space;
-use App\Features\Places\Models\Venue;
 
 /**
  * @property InstitutionStatus $status
@@ -546,7 +549,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function events(): HasMany
     {
-        return $this->hasMany(RelatedModels::event());
+        return $this->hasMany(RelatedModels::event(Event::class));
     }
 
     /**
@@ -573,7 +576,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::user(), 'verified_by');
+        return $this->belongsTo(RelatedModels::user(User::class), 'verified_by');
     }
 
     /**
@@ -581,7 +584,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function memberInvitations(): HasMany
     {
-        return $this->hasMany(RelatedModels::memberInvitation(), 'subject_id')
+        return $this->hasMany(RelatedModels::memberInvitation(MemberInvitation::class), 'subject_id')
             ->where('subject_type', $this->getMorphClass());
     }
 
@@ -782,5 +785,4 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     {
         return InstitutionFactory::new();
     }
-
 }

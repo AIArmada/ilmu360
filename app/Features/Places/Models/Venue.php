@@ -7,11 +7,15 @@ use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
+use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Models\InstitutionVenue;
+use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Models\Support\RelatedModels;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Directory\Enums\VenueType;
-use App\Platform\Models\Support\RelatedModels;
 use Carbon\CarbonImmutable;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -25,8 +29,6 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Institutions\Models\InstitutionVenue;
 
 /**
  * @property string $id
@@ -129,7 +131,7 @@ class Venue extends PackageVenue implements AuditableContract
      */
     public function events(): HasMany
     {
-        return $this->hasMany(RelatedModels::event(), 'default_venue_id');
+        return $this->hasMany(RelatedModels::event(Event::class), 'default_venue_id');
     }
 
     /**
@@ -261,6 +263,6 @@ class Venue extends PackageVenue implements AuditableContract
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::user(), 'verified_by');
+        return $this->belongsTo(RelatedModels::user(User::class), 'verified_by');
     }
 }

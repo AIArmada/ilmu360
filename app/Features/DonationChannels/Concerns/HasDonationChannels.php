@@ -13,7 +13,7 @@ trait HasDonationChannels
      */
     public function donationChannels(): MorphMany
     {
-        return $this->morphMany(RelatedModels::donationChannel(), 'donatable')
+        return $this->morphMany(RelatedModels::donationChannel(DonationChannel::class), 'donatable')
             ->orderByDesc('is_default')
             ->orderBy('created_at');
     }

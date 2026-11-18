@@ -4,4 +4,4 @@ parameters:
 			message: '#^Return type \(Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Features\\Events\\Models\\EventSubmission, \$this\(App\\Features\\Events\\Models\\Event\)\>\) of method App\\Features\\Events\\Models\\Event\:\:submissions\(\) should be compatible with return type \(Illuminate\\Database\\Eloquent\\Relations\\HasMany\<AIArmada\\Events\\Models\\EventSubmission, \$this\(AIArmada\\Events\\Models\\Event\)\>\) of method AIArmada\\Events\\Models\\Event\:\:submissions\(\)$#'
 			identifier: method.childReturnType
 			count: 1
-			path: app/Models/Event.php
+			path: app/Features/Events/Models/Event.php

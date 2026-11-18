@@ -28,7 +28,8 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Support\EventDeleteCascade;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Organizations\Models\Organization;
-use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\DonationChannels\Concerns\HasDonationChannels;
+use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Engagement\Api\GoingWindow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventDeletion;
@@ -36,10 +37,25 @@ use App\Features\Events\Api\EventDeletionScope;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Models\Builders\EventBuilder;
-use App\Features\DonationChannels\Concerns\HasDonationChannels;
-use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Location\AddressAssignments;
+use App\Features\Events\Queries\PrimaryLocationSql;
+use App\Features\Events\States\EventStatus\EventStatus;
+use App\Features\Events\States\EventStatus\Pending;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Membership\Services\MemberPermissionGate;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Venue;
+use App\Features\References\Models\Reference;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Models\Registration;
 use App\Features\Reports\Support\ReportModelClass;
+use App\Models\User;
+use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Language\Models\Language;
+use App\Platform\Location\AddressAssignments;
+use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Moderation\Models\ModerationReview;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Directory\Enums\ReferenceType;
@@ -54,12 +70,7 @@ use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Platform\Models\Support\RelatedModels;
 use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Features\Events\States\EventStatus\EventStatus;
-use App\Features\Events\States\EventStatus\Pending;
-use App\Features\Membership\Services\MemberPermissionGate;
-use App\Features\Events\Queries\PrimaryLocationSql;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Database\Factories\EventFactory;
@@ -84,16 +95,6 @@ use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\ModelStates\HasStates;
-use App\Features\DonationChannels\Models\DonationChannel;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Membership\Models\MemberInvitation;
-use App\Features\Persons\Models\Person;
-use App\Features\Places\Models\Venue;
-use App\Features\References\Models\Reference;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
-use App\Platform\Language\Models\Language;
-use App\Platform\Moderation\Models\ModerationReview;
 
 /**
  * App Event subclass: package Event + intentional product projections.
@@ -1601,7 +1602,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function institution(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::institution());
+        return $this->belongsTo(RelatedModels::institution(Institution::class));
     }
 
     /**
@@ -1609,7 +1610,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function venue(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::venue(), 'default_venue_id');
+        return $this->belongsTo(RelatedModels::venue(Venue::class), 'default_venue_id');
     }
 
     /**
@@ -1656,7 +1657,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $locations = PrimaryLocationSql::table();
 
         return $this->hasOneThrough(
-            RelatedModels::venue(),
+            RelatedModels::venue(Venue::class),
             EventLocation::class,
             'event_id',
             'id',
@@ -1829,7 +1830,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function persons(): BelongsToMany
     {
-        return $this->belongsToMany(RelatedModels::person(), 'event_involvements', 'event_id', 'involveable_id')
+        return $this->belongsToMany(RelatedModels::person(Person::class), 'event_involvements', 'event_id', 'involveable_id')
             ->using(EventKeyPersonPivot::class)
             ->withPivotValue('involveable_type', 'person')
             ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
@@ -1850,7 +1851,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function references(): BelongsToMany
     {
         return $this->belongsToMany(
-            RelatedModels::reference(),
+            RelatedModels::reference(Reference::class),
             config('events.database.tables.event_references', 'event_references'),
             'event_id',
             'referenceable_id',

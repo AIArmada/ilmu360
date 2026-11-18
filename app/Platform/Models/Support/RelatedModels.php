@@ -6,101 +6,146 @@ namespace App\Platform\Models\Support;
 
 use App\Shared\Support\MorphAliasModel;
 use Illuminate\Database\Eloquent\Model;
+use RuntimeException;
 
 /**
  * Typed accessors for cross-capability relation targets.
  *
- * Runtime targets resolve through the configured morph alias registry, so this
- * neutral helper never imports feature-owned model classes. Relations using
- * these accessors keep working when an owner moves a model class.
+ * Runtime targets resolve through the configured morph alias registry. Callers
+ * pass the owning model class they expect so the generic relation type stays
+ * precise without this neutral helper importing any feature model.
  */
 final class RelatedModels
 {
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function event(): string
+    public static function event(string $expected): string
     {
-        return self::classFor('event');
+        return self::classFor('event', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function institution(): string
+    public static function institution(string $expected): string
     {
-        return self::classFor('institution');
+        return self::classFor('institution', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function person(): string
+    public static function person(string $expected): string
     {
-        return self::classFor('person');
+        return self::classFor('person', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function reference(): string
+    public static function reference(string $expected): string
     {
-        return self::classFor('reference');
+        return self::classFor('reference', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function venue(): string
+    public static function venue(string $expected): string
     {
-        return self::classFor('venue');
+        return self::classFor('venue', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function user(): string
+    public static function user(string $expected): string
     {
-        return self::classFor('user');
+        return self::classFor('user', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function eventKeyPerson(): string
+    public static function eventKeyPerson(string $expected): string
     {
-        return self::classFor('event_key_person');
+        return self::classFor('event_key_person', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function memberInvitation(): string
+    public static function memberInvitation(string $expected): string
     {
-        return self::classFor('member_invitation');
+        return self::classFor('member_invitation', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function donationChannel(): string
+    public static function donationChannel(string $expected): string
     {
-        return self::classFor('donation_channel');
+        return self::classFor('donation_channel', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function language(): string
+    public static function language(string $expected): string
     {
-        return self::classFor('language');
+        return self::classFor('language', $expected);
     }
 
     /**
-     * @return class-string<Model>
+     * @template TModel of Model
+     *
+     * @param  class-string<TModel>  $expected
+     * @return class-string<TModel>
      */
-    public static function classFor(string $alias): string
+    public static function classFor(string $alias, string $expected): string
     {
-        return MorphAliasModel::classFor($alias);
+        $class = MorphAliasModel::classFor($alias);
+
+        if (! is_a($class, $expected, true)) {
+            throw new RuntimeException(sprintf(
+                'The [%s] morph alias must resolve to [%s].',
+                $alias,
+                $expected,
+            ));
+        }
+
+        /** @var class-string<TModel> $class */
+        return $class;
     }
 }

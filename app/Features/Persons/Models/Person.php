@@ -2,8 +2,6 @@
 
 namespace App\Features\Persons\Models;
 
-use Database\Factories\PersonFactory;
-
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
@@ -18,20 +16,26 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Models\CredentialAssignment;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\References\Models\ReferenceContributor;
-use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\DonationChannels\Concerns\HasDonationChannels;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\Models\EventKeyPersonPivot;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\SpeakerStatus;
+use App\Features\Persons\Services\PersonSearchService;
+use App\Features\Reports\Support\ReportModelClass;
+use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
-use App\Features\Reports\Support\ReportModelClass;
+use App\Platform\Models\Support\RelatedModels;
 use App\Shared\Auditing\RecordsCustomAuditDifferences;
 use App\Shared\Auditing\RecordsCustomAuditEvents;
 use App\Shared\Directory\SyncsLanguages;
 use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Platform\Models\Support\RelatedModels;
-use App\Features\Persons\Services\PersonSearchService;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Database\Factories\PersonFactory;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,9 +58,6 @@ use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Features\Events\Models\EventKeyPersonPivot;
-use App\Features\Institutions\Models\Institution;
-use App\Models\User;
 
 /**
  * @property string $status
@@ -499,7 +500,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(RelatedModels::event(), 'event_involvements', 'involveable_id', 'event_id')
+        return $this->belongsToMany(RelatedModels::event(Event::class), 'event_involvements', 'involveable_id', 'event_id')
             ->using(EventKeyPersonPivot::class)
             ->wherePivot('involveable_type', 'person')
             ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
@@ -522,7 +523,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function eventKeyPeople(): HasMany
     {
-        return $this->hasMany(RelatedModels::eventKeyPerson(), 'involveable_id')
+        return $this->hasMany(RelatedModels::eventKeyPerson(EventKeyPerson::class), 'involveable_id')
             ->where('involveable_type', 'person');
     }
 
@@ -542,7 +543,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::user(), 'verified_by');
+        return $this->belongsTo(RelatedModels::user(User::class), 'verified_by');
     }
 
     /**
@@ -787,5 +788,4 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     {
         return PersonFactory::new();
     }
-
 }
