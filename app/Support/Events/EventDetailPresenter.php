@@ -18,7 +18,7 @@ use AIArmada\Ticketing\Models\TicketType;
 use App\Models\Event;
 use App\Models\Reference as CatalogReference;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Support\Spaces\SpaceLocationPresenter;
+use App\Platform\Ui\Places\SpaceLocationPresenter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;

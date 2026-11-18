@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Spaces;
+namespace App\Platform\Ui\Places;
 
 use AIArmada\Events\Models\EventLocation;
 use App\Models\Institution;

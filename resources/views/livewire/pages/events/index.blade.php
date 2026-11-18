@@ -707,7 +707,7 @@
                                         $primaryLocationName = $scheduleLocation?->venue?->name
                                             ?? $scheduleLocation?->label
                                             ?? $event->resolvedLocationName();
-                                        $locationSpaceName = \App\Support\Spaces\SpaceLocationPresenter::name($scheduleLocation);
+                                        $locationSpaceName = \App\Platform\Ui\Places\SpaceLocationPresenter::name($scheduleLocation);
                                         $scheduleVenue = $scheduleLocation?->venue;
                                         $addressModel = $scheduleVenue instanceof \App\Models\Venue
                                             ? $scheduleVenue->primaryAddress()

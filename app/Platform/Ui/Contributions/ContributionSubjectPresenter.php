@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Submission;
+namespace App\Platform\Ui\Contributions;
 
 use App\Models\Event;
 use App\Models\Institution;

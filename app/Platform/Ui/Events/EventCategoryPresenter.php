@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support\Events;
+namespace App\Platform\Ui\Events;
 
 use App\Models\Event;
 use App\Shared\Events\EventCategoryCatalog;

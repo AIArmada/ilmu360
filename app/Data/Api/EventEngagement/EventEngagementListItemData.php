@@ -7,7 +7,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
-use App\Support\Events\EventCategoryPresenter;
+use App\Platform\Ui\Events\EventCategoryPresenter;
 use BackedEnum;
 use Illuminate\Support\Arr;
 use Spatie\LaravelData\Data;

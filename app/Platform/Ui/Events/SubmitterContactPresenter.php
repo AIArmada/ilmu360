@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Events;
+namespace App\Platform\Ui\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;

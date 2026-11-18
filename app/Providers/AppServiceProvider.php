@@ -145,6 +145,7 @@ use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\ProductSignalRecorder;
 use App\Platform\Time\DefaultUserDateTimeFormatter;
+use App\Platform\Ui\Components\EventJsonLd;
 use App\Platform\Ui\ContentVersionedJs;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
@@ -241,6 +242,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
@@ -401,6 +403,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
+        // Preserve the public <x-event-json-ld> tag after removing App/View.
+        Blade::component(EventJsonLd::class, 'event-json-ld');
 
         // Explicit registration replaces Laravel's old app/Listeners/Auth discovery.
         // Preserve registered-email and verified-email after-commit listeners.

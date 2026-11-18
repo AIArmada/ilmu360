@@ -392,7 +392,7 @@ new
                                 $occurrence = $scheduleLeaf->occurrence;
                                 $scheduleLocation = $occurrence->locations->first() ?? $scheduleLeaf->sessions->first()?->locations->first() ?? $event->primaryLocation;
                                 $locationName = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $event->resolvedLocationName();
-                                $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($scheduleLocation);
+                                $spaceName = \App\Platform\Ui\Places\SpaceLocationPresenter::name($scheduleLocation);
                                 if (filled($spaceName)) {
                                     $locationName = collect([$locationName, $spaceName])->filter()->implode(' · ');
                                 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components;
+namespace App\Platform\Ui\Components;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Models\EventAccessPolicy;
