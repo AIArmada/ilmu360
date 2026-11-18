@@ -21,7 +21,7 @@ MOVES={
     "app/Support/Submission/ContributionSubjectPresenter.php":
         "app/Platform/Ui/Contributions/ContributionSubjectPresenter.php",
 }
-ROOTS=("app","bootstrap","config","database","resources","routes","tests","tools","docs","lang",".github")
+ROOTS=("app","bootstrap","config","database","resources","routes","tests","tools","docs","lang")
 EXTENSIONS={".php",".json",".md",".yml",".yaml",".xml",".neon",".js",".ts",".txt"}
 
 def classname(path):
