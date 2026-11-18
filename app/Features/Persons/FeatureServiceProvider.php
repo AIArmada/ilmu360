@@ -13,6 +13,7 @@ use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
 use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\EntryPoints\Admin\Resources\PersonAdminHooks;
 use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\EntryPoints\Filament\Stats\PendingPersonsStat;
@@ -33,6 +34,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new PersonAdminHooks);
+
         $this->app->bind(PersonCatalog::class, EloquentPersonCatalog::class);
         $this->app->tag([PendingPersonsStat::class], 'admin.stats');
 

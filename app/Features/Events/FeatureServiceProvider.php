@@ -59,6 +59,7 @@ use App\Features\Events\Api\ShareCardWarmScheduler;
 use App\Features\Events\Api\TaxonomyCatalog;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
+use App\Features\Events\EntryPoints\Admin\Resources\EventAdminHooks;
 use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
 use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
 use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
@@ -171,6 +172,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new EventAdminHooks);
+
         $this->app->bind(TaxonomyCatalog::class, PackageTaxonomyCatalog::class);
         $this->app->tag([PendingEventsStat::class], 'admin.stats');
 

@@ -10,6 +10,7 @@ use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Api\ReferenceWorkflow;
+use App\Features\References\EntryPoints\Admin\Resources\ReferenceAdminHooks;
 use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\EntryPoints\Filament\Stats\PendingReferencesStat;
@@ -31,6 +32,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new ReferenceAdminHooks);
+
         $this->app->bind(ReferenceCatalog::class, EloquentReferenceCatalog::class);
         $this->app->tag([PendingReferencesStat::class], 'admin.stats');
 

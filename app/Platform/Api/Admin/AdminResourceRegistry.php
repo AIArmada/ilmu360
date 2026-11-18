@@ -5,24 +5,8 @@ namespace App\Platform\Api\Admin;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
-use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
-use App\Features\Places\EntryPoints\Filament\Resources\Venues\VenueResource;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Features\Places\Models\Venue;
 use App\Platform\Admin\ExcludedFromAdminApi;
-use App\Platform\Location\AddressAssignments;
-use App\Shared\Cache\SelectionCatalogCache;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Prayer\PrayerReference;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
@@ -128,6 +112,7 @@ class AdminResourceRegistry
 
     public function __construct(
         private readonly AdminResourceMutationService $mutationService,
+        private readonly AdminResourceHookRegistry $hooks,
     ) {}
 
     /**
@@ -212,14 +197,7 @@ class AdminResourceRegistry
         $pages = $resourceClass::getPages();
         $supportsMutation = $this->mutationService->supports($resourceClass);
         $filters = $this->filterMetadata($resourceClass);
-        $dateSemantics = $resourceClass === EventResource::class
-            ? [
-                'storage_timezone' => 'UTC',
-                'viewer_timezone' => 'resolved at request time',
-                'local_fields' => ['starts_at_local', 'starts_on_local_date', 'ends_at_local'],
-                'local_date_filter' => 'starts_on_local_date',
-            ]
-            : null;
+        $dateSemantics = $this->hooks->for($resourceClass)?->dateSemantics($resourceClass);
 
         return $this->metadataCache[$resourceClass] = [
             'key' => $key,
@@ -300,11 +278,7 @@ class AdminResourceRegistry
     public function queryFor(string $resourceClass): Builder
     {
         /** @var Builder<Model> $query */
-        $query = match ($resourceClass) {
-            EventResource::class => Event::query(),
-            VenueResource::class => Venue::query(),
-            default => $resourceClass::getEloquentQuery(),
-        };
+        $query = $resourceClass::getEloquentQuery();
 
         $this->applyDefaultApiEagerLoads($query);
 
@@ -358,85 +332,7 @@ class AdminResourceRegistry
             return $this->filtersCache[$resourceClass];
         }
 
-        return $this->filtersCache[$resourceClass] = match ($resourceClass) {
-            EventResource::class => [
-                [
-                    'key' => 'status',
-                    'label' => 'Status',
-                    'type' => 'select',
-                    'options' => [
-                        'draft' => 'Draft',
-                        'pending' => 'Pending Review',
-                        'needs_changes' => 'Needs Changes',
-                        'approved' => 'Approved',
-                        'cancelled' => 'Cancelled',
-                        'rejected' => 'Rejected',
-                    ],
-                ],
-                [
-                    'key' => 'visibility',
-                    'label' => 'Visibility',
-                    'type' => 'select',
-                    'options' => collect(EventVisibility::cases())->mapWithKeys(
-                        static fn (EventVisibility $visibility): array => [$visibility->value => $visibility->getLabel()]
-                    )->all(),
-                ],
-                [
-                    'key' => 'event_format',
-                    'label' => 'Event Format',
-                    'type' => 'select',
-                    'options' => collect(EventFormat::cases())->mapWithKeys(
-                        static fn (EventFormat $format): array => [$format->value => $format->getLabel()]
-                    )->all(),
-                ],
-                [
-                    'key' => 'event_category_ids',
-                    'label' => 'Event Categories',
-                    'type' => 'select',
-                    'options' => app(EventCategoryCatalog::class)->options(),
-                ],
-                [
-                    'key' => 'timing_mode',
-                    'label' => 'Timing Mode',
-                    'type' => 'select',
-                    'options' => collect(TimingMode::cases())->mapWithKeys(
-                        static fn (TimingMode $timingMode): array => [$timingMode->value => $timingMode->label()]
-                    )->all(),
-                ],
-                [
-                    'key' => 'prayer_reference',
-                    'label' => 'Prayer Reference',
-                    'type' => 'select',
-                    'options' => collect(PrayerReference::cases())->mapWithKeys(
-                        static fn (PrayerReference $reference): array => [$reference->value => $reference->label()]
-                    )->all(),
-                ],
-                [
-                    'key' => 'published',
-                    'label' => 'Published',
-                    'type' => 'boolean',
-                ],
-            ],
-            PersonResource::class => [
-                [
-                    'key' => 'status',
-                    'label' => 'Status',
-                    'type' => 'select',
-                    'options' => [
-                        'pending' => 'Pending',
-                        'verified' => 'Verified',
-                        'rejected' => 'Rejected',
-                        'inactive' => 'Inactive',
-                    ],
-                ],
-                [
-                    'key' => 'has_events',
-                    'label' => 'Has Events',
-                    'type' => 'boolean',
-                ],
-            ],
-            default => [],
-        };
+        return $this->filtersCache[$resourceClass] = $this->hooks->for($resourceClass)?->filters($resourceClass) ?? [];
     }
 
     /**
@@ -600,14 +496,11 @@ class AdminResourceRegistry
         return [
             'id' => (string) $record->getKey(),
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->communicationsRecordTitle($record) ?? $this->htmlableToString(
-                $record instanceof Event
-                    ? ($record->title ?? $resourceClass::getRecordTitle($record))
-                    : $resourceClass::getRecordTitle($record)
-            ),
-            'attributes' => $record instanceof Event
-                ? EventPayloadData::fromModel($record)->toArray()
-                : $this->serializeAttributes($record),
+            'title' => $this->communicationsRecordTitle($record)
+                ?? $this->hooks->for($resourceClass)?->recordTitle($record)
+                ?? $this->htmlableToString($resourceClass::getRecordTitle($record)),
+            'attributes' => $this->hooks->for($resourceClass)?->recordAttributes($record)
+                ?? $this->serializeAttributes($record),
             'abilities' => $this->recordAbilities($resourceClass, $record),
             'panel_routes' => [
                 'view' => array_key_exists('view', $pages) ? $this->resourcePanelUrl($resourceClass, 'view', $record) : null,
@@ -631,17 +524,14 @@ class AdminResourceRegistry
 
         $this->loadMissingApiRelations($record);
 
-        $attributes = $record instanceof Event
-            ? EventPayloadData::fromModel($record)->toArray()
-            : $this->serializeAttributes($record);
+        $attributes = $this->hooks->for($resourceClass)?->recordAttributes($record)
+            ?? $this->serializeAttributes($record);
 
         return [
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->communicationsRecordTitle($record) ?? $this->htmlableToString(
-                $record instanceof Event
-                    ? ($record->title ?? $resourceClass::getRecordTitle($record))
-                    : $resourceClass::getRecordTitle($record)
-            ),
+            'title' => $this->communicationsRecordTitle($record)
+                ?? $this->hooks->for($resourceClass)?->recordTitle($record)
+                ?? $this->htmlableToString($resourceClass::getRecordTitle($record)),
             'attributes' => $this->stripResponsiveImages($attributes),
             'abilities' => $this->recordAbilities($resourceClass, $record),
             'panel_routes' => [
@@ -831,21 +721,12 @@ class AdminResourceRegistry
         }
 
         if (method_exists($record, 'primaryAddress')) {
-            /** @var Institution|Person|Venue $record */
             $address = $record->primaryAddress();
 
             $attributes['address'] = $address instanceof Address
                 ? $address->toArray()
                 : [];
 
-            if ($record instanceof Person && is_array($attributes['address'])) {
-                $attributes['address'] = Arr::only($attributes['address'], [
-                    'country_id',
-                    'state_id',
-                    'city_id',
-                ]);
-                $attributes['address']['area_assignments'] = AddressAssignments::forAddress($address);
-            }
         }
 
         // Product API keys (not package relation names).
@@ -865,17 +746,11 @@ class AdminResourceRegistry
             unset($attributes['socialProfiles']);
         }
 
-        if ($record instanceof Reference) {
-            $authors = $record->effectiveAuthorsStructured();
-
-            $attributes['authors'] = $authors;
-            $attributes['author_ids'] = array_column($authors, 'id');
-            $attributes['language_label'] = app(SelectionCatalogCache::class)->languageLabel($record->language);
-
-            unset($attributes['authorLinks'], $attributes['contributors']);
-        }
-
         unset($attributes['addresses']);
+
+        foreach ($this->hooks->all() as $hooks) {
+            $attributes = $hooks->augmentAttributes($record, $attributes);
+        }
 
         return $this->sanitizeCommunicationsAttributes($record, $attributes);
     }
