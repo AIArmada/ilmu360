@@ -8,6 +8,112 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
     steps:
       - uses: actions/checkout@v6
-      - run: python3 scripts/shared-platform-utilities-cutover.py
+        with:
+          fetch-depth: 0
+      - name: Prepare sibling commerce
+        run: git clone --depth 1 https://github.com/AIArmada/commerce.git ../commerce
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql, gd
+          coverage: none
+          tools: composer:v2
+      - name: Install app dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          touch database/database.sqlite
+          composer install --no-interaction --no-progress --prefer-dist
+      - name: Capture baseline public transport
+        run: |
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.before
+          php artisan route:list --json > /tmp/routes.before
+      - name: Relocate value and infrastructure implementations
+        run: python3 scripts/shared-platform-utilities-cutover.py
+      - name: Verify class identity, routes and commands
+        run: |
+          composer dump-autoload --no-scripts --optimize
+          php artisan optimize:clear
+          php artisan list --raw | LC_ALL=C sort > /tmp/commands.after
+          php artisan route:list --json > /tmp/routes.after
+          diff -u /tmp/commands.before /tmp/commands.after
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/routes.before'))==json.load(open('/tmp/routes.after'))
+          paths=[
+            'app/Platform/Routing/ShareTrackingUrlService.php',
+            'app/Platform/Mcp/McpFilePayloadNormalizer.php',
+            'app/Platform/Mcp/McpWriteSchemaFormatter.php',
+            'app/Shared/ShareTracking/SealedGuestIdentityException.php',
+            'app/Shared/ShareTracking/ShareProfileNotEligibleException.php',
+            'app/Shared/Discovery/SearchSignal.php',
+            'app/Platform/Admin/AdminValidateOnlyRemediationPlanner.php',
+          ]
+          for path in paths:
+              source=open(path).read()
+              assert source.startswith('<?php')
+          print('All 7 relocated implementations present; public transport unchanged')
+          PY
+          php artisan tinker --execute="if (!(new \\App\\Platform\\Mcp\\McpWriteSchemaFormatter instanceof \\App\\Platform\\Mcp\\McpWriteSchemaFormatter)) { throw new \\RuntimeException('MCP formatter autoload failed'); }"
+          php artisan tinker --execute="if (!class_exists(\\App\\Platform\\Routing\\ShareTrackingUrlService::class)) { throw new \\RuntimeException('Share URL service autoload failed'); }"
+      - name: Format, architecture, types and Rector
+        run: |
+          git add -A
+          vendor/bin/pint --dirty
+          git add -A
+          git diff --cached --check
+          composer architecture:test
+          vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+          vendor/bin/rector process --dry-run
+      - name: MCP payload and share-link regression
+        run: |
+          vendor/bin/pest --compact tests/Unit/McpFilePayloadNormalizerTest.php tests/Feature/ShareTracking/Wp3ShortLinkTest.php tests/Feature/Api/Admin/AdminApiMcpParityTest.php
+      - name: Lint, delete one-time scaffolding and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r f; do php -l "$f" >/dev/null; done < <(git diff --cached --name-only --diff-filter=ACMR | grep -E '^app/.*\.php$')
+          test ! -f app/Services/ShareTracking/ShareTrackingUrlService.php
+          test ! -f app/Support/Mcp/McpFilePayloadNormalizer.php
+          test ! -f app/Support/Mcp/McpWriteSchemaFormatter.php
+          test ! -f app/Support/ShareTracking/SealedGuestIdentityException.php
+          test ! -f app/Support/ShareTracking/ShareProfileNotEligibleException.php
+          test ! -f app/Support/Discovery/SearchSignal.php
+          test ! -f app/Support/Api/Admin/AdminValidateOnlyRemediationPlanner.php
+          rm -f scripts/shared-platform-utilities-cutover.py .github/workflows/shared-platform-utilities-cutover.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "ilmu360-refactor-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "refactor: rehome shared values and platform utility adapters"
+          git push origin HEAD:refactor
