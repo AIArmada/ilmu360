@@ -6,7 +6,7 @@ namespace App\Features\References\Queries;
 
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Reports\ReportSubject;

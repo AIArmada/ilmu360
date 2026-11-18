@@ -7,7 +7,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -18,6 +18,8 @@ use Illuminate\Support\Str;
  */
 class InstitutionFactory extends Factory
 {
+    protected $model = Institution::class;
+
     /**
      * Define the model's default state.
      *

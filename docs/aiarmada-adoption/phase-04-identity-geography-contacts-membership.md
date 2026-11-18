@@ -193,7 +193,7 @@ Replace app-owned support domains with package-owned UUID addressing, contact/so
 - [ ] Generate pivot migration via `MakePivotCommand` for each subject type
 - [ ] Keep media evidence collection on `MembershipApplication` app extension
 - [ ] Remove 14 custom `App\Actions\Membership\*` actions
-- [ ] Remove `App\Models\MembershipClaim`, `App\Models\MemberInvitation`, custom enums
+- [ ] Remove `App\Models\MembershipClaim`, `App\Features\Membership\Models\MemberInvitation`, custom enums
 - [ ] Remove `Team` model and `team_members` table if no longer needed
 
 ## Verification

@@ -1,8 +1,8 @@
 <?php
 
-use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Person;
-use App\Models\Venue;
+use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Venue;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;

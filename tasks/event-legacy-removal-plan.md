@@ -1,7 +1,7 @@
 # Event Legacy Removal Plan
 
 ## Objective
-Remove the legacy accessor/mutator layer from `App\Models\Event`, making all code use package-native paths for event data.
+Remove the legacy accessor/mutator layer from `App\Features\Events\Models\Event`, making all code use package-native paths for event data.
 
 ## Strategy
 Remove the magic layer first, then fix all resulting errors. This ensures no hidden callers are missed.

@@ -29,7 +29,7 @@ Key rules:
 
 - `GET /api/v1/admin/{resourceKey}/schema` documents the raw HTTP admin contract.
 - The admin MCP server publishes sanitized write schemas; destructive `clear_*` media flags are omitted, while supported media/file fields use `filename`, optional `mime_type`, and exactly one `content_base64`, `content_url`, or `download_url` source. Standalone event image tools also accept `file_id` metadata.
-- Public/mobile event detail payload changes do not automatically imply MCP event-record changes. For example, the public `GET /api/v1/events/{event}` surface now exposes normalized reference cover aliases for native clients, but MCP event records still come from the admin/member resource services rather than `App\Http\Controllers\Api\EventController`.
+- Public/mobile event detail payload changes do not automatically imply MCP event-record changes. For example, the public `GET /api/v1/events/{event}` surface now exposes normalized reference cover aliases for native clients, but MCP event records still come from the admin/member resource services rather than `App\Features\Events\EntryPoints\Http\EventController`.
 - Event record detail through `admin-get-record` and `member-get-record` now embeds the same public change-surface projections as the public event detail payload under `data.record.attributes.active_change_notice`, `data.record.attributes.change_announcements`, and `data.record.attributes.replacement_event`.
 - Those MCP event-detail projections resolve replacement chains to the latest still-reachable public or unlisted target and omit stale unreachable replacements rather than exposing dead public links.
 - `admin-get-record` and `member-get-record` responses now embed `contacts` and `social_media` alongside `address` directly in `data.record.attributes` for resources that expose those relations (institutions, speakers, venues, and references with social media). The fetch-modify-resend flow for these collection fields is now directly actionable from a single get-record call without a separate relation-traversal step.
@@ -47,13 +47,13 @@ If you are writing or reviewing an AI-generated report, read the raw HTTP admin 
 ### Admin MCP
 
 - Route: `/mcp/admin`
-- Server class: `App\Mcp\Servers\AdminServer`
+- Server class: `App\Platform\Mcp\Servers\AdminServer`
 - Intended for admin workflows such as resource discovery, record browsing, record detail, named relation traversal, schema discovery, and supported create/update operations.
 
 ### Member MCP
 
 - Route: `/mcp/member`
-- Server class: `App\Mcp\Servers\MemberServer`
+- Server class: `App\Platform\Mcp\Servers\MemberServer`
 - Intended for Ahli/member workflows such as resource discovery, record browsing, record detail, schema discovery, supported updates on writable member-visible resources, contribution-request queues, and membership applications.
 
 Important connector-surface rule:

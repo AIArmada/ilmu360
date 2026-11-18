@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Models\Event;
-use App\Models\ModerationReview;
+use App\Features\Events\Models\Event;
+use App\Platform\Moderation\Models\ModerationReview;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;

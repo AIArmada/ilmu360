@@ -2,9 +2,9 @@
 
 use App\Features\Events\Actions\Submission\PersistOccurrenceSubmissionAction;
 use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
 use Database\Seeders\AIArmada\EventRoleSeeder;

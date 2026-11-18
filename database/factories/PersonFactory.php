@@ -16,10 +16,10 @@ use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Api\SpeakerStatus;
-use App\Models\Affiliation;
-use App\Models\Institution;
-use App\Models\Language;
-use App\Models\Person;
+use App\Features\Persons\Models\Affiliation;
+use App\Features\Institutions\Models\Institution;
+use App\Platform\Language\Models\Language;
+use App\Features\Persons\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -28,6 +28,8 @@ use Illuminate\Support\Str;
  */
 class PersonFactory extends Factory
 {
+    protected $model = Person::class;
+
     public function definition(): array
     {
         $maleFirstNames = [

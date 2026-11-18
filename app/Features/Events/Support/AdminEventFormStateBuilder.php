@@ -12,7 +12,7 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Submission\SubmissionTimingPolicy;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use BackedEnum;
 use Illuminate\Support\Collection;
 
@@ -59,7 +59,7 @@ final readonly class AdminEventFormStateBuilder
     }
 
     /**
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @return array<string, mixed>
      */
     public function formStateForRecord(PackageEvent $event): array

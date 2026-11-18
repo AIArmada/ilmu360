@@ -2,8 +2,8 @@
 
 use App\Features\Events\Api\EventModeration;
 use App\Features\Reports\Models\Report;
-use App\Models\Event;
-use App\Models\Reference;
+use App\Features\Events\Models\Event;
+use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Events\Enums\EventVisibility;
 use Database\Seeders\PermissionSeeder;

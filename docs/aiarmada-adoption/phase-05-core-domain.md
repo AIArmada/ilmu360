@@ -154,7 +154,7 @@ Replace app's custom engagement code with package traits.
 ### WP-14 — References (Low effort)
 
 **Changes:**
-- Replace `App\Models\Reference` with `AIArmada\References\Models\Reference` (very similar schema)
+- Replace `App\Features\References\Models\Reference` with `AIArmada\References\Models\Reference` (very similar schema)
 - Keep app's media collections (cover, thumb conversion) as app extension
 - Keep app's `EventRelation` pivot (reference-to-event linking)
 - Keep app's Filament `ReferenceResource` (no package Filament available)
@@ -164,7 +164,7 @@ Replace app's custom engagement code with package traits.
 
 **Changes:**
 - Replace `App\Models\Block` with package `Block` model + `HasBlocks` trait on User/Speaker
-- Replace `App\Models\ModerationReview` with package `ModerationAction` model + `HasModerationActions` trait
+- Replace `App\Platform\Moderation\Models\ModerationReview` with package `ModerationAction` model + `HasModerationActions` trait
 - Keep `App\Models\Report` as app-owned (evidence files, submissions — no package equivalent)
 - Wire `ModerationAction` into event submission approval flow
 - Keep app's Filament `ModerationQueue` page and report resources

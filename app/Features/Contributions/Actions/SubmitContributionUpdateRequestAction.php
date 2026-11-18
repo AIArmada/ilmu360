@@ -23,7 +23,7 @@ class SubmitContributionUpdateRequestAction
 
     /**
      * @param  array<string, mixed>  $proposedData
-     * @return \App\Models\ContributionRequest
+     * @return \App\Features\Contributions\Models\ContributionRequest
      */
     public function handle(
         Model $entity,

@@ -1,7 +1,7 @@
 <?php
 
-use App\Data\Api\Event\EventPayloadData;
-use App\Models\Event;
+use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
+use App\Features\Events\Models\Event;
 
 it('keeps the stable event payload fields serialized at the API boundary', function () {
     $event = Event::factory()->featured()->create([

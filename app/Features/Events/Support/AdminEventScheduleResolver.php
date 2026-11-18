@@ -8,9 +8,9 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\PrayerLocation;
+use App\Features\Prayer\Support\PrayerLocation;
 use App\Shared\Prayer\PrayerTargetSelector;
-use App\Shared\Submission\SubmissionTimingPolicy;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\Carbon;
 use Illuminate\Support\Carbon as IlluminateCarbon;
@@ -29,7 +29,7 @@ final readonly class AdminEventScheduleResolver
     /**
      * @param  array<string, mixed>  $data
      * @param  PreparedAdminEventInput  $input
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @return array{
      *     schedule: array<string, mixed>,
      *     schedule_kind: ScheduleKind,
@@ -205,7 +205,7 @@ final readonly class AdminEventScheduleResolver
      * inputs are unchanged. Provenance is restored from the persisted
      * expression after normalization, never from a fresh resolution.
      *
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @return array{clock: string, date: string, starts_at: string}
      */
     private function persistedStartClock(PackageEvent $event, string $timezone): array
@@ -310,7 +310,7 @@ final readonly class AdminEventScheduleResolver
         return array_any(['event_format', 'primary_organizer_id', 'institution_id', 'venue_id'], fn ($key) => $this->normalizeTimingScalar($state[$key] ?? null) !== $this->normalizeTimingScalar($recordState[$key] ?? null));
     }
 
-    /** @param  \App\Models\Event  $event */
+    /** @param  \App\Features\Events\Models\Event  $event */
     private function pinnedPrayerCountry(PackageEvent $event): ?string
     {
         $event->loadMissing('timeExpressions');

@@ -12,7 +12,7 @@
 
 <div class="animate-fade-in-up" style="--reveal-d: 100ms;">
     <div class="flex flex-wrap gap-2">
-        @if($event->status instanceof \App\States\EventStatus\Draft)
+        @if($event->status instanceof \App\Features\Events\States\EventStatus\Draft)
             <span
                 class="inline-flex items-center gap-1.5 rounded-full border border-slate-400/50 bg-slate-400/20 px-3 py-1 text-xs font-semibold tracking-wide text-slate-200 backdrop-blur-md">
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -21,7 +21,7 @@
                 </svg>
                 {{ __('Draf') }}
             </span>
-        @elseif($event->status instanceof \App\States\EventStatus\Pending)
+        @elseif($event->status instanceof \App\Features\Events\States\EventStatus\Pending)
             <span
                 class="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold tracking-wide text-amber-300 backdrop-blur-md">
                 <span class="relative flex size-2"><span
@@ -29,7 +29,7 @@
                         class="relative inline-flex size-2 rounded-full bg-amber-500"></span></span>
                 {{ __('Menunggu Kelulusan') }}
             </span>
-        @elseif($event->status instanceof \App\States\EventStatus\Cancelled)
+        @elseif($event->status instanceof \App\Features\Events\States\EventStatus\Cancelled)
             <span
                 class="inline-flex items-center gap-1.5 rounded-full border border-rose-400/40 bg-rose-500/15 px-3 py-1 text-xs font-semibold tracking-wide text-rose-200 backdrop-blur-md">
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -40,7 +40,7 @@
             </span>
         @endif
 
-        @php($firstEventCategory = app(\App\Platform\Ui\Events\EventCategoryPresenter::class)->forEvent($event)[0] ?? null)
+        @php($firstEventCategory = app(\App\Features\Events\EntryPoints\Ui\EventCategoryPresenter::class)->forEvent($event)[0] ?? null)
 
         @if($firstEventCategory)
             <span

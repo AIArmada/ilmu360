@@ -32,7 +32,7 @@ A full evidence-based audit of `aiarmada/*` adoption in ilmu360, verified agains
 ```bash
 rg -n "AIArmada\\\\Events\\\\(Actions|Services)" app/        # confirm zero (baseline)
 rg -n "'registrations'" app/ routes/                          # confirm orphan
-php artisan tinker --execute 'echo (new App\Models\Registration)->getTable();'   # expect event_registrations
+php artisan tinker --execute 'echo (new App\Features\Registration\Models\Registration)->getTable();'   # expect event_registrations
 vendor/bin/pest --parallel --filter=RegisterForEvent          # see current coverage (likely none)
 ```
 

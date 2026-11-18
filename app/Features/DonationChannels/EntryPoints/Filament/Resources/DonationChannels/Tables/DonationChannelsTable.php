@@ -1,0 +1,118 @@
+<?php
+
+namespace App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Tables;
+
+use App\Features\DonationChannels\Api\DonationChannelWorkflow;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Shared\Directory\Enums\DonationChannelStatus;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Throwable;
+
+class DonationChannelsTable
+{
+    public static function configure(Table $table, bool $showOwnerColumn = true): Table
+    {
+        $columns = [
+            SpatieMediaLibraryImageColumn::make('qr')
+                ->label('QR')
+                ->collection('qr')
+                ->conversion('thumb')
+                ->square()
+                ->size(52),
+        ];
+
+        if ($showOwnerColumn) {
+            $columns[] = TextColumn::make('donatable.name')
+                ->label('Owner')
+                ->description(fn ($record) => class_basename($record->donatable_type))
+                ->searchable()
+                ->sortable()
+                ->url(function ($record): ?string {
+                    if (! $record->donatable) {
+                        return null;
+                    }
+
+                    return match ($record->donatable::class) {
+                        Institution::class => InstitutionResource::getUrl('edit', ['record' => $record->donatable->id]),
+                        Person::class => PersonResource::getUrl('edit', ['record' => $record->donatable->id]),
+                        default => null,
+                    };
+                });
+        }
+
+        return $table
+            ->columns([
+                ...$columns,
+                TextColumn::make('recipient')
+                    ->label('Recipient')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('method_display')
+                    ->label('Method')
+                    ->badge()
+                    ->color(fn ($state) => match ($state) {
+                        'Bank Account' => 'info',
+                        'DuitNow' => 'success',
+                        'E-Wallet' => 'warning',
+                        default => 'gray',
+                    }),
+                TextColumn::make('payment_details')
+                    ->label('Details')
+                    ->searchable(['bank_name', 'ewallet_handle']),
+                TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (mixed $state): string => $state instanceof DonationChannelStatus ? $state->color() : 'gray')
+                    ->sortable(),
+                IconColumn::make('is_default')
+                    ->label('Default')
+                    ->boolean(),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                //
+            ])
+            ->recordActions([
+                EditAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->authorizeIndividualRecords('delete')
+                        ->using(function (DeleteBulkAction $action, Collection $records): void {
+                            try {
+                                $deleted = app(DonationChannelWorkflow::class)->delete(
+                                    $records->modelKeys(),
+                                );
+                            } catch (Throwable $exception) {
+                                report($exception);
+
+                                $action->reportCompleteBulkProcessingFailure();
+
+                                return;
+                            }
+
+                            if ($deleted > 0) {
+                                $action->reportBulkProcessingSuccessfulRecordsCount($deleted);
+                            }
+
+                            if ($deleted < $records->count()) {
+                                $action->reportBulkProcessingFailure();
+                            }
+                        }),
+                ]),
+            ]);
+    }
+}

@@ -23,7 +23,7 @@ use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\Active;
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;

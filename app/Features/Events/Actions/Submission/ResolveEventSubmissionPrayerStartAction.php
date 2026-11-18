@@ -6,7 +6,7 @@ namespace App\Features\Events\Actions\Submission;
 
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\PrayerLocation;
+use App\Features\Prayer\Support\PrayerLocation;
 
 /** Resolve a public submission's prayer clock from its selected location. */
 final readonly class ResolveEventSubmissionPrayerStartAction

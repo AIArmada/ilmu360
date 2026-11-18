@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Illuminate\Support\Facades\Storage;

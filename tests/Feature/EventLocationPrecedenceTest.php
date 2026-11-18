@@ -2,11 +2,11 @@
 
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
-use App\Data\Api\Frontend\Search\EventListData;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Venue;
-use App\Support\Events\EventDetailPresenter;
+use App\Features\Discovery\EntryPoints\Http\Data\EventListData;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Places\Models\Venue;
+use App\Features\Events\Services\EventDetailPresenter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 

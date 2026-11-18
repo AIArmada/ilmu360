@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\Seating\Models\SeatMap;
 use App\Features\Events\Actions\Authoring\SyncEventSeatMapsAction;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 
 it('reassigns selected seat maps and deletes unselected maps', function (): void {
     $event = Event::factory()->create();

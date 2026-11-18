@@ -54,7 +54,7 @@ final readonly class ApproveMembershipApplicationAction
     }
 
     /**
-     * @return class-string<\App\Models\MembershipApplication>
+     * @return class-string<\App\Features\Membership\Models\MembershipApplication>
      */
     private function applicationClass(): string
     {

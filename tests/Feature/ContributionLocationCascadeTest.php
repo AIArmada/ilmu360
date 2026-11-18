@@ -2,7 +2,7 @@
 
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
-use App\Livewire\Pages\Contributions\SubmitInstitution;
+use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitInstitution;
 use App\Models\User;
 use Livewire\Livewire;
 

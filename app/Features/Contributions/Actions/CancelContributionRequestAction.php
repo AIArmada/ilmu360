@@ -11,8 +11,8 @@ class CancelContributionRequestAction
     use AsAction;
 
     /**
-     * @param  \App\Models\ContributionRequest  $request
-     * @return \App\Models\ContributionRequest
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
+     * @return \App\Features\Contributions\Models\ContributionRequest
      */
     public function handle(Model $request, Model $proposer): Model
     {

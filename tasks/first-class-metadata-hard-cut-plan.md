@@ -240,7 +240,7 @@ Tasks:
 Acceptance:
 
 - The package default models work without app overrides.
-- The application can configure App\Models\EventSubmission and eager-load submissions.submitter from App\Models\Event.
+- The application can configure App\Features\Events\Models\EventSubmission and eager-load submissions.submitter from App\Features\Events\Models\Event.
 
 ### Change set P04 — Occurrence lifecycle as the only schedule state
 
@@ -551,7 +551,7 @@ Acceptance:
 Modify:
 
 - Event creation/update actions
-- App\Models\Event and App\Models\EventSubmission
+- App\Features\Events\Models\Event and App\Features\Events\Models\EventSubmission
 - EventPolicy
 - event management checks in Livewire and API controllers
 - App\Models\User delete/restore snapshot logic
@@ -856,8 +856,8 @@ Acceptance:
 
 Modify:
 
-- App\Models\Event
-- App\Models\Builders\EventBuilder
+- App\Features\Events\Models\Event
+- App\Features\Events\Models\Builders\EventBuilder
 - event factories/seeders
 - all API/MCP/search/data classes that list metadata-backed fields
 

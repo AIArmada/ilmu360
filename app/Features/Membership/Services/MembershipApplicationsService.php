@@ -170,7 +170,7 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
     }
 
     /**
-     * @return Builder<\App\Models\MembershipApplication>
+     * @return Builder<\App\Features\Membership\Models\MembershipApplication>
      */
     private function query(): Builder
     {

@@ -5,14 +5,14 @@
     use App\Shared\Events\Enums\EventKeyPersonRole;
     use App\Shared\Prayer\EventPrayerTime;
     use App\Shared\Events\Enums\EventVisibility;
-    use App\Models\Institution;
-    use App\Models\Reference;
-    use App\Models\Space;
-    use App\Models\Person;
+    use App\Features\Institutions\Models\Institution;
+    use App\Features\References\Models\Reference;
+    use App\Features\Places\Models\Space;
+    use App\Features\Persons\Models\Person;
     use AIArmada\Events\Models\EventTerm;
-    use App\Models\Venue;
+    use App\Features\Places\Models\Venue;
     use AIArmada\Addressing\Support\AddressCountryResolver;
-    use App\Shared\Submission\SubmissionTimingPolicy;
+    use App\Features\Events\Support\SubmissionTimingPolicy;
     use Illuminate\Support\Carbon;
     use Illuminate\Support\Collection;
     use Illuminate\Support\Str;
@@ -152,7 +152,7 @@
 
     $languageIds = $asList($get('languages'));
     $preferredLanguageLabels = \App\Platform\Language\MalaysiaLanguageCatalog::labels();
-    $languageMap = \App\Models\Language::query()
+    $languageMap = \App\Platform\Language\Models\Language::query()
         ->whereIn('id', $languageIds)
         ->get(['id', 'code', 'name'])
         ->mapWithKeys(fn ($language): array => [

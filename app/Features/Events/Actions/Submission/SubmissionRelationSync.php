@@ -77,7 +77,7 @@ final class SubmissionRelationSync
      * Livewire media-only callback share one writer. The pivot defaults
      * (reference, book, public) apply; sort order preserves input order.
      *
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      */
     public function syncEventReferences(PackageEvent $event, mixed $references): void
     {

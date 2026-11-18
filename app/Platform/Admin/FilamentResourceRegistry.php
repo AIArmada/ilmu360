@@ -13,13 +13,17 @@ use InvalidArgumentException;
  */
 final class FilamentResourceRegistry
 {
-    /** @var list<class-string<\Filament\Resources\Resource>> */
+    public const string PANEL_ADMIN = 'admin';
+
+    public const string PANEL_AHLI = 'ahli';
+
+    /** @var array<string, list<class-string<Resource>>> */
     private array $resources = [];
 
     /**
-     * @param  class-string<\Filament\Resources\Resource>  $resource
+     * @param  class-string<Resource>  $resource
      */
-    public function register(string $resource): void
+    public function register(string $resource, string $panel = self::PANEL_ADMIN): void
     {
         if (! is_subclass_of($resource, Resource::class)) {
             throw new InvalidArgumentException(sprintf(
@@ -29,16 +33,16 @@ final class FilamentResourceRegistry
             ));
         }
 
-        if (! in_array($resource, $this->resources, true)) {
-            $this->resources[] = $resource;
+        if (! in_array($resource, $this->resources[$panel] ?? [], true)) {
+            $this->resources[$panel][] = $resource;
         }
     }
 
     /**
-     * @return list<class-string<\Filament\Resources\Resource>>
+     * @return list<class-string<Resource>>
      */
-    public function all(): array
+    public function all(string $panel = self::PANEL_ADMIN): array
     {
-        return $this->resources;
+        return $this->resources[$panel] ?? [];
     }
 }

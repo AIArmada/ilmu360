@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
-use App\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Contracts\Console\Kernel;

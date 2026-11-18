@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 
 return [
     'ticketable_types' => [

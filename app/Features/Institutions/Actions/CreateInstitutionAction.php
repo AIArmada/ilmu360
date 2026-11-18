@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Actions;
 
 use App\Features\Membership\Api\MembershipCommands;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;

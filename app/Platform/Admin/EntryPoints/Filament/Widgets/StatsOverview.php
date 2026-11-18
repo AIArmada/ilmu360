@@ -1,0 +1,111 @@
+<?php
+
+namespace App\Platform\Admin\EntryPoints\Filament\Widgets;
+
+use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
+use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
+use App\Features\Places\EntryPoints\Filament\Resources\Venues\VenueResource;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Places\Models\Venue;
+use Filament\Widgets\StatsOverviewWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+
+class StatsOverview extends StatsOverviewWidget
+{
+    #[\Override]
+    protected static bool $isLazy = false;
+
+    #[\Override]
+    protected static ?int $sort = 1;
+
+    #[\Override]
+    protected ?string $pollingInterval = '60s';
+
+    #[\Override]
+    protected ?string $heading = 'Needs Approval';
+
+    #[\Override]
+    protected ?string $description = 'Start here. These counts lead directly to the pending review work.';
+
+    #[\Override]
+    protected function getStats(): array
+    {
+        $pendingEvents = Event::query()
+            ->where('status', 'pending')
+            ->count();
+
+        $pendingPersons = Person::query()
+            ->where('status', 'pending')
+            ->count();
+
+        $pendingInstitutions = Institution::query()
+            ->where('status', 'pending')
+            ->count();
+
+        $pendingReferences = Reference::query()
+            ->where('status', 'pending')
+            ->count();
+
+        $pendingVenues = Venue::query()
+            ->where('status', 'pending')
+            ->count();
+
+        return [
+            Stat::make('Events Needing Approval', $pendingEvents)
+                ->description('Open pending moderation queue')
+                ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
+                ->color(fn (): string => $pendingEvents > 0 ? 'warning' : 'success')
+                ->url($this->moderationQueueUrl()),
+            Stat::make('Persons Needing Approval', $pendingPersons)
+                ->description('Review pending persons')
+                ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
+                ->color(fn (): string => $pendingPersons > 0 ? 'warning' : 'success')
+                ->url($this->pendingPersonsUrl()),
+            Stat::make('Institutions Needing Approval', $pendingInstitutions)
+                ->description('Review pending institutions')
+                ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
+                ->color(fn (): string => $pendingInstitutions > 0 ? 'warning' : 'success')
+                ->url($this->pendingInstitutionsUrl()),
+            Stat::make('References Needing Approval', $pendingReferences)
+                ->description('Review pending references')
+                ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
+                ->color(fn (): string => $pendingReferences > 0 ? 'warning' : 'success')
+                ->url($this->pendingReferencesUrl()),
+            Stat::make('Venues Needing Approval', $pendingVenues)
+                ->description('Review pending venues')
+                ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
+                ->color(fn (): string => $pendingVenues > 0 ? 'warning' : 'success')
+                ->url($this->pendingVenuesUrl()),
+        ];
+    }
+
+    protected function moderationQueueUrl(): string
+    {
+        return ModerationQueue::getUrl(panel: 'admin').'?tab=pending';
+    }
+
+    protected function pendingPersonsUrl(): string
+    {
+        return PersonResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending';
+    }
+
+    protected function pendingInstitutionsUrl(): string
+    {
+        return InstitutionResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending';
+    }
+
+    protected function pendingReferencesUrl(): string
+    {
+        return ReferenceResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending';
+    }
+
+    protected function pendingVenuesUrl(): string
+    {
+        return VenueResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending';
+    }
+}

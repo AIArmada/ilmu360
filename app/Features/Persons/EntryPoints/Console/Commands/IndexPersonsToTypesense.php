@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\EntryPoints\Console\Commands;
 
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Platform\Search\AbstractIndexToScout;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;

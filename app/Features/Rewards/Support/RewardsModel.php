@@ -32,7 +32,7 @@ final class RewardsModel
     }
 
     /**
-     * @return Builder<\App\Models\RewardDigestSlot>
+     * @return Builder<\App\Features\Rewards\Models\RewardDigestSlot>
      */
     public static function digestSlotQuery(): Builder
     {

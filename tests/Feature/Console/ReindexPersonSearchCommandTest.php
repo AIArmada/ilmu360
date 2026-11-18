@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Person;
-use App\Support\Search\PersonSearchService;
+use App\Features\Persons\Models\Person;
+use App\Features\Persons\Services\PersonSearchService;
 use Illuminate\Support\Facades\DB;
 
 it('rebuilds stale person search rows and searchable names', function () {

@@ -669,7 +669,7 @@ Do NOT conflate these during refactor:
 | `Actions/Events/SaveAdminEventAction.php` | **[UPDATE]** organizer union. |
 | `Actions/Reports/*.php` | **[UPDATE]** report subject refs. |
 | `Actions/Contributions/*.php` | **[UPDATE]** dedup on honorific/pre_nominal/post_nominal → title_assignments. |
-| `Services/ContributionEntityMutationService.php` | **[REWRITE]** `createSpeaker` → `createPerson`, field defs for relational title system. |
+| `Services/ContributionEntityStateService.php` | **[REWRITE]** `createSpeaker` → `createPerson`, field defs for relational title system. |
 | `Services/EventKeyPersonSyncService.php` | **[UPDATE]** involveable_type. |
 | `Services/{EventSearchService,PostgresEventDiscovery,TypesenseEventDiscovery}.php` | **[UPDATE]** search field names, `speakers.searchable_name` → `persons.searchable_name`. |
 | `Services/CalendarService.php` | **[UPDATE]** Penceramah label source. |

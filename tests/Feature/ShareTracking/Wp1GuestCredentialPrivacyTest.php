@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\Communications\Contracts\PayloadRedactor;
 use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 use Tests\TestCase;
 

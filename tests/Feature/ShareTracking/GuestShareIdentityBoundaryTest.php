@@ -17,12 +17,12 @@ use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Shared\Auth\SignupAttributionContext;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use App\Support\Share\ShareProfileScope;
+use App\Features\ShareTracking\Services\ShareProfileScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 

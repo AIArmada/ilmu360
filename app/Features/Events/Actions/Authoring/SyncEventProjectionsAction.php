@@ -83,13 +83,13 @@ final readonly class SyncEventProjectionsAction implements EventProjections
         });
     }
 
-    /** @return \App\Models\Event */
+    /** @return \App\Features\Events\Models\Event */
     private function resolveEvent(string $eventId): Model
     {
         return EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
     }
 
-    /** @param  \App\Models\Event  $event */
+    /** @param  \App\Features\Events\Models\Event  $event */
     private function syncSingleAudience(Model $event, string $type, mixed $value): void
     {
         if (! in_array($value, [null, '', false], true)) {
@@ -104,7 +104,7 @@ final readonly class SyncEventProjectionsAction implements EventProjections
         }
     }
 
-    /** @param  \App\Models\Event  $event */
+    /** @param  \App\Features\Events\Models\Event  $event */
     private function syncAgeGroupAudience(Model $event, mixed $value): void
     {
         $event->audiences()

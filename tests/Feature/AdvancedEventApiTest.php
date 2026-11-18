@@ -1,9 +1,9 @@
 <?php
 
 use App\Features\Events\Api\RegistrationScope;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;

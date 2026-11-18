@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions;
 
 use AIArmada\Persons\Actions\ReorderFeaturedPersonsAction as PackageReorder;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Shared\Auditing\RecordsCustomAuditEvents;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;

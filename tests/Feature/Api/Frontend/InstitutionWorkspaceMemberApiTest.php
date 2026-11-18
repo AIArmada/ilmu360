@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use Illuminate\Support\Facades\Config;
 use Laravel\Sanctum\Sanctum;

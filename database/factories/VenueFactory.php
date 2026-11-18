@@ -5,8 +5,8 @@ namespace Database\Factories;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Database\Factories\VenueFactory as PackageVenueFactory;
-use App\Models\Space;
-use App\Models\Venue;
+use App\Features\Places\Models\Space;
+use App\Features\Places\Models\Venue;
 use Illuminate\Support\Str;
 
 /**

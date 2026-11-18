@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 

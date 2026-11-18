@@ -3,7 +3,7 @@
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Features\Events\Api\GuestSubmissionClaims;
-use App\Models\EventSubmission;
+use App\Features\Events\Models\EventSubmission;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\URL;

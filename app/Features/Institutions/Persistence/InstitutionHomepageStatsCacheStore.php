@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Persistence;
 
 use App\Features\Institutions\Api\InstitutionHomepageStats;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use Illuminate\Support\Facades\Cache;
 
 final readonly class InstitutionHomepageStatsCacheStore implements InstitutionHomepageStats

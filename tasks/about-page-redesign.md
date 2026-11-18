@@ -1,7 +1,7 @@
 # About page — full redesign
 
 Status: done
-Route: `/tentang-kami` → `App\Livewire\Pages\About\Show` → `resources/views/livewire/pages/about/show.blade.php`
+Route: `/tentang-kami` → `App\Platform\Ui\Pages\About\Show` → `resources/views/livewire/pages/about/show.blade.php`
 Content: `resources/lang/{ms,en,jv,ar,zh,ta}/about.php`
 
 ## Decisions

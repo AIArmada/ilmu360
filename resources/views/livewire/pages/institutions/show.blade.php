@@ -34,7 +34,7 @@
     $persons = $institution->persons;
     $institutionUrl = route('institutions.show', $institution);
     $shareText = trim($institution->name . ' - ' . config('app.name'));
-    $shareLinks = app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks(
+    $shareLinks = app(\App\Features\ShareTracking\Services\AffiliatesShareTrackingService::class)->redirectLinks(
         $institutionUrl,
         $shareText,
         $institution->name,
@@ -48,9 +48,9 @@
         'fallbackTitle' => $institution->name,
         'payloadEndpoint' => route('share.payload'),
     ];
-    $institutionRouteSegment = \App\Shared\Contributions\Enums\ContributionSubjectType::Institution->publicRouteSegment();
+    $institutionRouteSegment = \App\Features\Contributions\Support\ContributionSubjectType::Institution->publicRouteSegment();
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
-        fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
+        fn (\App\Features\Discovery\Support\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );
     $mapQuery = implode(', ', array_filter([
         $institution->name,
@@ -295,7 +295,7 @@
 
                                 @if(auth()->user()?->hasAnyRole(['super_admin', 'admin']))
                                     <a
-                                        href="{{ \App\Filament\Resources\Institutions\InstitutionResource::getUrl('edit', ['record' => $institution], panel: 'admin') }}"
+                                        href="{{ \App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource::getUrl('edit', ['record' => $institution], panel: 'admin') }}"
                                         target="_blank"
                                         class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-6 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100"
                                     >
@@ -821,7 +821,7 @@
                             {{ __('Help keep this record accurate and useful for the community. Claims are reviewed by moderators before access is granted.') }}
                         </p>
                         <a
-                            href="{{ route('membership-applications.create', ['subjectType' => \App\Enums\MemberSubjectType::Institution->publicRouteSegment(), 'subjectId' => $institution->getKey()]) }}"
+                            href="{{ route('membership-applications.create', ['subjectType' => \App\Features\Membership\Api\MemberSubjectType::Institution->publicRouteSegment(), 'subjectId' => $institution->getKey()]) }}"
                             wire:navigate
                             class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15"
                         >

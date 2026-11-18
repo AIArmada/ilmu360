@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Contracts\ShareTrackingContract;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchExecutionResult;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 use App\Platform\ApiDocumentation\ApiDocumentationConfigFactory;
 use Dedoc\Scramble\Generator;

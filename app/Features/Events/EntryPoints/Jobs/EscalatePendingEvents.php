@@ -7,7 +7,7 @@ namespace App\Features\Events\EntryPoints\Jobs;
 use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\Events\Models\EventEscalation;
 use App\Features\Events\Actions\Escalations\RecordPendingEventEscalationAction;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Shared\Events\EventEscalationTransport;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Auth\Authenticatable;

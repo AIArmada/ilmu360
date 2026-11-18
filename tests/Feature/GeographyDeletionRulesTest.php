@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 
 it('allows deleting an unused country record', function () {
     $country = ensureTestMalaysiaCountry();

@@ -32,7 +32,7 @@ Preconditions:
 Full probe:
 
 ```bash
-vendor/bin/pest --agent='require base_path(".claude/skills/verify/bin/boot.php"); \Pest\Browser\Playwright\Playwright::setTimeout(30000); withGlobalOwnerContext(function (): void { foreach (["Zulfa Retreat", "Qamar Gathering"] as $title) { \App\Models\Event::factory()->create(["title" => $title, "status" => "approved", "visibility" => "public", "published_at" => now(), "starts_at" => now()->addDay(), "ends_at" => now()->addDay()->addHour()]); } }); visit("/majlis?search=Zulfa+Retreat", ["timeout" => 30000])->assertSee("Temui majlis ilmu yang")->assertSee("Zulfa Retreat")->assertDontSee("Qamar Gathering")->screenshot(fullPage: false, filename: "verify-browse");'
+vendor/bin/pest --agent='require base_path(".claude/skills/verify/bin/boot.php"); \Pest\Browser\Playwright\Playwright::setTimeout(30000); withGlobalOwnerContext(function (): void { foreach (["Zulfa Retreat", "Qamar Gathering"] as $title) { \App\Features\Events\Models\Event::factory()->create(["title" => $title, "status" => "approved", "visibility" => "public", "published_at" => now(), "starts_at" => now()->addDay(), "ends_at" => now()->addDay()->addHour()]); } }); visit("/majlis?search=Zulfa+Retreat", ["timeout" => 30000])->assertSee("Temui majlis ilmu yang")->assertSee("Zulfa Retreat")->assertDontSee("Qamar Gathering")->screenshot(fullPage: false, filename: "verify-browse");'
 ```
 
 ## Gotchas

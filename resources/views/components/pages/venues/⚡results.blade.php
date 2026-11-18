@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Platform\Location\LocationSlugResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Carbon\CarbonInterface;
 

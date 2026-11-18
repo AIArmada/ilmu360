@@ -20,7 +20,7 @@
         })
         ->values();
     $shareText = trim($referenceTitle . ' - ' . config('app.name'));
-    $shareLinks = app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks(
+    $shareLinks = app(\App\Features\ShareTracking\Services\AffiliatesShareTrackingService::class)->redirectLinks(
         $referenceUrl,
         $shareText,
         $referenceTitle,
@@ -34,7 +34,7 @@
         'fallbackTitle' => $referenceTitle,
         'payloadEndpoint' => route('share.payload'),
     ];
-    $referenceRouteSegment = \App\Shared\Contributions\Enums\ContributionSubjectType::Reference->publicRouteSegment();
+    $referenceRouteSegment = \App\Features\Contributions\Support\ContributionSubjectType::Reference->publicRouteSegment();
     $authorNames = $reference->effectiveAuthorNamesList();
     $metadataItems = array_filter([
         $reference->publisherValue(),
@@ -49,7 +49,7 @@
     $upcomingOverallTotal = $this->upcomingOverallTotal;
     $pastOverallTotal = $this->pastOverallTotal;
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
-        fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
+        fn (\App\Features\Discovery\Support\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );
 
 @endphp
@@ -145,7 +145,7 @@
 
                                 @if(auth()->user()?->hasAnyRole(['super_admin', 'admin']))
                                     <a
-                                        href="{{ \App\Filament\Resources\References\ReferenceResource::getUrl('edit', ['record' => $reference], panel: 'admin') }}"
+                                        href="{{ \App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource::getUrl('edit', ['record' => $reference], panel: 'admin') }}"
                                         target="_blank"
                                         class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-6 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100"
                                     >

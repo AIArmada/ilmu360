@@ -3,7 +3,7 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
 use App\Features\Inspirations\Models\Inspiration;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;

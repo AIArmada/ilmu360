@@ -146,6 +146,9 @@
     ],
     "table:event_escalations": [
       "App\\Features\\Events\\Actions\\Escalations\\RecordPendingEventEscalationAction"
+    ],
+    "table:event_updates": [
+      "App\\Features\\Events\\Actions\\Authoring\\CreateEventChangeAnnouncementAction"
     ]
   },
   "aliases": {

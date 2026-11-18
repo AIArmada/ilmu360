@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Venues;
 
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final readonly class RestoreVenueVerifierAction

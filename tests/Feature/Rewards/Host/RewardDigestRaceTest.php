@@ -22,7 +22,7 @@ use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Notifications\ManagedNotification;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Services\ShareGratitudeDigestMessages;
-use App\Models\RewardDigestSlot;
+use App\Features\Rewards\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Mail\Transport\ArrayTransport;

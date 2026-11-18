@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions;
 
 use AIArmada\Persons\Enums\PersonNameType;
-use App\Models\PersonName;
+use App\Features\Persons\Models\PersonName;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 

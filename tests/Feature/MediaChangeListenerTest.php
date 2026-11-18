@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Platform\Media\MediaChangeListener;
 use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;

@@ -22,7 +22,7 @@ Method: for each commerce/domain flow, traced the runtime path through `app/Acti
 | AIA-ACTION-009 | Reference search/bridge | `app/Models/Builders/ReferenceBuilder.php`, `EventSearchService` | pkg references/events query | partial bridge | `REPLACE_WITH_PACKAGE_CALL` (finish) | partial | builder bridges metadata | low | move remaining local query logic to package | reference/event search tests |
 | AIA-ACTION-010 | Slug sync | `app/Actions/Slugs/SyncSlugRedirectAction.php` | none (app-specific) | local | `KEEP_LOCAL_APP_SPECIFIC` | yes (keep) | genuine app feature | low | keep | slug test |
 | AIA-ACTION-011 | Event key people sync | `app/Services/EventKeyPersonSyncService.php` | none clear | local | `KEEP_LOCAL_APP_SPECIFIC` (pending) | likely keep | app-specific relation | low | verify no pkg equivalent | — |
-| AIA-ACTION-012 | Contribution entity mutation | `app/Services/ContributionEntityMutationService.php` (imports CommerceSupport) | pkg `CommerceSupport` helpers | partial | `KEEP_LOCAL_APP_SPECIFIC` | yes (keep) | app orchestration over pkg helpers | low | keep | contribution test |
+| AIA-ACTION-012 | Contribution entity mutation | `app/Services/ContributionEntityStateService.php` (imports CommerceSupport) | pkg `CommerceSupport` helpers | partial | `KEEP_LOCAL_APP_SPECIFIC` | yes (keep) | app orchestration over pkg helpers | low | keep | contribution test |
 
 ## Flow-by-flow reality
 

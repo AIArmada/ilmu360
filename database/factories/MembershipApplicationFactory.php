@@ -3,10 +3,10 @@
 namespace Database\Factories;
 
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Enums\MemberSubjectType;
-use App\Models\Institution;
-use App\Models\MembershipApplication;
-use App\Models\Person;
+use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Models\MembershipApplication;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions;
 
 use AIArmada\Addressing\Models\Address;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Platform\Directory\EntityRelationSync;
 use Illuminate\Support\Collection;
 

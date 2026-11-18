@@ -1,0 +1,82 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Events\EntryPoints\Filament\Resources\Series\Schemas;
+
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+
+class SeriesForm
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Series')
+                    ->components([
+                        TextInput::make('title')
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('slug')
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true),
+                        Textarea::make('description')
+                            ->columnSpanFull()
+                            ->maxLength(5000),
+                        Select::make('visibility')
+                            ->options([
+                                'public' => 'Public',
+                                'unlisted' => 'Unlisted',
+                                'private' => 'Private',
+                            ])
+                            ->required(),
+                        Select::make('status')
+                            ->options([
+                                'active' => 'Active',
+                                'inactive' => 'Inactive',
+                            ])
+                            ->default('active')
+                            ->required(),
+                        Select::make('languages')
+                            ->placeholder(__('Pilih bahasa'))
+                            ->relationship('languages', 'name')
+                            ->saveRelationshipsUsing(null)
+                            ->dehydrated()
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->label('Languages'),
+                    ])
+                    ->columns(2),
+                Section::make('Media')
+                    ->components([
+                        SpatieMediaLibraryFileUpload::make('cover')
+                            ->collection('cover')
+                            ->image()
+                            ->imageEditor()
+                            ->imageAspectRatio('16:9')
+                            ->automaticallyOpenImageEditorForAspectRatio()
+                            ->imageEditorAspectRatioOptions(['16:9'])
+                            ->automaticallyCropImagesToAspectRatio()
+                            ->conversion('thumb')
+                            ->responsiveImages()
+                            ->columnSpanFull(),
+                        SpatieMediaLibraryFileUpload::make('gallery')
+                            ->collection('gallery')
+                            ->multiple()
+                            ->reorderable()
+                            ->image()
+                            ->conversion('thumb')
+                            ->responsiveImages()
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(1),
+            ]);
+    }
+}

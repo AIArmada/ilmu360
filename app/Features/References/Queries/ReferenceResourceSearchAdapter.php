@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\Queries;
 
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Platform\Search\ResourceSearchAdapter;
 use App\Shared\Directory\ReferenceScopedSearch;
 use Illuminate\Database\Eloquent\Builder;

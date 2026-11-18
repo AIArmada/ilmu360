@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Identity;
 
+use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
+use App\Platform\Admin\FilamentResourceRegistry;
+
 use App\Features\Identity\Actions\RecordNewAccountAttributionAction;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountLifecycle;
@@ -54,5 +57,6 @@ class FeatureServiceProvider extends FeatureModule
         ));
 
         $this->app->make(FilamentPageRegistry::class)->register(DeletedUsers::class);
+        $this->app->make(FilamentResourceRegistry::class)->register(UserResource::class);
     }
 }

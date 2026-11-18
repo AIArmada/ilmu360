@@ -9,8 +9,10 @@ use AIArmada\FilamentEvents\FilamentEventsPlugin;
 use AIArmada\FilamentOrganizations\FilamentOrganizationsPlugin;
 use AIArmada\FilamentPersons\FilamentPersonsPlugin;
 use AIArmada\FilamentSignals\Concerns\TracksSignalsPanel;
-use App\Filament\Pages\AhliDashboard;
-use App\Filament\Resources\Events\EventResource;
+use App\Platform\Admin\EntryPoints\Filament\Pages\AhliDashboard;
+use App\Platform\Admin\FilamentPageRegistry;
+use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Admin\FilamentWidgetRegistry;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -34,6 +36,9 @@ class AhliPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         $ahliDomain = $this->resolvePanelDomain('ahli');
+        $registeredResources = $this->app->make(FilamentResourceRegistry::class)->all(FilamentResourceRegistry::PANEL_AHLI);
+        $registeredPages = $this->app->make(FilamentPageRegistry::class)->all(FilamentPageRegistry::PANEL_AHLI);
+        $registeredWidgets = $this->app->make(FilamentWidgetRegistry::class)->all(FilamentWidgetRegistry::PANEL_AHLI);
 
         return $this->trackSignalsForPanel($panel, 'ahli')
             ->id('ahli')
@@ -49,9 +54,8 @@ class AhliPanelProvider extends PanelProvider
             ])
             ->font('Outfit')
             ->maxContentWidth('full')
-            ->discoverResources(in: app_path('Filament/Ahli/Resources'), for: 'App\Filament\Ahli\Resources')
-            ->resources([EventResource::class])
-            ->discoverWidgets(in: app_path('Filament/Ahli/Widgets'), for: 'App\Filament\Ahli\Widgets')
+            ->resources($registeredResources)
+            ->widgets($registeredWidgets)
             ->plugins([
                 FilamentEventsPlugin::make(),
                 FilamentOrganizationsPlugin::make(),
@@ -60,6 +64,7 @@ class AhliPanelProvider extends PanelProvider
             ])
             ->pages([
                 AhliDashboard::class,
+                ...$registeredPages,
             ])
             ->middleware([
                 EncryptCookies::class,

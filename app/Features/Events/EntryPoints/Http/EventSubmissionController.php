@@ -1,0 +1,248 @@
+<?php
+
+namespace App\Features\Events\EntryPoints\Http;
+
+use App\Features\Events\EntryPoints\Http\SubmitEventRequestHandler;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Models\User;
+use App\Platform\Http\FrontendController;
+use App\Platform\Media\MediaCollectionSync;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Features\Events\Services\OrganizerResolver;
+use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Submission\SubmitterContactRules;
+use Dedoc\Scramble\Attributes\Endpoint;
+use Dedoc\Scramble\Attributes\Group;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Spatie\MediaLibrary\HasMedia;
+
+#[Group(
+    'Event Submission',
+    'Public event submission flow for guests and authenticated users. '
+    .'Use the paired form-contract endpoint to discover required fields, defaults, catalogs, and conditional rules before posting.',
+    weight: 30,
+)]
+class EventSubmissionController extends FrontendController
+{
+    #[Endpoint(
+        title: 'Submit a public event',
+        description: 'Creates a new event submission. '
+            .'This route is create-only; use the contribution suggestion endpoints for later event updates. '
+            .'Clients must provide an explicit AIArmada AddressCountry UUID using `submission_country_id`. '
+            .'When the selected country links multiple differing timezones, `submission_timezone` is required and must match one of the effective country timezones; countries with a single effective timezone resolve automatically. '
+            .'Fetch `GET /forms/submit-event` first to resolve required versus optional fields, conditional rules, catalogs, and guest-contact requirements. '
+            .'Event media roles are strict: `cover` is the 16:9 website/app image, while `poster` is the 3:4 external flyer image.',
+    )]
+    public function store(
+        Request $request,
+        SubmitEventRequestHandler $submitFrontendEventAction,
+        MediaCollectionSync $mediaCollectionSync,
+    ): JsonResponse {
+        $user = $this->currentUser($request);
+        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
+
+        $validated = $request->validate([
+            'event_id' => ['nullable', 'uuid'],
+            'event_occurrence_id' => ['nullable', 'uuid'],
+            'scoped_institution_id' => ['nullable', 'uuid'],
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable'],
+            'event_category_ids' => ['required', 'array', 'min:1'],
+            'event_category_ids.*' => ['uuid', Rule::in(app(EventCategoryCatalog::class)->validTermIds((array) $request->input('event_category_ids', [])))],
+            'event_date' => ['required', 'date'],
+            'prayer_time' => ['required', 'string', Rule::in(array_column(EventPrayerTime::cases(), 'value'))],
+            'custom_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i'],
+            'event_format' => ['required', 'string', Rule::in(array_column(EventFormat::cases(), 'value'))],
+            'visibility' => ['required', 'string', Rule::in(array_column(EventVisibility::cases(), 'value'))],
+            'event_url' => ['nullable', 'url', 'max:255'],
+            'live_url' => ['nullable', 'url', 'max:255'],
+            'gender' => ['required', 'string', Rule::in(array_column(EventGenderRestriction::cases(), 'value'))],
+            'age_group' => ['required', 'array', 'min:1'],
+            'age_group.*' => ['string', Rule::in(array_column(EventAgeGroup::cases(), 'value'))],
+            'children_allowed' => ['nullable', 'boolean'],
+            'is_muslim_only' => ['nullable', 'boolean'],
+            'languages' => ['required', 'array', 'min:1'],
+            'languages.*' => ['uuid'],
+            'domain_tags' => ['nullable', 'array'],
+            'domain_tags.*' => ['string', 'max:255'],
+            'discipline_tags' => ['nullable', 'array'],
+            'discipline_tags.*' => ['string', 'max:255'],
+            'source_tags' => ['nullable', 'array'],
+            'source_tags.*' => ['string', 'max:255'],
+            'issue_tags' => ['nullable', 'array'],
+            'issue_tags.*' => ['string', 'max:255'],
+            'references' => ['nullable', 'array'],
+            'references.*' => ['uuid'],
+            'primary_organizer_id' => ['required', 'uuid'],
+            'location_same_as_institution' => ['nullable', 'boolean'],
+            'location_type' => ['nullable', 'string', Rule::in(['institution', 'venue'])],
+            'location_institution_id' => ['nullable', 'uuid'],
+            'location_venue_id' => ['nullable', 'uuid'],
+            'space_id' => ['nullable', 'uuid'],
+            'persons' => ['nullable', 'array'],
+            'persons.*' => ['uuid'],
+            'other_key_people' => ['nullable', 'array'],
+            'other_key_people.*.role_code' => ['required_with:other_key_people', 'string', 'max:255'],
+            'other_key_people.*.involveable_type' => ['nullable', 'string', 'max:255'],
+            'other_key_people.*.involveable_id' => ['nullable', 'uuid'],
+            'other_key_people.*.display_name' => ['nullable', 'string', 'max:255'],
+            'other_key_people.*.visibility' => ['nullable', Rule::in(['public', 'private'])],
+            'other_key_people.*.notes' => ['nullable', 'string', 'max:1000'],
+            'submission_country_id' => ['required', 'uuid'],
+            'submission_timezone' => ['nullable', 'string', 'max:64'],
+            'submitter_name' => [$user instanceof User ? 'nullable' : 'required', 'string', 'max:255'],
+            'submitter_email' => ['nullable', 'email', 'max:255'],
+            'submitter_phone' => ['nullable', 'string', 'max:20'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'captcha_token' => ['nullable', 'string'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=16/9', "max:{$maxUploadSizeKb}"],
+            'poster' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=3/4', "max:{$maxUploadSizeKb}"],
+            'gallery' => ['nullable', 'array', 'max:10'],
+            'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
+        ]);
+
+        $this->assertGuestContactRules($validated, $user);
+
+        $eventContainer = $this->resolveEventContainer($validated['event_id'] ?? null, $validated['scoped_institution_id'] ?? null, $user);
+        $scopedInstitution = $this->resolveScopedInstitution($validated['scoped_institution_id'] ?? null, $user);
+
+        $result = $submitFrontendEventAction->handle(
+            state: $validated,
+            request: $request,
+            submitter: $user,
+            eventContainer: $eventContainer,
+            scopedInstitution: $scopedInstitution,
+            persistRelationships: function (HasMedia $model) use ($request, $mediaCollectionSync): void {
+                $mediaCollectionSync->syncSingle($model, $request->file('cover'), 'cover');
+                $mediaCollectionSync->syncSingle($model, $request->file('poster'), 'poster');
+                $mediaCollectionSync->syncMultiple(
+                    $model,
+                    is_array($request->file('gallery')) ? $request->file('gallery') : null,
+                    'gallery',
+                );
+            },
+        );
+
+        /** @var Event $event */
+        $event = $result['event'];
+        $occurrence = $result['occurrence'];
+
+        return response()->json([
+            'data' => [
+                'event' => [
+                    'id' => $event->getKey(),
+                    'slug' => $event->slug,
+                    'title' => $event->title,
+                    'status' => (string) $event->status,
+                    'visibility' => $result['visibility'],
+                ],
+                'occurrence' => [
+                    'id' => $occurrence->getKey(),
+                    'slug' => $occurrence->slug,
+                    'title' => $occurrence->title,
+                    'starts_at' => $occurrence->starts_at?->toIso8601String(),
+                    'ends_at' => $occurrence->ends_at?->toIso8601String(),
+                    'status' => (string) $occurrence->status,
+                    'visibility' => (string) $occurrence->visibility,
+                ],
+                'session' => $result['session'] === null ? null : [
+                    'id' => $result['session']->getKey(),
+                    'title' => $result['session']->title,
+                ],
+                'submission' => [
+                    'id' => $result['submission']->getKey(),
+                    'auto_approved' => $result['auto_approved'],
+                ],
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ], 201);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function assertGuestContactRules(array $validated, ?User $user): void
+    {
+        $hasEmail = filled($validated['submitter_email'] ?? null);
+        $hasPhone = filled($validated['submitter_phone'] ?? null);
+
+        if (! $user instanceof User && ! $hasEmail && ! $hasPhone) {
+            throw ValidationException::withMessages([
+                'submitter_email' => __('Either submitter email or submitter phone is required.'),
+                'submitter_phone' => __('Either submitter email or submitter phone is required.'),
+            ]);
+        }
+
+        if ($hasPhone && ! SubmitterContactRules::isValidPhone($validated['submitter_phone'] ?? null)) {
+            throw ValidationException::withMessages([
+                'submitter_phone' => __('Nombor telefon tidak sah. Sila semak semula.'),
+            ]);
+        }
+    }
+
+    private function resolveScopedInstitution(mixed $institutionId, ?User $user): ?Institution
+    {
+        if (! is_string($institutionId) || ! Str::isUuid($institutionId)) {
+            return null;
+        }
+
+        abort_unless($user instanceof User, 403);
+
+        $institution = Institution::query()
+            ->whereKey($institutionId)
+            ->whereHas('members', fn ($query) => $query->whereKey($user->getKey()))
+            ->first();
+
+        abort_unless($institution instanceof Institution, 403);
+
+        return $institution;
+    }
+
+    private function resolveEventContainer(mixed $eventId, mixed $scopedInstitutionId, ?User $user): ?Event
+    {
+        if (! is_string($eventId) || ! Str::isUuid($eventId)) {
+            return null;
+        }
+
+        $event = Event::query()
+            ->with(['institution:id,name', 'accessPolicy'])
+            ->find($eventId);
+
+        abort_unless($event instanceof Event, 404);
+        abort_unless($user instanceof User && $user->can('update', $event), 403);
+
+        $scopedInstitution = $this->resolveScopedInstitution($scopedInstitutionId, $user);
+
+        if (
+            $scopedInstitution instanceof Institution
+            && ! $this->eventMatchesScopedInstitution($event, $scopedInstitution)
+        ) {
+            abort(403);
+        }
+
+        return $event;
+    }
+
+    private function eventMatchesScopedInstitution(Event $event, Institution $institution): bool
+    {
+        // The location institution is not ownership; only the primary
+        // organizer establishes the institutional scope.
+        return OrganizerResolver::involvementMatchesInstitution(
+            $event->primaryOrganizerInvolvement?->involveable_type,
+            $event->primaryOrganizerInvolvement?->involveable_id,
+            (string) $institution->getKey(),
+        );
+    }
+}

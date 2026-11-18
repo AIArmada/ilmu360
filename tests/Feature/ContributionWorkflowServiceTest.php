@@ -5,19 +5,19 @@ use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionCreateRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
-use App\Models\ContributionRequest;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Series;
+use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Events\Models\Series;
 use App\Models\User;
-use App\Services\ContributionEntityMutationService;
+use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Support\Authz\MemberPermissionGate;
+use App\Features\Membership\Services\MemberPermissionGate;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Support\Facades\Notification;
@@ -56,7 +56,7 @@ it('creates staged pending institution records with structured relation data', f
 
     $country = ensureTestMalaysiaCountry();
 
-    $institution = app(ContributionEntityMutationService::class)->createInstitution([
+    $institution = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Al-Bayan',
         'type' => 'masjid',
         'description' => 'Pusat ilmu masyarakat.',
@@ -80,7 +80,7 @@ it('creates staged pending institution records with structured relation data', f
 it('creates staged pending person records with structured relation data', function () {
     $proposer = User::factory()->create();
 
-    $person = app(ContributionEntityMutationService::class)->createPerson([
+    $person = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Arif',
         'gender' => 'male',
         'bio' => ['type' => 'doc', 'content' => []],
@@ -294,7 +294,7 @@ it('applies structured event associations and languages through approval', funct
                 'visibility' => 'public',
             ]],
         ],
-        app(ContributionEntityMutationService::class)->updateRulesFor($event),
+        app(ContributionEntityStateService::class)->updateRulesFor($event),
     )->validate();
     $request = app(SubmitContributionUpdateRequestAction::class)->handle($event, $proposer, $payload);
 

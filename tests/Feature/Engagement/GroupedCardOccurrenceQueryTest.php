@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Models\Event;
-use App\Models\Institution;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Database\Events\QueryExecuted;

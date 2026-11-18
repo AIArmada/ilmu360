@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;

@@ -1,6 +1,6 @@
 @section('title', $session->title.' — '.trim((string) ($occurrence->title ?: $event->title)))
 @php
-    $shareCardOg = app(\App\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
+    $shareCardOg = app(\App\Features\Events\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
 @endphp
 @section('og_url', route('events.session', [$event, \App\Shared\Events\PublicScheduleSlug::occurrence($occurrence), \App\Shared\Events\PublicScheduleSlug::session($session)]))
 @section('og_image', $shareCardOg['url'] ?? $event->card_image_url)
@@ -19,7 +19,7 @@
     $location = $ownLocation ?? $occurrenceLocation ?? $detail->primaryLocationFor($event);
     $locationVenue = $location?->relationLoaded('venue') ? $location->venue : null;
     $locationSpace = $location?->relationLoaded('venueSpace') ? $location->venueSpace : null;
-    $locationInstitution = $location?->relationLoaded('locationable') && $location->locationable instanceof \App\Models\Institution ? $location->locationable : null;
+    $locationInstitution = $location?->relationLoaded('locationable') && $location->locationable instanceof \App\Features\Institutions\Models\Institution ? $location->locationable : null;
     $locationAddress = $location?->primaryAddress() ?? $locationInstitution?->primaryAddress() ?? $locationVenue?->primaryAddress();
     $primaryAddress = $locationAddress
         ?? (($ownLocation ?? $occurrenceLocation)?->venue_id !== null
@@ -95,9 +95,9 @@
         $sessionTime .= ' — '.\App\Platform\Time\UserDateTimeFormatter::format($session->ends_at, $sessionSameLocalDay ? 'h:i A' : 'j M, h:i A');
     }
     $organizer = $event->organizer ?? $event->institution;
-    $organizerHref = $organizer instanceof \App\Models\Institution
+    $organizerHref = $organizer instanceof \App\Features\Institutions\Models\Institution
         ? route('institutions.show', $organizer)
-        : ($organizer instanceof \App\Models\Person ? route('persons.show', $organizer) : null);
+        : ($organizer instanceof \App\Features\Persons\Models\Person ? route('persons.show', $organizer) : null);
     $classificationLabels = $event->classifications
         ->filter(fn ($classification): bool => $classification->term !== null)
         ->map(fn ($classification): string => (string) $classification->term->name)
@@ -259,7 +259,7 @@
                     <h2 id="session-references-title" class="font-heading text-2xl font-bold text-emerald-950">{{ __('Rujukan') }}</h2>
                     <ul class="mt-4 space-y-3">
                         @foreach($sessionReferences as $referenceRow)
-                            @if($referenceRow->referenceable instanceof \App\Models\Reference)
+                            @if($referenceRow->referenceable instanceof \App\Features\References\Models\Reference)
                                 <li class="rounded-2xl border border-slate-200 bg-[#fbfaf7] p-4">
                                     <p class="font-bold text-emerald-950">{{ $referenceRow->referenceable->displayTitle() }}</p>
                                     @if(filled($referenceRow->referenceable->effectiveAuthorNames()))<p class="mt-1 text-sm text-slate-600">{{ $referenceRow->referenceable->effectiveAuthorNames() }}</p>@endif
@@ -273,7 +273,7 @@
                             @endif
                         @endforeach
                         @foreach($occurrenceReferences as $referenceRow)
-                            @if($referenceRow->referenceable instanceof \App\Models\Reference)
+                            @if($referenceRow->referenceable instanceof \App\Features\References\Models\Reference)
                                 <li class="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
                                     <p class="font-bold text-slate-800">{{ $referenceRow->referenceable->displayTitle() }} <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">{{ __('Tarikh') }}</span></p>
                                     @if(filled($referenceRow->referenceable->effectiveAuthorNames()))<p class="mt-1 text-sm text-slate-600">{{ $referenceRow->referenceable->effectiveAuthorNames() }}</p>@endif

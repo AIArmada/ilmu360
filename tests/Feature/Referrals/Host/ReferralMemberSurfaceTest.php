@@ -8,7 +8,7 @@ use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Models\ReferralProgram;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Livewire\Pages\Dashboard\ReferralMemberIndex;
+use App\Features\Referrals\EntryPoints\Livewire\Pages\ReferralMemberIndex;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;

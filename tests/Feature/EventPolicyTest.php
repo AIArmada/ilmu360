@@ -1,12 +1,12 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Models\Event;
-use App\Models\EventSubmission;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventSubmission;
 use App\Models\User;
-use App\States\EventStatus\Approved;
-use App\States\EventStatus\Draft;
-use App\States\EventStatus\Pending;
+use App\Features\Events\States\EventStatus\Approved;
+use App\Features\Events\States\EventStatus\Draft;
+use App\Features\Events\States\EventStatus\Pending;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\PermissionRegistrar;
 

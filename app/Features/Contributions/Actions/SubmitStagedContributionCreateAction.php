@@ -11,7 +11,7 @@ use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Platform\Concurrency\MapsIdentityLock;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;

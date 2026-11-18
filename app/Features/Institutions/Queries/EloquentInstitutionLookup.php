@@ -6,7 +6,7 @@ namespace App\Features\Institutions\Queries;
 
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSummary;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\DirectoryOption;

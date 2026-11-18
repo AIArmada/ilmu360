@@ -3,7 +3,7 @@
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
-use App\Models\EventSubmission;
+use App\Features\Events\Models\EventSubmission;
 use App\Models\User;
 use App\Shared\Auth\SocialiteProviderConfiguration;
 use Illuminate\Support\Facades\Cache;

@@ -13,11 +13,11 @@ use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Page
 use App\Features\Community\EntryPoints\Filament\Resources\CommunityReleases\Pages\ViewCommunityRelease;
 use App\Features\Community\Models\CommunityRelease;
 use App\Features\Community\Queries\CommunityReleaseReader;
-use App\Models\Event;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use App\Support\Api\Admin\AdminResourceRegistry;
+use App\Platform\Api\Admin\AdminResourceRegistry;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;

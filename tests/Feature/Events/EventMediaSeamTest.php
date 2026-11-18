@@ -3,11 +3,11 @@
 use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Services\EventMediaService;
-use App\Models\ContributionRequest;
-use App\Models\Event;
-use App\Models\Institution;
+use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;

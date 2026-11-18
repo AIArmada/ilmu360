@@ -27,7 +27,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Links\Models\Link;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Http\Request;

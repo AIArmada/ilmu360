@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use AIArmada\Events\Models\EventRegistrationQuestion;
-use App\Models\Event;
-use App\Models\EventCheckin;
-use App\Models\Registration;
-use App\Support\EventDiscovery\EventCardRelationshipProvider;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Models\Registration;
+use App\Features\Discovery\Queries\EventCardRelationshipProvider;
 
 $appName = env('APP_NAME', 'Laravel');
 
@@ -29,7 +29,7 @@ return [
     |
     */
     'prayer' => [
-        'resolver_class' => App\Services\PrayerTimeExpressionResolver::class,
+        'resolver_class' => App\Features\Prayer\Services\PrayerTimeExpressionResolver::class,
     ],
 
     /*
@@ -43,7 +43,7 @@ return [
     |
     */
     'moderation' => [
-        'adapter' => App\Support\Events\EventModerationAdapter::class,
+        'adapter' => App\Features\Events\Services\EventModerationAdapter::class,
     ],
 
     'database' => [

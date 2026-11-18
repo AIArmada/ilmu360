@@ -1,11 +1,11 @@
 <?php
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Data\EventDiscoveryCriteriaFactory;
+use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\References\Api\ReferenceQueries;
-use App\Services\TypesenseEventDiscovery;
+use App\Features\Discovery\Services\TypesenseEventDiscovery;
 use App\Shared\Events\EventCategoryCatalog;
-use App\Support\EventDiscovery\EventDiscoveryFilterSet;
+use App\Features\Discovery\Services\EventDiscoveryFilterSet;
 use Illuminate\Support\Str;
 
 /**

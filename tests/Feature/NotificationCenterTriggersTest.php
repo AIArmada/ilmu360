@@ -2,14 +2,14 @@
 
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Models\Event;
-use App\Models\EventCheckin;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Registration;
-use App\Models\Series;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\Registration\Models\Registration;
+use App\Features\Events\Models\Series;
 use App\Models\User;
-use App\Services\Notifications\EventNotificationService;
+use App\Features\Events\Notifications\EventNotificationService;
 use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use Carbon\Carbon;

@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
-use App\Filament\Resources\Authz\UserResource as AuthzUserResource;
-use App\Filament\Resources\Institutions\Pages\EditInstitution;
-use App\Filament\Resources\Institutions\RelationManagers\MembersRelationManager;
-use App\Models\Institution;
+use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource as AuthzUserResource;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Pages\EditInstitution;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\RelationManagers\MembersRelationManager;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;

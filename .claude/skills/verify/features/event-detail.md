@@ -31,7 +31,7 @@ Preconditions:
 Full probe:
 
 ```bash
-vendor/bin/pest --agent='require base_path(".claude/skills/verify/bin/boot.php"); \Pest\Browser\Playwright\Playwright::setTimeout(30000); $event = withGlobalOwnerContext(fn () => \App\Models\Event::factory()->create(["title" => "Verify Detail Event", "status" => "approved", "visibility" => "public", "published_at" => now(), "starts_at" => now()->addDay(), "ends_at" => now()->addDay()->addHour()])); visit("/majlis/".$event->slug, ["timeout" => 30000])->assertSee("Verify Detail Event")->assertSee("Tambah ke Kalendar")->assertSee("Kongsi")->screenshot(fullPage: false, filename: "verify-event-detail");'
+vendor/bin/pest --agent='require base_path(".claude/skills/verify/bin/boot.php"); \Pest\Browser\Playwright\Playwright::setTimeout(30000); $event = withGlobalOwnerContext(fn () => \App\Features\Events\Models\Event::factory()->create(["title" => "Verify Detail Event", "status" => "approved", "visibility" => "public", "published_at" => now(), "starts_at" => now()->addDay(), "ends_at" => now()->addDay()->addHour()])); visit("/majlis/".$event->slug, ["timeout" => 30000])->assertSee("Verify Detail Event")->assertSee("Tambah ke Kalendar")->assertSee("Kongsi")->screenshot(fullPage: false, filename: "verify-event-detail");'
 ```
 
 ## Gotchas

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Series;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Events\Models\Series;
 use App\Models\User;
 use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;

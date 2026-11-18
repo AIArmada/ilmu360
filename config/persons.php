@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 use AIArmada\Addressing\Models\AddressCountry;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 
 $tablePrefix = '';
 

@@ -11,7 +11,7 @@ use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Api\AdmissionEventCreator;
 use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\EventAuthoring;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use Illuminate\Support\Facades\DB;
 
 final readonly class CreateEventWithRegistrationAction implements AdmissionEventCreator

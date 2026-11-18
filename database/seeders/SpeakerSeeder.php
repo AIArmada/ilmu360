@@ -16,7 +16,7 @@ use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Features\Persons\Api\SpeakerStatus;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Shared\Persons\PersonBioContent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;

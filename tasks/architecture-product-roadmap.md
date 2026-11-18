@@ -363,7 +363,7 @@ input are absent, while tracking errors remain non-blocking.
 search-to-outcome conversion, median/p90 moderation and publication time, and
 imminent pending events. Do not show raw search text by default.
 
-**Access:** Extend the existing `App\\Filament\\Pages\\ProductSignals` admin-panel
+**Access:** Extend the existing `App\\Features\\Events\\EntryPoints\\Filament\\Pages\\ProductSignals` admin-panel
 page. Do not add a public route, a new panel, or a separate authorization mechanism.
 Add tests that unauthorised users cannot access its data.
 

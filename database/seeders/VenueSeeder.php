@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use AIArmada\Addressing\Models\State;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 

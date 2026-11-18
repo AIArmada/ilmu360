@@ -18,7 +18,7 @@ use App\Features\References\Actions\SyncReferenceMediaAction;
 use App\Features\References\Actions\SyncReferenceRelationsAction;
 use App\Features\References\Actions\SyncReferenceSearchIndexAction;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use RuntimeException;
 
 /**

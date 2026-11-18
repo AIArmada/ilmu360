@@ -13,7 +13,7 @@ use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use Illuminate\Support\Str;
 
 /** @return array{ReferralInvite, string} */

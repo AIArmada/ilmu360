@@ -81,7 +81,7 @@
 <div data-art-direction="living-majlis" class="living-majlis-field submit-event-background min-h-screen pt-48 pb-6 sm:pt-52 sm:pb-8 lg:pt-52">
     <div class="container mx-auto px-6 lg:px-12">
         <div class="mx-auto max-w-6xl xl:max-w-7xl">
-            @if(($eventContainer = $this->selectedEventContainer()) instanceof \App\Models\Event)
+            @if(($eventContainer = $this->selectedEventContainer()) instanceof \App\Features\Events\Models\Event)
                 <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm">
                     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>

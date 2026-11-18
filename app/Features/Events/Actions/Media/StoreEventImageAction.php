@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Media;
 
 use App\Features\Events\Api\UploadEventImageInput;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\StagedUploadFactory;
 use Illuminate\Validation\ValidationException;

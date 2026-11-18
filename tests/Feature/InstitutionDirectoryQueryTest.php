@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Institution;
-use App\Support\Search\InstitutionDirectoryQuery;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Queries\InstitutionDirectoryQuery;
 use Illuminate\Support\Facades\DB;
 
 function institutionDirectoryPaginationMeta(): array

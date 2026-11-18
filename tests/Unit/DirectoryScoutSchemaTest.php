@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class);

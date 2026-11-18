@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Pages\Contributions\SubmitPerson;
+use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitPerson;
 use Filament\Forms\Components\TextInput;
 use Livewire\Livewire;
 

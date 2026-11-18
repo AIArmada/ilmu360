@@ -27,7 +27,7 @@ Events can be hosted at either an institution or a listed venue, both natively:
 - `EventContributionFormSchema` has a `location_type` radio (`institution` / `venue`), `location_institution_id`, `location_venue_id`, and a multi-select `space_ids` (app/Forms/EventContributionFormSchema.php:474-589).
 - `Event::syncLocation(?string $venueId, array $spaceIds)` (app/Models/Event.php:855) writes `EventLocation` rows with `venue_id`, `venue_space_id`, `venue_space_type_id`, and `space_name_snapshot` (history-safe). Supports multiple spaces (primary + additional) and venue-only fallback.
 - **Spaces** (rooms/halls within a venue or institution):
-  - `App\Models\Space` (extends package `VenueSpace`): `name`, `capacity`, `space_type`, `status`, `visibility` (app/Models/Space.php).
+  - `App\Features\Places\Models\Space` (extends package `VenueSpace`): `name`, `capacity`, `space_type`, `status`, `visibility` (app/Models/Space.php).
   - `Venue::spaces()` (hasMany) and `Institution::spaces()` (belongsToMany via `institution_space` pivot with per-institution `capacity` override, `effectiveCapacity()`).
   - Space types seeded (`VenueSpaceTypeSeeder`): hall, prayer_hall, meeting_room, lecture_room, banquet_hall, VIP room, etc.
   - Eligibility via `SpaceEligibilityResolver` contract (`DefaultSpaceEligibilityResolver`), filtered to `status = active`.

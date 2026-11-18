@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\EventSubmission;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\Models\EventSubmission;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;

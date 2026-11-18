@@ -1,0 +1,50 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages;
+
+use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
+use App\Features\Persons\Models\Person;
+use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
+
+class CreatePerson extends CreateRecord
+{
+    #[\Override]
+    protected static string $resource = PersonResource::class;
+
+    #[\Override]
+    protected function handleRecordCreation(array $data): Model
+    {
+        $address = $data['address'] ?? null;
+        unset($data['address']);
+
+        $actorId = auth()->id();
+        $personWorkflow = app(PersonWorkflow::class);
+
+        $personId = $personWorkflow->saveFromAdmin([
+            ...Arr::only($data, [
+                'name',
+                'middle_name',
+                'family_name',
+                'gender',
+                'bio',
+                'status',
+                'speaker_status',
+                'is_featured',
+            ]),
+            'address' => $address,
+        ], (string) $actorId, assignOwner: false);
+
+        $personWorkflow->syncRelations($personId, [
+            'contactMethods' => $data['contactMethods'] ?? [],
+            'social_media' => $data['socialProfiles'] ?? [],
+            'language_ids' => $data['languages'] ?? [],
+        ]);
+
+        return Person::query()->findOrFail($personId);
+    }
+}

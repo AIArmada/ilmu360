@@ -1,14 +1,14 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Support\Authz\MemberPermissionGate;
+use App\Features\Membership\Services\MemberPermissionGate;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;
 

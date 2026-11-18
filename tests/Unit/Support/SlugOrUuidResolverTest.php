@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Platform\Models\SlugOrUuidResolver;
 use Illuminate\Support\Str;
 use Tests\TestCase;

@@ -8,7 +8,7 @@ use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Communications\EntryPoints\Livewire\NotificationsIndex;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 use App\Platform\Auth\Fortify\CreateNewUser;
 use App\Platform\Auth\Fortify\ResetUserPassword;

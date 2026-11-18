@@ -5,11 +5,11 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
-use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Venue;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Places\Models\Venue;
 use App\Shared\Events\PublicScheduleSlug;
 use Illuminate\Support\Facades\DB;
 

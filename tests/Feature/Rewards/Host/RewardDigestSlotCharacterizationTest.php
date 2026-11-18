@@ -12,7 +12,7 @@ declare(strict_types=1);
 use AIArmada\Rewards\Actions\GrantRewardBadgeAction;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
 use App\Features\Rewards\Actions\GratitudeDigests\PlanRewardGratitudeDigestAction;
-use App\Models\RewardDigestSlot;
+use App\Features\Rewards\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Queue;

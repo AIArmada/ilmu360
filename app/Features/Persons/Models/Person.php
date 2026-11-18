@@ -1,0 +1,791 @@
+<?php
+
+namespace App\Features\Persons\Models;
+
+use Database\Factories\PersonFactory;
+
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\Contacting\Concerns\HasContactMethods;
+use AIArmada\Contacting\Concerns\HasSocialProfiles;
+use AIArmada\Engagement\Contracts\Followable;
+use AIArmada\Engagement\Models\Follow;
+use AIArmada\Membership\Contracts\MembershipMutationGuard;
+use AIArmada\Membership\Enums\MemberRole;
+use AIArmada\Membership\Models\MembershipInvitation;
+use AIArmada\Membership\Traits\HasMembers;
+use AIArmada\Persons\Enums\Gender;
+use AIArmada\Persons\Models\CredentialAssignment;
+use AIArmada\Persons\Models\TitleAssignment;
+use AIArmada\References\Models\ReferenceContributor;
+use App\Features\Persons\Api\SpeakerStatus;
+use App\Features\DonationChannels\Concerns\HasDonationChannels;
+use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Models\Concerns\HasLanguages;
+use App\Features\Reports\Support\ReportModelClass;
+use App\Shared\Auditing\RecordsCustomAuditDifferences;
+use App\Shared\Auditing\RecordsCustomAuditEvents;
+use App\Shared\Directory\SyncsLanguages;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Platform\Models\Support\RelatedModels;
+use App\Features\Persons\Services\PersonSearchService;
+use BackedEnum;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Laravel\Scout\Searchable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use RuntimeException;
+use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use App\Features\Events\Models\EventKeyPersonPivot;
+use App\Features\Institutions\Models\Institution;
+use App\Models\User;
+
+/**
+ * @property string $status
+ * @property bool $allow_public_event_submission
+ * @property bool $is_featured
+ * @property int|null $order_column
+ * @property CarbonImmutable|null $last_state_change_at
+ * @property CarbonImmutable|null $verified_at
+ * @property CarbonImmutable|null $rejected_at
+ * @property string|null $verified_by
+ * @property Carbon|null $updated_at
+ * @property SpeakerStatus $speaker_status
+ */
+class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, Followable, HasMedia, MembershipMutationGuard, RecordsCustomAuditDifferences, RecordsCustomAuditEvents, SyncsLanguages
+{
+    public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
+
+    #[\Override]
+    protected $table = 'persons';
+
+    /** @use HasMembers<User> */
+    use AuditsModelChanges,
+        HasAddresses,
+        HasContactMethods,
+        HasDonationChannels,
+        HasLanguages,
+        HasMembers,
+        HasSocialProfiles,
+        InteractsWithMedia,
+        KeepsDeletedModels,
+        Searchable;
+
+    /**
+     * @var list<string>
+     */
+    #[\Override]
+    protected $fillable = [
+        'name',
+        'family_name',
+        'middle_name',
+        'gender',
+        'date_of_birth',
+        'nationality_country_id',
+        'slug',
+        'searchable_name',
+        'bio',
+        'status',
+        'verified_at',
+        'verified_by',
+        'rejected_at',
+        'last_state_change_at',
+        'published_at',
+        'speaker_status',
+        'is_featured',
+        'order_column',
+        'allow_public_event_submission',
+        'public_submission_locked_at',
+        'public_submission_locked_by',
+    ];
+
+    /**
+     * Lock the person row before a membership mutation.
+     *
+     * Membership pivots do not have a database-level one-owner constraint, so
+     * all person membership writes must serialize through this row lock.
+     */
+    public function lockForMembershipMutation(): void
+    {
+        $this->newQuery()
+            ->whereKey($this->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
+    public function assertMemberCanBeAdded(Model $member, MemberRole $role, ?Model $existingMember): void
+    {
+        $this->lockForMembershipMutation();
+
+        $currentMember = $this->currentMemberForMutation($member);
+        $observedRole = $this->memberRoleForMutation($existingMember);
+        $existingRole = $this->memberRoleForMutation($currentMember);
+
+        if ($existingMember instanceof Model && $observedRole !== $existingRole) {
+            throw new RuntimeException('Membership changed while this mutation was in progress. Please retry.');
+        }
+
+        if ($existingRole === MemberRole::Owner && $role !== MemberRole::Owner) {
+            throw new AuthorizationException('Transfer speaker ownership before changing the owner role.');
+        }
+
+        if ($role === MemberRole::Owner
+            && $existingRole !== MemberRole::Owner
+            && $this->ownerMember()->lockForUpdate()->exists()) {
+            throw new AuthorizationException('Transfer speaker ownership instead of assigning a second owner.');
+        }
+    }
+
+    public function assertMemberCanBeRemoved(Model $member): void
+    {
+        $this->lockForMembershipMutation();
+
+        $currentMember = $this->currentMemberForMutation($member);
+        $currentRole = $this->memberRoleForMutation($currentMember);
+
+        if ($currentMember instanceof Model && $this->memberRoleForMutation($member) !== $currentRole) {
+            throw new RuntimeException('Membership changed while this mutation was in progress. Please retry.');
+        }
+
+        if ($currentRole === MemberRole::Owner) {
+            throw new AuthorizationException('Transfer speaker ownership before removing the owner.');
+        }
+    }
+
+    public function assertMemberRoleCanChange(Model $member, MemberRole $role): void
+    {
+        $this->lockForMembershipMutation();
+
+        $currentMember = $this->currentMemberForMutation($member);
+
+        if (! $currentMember instanceof Model) {
+            throw new RuntimeException('Cannot change the role of a non-member.');
+        }
+
+        $currentRole = $this->memberRoleForMutation($currentMember);
+
+        if ($this->memberRoleForMutation($member) !== $currentRole) {
+            throw new RuntimeException('Membership changed while this mutation was in progress. Please retry.');
+        }
+
+        if ($currentRole === MemberRole::Owner && $role !== MemberRole::Owner) {
+            throw new AuthorizationException('Transfer speaker ownership before changing the owner role.');
+        }
+
+        if ($role === MemberRole::Owner && $currentRole !== MemberRole::Owner) {
+            throw new AuthorizationException('Use the speaker ownership transfer workflow to assign an owner.');
+        }
+    }
+
+    /**
+     * @return BelongsToMany<User, $this, Pivot, 'pivot'>
+     */
+    public function ownerMember(): BelongsToMany
+    {
+        return $this->members()->wherePivot('role', MemberRole::Owner->spatieRoleName());
+    }
+
+    #[\Override]
+    protected function casts(): array
+    {
+        $casts = parent::casts();
+
+        // The application runs its own pending/verified person lifecycle and
+        // does not use the package PersonStatus enum (active/published/archived).
+        unset($casts['status']);
+
+        return array_merge($casts, [
+            'verified_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
+            'speaker_status' => SpeakerStatus::class,
+            'allow_public_event_submission' => 'boolean',
+            'public_submission_locked_at' => 'datetime',
+        ]);
+    }
+
+    private function memberRoleForMutation(?Model $member): ?MemberRole
+    {
+        $pivot = $member?->getRelationValue('pivot');
+
+        if (! $pivot instanceof Model) {
+            return null;
+        }
+
+        return MemberRole::fromSpatieRoleName((string) $pivot->getAttribute('role'));
+    }
+
+    private function currentMemberForMutation(Model $member): ?Model
+    {
+        return $this->members()
+            ->whereKey($member->getKey())
+            ->lockForUpdate()
+            ->first();
+    }
+
+    public static function formatDisplayedName(
+        string $name,
+        ?string $middleName = null,
+        ?string $familyName = null,
+    ): string {
+        return trim(implode(' ', array_filter([
+            trim($name),
+            trim((string) $middleName),
+            trim((string) $familyName),
+        ])));
+    }
+
+    public function followableName(): string
+    {
+        return $this->formatted_name;
+    }
+
+    public function followableUrl(): ?string
+    {
+        return route('persons.show', ['person' => $this->slug]);
+    }
+
+    public function followableImage(): ?string
+    {
+        return $this->avatar_url;
+    }
+
+    public function defaultFollowNotificationLevel(): ?string
+    {
+        return null;
+    }
+
+    public function getFormattedNameAttribute(): string
+    {
+        $formattedName = parent::getFormattedNameAttribute();
+        $middleName = trim((string) $this->middle_name);
+        $familyName = trim((string) $this->family_name);
+
+        if ($middleName === '' && $familyName === '') {
+            return $formattedName;
+        }
+
+        $nameWithoutPostNominals = trim(Str::before($formattedName, ','));
+        $formattedBase = trim(implode(' ', array_filter([
+            $nameWithoutPostNominals,
+            $middleName,
+            $familyName,
+        ])));
+
+        return Str::contains($formattedName, ',')
+            ? $formattedBase.', '.Str::after($formattedName, ', ')
+            : $formattedBase;
+    }
+
+    public function statusValue(): string
+    {
+        $status = $this->getAttribute('status');
+
+        if ($status instanceof BackedEnum) {
+            return (string) $status->value;
+        }
+
+        return (string) $status;
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return in_array($this->statusValue(), ['verified', 'pending'], true)
+            && $this->speaker_status === SpeakerStatus::Active;
+    }
+
+    public function searchIndexShouldBeUpdated(): bool
+    {
+        return $this->wasRecentlyCreated || $this->wasChanged([
+            'name',
+            'middle_name',
+            'family_name',
+            'slug',
+            'status',
+            'gender',
+            'speaker_status',
+        ]);
+    }
+
+    /**
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
+     */
+    protected function makeAllSearchableUsing(Builder $query): Builder
+    {
+        return $query
+            ->whereIn('persons.status', ['verified', 'pending'])
+            ->where('persons.speaker_status', SpeakerStatus::Active->value);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        if ($this->usesScoutDatabaseDriver()) {
+            return $this->toScoutDatabaseSearchableArray();
+        }
+
+        $alternativeNames = $this->relationLoaded('names')
+            ? $this->getRelation('names')->pluck('full_name')->all()
+            : $this->names()->pluck('full_name')->all();
+        $searchableText = app(PersonSearchService::class)
+            ->buildSearchableText($this);
+        $address = $this->primaryAddress();
+        $updatedAt = $this->updated_at ?? now();
+
+        return [
+            'id' => (string) $this->getKey(),
+            'name' => (string) $this->name,
+            'middle_name' => $this->middle_name,
+            'family_name' => $this->family_name,
+            'formatted_name' => $this->formatted_name,
+            'person_names' => implode(' ', $alternativeNames),
+            'search_text' => $searchableText,
+            'slug' => (string) $this->slug,
+            'status' => $this->statusValue(),
+            'gender' => $this->gender instanceof Gender ? $this->gender->value : $this->gender,
+            'country_code' => $address?->country_code,
+            'city' => $address?->city,
+            'state' => $address?->state,
+            'postcode' => $address?->postcode,
+            'updated_at' => $updatedAt->timestamp,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function toScoutDatabaseSearchableArray(): array
+    {
+        return array_filter([
+            'name' => (string) $this->name,
+            'searchable_name' => app(PersonSearchService::class)
+                ->buildSearchableText($this),
+            'slug' => (string) $this->slug,
+        ], static fn (mixed $value): bool => is_string($value) && $value !== '');
+    }
+
+    private function usesScoutDatabaseDriver(): bool
+    {
+        return (string) config('scout.driver') === 'database';
+    }
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        static::deleting(function (Person $person): void {
+            $authorsReferences = ReferenceContributor::query()
+                ->where('contributor_type', $person->getMorphClass())
+                ->where('contributor_id', $person->getKey())
+                ->exists();
+
+            if ($authorsReferences) {
+                throw ValidationException::withMessages([
+                    'person' => __('This person is linked as a reference contributor and cannot be deleted.'),
+                ]);
+            }
+        });
+
+        static::saving(function (Person $person) {
+            if ($person->isDirty('status')) {
+                $now = now();
+                $person->last_state_change_at = $now;
+
+                match ($person->statusValue()) {
+                    'verified' => $person->verified_at ??= $now,
+                    'rejected' => $person->rejected_at ??= $now,
+                    'inactive' => $person->published_at ??= $now,
+                    default => null,
+                };
+
+                if ($person->statusValue() === 'verified') {
+                    $person->verified_by ??= auth()->id();
+                }
+            }
+
+            if ((($person->exists && ($person->isDirty('is_featured') || $person->isDirty('order_column')))
+                || (! $person->exists && ($person->is_featured || $person->order_column !== null)))
+                && auth()->user() instanceof User
+                && ! auth()->user()->hasGlobalAdminAccess()) {
+                throw new AuthorizationException('Only global administrators may curate featured people.');
+            }
+
+            $person->syncFeaturedOrder();
+        });
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if ($this->hasMedia('avatar')) {
+            return $this->getFirstMediaUrl('avatar', 'thumb');
+        }
+
+        return null;
+    }
+
+    public function getPublicAvatarUrlAttribute(): string
+    {
+        if ($this->hasMedia('avatar')) {
+            $avatarMedia = $this->getFirstMedia('avatar');
+
+            if ($avatarMedia instanceof Media) {
+                return $avatarMedia->getAvailableUrl(['thumb']) ?: $avatarMedia->getUrl();
+            }
+        }
+
+        return $this->default_avatar_url;
+    }
+
+    public function getPublicMainUrlAttribute(): string
+    {
+        $profileMedia = $this->getFirstMedia('profile');
+
+        if ($profileMedia instanceof Media) {
+            return $profileMedia->getAvailableUrl(['profile_thumb']) ?: $profileMedia->getUrl();
+        }
+
+        return $this->default_portrait_url;
+    }
+
+    public function getDefaultPortraitUrlAttribute(): string
+    {
+        if ($this->gender === Gender::Female) {
+            return asset('images/placeholders/person-female-portrait.webp');
+        }
+
+        return asset('images/placeholders/person-male-portrait.webp');
+    }
+
+    public function getDefaultAvatarUrlAttribute(): string
+    {
+        if ($this->avatar_url) {
+            return $this->avatar_url;
+        }
+
+        if ($this->gender === Gender::Female) {
+            return asset('images/placeholders/person-female.png');
+        }
+
+        return asset('images/placeholders/person-male.png');
+    }
+
+    /**
+     * Generic key-person link across all event roles.
+     *
+     * Prefer personEvents() for talk history and nonSpeakerEventKeyPeople()
+     * when role-specific assignment matters.
+     *
+     * @return BelongsToMany<Event, $this, EventKeyPersonPivot, 'pivot'>
+     */
+    public function events(): BelongsToMany
+    {
+        return $this->belongsToMany(RelatedModels::event(), 'event_involvements', 'involveable_id', 'event_id')
+            ->using(EventKeyPersonPivot::class)
+            ->wherePivot('involveable_type', 'person')
+            ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
+
+    /**
+     * @return BelongsToMany<Event, $this, EventKeyPersonPivot, 'pivot'>
+     */
+    public function personEvents(): BelongsToMany
+    {
+        return $this->events()
+            ->wherePivot('role_code', EventKeyPersonRole::Speaker->value)
+            ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value);
+    }
+
+    /**
+     * @return HasMany<EventKeyPerson, $this>
+     */
+    public function eventKeyPeople(): HasMany
+    {
+        return $this->hasMany(RelatedModels::eventKeyPerson(), 'involveable_id')
+            ->where('involveable_type', 'person');
+    }
+
+    /**
+     * @return HasMany<EventKeyPerson, $this>
+     */
+    public function nonSpeakerEventKeyPeople(): HasMany
+    {
+        return $this->eventKeyPeople()
+            ->where('role_code', '!=', EventKeyPersonRole::Speaker->value)
+            ->where('visibility', 'public')
+            ->orderBy('sort_order');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(RelatedModels::user(), 'verified_by');
+    }
+
+    /**
+     * @return MorphMany<Model, $this>
+     */
+    public function reports(): MorphMany
+    {
+        return $this->morphMany(ReportModelClass::resolve(), 'entity');
+    }
+
+    /**
+     * @return MorphMany<TitleAssignment, $this>
+     */
+    #[\Override]
+    public function titleAssignments(): MorphMany
+    {
+        return $this->morphMany(TitleAssignment::class, 'titleable');
+    }
+
+    /**
+     * @return MorphMany<MembershipInvitation, $this>
+     */
+    public function memberInvitations(): MorphMany
+    {
+        return $this->invitations();
+    }
+
+    /**
+     * @return MorphMany<CredentialAssignment, $this>
+     */
+    #[\Override]
+    public function credentialAssignments(): MorphMany
+    {
+        return $this->morphMany(CredentialAssignment::class, 'credentialable');
+    }
+
+    /**
+     * @return MorphToMany<Institution, $this>
+     */
+    public function institutions(): MorphToMany
+    {
+        return $this->morphToMany(Institution::class, 'affiliatable', 'affiliations')
+            ->withPivot(['id', 'position', 'is_primary', 'joined_at'])
+            ->withTimestamps();
+    }
+
+    #[\Override]
+    public function getTable(): string
+    {
+        return $this->table;
+    }
+
+    /**
+     * @return BelongsTo<AddressCountry, $this>
+     */
+    public function nationality(): BelongsTo
+    {
+        return $this->belongsTo(AddressCountry::class, 'nationality_country_id');
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/person.png'))
+            ->singleFile();
+
+        $this->addMediaCollection('main')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/person.png'))
+            ->withResponsiveImages()
+            ->singleFile();
+
+        $this->addMediaCollection('cover')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/person.png'))
+            ->withResponsiveImages()
+            ->singleFile();
+
+        $this->addMediaCollection('gallery')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->withResponsiveImages();
+
+        $this->addMediaCollection('profile')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/person.png'))
+            ->withResponsiveImages()
+            ->singleFile();
+
+        $this->addMediaCollection('documents')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
+
+        $this->addMediaCollection('certificates')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->performOnCollections('avatar')
+            ->width(1080)
+            ->height(1080)
+            ->sharpen(10)
+            ->format('webp');
+
+        $this->addMediaConversion('profile_thumb')
+            ->performOnCollections('profile')
+            ->fit(Fit::Crop, 1080, 1440)
+            ->format('webp');
+
+        $this->addMediaConversion('thumb')
+            ->performOnCollections('main')
+            ->width(1080)
+            ->height(1080)
+            ->sharpen(10)
+            ->format('webp');
+
+        $this->addMediaConversion('banner')
+            ->performOnCollections('cover')
+            ->fit(Fit::Crop, 1920, 1080)
+            ->format('webp');
+
+        $this->addMediaConversion('gallery_thumb')
+            ->performOnCollections('gallery')
+            ->fit(Fit::Max, 1080, 1080)
+            ->sharpen(10)
+            ->format('webp');
+    }
+
+    /**
+     * @param  Builder<Person>  $query
+     */
+    #[Scope]
+    protected function active(Builder $query): void
+    {
+        $query->whereIn('status', ['verified', 'pending']);
+    }
+
+    /**
+     * @param  Builder<Person>  $query
+     */
+    #[Scope]
+    protected function speakers(Builder $query): void
+    {
+        $query->where('speaker_status', SpeakerStatus::Active->value);
+    }
+
+    /**
+     * @param  Builder<Person>  $query
+     */
+    #[Scope]
+    protected function publicDirectoryOrder(Builder $query, ?string $sessionSeed = null): void
+    {
+        $offset = self::publicDirectoryOrderOffset($sessionSeed ?? self::publicDirectorySessionSeed());
+        $idExpression = self::publicDirectoryOrderIdExpression($query);
+
+        $query->orderByRaw("substr({$idExpression}, {$offset}, 32)")
+            ->orderByRaw($idExpression.' asc');
+    }
+
+    public static function publicDirectoryOrderOffset(?string $sessionSeed = null, ?CarbonInterface $at = null): int
+    {
+        if (is_string($sessionSeed) && $sessionSeed !== '') {
+            return (abs(crc32($sessionSeed)) % 24) + 1;
+        }
+
+        return (((int) ($at ?? now())->format('z')) % 24) + 1;
+    }
+
+    /**
+     * @return array{primary: string, secondary: string}
+     */
+    public static function publicDirectorySortParts(string $personId, ?string $sessionSeed = null, ?CarbonInterface $at = null): array
+    {
+        $normalizedId = str_replace('-', '', $personId);
+        $offset = self::publicDirectoryOrderOffset($sessionSeed, $at);
+
+        return [
+            'primary' => substr($normalizedId, $offset - 1),
+            'secondary' => $normalizedId,
+        ];
+    }
+
+    public static function publicDirectorySessionSeed(): ?string
+    {
+        if (! app()->bound('request')) {
+            return null;
+        }
+
+        $request = request();
+
+        if (! $request->hasSession()) {
+            return null;
+        }
+
+        $session = $request->session();
+        $seed = $session->get(self::PUBLIC_DIRECTORY_SESSION_KEY);
+
+        if (is_string($seed) && $seed !== '') {
+            return $seed;
+        }
+
+        $seed = (string) Str::uuid();
+        $session->put(self::PUBLIC_DIRECTORY_SESSION_KEY, $seed);
+
+        return $seed;
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    private function publicDirectoryOrderIdExpression(Builder $query): string
+    {
+        $driver = DB::connection($query->getModel()->getConnectionName())->getDriverName();
+
+        return $driver === 'pgsql'
+            ? "replace(cast(persons.id as text), '-', '')"
+            : "replace(persons.id, '-', '')";
+    }
+
+    /**
+     * @return MorphMany<Follow, $this>
+     */
+    public function follows(): MorphMany
+    {
+        return $this->morphMany(Follow::class, 'followable');
+    }
+
+    public function followersCount(): int
+    {
+        return $this->follows()->active()->count();
+    }
+
+    protected static function newFactory(): PersonFactory
+    {
+        return PersonFactory::new();
+    }
+
+}

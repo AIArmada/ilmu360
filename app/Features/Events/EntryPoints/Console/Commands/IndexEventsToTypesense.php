@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Console\Commands;
 
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Platform\Search\AbstractIndexToScout;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;

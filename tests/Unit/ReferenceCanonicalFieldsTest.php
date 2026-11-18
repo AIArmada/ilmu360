@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

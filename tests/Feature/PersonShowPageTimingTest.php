@@ -2,13 +2,13 @@
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Livewire\Pages\Persons\Show;
-use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Venue;
+use App\Features\Persons\EntryPoints\Livewire\Pages\Show;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Places\Models\Venue;
 use App\Platform\Location\AddressHierarchyFormatter;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Events\Enums\EventFormat;

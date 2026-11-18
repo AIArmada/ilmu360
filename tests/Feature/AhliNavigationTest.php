@@ -1,9 +1,9 @@
 <?php
 
-use App\Filament\Ahli\Resources\Institutions\InstitutionResource;
-use App\Filament\Pages\AhliDashboard;
-use App\Filament\Resources\Events\EventResource;
-use App\Models\Institution;
+use App\Features\Institutions\EntryPoints\Filament\Ahli\Resources\Institutions\InstitutionResource;
+use App\Platform\Admin\EntryPoints\Filament\Pages\AhliDashboard;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationManager;

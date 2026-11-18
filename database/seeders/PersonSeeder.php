@@ -12,7 +12,7 @@ use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\Title;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Api\SpeakerStatus;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;

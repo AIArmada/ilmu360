@@ -4,10 +4,10 @@ namespace Database\Seeders;
 
 use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;

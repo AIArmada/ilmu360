@@ -1,6 +1,6 @@
 <?php
 
-use App\Filament\Resources\Persons\Schemas\PersonForm;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Schemas\PersonForm;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Schema;
 

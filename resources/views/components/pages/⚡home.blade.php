@@ -2,14 +2,14 @@
 
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
-use App\Data\PublicScheduleLeaf;
-use App\Livewire\Concerns\TogglesEventGoing;
-use App\Models\Event;
-use App\Models\Person;
+use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventGoing;
+use App\Features\Events\Models\Event;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Services\PublicScheduleDiscoveryService;
+use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Shared\Auth\IntendedRedirect;
-use App\Support\Events\EventDetailPresenter;
+use App\Features\Events\Services\EventDetailPresenter;
 use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
@@ -392,12 +392,12 @@ new
                                 $occurrence = $scheduleLeaf->occurrence;
                                 $scheduleLocation = $occurrence->locations->first() ?? $scheduleLeaf->sessions->first()?->locations->first() ?? $event->primaryLocation;
                                 $locationName = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $event->resolvedLocationName();
-                                $spaceName = \App\Platform\Ui\Places\SpaceLocationPresenter::name($scheduleLocation);
+                                $spaceName = \App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter::name($scheduleLocation);
                                 if (filled($spaceName)) {
                                     $locationName = collect([$locationName, $spaceName])->filter()->implode(' · ');
                                 }
                                 $scheduleVenue = $scheduleLocation?->venue;
-                                $address = $scheduleVenue instanceof \App\Models\Venue ? $scheduleVenue->primaryAddress() : null;
+                                $address = $scheduleVenue instanceof \App\Features\Places\Models\Venue ? $scheduleVenue->primaryAddress() : null;
                                 $address ??= $event->resolvedLocationAddress();
                                 $locationSecondary = AddressHierarchyFormatter::formatShort($address) ?: null;
                                 $startsAt = $scheduleLeaf->startsAt();

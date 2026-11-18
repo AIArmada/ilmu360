@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\Actions;
 
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 
 /**
  * Delete a reference through the owning feature.

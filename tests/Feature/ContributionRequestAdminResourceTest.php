@@ -1,15 +1,15 @@
 <?php
 
-use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
-use App\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
-use App\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
-use App\Models\ContributionRequest;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
+use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
+use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
+use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

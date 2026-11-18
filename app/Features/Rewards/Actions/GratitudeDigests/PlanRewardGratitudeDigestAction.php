@@ -215,7 +215,7 @@ final readonly class PlanRewardGratitudeDigestAction
      * @param  list<string>  $categories
      */
     /**
-     * @param  \App\Models\RewardDigestSlot  $slot
+     * @param  \App\Features\Rewards\Models\RewardDigestSlot  $slot
      * @param  list<string>  $categories
      */
     private function mergeInto(Model $slot, array $categories, CarbonImmutable $decided): Model

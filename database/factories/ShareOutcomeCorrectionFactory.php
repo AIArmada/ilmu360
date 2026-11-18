@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -13,6 +13,8 @@ use Illuminate\Support\Str;
  */
 class ShareOutcomeCorrectionFactory extends Factory
 {
+    protected $model = ShareOutcomeCorrection::class;
+
     public function definition(): array
     {
         return [

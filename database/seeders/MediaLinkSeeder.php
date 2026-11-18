@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Event;
-use App\Models\MediaLink;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\MediaLink;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

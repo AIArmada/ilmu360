@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Contacting\Enums\ContactMethodType;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Database\Seeders\PersonSeeder;
 

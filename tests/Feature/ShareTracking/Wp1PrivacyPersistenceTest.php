@@ -6,9 +6,9 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\Support\IpHasher;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 

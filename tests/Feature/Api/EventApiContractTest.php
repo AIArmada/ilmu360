@@ -1,13 +1,13 @@
 <?php
 
 use App\Features\Events\Api\EventChangeSeverity;
-use App\Models\Event;
-use App\Models\EventChangeAnnouncement;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventChangeAnnouncement;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventFormat;

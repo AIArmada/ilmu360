@@ -26,18 +26,18 @@ use App\Features\Places\Services\VenueWorkflowService;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Queries\EloquentReferenceLookup;
 use App\Features\Reports\Services\CompositeReportSubjectResolver;
-use App\Models\DonationChannel;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Space;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Places\Models\Space;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Reports\ReportSubjectResolver;
-use App\Support\Api\Frontend\FrontendCatalogService;
+use App\Platform\Api\Frontend\FrontendCatalogService;
 
 it('binds the directory seams to their owning implementations', function (): void {
     expect(app(InstitutionLookup::class))->toBeInstanceOf(EloquentInstitutionLookup::class)

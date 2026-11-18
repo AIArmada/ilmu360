@@ -19,7 +19,7 @@ use App\Features\Persons\Actions\SyncPersonRelationsAction;
 use App\Features\Persons\Actions\SyncPersonSearchProjectionAction;
 use App\Features\Persons\Actions\VerifyPendingPersonsAction;
 use App\Features\Persons\Api\PersonWorkflow;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use Illuminate\Database\Eloquent\Model;

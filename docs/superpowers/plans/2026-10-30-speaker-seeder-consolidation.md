@@ -38,7 +38,7 @@
 - Produces: `SPEAKERS` entries without `event_links` key; no `importEventLinks()`; `run()` calls 7 importers.
 
 - [ ] **Step 1: Remove `event_links` data blocks via script.** Delete all 117 `event_links` entries: 30 single-line `            'event_links' => [],` lines and 87 multi-line blocks from `            'event_links' => [` to their matching 12-space `],`. Script must assert 117 removals, 0 remaining `'event_links'` occurrences.
-- [ ] **Step 2: Remove the importer and its wiring.** Delete `importEventLinks()` method, its `$this->importEventLinks($speaker, $person)` call in `run()`, counters `$createdEventLinkCount` / `$skippedEventLinkCount` (declaration + table rows), unused imports `App\Enums\EventKeyPersonRole`, `App\Models\Event`, `App\Models\EventKeyPerson`. Update class docblock (drop "and event links" / "Event links resolve..." sentences).
+- [ ] **Step 2: Remove the importer and its wiring.** Delete `importEventLinks()` method, its `$this->importEventLinks($speaker, $person)` call in `run()`, counters `$createdEventLinkCount` / `$skippedEventLinkCount` (declaration + table rows), unused imports `App\Enums\EventKeyPersonRole`, `App\Features\Events\Models\Event`, `App\Features\Events\Models\EventKeyPerson`. Update class docblock (drop "and event links" / "Event links resolve..." sentences).
 - [ ] **Step 3: Verify.** `php -l database/seeders/SpeakerSeeder.php`; `grep -n "event_links\|importEventLinks\|EventKeyPersonRole\|Models\\\\Event" database/seeders/SpeakerSeeder.php` returns nothing. `vendor/bin/pest --parallel tests/Feature/SpeakerSeederTest.php` passes (117 persons / 117 addresses / 19 socials / 18 redirects / 0 involvements).
 
 ### Task 2: Delete the three seeders, wire `SpeakerSeeder` into `DatabaseSeeder`

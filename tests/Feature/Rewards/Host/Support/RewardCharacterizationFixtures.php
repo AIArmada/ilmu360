@@ -18,7 +18,7 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardProgram;
 use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Models\RewardDigestSlot;
+use App\Features\Rewards\Models\RewardDigestSlot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;

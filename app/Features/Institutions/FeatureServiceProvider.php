@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions;
 
+use App\Features\Institutions\EntryPoints\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
+use App\Platform\Admin\FilamentResourceRegistry;
+
+use App\Features\Institutions\EntryPoints\Console\Commands\PruneOrphanedEntities;
+
 use App\Features\Institutions\Actions\InstitutionSubmissionAccessAction;
 use App\Features\Institutions\Actions\ResolveInstitutionMapsPlaceSelectionAction;
 use App\Features\Institutions\Api\InstitutionHomepageStats;
@@ -45,11 +51,15 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(InstitutionHomepageStats::class, InstitutionHomepageStatsCacheStore::class);
         $this->app->bind(InstitutionListingCacheVersion::class, InstitutionListingCacheVersionStore::class);
         $this->app->tag([InstitutionMediaCacheListener::class], MediaChangeListener::TAG);
+
+        $resources = $this->app->make(FilamentResourceRegistry::class);
+        $resources->register(InstitutionResource::class, FilamentResourceRegistry::PANEL_ADMIN);
+        $resources->register(AhliInstitutionResource::class, FilamentResourceRegistry::PANEL_AHLI);
     }
 
     public function boot(): void
     {
         parent::boot();
-        $this->commands([FlagStaleInactiveInstitutions::class]);
+        $this->commands([FlagStaleInactiveInstitutions::class, PruneOrphanedEntities::class]);
     }
 }

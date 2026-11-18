@@ -4,7 +4,7 @@
 
 **Goal:** Remove the `nnjeim/world` package and replace its `languages` table and `Language` model with `aiarmada/commerce-support`'s UUID-based equivalent.
 
-**Architecture:** Write migrations to swap the `languages` table from integer PK (nnjeim/world) to UUID PK (commerce-support), alter the `languageables` pivot column type, create a new `App\Models\Language` model, and update all 20+ consumer files.
+**Architecture:** Write migrations to swap the `languages` table from integer PK (nnjeim/world) to UUID PK (commerce-support), alter the `languageables` pivot column type, create a new `App\Platform\Language\Models\Language` model, and update all 20+ consumer files.
 
 **Tech Stack:** Laravel 13, commerce-support SeedLanguagesAction/Seeder, UUID PKs, polymorphic M2M pivot
 
@@ -89,13 +89,13 @@ git commit -m "feat: replace languages table with commerce-support UUID schema"
 
 ---
 
-### Task 2: Create App\Models\Language
+### Task 2: Create App\Platform\Language\Models\Language
 
 **Files:**
 - Create: `app/Models/Language.php`
 
 **Interfaces:**
-- Produces: `App\Models\Language` (UUID-keyed Eloquent model for `languages` table)
+- Produces: `App\Platform\Language\Models\Language` (UUID-keyed Eloquent model for `languages` table)
 - Consumed by: All files currently importing `Nnjeim\World\Models\Language`
 
 - [ ] **Step 1: Create the model**
@@ -127,7 +127,7 @@ class Language extends Model
 - [ ] **Step 2: Verify in tinker**
 
 ```bash
-php artisan tinker --execute 'echo App\Models\Language::where("code", "ms")->value("code");'
+php artisan tinker --execute 'echo App\Platform\Language\Models\Language::where("code", "ms")->value("code");'
 ```
 Expected: `ms`
 
@@ -135,7 +135,7 @@ Expected: `ms`
 
 ```bash
 git add app/Models/Language.php
-git commit -m "feat: create App\Models\Language model for commerce-support languages table"
+git commit -m "feat: create App\Platform\Language\Models\Language model for commerce-support languages table"
 ```
 
 ---
@@ -205,7 +205,7 @@ git commit -m "feat: alter languageables pivot to use UUID language_id"
 - Modify: `app/Models/Concerns/HasLanguages.php:6`
 
 **Interfaces:**
-- Consumes: `App\Models\Language` (Task 2)
+- Consumes: `App\Platform\Language\Models\Language` (Task 2)
 - Produces: Updated concern using new Language model
 
 - [ ] **Step 1: Swap the import**
@@ -214,7 +214,7 @@ In `app/Models/Concerns/HasLanguages.php`, line 6:
 
 ```diff
 - use Nnjeim\World\Models\Language;
-+ use App\Models\Language;
++ use App\Platform\Language\Models\Language;
 ```
 
 No other changes — the `morphToMany(Language::class, 'languageable', 'languageables')` and `auditSync` calls work identically; the relationship is resolved by Eloquent.
@@ -223,7 +223,7 @@ No other changes — the `morphToMany(Language::class, 'languageable', 'language
 
 ```bash
 git add app/Models/Concerns/HasLanguages.php
-git commit -m "refactor: use App\Models\Language in HasLanguages concern"
+git commit -m "refactor: use App\Platform\Language\Models\Language in HasLanguages concern"
 ```
 
 ---
@@ -234,7 +234,7 @@ git commit -m "refactor: use App\Models\Language in HasLanguages concern"
 - Modify: `app/Models/Event.php:67,396-452`
 
 **Interfaces:**
-- Consumes: `App\Models\Language` (Task 2)
+- Consumes: `App\Platform\Language\Models\Language` (Task 2)
 - Produces: `syncLanguages(array|string)` with UUID support
 
 - [ ] **Step 1: Swap the import**
@@ -243,7 +243,7 @@ In `app/Models/Event.php`, line 67:
 
 ```diff
 - use Nnjeim\World\Models\Language;
-+ use App\Models\Language;
++ use App\Platform\Language\Models\Language;
 ```
 
 - [ ] **Step 2: Update syncLanguages() signature and body**
@@ -344,7 +344,7 @@ git commit -m "refactor: update Event::syncLanguages for UUID-based Language mod
 - Modify: `app/Filament/Resources/Series/Pages/CreateSeries.php:12`
 
 **Interfaces:**
-- Consumes: `App\Models\Language` (Task 2)
+- Consumes: `App\Platform\Language\Models\Language` (Task 2)
 - Produces: All app imports resolved to new model
 
 - [ ] **Step 1: Replace all imports in one pass**
@@ -353,7 +353,7 @@ Each file has exactly one line to change:
 
 ```diff
 - use Nnjeim\World\Models\Language;
-+ use App\Models\Language;
++ use App\Platform\Language\Models\Language;
 ```
 
 Files and line numbers:
@@ -373,7 +373,7 @@ Files and line numbers:
 
 ```bash
 git add app/
-git commit -m "refactor: swap all Nnjeim\World\Models\Language imports to App\Models\Language"
+git commit -m "refactor: swap all Nnjeim\World\Models\Language imports to App\Platform\Language\Models\Language"
 ```
 
 ---
@@ -384,7 +384,7 @@ git commit -m "refactor: swap all Nnjeim\World\Models\Language imports to App\Mo
 - Modify: `app/Support/Api/Frontend/FrontendCatalogService.php:212-225`
 
 **Interfaces:**
-- Consumes: `App\Models\Language` (Task 2), import already swapped in Task 6
+- Consumes: `App\Platform\Language\Models\Language` (Task 2), import already swapped in Task 6
 - Produces: API response with UUID `id` instead of integer `id`
 
 - [ ] **Step 1: Change id type from int to string**
@@ -425,7 +425,7 @@ git commit -m "refactor: return UUID string as language id in catalog endpoint"
 - Modify: `app/Livewire/Pages/SubmitEvent/Create.php:151`
 
 **Interfaces:**
-- Consumes: `App\Models\Language` (Task 2), import already swapped in Task 6
+- Consumes: `App\Platform\Language\Models\Language` (Task 2), import already swapped in Task 6
 - Produces: Default languages resolved from `code` lookup instead of hardcoded int `101`
 
 - [ ] **Step 1: Change default language value from hardcoded int to code lookup**
@@ -440,7 +440,7 @@ In `app/Livewire/Pages/SubmitEvent/Create.php`, find the mount() or form state s
 Add the import if not already present (should already be imported from Task 6):
 
 ```php
-use App\Models\Language;
+use App\Platform\Language\Models\Language;
 ```
 
 - [ ] **Step 2: Commit**
@@ -464,21 +464,21 @@ git commit -m "refactor: resolve default language by code in submit event form"
 
 ```diff
 - ->map(fn (\Nnjeim\World\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
-+ ->map(fn (\App\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
++ ->map(fn (\App\Platform\Language\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
 ```
 
 `resources/views/components/pages/submit-event/partials/review-preview.blade.php`, line 142:
 
 ```diff
 - $languageMap = \Nnjeim\World\Models\Language::query()
-+ $languageMap = \App\Models\Language::query()
++ $languageMap = \App\Platform\Language\Models\Language::query()
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add resources/views/
-git commit -m "refactor: update blade FQN references to App\Models\Language"
+git commit -m "refactor: update blade FQN references to App\Platform\Language\Models\Language"
 ```
 
 ---
@@ -486,12 +486,12 @@ git commit -m "refactor: update blade FQN references to App\Models\Language"
 ### Task 10: Update API validation rules
 
 **Files:**
-- Modify: `app/Services/ContributionEntityMutationService.php:239,292`
+- Modify: `app/Services/ContributionEntityStateService.php:239,292`
 - Modify: `app/Support/Api/Admin/AdminResourceMutationService.php:2105,2236,2278`
 
 - [ ] **Step 1: Change exists validation from integer to string/uuid**
 
-In `app/Services/ContributionEntityMutationService.php`, lines 239 and 292:
+In `app/Services/ContributionEntityStateService.php`, lines 239 and 292:
 
 ```diff
 -             'language_ids.*' => ['integer', 'exists:languages,id'],
@@ -513,7 +513,7 @@ In `app/Support/Api/Admin/AdminResourceMutationService.php`, lines 2105, 2236, a
 - [ ] **Step 2: Commit**
 
 ```bash
-git add app/Services/ContributionEntityMutationService.php app/Support/Api/Admin/AdminResourceMutationService.php
+git add app/Services/ContributionEntityStateService.php app/Support/Api/Admin/AdminResourceMutationService.php
 git commit -m "refactor: update language ID validation rules for UUID type"
 ```
 
@@ -532,12 +532,12 @@ In all three files, replace:
 
 ```diff
 - use Nnjeim\World\Models\Language;
-+ use App\Models\Language;
++ use App\Platform\Language\Models\Language;
 ```
 
 - [ ] **Step 2: No further changes needed in SeriesSeeder**
 
-The seeder already uses `Language::query()->pluck('id')->toArray()` (line 27) to get language IDs. After the import swap to `App\Models\Language`, `pluck('id')` returns UUID strings. `array_rand(array_flip($languageIds), ...)` works on string keys. The `DB::table('languageables')->insert()` stores UUIDs in `language_id` (now `foreignUuid`). The `languageable_type` (`'series'`) is unchanged — it refers to the Series morph type, not Language. No code logic changes needed beyond the import swap.
+The seeder already uses `Language::query()->pluck('id')->toArray()` (line 27) to get language IDs. After the import swap to `App\Platform\Language\Models\Language`, `pluck('id')` returns UUID strings. `array_rand(array_flip($languageIds), ...)` works on string keys. The `DB::table('languageables')->insert()` stores UUIDs in `language_id` (now `foreignUuid`). The `languageable_type` (`'series'`) is unchanged — it refers to the Series morph type, not Language. No code logic changes needed beyond the import swap.
 
 - [ ] **Step 3: Commit**
 
@@ -563,7 +563,7 @@ Each file has exactly one line to change:
 
 ```diff
 - use Nnjeim\World\Models\Language;
-+ use App\Models\Language;
++ use App\Platform\Language\Models\Language;
 ```
 
 - [ ] **Step 2: Verify no remaining Nnjeim references in app/tests**
@@ -579,7 +579,7 @@ If any remain, fix them now.
 
 ```bash
 git add tests/
-git commit -m "refactor: update test imports to App\Models\Language"
+git commit -m "refactor: update test imports to App\Platform\Language\Models\Language"
 ```
 
 ---

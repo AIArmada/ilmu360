@@ -1,9 +1,9 @@
 <?php
 
-use App\Filament\Resources\Persons\Pages\EditPerson;
-use App\Filament\Resources\Persons\RelationManagers\InstitutionsRelationManager;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\EditPerson;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers\InstitutionsRelationManager;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

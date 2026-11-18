@@ -3,7 +3,7 @@
 use AIArmada\Authz\Models\Role;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Mcp\McpTokenManager;
 use Illuminate\Support\Str;

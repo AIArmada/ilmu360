@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Directory\Enums\InstitutionType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;

@@ -96,7 +96,7 @@ This means a full-refactor ilmu360 could:
 │  └─ Spatie Tags + MediaLibrary integration                          │
 │                                                                      │
 │  Custom Domains (no package):                                        │
-│  ├─ ContributionEntityMutationService                               │
+│  ├─ ContributionEntityStateService                               │
 │  ├─ DonationChannels                                                │
 │  ├─ MCP Servers                                                     │
 │  └─ Public Livewire Pages                                           │
@@ -132,7 +132,7 @@ This means a full-refactor ilmu360 could:
 
 | Current (ilmus360 Custom) | Refactored (Package-Based) |
 |---|---|
-| `App\Models\Event` (1,518 lines) | `AIArmada\Events\Models\Event` |
+| `App\Features\Events\Models\Event` (1,518 lines) | `AIArmada\Events\Models\Event` |
 | Spatie ModelStates (6 states) | `EventStatus` enum (12 states) + `EventLifecyclePolicy` |
 | Direct FK to Institution, Venue, Speaker | Polymorphic morphs via `EventInvolvement`, `EventLocation` |
 | Self-referential `parent_event_id` | `EventOccurrence` model (per-time occurrence) |
@@ -234,7 +234,7 @@ This means a full-refactor ilmu360 could:
 |---|---|---|
 | Public Livewire pages | ~2,500 | Event Index, Show, Submit, Dashboard |
 | MCP servers | ~2,000 | Admin + member, 57 tools |
-| ContributionEntityMutationService | ~1,000 | CRUD/mutation for 5 entity types |
+| ContributionEntityStateService | ~1,000 | CRUD/mutation for 5 entity types |
 | Membership management UI | ~500 | Cross-cutting member lists, invite modals |
 | Donation Channels | ~500 | DonationChannel model, media, API |
 | FCM + WhatsApp push channels | ~400 | Provider channel implementations |
@@ -313,7 +313,7 @@ This means a full-refactor ilmu360 could:
 
 | Change | Impact | Mitigation |
 |---|---|---|
-| Event model class change | High — all code referencing `App\Models\Event` | Facade/adapter during migration |
+| Event model class change | High — all code referencing `App\Features\Events\Models\Event` | Facade/adapter during migration |
 | Status system (Spatie ModelStates → Enum) | High — state machine rewrite | Wrap package enum in state-like adapter |
 | Relationship model change (FKs → morphs) | Medium — query changes | ORM abstraction |
 | Geography ID type (int → UUID) | Very High — every query, filter, API response | Bulk migration + query audit |

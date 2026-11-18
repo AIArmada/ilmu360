@@ -7,7 +7,7 @@ namespace App\Features\Institutions\Actions;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionSubmissionEligibility;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;

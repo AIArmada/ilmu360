@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 

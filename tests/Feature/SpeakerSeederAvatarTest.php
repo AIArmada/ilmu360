@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use Database\Seeders\SpeakerSeeder;
 use Illuminate\Support\Facades\DB;
 

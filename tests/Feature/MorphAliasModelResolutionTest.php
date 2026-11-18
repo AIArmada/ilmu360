@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-use App\Models\DonationChannel;
-use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\Institution;
-use App\Models\Language;
-use App\Models\MemberInvitation;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Institutions\Models\Institution;
+use App\Platform\Language\Models\Language;
+use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Shared\Support\MorphAliasModel;
-use App\Shared\Support\RelatedModels;
+use App\Platform\Models\Support\RelatedModels;
 
 it('resolves every cross-feature relation target through its morph alias', function (): void {
     expect(RelatedModels::event())->toBe(Event::class)
@@ -34,4 +34,4 @@ it('rejects an unregistered morph alias', function (): void {
 
 it('rejects a morph alias that resolves to a different model', function (): void {
     RelatedModels::classFor('event', Institution::class);
-})->throws(RuntimeException::class, 'The [event] morph alias must resolve to [App\Models\Institution].');
+})->throws(RuntimeException::class, 'The [event] morph alias must resolve to [App\Features\Institutions\Models\Institution].');

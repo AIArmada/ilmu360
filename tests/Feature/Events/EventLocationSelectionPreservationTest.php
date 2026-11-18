@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Events\Models\EventLocation;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Space;
-use App\Models\Venue;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Places\Models\Space;
+use App\Features\Places\Models\Venue;
 
 it('keeps venue-change replace semantics for event-level spaces', function (): void {
     $institution = Institution::factory()->create();

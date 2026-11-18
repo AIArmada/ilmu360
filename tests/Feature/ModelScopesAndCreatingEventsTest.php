@@ -2,7 +2,7 @@
 
 use App\Features\Reports\Models\Report;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Models\User;
 
 it('filters active references to verified and pending status', function () {

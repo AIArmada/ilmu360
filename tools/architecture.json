@@ -7,12 +7,6 @@
       "reason": "The root media maintenance command moves files in configured media storage.",
       "expires": "2027-06-30"
     },
-    "App\\Filament\\Pages\\ShareAnalytics": {
-      "adapter": "cache",
-      "resource": "store:infrastructure.share-analytics-dashboard",
-      "reason": "The root Filament page caches its assembled ShareTracking analytics report.",
-      "expires": "2027-06-30"
-    },
     "App\\Platform\\Cache\\CacheVersionStore": {
       "adapter": "cache",
       "resource": "store:infrastructure.cache-versions",
@@ -49,7 +43,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Platform/Auditing/EloquentAuditRecorder.php",
       "target": "table:unknown",
-      "model": "App\\Models\\Audit",
+      "model": "App\\Platform\\Auditing\\Models\\Audit",
       "reason": "Owen's configured audits table and lifecycle remain package-owned; this exact Platform adapter records the Registration export audit through the canonical app Audit model.",
       "owner": "Platform",
       "expires": "2027-06-30"
@@ -65,7 +59,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Models/Concerns/HasUserRestoration.php",
+      "file": "app/Features/Identity/Support/HasUserRestoration.php",
       "target": "table:unknown",
       "model": "Laravel\\Sanctum\\PersonalAccessToken",
       "model_provider": "sanctum",
@@ -113,7 +107,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Models/Concerns/HasUserRestoration.php",
+      "file": "app/Features/Identity/Support/HasUserRestoration.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\Affiliate",
       "reason": "Identity restores the user's validated member affiliate profile through the canonical Affiliates model; affiliate storage remains package-owned.",
@@ -349,9 +343,9 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/Events/Actions/Delete/CleanupEventAction.php",
       "target": "table:event_updates",
-      "model": "App\\Models\\EventChangeAnnouncement",
+      "model": "App\\Features\\Events\\Models\\EventChangeAnnouncement",
       "relation": "changeAnnouncements",
-      "relation_owner": "App\\Models\\Event",
+      "relation_owner": "App\\Features\\Events\\Models\\Event",
       "reason": "The E5a event deletion workflow removes its change announcements before deleting the event; EventChangeAnnouncement remains the app wrapper over the package EventUpdate table.",
       "owner": "Events",
       "expires": "2027-06-30"
@@ -371,7 +365,7 @@
       "target": "table:contact_methods",
       "model": "AIArmada\\Contacting\\Models\\ContactMethod",
       "relation": "contactMethods",
-      "relation_owner": "App\\Models\\EventSubmission",
+      "relation_owner": "App\\Features\\Events\\Models\\EventSubmission",
       "reason": "E2b records guest submitter contacts on the event submission through the Contacting package relation; Contacting remains the canonical owner.",
       "owner": "Events",
       "expires": "2027-06-30"
@@ -497,7 +491,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateBalance",
       "relation": "balances",
@@ -508,7 +502,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\Affiliate",
       "reason": "The root ShareTracking package gateway creates guest Affiliate rows with the required active status, share purpose and metadata, and activation timestamp before issuing credentials and claim capabilities atomically; Affiliates exposes no composite provisioning API and the table remains package-owned.",
@@ -517,7 +511,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\Affiliate",
       "reason": "The root account-restoration path deletes the user's Affiliate only after financial conversions and other monetary obligations are resolved; Affiliate remains package-owned.",
@@ -526,7 +520,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateLink",
       "reason": "The root ShareTracking gateway retains tracked-link reuse, redirect, and account-cleanup behavior, including destination snapshots, touch times, click counts, deactivation, and deletion; the dynamically configured table remains package-owned.",
@@ -535,7 +529,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
       "reason": "The root ShareTracking gateway removes unreferenced attributions during account cleanup and expires preserved attribution facts through the canonical Affiliates model; the package owns this dynamically configured table.",
@@ -544,7 +538,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateConversion",
       "relation": "conversions",
@@ -555,7 +549,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateCredential",
       "reason": "The root ShareTracking package gateway records valid guest-credential use before downstream link authorization, revokes credentials when profiles are sealed, and deletes them during safe profile cleanup; the package owns this dynamically configured table.",
@@ -564,7 +558,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateOwnershipCapability",
       "reason": "The root ShareTracking package gateway removes ownership capabilities during profile cleanup through the canonical Affiliates model; the package owns this dynamically configured table.",
@@ -573,7 +567,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Services/ShareTracking/AffiliatesShareTrackingService.php",
+      "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
       "reason": "The root account-restoration ShareTracking path deletes only unreferenced touchpoints while preserving conversion references through the canonical Affiliates model.",
@@ -590,103 +584,2468 @@
       "expires": "2027-06-30"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/Models/Registration.php",
-      "target": "table:event_registrations",
-      "model": "App\\Models\\Registration",
-      "reason": "The root Registration model keeps transactional vendor deletion behind its app child-deletion hook.",
+      "rule": "api-leak",
+      "file": "app/Features/Contributions/Api/ContributionRequestLifecycle.php",
+      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
+      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "api-leak",
+      "file": "app/Features/Contributions/Api/ContributionSubmissionPreparation.php",
+      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
+      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "api-leak",
+      "file": "app/Features/Contributions/Api/StagedContributionCreates.php",
+      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
+      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Forms/EventContributionFormSchema.php",
+      "target": "App\\Features\\Events\\Services\\EventContributionUpdateStateMapper",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Forms/EventContributionFormSchema.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Forms\\InstitutionFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Forms/EventContributionFormSchema.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Forms\\PersonFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Forms/EventContributionFormSchema.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Forms\\VenueFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Forms/EventContributionFormSchema.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Forms\\ReferenceFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Forms/PersonContributionFormSchema.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Forms\\InstitutionFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Forms/ReferenceContributionFormSchema.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Forms\\ReferenceFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Resources/ContributionRequests/Support/ContributionRequestPresenter.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Resources/ContributionRequests/Support/ContributionRequestPresenter.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Resources/ContributionRequests/Support/ContributionRequestPresenter.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Filament/Resources/ContributionRequests/Support/ContributionRequestPresenter.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Resources\\References\\ReferenceResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Http/ContributionController.php",
+      "target": "App\\Features\\Events\\Services\\EventContributionUpdateStateMapper",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Livewire/Pages/Index.php",
+      "target": "App\\Features\\Events\\Policies\\PublicSchedulePolicy",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/EntryPoints/Livewire/Pages/SuggestUpdate.php",
+      "target": "App\\Features\\Events\\Services\\EventContributionUpdateStateMapper",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/Services/SubmissionContextResolver.php",
+      "target": "App\\Features\\Events\\Services\\OrganizerResolver",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Contributions/Services/SubmissionContextResolver.php",
+      "target": "App\\Features\\Events\\Support\\SubmissionTimingPolicy",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "api-leak",
+      "file": "app/Features/Discovery/Api/EventDiscoveryAdapter.php",
+      "target": "App\\Features\\Events\\Models\\Event",
+      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "api-shape",
+      "file": "app/Features/Discovery/Api/EventDiscoveryAdapter.php",
+      "target": "Illuminate\\Contracts\\Pagination\\LengthAwarePaginator",
+      "reason": "The published boundary contract preserves the existing framework transport or pagination signature required by unchanged public API responses.",
+      "owner": "Platform",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/Data/EventListData.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Ui\\EventCategoryPresenter",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/EventSearchController.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\McpEventSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/Requests/SearchAdminEventsRequest.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\McpEventSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Http\\Data\\InstitutionDetailData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Http\\Data\\InstitutionDonationChannelData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Http\\Data\\InstitutionListData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Http\\Data\\PersonDetailData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Http\\Data\\PersonDetailMediaData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Http\\Data\\PersonGalleryItemData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Http\\Data\\PersonInstitutionData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Http\\Data\\PersonListData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\References\\EntryPoints\\Http\\Data\\ReferenceDetailData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\References\\EntryPoints\\Http\\Data\\ReferenceListData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Http\\Data\\VenueDetailData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Events\\Queries\\PrimaryOccurrenceSql",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Institutions\\Services\\InstitutionSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\Persons\\Services\\PersonSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Http/SearchController.php",
+      "target": "App\\Features\\References\\Services\\ReferenceSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/EntryPoints/Livewire/Components/EventFilters.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Livewire\\Pages\\Index",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/EventSearchService.php",
+      "target": "App\\Features\\Institutions\\Services\\InstitutionSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/EventSearchService.php",
+      "target": "App\\Features\\Persons\\Services\\PersonSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/EventSearchService.php",
+      "target": "App\\Features\\References\\Services\\ReferenceSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
+      "target": "App\\Features\\Events\\Queries\\PrimaryLocationSql",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
+      "target": "App\\Features\\Events\\Queries\\PrimaryOccurrenceSql",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
+      "target": "App\\Features\\Institutions\\Services\\InstitutionSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
+      "target": "App\\Features\\Persons\\Services\\PersonSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
+      "target": "App\\Features\\References\\Services\\ReferenceSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Discovery/Services/PublicScheduleDiscoveryService.php",
+      "target": "App\\Features\\Events\\Policies\\PublicSchedulePolicy",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/DonationChannels/EntryPoints/Filament/Resources/DonationChannels/Tables/DonationChannelsTable.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/DonationChannels/EntryPoints/Filament/Resources/DonationChannels/Tables/DonationChannelsTable.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/DonationChannels/Models/DonationChannel.php",
+      "target": "App\\Features\\Reports\\Support\\ReportModelClass",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Engagement/EntryPoints/Http/Data/EventEngagementListItemData.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Ui\\EventCategoryPresenter",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Actions/Submission/ResolveEventSubmissionPrayerStartAction.php",
+      "target": "App\\Features\\Prayer\\Support\\PrayerLocation",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Prayer",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/Data/EventMeData.php",
+      "target": "App\\Features\\Registration\\EntryPoints\\Http\\Data\\EventCheckInStateData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
       "owner": "Registration",
-      "expires": "2027-06-30"
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/Models/Space.php",
-      "target": "table:venue_spaces",
-      "model": "App\\Models\\Space",
-      "reason": "The root Space model preserves package model identity, its deletion guard, and atomic owner-scoped institution-link cleanup.",
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/Data/EventMeData.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Http\\Data\\EventGoingStateData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/Data/EventMeData.php",
+      "target": "App\\Features\\Registration\\EntryPoints\\Http\\Data\\EventRegistrationStatusData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Registration",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/Data/EventMeData.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Http\\Data\\EventSaveStateData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/Data/EventPayloadData.php",
+      "target": "App\\Features\\References\\EntryPoints\\Http\\Data\\ReferenceDetailMediaData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/Data/EventPayloadData.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Ui\\SpaceLocationPresenter",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
       "owner": "Places",
-      "expires": "2027-06-30"
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/Models/Venue.php",
-      "target": "table:venues",
-      "model": "App\\Models\\Venue",
-      "reason": "The root Venue model preserves package model identity and atomic owner-scoped institution-link cleanup.",
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/EventController.php",
+      "target": "App\\Features\\Registration\\EntryPoints\\Http\\Data\\EventCheckInStateData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Registration",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/EventController.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Http\\Data\\EventGoingStateData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/EventController.php",
+      "target": "App\\Features\\Registration\\EntryPoints\\Http\\Data\\EventRegistrationData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Registration",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/EventController.php",
+      "target": "App\\Features\\Registration\\EntryPoints\\Http\\Data\\EventRegistrationStatusData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Registration",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/EventController.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Http\\Data\\EventSaveStateData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/EventController.php",
+      "target": "App\\Features\\Discovery\\EntryPoints\\Http\\Data\\EventListData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/SubmitEventRequestHandler.php",
+      "target": "App\\Features\\Contributions\\Services\\EntitySubmissionAccess",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Http/SubmitEventRequestHandler.php",
+      "target": "App\\Features\\Contributions\\Services\\SubmissionContextResolver",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Concerns/LoadsEventPageData.php",
+      "target": "App\\Features\\Discovery\\Support\\PublicScheduleLeaf",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Concerns/LoadsEventPageData.php",
+      "target": "App\\Features\\Discovery\\Services\\PublicScheduleDiscoveryService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Index.php",
+      "target": "App\\Features\\Discovery\\Support\\PublicScheduleLeaf",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Index.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Livewire\\Concerns\\TogglesEventGoing",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Index.php",
+      "target": "App\\Features\\Discovery\\Services\\EventSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Index.php",
+      "target": "App\\Features\\Discovery\\Services\\PublicScheduleDiscoveryService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Occurrence.php",
+      "target": "App\\Features\\Discovery\\Services\\PublicScheduleDiscoveryService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Occurrence.php",
+      "target": "App\\Features\\ShareTracking\\Services\\AffiliatesShareTrackingService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "ShareTracking",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Session.php",
+      "target": "App\\Features\\Discovery\\Services\\PublicScheduleDiscoveryService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Discovery\\Support\\PublicScheduleLeaf",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\ShareTracking\\Services\\AffiliatesShareTrackingService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "ShareTracking",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/SubmitEvent/Create.php",
+      "target": "App\\Features\\Contributions\\Services\\EntitySubmissionAccess",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/SubmitEvent/EventSubmissionFormSchema.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Forms\\InstitutionFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/SubmitEvent/EventSubmissionFormSchema.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Forms\\PersonFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/SubmitEvent/EventSubmissionFormSchema.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Forms\\ReferenceFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/SubmitEvent/EventSubmissionFormSchema.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Forms\\VenueFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
       "owner": "Places",
-      "expires": "2027-06-30"
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/States/EventStatus/Transitions/ApproveEvent.php",
-      "target": "table:events",
-      "model": "App\\Models\\Event",
-      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
-      "owner": "Events",
-      "expires": "2027-06-30"
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Livewire/Pages/SubmitEvent/EventSubmissionFormSchema.php",
+      "target": "App\\Features\\Contributions\\Services\\EntitySubmissionAccess",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/States/EventStatus/Transitions/CancelEvent.php",
-      "target": "table:events",
-      "model": "App\\Models\\Event",
-      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
-      "owner": "Events",
-      "expires": "2027-06-30"
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Mcp/EventCoverPromptBuilder.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Ui\\SpaceLocationPresenter",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/States/EventStatus/Transitions/ReconsiderEvent.php",
-      "target": "table:events",
-      "model": "App\\Models\\Event",
-      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
-      "owner": "Events",
-      "expires": "2027-06-30"
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Mcp/McpEventSearchService.php",
+      "target": "App\\Features\\Discovery\\EntryPoints\\Http\\Data\\EventListData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/States/EventStatus/Transitions/RejectEvent.php",
-      "target": "table:events",
-      "model": "App\\Models\\Event",
-      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
-      "owner": "Events",
-      "expires": "2027-06-30"
+      "rule": "feature-private",
+      "file": "app/Features/Events/EntryPoints/Mcp/McpEventSearchService.php",
+      "target": "App\\Features\\Discovery\\Services\\EventSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/States/EventStatus/Transitions/RemoderateEvent.php",
-      "target": "table:events",
-      "model": "App\\Models\\Event",
-      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
-      "owner": "Events",
-      "expires": "2027-06-30"
+      "rule": "feature-private",
+      "file": "app/Features/Events/Models/Event.php",
+      "target": "App\\Features\\DonationChannels\\Concerns\\HasDonationChannels",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "DonationChannels",
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/States/EventStatus/Transitions/RequestChanges.php",
-      "target": "table:events",
-      "model": "App\\Models\\Event",
-      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
-      "owner": "Events",
-      "expires": "2027-06-30"
+      "rule": "feature-private",
+      "file": "app/Features/Events/Models/Event.php",
+      "target": "App\\Features\\Reports\\Support\\ReportModelClass",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/States/EventStatus/Transitions/RevertToDraft.php",
-      "target": "table:events",
-      "model": "App\\Models\\Event",
-      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
-      "owner": "Events",
-      "expires": "2027-06-30"
+      "rule": "feature-private",
+      "file": "app/Features/Events/Models/Event.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
     },
     {
-      "rule": "architecture.foreignWrite",
-      "file": "app/States/EventStatus/Transitions/SubmitForModeration.php",
-      "target": "table:events",
-      "model": "App\\Models\\Event",
-      "reason": "The accepted E3a moderation state transition remains implemented by the configured root Events adapter.",
+      "rule": "feature-private",
+      "file": "app/Features/Events/Notifications/EventNotificationService.php",
+      "target": "App\\Features\\Discovery\\Services\\EventSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Notifications/EventNotificationService.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Policies/EventPolicy.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Services/EventContributionUpdateStateMapper.php",
+      "target": "App\\Features\\Prayer\\Support\\PrayerLocation",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Prayer",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Services/EventDetailPresenter.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Ui\\SpaceLocationPresenter",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Services/SubmitEventOptionsProvider.php",
+      "target": "App\\Features\\Contributions\\Services\\EntitySubmissionAccess",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Services/SubmitEventPrefill.php",
+      "target": "App\\Features\\Contributions\\Services\\EntitySubmissionAccess",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Support/AdminEventScheduleResolver.php",
+      "target": "App\\Features\\Prayer\\Support\\PrayerLocation",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Prayer",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Support/SubmissionTimingPolicy.php",
+      "target": "App\\Features\\Prayer\\Support\\PrayerLocation",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Prayer",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Events/Support/SubmissionTimingPolicy.php",
+      "target": "App\\Features\\Contributions\\Services\\SubmissionContextResolver",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Identity/EntryPoints/Filament/Resources/Authz/UserResource/Pages/EditUser.php",
+      "target": "App\\Features\\Membership\\Queries\\MemberDirectorySummary",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Identity/EntryPoints/Filament/Resources/Authz/UserResource/Pages/ViewUser.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
       "owner": "Events",
-      "expires": "2027-06-30"
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Identity/EntryPoints/Filament/Resources/Authz/UserResource/Pages/ViewUser.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Identity/EntryPoints/Filament/Resources/Authz/UserResource/Pages/ViewUser.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Identity/EntryPoints/Filament/Resources/Authz/UserResource/Pages/ViewUser.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Resources\\References\\ReferenceResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Identity/EntryPoints/Filament/Resources/Authz/UserResource/Pages/ViewUser.php",
+      "target": "App\\Features\\Membership\\Queries\\MemberDirectorySummary",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Identity/EntryPoints/Livewire/Pages/Dashboard/UserDashboard.php",
+      "target": "App\\Features\\ShareTracking\\Services\\ShareTrackingAnalyticsService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "ShareTracking",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Identity/Support/HasUserRestoration.php",
+      "target": "App\\Features\\ShareTracking\\Services\\AffiliatesShareTrackingService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "ShareTracking",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Console/Commands/PruneOrphanedEntities.php",
+      "target": "App\\Features\\Persons\\Actions\\PruneOrphanedPersonsAction",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Console/Commands/PruneOrphanedEntities.php",
+      "target": "App\\Features\\Places\\Actions\\PruneOrphanedVenuesAction",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Filament/Forms/InstitutionFormSchema.php",
+      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Filament/Resources/Institutions/RelationManagers/DonationChannelsRelationManager.php",
+      "target": "App\\Features\\DonationChannels\\EntryPoints\\Filament\\Resources\\DonationChannels\\Schemas\\DonationChannelForm",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "DonationChannels",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Filament/Resources/Institutions/RelationManagers/DonationChannelsRelationManager.php",
+      "target": "App\\Features\\DonationChannels\\EntryPoints\\Filament\\Resources\\DonationChannels\\Tables\\DonationChannelsTable",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "DonationChannels",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Filament/Resources/Institutions/RelationManagers/EventsRelationManager.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\RelationManagers\\EventsRelationManager",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Filament/Resources/Institutions/RelationManagers/MemberInvitationsRelationManager.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Filament\\RelationManagers\\MemberInvitationsRelationManager",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Filament/Resources/Institutions/RelationManagers/MembersRelationManager.php",
+      "target": "App\\Features\\Identity\\EntryPoints\\Filament\\Resources\\Authz\\UserResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Identity",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Filament/Resources/Institutions/Schemas/InstitutionForm.php",
+      "target": "App\\Features\\Events\\Services\\PublicSubmissionLockService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Livewire/Pages/InstitutionDashboard.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Ui\\SpaceLocationPresenter",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Livewire/Pages/InstitutionDashboard.php",
+      "target": "App\\Features\\Contributions\\Services\\EntitySubmissionAccess",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Livewire/Pages/InstitutionDashboard.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Discovery\\Support\\PublicScheduleLeaf",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Livewire\\Concerns\\LoadsEventPageData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Livewire\\Concerns\\TogglesEventGoing",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Livewire\\Concerns\\TogglesEventSave",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/Models/Institution.php",
+      "target": "App\\Features\\DonationChannels\\Concerns\\HasDonationChannels",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "DonationChannels",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Institutions/Models/Institution.php",
+      "target": "App\\Features\\Reports\\Support\\ReportModelClass",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Membership/EntryPoints/Filament/Resources/MembershipApplications/Schemas/MembershipApplicationInfolist.php",
+      "target": "App\\Features\\Identity\\EntryPoints\\Filament\\Resources\\Authz\\UserResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Identity",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Membership/Integrations/AppMembershipHook.php",
+      "target": "App\\Features\\Events\\Services\\PublicSubmissionLockService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Organizations/EntryPoints/Livewire/Pages/CreateEvent.php",
+      "target": "App\\Features\\Membership\\Services\\OrganizationEventAccess",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Organizations/EntryPoints/Livewire/Pages/Workspace.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Filament/Forms/PersonFormSchema.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Filament\\Forms\\PersonContributionFormSchema",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Filament/Resources/Persons/PersonResource.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\RelationManagers\\EventsRelationManager",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Filament/Resources/Persons/RelationManagers/AffiliationsRelationManager.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Filament/Resources/Persons/RelationManagers/InstitutionsRelationManager.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Filament/Resources/Persons/RelationManagers/MemberInvitationsRelationManager.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Filament\\RelationManagers\\MemberInvitationsRelationManager",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Filament/Resources/Persons/RelationManagers/MembersRelationManager.php",
+      "target": "App\\Features\\Identity\\EntryPoints\\Filament\\Resources\\Authz\\UserResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Identity",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Filament/Resources/Persons/Schemas/PersonForm.php",
+      "target": "App\\Features\\Events\\Services\\PublicSubmissionLockService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Livewire/Pages/PersonDashboard.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Livewire/Pages/PersonDashboard.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Discovery\\Support\\PublicScheduleLeaf",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Livewire\\Concerns\\TogglesEventGoing",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Livewire\\Concerns\\TogglesEventSave",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Discovery\\Services\\PublicScheduleDiscoveryService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/Models/Person.php",
+      "target": "App\\Features\\DonationChannels\\Concerns\\HasDonationChannels",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "DonationChannels",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/Models/Person.php",
+      "target": "App\\Features\\Reports\\Support\\ReportModelClass",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/Observers/PersonObserver.php",
+      "target": "App\\Features\\References\\Services\\ReferenceSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Persons/Policies/PersonPolicy.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Places/EntryPoints/Filament/Resources/Spaces/RelationManagers/InstitutionsRelationManager.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Places/EntryPoints/Filament/Resources/Spaces/SpaceResource.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\RelationManagers\\EventsRelationManager",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/EntryPoints/Filament/Resources/References/ReferenceResource.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\RelationManagers\\EventsRelationManager",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/EntryPoints/Filament/Resources/References/RelationManagers/MemberInvitationsRelationManager.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Filament\\RelationManagers\\MemberInvitationsRelationManager",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/EntryPoints/Filament/Resources/References/RelationManagers/MembersRelationManager.php",
+      "target": "App\\Features\\Identity\\EntryPoints\\Filament\\Resources\\Authz\\UserResource",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Identity",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Discovery\\Support\\PublicScheduleLeaf",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Livewire\\Concerns\\LoadsEventPageData",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Livewire\\Concerns\\TogglesEventGoing",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/EntryPoints/Livewire/Pages/Show.php",
+      "target": "App\\Features\\Engagement\\EntryPoints\\Livewire\\Concerns\\TogglesEventSave",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Engagement",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/Models/Reference.php",
+      "target": "App\\Features\\Reports\\Support\\ReportModelClass",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/References/Policies/ReferencePolicy.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Registration/EntryPoints/Http/EventRegistrationController.php",
+      "target": "App\\Features\\Events\\Notifications\\EventNotificationService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Registration/EntryPoints/Http/EventRegistrationController.php",
+      "target": "App\\Features\\Events\\Policies\\EventTicketingPolicy",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Registration/EntryPoints/Livewire/Pages/Checkout.php",
+      "target": "App\\Features\\Events\\Policies\\EventTicketingPolicy",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Registration/Notifications/EventNotificationCheckInNotifier.php",
+      "target": "App\\Features\\Events\\Notifications\\EventNotificationService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Registration/Policies/RegistrationPolicy.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/Rewards/Queries/ShareAttributionRewardSourceFactReader.php",
+      "target": "App\\Features\\ShareTracking\\Services\\ShareProfileScope",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "ShareTracking",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "feature-private",
+      "file": "app/Features/SavedSearches/Services/EventSavedSearchExecutor.php",
+      "target": "App\\Features\\Discovery\\Services\\EventSearchService",
+      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "api-leak",
+      "file": "app/Features/ShareTracking/Api/ShareTrackingContract.php",
+      "target": "App\\Models\\User",
+      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
+      "owner": "Platform",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "api-shape",
+      "file": "app/Features/ShareTracking/Api/ShareTrackingContract.php",
+      "target": "Illuminate\\Database\\Eloquent\\Model",
+      "reason": "The published boundary contract preserves the existing framework transport or pagination signature required by unchanged public API responses.",
+      "owner": "Platform",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "api-shape",
+      "file": "app/Features/ShareTracking/Api/ShareTrackingContract.php",
+      "target": "Illuminate\\Http\\Request",
+      "reason": "The published boundary contract preserves the existing framework transport or pagination signature required by unchanged public API responses.",
+      "owner": "Platform",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressAreaObserver.php",
+      "target": "App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressAreaObserver.php",
+      "target": "App\\Features\\Institutions\\Api\\InstitutionListingCacheVersion",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressAreaObserver.php",
+      "target": "App\\Features\\Persons\\Api\\PersonListingCacheVersion",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressCountryObserver.php",
+      "target": "App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressCountryObserver.php",
+      "target": "App\\Features\\Institutions\\Api\\InstitutionListingCacheVersion",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressCountryObserver.php",
+      "target": "App\\Features\\Persons\\Api\\PersonListingCacheVersion",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
+      "target": "App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
+      "target": "App\\Features\\Events\\Api\\EventAuthoring",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
+      "target": "App\\Features\\Institutions\\Api\\InstitutionListingCacheVersion",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
+      "target": "App\\Features\\Institutions\\Api\\InstitutionWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
+      "target": "App\\Features\\Persons\\Api\\PersonListingCacheVersion",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
+      "target": "App\\Features\\Persons\\Api\\PersonWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressObserver.php",
+      "target": "App\\Features\\Places\\Api\\VenueWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
+      "target": "App\\Features\\Discovery\\Api\\PublicListingsCacheInvalidator",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Discovery",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
+      "target": "App\\Features\\Events\\Api\\EventAuthoring",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
+      "target": "App\\Features\\Institutions\\Api\\InstitutionListingCacheVersion",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
+      "target": "App\\Features\\Institutions\\Api\\InstitutionWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
+      "target": "App\\Features\\Persons\\Api\\PersonListingCacheVersion",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
+      "target": "App\\Features\\Persons\\Api\\PersonWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Addressing/Observers/AddressableObserver.php",
+      "target": "App\\Features\\Places\\Api\\VenueWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Admin/EntryPoints/Filament/Pages/AhliDashboard.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Widgets\\PendingApprovalEventsWidget",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Pages\\ModerationQueue",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Resources\\References\\ReferenceResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Admin/EntryPoints/Filament/Widgets/StatsOverview.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Venues\\VenueResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Membership\\Api\\MembershipApplications",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Reports\\Api\\ReportTriageContract",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Filament\\Resources\\ContributionRequests\\ContributionRequestResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Filament\\Resources\\MembershipApplications\\MembershipApplicationResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Admin\\AdminContributionRequestReviewService",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Admin\\AdminEventModerationService",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Reports\\EntryPoints\\Admin\\AdminReportTriageService",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminRecordActionService.php",
+      "target": "App\\Features\\Membership\\Api\\MembershipApplicationDetail",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\DonationChannels\\Api\\DonationChannelWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "DonationChannels",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Events\\Api\\AdminEventWriter",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Events\\Api\\EventAuthoring",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Events\\Api\\RegistrationScope",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Events\\Api\\SeriesAuthoring",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Inspirations\\Api\\InspirationAdminContract",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Inspirations",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Institutions\\Api\\InstitutionWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Persons\\Api\\PersonWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Places\\Api\\SpaceWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Places\\Api\\VenueWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\References\\Api\\ReferenceWorkflow",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Reports\\Api\\ReportAdminContract",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\DonationChannels\\EntryPoints\\Filament\\Resources\\DonationChannels\\DonationChannelResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "DonationChannels",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Resources\\References\\ReferenceResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Series\\SeriesResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Spaces\\SpaceResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Venues\\VenueResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Reports\\Support\\ReportModelClass",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceMutationService.php",
+      "target": "App\\Features\\Contributions\\Services\\ContributionEntityStateService",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceRegistry.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Http\\Data\\EventPayloadData",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceRegistry.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceRegistry.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceRegistry.php",
+      "target": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Venues\\VenueResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceService.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Admin/AdminResourceService.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/EntryPoints/Http/CatalogController.php",
+      "target": "App\\Features\\Membership\\Api\\MemberSubjectType",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/EntryPoints/Http/ManifestController.php",
+      "target": "App\\Features\\Membership\\Api\\MemberSubjectType",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
+      "target": "App\\Features\\Membership\\Api\\MemberSubjectType",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
+      "target": "App\\Features\\Events\\Api\\AdvancedBuilderContext",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
+      "target": "App\\Features\\Places\\Api\\SpaceEligibility",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Places",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Forms\\ReferenceAuthorFormSchema",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
+      "target": "App\\Features\\Contributions\\Services\\EntitySubmissionAccess",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
+      "target": "App\\Features\\Institutions\\Services\\InstitutionSearchService",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendCatalogService.php",
+      "target": "App\\Features\\Persons\\Services\\PersonSearchService",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
+      "target": "App\\Features\\Membership\\Api\\MemberSubjectType",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
+      "target": "App\\Features\\Events\\Api\\RegistrationScope",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
+      "target": "App\\Features\\GitHubIssues\\Api\\GitHubIssueReportContract",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "GitHubIssues",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
+      "target": "App\\Features\\GitHubIssues\\Api\\GitHubIssueReporterContract",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "GitHubIssues",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
+      "target": "App\\Features\\Identity\\Api\\AccountPreferences",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Identity",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
+      "target": "App\\Features\\ShareTracking\\Services\\AffiliatesShareTrackingService",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "ShareTracking",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
+      "target": "App\\Features\\Events\\Support\\SubmissionTimingPolicy",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceMutationService.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Ahli\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceMutationService.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Ahli\\Resources\\Persons\\PersonResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceMutationService.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Ahli\\Resources\\References\\ReferenceResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceMutationService.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceMutationService.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceMutationService.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Resources\\Persons\\PersonResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceMutationService.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Resources\\References\\ReferenceResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceMutationService.php",
+      "target": "App\\Features\\Membership\\Services\\MemberPermissionGate",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceRegistry.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Http\\Data\\EventPayloadData",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceRegistry.php",
+      "target": "App\\Features\\Institutions\\EntryPoints\\Filament\\Ahli\\Resources\\Institutions\\InstitutionResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Institutions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceRegistry.php",
+      "target": "App\\Features\\Persons\\EntryPoints\\Filament\\Ahli\\Resources\\Persons\\PersonResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Persons",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceRegistry.php",
+      "target": "App\\Features\\References\\EntryPoints\\Filament\\Ahli\\Resources\\References\\ReferenceResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "References",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Api/Member/MemberResourceRegistry.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/ApiDocumentation/EntryPoints/Mcp/Prompts/DocumentationToolRoutingPrompt.php",
+      "target": "App\\Features\\Mcp\\Services\\VerifiedDocumentationCatalog",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/ApiDocumentation/EntryPoints/Mcp/Prompts/MemberDocumentationToolRoutingPrompt.php",
+      "target": "App\\Features\\Mcp\\Services\\MemberVerifiedDocumentationCatalog",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/ApiDocumentation/EntryPoints/Mcp/Tools/AdminDocumentationFetchTool.php",
+      "target": "App\\Features\\Mcp\\Services\\McpDocumentationPreflight",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/ApiDocumentation/EntryPoints/Mcp/Tools/AdminDocumentationFetchTool.php",
+      "target": "App\\Features\\Mcp\\Services\\VerifiedDocumentationCatalog",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/ApiDocumentation/EntryPoints/Mcp/Tools/AdminDocumentationSearchTool.php",
+      "target": "App\\Features\\Mcp\\Services\\VerifiedDocumentationCatalog",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/ApiDocumentation/EntryPoints/Mcp/Tools/MemberDocumentationFetchTool.php",
+      "target": "App\\Features\\Mcp\\Services\\MemberMcpDocumentationPreflight",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/ApiDocumentation/EntryPoints/Mcp/Tools/MemberDocumentationFetchTool.php",
+      "target": "App\\Features\\Mcp\\Services\\MemberVerifiedDocumentationCatalog",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/ApiDocumentation/EntryPoints/Mcp/Tools/MemberDocumentationSearchTool.php",
+      "target": "App\\Features\\Mcp\\Services\\MemberVerifiedDocumentationCatalog",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Language/EntryPoints/Http/LocaleController.php",
+      "target": "App\\Features\\Communications\\Api\\AccountNotificationPreferences",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Communications",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Methods/CallToolWithDocumentationPreflight.php",
+      "target": "App\\Features\\Mcp\\Services\\McpDocumentationPreflight",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Methods/CallToolWithDocumentationPreflight.php",
+      "target": "App\\Features\\Mcp\\Services\\VerifiedDocumentationCatalog",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Methods/MemberCallToolWithDocumentationPreflight.php",
+      "target": "App\\Features\\Mcp\\Services\\MemberMcpDocumentationPreflight",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Methods/MemberCallToolWithDocumentationPreflight.php",
+      "target": "App\\Features\\Mcp\\Services\\MemberVerifiedDocumentationCatalog",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Methods/MemberReadResourceWithDocumentationPreflight.php",
+      "target": "App\\Features\\Mcp\\Services\\MemberMcpDocumentationPreflight",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Methods/ReadResourceWithDocumentationPreflight.php",
+      "target": "App\\Features\\Mcp\\Services\\McpDocumentationPreflight",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Mcp",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Prompts\\AdminEventCoverImagePrompt",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Prompts\\AdminEventPosterImagePrompt",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminBatchCreateEventsTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminBatchUpdateEventsTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminCreateEventTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\GitHubIssues\\EntryPoints\\Mcp\\Tools\\AdminCreateGitHubIssueTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "GitHubIssues",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Mcp\\Tools\\AdminGetContributionRequestReviewSchemaTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminGetEventModerationSchemaTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Mcp\\Tools\\AdminGetMembershipApplicationReviewSchemaTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Reports\\EntryPoints\\Mcp\\Tools\\AdminGetReportTriageSchemaTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminModerateEventTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Mcp\\Tools\\AdminReviewContributionRequestTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Mcp\\Tools\\AdminReviewMembershipApplicationTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminSearchEventsTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Reports\\EntryPoints\\Mcp\\Tools\\AdminTriageReportTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Reports",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminUpdateEventTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminUploadEventCoverImageTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/AdminServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\AdminUploadEventPosterImageTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Prompts\\MemberEventCoverImagePrompt",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Prompts\\MemberEventPosterImagePrompt",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Mcp\\Tools\\MemberApproveContributionRequestTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Mcp\\Tools\\MemberCancelContributionRequestTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Mcp\\Tools\\MemberCancelMembershipApplicationTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\GitHubIssues\\EntryPoints\\Mcp\\Tools\\MemberCreateGitHubIssueTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "GitHubIssues",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Mcp\\Tools\\MemberListContributionRequestsTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Mcp\\Tools\\MemberListMembershipApplicationsTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Contributions\\EntryPoints\\Mcp\\Tools\\MemberRejectContributionRequestTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\MemberSearchEventsTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Membership\\EntryPoints\\Mcp\\Tools\\MemberSubmitMembershipApplicationTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Membership",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\MemberUploadEventCoverImageTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Platform/Mcp/Servers/MemberServer.php",
+      "target": "App\\Features\\Events\\EntryPoints\\Mcp\\Tools\\MemberUploadEventPosterImageTool",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Events",
+      "expires": "2027-12-31"
+    },
+    {
+      "rule": "platform-direction",
+      "file": "app/Shared/Contributions/Support/ContributionEntityMetadata.php",
+      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
+      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
+      "owner": "Contributions",
+      "expires": "2027-12-31"
     }
   ]
 }

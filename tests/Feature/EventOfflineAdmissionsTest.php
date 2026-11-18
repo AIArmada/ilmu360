@@ -9,9 +9,9 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
-use App\Models\Event;
-use App\Models\Registration;
+use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Livewire\Livewire;
 

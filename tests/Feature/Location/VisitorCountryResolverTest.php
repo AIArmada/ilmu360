@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Addressing\Models\AddressCountry;
-use App\Livewire\Pages\Events\Index;
+use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Platform\Location\VisitorCountryResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;

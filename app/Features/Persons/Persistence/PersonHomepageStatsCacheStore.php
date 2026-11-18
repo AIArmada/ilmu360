@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons\Persistence;
 
 use App\Features\Persons\Api\PersonHomepageStats;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use Illuminate\Support\Facades\Cache;
 
 final readonly class PersonHomepageStatsCacheStore implements PersonHomepageStats

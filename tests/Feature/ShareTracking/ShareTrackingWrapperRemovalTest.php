@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Contracts\ShareTrackingContract;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 
 it('removes the pass-through share tracking wrapper and unused null object', function (): void {
     expect(file_exists(app_path('Services/ShareTrackingService.php')))->toBeFalse()

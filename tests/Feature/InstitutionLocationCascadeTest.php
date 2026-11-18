@@ -5,7 +5,7 @@ use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Platform\Location\LocationSlugResolver;
 use Livewire\Livewire;
 

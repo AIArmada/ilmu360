@@ -14,7 +14,7 @@ use AIArmada\Events\States\EventModerationStatus\Rejected as SubmissionRejected;
 use AIArmada\Events\States\OccurrenceStatus\Archived;
 use AIArmada\Events\States\OccurrenceStatus\Scheduled;
 use App\Features\Events\Support\EventModel;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use Illuminate\Validation\ValidationException;
 
 /**

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Contributions\Support;
 
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 

@@ -174,7 +174,7 @@ final readonly class CancelRewardDigestAction
     }
 
     /**
-     * @param  \App\Models\RewardDigestSlot  $slot
+     * @param  \App\Features\Rewards\Models\RewardDigestSlot  $slot
      */
     private function markCancelled(Model $slot, string $reason, CarbonImmutable $now): void
     {

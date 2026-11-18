@@ -2,11 +2,11 @@
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Forms\EventContributionFormSchema;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Venue;
+use App\Features\Contributions\EntryPoints\Filament\Forms\EventContributionFormSchema;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Places\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Taxonomy\EventTaxonomyCode;

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Pages\Events\Index;
-use App\Livewire\Pages\Institutions\Show;
-use App\Models\Event;
-use App\Models\Institution;
+use App\Features\Events\EntryPoints\Livewire\Pages\Index;
+use App\Features\Institutions\EntryPoints\Livewire\Pages\Show;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
 use App\Platform\Location\VisitorCountryResolver;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Events\Enums\EventFormat;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Spaces;
 
-use App\Models\Space;
+use App\Features\Places\Models\Space;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -101,8 +101,8 @@ final readonly class SyncInstitutionSpacesAction
     }
 
     /**
-     * @param  Collection<int, \App\Models\Institution>  $before
-     * @param  Collection<int, \App\Models\Institution>  $after
+     * @param  Collection<int, \App\Features\Institutions\Models\Institution>  $before
+     * @param  Collection<int, \App\Features\Institutions\Models\Institution>  $after
      */
     private function recordInstitutionAudit(Space $space, Collection $before, Collection $after): void
     {

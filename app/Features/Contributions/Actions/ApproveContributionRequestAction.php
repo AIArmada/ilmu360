@@ -14,10 +14,10 @@ use App\Features\References\Api\ReferenceWorkflow;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Contributions\ContributionRequestNotifier;
+use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Shared\Contributions\InstitutionClaimGuard;
@@ -50,8 +50,8 @@ class ApproveContributionRequestAction
     ) {}
 
     /**
-     * @param  \App\Models\ContributionRequest  $request
-     * @return \App\Models\ContributionRequest
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
+     * @return \App\Features\Contributions\Models\ContributionRequest
      */
     public function handle(Model $request, Model $reviewer, ?string $reviewerNote = null): Model
     {
@@ -149,7 +149,7 @@ class ApproveContributionRequestAction
      * must not re-run persistence normalization on them, which would throw on
      * stale geography and could trigger remote Maps lookups per check.
      *
-     * @param  \App\Models\ContributionRequest  $request
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
      * @param  array<string, mixed>  $proposed
      * @return list<array{name: mixed, address: array<string, mixed>}>
      */
@@ -204,7 +204,7 @@ class ApproveContributionRequestAction
      * Raw stored-row address shapes; normalized by the caller with
      * {@see InstitutionClaimGuard::normalizeAddress()}.
      *
-     * @param  \App\Models\Institution  $entity
+     * @param  \App\Features\Institutions\Models\Institution  $entity
      * @return list<array<string, mixed>>
      */
     private function entityProbeAddresses(Model $entity): array
@@ -236,7 +236,7 @@ class ApproveContributionRequestAction
      * conflicting requests concurrently. The request excludes its own staged
      * or target entity and its own pending claim so clean approvals pass.
      *
-     * @param  \App\Models\ContributionRequest  $request
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
      * @param  array<string, mixed>  $state
      */
     private function assertNoConflictingInstitutionClaim(Model $request, array $state): void
@@ -263,7 +263,7 @@ class ApproveContributionRequestAction
     }
 
     /**
-     * @param  \App\Models\ContributionRequest  $request
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
      */
     private function approveCreateRequest(Model $request): Model
     {
@@ -304,7 +304,7 @@ class ApproveContributionRequestAction
     }
 
     /**
-     * @param  \App\Models\ContributionRequest  $request
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
      */
     private function applyApprovedUpdate(Model $request): void
     {
@@ -357,7 +357,7 @@ class ApproveContributionRequestAction
     /**
      * Apply media that a non-privileged contributor staged on the pending request.
      *
-     * @param  \App\Models\ContributionRequest  $request
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
      */
     private function applyStagedMedia(Model $request, Model $entity): void
     {
@@ -399,7 +399,7 @@ class ApproveContributionRequestAction
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return \App\Models\Institution
+     * @return \App\Features\Institutions\Models\Institution
      */
     private function createInstitutionFromRequest(array $payload): Model
     {
@@ -409,9 +409,9 @@ class ApproveContributionRequestAction
     }
 
     /**
-     * @param  \App\Models\ContributionRequest  $request
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
      * @param  array<string, mixed>  $payload
-     * @return \App\Models\Person
+     * @return \App\Features\Persons\Models\Person
      */
     private function createPersonFromRequest(Model $request, array $payload): Model
     {
@@ -428,7 +428,7 @@ class ApproveContributionRequestAction
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return \App\Models\Reference
+     * @return \App\Features\References\Models\Reference
      */
     private function createReferenceFromRequest(array $payload): Model
     {

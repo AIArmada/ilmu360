@@ -10,7 +10,7 @@ use App\Features\Events\Support\EventModel;
 final readonly class SyncEventAssociationsAction
 {
     /**
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @param  list<string>  $referenceIds
      */
     public function syncReferences(PackageEvent $event, array $referenceIds): void
@@ -19,7 +19,7 @@ final readonly class SyncEventAssociationsAction
     }
 
     /**
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @param  list<string>  $seriesIds
      */
     public function syncSeries(PackageEvent $event, array $seriesIds): void

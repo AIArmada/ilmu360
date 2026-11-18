@@ -1,14 +1,14 @@
 <?php
 
 use AIArmada\Membership\Actions\RevokeInvitationAction;
-use App\Enums\MemberSubjectType;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Institutions\Actions\DeleteInstitutionAction;
 use App\Features\Membership\Actions\AcceptSubjectMemberInvitation;
 use App\Features\Membership\Actions\InviteSubjectMember;
-use App\Models\Institution;
-use App\Models\MemberInvitation;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Models\MemberInvitation;
 use App\Models\User;
-use App\Support\Authz\MemberRoleCatalog;
+use App\Features\Membership\Services\MemberRoleCatalog;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
 

@@ -1,12 +1,12 @@
 <?php
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Services\PublicScheduleDiscoveryService;
+use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 
 function homepageMajlis(array $attributes = []): Event
 {

@@ -112,7 +112,7 @@ integrations.
 
 These are not package duplicates:
 
-- `App\\Models\\Event` is the product projection/subclass with ilmu360°
+- `App\\Features\\Events\\Models\\Event` is the product projection/subclass with ilmu360°
   casts, media, API relationships, and public presentation behavior.
 - `ModerationService` coordinates the app's event submission/review policy and
   side effects; the moderation package supplies generic primitives, not this

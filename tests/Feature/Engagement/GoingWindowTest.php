@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Features\Engagement\Api\GoingWindow;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 
 function engagementGoingMoment(string $value): DateTimeImmutable
 {

@@ -287,7 +287,7 @@ git add -A && git commit -m "refactor: move speaker-slug fallback into GenerateE
 
 namespace App\Support\Events;
 
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\Speaker;
 
 final class OrganizerResolver
@@ -318,7 +318,7 @@ git add -A && git commit -m "refactor: extract OrganizerResolver for primary org
 
 ## Phase 4: Finish EventSearchService Strategy Pattern (4-6 hours)
 
-**Problem:** `EventSearchService` (1,783 lines) holds ALL query-building logic for BOTH Postgres and Typesense. The "strategy" is half-done: `App\Contracts\EventDiscoveryAdapter` exists, `PostgresEventDiscovery` and `TypesenseEventDiscovery` exist, but they're **33-line hollow shells** that immediately call back into the service's `@internal` methods. The deletion test passes — delete both adapters and behavior is identical.
+**Problem:** `EventSearchService` (1,783 lines) holds ALL query-building logic for BOTH Postgres and Typesense. The "strategy" is half-done: `App\Features\Discovery\Api\EventDiscoveryAdapter` exists, `PostgresEventDiscovery` and `TypesenseEventDiscovery` exist, but they're **33-line hollow shells** that immediately call back into the service's `@internal` methods. The deletion test passes — delete both adapters and behavior is identical.
 
 **Goal:** Move the implementation INTO the adapters where it belongs. Service shrinks to ~250 lines (engine selection + fallback + cache).
 

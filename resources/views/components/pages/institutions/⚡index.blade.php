@@ -2,15 +2,15 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Forms\SharedFormSchema;
-use App\Models\Institution;
+use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Location\LocationLevelLabels;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Auth\IntendedRedirect;
-use App\Support\Engagement\DirectoryFollowSubjectResolver;
+use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
 use App\Platform\Location\LocationSlugResolver;
-use App\Support\Search\InstitutionDirectoryQuery;
+use App\Features\Institutions\Queries\InstitutionDirectoryQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;

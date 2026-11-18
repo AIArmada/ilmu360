@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\Audit;
+use App\Platform\Auditing\Models\Audit;
 use OwenIt\Auditing\Resolvers\IpAddressResolver;
 use OwenIt\Auditing\Resolvers\UrlResolver;
 use OwenIt\Auditing\Resolvers\UserAgentResolver;

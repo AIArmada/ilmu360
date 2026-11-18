@@ -401,8 +401,8 @@
         },
         {
           "resource_key": "audits",
-          "resource_class": "App\\Filament\\Resources\\Audits\\AuditResource",
-          "model_class": "App\\Models\\Audit",
+          "resource_class": "App\\Platform\\Auditing\\EntryPoints\\Filament\\Resources\\Audits\\AuditResource",
+          "model_class": "App\\Platform\\Auditing\\Models\\Audit",
           "source": "app",
           "page_keys": [
             "index",
@@ -412,8 +412,8 @@
         },
         {
           "resource_key": "contribution-requests",
-          "resource_class": "App\\Filament\\Resources\\ContributionRequests\\ContributionRequestResource",
-          "model_class": "App\\Models\\ContributionRequest",
+          "resource_class": "App\\Features\\Contributions\\EntryPoints\\Filament\\Resources\\ContributionRequests\\ContributionRequestResource",
+          "model_class": "App\\Features\\Contributions\\Models\\ContributionRequest",
           "source": "app",
           "page_keys": [
             "index",
@@ -447,8 +447,8 @@
         },
         {
           "resource_key": "donation-channels",
-          "resource_class": "App\\Filament\\Resources\\DonationChannels\\DonationChannelResource",
-          "model_class": "App\\Models\\DonationChannel",
+          "resource_class": "App\\Features\\DonationChannels\\EntryPoints\\Filament\\Resources\\DonationChannels\\DonationChannelResource",
+          "model_class": "App\\Features\\DonationChannels\\Models\\DonationChannel",
           "source": "app",
           "page_keys": [
             "index",
@@ -459,8 +459,8 @@
         },
         {
           "resource_key": "events",
-          "resource_class": "App\\Filament\\Resources\\Events\\EventResource",
-          "model_class": "App\\Models\\Event",
+          "resource_class": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Events\\EventResource",
+          "model_class": "App\\Features\\Events\\Models\\Event",
           "source": "app",
           "page_keys": [
             "index",
@@ -484,8 +484,8 @@
         },
         {
           "resource_key": "institutions",
-          "resource_class": "App\\Filament\\Resources\\Institutions\\InstitutionResource",
-          "model_class": "App\\Models\\Institution",
+          "resource_class": "App\\Features\\Institutions\\EntryPoints\\Filament\\Resources\\Institutions\\InstitutionResource",
+          "model_class": "App\\Features\\Institutions\\Models\\Institution",
           "source": "app",
           "page_keys": [
             "index",
@@ -520,8 +520,8 @@
         },
         {
           "resource_key": "references",
-          "resource_class": "App\\Filament\\Resources\\References\\ReferenceResource",
-          "model_class": "App\\Models\\Reference",
+          "resource_class": "App\\Features\\References\\EntryPoints\\Filament\\Resources\\References\\ReferenceResource",
+          "model_class": "App\\Features\\References\\Models\\Reference",
           "source": "app",
           "page_keys": [
             "index",
@@ -568,8 +568,8 @@
         },
         {
           "resource_key": "series",
-          "resource_class": "App\\Filament\\Resources\\Series\\SeriesResource",
-          "model_class": "App\\Models\\Series",
+          "resource_class": "App\\Features\\Events\\EntryPoints\\Filament\\Resources\\Series\\SeriesResource",
+          "model_class": "App\\Features\\Events\\Models\\Series",
           "source": "app",
           "page_keys": [
             "index",
@@ -639,8 +639,8 @@
         },
         {
           "resource_key": "spaces",
-          "resource_class": "App\\Filament\\Resources\\Spaces\\SpaceResource",
-          "model_class": "App\\Models\\Space",
+          "resource_class": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Spaces\\SpaceResource",
+          "model_class": "App\\Features\\Places\\Models\\Space",
           "source": "app",
           "page_keys": [
             "index",
@@ -713,7 +713,7 @@
         },
         {
           "resource_key": "users",
-          "resource_class": "App\\Filament\\Resources\\Authz\\UserResource",
+          "resource_class": "App\\Features\\Identity\\EntryPoints\\Filament\\Resources\\Authz\\UserResource",
           "model_class": "App\\Models\\User",
           "source": "app",
           "page_keys": [
@@ -726,8 +726,8 @@
         },
         {
           "resource_key": "venues",
-          "resource_class": "App\\Filament\\Resources\\Venues\\VenueResource",
-          "model_class": "App\\Models\\Venue",
+          "resource_class": "App\\Features\\Places\\EntryPoints\\Filament\\Resources\\Venues\\VenueResource",
+          "model_class": "App\\Features\\Places\\Models\\Venue",
           "source": "app",
           "page_keys": [
             "index",
@@ -746,7 +746,7 @@
         {
           "resource_key": "events",
           "resource_class": "App\\Filament\\Ahli\\Resources\\Events\\EventResource",
-          "model_class": "App\\Models\\Event",
+          "model_class": "App\\Features\\Events\\Models\\Event",
           "page_keys": [
             "index",
             "view",
@@ -756,8 +756,8 @@
         },
         {
           "resource_key": "institutions",
-          "resource_class": "App\\Filament\\Ahli\\Resources\\Institutions\\InstitutionResource",
-          "model_class": "App\\Models\\Institution",
+          "resource_class": "App\\Features\\Institutions\\EntryPoints\\Filament\\Ahli\\Resources\\Institutions\\InstitutionResource",
+          "model_class": "App\\Features\\Institutions\\Models\\Institution",
           "page_keys": [
             "edit"
           ],
@@ -765,8 +765,8 @@
         },
         {
           "resource_key": "references",
-          "resource_class": "App\\Filament\\Ahli\\Resources\\References\\ReferenceResource",
-          "model_class": "App\\Models\\Reference",
+          "resource_class": "App\\Features\\References\\EntryPoints\\Filament\\Ahli\\Resources\\References\\ReferenceResource",
+          "model_class": "App\\Features\\References\\Models\\Reference",
           "page_keys": [
             "index",
             "edit"
@@ -788,7 +788,7 @@
     }
   },
   "generic_admin_write_support": {
-    "source_of_truth": "App\\Support\\Api\\Admin\\AdminResourceMutationService::supports()",
+    "source_of_truth": "App\\Platform\\Api\\Admin\\AdminResourceMutationService::supports()",
     "resource_keys": [
       "donation-channels",
       "events",
@@ -1284,7 +1284,7 @@
     }
   },
   "generic_member_write_support": {
-    "source_of_truth": "App\\Support\\Api\\Member\\MemberResourceMutationService::supports()",
+    "source_of_truth": "App\\Platform\\Api\\Member\\MemberResourceMutationService::supports()",
     "resource_keys": [
       "events",
       "institutions",

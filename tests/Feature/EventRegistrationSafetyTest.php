@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Event;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Shared\Events\Enums\EventVisibility;
 

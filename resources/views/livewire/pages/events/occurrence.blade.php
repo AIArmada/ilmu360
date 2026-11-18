@@ -3,7 +3,7 @@
     $occurrencePageTitle = $occurrencePageTitle === $event->title
         ? $event->title.($occurrence->starts_at ? ' · '.\App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'j M Y') : '')
         : $occurrencePageTitle.' — '.$event->title;
-    $shareCardOg = app(\App\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
+    $shareCardOg = app(\App\Features\Events\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
 
     // A majlis with one public date has a single page, reachable at both URLs.
     // The event URL is the shorter, more stable one, so it stays canonical and
@@ -43,7 +43,7 @@
 @php
     $detail = $this->detail;
     $occurrenceSessions = $detail->sessionsFor($occurrence)
-        ->filter(fn (\AIArmada\Events\Models\EventSession $session): bool => \App\Support\Events\PublicSchedulePolicy::isMeaningfulSession($session))
+        ->filter(fn (\AIArmada\Events\Models\EventSession $session): bool => \App\Features\Events\Policies\PublicSchedulePolicy::isMeaningfulSession($session))
         ->values();
     $occurrenceCapacity = $detail->capacityFor($occurrence);
     $occurrenceReserved = $detail->participantCount($occurrence);
@@ -143,15 +143,15 @@
         ? $ownInvolvements->firstWhere('role_code', 'organizer')?->involveable
         : null;
     $organizer = $occurrenceOrganizer ?? $event->organizer ?? $event->institution;
-    $organizerHref = $organizer instanceof \App\Models\Institution
+    $organizerHref = $organizer instanceof \App\Features\Institutions\Models\Institution
         ? route('institutions.show', $organizer)
-        : ($organizer instanceof \App\Models\Person ? route('persons.show', $organizer) : null);
+        : ($organizer instanceof \App\Features\Persons\Models\Person ? route('persons.show', $organizer) : null);
     $organizerCoverImage = match (true) {
-        $organizer instanceof \App\Models\Institution => $organizer->getFirstMedia('cover'),
+        $organizer instanceof \App\Features\Institutions\Models\Institution => $organizer->getFirstMedia('cover'),
         default => null,
     };
     $organizerImage = match (true) {
-        $organizer instanceof \App\Models\Institution => $organizer->getFirstMedia('logo'),
+        $organizer instanceof \App\Features\Institutions\Models\Institution => $organizer->getFirstMedia('logo'),
         default => null,
     };
     $organizerCoverImageUrl = $organizerCoverImage?->getAvailableUrl(['banner']);
@@ -255,9 +255,9 @@
     // Event::resolvedLocationAddress() falls back to the institution when the
     // event names no venue, so the organiser *is* the place for most majlis.
     // Merge the two into one card instead of printing the same name twice.
-    $organizerAddress = $organizer instanceof \App\Models\Institution ? $organizer->primaryAddress() : null;
+    $organizerAddress = $organizer instanceof \App\Features\Institutions\Models\Institution ? $organizer->primaryAddress() : null;
     $locationIsOrganizer = $hasLocationContent
-        && $organizer instanceof \App\Models\Institution
+        && $organizer instanceof \App\Features\Institutions\Models\Institution
         && $primaryAddress !== null
         && $organizerAddress !== null
         && (string) $organizerAddress->getKey() === (string) $primaryAddress->getKey();
@@ -273,7 +273,7 @@
             ?? $placeVenue->getFirstMedia('cover')?->getAvailableUrl(['thumb'])
             ?? asset('images/placeholders/venue.png'))
         : null;
-    $institutionPlaceImageUrl = $organizer instanceof \App\Models\Institution
+    $institutionPlaceImageUrl = $organizer instanceof \App\Features\Institutions\Models\Institution
         ? ($organizerCoverImageUrl ?? asset('images/placeholders/institution-v2.png'))
         : null;
     $locationImageUrl = match (true) {
@@ -295,7 +295,7 @@
     // The kitab under study is the strongest signal of what a majlis actually
     // is, so it sits in the hero rather than only in the references list.
     $heroReferenceTitle = $detail->referencesFor($event)
-        ->map(fn ($row): ?string => $row->referenceable instanceof \App\Models\Reference
+        ->map(fn ($row): ?string => $row->referenceable instanceof \App\Features\References\Models\Reference
             ? $row->referenceable->displayTitle()
             : null)
         ->filter(fn (?string $title): bool => filled($title))
@@ -507,7 +507,7 @@
                     @if(filled($changeNotice->message))
                         <p class="mt-1.5 text-sm leading-6 text-[#5f4a1c]">{{ $changeNotice->message }}</p>
                     @endif
-                    @if($replacementEvent instanceof \App\Models\Event)
+                    @if($replacementEvent instanceof \App\Features\Events\Models\Event)
                         <a href="{{ route('events.show', $replacementEvent) }}" wire:navigate class="mt-3.5 inline-flex items-center gap-2 rounded-full bg-[#14342e] px-4 py-2 text-[13px] font-semibold text-[#fdfaf2] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#1d4a41] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
                             {{ __('Lihat Majlis Pengganti') }}
                             <span aria-hidden="true">→</span>
@@ -701,7 +701,7 @@
 
                 @php
                     $referenceRows = $occurrenceReferences
-                        ->filter(fn ($referenceRow): bool => $referenceRow->referenceable instanceof \App\Models\Reference || $detail->isUnboundReference($referenceRow))
+                        ->filter(fn ($referenceRow): bool => $referenceRow->referenceable instanceof \App\Features\References\Models\Reference || $detail->isUnboundReference($referenceRow))
                         ->values();
                     $referenceTotal = $referenceRows->count() + $eventReferences->count();
                 @endphp
@@ -717,7 +717,7 @@
                         <ol class="{{ $referenceTotal <= 1 ? 'grid gap-5' : 'grid gap-5 sm:grid-cols-2' }}">
                             @foreach($referenceRows as $referenceRow)
                                 @php
-                                    $referenceCoverUrl = $referenceRow->referenceable instanceof \App\Models\Reference
+                                    $referenceCoverUrl = $referenceRow->referenceable instanceof \App\Features\References\Models\Reference
                                         ? ($referenceRow->referenceable->getFirstMediaUrl('front_cover', 'thumb')
                                             ?: $referenceRow->referenceable->getFirstMediaUrl('front_cover')
                                             ?: $referenceRow->referenceable->getFirstMediaUrl('back_cover', 'thumb')
@@ -729,7 +729,7 @@
                                         <img src="{{ $referenceCoverUrl }}" alt="" aria-hidden="true" loading="lazy" class="w-20 shrink-0 self-start rounded-lg border border-[#e6dccb] bg-[#f4f0e7] object-cover shadow-sm aspect-[3/4] sm:w-24">
                                     @endif
                                     <div class="min-w-0">
-                                        @if($referenceRow->referenceable instanceof \App\Models\Reference)
+                                        @if($referenceRow->referenceable instanceof \App\Features\References\Models\Reference)
                                             <p class="font-heading text-lg leading-snug text-[#14342e]">
                                                 <a href="{{ route('references.show', $referenceRow->referenceable) }}" wire:navigate class="after:absolute after:inset-0 underline decoration-[#c9bfae] underline-offset-4 transition-colors duration-300 hover:text-[#8a5f13] hover:decoration-[#c9962f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">{{ $referenceRow->referenceable->displayTitle() }}</a>
                                             </p>
@@ -1012,7 +1012,7 @@
                     <h2 id="occurrence-feedback-title" class="font-heading text-xl font-normal leading-snug text-[#14342e]">{{ __('Bantu semak majlis ini') }}</h2>
                     <p class="mt-2 text-[13px] leading-6 text-[#4c5b56]">{{ __('Nampak maklumat yang tidak tepat? Maklumkan kepada kami.') }}</p>
                     @php
-                        $feedbackSubjectType = \App\Shared\Contributions\Enums\ContributionSubjectType::Event->publicRouteSegment();
+                        $feedbackSubjectType = \App\Features\Contributions\Support\ContributionSubjectType::Event->publicRouteSegment();
                     @endphp
                     <div class="mt-4 grid grid-cols-2 gap-2">
                         <a href="{{ route('contributions.suggest-update', ['subjectType' => $feedbackSubjectType, 'subjectId' => $event->slug]) }}" wire:navigate class="inline-flex items-center justify-center gap-1.5 rounded-full border border-[#e6dccb] bg-white px-3 py-2 text-[12px] font-semibold text-[#14342e] transition duration-300 hover:border-[#c9962f]/50 hover:bg-[#f8f3e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">{{ __('Cadang kemaskini') }}</a>

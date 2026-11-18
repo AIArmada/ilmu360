@@ -1,8 +1,8 @@
 <?php
 
-use App\Livewire\Concerns\LoadsEventPageData;
-use App\Models\Event;
-use App\Models\Venue;
+use App\Features\Events\EntryPoints\Livewire\Concerns\LoadsEventPageData;
+use App\Features\Events\Models\Event;
+use App\Features\Places\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Component;

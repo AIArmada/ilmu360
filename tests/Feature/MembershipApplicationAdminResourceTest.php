@@ -1,15 +1,15 @@
 <?php
 
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Enums\MemberSubjectType;
-use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
-use App\Filament\Resources\MembershipApplications\Pages\ListMembershipApplications;
-use App\Filament\Resources\MembershipApplications\Pages\ViewMembershipApplication;
-use App\Models\Institution;
-use App\Models\MembershipApplication;
-use App\Models\Person;
+use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
+use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Pages\ListMembershipApplications;
+use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Pages\ViewMembershipApplication;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Models\MembershipApplication;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Support\Authz\MemberRoleCatalog;
+use App\Features\Membership\Services\MemberRoleCatalog;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;

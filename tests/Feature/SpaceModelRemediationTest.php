@@ -2,19 +2,19 @@
 
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\VenueSpaceType;
-use App\Data\Api\Event\EventPayloadData;
+use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
 use App\Features\Places\Actions\Spaces\AttachInstitutionSpaceAction;
 use App\Features\Places\Actions\Spaces\DetachInstitutionSpaceAction;
 use App\Features\Places\Actions\Spaces\SaveSpaceAction;
 use App\Features\Places\Api\SpaceEligibility;
-use App\Filament\Resources\Spaces\Pages\EditSpace;
-use App\Filament\Resources\Spaces\RelationManagers\InstitutionsRelationManager;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Space;
+use App\Features\Places\EntryPoints\Filament\Resources\Spaces\Pages\EditSpace;
+use App\Features\Places\EntryPoints\Filament\Resources\Spaces\RelationManagers\InstitutionsRelationManager;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Places\Models\Space;
 use App\Models\User;
-use App\Models\Venue;
-use App\Policies\SpacePolicy;
+use App\Features\Places\Models\Venue;
+use App\Features\Places\Policies\SpacePolicy;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;

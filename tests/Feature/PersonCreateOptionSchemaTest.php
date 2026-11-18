@@ -1,8 +1,8 @@
 <?php
 
-use App\Forms\PersonFormSchema;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use Illuminate\Validation\ValidationException;
 
 it('includes biography, cover image, and affiliation rows in person create option form', function () {

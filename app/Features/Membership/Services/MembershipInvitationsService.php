@@ -147,7 +147,7 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
     }
 
     /**
-     * @return Builder<\App\Models\MemberInvitation>
+     * @return Builder<\App\Features\Membership\Models\MemberInvitation>
      */
     private function pendingQuery(
         MembershipSubjectType $subjectType,
@@ -163,7 +163,7 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
     }
 
     /**
-     * @return Builder<\App\Models\MemberInvitation>
+     * @return Builder<\App\Features\Membership\Models\MemberInvitation>
      */
     private function query(): Builder
     {

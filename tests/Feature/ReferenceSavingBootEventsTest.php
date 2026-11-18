@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Directory\Enums\ReferenceType;
 use Illuminate\Validation\ValidationException;

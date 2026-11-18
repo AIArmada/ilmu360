@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 use Livewire\Livewire;
 

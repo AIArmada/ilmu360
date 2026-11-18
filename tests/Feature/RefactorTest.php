@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Models\Event;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Persons\Models\Person;
 use Illuminate\Support\Facades\Schema;
 
 test('schema no longer contains removed columns and tables', function (): void {

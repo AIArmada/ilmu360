@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Http\Controllers\Api\Documentation\DocsIndexController;
-use App\Http\Controllers\Api\Documentation\DocsJsonController;
-use App\Http\Controllers\Api\Documentation\DocsSectionController;
-use App\Http\Controllers\Api\Documentation\DocsUiController;
+use App\Platform\ApiDocumentation\EntryPoints\Http\DocsIndexController;
+use App\Platform\ApiDocumentation\EntryPoints\Http\DocsJsonController;
+use App\Platform\ApiDocumentation\EntryPoints\Http\DocsSectionController;
+use App\Platform\ApiDocumentation\EntryPoints\Http\DocsUiController;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\ApiDocumentation\ApiExceptionToResponseExtension;
 use Dedoc\Scramble\Scramble;

@@ -12,7 +12,7 @@ use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;

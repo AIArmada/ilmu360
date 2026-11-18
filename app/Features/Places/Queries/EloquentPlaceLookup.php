@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Places\Queries;
 
 use App\Features\Places\Api\PlaceLookup;
-use App\Models\Space;
-use App\Models\Venue;
+use App\Features\Places\Models\Space;
+use App\Features\Places\Models\Venue;
 use App\Platform\Models\SlugOrUuidResolver;
 
 final readonly class EloquentPlaceLookup implements PlaceLookup

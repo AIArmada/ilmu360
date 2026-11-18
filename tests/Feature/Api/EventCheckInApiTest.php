@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\Event;
-use App\Models\EventCheckin;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 

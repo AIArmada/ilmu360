@@ -1,10 +1,10 @@
 <?php
 
 use App\Features\Persons\Api\PersonWorkflow;
-use App\Filament\Resources\Persons\Pages\EditPerson;
-use App\Filament\Resources\Persons\Pages\ListPersons;
-use App\Filament\Resources\Persons\PersonResource;
-use App\Models\Person;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\EditPerson;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\ListPersons;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

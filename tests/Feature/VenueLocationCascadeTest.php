@@ -2,7 +2,7 @@
 
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 
 use function Pest\Laravel\get;
 

@@ -1,12 +1,12 @@
 @php
-    use App\Enums\MemberSubjectType;
-    use App\Filament\Resources\Events\EventResource;
-    use App\Filament\Resources\Institutions\InstitutionResource;
-    use App\Filament\Resources\References\ReferenceResource;
-    use App\Filament\Resources\Persons\PersonResource;
+    use App\Features\Membership\Api\MemberSubjectType;
+    use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
+    use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
+    use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
+    use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
     use App\Shared\Auth\AccountActor;
-    use App\Support\Authz\MemberDirectorySummary;
-    use App\Support\Authz\MemberRoleCatalog;
+    use App\Features\Membership\Queries\MemberDirectorySummary;
+    use App\Features\Membership\Services\MemberRoleCatalog;
 
     /** @var AccountActor|null $user */
     $user = $record instanceof AccountActor ? $record : null;

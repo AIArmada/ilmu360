@@ -14,7 +14,7 @@ use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
@@ -114,7 +114,7 @@ final readonly class ContributionRequestLifecycleService implements Contribution
     }
 
     /**
-     * @return \App\Models\ContributionRequest
+     * @return \App\Features\Contributions\Models\ContributionRequest
      */
     private function request(string $requestId): Model
     {

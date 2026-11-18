@@ -2,8 +2,8 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventOccurrenceResource;
-use App\Filament\Resources\EventOccurrences\EventOccurrenceFeaturedFormExtension;
-use App\Models\Event;
+use App\Features\Events\EntryPoints\Filament\Resources\EventOccurrences\EventOccurrenceFeaturedFormExtension;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

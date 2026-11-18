@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use Database\Seeders\ReferenceSeeder;
 use Illuminate\Support\Facades\DB;
 

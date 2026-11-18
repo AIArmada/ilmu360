@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Persons;
 
+use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
+use App\Platform\Admin\FilamentResourceRegistry;
+
 use App\Features\Persons\Actions\PersonSubmissionAccessAction;
 use App\Features\Persons\Api\PersonHomepageStats;
 use App\Features\Persons\Api\PersonListingCacheVersion;
@@ -39,5 +43,9 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(PersonHomepageStats::class, PersonHomepageStatsCacheStore::class);
         $this->app->bind(PersonListingCacheVersion::class, PersonListingCacheVersionStore::class);
         $this->app->tag([PersonMediaCacheListener::class], MediaChangeListener::TAG);
+
+        $resources = $this->app->make(FilamentResourceRegistry::class);
+        $resources->register(PersonResource::class, FilamentResourceRegistry::PANEL_ADMIN);
+        $resources->register(AhliPersonResource::class, FilamentResourceRegistry::PANEL_AHLI);
     }
 }

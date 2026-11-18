@@ -5,16 +5,16 @@ use AIArmada\Addressing\Models\AddressCountry;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Features\Persons\Api\PersonWorkflow;
-use App\Filament\Resources\Persons\Pages\CreatePerson;
-use App\Forms\PersonFormSchema;
-use App\Models\ContributionRequest;
-use App\Models\Event;
-use App\Models\Person;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\CreatePerson;
+use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
+use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Events\Models\Event;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Services\ContributionEntityMutationService;
+use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -50,7 +50,7 @@ it('keeps text-only regions during person address persistence', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
-    $person = app(ContributionEntityMutationService::class)->createPerson([
+    $person = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Penceramah Text Lokasi',
         'gender' => 'male',
         'address' => [
@@ -88,7 +88,7 @@ it('generates slugs from the name alone without auto-assigning titles', function
     ];
 
     foreach ($cases as [$name, $gender, $expectedSlug]) {
-        $person = app(ContributionEntityMutationService::class)->createPerson([
+        $person = app(ContributionEntityStateService::class)->createPerson([
             'name' => $name,
             'gender' => $gender,
             'address' => [
@@ -112,19 +112,19 @@ it('adds duplicate numbering only when the same person name reuses the same coun
         phoneCode: '65',
     );
 
-    $first = app(ContributionEntityMutationService::class)->createPerson([
+    $first = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $malaysia->getKey(),
     ], $proposer);
 
-    $second = app(ContributionEntityMutationService::class)->createPerson([
+    $second = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $malaysia->getKey(),
     ], $proposer);
 
-    $third = app(ContributionEntityMutationService::class)->createPerson([
+    $third = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $singapore->getKey(),
@@ -140,19 +140,19 @@ it('keeps person slugs unique when a literal numbered name already occupies the 
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
-    $first = app(ContributionEntityMutationService::class)->createPerson([
+    $first = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Example',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
     ], $proposer);
 
-    $numberedName = app(ContributionEntityMutationService::class)->createPerson([
+    $numberedName = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Example 2',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
     ], $proposer);
 
-    $duplicate = app(ContributionEntityMutationService::class)->createPerson([
+    $duplicate = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Example',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
@@ -235,7 +235,7 @@ it('recomputes person slugs when the person country changes', function () {
         phoneCode: '65',
     );
 
-    $person = app(ContributionEntityMutationService::class)->createPerson([
+    $person = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $malaysia->getKey(),
@@ -252,7 +252,7 @@ it('recomputes person slugs when displayed name parts change', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
-    $person = app(ContributionEntityMutationService::class)->createPerson([
+    $person = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
         'address' => [
@@ -267,7 +267,7 @@ it('does not change slug when no address or name changes', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
-    $person = app(ContributionEntityMutationService::class)->createPerson([
+    $person = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Azhar Sulaiman',
         'gender' => 'male',
         'address' => [
@@ -282,13 +282,13 @@ it('appends a numeric suffix when the same person name reuses the same country s
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
-    $first = app(ContributionEntityMutationService::class)->createPerson([
+    $first = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
     ], $proposer);
 
-    $second = app(ContributionEntityMutationService::class)->createPerson([
+    $second = app(ContributionEntityStateService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),

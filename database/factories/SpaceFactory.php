@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Space;
+use App\Features\Places\Models\Space;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
  */
 class SpaceFactory extends Factory
 {
+    protected $model = Space::class;
+
     /**
      * Define the model's default state.
      *

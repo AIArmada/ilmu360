@@ -1,0 +1,305 @@
+<?php
+
+namespace App\Features\References\EntryPoints\Livewire\Pages;
+
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\State;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Engagement\Api\SubjectFollowCommands;
+use App\Features\References\Api\ReferenceQueries;
+use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
+use App\Features\Events\EntryPoints\Livewire\Concerns\LoadsEventPageData;
+use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventGoing;
+use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventSave;
+use App\Features\Events\Models\Builders\EventBuilder;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventReferencePivot;
+use App\Features\References\Models\Reference;
+use App\Shared\Auth\IntendedRedirect;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Collection;
+use Illuminate\View\View;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
+
+#[Layout('layouts.app')]
+class Show extends Component
+{
+    use JoinsHierarchyAreaName;
+    use LoadsEventPageData;
+    use TogglesEventGoing;
+    use TogglesEventSave;
+
+    public Reference $reference;
+
+    public int $upcomingPerPage = 6;
+
+    public int $pastPerPage = 6;
+
+    public bool $isFollowing = false;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
+    public function mount(Reference $reference): void
+    {
+        $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
+
+        abort_unless(
+            $reference->isPubliclyVisible() || $canBypassVisibility,
+            404,
+        );
+
+        $this->reference = $reference;
+        $this->loadReferenceRelations();
+        $this->isFollowing = auth()->user()?->isFollowing($reference) ?? false;
+    }
+
+    protected function eventSaveReturnUrl(): string
+    {
+        return route('references.show', $this->reference, absolute: false);
+    }
+
+    protected function eventGoingReturnUrl(): string
+    {
+        return $this->eventSaveReturnUrl();
+    }
+
+    public function toggleFollow(): void
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            $this->redirect(
+                IntendedRedirect::loginUrl(route('references.show', $this->reference, absolute: false)),
+                navigate: true,
+            );
+
+            return;
+        }
+
+        if ($this->isFollowing) {
+            app(SubjectFollowCommands::class)->unfollow($this->reference->getMorphClass(), (string) $this->reference->getKey(), (string) $user->getKey());
+            $this->isFollowing = false;
+
+            return;
+        }
+
+        app(SubjectFollowCommands::class)->follow(
+            $this->reference->getMorphClass(),
+            (string) $this->reference->getKey(),
+            (string) $user->getKey(),
+            ['reference_id' => $this->reference->getKey()],
+        );
+        $this->isFollowing = true;
+    }
+
+    public function loadMoreUpcoming(): void
+    {
+        $this->upcomingPerPage += 6;
+    }
+
+    public function loadMorePast(): void
+    {
+        $this->pastPerPage += 6;
+    }
+
+    /**
+     * @return Collection<int, PublicScheduleLeaf>
+     */
+    public function getUpcomingEventsProperty(): Collection
+    {
+        return $this->schedulePageData()['upcoming'];
+    }
+
+    public function getUpcomingTotalProperty(): int
+    {
+        return $this->schedulePageData()['upcoming_total'];
+    }
+
+    /**
+     * @return Collection<int, PublicScheduleLeaf>
+     */
+    public function getPastEventsProperty(): Collection
+    {
+        return $this->schedulePageData()['past'];
+    }
+
+    public function getPastTotalProperty(): int
+    {
+        return $this->schedulePageData()['past_total'];
+    }
+
+    private function eventQuery(): EventBuilder
+    {
+        /** @var array<string, string|\Closure> $addressRelations */
+        $addressRelations = [
+            'venue.media',
+            'venue.addresses' => $this->joinAddressStateName(...),
+            'venue.addresses.city',
+            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
+        ];
+
+        $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
+        /** @var EventBuilder $query */
+        $query = Event::query()->where(function (Builder $referenceFilter) use ($referenceIds): void {
+            $referenceFilter
+                ->whereHas('references', fn (Builder $references): Builder => $references
+                    ->whereIn('references.id', $referenceIds))
+                ->orWhereHas('occurrences', function (Builder $occurrences) use ($referenceIds): void {
+                    $occurrence = new EventOccurrence;
+                    $occurrences
+                        ->whereIn($occurrence->qualifyColumn('status'), Event::PUBLIC_SCHEDULE_STATUSES)
+                        ->whereIn($occurrence->qualifyColumn('visibility'), Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                        ->whereHas('references', function (Builder $referenceRows) use ($referenceIds): void {
+                            $referenceRows
+                                ->where('visibility', 'public')
+                                ->whereHasMorph('referenceable', [app(ReferenceQueries::class)->referenceModelClass()], function (Builder $references) use ($referenceIds): void {
+                                    app(ReferenceQueries::class)->applyPublicVisibility($references)
+                                        ->whereIn('references.id', $referenceIds);
+                                });
+                        });
+                });
+        });
+
+        return $query
+            ->active()
+            ->reorder()
+            ->with([
+                ...$addressRelations,
+                'persons.media',
+                'persons.titleAssignments.title.category',
+                'keyPeople.person',
+                'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
+                    app(ReferenceQueries::class)->applyPublicVisibility($references->getQuery());
+                },
+                'media',
+                'institution.media',
+                'classifications.term',
+                'primaryOccurrence',
+                'displayOccurrence.media',
+                'timeExpressions',
+                'links',
+                'occurrences.references',
+            ]);
+    }
+
+    /**
+     * @param  Collection<int, PublicScheduleLeaf>  $leaves
+     * @return Collection<int, PublicScheduleLeaf>
+     */
+    protected function filterScheduleLeaves(Collection $leaves): Collection
+    {
+        $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
+
+        return $leaves
+            ->map(function (PublicScheduleLeaf $leaf) use ($referenceIds): ?PublicScheduleLeaf {
+                if ($leaf->event->references->contains(fn (Reference $reference): bool => in_array((string) $reference->getKey(), $referenceIds, true))) {
+                    return $leaf;
+                }
+
+                $occurrenceMatches = $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
+                    && $reference->referenceable_type === $this->reference->getMorphClass()
+                    && in_array((string) $reference->referenceable_id, $referenceIds, true)
+                    && $reference->event_session_id === null);
+
+                if ($occurrenceMatches) {
+                    return $leaf;
+                }
+
+                $sessions = $leaf->sessions->filter(fn ($session): bool => $leaf->occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
+                    && $reference->referenceable_type === $this->reference->getMorphClass()
+                    && in_array((string) $reference->referenceable_id, $referenceIds, true)
+                    && $reference->event_session_id === $session->getKey()))->values();
+
+                return $sessions->isEmpty()
+                    ? null
+                    : new PublicScheduleLeaf($leaf->event, $leaf->occurrence, $sessions);
+            })
+            ->filter()
+            ->values();
+    }
+
+    /** @return Builder<Event> */
+    protected function eventPageBaseQuery(): Builder
+    {
+        return $this->eventQuery();
+    }
+
+    /** @return array<string|int, string|array<string, mixed>|\Closure> */
+    protected function eventPageEagerLoads(): array
+    {
+        return [
+            'venue.media',
+            'venue.addresses' => $this->joinAddressStateName(...),
+            'venue.addresses.city',
+            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
+            'persons.media',
+            'persons.titleAssignments.title.category',
+            'keyPeople.person',
+            'references' => fn ($query) => $query->active(),
+            'media',
+            'institution.media',
+            'classifications.term',
+            'primaryOccurrence',
+            'displayOccurrence.media',
+            'timeExpressions',
+            'links',
+        ];
+    }
+
+    protected function eventPageUpcomingLimit(): int
+    {
+        return $this->upcomingPerPage;
+    }
+
+    protected function eventPagePastLimit(): int
+    {
+        return $this->pastPerPage;
+    }
+
+    public function render(): View
+    {
+        $this->loadReferenceRelations();
+
+        return view('livewire.pages.references.show');
+    }
+
+    private function loadReferenceRelations(): void
+    {
+        OwnerContext::withOwner(null, function (): void {
+            $this->reference->load([
+                'media',
+                'socialProfiles',
+                'authors.titleAssignments.title.category',
+                'parentReference.authors.titleAssignments.title.category',
+                'parentReference.parentReference.authors.titleAssignments.title.category',
+                'parentReference' => fn ($query) => $query->active()->with(['parentReference' => fn ($parent) => $parent->active()]),
+                'childReferences' => fn ($query) => $query->active()->with(['parentReference.parentReference', 'childReferences' => fn ($parts) => $parts->active()->with('parentReference.parentReference')]),
+            ]);
+        });
+    }
+
+    /**
+     * @param  MorphToMany<Address, Model, Pivot, 'pivot'>  $relation
+     * @return MorphToMany<Address, Model, Pivot, 'pivot'>
+     */
+    private function joinAddressStateName(MorphToMany $relation): MorphToMany
+    {
+        $addressesTable = (new Address)->getTable();
+        $statesTable = (new State)->getTable();
+
+        return $relation
+            ->addSelect("{$addressesTable}.*")
+            ->leftJoin($statesTable, "{$addressesTable}.state_id", '=', "{$statesTable}.id")
+            ->addSelect("{$statesTable}.name as hierarchy_state_name");
+    }
+}

@@ -6,7 +6,7 @@ use App\Features\Prayer\Actions\ResolvePrayerStartClockAction;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Submission\SubmissionTimingPolicy;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;

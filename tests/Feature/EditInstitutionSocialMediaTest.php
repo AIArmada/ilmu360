@@ -2,7 +2,7 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\Contacting\Enums\SocialPlatform;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use Spatie\Permission\PermissionRegistrar;
 

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\ModerationReview;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Platform\Moderation\Models\ModerationReview;
 use App\Models\User;
-use App\Shared\Events\OrganizerResolver;
+use App\Features\Events\Services\OrganizerResolver;
 
 it('writes organizer involvements and moderation actors using configured morph aliases', function (): void {
     $event = Event::factory()->create();

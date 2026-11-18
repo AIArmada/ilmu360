@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use App\Models\InstitutionImportExclusion;
+use App\Features\Institutions\Models\InstitutionImportExclusion;
 
 /**
  * Record the durable import exclusion for a deleted source-backed institution.

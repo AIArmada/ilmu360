@@ -5,7 +5,7 @@ namespace App\Features\Events\Actions\Changes;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventChangePublisher;
 use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\EventChangeNoticeNotifier;

@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;

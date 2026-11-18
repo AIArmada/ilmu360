@@ -8,7 +8,7 @@
 @section('meta_robots', $this->metaRobots)
 @section('og_url', route('events.show', $event))
 @php
-    $shareCardOg = app(\App\Services\ShareCards\ShareCardService::class)->ogCard($event);
+    $shareCardOg = app(\App\Features\Events\Services\ShareCards\ShareCardService::class)->ogCard($event);
 @endphp
 @section('og_image', $shareCardOg['url'] ?? $event->card_image_url)
 @section('og_image_alt', $shareCardOg['alt'] ?? __('Poster untuk :title', ['title' => $event->title]))
@@ -93,23 +93,23 @@
 
     // ── People and identity ──────────────────────────────────────────
     $organizer = $event->organizer ?? $event->institution;
-    $organizerHref = $organizer instanceof \App\Models\Institution
+    $organizerHref = $organizer instanceof \App\Features\Institutions\Models\Institution
         ? route('institutions.show', $organizer)
-        : ($organizer instanceof \App\Models\Person ? route('persons.show', $organizer) : null);
+        : ($organizer instanceof \App\Features\Persons\Models\Person ? route('persons.show', $organizer) : null);
     $organizerCoverImage = match (true) {
-        $organizer instanceof \App\Models\Institution => $organizer->getFirstMedia('cover'),
+        $organizer instanceof \App\Features\Institutions\Models\Institution => $organizer->getFirstMedia('cover'),
         default => null,
     };
     $organizerImage = match (true) {
-        $organizer instanceof \App\Models\Institution => $organizer->getFirstMedia('logo'),
+        $organizer instanceof \App\Features\Institutions\Models\Institution => $organizer->getFirstMedia('logo'),
         default => null,
     };
     $organizerCoverImageUrl = $organizerCoverImage?->getAvailableUrl(['banner']);
     $organizerImageUrl = $organizerImage?->getAvailableUrl(['thumb']);
     $organizerInitial = filled($organizer?->name) ? mb_strtoupper(mb_substr((string) $organizer->name, 0, 1)) : null;
-    $organizerAddress = $organizer instanceof \App\Models\Institution ? $organizer->primaryAddress() : null;
+    $organizerAddress = $organizer instanceof \App\Features\Institutions\Models\Institution ? $organizer->primaryAddress() : null;
     $locationIsOrganizer = $hasLocationContent
-        && $organizer instanceof \App\Models\Institution
+        && $organizer instanceof \App\Features\Institutions\Models\Institution
         && $primaryAddress !== null
         && $organizerAddress !== null
         && (string) $organizerAddress->getKey() === (string) $primaryAddress->getKey();
@@ -125,7 +125,7 @@
             ?? $placeVenue->getFirstMedia('cover')?->getAvailableUrl(['thumb'])
             ?? asset('images/placeholders/venue.png'))
         : null;
-    $institutionPlaceImageUrl = $organizer instanceof \App\Models\Institution
+    $institutionPlaceImageUrl = $organizer instanceof \App\Features\Institutions\Models\Institution
         ? ($organizerCoverImageUrl ?? asset('images/placeholders/institution-v2.png'))
         : null;
     $locationImageUrl = match (true) {
@@ -336,7 +336,7 @@
                     @if(filled($changeNotice->message))
                         <p class="mt-1.5 text-sm leading-6 text-[#5f4a1c]">{{ $changeNotice->message }}</p>
                     @endif
-                    @if($replacementEvent instanceof \App\Models\Event)
+                    @if($replacementEvent instanceof \App\Features\Events\Models\Event)
                         <a href="{{ route('events.show', $replacementEvent) }}" wire:navigate class="mt-3.5 inline-flex items-center gap-2 rounded-full bg-[#14342e] px-4 py-2 text-[13px] font-semibold text-[#fdfaf2] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#1d4a41] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">
                             {{ __('Lihat Majlis Pengganti') }}
                             <span aria-hidden="true">→</span>
@@ -771,7 +771,7 @@
                     <h2 id="event-sidebar-feedback-title" class="font-heading text-xl font-normal leading-snug text-[#14342e]">{{ __('Bantu semak majlis ini') }}</h2>
                     <p class="mt-2 text-[13px] leading-6 text-[#4c5b56]">{{ __('Nampak maklumat yang tidak tepat? Maklumkan kepada kami.') }}</p>
                     @php
-                        $feedbackSubjectType = \App\Shared\Contributions\Enums\ContributionSubjectType::Event->publicRouteSegment();
+                        $feedbackSubjectType = \App\Features\Contributions\Support\ContributionSubjectType::Event->publicRouteSegment();
                     @endphp
                     <div class="mt-4 grid grid-cols-2 gap-2">
                         <a href="{{ route('contributions.suggest-update', ['subjectType' => $feedbackSubjectType, 'subjectId' => $event->slug]) }}" wire:navigate class="inline-flex items-center justify-center gap-1.5 rounded-full border border-[#e6dccb] bg-white px-3 py-2 text-[12px] font-semibold text-[#14342e] transition duration-300 hover:border-[#c9962f]/50 hover:bg-[#f8f3e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14342e]">{{ __('Cadang kemaskini') }}</a>

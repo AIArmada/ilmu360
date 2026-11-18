@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Filament\Resources\Institutions\Pages\EditInstitution;
-use App\Models\Institution;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Pages\EditInstitution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

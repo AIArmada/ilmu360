@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons;
+
+use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
+use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
+use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\NamesRelationManager as PackageNamesRelationManager;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\RelationManagers\EventsRelationManager;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\CreatePerson;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\EditPerson;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\ListPersons;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\ViewPerson;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers\FollowersRelationManager;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers\MembersRelationManager;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Schemas\PersonForm;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Schemas\PersonInfolist;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Tables\PersonsTable;
+use App\Features\Persons\Models\Person;
+use App\Platform\Auditing\AuditsRelationManager;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
+
+class PersonResource extends PackagePersonResource
+{
+    #[\Override]
+    protected static ?string $model = Person::class;
+
+    #[\Override]
+    protected static ?string $slug = 'persons';
+
+    #[\Override]
+    protected static ?string $navigationLabel = 'Persons';
+
+    #[\Override]
+    protected static ?string $pluralModelLabel = 'Persons';
+
+    #[\Override]
+    public static function form(Schema $schema): Schema
+    {
+        return PersonForm::configure($schema);
+    }
+
+    #[\Override]
+    public static function table(Table $table): Table
+    {
+        return PersonsTable::configure($table);
+    }
+
+    #[\Override]
+    public static function infolist(Schema $schema): Schema
+    {
+        return PersonInfolist::configure($schema);
+    }
+
+    #[\Override]
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListPersons::route('/'),
+            'create' => CreatePerson::route('/create'),
+            'view' => ViewPerson::route('/{record}'),
+            'edit' => EditPerson::route('/{record}/edit'),
+        ];
+    }
+
+    #[\Override]
+    public static function getRelations(): array
+    {
+        return [
+            ...array_filter(parent::getRelations(), fn (string $class): bool => ! in_array($class, [
+                PackageAffiliationsRelationManager::class,
+                PackageNamesRelationManager::class,
+            ], true)),
+            RelationManagers\NamesRelationManager::class,
+            MembersRelationManager::class,
+            MemberInvitationsRelationManager::class,
+            FollowersRelationManager::class,
+            RelationManagers\AffiliationsRelationManager::class,
+            EventsRelationManager::class,
+            AuditsRelationManager::class,
+        ];
+    }
+}

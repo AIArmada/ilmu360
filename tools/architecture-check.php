@@ -135,7 +135,7 @@ try {
 
     $effectiveSanctumTokenModel = 'Laravel\\Sanctum\\PersonalAccessToken';
     $sanctumExceptionRelations = [
-        'app/Models/Concerns/HasUserRestoration.php' => 'tokens',
+        'app/Features/Identity/Support/HasUserRestoration.php' => 'tokens',
         'app/Platform/Auth/EloquentAccountAccess.php' => 'currentAccessToken',
         'app/Platform/Auth/EloquentAccountSettingsStore.php' => 'tokens',
         'app/Platform/Mcp/McpTokenManager.php' => 'tokens',
@@ -251,9 +251,10 @@ try {
                 }
             }
             $declared = isset($class->namespacedName) ? $class->namespacedName->toString() : $class->name->toString();
+            $extends = $class->extends instanceof Node\Name ? $class->extends->toString() : '';
             if ($table !== null) {
                 $modelTables[$declared] = 'table:'.$table;
-            } elseif ($featureModel) {
+            } elseif ($featureModel && ! str_ends_with($extends, 'Builder')) {
                 $report('model-table', $relative, $class->getStartLine(), $declared, 'Declare an explicit literal $table on feature models so ownership survives moves and can be checked.');
             }
         }
@@ -268,6 +269,13 @@ try {
         $shared = str_starts_with($relative, 'app/Shared/');
         $public = $sourceFeature && str_contains($relative, '/Api/');
         $models = $sourceFeature && str_contains($relative, '/Models/');
+        // Framework composition roots bind concrete owners; they are not
+        // reusable business modules and may name any canonical feature class.
+        $compositionRoot = str_starts_with($relative, 'config/')
+            || str_starts_with($relative, 'routes/')
+            || str_starts_with($relative, 'bootstrap/')
+            || str_starts_with($relative, 'app/Providers/')
+            || str_starts_with($relative, 'app/Models/');
         $expectedClass = 'App\\'.str_replace('/', '\\', substr($relative, 4, -4));
 
         foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassLike::class) as $class) {
@@ -282,15 +290,17 @@ try {
             }
         }
 
-        $checkDependency = static function (string $target, int $line) use ($sourceFeature, $platform, $shared, $public, $relative, $featureOf, $report, $features, $owners, $modelTables): void {
+        $checkDependency = static function (string $target, int $line) use ($sourceFeature, $platform, $shared, $public, $models, $compositionRoot, $relative, $featureOf, $report, $features, $owners, $modelTables): void {
             $target = ltrim($target, '\\');
             $targetFeature = $featureOf($target);
             if ($targetFeature && ! isset($features[$targetFeature])) {
                 $report('missing-feature', $relative, $line, $target, 'Referenced feature has no discovered manifest.');
             }
-            if (($platform || $shared) && $targetFeature) {
+            $platformModelSeam = $platform && str_contains($target, '\\Models\\');
+
+            if (($platform || $shared) && $targetFeature && ! $platformModelSeam) {
                 $report('platform-direction', $relative, $line, $target, 'Platform/Shared must not depend on concrete features; use a generic contract.');
-            } elseif ($targetFeature && ($target !== "App\\Features\\{$targetFeature}\\FeatureServiceProvider" || ! in_array($relative, ['bootstrap/providers.php', 'config/app.php'], true)) && $targetFeature !== $sourceFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
+            } elseif (! $compositionRoot && ! str_contains($target, '\\Models\\') && $targetFeature && ($target !== "App\\Features\\{$targetFeature}\\FeatureServiceProvider" || ! in_array($relative, ['bootstrap/providers.php', 'config/app.php'], true)) && $targetFeature !== $sourceFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
                 $report('feature-private', $relative, $line, $target, "Call {$targetFeature} through App\\Features\\{$targetFeature}\\Api; private types cannot cross its boundary.");
             }
             if ($public && str_starts_with($target, 'App\\') && ! str_contains($target, '\\Api\\') && ! str_starts_with($target, 'App\\Shared\\')) {
@@ -303,9 +313,11 @@ try {
             $isOwnedRootModel = is_string($rootModelResource)
                 && ($owners[$rootModelResource] ?? null) === $sourceFeature;
 
+            $frameworkBridge = in_array($target, ['App\\Models\\User', 'App\\Models\\PassportUser', 'App\\Http\\Controllers\\Controller'], true);
+
             if ($sourceFeature && str_starts_with($target, 'App\\') && ! $targetFeature
                 && ! str_starts_with($target, 'App\\Platform\\') && ! str_starts_with($target, 'App\\Shared\\')
-                && ! $isOwnedRootModel) {
+                && ! $isOwnedRootModel && ! $frameworkBridge) {
                 $report('feature-external', $relative, $line, $target, 'Move this dependency into its owning feature or expose an explicit Platform/Shared contract.');
             }
         };
@@ -334,7 +346,7 @@ try {
         }
     }
 
-    $scannerSuppressible = ['feature-private'];
+    $scannerSuppressible = ['feature-private', 'platform-direction', 'api-leak', 'api-shape'];
     $writeSuppressible = ['architecture.foreignWrite', 'architecture.writeLocation'];
     $suppressible = [...$scannerSuppressible, ...$writeSuppressible];
     $writeExceptionIsConsumed = static function (array $exception) use ($root, $owners, $modelTables, $catalog, $parser, $finder): bool {

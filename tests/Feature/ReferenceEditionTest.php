@@ -2,9 +2,9 @@
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Models\Event;
-use App\Models\Reference;
-use App\Observers\ReferenceObserver;
+use App\Features\Events\Models\Event;
+use App\Features\References\Models\Reference;
+use App\Features\References\Observers\ReferenceObserver;
 use App\Shared\Directory\Enums\ReferenceType;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Validation\ValidationException;

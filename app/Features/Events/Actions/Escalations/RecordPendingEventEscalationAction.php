@@ -6,7 +6,7 @@ namespace App\Features\Events\Actions\Escalations;
 
 use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\Events\Models\EventEscalation;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 

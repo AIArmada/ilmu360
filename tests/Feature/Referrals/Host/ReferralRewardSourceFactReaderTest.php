@@ -10,12 +10,12 @@ use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
-use App\Models\Registration;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Support\Rewards\ActivityRewardSourceFactReader;
-use App\Support\Rewards\ReferralRewardSourceFactReader;
-use App\Support\Rewards\ShareAttributionRewardSourceFactReader;
+use App\Features\Rewards\Queries\ActivityRewardSourceFactReader;
+use App\Features\Rewards\Queries\ReferralRewardSourceFactReader;
+use App\Features\Rewards\Queries\ShareAttributionRewardSourceFactReader;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 

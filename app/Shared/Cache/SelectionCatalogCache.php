@@ -7,7 +7,7 @@ namespace App\Shared\Cache;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Persons\Models\Title;
-use App\Models\Language;
+use App\Platform\Language\Models\Language;
 use App\Platform\Cache\CacheVersionStore;
 use App\Platform\Cache\VersionedCache;
 use Closure;

@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Event;
-use App\Models\Institution;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
 
 it('persists the event location institution as a native column', function () {
     $institution = Institution::factory()->create();

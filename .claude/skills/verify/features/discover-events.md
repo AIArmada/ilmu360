@@ -31,7 +31,7 @@ Preconditions:
 Full probe:
 
 ```bash
-vendor/bin/pest --agent='require base_path(".claude/skills/verify/bin/boot.php"); \Pest\Browser\Playwright\Playwright::setTimeout(30000); withGlobalOwnerContext(function (): void { \App\Models\Event::factory()->create(["title" => "Verify Home Event", "status" => "approved", "visibility" => "public", "published_at" => now(), "starts_at" => now()->addDay(), "ends_at" => now()->addDay()->addHour()]); }); visit("/", ["timeout" => 30000])->assertSee("Dekat dengan")->fill("search", "Verify Home Event")->click("button[type=submit]")->assertPathIs("/majlis")->assertSee("Verify Home Event")->screenshot(fullPage: false, filename: "verify-home-search");'
+vendor/bin/pest --agent='require base_path(".claude/skills/verify/bin/boot.php"); \Pest\Browser\Playwright\Playwright::setTimeout(30000); withGlobalOwnerContext(function (): void { \App\Features\Events\Models\Event::factory()->create(["title" => "Verify Home Event", "status" => "approved", "visibility" => "public", "published_at" => now(), "starts_at" => now()->addDay(), "ends_at" => now()->addDay()->addHour()]); }); visit("/", ["timeout" => 30000])->assertSee("Dekat dengan")->fill("search", "Verify Home Event")->click("button[type=submit]")->assertPathIs("/majlis")->assertSee("Verify Home Event")->screenshot(fullPage: false, filename: "verify-home-search");'
 ```
 
 ## Gotchas

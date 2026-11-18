@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventSubmissionFactory as PackageEventSubmissionFactory;
-use App\Models\Event;
-use App\Models\EventSubmission;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventSubmission;
 use App\Models\User;
 
 class EventSubmissionFactory extends PackageEventSubmissionFactory

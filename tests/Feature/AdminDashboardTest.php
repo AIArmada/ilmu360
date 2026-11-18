@@ -1,22 +1,22 @@
 <?php
 
-use App\Filament\Pages\AdminDashboard;
-use App\Filament\Pages\ModerationQueue;
-use App\Filament\Resources\Events\EventResource;
-use App\Filament\Resources\Institutions\InstitutionResource;
-use App\Filament\Resources\Persons\PersonResource;
-use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\Venues\VenueResource;
-use App\Filament\Widgets\EventInventoryOverview;
-use App\Filament\Widgets\StatsOverview;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Platform\Admin\EntryPoints\Filament\Pages\AdminDashboard;
+use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
+use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
+use App\Features\Places\EntryPoints\Filament\Resources\Venues\VenueResource;
+use App\Features\Events\EntryPoints\Filament\Widgets\EventInventoryOverview;
+use App\Platform\Admin\EntryPoints\Filament\Widgets\StatsOverview;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Shared\Events\Enums\EventVisibility;
-use App\States\EventStatus\Draft;
+use App\Features\Events\States\EventStatus\Draft;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;

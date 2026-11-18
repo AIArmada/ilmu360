@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use App\Features\ShareTracking\Support\ShareMetricDefinitions;
-use App\Models\ShareCohortProjection;
-use App\Services\ShareTracking\AdminShareAnalyticsService;
-use App\Services\ShareTracking\AffiliatesShareTrackingAnalyticsService;
-use App\Services\ShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Models\ShareCohortProjection;
+use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
+use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use App\Shared\ShareTracking\ShareTrackingRetention;
-use App\Support\Share\ShareCohortAuthority;
-use App\Support\Share\ShareMetricReader;
-use App\Support\Share\ShareProfileScope;
+use App\Features\ShareTracking\Services\ShareCohortAuthority;
+use App\Features\ShareTracking\Queries\ShareMetricReader;
+use App\Features\ShareTracking\Services\ShareProfileScope;
 use Carbon\CarbonImmutable;
 
 it('keeps the analytics readers as documented root adapters', function (string $class, string $relativePath): void {

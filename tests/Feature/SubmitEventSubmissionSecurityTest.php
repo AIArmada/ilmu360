@@ -1,20 +1,20 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Http\Submission\SubmitEventRequestHandler;
-use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Space;
+use App\Features\Events\EntryPoints\Http\SubmitEventRequestHandler;
+use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Space;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Submission\SubmissionTimingPolicy;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;

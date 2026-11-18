@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Components\DirectoryCardFollow;
-use App\Livewire\Components\EventCardEngagement;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Engagement\EntryPoints\Livewire\Components\DirectoryCardFollow;
+use App\Features\Engagement\EntryPoints\Livewire\Components\EventCardEngagement;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Shared\Engagement\EngagementReader;
 use Laravel\Sanctum\Sanctum;

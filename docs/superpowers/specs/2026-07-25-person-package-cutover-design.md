@@ -35,7 +35,7 @@ class Person extends \AIArmada\Persons\Models\Person
 
 **Inherited from package:** `HasTitles`, `HasCredentials`, `HasAffiliations`, `HasUuids`, `HasFactory`.
 
-**Config swap:** `config/persons.php` → `models.person = App\Models\Person::class`.
+**Config swap:** `config/persons.php` → `models.person = App\Features\Persons\Models\Person::class`.
 
 **Fillable** (package): `name`, `family_name`, `middle_name`, `gender`, `date_of_birth`, `nationality_country_id`, `slug`, `searchable_name`, `bio`, `status`.
 
@@ -140,7 +140,7 @@ The member-scoped `PersonResource` in `app/Filament/Ahli/` adapts to extend the 
 ### Actions & Services
 - `SavePersonAction` — adapt field mapping for package columns
 - `GeneratePersonSlugAction` — adapt to package's nullable slug
-- `ContributionEntityMutationService` — update person field references
+- `ContributionEntityStateService` — update person field references
 - `PersonSearchService` — adapt searchable_name population
 - `PersonObserver` — adapt hooks to package model
 

@@ -103,7 +103,7 @@ final readonly class PrepareAdmissionCheckoutAction implements AdmissionCheckout
     }
 
     /**
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @param  array<int, array<string, mixed>>  $participants
      * @param  array<string, mixed>  $agreement
      */
@@ -291,7 +291,7 @@ final readonly class PrepareAdmissionCheckoutAction implements AdmissionCheckout
     }
 
     /**
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @param  array<int, array<string, mixed>>  $participants
      */
     private function ensureCheckoutCanStart(

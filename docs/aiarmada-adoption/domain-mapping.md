@@ -15,11 +15,11 @@ This rewrite removes legacy app-owned domain implementations when package-owned 
 | Speakers | `events` involvements and roles; custom thin model if no generic package entity exists | Public speaker profile UX and Islamic honorific presentation | App speaker persistence only if package/thin model replaces it | 5, 8 |
 | Venues/spaces | `events` venue/location/space primitives plus `addressing` | Public venue detail UX if still needed | App venue/space models/resources after package replacement | 5, 8 |
 | Series/program structure | `events` series, occurrences, recurrence, sessions | Public grouping presentation | App series/event-series models/actions | 5, 8 |
-| Events | `events` | Public Livewire pages, MCP tools, Islamic presentation copy | `App\Models\Event`, app event save actions/forms/resources after replacement | 5, 8 |
+| Events | `events` | Public Livewire pages, MCP tools, Islamic presentation copy | `App\Features\Events\Models\Event`, app event save actions/forms/resources after replacement | 5, 8 |
 | Prayer-relative timing | `events` time expressions | Prayer label localization and display | App timing mode fields/enums after mapped | 5 |
 | Gender/age/Muslim-only/type | `events` attributes and audiences | Locale labels and public form arrangement | App-specific enum storage after mapped | 5 |
 | Tags/taxonomy | `events` taxonomies, terms, classifications | Islamic taxonomy seed labels | Spatie tag app model/resource if fully replaced | 5 |
-| References | `references`, `events` event references | Public reference pages | `App\Models\Reference`, app slug action after package parity | 5 |
+| References | `references`, `events` event references | Public reference pages | `App\Features\References\Models\Reference`, app slug action after package parity | 5 |
 | Registrations, RSVP, ticketing, attendance, check-in | `events`, `engagement`, and commerce packages where paid orders are required | App-specific public CTA layout, attendee-facing wording, and check-in surfaces | App registration/check-in/event-user tables/actions | 5, 7 |
 | Saved events/follows/bookmarks/reactions/shares/reminders | `engagement` | Frontend button UX and Signals events | App event saves/follows wrappers are deleted; save and follow now go through package `EngagementManager`. | 5 |
 | Event submissions/contributions | `events` submissions, logs, approvals plus `moderation` | Entity mutation application and public submission UX | App contribution request models/actions after mapped | 5 |

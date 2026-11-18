@@ -5,8 +5,8 @@ declare(strict_types=1);
 use AIArmada\FilamentEvents\Extensions\DefaultEventMediaExtension;
 use AIArmada\FilamentSeating\RelationManagers\SeatMapsRelationManager;
 use AIArmada\FilamentTicketing\RelationManagers\TicketTypesRelationManager;
-use App\Filament\Resources\EventOccurrences\EventOccurrenceFeaturedFormExtension;
-use App\Filament\Resources\Events\EventAdminContextFormExtension;
+use App\Features\Events\EntryPoints\Filament\Resources\EventOccurrences\EventOccurrenceFeaturedFormExtension;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\EventAdminContextFormExtension;
 
 return [
     'navigation' => [

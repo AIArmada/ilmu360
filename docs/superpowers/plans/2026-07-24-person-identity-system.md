@@ -1285,12 +1285,12 @@ git commit -m "feat: add family_name, date_of_birth, nationality_country_id to s
 use App\Enums\AssignmentStatus;
 use App\Enums\CredentialType;
 use App\Enums\TitleUsagePosition;
-use App\Models\Affiliation;
+use App\Features\Persons\Models\Affiliation;
 use App\Models\AffiliationRole;
 use App\Models\CredentialAssignment;
 use App\Models\CredentialDefinition;
-use App\Models\Institution;
-use App\Models\PersonName;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\PersonName;
 use App\Models\Speaker;
 use App\Models\Title;
 use App\Models\TitleAssignment;
@@ -1886,7 +1886,7 @@ Inside `app/Models/Person.php`:
 
 In `app/Providers/AppServiceProvider.php`:
 - Change `'speaker' => Speaker::class` → `'person' => Person::class`
-- Update import from `App\Models\Speaker` → `App\Models\Person`
+- Update import from `App\Models\Speaker` → `App\Features\Persons\Models\Person`
 - Update observer registration: `Person::observe(PersonObserver::class)`
 - Update public-slug binding list: `'speaker'` → `'person'`
 
@@ -2290,7 +2290,7 @@ php artisan migrate --no-interaction
 ```bash
 php artisan tinker --execute 'echo "Title assignments: " . App\Models\TitleAssignment::count() . "\n";'
 php artisan tinker --execute 'echo "Credential assignments: " . App\Models\CredentialAssignment::count() . "\n";'
-php artisan tinker --execute 'echo "Affiliations: " . App\Models\Affiliation::count() . "\n";'
+php artisan tinker --execute 'echo "Affiliations: " . App\Features\Persons\Models\Affiliation::count() . "\n";'
 php artisan tinker --execute 'echo "Affiliation roles: " . App\Models\AffiliationRole::count() . "\n";'
 ```
 
@@ -2758,7 +2758,7 @@ git mv app/Console/Commands/QueueBackfillSpeakerSlugs.php app/Console/Commands/Q
 
 - [ ] **Step 4: Update all service references**
 
-Update `ContributionEntityMutationService`, `EventKeyPersonSyncService`, `EventSearchService`, `PostgresEventDiscovery`, `TypesenseEventDiscovery`, `CalendarService`, notifications, share tracking.
+Update `ContributionEntityStateService`, `EventKeyPersonSyncService`, `EventSearchService`, `PostgresEventDiscovery`, `TypesenseEventDiscovery`, `CalendarService`, notifications, share tracking.
 
 - [ ] **Step 5: Update support files**
 
@@ -2909,8 +2909,8 @@ php artisan app:media:migrate-structure --force --no-interaction
 - [ ] **Step 4: Rebuild search index**
 
 ```bash
-php artisan scout:flush "App\Models\Person"
-php artisan scout:import "App\Models\Person"
+php artisan scout:flush "App\Features\Persons\Models\Person"
+php artisan scout:import "App\Features\Persons\Models\Person"
 ```
 
 - [ ] **Step 5: Run PHPStan**

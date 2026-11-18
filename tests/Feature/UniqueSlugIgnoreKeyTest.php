@@ -2,7 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 
 it('treats an empty ignore key as null when building a unique slug', function (): void {
     Reference::factory()->create(['slug' => 'riyadhus-solihin']);

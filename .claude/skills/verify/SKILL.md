@@ -67,7 +67,7 @@ Rules that keep runs trustworthy:
 - **Create fixtures inside owner context.** Models are owner-scoped and throw `NoCurrentOwnerException` otherwise:
 
   ```php
-  $event = withGlobalOwnerContext(fn () => \App\Models\Event::factory()->create([...]));
+  $event = withGlobalOwnerContext(fn () => \App\Features\Events\Models\Event::factory()->create([...]));
   ```
 
 - **Screenshot the viewport, not the page.** `fullPage: false`. Full-page screenshots of event pages take 30 seconds or more.
@@ -79,7 +79,7 @@ The scaffold for every probe:
 require base_path(".claude/skills/verify/bin/boot.php");
 \Pest\Browser\Playwright\Playwright::setTimeout(30000);
 
-$event = withGlobalOwnerContext(fn () => \App\Models\Event::factory()->create([
+$event = withGlobalOwnerContext(fn () => \App\Features\Events\Models\Event::factory()->create([
     "title" => "Verify Event",
     "status" => "approved",
     "visibility" => "public",

@@ -1,0 +1,67 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Reports\EntryPoints\Mcp\Tools;
+
+use App\Features\Reports\Api\ReportTriageContract;
+use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
+use App\Platform\Mcp\McpAuthenticatedUserResolver;
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\JsonSchema\Types\Type;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
+use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
+
+#[IsReadOnly]
+#[IsIdempotent]
+class AdminGetReportTriageSchemaTool extends AbstractAdminTool
+{
+    #[\Override]
+    protected string $name = 'admin-get-report-triage-schema';
+
+    #[\Override]
+    protected string $description = 'Use this when you need the triage schema for a report before applying a triage action. Returns available actions, required fields, and conditional rules.';
+
+    public function __construct(
+        private readonly AdminReportTriageService $triageService,
+        private readonly ReportTriageContract $triageContract,
+    ) {}
+
+    public function handle(Request $request): ResponseFactory|Response
+    {
+        return $this->structuredResponse(function () use ($request): array {
+            $actor = $this->authorizeAdmin($request);
+
+            $validated = $this->validateArguments($request, [
+                'record_key' => ['required', 'string'],
+            ]);
+
+            return $this->triageService->schema(
+                recordKey: (string) $validated['record_key'],
+                actor: $actor,
+            );
+        });
+    }
+
+    /**
+     * @return array<string, Type>
+     */
+    #[\Override]
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'record_key' => $schema->string()->required()->min(1),
+        ];
+    }
+
+    public function shouldRegister(Request $request): bool
+    {
+        $user = app(McpAuthenticatedUserResolver::class)->resolve($request->user());
+
+        return $this->triageContract->canTriage($user);
+    }
+}

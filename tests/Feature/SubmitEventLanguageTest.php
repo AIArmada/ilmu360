@@ -1,11 +1,11 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Language;
-use App\Models\Person;
+use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Platform\Language\Models\Language;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Shared\Cache\SelectionCatalogCache;

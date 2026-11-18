@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;

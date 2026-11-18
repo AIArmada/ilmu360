@@ -7,7 +7,7 @@ namespace App\Features\References\Actions;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Features\References\Support\ReferencePayload;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\ReferencePartType;
 use App\Shared\Directory\Enums\ReferenceType;

@@ -880,7 +880,7 @@ PHP);
         $project->write('app/Models/User.php', <<<'PHP'
 <?php
 namespace App\Models;
-use App\Models\Concerns\HasUserRestoration;
+use App\Features\Identity\Support\HasUserRestoration;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Sanctum\HasApiTokens;
 class User extends Model

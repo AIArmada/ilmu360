@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Features\Events\States\EventStatus\Transitions;
+
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Events\Models\Event;
+use App\Platform\Moderation\Models\ModerationReview;
+use App\Models\User;
+use App\Features\Events\Notifications\EventSubmittedNotification;
+use App\Features\Events\Notifications\EventNotificationService;
+use App\Features\Events\States\EventStatus\Pending;
+use Filament\Support\Colors\Color;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasIcon;
+use Filament\Support\Contracts\HasLabel;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Spatie\ModelStates\Transition;
+use Spatie\Permission\Exceptions\RoleDoesNotExist;
+
+class RemoderateEvent extends Transition implements HasColor, HasIcon, HasLabel
+{
+    public function __construct(
+        public Event $event,
+        public ?User $moderator = null,
+        public ?string $note = null,
+        public ?string $reasonCode = null,
+    ) {}
+
+    public function handle(): Event
+    {
+        return DB::transaction(function () {
+            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+                'actionable_type' => $this->event->getMorphClass(),
+                'actionable_id' => $this->event->id,
+                'actioned_by_type' => (new User)->getMorphClass(),
+                'actioned_by_id' => $this->moderator?->id,
+                'type' => 'remoderated',
+                'reason' => filled($this->reasonCode) ? $this->reasonCode : 'remoderated',
+                'notes' => $this->note ?? 'Approved event sent back for re-moderation.',
+            ]));
+
+            $this->event->status = Pending::class;
+            $this->event->last_state_change_at = now();
+            $this->event->save();
+
+            app(EventNotificationService::class)->notifySubmissionRemoderated($this->event, $this->note);
+
+            // Remove from search temporarily
+            $this->event->unsearchable();
+
+            // Notify moderators
+            try {
+                $moderators = User::role(['moderator', 'super_admin'])->get();
+                if ($moderators->isNotEmpty()) {
+                    Notification::send($moderators, new EventSubmittedNotification($this->event));
+                }
+            } catch (RoleDoesNotExist) {
+                Log::warning('Could not notify moderators: roles not found', ['event_id' => $this->event->id]);
+            }
+
+            Log::info('Approved event sent for re-moderation', [
+                'event_id' => $this->event->id,
+                'moderator_id' => $this->moderator?->id,
+            ]);
+
+            return $this->event;
+        });
+    }
+
+    public function getLabel(): string
+    {
+        return __('Send for Re-moderation');
+    }
+
+    public function getColor(): string|array
+    {
+        return Color::Amber;
+    }
+
+    public function getIcon(): string
+    {
+        return 'heroicon-o-arrow-path';
+    }
+}

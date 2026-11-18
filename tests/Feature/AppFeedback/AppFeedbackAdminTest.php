@@ -10,7 +10,7 @@ use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
 use App\Models\User;
 use App\Platform\Admin\ExcludedFromAdminApi;
 use App\Platform\Admin\FilamentResourceRegistry;
-use App\Support\Api\Admin\AdminResourceRegistry;
+use App\Platform\Api\Admin\AdminResourceRegistry;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;

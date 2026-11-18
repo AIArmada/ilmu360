@@ -1,6 +1,6 @@
 <?php
 
-use App\Filament\Pages\AdminDashboard;
+use App\Platform\Admin\EntryPoints\Filament\Pages\AdminDashboard;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

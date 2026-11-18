@@ -3,10 +3,10 @@
 use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\Events\Models\EventEscalation;
 use App\Features\Events\EntryPoints\Jobs\EscalatePendingEvents;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
-use App\Platform\Notifications\Events\EventEscalationNotification;
-use App\States\EventStatus\Transitions\ApproveEvent;
+use App\Features\Events\Notifications\EventEscalationNotification;
+use App\Features\Events\States\EventStatus\Transitions\ApproveEvent;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;

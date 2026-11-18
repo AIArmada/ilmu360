@@ -1,18 +1,18 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
-use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Platform\Notifications\Events\EventSubmittedNotification;
+use App\Features\Events\Notifications\EventSubmittedNotification;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
-use App\States\EventStatus\Pending;
+use App\Features\Events\States\EventStatus\Pending;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Notification;

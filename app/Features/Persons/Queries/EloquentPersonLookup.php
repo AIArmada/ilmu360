@@ -6,7 +6,7 @@ namespace App\Features\Persons\Queries;
 
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonSummary;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Reports\ReportSubject;

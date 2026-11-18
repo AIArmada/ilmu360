@@ -37,7 +37,7 @@ No schema rework is required. Remediation is: **two partial unique indexes, two 
 
 ### 2.1 Tables
 
-**`venue_spaces`** (package table; app model `App\Models\Space` maps to it)
+**`venue_spaces`** (package table; app model `App\Features\Places\Models\Space` maps to it)
 
 ```
 id              uuid PK
@@ -91,7 +91,7 @@ Consumed by `EventLocation::venueSpaceType()` (package) — **not dead schema**,
 
 ### 2.2 Model layer
 
-- `App\Models\Space extends AIArmada\Events\Models\VenueSpace` + `AuditsModelChanges` (audit trail is a strength). Adds `institutions()` belongsToMany → `institution_space` (app/Models/Space.php:19).
+- `App\Features\Places\Models\Space extends AIArmada\Events\Models\VenueSpace` + `AuditsModelChanges` (audit trail is a strength). Adds `institutions()` belongsToMany → `institution_space` (app/Models/Space.php:19).
 - `Institution::spaces()` belongsToMany → `institution_space` (app/Models/Institution.php:280).
 - `Venue::spaces()` **hasMany** `VenueSpace` (package Venue.php:131) — venues own rows rather than pivoting.
 - `EventLocation` — package model; `venue_space_id` is the linkage; `venueSpaceType()` BelongsTo.

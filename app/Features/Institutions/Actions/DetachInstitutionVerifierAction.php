@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 
 final readonly class DetachInstitutionVerifierAction
 {

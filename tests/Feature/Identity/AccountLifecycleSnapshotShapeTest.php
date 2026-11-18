@@ -6,7 +6,7 @@ use App\Features\Identity\Api\PrayerType;
 use App\Features\Identity\Models\SocialAccount;
 use App\Features\Reports\Models\Report;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Spatie\DeletedModels\Models\DeletedModel;

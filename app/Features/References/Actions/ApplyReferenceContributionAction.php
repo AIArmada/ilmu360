@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\References\Actions;
 
 use App\Features\References\Support\ReferencePayload;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 
 /**
  * Apply an approved contribution payload to an existing reference.

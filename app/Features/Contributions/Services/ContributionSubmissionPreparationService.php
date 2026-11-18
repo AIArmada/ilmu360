@@ -8,7 +8,7 @@ use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Features\Contributions\Actions\NormalizeContributionSubmissionAction;
 use App\Features\Contributions\Actions\ResolveContributionChangedPayloadAction;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 
 final readonly class ContributionSubmissionPreparationService implements ContributionSubmissionPreparation
 {

@@ -1,17 +1,17 @@
 <?php
 
-use App\Models\Event;
-use App\Models\EventCheckin;
-use App\Models\EventSubmission;
-use App\Models\Institution;
-use App\Models\MemberInvitation;
-use App\Models\ModerationReview;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Registration;
-use App\Models\Series;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Events\Models\EventSubmission;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Models\MemberInvitation;
+use App\Platform\Moderation\Models\ModerationReview;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Registration\Models\Registration;
+use App\Features\Events\Models\Series;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 
 it('Registration resolves to event_registrations, not registrations', function () {
     expect((new Registration)->getTable())->toBe('event_registrations');

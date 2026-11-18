@@ -10,9 +10,9 @@ use AIArmada\Persons\Models\CredentialDefinition;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
-use App\Models\Affiliation;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Persons\Models\Affiliation;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 
 it('formatted_name falls back to the bare name when no titles are assigned', function () {
     $person = Person::factory()->create([

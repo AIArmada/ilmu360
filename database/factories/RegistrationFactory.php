@@ -6,8 +6,8 @@ namespace Database\Factories;
 
 use AIArmada\Contacting\Data\ContactMethodData;
 use AIArmada\Events\Database\Factories\EventRegistrationFactory as PackageEventRegistrationFactory;
-use App\Models\Event;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 
 class RegistrationFactory extends PackageEventRegistrationFactory

@@ -2,7 +2,7 @@
 
 use App\Features\Events\Api\EventMediaExtractionSource;
 use App\Features\Events\Services\EventMediaExtractionService;
-use App\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;

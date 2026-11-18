@@ -1,7 +1,7 @@
 @php
     $claimPromptUser = auth()->user();
     $claimPromptAvailable = $claimPromptUser instanceof \App\Models\User
-        && app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->claimPromptAvailable($claimPromptUser, request());
+        && app(\App\Features\ShareTracking\Services\AffiliatesShareTrackingService::class)->claimPromptAvailable($claimPromptUser, request());
 @endphp
 
 @if ($claimPromptAvailable)

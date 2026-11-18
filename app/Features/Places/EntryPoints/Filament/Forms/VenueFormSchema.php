@@ -1,0 +1,151 @@
+<?php
+
+namespace App\Features\Places\EntryPoints\Filament\Forms;
+
+use AIArmada\Addressing\Support\AddressCountryResolver;
+use App\Features\Places\Api\VenueWorkflow;
+use App\Features\Places\Models\Venue;
+use App\Platform\Location\GooglePlacesConfiguration;
+use App\Shared\Directory\Enums\VenueType;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\View;
+use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\DB;
+
+class VenueFormSchema
+{
+    /**
+     * Shared createOptionForm for Venue selects.
+     *
+     * @return array<int, Component>
+     */
+    public static function createOptionForm(bool $includeLocationPicker = false): array
+    {
+        return [
+            TextInput::make('name')
+                ->label(__('Nama Lokasi'))
+                ->required()
+                ->maxLength(255)
+                ->placeholder(__('cth: Dewan Serbaguna, Dewan A')),
+
+            Select::make('type')
+                ->label(__('Jenis Lokasi'))
+                ->required()
+                ->options(VenueType::class)
+                ->placeholder(__('Select type...')),
+
+            SpatieMediaLibraryFileUpload::make('main')
+                ->label(__('Main Photo'))
+                ->collection('main')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('1:1')
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['1:1'])
+                ->automaticallyCropImagesToAspectRatio()
+                ->responsiveImages()
+                ->conversion('banner')
+                ->helperText(__('Primary venue photo — shown prominently on the venue profile page.')),
+
+            SpatieMediaLibraryFileUpload::make('cover')
+                ->label(__('Cover Image'))
+                ->collection('cover')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('16:9')
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['16:9'])
+                ->automaticallyCropImagesToAspectRatio()
+                ->conversion('banner')
+                ->responsiveImages()
+                ->helperText(__('Header or banner image')),
+
+            SpatieMediaLibraryFileUpload::make('gallery')
+                ->label(__('Galeri'))
+                ->collection('gallery')
+                ->multiple()
+                ->image()
+                ->imageEditor()
+                ->conversion('gallery_thumb')
+                ->responsiveImages()
+                ->maxFiles(10)
+                ->helperText(__('Sehingga 10 gambar lokasi')),
+
+            ...self::addressSchema(includeLocationPicker: $includeLocationPicker),
+
+            SharedFormSchema::socialMediaRepeater('Add social media links for this venue'),
+        ];
+    }
+
+    /**
+     * Shared createOptionUsing callback for Venue selects.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function createOptionUsing(array $data, ?Schema $schema = null): string
+    {
+        return DB::transaction(function () use ($data, $schema): string {
+            $venueId = app(VenueWorkflow::class)->createFromForm($data);
+            $venue = Venue::query()->findOrFail($venueId);
+
+            // Save media uploads (main, cover, gallery) via Filament's
+            // relationship-saving mechanism.
+            $schema?->model($venue)->saveRelationships();
+
+            return $venueId;
+        });
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    private static function addressSchema(bool $includeLocationPicker): array
+    {
+        $defaultCountryId = app(AddressCountryResolver::class)->resolveId('MY');
+
+        if (! $includeLocationPicker) {
+            return SharedFormSchema::addressFields(
+                requireGoogleMaps: true,
+                includeCountryField: true,
+                showCountryField: true,
+                defaultCountryId: $defaultCountryId,
+                requireCountryField: true,
+            );
+        }
+
+        $shouldRenderLocationPicker = GooglePlacesConfiguration::isEnabled();
+
+        return [
+            Group::make([
+                ...($shouldRenderLocationPicker
+                    ? [
+                        View::make('filament.schemas.components.institution-location-picker')
+                            ->columnSpanFull()
+                            ->viewData([
+                                'mapsApiKey' => GooglePlacesConfiguration::apiKey(),
+                                'title' => __('Find the venue location'),
+                                'description' => __('Search like a ride-hailing destination, pick the correct place, then confirm it on the map before saving.'),
+                                'searchLabel' => __('Search for a venue or address'),
+                            ]),
+                    ]
+                    : []),
+                ...SharedFormSchema::addressFields(
+                    requireGoogleMaps: true,
+                    showGoogleMapsUrlField: ! $shouldRenderLocationPicker,
+                    enableGoogleMapsNormalization: true,
+                    enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
+                    includeCountryField: true,
+                    showCountryField: true,
+                    defaultCountryId: $defaultCountryId,
+                    requireCountryField: true,
+                ),
+            ])
+                ->statePath('address')
+                ->columns(2),
+        ];
+    }
+}

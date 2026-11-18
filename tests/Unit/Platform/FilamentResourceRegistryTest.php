@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Filament\Resources\Persons\PersonResource;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Platform\Admin\FilamentResourceRegistry;
 
 it('registers each filament resource once', function (): void {

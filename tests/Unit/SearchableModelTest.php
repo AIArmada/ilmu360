@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

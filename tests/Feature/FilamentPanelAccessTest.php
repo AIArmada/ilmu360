@@ -2,10 +2,10 @@
 
 use AIArmada\Authz\Facades\Authz;
 use AIArmada\Authz\Models\Role;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Models\User;
 use Filament\Panel;
 use Illuminate\Support\Str;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Places\Actions\Spaces;
 
 use AIArmada\Events\Models\VenueSpaceType;
-use App\Models\Space;
+use App\Features\Places\Models\Space;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;

@@ -5,7 +5,7 @@ namespace App\Features\Contributions\Actions;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -17,7 +17,7 @@ class SubmitContributionCreateRequestAction
 
     /**
      * @param  array<string, mixed>  $proposedData
-     * @return \App\Models\ContributionRequest
+     * @return \App\Features\Contributions\Models\ContributionRequest
      */
     public function handle(
         ContributionSubjectType $subjectType,

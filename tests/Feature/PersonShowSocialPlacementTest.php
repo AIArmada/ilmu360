@@ -3,7 +3,7 @@
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 
 it('renders social media inside the consolidated profile panel on person show page', function () {
     $person = Person::factory()->create([

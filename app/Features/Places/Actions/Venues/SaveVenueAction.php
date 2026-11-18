@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Venues;
 
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\VenueType;
 use BackedEnum;

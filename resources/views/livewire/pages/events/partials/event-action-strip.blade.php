@@ -59,7 +59,7 @@
 
         @if($canEditEvent)
             <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ \App\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'admin') }}" target="_blank" data-testid="event-admin-edit-button" class="inline-flex items-center gap-2 rounded-full border border-[#e6d3a3] bg-[#fdf7e7] px-4 py-2 text-[13px] font-semibold text-[#7a5410] transition duration-300 hover:border-[#c9962f] hover:bg-[#fbf0d6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9962f]">
+                <a href="{{ \App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'admin') }}" target="_blank" data-testid="event-admin-edit-button" class="inline-flex items-center gap-2 rounded-full border border-[#e6d3a3] bg-[#fdf7e7] px-4 py-2 text-[13px] font-semibold text-[#7a5410] transition duration-300 hover:border-[#c9962f] hover:bg-[#fbf0d6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9962f]">
                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
                     {{ __('Edit') }}
                 </a>

@@ -2,7 +2,7 @@
 
 namespace App\Platform\Auditing;
 
-use App\Models\Audit;
+use App\Platform\Auditing\Models\Audit;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Resources\RelationManagers\RelationManager;

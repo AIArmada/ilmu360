@@ -153,7 +153,7 @@ PHP);
             'rule' => 'architecture.foreignWrite',
             'file' => 'app/Models/Space.php',
             'target' => 'table:venue_spaces',
-            'model' => App\Models\Space::class,
+            'model' => App\Features\Places\Models\Space::class,
             'reason' => 'The exact root model preserves its owner-scoped delete lifecycle.',
             'owner' => 'Places',
             'expires' => '2999-12-31',
@@ -162,7 +162,7 @@ PHP);
             'rule' => 'architecture.foreignWrite',
             'file' => 'app/Models/Venue.php',
             'target' => 'table:venues',
-            'model' => App\Models\Venue::class,
+            'model' => App\Features\Places\Models\Venue::class,
             'reason' => 'The exact root model preserves its owner-scoped delete lifecycle.',
             'owner' => 'Places',
             'expires' => '2999-12-31',
@@ -651,7 +651,7 @@ PHP);
     $this->project->write('app/Models/User.php', <<<'PHP'
 <?php
 namespace App\Models;
-use App\Models\Concerns\HasUserRestoration;
+use App\Features\Identity\Support\HasUserRestoration;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Sanctum\HasApiTokens;
 class User extends Model
@@ -713,7 +713,7 @@ PHP);
     $this->project->write('app/Models/User.php', <<<'PHP'
 <?php
 namespace App\Models;
-use App\Models\Concerns\HasUserRestoration;
+use App\Features\Identity\Support\HasUserRestoration;
 use Laravel\Sanctum\HasApiTokens;
 class User extends \Illuminate\Database\Eloquent\Model
 {

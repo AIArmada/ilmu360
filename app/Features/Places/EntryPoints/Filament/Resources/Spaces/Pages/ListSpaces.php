@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces\Pages;
+
+use App\Features\Places\EntryPoints\Filament\Resources\Spaces\SpaceResource;
+use Filament\Actions\CreateAction;
+use Filament\Resources\Pages\ListRecords;
+
+class ListSpaces extends ListRecords
+{
+    #[\Override]
+    protected static string $resource = SpaceResource::class;
+
+    #[\Override]
+    protected function getHeaderActions(): array
+    {
+        return [
+            CreateAction::make(),
+        ];
+    }
+}

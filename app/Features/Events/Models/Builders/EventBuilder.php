@@ -1,0 +1,315 @@
+<?php
+
+namespace App\Features\Events\Models\Builders;
+
+use App\Features\Events\Models\Event;
+use App\Features\Events\Queries\PrimaryOccurrenceSql;
+use Illuminate\Contracts\Database\Query\Expression;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\SortDirection;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+/**
+ * @extends Builder<Event>
+ */
+class EventBuilder extends Builder
+{
+    /**
+     * @var list<string>
+     */
+    private const array OccurrenceBackedColumns = [
+        'starts_at',
+        'ends_at',
+    ];
+
+    /** @return $this */
+    #[\Override]
+    public function where($column, $operator = null, $value = null, $boolean = 'and'): static
+    {
+        if (! is_string($column) || ! $this->shouldMapColumn($column)) {
+            parent::where($column, $operator, $value, $boolean);
+
+            return $this;
+        }
+
+        $columnName = $this->columnName($column);
+
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            $this->whereOccurrenceColumn($columnName, $operator, $value, $boolean, func_num_args());
+
+            return $this;
+        }
+
+        parent::where($column, $operator, $value, $boolean);
+
+        return $this;
+    }
+
+    /**
+     * @param  Expression|string  $column
+     * @param  iterable<mixed>  $values
+     * @param  string  $boolean
+     * @param  bool  $not
+     */
+    public function whereIn($column, $values, $boolean = 'and', $not = false): static
+    {
+        if (! is_string($column) || ! $this->shouldMapColumn($column)) {
+            parent::whereIn($column, $values, $boolean, $not);
+
+            return $this;
+        }
+
+        $columnName = $this->columnName($column);
+
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            return $this->whereOccurrenceIn($columnName, $values, $boolean, $not);
+        }
+
+        parent::whereIn($column, $values, $boolean, $not);
+
+        return $this;
+    }
+
+    /**
+     * @param  Expression|string  $column
+     * @param  iterable<mixed>  $values
+     */
+    public function orWhereIn($column, $values): static
+    {
+        return $this->whereIn($column, $values, 'or');
+    }
+
+    /**
+     * @param  Expression|string  $column
+     * @param  iterable<mixed>  $values
+     */
+    public function orWhereNotIn($column, $values): static
+    {
+        return $this->whereIn($column, $values, 'or', true);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder<*>|\Illuminate\Contracts\Database\Query\Expression|string  $column
+     * @param  iterable<mixed>  $values
+     * @param  string  $boolean
+     * @param  bool  $not
+     */
+    public function whereBetween($column, iterable $values, $boolean = 'and', $not = false): static
+    {
+        if (! is_string($column) || ! $this->shouldMapColumn($column)) {
+            parent::whereBetween($column, $values, $boolean, $not);
+
+            return $this;
+        }
+
+        $columnName = $this->columnName($column);
+
+        if (! in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            parent::whereBetween($column, $values, $boolean, $not);
+
+            return $this;
+        }
+
+        $normalizedValues = array_values($this->normalizeValues($values));
+        $start = $normalizedValues[0] ?? null;
+        $end = $normalizedValues[1] ?? null;
+
+        return $this->where(function (self $query) use ($end, $columnName, $not, $start): void {
+            $sql = PrimaryOccurrenceSql::column($columnName, $query->getModel()->getTable());
+
+            if ($not) {
+                $query
+                    ->whereRaw("{$sql} < ?", [$start])
+                    ->orWhereRaw("{$sql} > ?", [$end]);
+
+                return;
+            }
+
+            $query
+                ->whereRaw("{$sql} >= ?", [$start])
+                ->whereRaw("{$sql} <= ?", [$end]);
+        }, null, null, $boolean);
+    }
+
+    /**
+     * @param  string|array|Expression  $columns
+     * @param  string  $boolean
+     * @param  bool  $not
+     */
+    /**
+     * @param  string|array<mixed>|Expression  $columns
+     * @param  string  $boolean
+     * @param  bool  $not
+     */
+    public function whereNull($columns, $boolean = 'and', $not = false): static
+    {
+        if (! is_string($columns) || ! $this->shouldMapColumn($columns)) {
+            parent::whereNull($columns, $boolean, $not);
+
+            return $this;
+        }
+
+        $columnName = $this->columnName($columns);
+
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            return $this->whereOccurrenceNull($columnName, $boolean, $not);
+        }
+
+        parent::whereNull($columns, $boolean, $not);
+
+        return $this;
+    }
+
+    /**
+     * @param  string|array|Expression  $columns
+     * @param  string  $boolean
+     */
+    /**
+     * @param  string|array<mixed>|Expression  $columns
+     * @param  string  $boolean
+     */
+    public function whereNotNull($columns, $boolean = 'and'): static
+    {
+        if (! is_string($columns) || ! $this->shouldMapColumn($columns)) {
+            parent::whereNotNull($columns, $boolean);
+
+            return $this;
+        }
+
+        $columnName = $this->columnName($columns);
+
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            return $this->whereOccurrenceNull($columnName, $boolean, true);
+        }
+
+        parent::whereNotNull($columns, $boolean);
+
+        return $this;
+    }
+
+    /**
+     * @param  \Closure|\Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder<*>|\Illuminate\Contracts\Database\Query\Expression|string  $column
+     * @param  SortDirection|'asc'|'desc'  $direction
+     */
+    /**
+     * @param  \Closure|\Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder<*>|\Illuminate\Contracts\Database\Query\Expression|string  $column
+     * @param  string  $direction
+     */
+    public function orderBy($column, $direction = 'asc'): static
+    {
+        if (! is_string($column) || ! $this->shouldMapColumn($column)) {
+            parent::orderBy($column, $direction);
+
+            return $this;
+        }
+
+        $columnName = $this->columnName($column);
+
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            parent::orderBy(DB::raw(PrimaryOccurrenceSql::column($columnName, $this->getModel()->getTable())), $direction);
+
+            return $this;
+        }
+
+        parent::orderBy($column, $direction);
+
+        return $this;
+    }
+
+    /**
+     * @param  \Closure|\Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder<*>|\Illuminate\Contracts\Database\Query\Expression|string  $column
+     */
+    public function orderByDesc($column): static
+    {
+        return $this->orderBy($column, 'desc');
+    }
+
+    private function whereOccurrenceColumn(
+        string $column,
+        mixed $operator,
+        mixed $value,
+        string $boolean,
+        int $argumentCount,
+    ): static {
+        $sql = PrimaryOccurrenceSql::column($column, $this->getModel()->getTable());
+
+        if ($argumentCount === 2) {
+            $this->whereRaw("{$sql} = ?", [$operator], $boolean);
+
+            return $this;
+        }
+
+        $this->whereRaw("{$sql} {$operator} ?", [$value], $boolean);
+
+        return $this;
+    }
+
+    /**
+     * @param  iterable<mixed>  $values
+     */
+    private function whereOccurrenceIn(string $column, iterable $values, string $boolean, bool $not): static
+    {
+        $normalizedValues = array_values($this->normalizeValues($values));
+
+        if ($normalizedValues === []) {
+            $this->whereRaw($not ? '1 = 1' : '1 = 0', [], $boolean);
+
+            return $this;
+        }
+
+        $sql = PrimaryOccurrenceSql::column($column, $this->getModel()->getTable());
+        $operator = $not ? 'not in' : 'in';
+        $placeholders = implode(', ', array_fill(0, count($normalizedValues), '?'));
+
+        $this->whereRaw("{$sql} {$operator} ({$placeholders})", $normalizedValues, $boolean);
+
+        return $this;
+    }
+
+    private function columnName(string $column): string
+    {
+        return Str::afterLast($column, '.');
+    }
+
+    private function shouldMapColumn(string $column): bool
+    {
+        if (! str_contains($column, '.')) {
+            return true;
+        }
+
+        return Str::beforeLast($column, '.') === $this->getModel()->getTable();
+    }
+
+    private function whereOccurrenceNull(string $column, string $boolean, bool $not): static
+    {
+        $sql = PrimaryOccurrenceSql::column($column, $this->getModel()->getTable());
+        $operator = $not ? 'is not null' : 'is null';
+
+        $this->whereRaw("{$sql} {$operator}", [], $boolean);
+
+        return $this;
+    }
+
+    /**
+     * @param  mixed  $operator
+     * @param  mixed  $value
+     */
+
+    /**
+     * @return list<mixed>
+     */
+    private function normalizeValues(mixed $values): array
+    {
+        if ($values instanceof Collection) {
+            return $values->values()->all();
+        }
+
+        if (is_array($values)) {
+            return array_values($values);
+        }
+
+        return [$values];
+    }
+}

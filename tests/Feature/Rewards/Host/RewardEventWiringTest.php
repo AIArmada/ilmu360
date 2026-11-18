@@ -14,7 +14,7 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
 use AIArmada\Rewards\Models\RewardAward;
-use App\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;

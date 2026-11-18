@@ -14,7 +14,7 @@ use AIArmada\Rewards\Models\RewardPayee;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Support\RewardPublishAssembler;
 use AIArmada\Rewards\Support\RewardRuleValidator;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;

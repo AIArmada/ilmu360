@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;

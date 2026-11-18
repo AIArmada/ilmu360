@@ -12,7 +12,7 @@ use App\Features\Places\Actions\Venues\GenerateVenueSlugAction;
 use App\Features\Places\Actions\Venues\RestoreVenueVerifierAction;
 use App\Features\Places\Actions\Venues\SaveVenueAction;
 use App\Features\Places\Api\VenueWorkflow;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use RuntimeException;
 
 /**

@@ -34,7 +34,7 @@
     $otherRoleParticipations = $this->otherRoleParticipations;
     $personUrl = route('persons.show', $person);
     $shareText = trim($person->formatted_name . ' - ' . config('app.name'));
-    $shareLinks = app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks(
+    $shareLinks = app(\App\Features\ShareTracking\Services\AffiliatesShareTrackingService::class)->redirectLinks(
         $personUrl,
         $shareText,
         $person->formatted_name,
@@ -115,15 +115,15 @@
         ],
     ];
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
-        fn (\App\Data\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
+        fn (\App\Features\Discovery\Support\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
     );
-    $personRouteSegment = \App\Shared\Contributions\Enums\ContributionSubjectType::Person->publicRouteSegment();
+    $personRouteSegment = \App\Features\Contributions\Support\ContributionSubjectType::Person->publicRouteSegment();
 
-    $resolveEventCardLocation = static function (\App\Models\Event $event, ?\App\Data\PublicScheduleLeaf $scheduleLeaf = null): array {
+    $resolveEventCardLocation = static function (\App\Features\Events\Models\Event $event, ?\App\Features\Discovery\Support\PublicScheduleLeaf $scheduleLeaf = null): array {
         $location = $scheduleLeaf?->occurrence->locations->first()
             ?? $scheduleLeaf?->sessions->first()?->locations->first();
         $primary = $location?->venue?->name ?? $location?->label ?? $event->resolvedLocationName();
-        $address = $location?->venue instanceof \App\Models\Venue
+        $address = $location?->venue instanceof \App\Features\Places\Models\Venue
             ? $location->venue->primaryAddress()
             : null;
         $address ??= $event->resolvedLocationAddress();
@@ -134,7 +134,7 @@
         ];
     };
 
-    $resolveEventStatusBadgeClass = static function (\App\Models\Event $event): string {
+    $resolveEventStatusBadgeClass = static function (\App\Features\Events\Models\Event $event): string {
         if ((string) $event->status === 'pending') {
             return 'border-amber-100 bg-amber-50 text-amber-700';
         }
@@ -148,7 +148,7 @@
             : 'border-emerald-100 bg-emerald-50 text-emerald-700';
     };
 
-    $resolveKeyPersonRoleLabel = static function (\App\Models\EventKeyPerson $keyPerson): string {
+    $resolveKeyPersonRoleLabel = static function (\App\Features\Events\Models\EventKeyPerson $keyPerson): string {
         $role = $keyPerson->role_code;
 
         if ($role instanceof \App\Shared\Events\Enums\EventKeyPersonRole) {
@@ -249,7 +249,7 @@
 
                                 @if(auth()->user()?->hasAnyRole(['super_admin', 'admin']))
                                     <a
-                                        href="{{ \App\Filament\Resources\Persons\PersonResource::getUrl('edit', ['record' => $person], panel: 'admin') }}"
+                                        href="{{ \App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource::getUrl('edit', ['record' => $person], panel: 'admin') }}"
                                         target="_blank"
                                         class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-6 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100"
                                     >
@@ -508,12 +508,12 @@
                                 @php
                                     $event = $keyPerson->event;
                                     $roleLabel = $resolveKeyPersonRoleLabel($keyPerson);
-                                    [$locationPrimary, $locationSecondary] = $event instanceof \App\Models\Event
+                                    [$locationPrimary, $locationSecondary] = $event instanceof \App\Features\Events\Models\Event
                                         ? $resolveEventCardLocation($event)
                                         : [null, null];
                                 @endphp
 
-                                @if($event instanceof \App\Models\Event)
+                                @if($event instanceof \App\Features\Events\Models\Event)
                                     <x-events.card
                                         :event="$event"
                                         :is-saved="in_array((string) $event->getKey(), $savedEventIds, true)"
@@ -603,7 +603,7 @@
                             {{ __('Help keep this record accurate and useful for the community. Claims are reviewed by moderators before access is granted.') }}
                         </p>
                         <a
-                            href="{{ route('membership-applications.create', ['subjectType' => \App\Enums\MemberSubjectType::Person->publicRouteSegment(), 'subjectId' => $person->slug]) }}"
+                            href="{{ route('membership-applications.create', ['subjectType' => \App\Features\Membership\Api\MemberSubjectType::Person->publicRouteSegment(), 'subjectId' => $person->slug]) }}"
                             wire:navigate
                             class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15"
                         >

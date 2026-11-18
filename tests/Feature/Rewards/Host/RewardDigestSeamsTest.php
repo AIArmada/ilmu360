@@ -17,7 +17,7 @@ use App\Features\Rewards\Api\GratitudeDigestSnapshot;
 use App\Features\Rewards\FeatureServiceProvider as RewardsFeatureServiceProvider;
 use App\Features\Rewards\Support\DigestRewardGratitudePlanner;
 use App\Features\Rewards\Support\RewardsModel;
-use App\Models\RewardDigestSlot;
+use App\Features\Rewards\Models\RewardDigestSlot;
 use App\Platform\FeatureCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Artisan;

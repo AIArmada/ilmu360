@@ -11,16 +11,16 @@ use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\DonationChannels\Api\DonationQrMedia;
-use App\Forms\SharedFormSchema;
-use App\Livewire\Pages\Contributions\SubmitInstitution;
-use App\Livewire\Pages\Contributions\SubmitPerson;
-use App\Livewire\Pages\Contributions\SuggestUpdate;
-use App\Models\ContributionRequest;
-use App\Models\DonationChannel;
-use App\Models\Institution;
+use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitInstitution;
+use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitPerson;
+use App\Features\Contributions\EntryPoints\Livewire\Pages\SuggestUpdate;
+use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
-use App\Services\ContributionEntityMutationService;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Services\ContributionEntityStateService;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Testing\File;
@@ -1598,7 +1598,7 @@ it('refuses to wipe all donation channels when every submitted row is invalid', 
         ]);
     });
 
-    expect(fn () => app(ContributionEntityMutationService::class)->apply($institution, [
+    expect(fn () => app(ContributionEntityStateService::class)->apply($institution, [
         'donation_channels' => [[
             'recipient' => 'Jawatankuasa Surau',
             'method' => 'ewallet',

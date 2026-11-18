@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\Support;
 
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use Illuminate\Database\Eloquent\Model;
 
 /**

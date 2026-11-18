@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
  */
 class ShareSourceAttributionReceiptFactory extends Factory
 {
+    protected $model = ShareSourceAttributionReceipt::class;
+
     public function definition(): array
     {
         $transitionId = 'user:'.(Str::uuid());

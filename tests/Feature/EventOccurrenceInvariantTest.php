@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Events\Models\EventOccurrence;
-use App\Models\Event;
-use App\Services\ModerationService;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Services\ModerationService;
 use Illuminate\Validation\ValidationException;
 
 function makeOrphanedPublishedEvent(): Event

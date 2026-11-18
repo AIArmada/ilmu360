@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Models\User;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Laravel\Sanctum\Sanctum;

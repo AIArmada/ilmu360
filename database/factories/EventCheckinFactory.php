@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventAttendanceFactory;
-use App\Models\Event;
-use App\Models\EventCheckin;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\EventCheckin;
 use App\Models\User;
 
 class EventCheckinFactory extends EventAttendanceFactory

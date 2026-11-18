@@ -3,9 +3,9 @@
 use AIArmada\Events\Models\EventAttendance;
 use AIArmada\Events\Models\EventRegistrationItem;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Models\Audit;
-use App\Models\Event;
-use App\Models\Registration;
+use App\Platform\Auditing\Models\Audit;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;

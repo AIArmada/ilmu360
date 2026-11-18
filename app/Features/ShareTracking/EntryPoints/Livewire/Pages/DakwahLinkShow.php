@@ -1,0 +1,187 @@
+<?php
+
+namespace App\Features\ShareTracking\EntryPoints\Livewire\Pages;
+
+use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
+use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
+use App\Models\User;
+use App\Platform\Time\UserDateTimeFormatter;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
+use App\Shared\ShareTracking\ShareTrackingMeasurement;
+use Carbon\CarbonInterface;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
+
+#[Layout('layouts.app')]
+class DakwahLinkShow extends Component
+{
+    public string $linkId;
+
+    public function mount(string $link): void
+    {
+        abort_unless($this->analytics()->findLinkForUser($this->currentUser(), $link) instanceof ShareTrackingLinkData, 404);
+
+        $this->linkId = $link;
+    }
+
+    #[Computed]
+    public function linkData(): ShareTrackingLinkData
+    {
+        $resolvedLink = $this->analytics()->findLinkForUser($this->currentUser(), $this->linkId);
+
+        abort_unless($resolvedLink instanceof ShareTrackingLinkData, 404);
+
+        return $resolvedLink;
+    }
+
+    #[Computed]
+    public function measurementStatus(): string
+    {
+        return ShareTrackingMeasurement::status();
+    }
+
+    /**
+     * @return array{
+     *     outbound_shares: int,
+     *     visits: int,
+     *     distinct_browsers: int,
+     *     outcomes: int,
+     *     signups: int,
+     *     event_registrations: int,
+     *     event_checkins: int,
+     *     event_submissions: int
+     * }
+     */
+    #[Computed]
+    public function summary(): array
+    {
+        return $this->analytics()->summaryForLink($this->linkData());
+    }
+
+    /**
+     * @return Collection<int, array{
+     *     provider: string,
+     *     label: string,
+     *     outbound_shares: int,
+     *     visits: int,
+     *     distinct_browsers: int,
+     *     outcomes: int,
+     *     signups: int,
+     *     event_registrations: int,
+     *     event_checkins: int,
+     *     event_submissions: int
+     * }>
+     */
+    #[Computed]
+    public function providerBreakdown(): Collection
+    {
+        return $this->analytics()->providerBreakdownForLink($this->linkData());
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    #[Computed]
+    public function shareLinks(): array
+    {
+        return $this->shareService()->redirectLinks(
+            $this->linkData()->destinationUrl,
+            trim(($this->linkData()->titleSnapshot ?: config('app.name')).' - '.config('app.name')),
+            $this->linkData()->titleSnapshot,
+        );
+    }
+
+    #[Computed]
+    public function trackedUrl(): string
+    {
+        return $this->analytics()->trackedUrlForUser($this->currentUser(), $this->linkId)
+            ?? $this->linkData()->destinationUrl;
+    }
+
+    /**
+     * @return Collection<int, array{
+     *     date: string,
+     *     visits: int,
+     *     outcomes: int,
+     *     signups: int,
+     *     event_registrations: int,
+     *     event_checkins: int,
+     *     event_submissions: int
+     * }>
+     */
+    #[Computed]
+    public function dailyPerformance(): Collection
+    {
+        return $this->analytics()->dailyPerformanceForLink($this->linkData(), 14, UserDateTimeFormatter::resolveTimezone());
+    }
+
+    /**
+     * @return Collection<int, array{outcome_type: string, label: string, count: int}>
+     */
+    #[Computed]
+    public function outcomeBreakdown(): Collection
+    {
+        return $this->analytics()->outcomeBreakdownForLink($this->linkData());
+    }
+
+    /**
+     * @return Collection<int, ShareTrackingVisitData>
+     */
+    #[Computed]
+    public function recentVisits(): Collection
+    {
+        return $this->analytics()->recentVisitsForLink($this->linkData(), 20);
+    }
+
+    /**
+     * @return Collection<int, ShareTrackingOutcomeData>
+     */
+    #[Computed]
+    public function recentOutcomes(): Collection
+    {
+        return $this->analytics()->recentOutcomesForLink($this->linkData(), 20);
+    }
+
+    /**
+     * @return array{
+     *     first_seen_at: CarbonInterface|null,
+     *     last_visit_at: CarbonInterface|null,
+     *     last_outcome_at: CarbonInterface|null,
+     *     latest_activity_at: CarbonInterface|null
+     * }
+     */
+    #[Computed]
+    public function activityWindow(): array
+    {
+        return $this->analytics()->activityWindowForLink($this->linkData());
+    }
+
+    protected function analytics(): ShareTrackingAnalyticsService
+    {
+        return app(ShareTrackingAnalyticsService::class);
+    }
+
+    protected function shareService(): AffiliatesShareTrackingService
+    {
+        return app(AffiliatesShareTrackingService::class);
+    }
+
+    protected function currentUser(): User
+    {
+        $user = auth()->user();
+
+        abort_unless($user instanceof User, 403);
+
+        return $user;
+    }
+
+    public function render(): View
+    {
+        return view('livewire.pages.dashboard.dakwah-link-show');
+    }
+}

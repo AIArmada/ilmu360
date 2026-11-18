@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Auditing;
 
-use App\Models\Audit;
+use App\Platform\Auditing\Models\Audit;
 use Illuminate\Support\Str;
 
 final readonly class EloquentAuditRecorder implements AuditRecorder

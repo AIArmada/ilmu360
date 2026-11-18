@@ -1,13 +1,13 @@
 <?php
 
-use App\Forms\SharedFormSchema;
-use App\Livewire\Pages\Events\Index;
-use App\Livewire\Pages\SubmitEvent\Create;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Features\Events\EntryPoints\Livewire\Pages\Index;
+use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -15,8 +15,8 @@ use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Support\Submission\SubmitEventOptionsProvider;
-use App\Support\Submission\SubmitEventPrefill;
+use App\Features\Events\Services\SubmitEventOptionsProvider;
+use App\Features\Events\Services\SubmitEventPrefill;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;

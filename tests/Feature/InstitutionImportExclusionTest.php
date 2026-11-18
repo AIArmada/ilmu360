@@ -1,8 +1,8 @@
 <?php
 
 use App\Features\Institutions\Actions\DeleteInstitutionAction;
-use App\Models\Institution;
-use App\Models\InstitutionImportExclusion;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Models\InstitutionImportExclusion;
 use App\Shared\Directory\Enums\InstitutionStatus;
 
 it('records source-backed deletions as permanent exclusions', function () {

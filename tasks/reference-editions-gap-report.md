@@ -60,7 +60,7 @@ The `references` table is created by the **package**, not the app:
   canonical per owner**, throws otherwise), `stampPublishedAt()`, children-first
   cascade delete with media cleanup, `HasReferenceParts` trait
   (`getPart/setPart/removePart/hasPart/getPartsGrouped`, JSON `{type, value}` entries).
-- App model `App\Models\Reference` (`app/Models/Reference.php`, extends package model):
+- App model `App\Features\References\Models\Reference` (`app/Models/Reference.php`, extends package model):
   overrides `casts()` **without** `type`/`status` enum casts (stored/read as plain
   strings; `*Value()` accessors tolerate `BackedEnum` anyway). Key logic:
   - `normalizeReferencePartFields()` (:602): if `type != book` or no `parent_id`,

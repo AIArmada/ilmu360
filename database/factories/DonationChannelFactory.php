@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\DonationChannel;
-use App\Models\Institution;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class DonationChannelFactory extends Factory
 {
+    protected $model = DonationChannel::class;
+
     /**
      * Define the model's default state.
      *

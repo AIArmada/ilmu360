@@ -7,11 +7,11 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
 use App\Features\Institutions\Actions\GenerateInstitutionSlugAction;
 use App\Features\Institutions\Actions\SaveInstitutionAction;
-use App\Filament\Resources\Institutions\Pages\CreateInstitution;
-use App\Forms\InstitutionFormSchema;
-use App\Models\Institution;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Pages\CreateInstitution;
+use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
-use App\Services\ContributionEntityMutationService;
+use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Shared\Directory\Enums\InstitutionNameType;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -37,7 +37,7 @@ it('persists country-only address data for staged institution creation', functio
     $proposer = User::factory()->create();
     $geography = createInstitutionSlugGeography();
 
-    $institution = app(ContributionEntityMutationService::class)->createInstitution([
+    $institution = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Negara Sahaja',
         'type' => 'masjid',
         'address' => [
@@ -56,19 +56,19 @@ it('adds duplicate numbering only when the same institution name reuses the same
         subdistrictName: 'Subang Jaya',
     );
 
-    $first = app(ContributionEntityMutationService::class)->createInstitution([
+    $first = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'type' => 'masjid',
         'address' => geographyAddressPayload($primaryGeography),
     ], $proposer);
 
-    $second = app(ContributionEntityMutationService::class)->createInstitution([
+    $second = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'type' => 'masjid',
         'address' => geographyAddressPayload($primaryGeography),
     ], $proposer);
 
-    $third = app(ContributionEntityMutationService::class)->createInstitution([
+    $third = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'type' => 'masjid',
         'address' => geographyAddressPayload($secondaryGeography),
@@ -83,12 +83,12 @@ it('recomputes duplicate institution slugs when locality is added after creation
     $proposer = User::factory()->create();
     $geography = createInstitutionSlugGeography();
 
-    $first = app(ContributionEntityMutationService::class)->createInstitution([
+    $first = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'type' => 'masjid',
     ], $proposer);
 
-    $second = app(ContributionEntityMutationService::class)->createInstitution([
+    $second = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'type' => 'masjid',
     ], $proposer);
@@ -107,19 +107,19 @@ it('keeps slugs unique when a literal numbered name already occupies the expecte
     $proposer = User::factory()->create();
     $geography = createInstitutionSlugGeography();
 
-    $first = app(ContributionEntityMutationService::class)->createInstitution([
+    $first = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Example',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
     ], $proposer);
 
-    $numberedName = app(ContributionEntityMutationService::class)->createInstitution([
+    $numberedName = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Example 2',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
     ], $proposer);
 
-    $duplicate = app(ContributionEntityMutationService::class)->createInstitution([
+    $duplicate = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Example',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
@@ -134,7 +134,7 @@ it('recomputes institution slugs when the institution name changes', function ()
     $proposer = User::factory()->create();
     $geography = createInstitutionSlugGeography();
 
-    $institution = app(ContributionEntityMutationService::class)->createInstitution([
+    $institution = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Lama',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
@@ -152,7 +152,7 @@ it('recomputes institution slugs when the institution locality changes', functio
     $primaryGeography = createInstitutionSlugGeography();
     $secondaryGeography = createInstitutionSlugGeography(subdistrictName: 'Subang Jaya');
 
-    $institution = app(ContributionEntityMutationService::class)->createInstitution([
+    $institution = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Lama',
         'type' => 'masjid',
         'address' => geographyAddressPayload($primaryGeography),
@@ -172,13 +172,13 @@ it('renumbers remaining duplicates when a peer is renamed out of the group', fun
     $proposer = User::factory()->create();
     $geography = createInstitutionSlugGeography();
 
-    $first = app(ContributionEntityMutationService::class)->createInstitution([
+    $first = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
     ], $proposer);
 
-    $second = app(ContributionEntityMutationService::class)->createInstitution([
+    $second = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
@@ -199,13 +199,13 @@ it('renumbers remaining duplicates when a peer is deleted', function () {
     $proposer = User::factory()->create();
     $geography = createInstitutionSlugGeography();
 
-    $first = app(ContributionEntityMutationService::class)->createInstitution([
+    $first = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Warisan',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
     ], $proposer);
 
-    $second = app(ContributionEntityMutationService::class)->createInstitution([
+    $second = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Warisan',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
@@ -308,7 +308,7 @@ it('leaves imported source-backed slugs unchanged when a same-name manual instit
     expect($imported->fresh()?->slug)->toBe('imported-osm-slug')
         ->and($imported->fresh()?->imported_at)->not->toBeNull();
 
-    $manual = app(ContributionEntityMutationService::class)->createInstitution([
+    $manual = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'type' => 'masjid',
         'address' => geographyAddressPayload($geography),
@@ -331,7 +331,7 @@ it('leaves imported source-backed slugs unchanged when a same-name manual instit
     ]);
     attachInstitutionSlugAddress($imported, $primaryGeography);
 
-    $manual = app(ContributionEntityMutationService::class)->createInstitution([
+    $manual = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Warisan Import',
         'type' => 'masjid',
         'address' => geographyAddressPayload($primaryGeography),

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\EntryPoints\Console\Commands;
 
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Platform\Search\AbstractIndexToScout;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;

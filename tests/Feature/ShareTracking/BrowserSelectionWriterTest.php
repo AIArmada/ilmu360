@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
-use App\Models\Event;
-use App\Models\ShareBrowserSelection;
+use App\Features\Events\Models\Event;
+use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Models\User;
 use Illuminate\Support\Str;
 

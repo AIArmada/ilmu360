@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\ApiDocumentation;
 
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\Generator\Reference;

@@ -9,7 +9,7 @@ use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use App\Platform\Location\AddressAssignments;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;

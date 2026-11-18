@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Support\Api\Admin\AdminResourceMutationService;
-use App\Support\Api\Admin\AdminResourceRegistry;
-use App\Support\Api\Member\MemberResourceMutationService;
-use App\Support\Api\Member\MemberResourceRegistry;
+use App\Platform\Api\Admin\AdminResourceMutationService;
+use App\Platform\Api\Admin\AdminResourceRegistry;
+use App\Platform\Api\Member\MemberResourceMutationService;
+use App\Platform\Api\Member\MemberResourceRegistry;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class);

@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use App\Models\Event;
-use App\Models\EventSubmission;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventSubmission;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;

@@ -65,7 +65,7 @@ final readonly class CompleteEventSubmissionWritesAction
         return (string) $event->status === 'draft' ? 'submit' : null;
     }
 
-    /** @return \App\Models\EventSubmission */
+    /** @return \App\Features\Events\Models\EventSubmission */
     private function submission(string $submissionId): PackageEventSubmission
     {
         $submission = EventModel::query('event_submission')->find($submissionId);
@@ -78,7 +78,7 @@ final readonly class CompleteEventSubmissionWritesAction
     }
 
     /**
-     * @param  \App\Models\EventSubmission  $submission
+     * @param  \App\Features\Events\Models\EventSubmission  $submission
      * @param  array<string, mixed>  $state
      */
     private function storeSubmitterContacts(PackageEventSubmission $submission, array $state): void

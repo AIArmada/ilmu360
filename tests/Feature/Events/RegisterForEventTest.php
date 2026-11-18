@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Event;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 
 it('creates a confirmed registration via the public api route', function () {
     $event = Event::factory()

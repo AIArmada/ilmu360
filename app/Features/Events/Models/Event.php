@@ -1,0 +1,2637 @@
+<?php
+
+namespace App\Features\Events\Models;
+
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Contracts\Bookmarkable;
+use AIArmada\Engagement\Contracts\Respondable;
+use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Engagement\Models\Response;
+use AIArmada\Engagement\Traits\HasResponses;
+use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Models\EventAudience;
+use AIArmada\Events\Models\EventAudienceProfile;
+use AIArmada\Events\Models\EventClassification;
+use AIArmada\Events\Models\EventInvolvement;
+use AIArmada\Events\Models\EventLanguage;
+use AIArmada\Events\Models\EventLink;
+use AIArmada\Events\Models\EventLocation;
+use AIArmada\Events\Models\EventMaterial;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventReference;
+use AIArmada\Events\Models\EventSeriesItemPivot;
+use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Support\EventDeleteCascade;
+use AIArmada\Membership\Traits\HasMembers;
+use AIArmada\Organizations\Models\Organization;
+use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Engagement\Api\GoingWindow;
+use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventDeletion;
+use App\Features\Events\Api\EventDeletionScope;
+use App\Features\Events\Api\EventLocations;
+use App\Features\Events\Api\EventProjections;
+use App\Features\Events\Models\Builders\EventBuilder;
+use App\Features\DonationChannels\Concerns\HasDonationChannels;
+use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Location\AddressAssignments;
+use App\Features\Reports\Support\ReportModelClass;
+use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Auth\AccountActor;
+use App\Shared\Directory\Enums\ReferenceType;
+use App\Shared\Events\Enums\EventAgeGroup;
+use App\Shared\Events\Enums\EventChangeType;
+use App\Shared\Events\Enums\EventFormat;
+use App\Shared\Events\Enums\EventGenderRestriction;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\PrayerOffset;
+use App\Shared\Prayer\PrayerReference;
+use App\Platform\Models\Support\RelatedModels;
+use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Features\Events\States\EventStatus\EventStatus;
+use App\Features\Events\States\EventStatus\Pending;
+use App\Features\Membership\Services\MemberPermissionGate;
+use App\Features\Events\Queries\PrimaryLocationSql;
+use BackedEnum;
+use Carbon\CarbonInterface;
+use Database\Factories\EventFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Scout\Searchable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\ModelStates\HasStates;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Venue;
+use App\Features\References\Models\Reference;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Models\Registration;
+use App\Platform\Language\Models\Language;
+use App\Platform\Moderation\Models\ModerationReview;
+
+/**
+ * App Event subclass: package Event + intentional product projections.
+ *
+ * Package-backed schedule/links/audience/flags/location are projected as flat
+ * form attributes and written to their canonical package relations.
+ *
+ * @property string $id
+ * @property string|null $created_by_type
+ * @property string|null $created_by_id
+ * @property string|null $institution_id
+ * @property string|null $default_venue_id
+ * @property string $title
+ * @property string $slug
+ * @property array<string, mixed>|string|null $description
+ * @property Carbon|null $starts_at
+ * @property Carbon|null $ends_at
+ * @property string|null $timezone
+ * @property EventStatus|string $status
+ * @property string|null $schedule_kind
+ * @property EventVisibility|string|null $visibility
+ * @property string|null $delivery_mode
+ * @property TimingMode|string|null $timing_mode
+ * @property PrayerReference|string|null $prayer_reference
+ * @property PrayerOffset|string|null $prayer_offset
+ * @property string|null $prayer_display_text
+ * @property EventGenderRestriction|string|null $gender
+ * @property Collection<int, EventAgeGroup>|array<int, string>|null $age_group
+ * @property list<string> $event_category_ids
+ * @property bool|null $children_allowed
+ * @property string|null $live_url
+ * @property string|null $event_url
+ * @property string|null $recording_url
+ * @property Carbon|null $published_at
+ * @property array<string, mixed>|null $metadata
+ * @property bool|null $is_muslim_only
+ * @property-read Institution|null $institution
+ * @property-read Institution|Person|null $organizer
+ * @property-read Venue|null $venue
+ * @property-read EventChangeAnnouncement|null $latestPublishedChangeAnnouncement
+ * @property-read EventChangeAnnouncement|null $latestPublishedReplacementAnnouncement
+ * @property-read string|null $reference_study_subtitle
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, EventKeyPerson> $keyPeople
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, EventInvolvement> $involvements
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, EventOccurrence> $occurrences
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Reference> $references
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Person> $persons
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $created_at
+ */
+class Event extends PackageEvent implements AuditableContract, Bookmarkable, Respondable
+{
+    #[\Override]
+    protected $table = 'events';
+
+    /**
+     * @use HasFactory<EventFactory>
+     * @use HasMembers<User>
+     */
+    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasResponses, HasStates, KeepsDeletedModels, Searchable;
+
+    #[\Override]
+    protected static string $ownerScopeConfigKey = '';
+
+    protected static bool $ownerScopeEnabledByDefault = false;
+
+    /**
+     * Statuses reachable on public detail, listing and search surfaces.
+     *
+     * @var list<string>
+     */
+    public const array PUBLIC_STATUSES = ['approved', 'pending', 'cancelled'];
+
+    /**
+     * Schedule records that may be rendered on a publicly reachable event page.
+     * Draft and archived records remain available to administrative workflows only.
+     *
+     * @var list<string>
+     */
+    public const array PUBLIC_SCHEDULE_STATUSES = [
+        'scheduled',
+        'published',
+        'live',
+        'delayed',
+        'postponed',
+        'rescheduled',
+        'cancelled',
+        'completed',
+    ];
+
+    /**
+     * Occurrences that can still represent the next upcoming parent date.
+     * Cancelled and completed dates remain visible in schedule history, but
+     * do not become the parent event's upcoming date.
+     *
+     * @var list<string>
+     */
+    public const array UPCOMING_SCHEDULE_STATUSES = [
+        'scheduled',
+        'published',
+        'live',
+        'delayed',
+        'postponed',
+        'rescheduled',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    public const array PUBLIC_SCHEDULE_VISIBILITIES = ['public', 'unlisted'];
+
+    /**
+     * Statuses that still allow engagement actions (save/going).
+     *
+     * @var list<string>
+     */
+    public const array ENGAGEABLE_STATUSES = ['approved', 'pending'];
+
+    public function isRegistrationAvailable(): bool
+    {
+        if (! $this->hasOccurrences() || ! in_array((string) $this->status, self::ENGAGEABLE_STATUSES, true)) {
+            return false;
+        }
+
+        if ($this->visibility === EventVisibility::Unlisted) {
+            return true;
+        }
+
+        return $this->visibility === EventVisibility::Public
+            && $this->published_at !== null;
+    }
+
+    #[\Override]
+    public $incrementing = false;
+
+    #[\Override]
+    protected $keyType = 'string';
+
+    /**
+     * @var array{width: int, height: int}|null
+     */
+    private ?array $resolvedPosterDimensions = null;
+
+    /**
+     * @var Collection<int, Language>|null
+     */
+    private ?Collection $resolvedLanguageCache = null;
+
+    /**
+     * @var array<string, string|null>
+     */
+    private array $pendingLinkWrites = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $pendingAudienceWrites = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $pendingAudienceProfileWrites = [];
+
+    /** @var list<string> */
+    private array $pendingCategoryIds = [];
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        static::creating(function (Event $event): void {
+            $creator = auth()->user();
+
+            if ($creator instanceof Model) {
+                $event->created_by_type ??= $creator->getMorphClass();
+                $event->created_by_id ??= $creator->getKey();
+            }
+        });
+
+        static::saved(function (Event $event): void {
+            $event->syncUrlLinks();
+            $event->syncAudiences();
+        });
+
+        static::deleting(function (Event $event): void {
+            $eventId = (string) $event->getKey();
+
+            app(EventDeletionScope::class)->whileDeleting($eventId, function () use ($event, $eventId): void {
+                OwnerContext::withOwner(null, function () use ($event, $eventId): void {
+                    app(EventDeletion::class)->cleanup($eventId);
+                    EventDeleteCascade::deleteForEvent($event);
+                });
+            });
+        });
+    }
+
+    /**
+     * @var list<string>
+     */
+    #[\Override]
+    protected $fillable = [
+        'owner_type',
+        'owner_id',
+        'created_by_type',
+        'created_by_id',
+        'institution_id',
+
+        'title',
+        'slug',
+        'description',
+        'schedule_kind',
+        'timezone',
+        'live_url',
+        'event_url',
+        'recording_url',
+        'gender',
+        'age_group',
+        'children_allowed',
+        'visibility',
+        'status',
+        'published_at',
+        'cancelled_at',
+        'last_state_change_at',
+        'summary',
+        'delivery_mode',
+        'default_venue_id',
+        'pricing_mode',
+        'registration_mode',
+        'issue_passes_for_free',
+        'metadata',
+        'is_muslim_only',
+    ];
+
+    #[\Override]
+    protected function casts(): array
+    {
+        return array_merge(parent::casts(), [
+            'status' => EventStatus::class,
+            'visibility' => EventVisibility::class,
+            'published_at' => 'immutable_datetime',
+            'cancelled_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
+            'description' => 'array',
+            'metadata' => 'array',
+            'issue_passes_for_free' => 'boolean',
+        ]);
+    }
+
+    #[\Override]
+    public function newEloquentBuilder($query): EventBuilder
+    {
+        return new EventBuilder($query);
+    }
+
+    #[\Override]
+    protected static function newFactory(): EventFactory
+    {
+        return EventFactory::new();
+    }
+
+    #[\Override]
+    public function setAttribute($key, $value): mixed
+    {
+        if ($key === 'event_category_ids') {
+            $this->pendingCategoryIds = is_array($value)
+                ? array_values(array_map(strval(...), $value))
+                : [];
+
+            return $this;
+        }
+
+        return parent::setAttribute($key, $value);
+    }
+
+    #[\Override]
+    public function getAttribute($key): mixed
+    {
+        if (in_array($key, ['starts_at', 'ends_at'], true)) {
+            return $this->primaryOccurrenceDate($key);
+        }
+
+        if ($key === 'event_category_ids') {
+            if ($this->pendingCategoryIds !== []) {
+                return $this->pendingCategoryIds;
+            }
+
+            return $this->categoryClassifications()
+                ->pluck('event_term_id')
+                ->map(fn (mixed $id): string => (string) $id)
+                ->values()
+                ->all();
+        }
+
+        if ($key === 'languages') {
+            return $this->resolvedLanguages();
+        }
+
+        if ($key === 'organizer') {
+            return OwnerContext::withOwner(null, fn () => $this->primaryOrganizerInvolvement?->involveable);
+        }
+
+        return parent::getAttribute($key);
+    }
+
+    /**
+     * @return HasMany<EventOccurrence, $this>
+     */
+    #[\Override]
+    public function occurrences(): HasMany
+    {
+        return $this->hasMany(EventOccurrence::class)
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * Occurrences used to resolve the grouped going window. Kept separate
+     * from `occurrences` so card date and image projections keep their
+     * existing relation branches.
+     *
+     * @return HasMany<EventOccurrence, $this>
+     */
+    public function goingWindowOccurrences(): HasMany
+    {
+        return $this->hasMany(EventOccurrence::class)
+            ->withoutGlobalScopes()
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * @return HasOne<EventOccurrence, $this>
+     */
+    #[\Override]
+    public function primaryOccurrence(): HasOne
+    {
+        return $this->hasOne(EventOccurrence::class)
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * The nearest upcoming public date for a parent event. Grouped public
+     * submissions use this as their date projection; their parent stays
+     * dateless.
+     *
+     * @return HasOne<EventOccurrence, $this>
+     */
+    public function displayOccurrence(): HasOne
+    {
+        return $this->hasOne(EventOccurrence::class)
+            ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
+            ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES)
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * Event-level expressions are distinct from occurrence/session expressions.
+     * The latter must never be addressed through this relation.
+     *
+     * @return HasMany<EventTimeExpression, $this>
+     */
+    #[\Override]
+    public function timeExpressions(): HasMany
+    {
+        return $this->hasMany(EventTimeExpression::class)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventLocation, $this> */
+    #[\Override]
+    public function locations(): HasMany
+    {
+        return parent::locations()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventLink, $this> */
+    #[\Override]
+    public function links(): HasMany
+    {
+        return parent::links()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventMaterial, $this> */
+    #[\Override]
+    public function materials(): HasMany
+    {
+        return parent::materials()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventAudience, $this> */
+    #[\Override]
+    public function audiences(): HasMany
+    {
+        return parent::audiences()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventAudienceProfile, $this> */
+    #[\Override]
+    public function audienceProfiles(): HasMany
+    {
+        return parent::audienceProfiles()->whereNull('event_occurrence_id')->whereNull('event_session_id');
+    }
+
+    /**
+     * Event-level languages only; occurrence/session rows stay on their own scopes.
+     *
+     * @return HasMany<EventLanguage, $this>
+     */
+    #[\Override]
+    public function languages(): HasMany
+    {
+        return parent::languages()
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id');
+    }
+
+    /**
+     * @return HasMany<EventLanguage, $this>
+     */
+    public function languageRecords(): HasMany
+    {
+        return $this->languages()->select(['*']);
+    }
+
+    /**
+     * @param  array<int, string>|string  $languages
+     */
+    public function syncLanguages(array|string $languages): void
+    {
+        $diff = app(EventAuthoring::class)->syncEventLanguages((string) $this->getKey(), $languages);
+
+        $this->unsetRelation('languages');
+        $this->resolvedLanguageCache = null;
+
+        $this->recordCustomAuditDifferences('updated', [
+            'languages' => $diff['before'],
+        ], [
+            'languages' => $diff['after'],
+        ]);
+    }
+
+    /**
+     * @return HasOne<EventInvolvement, $this>
+     */
+    public function primaryOrganizerInvolvement(): HasOne
+    {
+        return $this->hasOne(EventInvolvement::class)
+            ->where('role_code', 'organizer')
+            ->where('is_primary', true);
+    }
+
+    public function setPrimaryOrganizer(Institution|Person|null $organizer): static
+    {
+        app(EventAuthoring::class)->syncPrimaryOrganizer(
+            (string) $this->getKey(),
+            $organizer?->getMorphClass(),
+            $organizer !== null ? (string) $organizer->getKey() : null,
+        );
+
+        $this->unsetRelation('primaryOrganizerInvolvement');
+
+        return $this;
+    }
+
+    public function getLiveUrlAttribute(): ?string
+    {
+        if (array_key_exists('live_url', $this->pendingLinkWrites)) {
+            return $this->pendingLinkWrites['live_url'];
+        }
+
+        return $this->getLinkUrl('streaming');
+    }
+
+    public function getEventUrlAttribute(): ?string
+    {
+        if (array_key_exists('event_url', $this->pendingLinkWrites)) {
+            return $this->pendingLinkWrites['event_url'];
+        }
+
+        return $this->getLinkUrl('external');
+    }
+
+    public function getRecordingUrlAttribute(): ?string
+    {
+        if (array_key_exists('recording_url', $this->pendingLinkWrites)) {
+            return $this->pendingLinkWrites['recording_url'];
+        }
+
+        return $this->getLinkUrl('recording');
+    }
+
+    public function setLiveUrlAttribute(?string $value): void
+    {
+        $this->pendingLinkWrites['live_url'] = $value;
+    }
+
+    public function setEventUrlAttribute(?string $value): void
+    {
+        $this->pendingLinkWrites['event_url'] = $value;
+    }
+
+    public function setRecordingUrlAttribute(?string $value): void
+    {
+        $this->pendingLinkWrites['recording_url'] = $value;
+    }
+
+    private function getLinkUrl(string $linkType): ?string
+    {
+        $this->loadMissing('links');
+
+        return $this->links->firstWhere('link_type', $linkType)?->url;
+    }
+
+    public function syncUrlLinks(): void
+    {
+        if ($this->pendingLinkWrites === []) {
+            return;
+        }
+
+        app(EventProjections::class)->syncLinks((string) $this->getKey(), $this->pendingLinkWrites);
+
+        $this->pendingLinkWrites = [];
+    }
+
+    // ─── Prayer Time Expression (EventTimeExpression) ───────────────────────
+
+    public function getTimingModeAttribute(mixed $value): string
+    {
+        return $this->prayerExpression() instanceof EventTimeExpression
+            ? TimingMode::PrayerRelative->value
+            : TimingMode::Absolute->value;
+    }
+
+    public function getPrayerReferenceAttribute(mixed $value): ?string
+    {
+        return $this->prayerExpression()?->anchor_code;
+    }
+
+    public function getPrayerOffsetAttribute(mixed $value): ?string
+    {
+        $expr = $this->prayerExpression();
+
+        if ($expr?->offset_minutes === null || $expr->relation === null) {
+            return null;
+        }
+
+        $signed = $expr->relation === 'before' ? -$expr->offset_minutes : $expr->offset_minutes;
+
+        foreach (PrayerOffset::cases() as $case) {
+            if ($case->minutes() === $signed) {
+                return $case->value;
+            }
+        }
+
+        return null;
+    }
+
+    public function getPrayerDisplayTextAttribute(?string $value): ?string
+    {
+        return $this->prayerExpression()?->display_label;
+    }
+
+    private function prayerExpression(): ?EventTimeExpression
+    {
+        $this->loadMissing('timeExpressions');
+
+        return $this->timeExpressions->first(fn (EventTimeExpression $expression): bool => $expression->anchor_type === 'prayer');
+    }
+
+    // ─── Audience (EventAudience + EventAudienceProfile) ────────────────────
+
+    public function getGenderAttribute(mixed $value): ?string
+    {
+        if (array_key_exists('gender', $this->pendingAudienceWrites)) {
+            return $this->pendingAudienceWrites['gender'];
+        }
+
+        $this->loadMissing('audiences');
+
+        return $this->audiences->firstWhere('audience_type', 'gender')?->value;
+    }
+
+    /** @return list<string>|null */
+    public function getAgeGroupAttribute(mixed $value): ?array
+    {
+        if (array_key_exists('age_group', $this->pendingAudienceWrites)) {
+            return $this->pendingAudienceWrites['age_group'];
+        }
+
+        $this->loadMissing('audiences');
+
+        $values = $this->audiences
+            ->where('audience_type', 'age_group')
+            ->sortBy('sort_order')
+            ->pluck('value')
+            ->toArray();
+
+        return $values !== [] ? $values : null;
+    }
+
+    public function getChildrenAllowedAttribute(mixed $value): ?bool
+    {
+        if (array_key_exists('children_allowed', $this->pendingAudienceProfileWrites)) {
+            return $this->pendingAudienceProfileWrites['children_allowed'] ?? null;
+        }
+
+        $this->loadMissing('audienceProfiles');
+
+        return $this->audienceProfiles->first()?->is_child_friendly;
+    }
+
+    public function getIsMuslimOnlyAttribute(mixed $value): ?bool
+    {
+        if (array_key_exists('is_muslim_only', $this->pendingAudienceWrites)) {
+            return $this->pendingAudienceWrites['is_muslim_only'];
+        }
+
+        $this->loadMissing('audiences');
+
+        $val = $this->audiences->firstWhere('audience_type', 'religion')?->value;
+
+        return $val === null ? null : $val === 'muslim_only';
+    }
+
+    /**
+     * @param  string|EventGenderRestriction|null  $value
+     */
+    public function setGenderAttribute(mixed $value): void
+    {
+        $this->pendingAudienceWrites['gender'] = $value instanceof EventGenderRestriction ? $value->value : $value;
+    }
+
+    /**
+     * @param  array<int, string|EventAgeGroup>|string|EventAgeGroup|null  $value
+     */
+    public function setAgeGroupAttribute(mixed $value): void
+    {
+        if ($value === null) {
+            $this->pendingAudienceWrites['age_group'] = null;
+
+            return;
+        }
+
+        $normalized = is_array($value)
+            ? array_map(fn (mixed $v): string => $v instanceof EventAgeGroup ? $v->value : (string) $v, $value)
+            : [($value instanceof EventAgeGroup ? $value->value : (string) $value)];
+
+        $this->pendingAudienceWrites['age_group'] = $normalized;
+    }
+
+    public function setChildrenAllowedAttribute(mixed $value): void
+    {
+        $this->pendingAudienceProfileWrites['children_allowed'] = $value === null ? null : (bool) $value;
+    }
+
+    public function setIsMuslimOnlyAttribute(mixed $value): void
+    {
+        $this->pendingAudienceWrites['is_muslim_only'] = $value === null ? null : (bool) $value;
+    }
+
+    public function syncAudiences(): void
+    {
+        if ($this->pendingAudienceWrites === [] && $this->pendingAudienceProfileWrites === []) {
+            return;
+        }
+
+        app(EventProjections::class)->syncAudiences(
+            (string) $this->getKey(),
+            $this->pendingAudienceWrites,
+            $this->pendingAudienceProfileWrites,
+        );
+
+        $this->pendingAudienceWrites = [];
+        $this->pendingAudienceProfileWrites = [];
+    }
+
+    // ─── EventLocation (primary venue space) ───────────────────────────────
+
+    #[\Override]
+    public function primaryLocation(): HasOne
+    {
+        return $this->hasOne(EventLocation::class)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->where('location_role', 'primary')
+            ->orderBy('sort_order')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * Keep the event-level primary location row aligned with the selected
+     * default venue. Direct event saves (e.g. the Filament edit form) only
+     * write events.default_venue_id, while the public detail page reads the
+     * event_locations row; without this sync the page keeps showing the old
+     * venue after a venue change or removal.
+     */
+    public function syncPrimaryLocationFromSelection(): void
+    {
+        $changed = app(EventLocations::class)->syncPrimaryFromSelection(
+            (string) $this->getKey(),
+            venueChanged: $this->wasChanged('default_venue_id'),
+        );
+
+        if ($changed) {
+            $this->unsetRelation('primaryLocation');
+        }
+    }
+
+    /**
+     * @param  list<string>  $spaceIds
+     */
+    public function syncLocation(?string $venueId = null, array $spaceIds = []): void
+    {
+        app(EventLocations::class)->sync((string) $this->getKey(), $venueId, $spaceIds);
+    }
+
+    private function isGroupedSubmission(): bool
+    {
+        return is_array($this->metadata['public_submission_group'] ?? null)
+            && is_string($this->metadata['public_submission_group']['key'] ?? null);
+    }
+
+    private function primaryOccurrenceDate(string $key): mixed
+    {
+        if (! $this->exists) {
+            return null;
+        }
+
+        $groupedSubmission = $this->isGroupedSubmission();
+        $visibility = $this->visibility instanceof BackedEnum ? $this->visibility->value : (string) $this->visibility;
+        $publicParent = (string) $this->status === 'approved'
+            && in_array($visibility, [self::PUBLIC, self::UNLISTED], true);
+
+        if ($this->relationLoaded('occurrences')) {
+            $eligibleOccurrences = $this->occurrences->filter(function (EventOccurrence $occurrence) use ($publicParent): bool {
+                $status = (string) $occurrence->status;
+                $occurrenceVisibility = $occurrence->visibility instanceof BackedEnum
+                    ? $occurrence->visibility->value
+                    : (string) $occurrence->visibility;
+
+                if ($publicParent) {
+                    return in_array($status, self::PUBLIC_SCHEDULE_STATUSES, true)
+                        && in_array($occurrenceVisibility, self::PUBLIC_SCHEDULE_VISIBILITIES, true);
+                }
+
+                return ! in_array($status, [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED], true);
+            });
+            $upcomingStatuses = $groupedSubmission || $publicParent
+                ? self::UPCOMING_SCHEDULE_STATUSES
+                : self::PUBLIC_SCHEDULE_STATUSES;
+            $upcomingOccurrence = $eligibleOccurrences
+                ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, $upcomingStatuses, true)
+                    && ($occurrence->starts_at?->greaterThanOrEqualTo(now()) ?? false))
+                ->sortBy(fn (EventOccurrence $occurrence): string => (string) $occurrence->starts_at)
+                ->first();
+
+            if ($groupedSubmission) {
+                return $upcomingOccurrence instanceof EventOccurrence ? $upcomingOccurrence->{$key} : null;
+            }
+
+            $occurrence = $upcomingOccurrence ?? $eligibleOccurrences
+                ->sortBy(fn (EventOccurrence $item): string => (string) $item->starts_at)
+                ->first();
+
+            if ($occurrence instanceof EventOccurrence) {
+                return $occurrence->{$key};
+            }
+        }
+
+        if ($groupedSubmission) {
+            if ($this->relationLoaded('displayOccurrence')) {
+                return $this->displayOccurrence?->{$key};
+            }
+
+            if ($this->relationLoaded('primaryOccurrence')) {
+                $primaryOccurrence = $this->primaryOccurrence;
+                $eligibleStatuses = $publicParent
+                    ? self::UPCOMING_SCHEDULE_STATUSES
+                    : array_values(array_diff(self::PUBLIC_SCHEDULE_STATUSES, [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']));
+                $occurrenceVisibility = $primaryOccurrence?->visibility instanceof BackedEnum
+                    ? $primaryOccurrence->visibility->value
+                    : (string) $primaryOccurrence?->visibility;
+
+                if (
+                    $primaryOccurrence instanceof EventOccurrence
+                    && in_array((string) $primaryOccurrence->status, $eligibleStatuses, true)
+                    && (! $publicParent || in_array($occurrenceVisibility, self::PUBLIC_SCHEDULE_VISIBILITIES, true))
+                    && ($primaryOccurrence->starts_at?->greaterThanOrEqualTo(now()) ?? false)
+                ) {
+                    return $primaryOccurrence->{$key};
+                }
+            }
+
+            $upcomingQuery = $this->occurrences()
+                ->withoutGlobalScopes()
+                ->where('starts_at', '>=', now())
+                ->orderBy('starts_at')
+                ->orderBy('created_at')
+                ->orderBy('id');
+
+            if ($publicParent) {
+                $upcomingQuery
+                    ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
+                    ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+            } else {
+                $upcomingQuery->whereNotIn('status', [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']);
+            }
+
+            $occurrence = $upcomingQuery->first();
+            $this->setRelation('displayOccurrence', $occurrence);
+
+            return $occurrence instanceof EventOccurrence ? $occurrence->{$key} : null;
+        }
+
+        // Public list queries already eager-load this one-row projection.
+        // Reuse it for both date properties instead of issuing one lookup per
+        // starts_at / ends_at access.
+        if ($this->relationLoaded('primaryOccurrence')) {
+            return $this->primaryOccurrence?->{$key};
+        }
+
+        $this->loadMissing('primaryOccurrence');
+
+        if ($this->primaryOccurrence instanceof EventOccurrence) {
+            return $this->primaryOccurrence->{$key};
+        }
+
+        $upcomingQuery = $this->occurrences()
+            ->withoutGlobalScopes()
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+
+        if ($publicParent) {
+            $upcomingQuery
+                ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
+                ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+        } else {
+            $upcomingQuery->whereNotIn('status', [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']);
+        }
+
+        $occurrence = $upcomingQuery->first([$key]);
+
+        if ($occurrence instanceof EventOccurrence) {
+            return $occurrence->{$key};
+        }
+
+        if ($publicParent) {
+            $fallbackQuery = $this->occurrences()
+                ->withoutGlobalScopes()
+                ->whereIn('status', self::PUBLIC_SCHEDULE_STATUSES)
+                ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+        } else {
+            $fallbackQuery = $this->occurrences()->withoutGlobalScopes();
+        }
+
+        $occurrence = $fallbackQuery
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->first([$key]);
+
+        return $occurrence instanceof EventOccurrence ? $occurrence->{$key} : null;
+    }
+
+    /**
+     * @return Collection<int, Language>
+     */
+    private function resolvedLanguages(): Collection
+    {
+        if ($this->resolvedLanguageCache instanceof Collection) {
+            return $this->resolvedLanguageCache;
+        }
+
+        $languageCodes = OwnerContext::withOwner(null, function (): Collection {
+            $languageRecords = $this->relationLoaded('languages')
+                ? $this->getRelation('languages')
+                : $this->languageRecords()->withoutOwnerScope()->get();
+
+            $languageCodes = $languageRecords
+                ->filter(fn (mixed $record): bool => $record instanceof EventLanguage
+                    && $record->event_occurrence_id === null
+                    && $record->event_session_id === null)
+                ->pluck('language_code')
+                ->filter(fn (mixed $languageCode): bool => is_string($languageCode) && $languageCode !== '')
+                ->values();
+
+            if ($languageCodes->isNotEmpty()) {
+                return $languageCodes;
+            }
+
+            return $languageRecords
+                ->filter(fn (mixed $record): bool => $record instanceof Language)
+                ->pluck('code')
+                ->filter(fn (mixed $languageCode): bool => is_string($languageCode) && $languageCode !== '')
+                ->values();
+        });
+
+        if ($languageCodes->isEmpty() && $this->exists) {
+            $languageCodes = OwnerContext::withOwner(null, fn (): Collection => $this->languageRecords()->withoutOwnerScope()
+                ->pluck('language_code')
+                ->filter(fn (mixed $languageCode): bool => is_string($languageCode) && $languageCode !== '')
+                ->values());
+        }
+
+        if ($languageCodes->isEmpty()) {
+            /** @var Collection<int, Language> $empty */
+            $empty = collect();
+            $this->resolvedLanguageCache = $empty;
+
+            return $empty;
+        }
+
+        /** @var Collection<string, Language> $languagesByCode */
+        $languagesByCode = Language::query()
+            ->whereIn('code', $languageCodes->all())
+            ->get()
+            ->keyBy(fn (Language $language): string => (string) $language->code);
+
+        /** @var Collection<int, Language> $resolved */
+        $resolved = $languageCodes
+            ->map(fn (string $languageCode): ?Language => $languagesByCode->get($languageCode))
+            ->filter(fn (mixed $language): bool => $language instanceof Language)
+            ->values();
+
+        $this->resolvedLanguageCache = $resolved;
+
+        return $resolved;
+    }
+
+    /**
+     * Scope a query to only include active public events.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function active(Builder $query): void
+    {
+        $table = $query->getModel()->getTable();
+
+        $query->whereIn("{$table}.status", self::PUBLIC_STATUSES)
+            ->where("{$table}.visibility", EventVisibility::Public)
+            ->whereNotNull("{$table}.published_at")
+            ->whereHas('occurrences');
+    }
+
+    /**
+     * Scope a query to event containers that have at least one occurrence.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function discoverable(Builder $query): void
+    {
+        $query->whereHas('occurrences');
+    }
+
+    public function bookReference(): ?Reference
+    {
+        if ($this->relationLoaded('references')) {
+            /** @var ?Reference $reference */
+            $reference = $this->references->first(function (Reference $reference): bool {
+                $referenceType = $reference->type;
+
+                if ($referenceType instanceof ReferenceType) {
+                    return $referenceType === ReferenceType::Book;
+                }
+
+                return (string) $referenceType === ReferenceType::Book->value;
+            });
+
+            return $reference;
+        }
+
+        /** @var ?Reference $reference */
+        $reference = $this->references()
+            ->where('references.type', ReferenceType::Book->value)
+            ->first();
+
+        return $reference;
+    }
+
+    public function hasBookReference(): bool
+    {
+        return $this->bookReference() instanceof Reference;
+    }
+
+    public function getReferenceStudySubtitleAttribute(): ?string
+    {
+        return $this->bookReference()?->title;
+    }
+
+    /**
+     * Determine if the model should be searchable.
+     * Index active public events (including cancelled notices).
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return $this->published_at !== null
+            && in_array((string) $this->status, self::PUBLIC_STATUSES, true)
+            && $this->visibility === EventVisibility::Public
+            && $this->hasOccurrences();
+    }
+
+    public function isPubliclyReachable(): bool
+    {
+        $visibility = $this->visibility;
+        $visibleByLink = $visibility instanceof EventVisibility
+            ? in_array($visibility, [EventVisibility::Public, EventVisibility::Unlisted], true)
+            : in_array((string) $visibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true);
+
+        return $this->published_at !== null
+            && $visibleByLink
+            && in_array((string) $this->status, self::PUBLIC_STATUSES, true)
+            && $this->hasOccurrences();
+    }
+
+    public function hasOccurrences(): bool
+    {
+        if ($this->relationLoaded('occurrences')) {
+            return $this->getRelation('occurrences')->isNotEmpty();
+        }
+
+        return $this->occurrences()->exists();
+    }
+
+    public function replacementLinkTarget(): ?self
+    {
+        return $this->resolveReachableReplacementEvent(
+            $this->latestPublishedReplacementAnnouncement?->replacementEvent,
+        );
+    }
+
+    public function replacementLinkTargetForAnnouncement(?EventChangeAnnouncement $announcement): ?self
+    {
+        return $this->resolveReachableReplacementEvent($announcement?->replacementEvent);
+    }
+
+    private function resolveReachableReplacementEvent(?Model $event): ?self
+    {
+        if (! $event instanceof self) {
+            return null;
+        }
+
+        /** @var array<string, true> $visited */
+        $visited = [(string) $this->getKey() => true];
+        $current = $event;
+        $latestReachable = null;
+
+        while (! isset($visited[(string) $current->getKey()])) {
+            $visited[(string) $current->getKey()] = true;
+
+            if ($current->isPubliclyReachable()) {
+                $latestReachable = $current;
+            }
+
+            $current->loadMissing('latestPublishedReplacementAnnouncement.replacementEvent');
+
+            $nextAnnouncement = $current->latestPublishedReplacementAnnouncement;
+            $nextReplacement = $nextAnnouncement?->replacementEvent;
+
+            if (! $nextAnnouncement instanceof EventChangeAnnouncement || ! $nextReplacement instanceof self) {
+                break;
+            }
+
+            $current = $nextReplacement;
+        }
+
+        return $latestReachable;
+    }
+
+    public function searchIndexShouldBeUpdated(): bool
+    {
+        return $this->wasRecentlyCreated || $this->wasChanged([
+            'title',
+            'description',
+            'slug',
+            'language',
+            'gender',
+            'age_group',
+            'children_allowed',
+            'status',
+            'visibility',
+            'institution_id',
+            'default_venue_id',
+            'published_at',
+        ]);
+    }
+
+    public function getPublicChangeBadgeLabelAttribute(): ?string
+    {
+        if ((string) $this->status === 'cancelled') {
+            return EventChangeType::Cancelled->publicBadgeLabel();
+        }
+
+        $notice = $this->latestPublishedChangeAnnouncement;
+
+        if (! $notice instanceof EventChangeAnnouncement) {
+            return null;
+        }
+
+        $updateType = $notice->update_type;
+
+        return $updateType instanceof EventChangeType ? $updateType->publicBadgeLabel() : null;
+    }
+
+    /**
+     * Effective end instants for a grouped public submission's eligible
+     * occurrences. Managed events project their date from the primary
+     * occurrence, so they return an empty list.
+     *
+     * @return list<CarbonInterface>
+     */
+    public function eligibleOccurrenceEnds(): array
+    {
+        if (! $this->isGroupedSubmission()) {
+            return [];
+        }
+
+        $occurrences = match (true) {
+            $this->relationLoaded('occurrences') => $this->occurrences,
+            $this->relationLoaded('goingWindowOccurrences') => $this->goingWindowOccurrences,
+            default => $this->occurrences()->withoutGlobalScopes()->get(),
+        };
+
+        return $occurrences
+            ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)
+                && in_array(
+                    $occurrence->visibility instanceof BackedEnum ? $occurrence->visibility->value : (string) $occurrence->visibility,
+                    self::PUBLIC_SCHEDULE_VISIBILITIES,
+                    true,
+                ))
+            ->map(fn (EventOccurrence $occurrence): CarbonInterface => $occurrence->ends_at ?? $occurrence->starts_at)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Inclusive going-eligibility window for this event.
+     *
+     * The effective end is `ends_at` when present, falling back to `starts_at`.
+     * Grouped public submissions stay eligible until the latest eligible
+     * occurrence effective end, matching the D1c schedule end-instant rule.
+     */
+    public function goingWindow(): GoingWindow
+    {
+        return GoingWindow::grouped(
+            $this->starts_at,
+            $this->ends_at,
+            $this->eligibleOccurrenceEnds(),
+        );
+    }
+
+    /**
+     * End instant indexed for Typesense end-instant filters.
+     *
+     * Grouped public submissions project their dates from occurrences, so the
+     * index must carry the latest effective end across every public occurrence
+     * rather than only the next occurrence that starts after now. Managed
+     * events keep the existing primary-occurrence projection.
+     */
+    private function searchableEndInstant(): ?CarbonInterface
+    {
+        if ($this->isGroupedSubmission()) {
+            $maxEffectiveEnd = collect($this->eligibleOccurrenceEnds())
+                ->reduce(fn (?CarbonInterface $max, CarbonInterface $effectiveEnd): CarbonInterface => ! $max instanceof CarbonInterface || $effectiveEnd->greaterThan($max) ? $effectiveEnd : $max);
+
+            if ($maxEffectiveEnd instanceof CarbonInterface) {
+                return $maxEffectiveEnd;
+            }
+
+            $eventEndInstant = $this->ends_at ?? $this->starts_at;
+
+            return $eventEndInstant instanceof CarbonInterface ? $eventEndInstant : null;
+        }
+
+        $primaryOccurrence = $this->relationLoaded('primaryOccurrence')
+            ? $this->primaryOccurrence
+            : $this->primaryOccurrence()->first();
+
+        $endInstant = $primaryOccurrence instanceof EventOccurrence
+            ? ($primaryOccurrence->ends_at ?? $primaryOccurrence->starts_at)
+            : ($this->ends_at ?? $this->starts_at);
+
+        return $endInstant instanceof CarbonInterface ? $endInstant : null;
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     * @return Builder<Event>
+     */
+    protected function makeAllSearchableUsing(Builder $query): Builder
+    {
+        return $query
+            ->with([
+                'institution',
+                'institution.addresses',
+                'venue',
+                'venue.addresses',
+                'primaryLocation',
+                'primaryLocationVenue.addresses.areaAssignments.area',
+                'persons',
+                'keyPeople.person',
+                'references' => fn ($referenceQuery) => $referenceQuery->active(),
+                'classifications',
+                'primaryOccurrence',
+                'occurrences',
+                'displayOccurrence.media',
+                'timeExpressions',
+            ])
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', self::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereHas('occurrences');
+    }
+
+    /**
+     * Get the indexable data array for the model.
+     * Schema matches documentation B8.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        if ($this->usesScoutDatabaseDriver()) {
+            return $this->toScoutDatabaseSearchableArray();
+        }
+
+        $this->loadMissing([
+            'institution',
+            'institution.addresses.areaAssignments.area',
+            'venue',
+            'venue.addresses.areaAssignments.area',
+            'primaryLocation',
+            'primaryLocationVenue.addresses.areaAssignments.area',
+            'persons',
+            'keyPeople.person',
+            'classifications',
+            'primaryOccurrence',
+            'displayOccurrence.media',
+            'timeExpressions',
+        ]);
+        $this->load([
+            'references' => fn ($referenceQuery) => $referenceQuery->active(),
+        ]);
+        $locationAddress = $this->resolvedLocationAddress();
+        $institution = $this->institution;
+        $venue = $this->venue;
+        $endInstant = $this->searchableEndInstant();
+        $gender = $this->gender;
+        $eventFormat = $this->delivery_mode;
+        $visibility = $this->visibility;
+        $primaryOccurrence = $this->primaryOccurrence;
+        $prayerExpression = $this->timeExpressions->first(fn (EventTimeExpression $expression): bool => $expression->anchor_type === 'prayer');
+        $occurrenceStatus = $primaryOccurrence?->status;
+        $timingMode = $prayerExpression instanceof EventTimeExpression
+            ? TimingMode::PrayerRelative->value
+            : TimingMode::Absolute->value;
+
+        $languageCodes = $this->resolvedLanguages()
+            ->pluck('code')
+            ->filter(fn (mixed $languageCode): bool => is_string($languageCode) && $languageCode !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($languageCodes === [] && is_string($this->language) && $this->language !== '') {
+            $languageCodes = [$this->language];
+        }
+
+        $ageGroupCollection = $this->age_group;
+
+        $ageGroupValues = $ageGroupCollection instanceof Collection && $ageGroupCollection->isNotEmpty()
+            ? $ageGroupCollection->map(fn (EventAgeGroup $value): string => $value->value)->toArray()
+            : ['all_ages'];
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, EventClassification> $classifications */
+        $classifications = $this->relationLoaded('classifications')
+            ? $this->classifications
+            : $this->classifications()->get();
+
+        $disciplineTagIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === EventTaxonomyCode::Discipline->value)
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $domainTagIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === EventTaxonomyCode::Domain->value)
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $sourceTagIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === EventTaxonomyCode::Source->value)
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, EventKeyPerson> $keyPeople */
+        $keyPeople = $this->keyPeople;
+
+        /** @var list<string> $keyPersonRoles */
+        $keyPersonRoles = [];
+
+        foreach ($keyPeople as $keyPerson) {
+            $role = EventKeyPersonRole::tryFrom((string) $keyPerson->role_code);
+
+            if ($role instanceof EventKeyPersonRole && ! in_array($role->value, $keyPersonRoles, true)) {
+                $keyPersonRoles[] = $role->value;
+            }
+        }
+
+        $keyPersonPersonIds = $keyPeople
+            ->pluck('involveable_id')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $personInChargeIds = $keyPeople
+            ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
+            ->pluck('involveable_id')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
+            ->values()
+            ->all();
+
+        $personInChargeNames = $keyPeople
+            ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
+            ->map(function (EventKeyPerson $keyPerson): string {
+                if ($keyPerson->person instanceof Person) {
+                    $searchableName = trim((string) $keyPerson->person->searchable_name);
+
+                    return $searchableName !== '' ? $searchableName : (string) $keyPerson->person->name;
+                }
+
+                return (string) ($keyPerson->display_name ?? '');
+            })
+            ->filter(fn (string $name): bool => trim($name) !== '')
+            ->unique()
+            ->values()
+            ->implode(', ');
+
+        $moderatorIds = $keyPeople
+            ->where('role_code', EventKeyPersonRole::Moderator->value)
+            ->pluck('involveable_id')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
+            ->values()
+            ->all();
+
+        $imamIds = $keyPeople
+            ->where('role_code', EventKeyPersonRole::Imam->value)
+            ->pluck('involveable_id')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
+            ->values()
+            ->all();
+
+        $khatibIds = $keyPeople
+            ->where('role_code', EventKeyPersonRole::Khatib->value)
+            ->pluck('involveable_id')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
+            ->values()
+            ->all();
+
+        $bilalIds = $keyPeople
+            ->where('role_code', EventKeyPersonRole::Bilal->value)
+            ->pluck('involveable_id')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
+            ->values()
+            ->all();
+
+        $issueTagIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === EventTaxonomyCode::Issue->value)
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $taxonomyTermIds = $classifications
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $taxonomyCodes = $classifications
+            ->pluck('taxonomy_code')
+            ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $array = [
+            'id' => $this->id,
+            'title' => $this->title,
+            'description' => $this->description_text,
+            'slug' => $this->slug,
+            'person_names' => $this->personKeyPeople
+                ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->person !== null ? $keyPerson->person->name : (string) ($keyPerson->display_name ?? ''))
+                ->filter(fn (string $name): bool => $name !== '')
+                ->implode(', '),
+            'institution_id' => $this->institution_id,
+            'institution_name' => $institution instanceof Institution ? $institution->name : '',
+            'venue_id' => $this->default_venue_id,
+            'venue_name' => $venue instanceof Venue ? $venue->name : '',
+            'country_code' => $locationAddress?->country_code,
+            'country_id' => $locationAddress?->country_id,
+            'state_id' => $locationAddress?->state_id,
+            'city_id' => $locationAddress?->city_id,
+            'administrative_division' => AddressAssignments::id($locationAddress, AddressAssignments::ADMINISTRATIVE_DIVISION),
+            'administrative_district' => AddressAssignments::id($locationAddress, AddressAssignments::ADMINISTRATIVE_DISTRICT),
+            'administrative_subdivision' => AddressAssignments::id($locationAddress, AddressAssignments::ADMINISTRATIVE_SUBDIVISION),
+            'postal_locality' => AddressAssignments::id($locationAddress, AddressAssignments::POSTAL_LOCALITY),
+            'city' => $locationAddress?->city,
+            'state' => $locationAddress?->state,
+            'postcode' => $locationAddress?->postcode,
+            'language_codes' => $languageCodes,
+            'gender' => $gender instanceof EventGenderRestriction ? $gender->value : ((is_string($gender) && $gender !== '') ? $gender : 'all'),
+            'age_group' => $ageGroupValues,
+            'event_format' => $eventFormat instanceof EventFormat ? $eventFormat->value : ((is_string($eventFormat) && $eventFormat !== '') ? $eventFormat : 'physical'),
+            'children_allowed' => $this->children_allowed ?? true,
+            'status' => (string) $this->status,
+            'visibility' => $visibility instanceof EventVisibility ? $visibility->value : ((is_string($visibility) && $visibility !== '') ? $visibility : 'public'),
+            'occurrence_status' => $occurrenceStatus instanceof BackedEnum ? $occurrenceStatus->value : ((is_string($occurrenceStatus) && $occurrenceStatus !== '') ? $occurrenceStatus : null),
+            'timing_mode' => $timingMode,
+            'discipline_tag_ids' => $disciplineTagIds,
+            'domain_tag_ids' => $domainTagIds,
+            'source_tag_ids' => $sourceTagIds,
+            'issue_tag_ids' => $issueTagIds,
+            'taxonomy_term_ids' => $taxonomyTermIds,
+            'taxonomy_codes' => $taxonomyCodes,
+            'reference_ids' => $this->references->pluck('id')->values()->all(),
+            'person_ids' => $this->personKeyPeople
+                ->pluck('involveable_id')
+                ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
+                ->values()
+                ->all(),
+            'key_person_roles' => $keyPersonRoles,
+            'key_person_person_ids' => $keyPersonPersonIds,
+            'person_in_charge_ids' => $personInChargeIds,
+            'person_in_charge_names' => $personInChargeNames,
+            'moderator_ids' => $moderatorIds,
+            'imam_ids' => $imamIds,
+            'khatib_ids' => $khatibIds,
+            'bilal_ids' => $bilalIds,
+            'starts_at' => $this->starts_at instanceof CarbonInterface ? $this->starts_at->timestamp : 0,
+            'ends_at' => $endInstant instanceof CarbonInterface ? $endInstant->timestamp : null,
+            'saves_count' => $this->saves_count ?? 0,
+            'registrations_count' => $this->registrations_count ?? 0,
+        ];
+
+        if ($locationAddress instanceof Address && $locationAddress->latitude !== null && $locationAddress->longitude !== null) {
+            $array['location'] = [(float) $locationAddress->latitude, (float) $locationAddress->longitude];
+        }
+
+        return $array;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function toScoutDatabaseSearchableArray(): array
+    {
+        $description = trim(strip_tags((string) $this->description));
+
+        return array_filter([
+            'title' => (string) $this->title,
+            'description' => $description !== '' ? $description : null,
+            'slug' => (string) $this->slug,
+        ], static fn (mixed $value): bool => is_string($value) && $value !== '');
+    }
+
+    private function usesScoutDatabaseDriver(): bool
+    {
+        return (string) config('scout.driver') === 'database';
+    }
+
+    /**
+     * @return HasMany<MemberInvitation, $this>
+     */
+    public function memberInvitations(): HasMany
+    {
+        return $this->hasMany(MemberInvitation::class, 'subject_id')
+            ->where('subject_type', MemberSubjectType::Event->value);
+    }
+
+    /**
+     * @return BelongsTo<Institution, $this>
+     */
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(RelatedModels::institution());
+    }
+
+    /**
+     * @return BelongsTo<Venue, $this>
+     */
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(RelatedModels::venue(), 'default_venue_id');
+    }
+
+    /**
+     * Whether an explicit venue is selected for this event.
+     *
+     * An explicit default venue or a primary package location with a venue
+     * always wins over the institution location; a venue without an address
+     * resolves to no address rather than falling back to the institution.
+     */
+    public function hasExplicitVenueSelection(): bool
+    {
+        return filled($this->default_venue_id) || $this->primaryLocationVenueId() !== null;
+    }
+
+    public function primaryLocationVenueId(): ?string
+    {
+        $venueId = $this->loadedPrimaryLocation()?->venue_id;
+
+        return is_string($venueId) && $venueId !== '' ? $venueId : null;
+    }
+
+    /**
+     * Primary package-location venue as the application Venue model.
+     *
+     * The package EventLocation::venue() relation always instantiates the
+     * base package Venue, whose polymorphic relations are not morph-mapped
+     * in this application (the canonical venue morph is the application
+     * model). Resolving through the application model over the same
+     * canonical intermediate scope keeps lazy and eager callers on one
+     * morph-safe row: lazy reads use first(), eager matching takes the
+     * first row per parent in this relation order.
+     *
+     * The intermediate location id is pinned to the selected canonical
+     * primary row BEFORE the inner join to venues: without the pin, a
+     * leading row with a null or missing venue drops out of the join and
+     * the relation would silently resolve a later primary row's venue.
+     * With the pin, only the selected row can match, so a null or orphan
+     * first venue resolves null for lazy and eager callers alike.
+     *
+     * @return HasOneThrough<Venue, EventLocation, $this>
+     */
+    public function primaryLocationVenue(): HasOneThrough
+    {
+        $locations = PrimaryLocationSql::table();
+
+        return $this->hasOneThrough(
+            RelatedModels::venue(),
+            EventLocation::class,
+            'event_id',
+            'id',
+            'id',
+            'venue_id',
+        )
+            ->whereRaw("{$locations}.id = ".PrimaryLocationSql::selectedId($locations))
+            ->whereNull("{$locations}.event_occurrence_id")
+            ->whereNull("{$locations}.event_session_id")
+            ->where("{$locations}.location_role", 'primary')
+            ->orderBy("{$locations}.sort_order")
+            ->orderBy("{$locations}.created_at")
+            ->orderBy("{$locations}.id");
+    }
+
+    public function resolvedLocationAddress(): ?Address
+    {
+        if (filled($this->default_venue_id)) {
+            return $this->venue?->primaryAddress();
+        }
+
+        if ($this->primaryLocationVenueId() !== null) {
+            return $this->primaryLocationVenue?->primaryAddress();
+        }
+
+        if (filled($this->institution_id)) {
+            return $this->institution?->primaryAddress();
+        }
+
+        return null;
+    }
+
+    public function resolvedLocationName(): ?string
+    {
+        if (filled($this->default_venue_id)) {
+            return $this->venue?->name;
+        }
+
+        if ($this->primaryLocationVenueId() !== null) {
+            return $this->primaryLocationVenue?->name;
+        }
+
+        return $this->institution?->name;
+    }
+
+    /**
+     * Event-level primary package location row, cached on first read so the
+     * venue id never queries twice for one event. The venue itself resolves
+     * through the primaryLocationVenue relation (application model); the
+     * package venue relation is deliberately left unloaded because its
+     * polymorphic relations are not morph-mapped.
+     */
+    private function loadedPrimaryLocation(): ?EventLocation
+    {
+        if ($this->relationLoaded('primaryLocation')) {
+            $location = $this->primaryLocation;
+
+            return $location instanceof EventLocation ? $location : null;
+        }
+
+        $location = $this->primaryLocation()->first();
+        $location = $location instanceof EventLocation ? $location : null;
+        $this->setRelation('primaryLocation', $location);
+
+        return $location;
+    }
+
+    /**
+     * @return BelongsToMany<Series, $this, EventSeriesItemPivot, 'pivot'>
+     */
+    public function series(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Series::class,
+            config('events.database.tables.event_series_items', 'event_series_items'),
+            'event_id',
+            'event_series_id',
+        )
+            ->using(EventSeriesItemPivot::class)
+            ->withPivot('id', 'seriesable_type', 'seriesable_id', 'sort_order')
+            ->wherePivot('seriesable_type', self::class)
+            ->withPivotValue('seriesable_type', self::class)
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
+
+    /**
+     * Event-level classifications only; occurrence/session rows stay on their own scopes.
+     *
+     * @return HasMany<EventClassification, $this>
+     */
+    #[\Override]
+    public function classifications(): HasMany
+    {
+        return parent::classifications()
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id');
+    }
+
+    /** @return HasMany<EventClassification, $this> */
+    public function categoryClassifications(): HasMany
+    {
+        return $this->classifications()
+            ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)
+            ->orderBy('sort_order');
+    }
+
+    /**
+     * @return HasOne<EventAccessPolicy, $this>
+     */
+    public function accessPolicy(): HasOne
+    {
+        return $this->hasOne(EventAccessPolicy::class)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id');
+    }
+
+    /**
+     * @return HasMany<EventKeyPerson, $this>
+     */
+    public function keyPeople(): HasMany
+    {
+        return $this->hasMany(EventKeyPerson::class)
+            ->where('role_code', '!=', 'organizer')
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
+    }
+
+    /**
+     * @return HasMany<EventKeyPerson, $this>
+     */
+    public function personKeyPeople(): HasMany
+    {
+        return $this->keyPeople()->where('role_code', EventKeyPersonRole::Speaker->value);
+    }
+
+    /**
+     * @return HasMany<EventKeyPerson, $this>
+     */
+    public function nonSpeakerKeyPeople(): HasMany
+    {
+        return $this->keyPeople()->where('role_code', '!=', EventKeyPersonRole::Speaker->value);
+    }
+
+    public function resolvedRegistrationMode(): PackageRegistrationMode
+    {
+        $mode = parent::getAttribute('registration_mode');
+
+        if ($mode instanceof PackageRegistrationMode) {
+            return $mode;
+        }
+
+        if (is_string($mode) && $mode !== '') {
+            $resolvedMode = PackageRegistrationMode::tryFrom($mode);
+
+            if ($resolvedMode instanceof PackageRegistrationMode) {
+                return $resolvedMode;
+            }
+        }
+
+        return $this->accessPolicy?->registration_required
+            ? PackageRegistrationMode::Required
+            : PackageRegistrationMode::None;
+    }
+
+    /**
+     * @return BelongsToMany<Person, $this, EventKeyPersonPivot, 'pivot'>
+     */
+    public function persons(): BelongsToMany
+    {
+        return $this->belongsToMany(RelatedModels::person(), 'event_involvements', 'event_id', 'involveable_id')
+            ->using(EventKeyPersonPivot::class)
+            ->withPivotValue('involveable_type', 'person')
+            ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
+            ->wherePivotNull('event_occurrence_id')
+            ->wherePivotNull('event_session_id')
+            ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
+
+    /**
+     * Catalog references attached via package event_references pivot.
+     *
+     * Event-level rows only; occurrence/session rows stay on their own scopes.
+     *
+     * @return BelongsToMany<Reference, $this, EventReferencePivot, 'pivot'>
+     */
+    public function references(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            RelatedModels::reference(),
+            config('events.database.tables.event_references', 'event_references'),
+            'event_id',
+            'referenceable_id',
+        )
+            ->using(EventReferencePivot::class)
+            ->withPivotValue('referenceable_type', 'reference')
+            ->withPivotValue('visibility', 'public')
+            ->withPivotValue('reference_type', 'book')
+            ->wherePivotNull('event_occurrence_id')
+            ->wherePivotNull('event_session_id')
+            ->withPivot(['id', 'sort_order', 'visibility', 'reference_type', 'title'])
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
+
+    /**
+     * Raw package EventReference rows (includes non-catalog links).
+     *
+     * Event-level rows only; occurrence/session rows stay on their own scopes.
+     *
+     * @return HasMany<EventReference, $this>
+     */
+    public function eventReferences(): HasMany
+    {
+        return $this->hasMany(EventReference::class)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->orderBy('sort_order');
+    }
+
+    /**
+     * @return MorphMany<MediaLink, $this>
+     */
+    public function mediaLinks(): MorphMany
+    {
+        return $this->morphMany(MediaLink::class, 'mediable');
+    }
+
+    /**
+     * @return HasMany<EventSubmission, $this>
+     */
+    #[\Override]
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(EventSubmission::class);
+    }
+
+    /**
+     * @return HasMany<ModerationReview, $this>
+     */
+    public function moderationReviews(): HasMany
+    {
+        return $this->hasMany(ModerationReview::class, 'actionable_id')
+            ->where('actionable_type', $this->getMorphClass());
+    }
+
+    /**
+     * @return HasOne<ModerationReview, $this>
+     */
+    public function latestModerationReview(): HasOne
+    {
+        return $this->hasOne(ModerationReview::class, 'actionable_id')
+            ->where('actionable_type', $this->getMorphClass())
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+    }
+
+    /**
+     * @return HasMany<EventChangeAnnouncement, $this>
+     */
+    public function changeAnnouncements(): HasMany
+    {
+        return $this->hasMany(EventChangeAnnouncement::class)
+            ->whereIn('update_type', array_map(
+                static fn (EventChangeType $type): string => $type->value,
+                EventChangeType::cases(),
+            ));
+    }
+
+    /**
+     * @return HasMany<EventChangeAnnouncement, $this>
+     */
+    public function publishedChangeAnnouncements(): HasMany
+    {
+        return $this->changeAnnouncements()
+            ->published()
+            ->orderByDesc('published_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+    }
+
+    /**
+     * @return HasOne<EventChangeAnnouncement, $this>
+     */
+    public function latestPublishedChangeAnnouncement(): HasOne
+    {
+        return $this->latestPublishedAnnouncementRelation();
+    }
+
+    /**
+     * @return HasOne<EventChangeAnnouncement, $this>
+     */
+    public function latestPublishedReplacementAnnouncement(): HasOne
+    {
+        return $this->latestPublishedAnnouncementRelation(function (Builder|QueryBuilder $query, string $table): void {
+            $query->whereNotNull("{$table}.replacement_event_id");
+        });
+    }
+
+    /**
+     * @return HasMany<EventChangeAnnouncement, $this>
+     */
+    public function incomingReplacementAnnouncements(): HasMany
+    {
+        return $this->hasMany(EventChangeAnnouncement::class, 'replacement_event_id')
+            ->whereIn('update_type', array_map(
+                static fn (EventChangeType $type): string => $type->value,
+                EventChangeType::cases(),
+            ));
+    }
+
+    /**
+     * @return HasOne<EventChangeAnnouncement, $this>
+     */
+    public function latestIncomingReplacementAnnouncement(): HasOne
+    {
+        return $this->latestPublishedAnnouncementRelation(
+            relation: $this->hasOne(EventChangeAnnouncement::class, 'replacement_event_id'),
+        );
+    }
+
+    /**
+     * UUID primary keys cannot be aggregated portably with `MAX()` on PostgreSQL,
+     * so resolve the latest row by excluding any newer published candidate.
+     *
+     * @param  HasOne<EventChangeAnnouncement, $this>|null  $relation
+     * @return HasOne<EventChangeAnnouncement, $this>
+     */
+    private function latestPublishedAnnouncementRelation(
+        ?\Closure $extraConstraint = null,
+        ?HasOne $relation = null,
+    ): HasOne {
+        $baseRelation = $relation ?? $this->hasOne(EventChangeAnnouncement::class);
+        $relatedTable = $baseRelation->getRelated()->getTable();
+        $foreignKey = $baseRelation->getForeignKeyName();
+        $candidateAlias = 'event_change_announcements_candidate';
+
+        $this->applyLatestPublishedAnnouncementFilters(
+            $baseRelation->getQuery(),
+            $relatedTable,
+            $extraConstraint,
+        );
+
+        return $baseRelation
+            ->whereNotExists(function (QueryBuilder $query) use (
+                $candidateAlias,
+                $extraConstraint,
+                $foreignKey,
+                $relatedTable,
+            ): void {
+                $query
+                    ->selectRaw('1')
+                    ->from("{$relatedTable} as {$candidateAlias}")
+                    ->whereColumn("{$candidateAlias}.{$foreignKey}", "{$relatedTable}.{$foreignKey}");
+
+                $this->applyLatestPublishedAnnouncementFilters($query, $candidateAlias, $extraConstraint);
+                $this->applyLatestPublishedAnnouncementTieBreaker($query, $candidateAlias, $relatedTable);
+            })
+            ->orderByDesc("{$relatedTable}.published_at")
+            ->orderByDesc("{$relatedTable}.created_at")
+            ->orderByDesc("{$relatedTable}.id");
+    }
+
+    /**
+     * @param  Builder<EventChangeAnnouncement>|QueryBuilder  $query
+     * @param  (\Closure(Builder<EventChangeAnnouncement>|QueryBuilder, string): void)|null  $extraConstraint
+     */
+    private function applyLatestPublishedAnnouncementFilters(
+        Builder|QueryBuilder $query,
+        string $table,
+        ?\Closure $extraConstraint = null,
+    ): void {
+        $query
+            ->whereNotNull("{$table}.published_at")
+            ->whereNull("{$table}.archived_at")
+            ->whereIn("{$table}.update_type", array_map(
+                static fn (EventChangeType $type): string => $type->value,
+                EventChangeType::cases(),
+            ));
+
+        $extraConstraint?->__invoke($query, $table);
+    }
+
+    /**
+     * @param  Builder<EventChangeAnnouncement>|QueryBuilder  $query
+     */
+    private function applyLatestPublishedAnnouncementTieBreaker(
+        Builder|QueryBuilder $query,
+        string $candidateTable,
+        string $currentTable,
+    ): void {
+        $query->where(function (QueryBuilder $comparisonQuery) use ($candidateTable, $currentTable): void {
+            $comparisonQuery
+                ->whereColumn("{$candidateTable}.published_at", '>', "{$currentTable}.published_at")
+                ->orWhere(function (QueryBuilder $createdAtQuery) use ($candidateTable, $currentTable): void {
+                    $createdAtQuery
+                        ->whereColumn("{$candidateTable}.published_at", "{$currentTable}.published_at")
+                        ->whereColumn("{$candidateTable}.created_at", '>', "{$currentTable}.created_at");
+                })
+                ->orWhere(function (QueryBuilder $idQuery) use ($candidateTable, $currentTable): void {
+                    $idQuery
+                        ->whereColumn("{$candidateTable}.published_at", "{$currentTable}.published_at")
+                        ->whereColumn("{$candidateTable}.created_at", "{$currentTable}.created_at")
+                        ->whereColumn("{$candidateTable}.id", '>', "{$currentTable}.id");
+                });
+        });
+    }
+
+    /**
+     * @return HasMany<EventCheckin, $this>
+     */
+    public function checkins(): HasMany
+    {
+        return $this->hasMany(EventCheckin::class);
+    }
+
+    /**
+     * @return MorphMany<Bookmark, $this>
+     */
+    public function savedBy(): MorphMany
+    {
+        return $this->morphMany(Bookmark::class, 'bookmarkable')->active();
+    }
+
+    /**
+     * @return MorphMany<Response, $this>
+     */
+    public function goingBy(): MorphMany
+    {
+        return $this->responses()->where('response_type', 'going');
+    }
+
+    public function bookmarkTitle(): string
+    {
+        return (string) $this->title;
+    }
+
+    public function bookmarkUrl(): ?string
+    {
+        return route('events.show', ['event' => $this->slug]);
+    }
+
+    public function bookmarkImage(): ?string
+    {
+        return $this->card_image_url;
+    }
+
+    /** @return array<string> */
+    public function allowedResponseTypes(): array
+    {
+        return ['going'];
+    }
+
+    public function defaultResponseVisibility(): string
+    {
+        return 'public';
+    }
+
+    public function allowsMultipleResponsesFromSameResponder(): bool
+    {
+        return false;
+    }
+
+    /**
+     * @return MorphMany<Model, $this>
+     */
+    public function reports(): MorphMany
+    {
+        return $this->morphMany(ReportModelClass::resolve(), 'entity');
+    }
+
+    /**
+     * @return MorphOne<DonationChannel, $this>
+     */
+    public function donationChannel(): MorphOne
+    {
+        return $this->morphOne(DonationChannel::class, 'donatable')
+            ->where('is_default', true);
+    }
+
+    /**
+     * Register media collections for Spatie Media Library.
+     */
+    #[\Override]
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('cover')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/event-wide-v1.jpg'))
+            ->withResponsiveImages()
+            ->singleFile();
+
+        $this->addMediaCollection('poster')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/event-square-v1.jpg'))
+            ->withResponsiveImages()
+            ->singleFile();
+
+        $this->addMediaCollection('gallery')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->withResponsiveImages();
+    }
+
+    #[\Override]
+    protected static function registrationModelClass(): string
+    {
+        return Registration::class;
+    }
+
+    /**
+     * Register media conversions for optimized image delivery.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('card')
+            ->performOnCollections('cover')
+            ->fit(Fit::Crop, 1280, 720)
+            ->format('webp');
+
+        $this->addMediaConversion('banner')
+            ->performOnCollections('cover')
+            ->fit(Fit::Crop, 1920, 1080)
+            ->format('webp');
+
+        $this->addMediaConversion('thumb')
+            ->performOnCollections('cover')
+            ->fit(Fit::Max, 1920, 1080)
+            ->sharpen(10)
+            ->format('webp');
+
+        $this->addMediaConversion('poster_thumb')
+            ->performOnCollections('poster')
+            ->fit(Fit::Max, 1080, 1440)
+            ->format('webp');
+
+        $this->addMediaConversion('gallery_thumb')
+            ->performOnCollections('gallery')
+            ->fit(Fit::Max, 1080, 1080)
+            ->sharpen(10)
+            ->format('webp');
+    }
+
+    /**
+     * Check if this event uses prayer-relative timing.
+     */
+    public function isPrayerRelative(): bool
+    {
+        $this->loadMissing('timeExpressions');
+
+        return $this->timeExpressions->contains(
+            fn (EventTimeExpression $expression): bool => $expression->time_mode === 'prayer_relative',
+        );
+    }
+
+    /**
+     * Get the human-readable timing display text.
+     * Returns prayer-relative text (e.g., "Selepas Maghrib") or formatted time.
+     */
+    public function getTimingDisplayAttribute(): string
+    {
+        if ($this->isPrayerRelative()) {
+            // An explicit custom label always wins over the generic
+            // reference/offset label (e.g. a Tarawih event mistagged Isyak).
+            if ($this->prayer_display_text) {
+                return __($this->prayer_display_text);
+            }
+
+            $prayerReference = $this->prayer_reference instanceof PrayerReference
+                ? $this->prayer_reference
+                : PrayerReference::tryFrom((string) $this->prayer_reference);
+            $prayerOffset = $this->prayer_offset instanceof PrayerOffset
+                ? $this->prayer_offset
+                : PrayerOffset::tryFrom((string) $this->prayer_offset);
+            $prayerTime = EventPrayerTime::fromPrayerTiming($prayerReference, $prayerOffset);
+
+            if ($prayerTime instanceof EventPrayerTime) {
+                return $prayerTime->getLabel();
+            }
+        }
+
+        // Fallback to timezone-aware formatted time (viewer timezone)
+        return UserDateTimeFormatter::format($this->starts_at, 'g:i A');
+    }
+
+    /**
+     * Get the full timing display with date context.
+     */
+    public function getFullTimingDisplayAttribute(): string
+    {
+        $date = UserDateTimeFormatter::translatedFormat($this->starts_at, 'l, j F Y');
+        $time = $this->timing_display;
+
+        return "{$date} - {$time}";
+    }
+
+    /**
+     * Get coordinates for prayer time calculation from the event's location owner.
+     *
+     * @return array{lat: float, lng: float}|null
+     */
+    public function getPrayerCoordinatesAttribute(): ?array
+    {
+        $locationAddress = $this->resolvedLocationAddress();
+
+        if ($locationAddress instanceof Address && $locationAddress->latitude !== null && $locationAddress->longitude !== null) {
+            return [
+                'lat' => (float) $locationAddress->latitude,
+                'lng' => (float) $locationAddress->longitude,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{width: int, height: int}
+     */
+    private function resolvePosterDimensions(): array
+    {
+        if (is_array($this->resolvedPosterDimensions)) {
+            return $this->resolvedPosterDimensions;
+        }
+
+        $posterMedia = $this->getFirstMedia('poster');
+
+        if (! $posterMedia instanceof Media) {
+            return $this->resolvedPosterDimensions = ['width' => 0, 'height' => 0];
+        }
+
+        $width = max((int) ($posterMedia->width ?? 0), 0);
+        $height = max((int) ($posterMedia->height ?? 0), 0);
+        $posterPath = $posterMedia->getPath();
+        $relativePosterPath = $posterMedia->getPathRelativeToRoot();
+
+        if (($width <= 0 || $height <= 0) && $posterPath !== '' && ! is_file($posterPath)) {
+            try {
+                $posterPath = Storage::disk($posterMedia->disk)->path($relativePosterPath);
+            } catch (\Throwable) {
+                $posterPath = '';
+            }
+        }
+
+        if (($width <= 0 || $height <= 0) && $posterPath !== '' && is_file($posterPath)) {
+            $dimensions = @getimagesize($posterPath);
+
+            if (is_array($dimensions)) {
+                $width = max((int) $dimensions[0], 0);
+                $height = max((int) $dimensions[1], 0);
+            }
+        }
+
+        if (($width <= 0 || $height <= 0) && $relativePosterPath !== '') {
+            try {
+                $posterContents = Storage::disk($posterMedia->disk)->get($relativePosterPath);
+                $dimensions = @getimagesizefromstring($posterContents);
+
+                if (is_array($dimensions)) {
+                    $width = max((int) $dimensions[0], 0);
+                    $height = max((int) $dimensions[1], 0);
+                }
+            } catch (\Throwable) {
+            }
+        }
+
+        return $this->resolvedPosterDimensions = ['width' => $width, 'height' => $height];
+    }
+
+    /**
+     * Get the card image URL for frontend.
+     * Priority: Cover card -> Poster card -> Institution logo thumb -> Default.
+     */
+    public function getRecommendationImageUrlAttribute(): string
+    {
+        $coverUrl = $this->preferredMediaUrl($this->getFirstMedia('cover'), ['thumb']);
+
+        return $coverUrl ?? asset('images/placeholders/event-wide-v1.jpg');
+    }
+
+    /**
+     * Get the card image URL for frontend.
+     * Priority: Cover card -> Poster card -> Institution logo thumb -> Default.
+     */
+    public function getCardImageUrlAttribute(): string
+    {
+        $coverUrl = $this->preferredMediaUrl($this->getFirstMedia('cover'), ['thumb']);
+
+        if ($coverUrl !== null) {
+            return $coverUrl;
+        }
+
+        $posterUrl = $this->preferredMediaUrl($this->getFirstMedia('poster'), ['poster_thumb']);
+
+        if ($posterUrl !== null) {
+            return $posterUrl;
+        }
+
+        $occurrence = $this->cardImageOccurrence();
+        $occurrenceCoverUrl = $this->preferredMediaUrl($occurrence?->getFirstMedia('cover'), ['banner', 'thumb']);
+
+        if ($occurrenceCoverUrl !== null) {
+            return $occurrenceCoverUrl;
+        }
+
+        $occurrencePosterUrl = $this->preferredMediaUrl($occurrence?->getFirstMedia('poster'), ['preview', 'thumb']);
+
+        if ($occurrencePosterUrl !== null) {
+            return $occurrencePosterUrl;
+        }
+
+        if ($this->institution?->hasMedia('logo')) {
+            $institutionLogoUrl = $this->preferredMediaUrl($this->institution->getFirstMedia('logo'), ['thumb']);
+
+            if ($institutionLogoUrl !== null) {
+                return $institutionLogoUrl;
+            }
+        }
+
+        return asset('images/placeholders/event-wide-v1.jpg');
+    }
+
+    private function cardImageOccurrence(): ?EventOccurrence
+    {
+        if ($this->relationLoaded('occurrences')) {
+            $occurrences = $this->occurrences
+                ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::PUBLIC_SCHEDULE_STATUSES, true)
+                    && in_array(
+                        $occurrence->visibility instanceof BackedEnum ? $occurrence->visibility->value : (string) $occurrence->visibility,
+                        self::PUBLIC_SCHEDULE_VISIBILITIES,
+                        true,
+                    ));
+            $upcoming = $occurrences
+                ->filter(fn (EventOccurrence $occurrence): bool => in_array((string) $occurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)
+                    && ($occurrence->starts_at?->greaterThanOrEqualTo(now()) ?? false))
+                ->sortBy(fn (EventOccurrence $occurrence): string => (string) $occurrence->starts_at)
+                ->first();
+
+            return $upcoming instanceof EventOccurrence
+                ? $upcoming
+                : $occurrences->sortBy(fn (EventOccurrence $occurrence): string => (string) $occurrence->starts_at)->first();
+        }
+
+        if ($this->relationLoaded('displayOccurrence')) {
+            return $this->displayOccurrence instanceof EventOccurrence ? $this->displayOccurrence : null;
+        }
+
+        $groupedSubmission = $this->isGroupedSubmission();
+
+        if ($this->relationLoaded('primaryOccurrence') && $this->primaryOccurrence instanceof EventOccurrence) {
+            $primaryOccurrence = $this->primaryOccurrence;
+            $primaryStartsAt = $primaryOccurrence->starts_at;
+
+            if (! $groupedSubmission || (
+                in_array((string) $primaryOccurrence->status, self::UPCOMING_SCHEDULE_STATUSES, true)
+                && in_array(
+                    $primaryOccurrence->visibility instanceof BackedEnum ? $primaryOccurrence->visibility->value : (string) $primaryOccurrence->visibility,
+                    self::PUBLIC_SCHEDULE_VISIBILITIES,
+                    true,
+                )
+                && ($primaryStartsAt?->greaterThanOrEqualTo(now()) ?? false)
+            )) {
+                return $primaryOccurrence;
+            }
+
+            $this->loadMissing('displayOccurrence.media');
+
+            return $this->displayOccurrence instanceof EventOccurrence ? $this->displayOccurrence : null;
+        }
+
+        $this->loadMissing('primaryOccurrence');
+
+        return $this->primaryOccurrence instanceof EventOccurrence ? $this->primaryOccurrence : null;
+    }
+
+    /**
+     * @param  list<string>  $preferredConversions
+     */
+    private function preferredMediaUrl(?Media $media, array $preferredConversions = []): ?string
+    {
+        if (! $media instanceof Media) {
+            return null;
+        }
+
+        $availableUrl = $preferredConversions === []
+            ? $media->getUrl()
+            : $media->getAvailableUrl($preferredConversions);
+
+        if ($availableUrl !== '') {
+            return $availableUrl;
+        }
+
+        $originalUrl = $media->getUrl();
+
+        return $originalUrl !== '' ? $originalUrl : null;
+    }
+
+    public function getPosterDisplayAspectRatioAttribute(): string
+    {
+        return '3:4';
+    }
+
+    /**
+     * Get the supported aspect ratio for the image used on event cards.
+     *
+     * Covers use the landscape web artwork, posters use the fixed share ratio,
+     * and the logo/placeholder fallback is square.
+     */
+    public function getCardImageAspectRatioAttribute(): string
+    {
+        if ($this->getFirstMedia('cover') instanceof Media) {
+            return '16:9';
+        }
+
+        if ($this->getFirstMedia('poster') instanceof Media) {
+            return $this->poster_orientation === 'landscape' ? '16:9' : $this->poster_display_aspect_ratio;
+        }
+
+        if ($this->institution?->hasMedia('logo')) {
+            return '1:1';
+        }
+
+        return '16:9';
+    }
+
+    public function getPosterOrientationAttribute(): string
+    {
+        ['width' => $width, 'height' => $height] = $this->resolvePosterDimensions();
+
+        if ($width <= 0 || $height <= 0) {
+            return 'landscape';
+        }
+
+        if ($height > $width) {
+            return 'portrait';
+        }
+
+        if ($height === $width) {
+            return 'square';
+        }
+
+        return 'landscape';
+    }
+
+    /**
+     * Map 'language' to primary language from relationship.
+     */
+    public function getLanguageAttribute(): string
+    {
+        // Check if there's a 'language' column first (to avoid recursion if we add it later)
+        if (array_key_exists('language', $this->attributes)) {
+            return $this->attributes['language'];
+        }
+
+        $language = $this->resolvedLanguages()->first();
+
+        if ($language instanceof Language && is_string($language->code) && $language->code !== '') {
+            return $language->code;
+        }
+
+        return 'ms';
+    }
+
+    public function getDescriptionTextAttribute(): string
+    {
+        return $this->normalizeDescriptionText($this->description);
+    }
+
+    private function normalizeDescriptionText(mixed $description): string
+    {
+        if (is_string($description)) {
+            return trim(strip_tags($description));
+        }
+
+        if (! is_array($description)) {
+            return '';
+        }
+
+        $html = data_get($description, 'html');
+
+        if (is_string($html) && $html !== '') {
+            return trim(strip_tags($html));
+        }
+
+        $content = data_get($description, 'content');
+
+        if (is_string($content) && $content !== '') {
+            return trim($content);
+        }
+
+        return trim(collect($description)
+            ->flatten()
+            ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->implode(' '));
+    }
+
+    /**
+     * Check if a user can manage this event.
+     * Uses Authz scoped roles via event membership, organizer, institution, or organization scope.
+     */
+    public function userCanManage(AccountActor $user): bool
+    {
+        return $this->userHasScopedEventPermission($user, 'event.update');
+    }
+
+    /**
+     * Check if a user can delete this event.
+     * More restrictive than manage: requires event.delete permission in scope.
+     */
+    public function userCanDelete(AccountActor $user): bool
+    {
+        return $this->userHasScopedEventPermission($user, 'event.delete');
+    }
+
+    /**
+     * Check if a user can view this event (private events).
+     */
+    public function userCanView(AccountActor $user): bool
+    {
+        return $this->userHasScopedEventPermission($user, 'event.view');
+    }
+
+    /**
+     * Check if a user can approve a pending public submission tied to their responsible scope.
+     */
+    public function userCanApprovePublicSubmission(AccountActor $user): bool
+    {
+        if (! $this->status instanceof Pending) {
+            return false;
+        }
+
+        if (! $this->submissions()->exists()) {
+            return false;
+        }
+
+        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+            return true;
+        }
+
+        return $this->userHasScopedEventPermission($user, 'event.approve', includeEventScope: false);
+    }
+
+    public function userHasScopedEventPermission(AccountActor $user, string $permission, bool $includeEventScope = true): bool
+    {
+        $memberPermissions = app(MemberPermissionGate::class);
+
+        if ($includeEventScope && $memberPermissions->canEvent($user, $permission, $this)) {
+            return true;
+        }
+
+        if ($memberPermissions->canEventThroughPerson($user, $permission, $this)) {
+            return true;
+        }
+
+        if ($this->organizer instanceof Institution && $memberPermissions->canInstitution($user, $permission, $this->organizer)) {
+            return true;
+        }
+
+        if ($this->organizer instanceof Person && $memberPermissions->canPerson($user, $permission, $this->organizer)) {
+            return true;
+        }
+
+        if ($this->owner_type === (new Organization)->getMorphClass() && filled($this->owner_id)) {
+            $organization = Organization::query()->find($this->owner_id);
+
+            if ($organization instanceof Organization && $memberPermissions->canOrganization($user, $permission, $organization)) {
+                return true;
+            }
+        }
+
+        return $this->institution instanceof Institution && $memberPermissions->canInstitution($user, $permission, $this->institution);
+    }
+}

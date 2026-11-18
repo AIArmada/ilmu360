@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Http\Middleware\EnsureAdminMcpAccess;
-use App\Http\Middleware\EnsureMemberMcpAccess;
-use App\Mcp\Servers\AdminServer;
-use App\Mcp\Servers\MemberServer;
+use App\Platform\Mcp\EntryPoints\Http\Middleware\EnsureAdminMcpAccess;
+use App\Platform\Mcp\EntryPoints\Http\Middleware\EnsureMemberMcpAccess;
+use App\Platform\Mcp\Servers\AdminServer;
+use App\Platform\Mcp\Servers\MemberServer;
 use Laravel\Mcp\Facades\Mcp;
 
 Mcp::oauthRoutes('oauth/mcp');

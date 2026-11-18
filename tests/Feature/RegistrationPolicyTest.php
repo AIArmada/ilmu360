@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 

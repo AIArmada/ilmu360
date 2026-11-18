@@ -1,9 +1,9 @@
 <?php
 
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
-use App\Filament\Resources\References\ReferenceResource;
-use App\Models\DonationChannel;
-use App\Models\Reference;
+use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\References\Models\Reference;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

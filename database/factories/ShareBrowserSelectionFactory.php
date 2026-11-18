@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\ShareBrowserSelection;
+use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -13,6 +13,8 @@ use Illuminate\Support\Str;
  */
 class ShareBrowserSelectionFactory extends Factory
 {
+    protected $model = ShareBrowserSelection::class;
+
     public function definition(): array
     {
         return [

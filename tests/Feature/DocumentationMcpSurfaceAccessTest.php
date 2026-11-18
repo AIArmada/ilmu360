@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use AIArmada\Authz\Models\Role;
-use App\Mcp\Servers\AdminServer;
-use App\Mcp\Servers\MemberServer;
-use App\Mcp\Tools\Admin\AdminDocumentationFetchTool;
-use App\Mcp\Tools\Admin\AdminDocumentationSearchTool;
-use App\Mcp\Tools\Member\MemberDocumentationFetchTool;
-use App\Mcp\Tools\Member\MemberDocumentationSearchTool;
-use App\Models\Institution;
+use App\Platform\Mcp\Servers\AdminServer;
+use App\Platform\Mcp\Servers\MemberServer;
+use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\AdminDocumentationFetchTool;
+use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\AdminDocumentationSearchTool;
+use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\MemberDocumentationFetchTool;
+use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\MemberDocumentationSearchTool;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Documentation\DocumentationLibrary;
 use Illuminate\Support\Facades\DB;

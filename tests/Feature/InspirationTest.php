@@ -7,9 +7,9 @@ use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\
 use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\ListInspirations;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Features\Inspirations\Models\Inspiration;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\PermissionSeeder;

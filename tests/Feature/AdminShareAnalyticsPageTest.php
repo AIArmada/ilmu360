@@ -3,11 +3,11 @@
 use AIArmada\FilamentSignals\Pages\PageViewsReport;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Filament\Pages\ProductSignals;
-use App\Filament\Pages\ShareAnalytics;
-use App\Models\Event;
+use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
+use App\Features\ShareTracking\EntryPoints\Filament\Pages\ShareAnalytics;
+use App\Features\Events\Models\Event;
 use App\Models\User;
-use App\Services\ShareTracking\AdminShareAnalyticsService;
+use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 

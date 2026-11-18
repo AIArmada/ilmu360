@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Membership;
 
+use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
+use App\Platform\Admin\FilamentResourceRegistry;
+
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitations;
@@ -66,6 +69,8 @@ final class FeatureServiceProvider extends FeatureModule
         $this->app->tag([
             MembershipAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
+
+        $this->app->make(FilamentResourceRegistry::class)->register(MembershipApplicationResource::class);
     }
 
     public function boot(): void

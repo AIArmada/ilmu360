@@ -1,0 +1,235 @@
+<?php
+
+namespace App\Features\Events\EntryPoints\Ui;
+
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Models\Venue;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventChangeAnnouncement;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Shared\Events\Enums\EventChangeType;
+use Carbon\CarbonInterface;
+use Illuminate\View\Component;
+use Illuminate\View\View;
+
+class EventJsonLd extends Component
+{
+    /**
+     * Create a new component instance.
+     */
+    /**
+     * @param  string|null  $url  Canonical URL when the schema describes a child
+     *                            page (a specific date) rather than the event.
+     * @param  string|null  $name  Title override for that date page.
+     * @param  CarbonInterface|null  $startsAt  Date-level start time override.
+     * @param  CarbonInterface|null  $endsAt  Date-level end time override.
+     * @param  Venue<\AIArmada\Events\Models\VenueSpace>|null  $venue  Scoped venue, including a package-level venue.
+     */
+    public function __construct(
+        public Event $event,
+        public ?string $url = null,
+        public ?string $name = null,
+        public ?CarbonInterface $startsAt = null,
+        public ?CarbonInterface $endsAt = null,
+        public ?Venue $venue = null,
+        public ?Address $address = null,
+    ) {}
+
+    /**
+     * Get the view / contents that represent the component.
+     */
+    public function render(): View
+    {
+        return view('components.event-json-ld');
+    }
+
+    /**
+     * Generate JSON-LD structured data for the event.
+     * Schema.org Event type per documentation B9b.
+     *
+     * @return array<string, mixed>
+     */
+    public function jsonLd(): array
+    {
+        $event = $this->event;
+        $venue = $this->venue ?? $event->venue;
+        $institution = $event->institution;
+
+        $jsonLd = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Event',
+            'name' => $this->name ?? $event->title,
+            'description' => $event->description_text,
+            'startDate' => ($this->startsAt ?? $event->starts_at)?->toIso8601String(),
+            'endDate' => ($this->endsAt ?? $event->ends_at)?->toIso8601String(),
+            'eventStatus' => $this->getEventStatus(),
+            'eventAttendanceMode' => $this->getAttendanceMode(),
+            'url' => $this->canonicalUrl(),
+        ];
+
+        if ($venue instanceof Venue) {
+            // A date/session page can carry its own scoped venue, whose
+            // address (or absence) must win over the parent event's venue.
+            $venueAddress = $this->venue instanceof Venue
+                ? $this->address
+                : $venue->primaryAddress();
+            $region = '';
+
+            if ($venueAddress instanceof Address && is_string($venueAddress->state)) {
+                $region = $venueAddress->state;
+            }
+
+            $jsonLd['location'] = [
+                '@type' => 'Place',
+                'name' => $venue->name,
+                'address' => [
+                    '@type' => 'PostalAddress',
+                    'streetAddress' => $venueAddress?->line1,
+                    'addressLocality' => $venueAddress?->city,
+                    'addressRegion' => $region,
+                    'addressCountry' => $venueAddress?->country_code,
+                ],
+            ];
+
+            if ($venueAddress instanceof Address && $venueAddress->latitude !== null && $venueAddress->longitude !== null) {
+                $jsonLd['location']['geo'] = [
+                    '@type' => 'GeoCoordinates',
+                    'latitude' => $venueAddress->latitude,
+                    'longitude' => $venueAddress->longitude,
+                ];
+            }
+        } elseif ($institution instanceof Institution) {
+            $jsonLd['location'] = [
+                '@type' => 'Place',
+                'name' => $institution->name,
+            ];
+        }
+
+        if ($institution instanceof Institution) {
+            $jsonLd['organizer'] = [
+                '@type' => 'Organization',
+                'name' => $institution->name,
+                'url' => route('institutions.show', $institution),
+            ];
+        }
+
+        if ($event->persons->isNotEmpty()) {
+            $jsonLd['performer'] = $event->persons->map(fn (Person $person): array => [
+                '@type' => 'Person',
+                'name' => $person->name,
+                'url' => route('persons.show', $person),
+            ])->toArray();
+        }
+
+        if ($event->card_image_url !== '') {
+            $jsonLd['image'] = $event->card_image_url;
+        }
+
+        $jsonLd['offers'] = [
+            '@type' => 'Offer',
+            'price' => '0',
+            'priceCurrency' => 'MYR',
+            'availability' => $this->getAvailability(),
+            'url' => $this->canonicalUrl(),
+        ];
+
+        $event->loadMissing(['classifications']);
+
+        if ($event->classifications->isNotEmpty()) {
+            $jsonLd['about'] = $event->classifications
+                ->map(fn ($classification): array => [
+                    '@type' => 'Thing',
+                    'name' => (string) ($classification->term_code ?? $classification->taxonomy_code ?? ''),
+                ])
+                ->filter(fn (array $item): bool => $item['name'] !== '')
+                ->values()
+                ->all();
+        }
+
+        $jsonLd['inLanguage'] = match ($event->language) {
+            'malay' => 'ms',
+            'english' => 'en',
+            'arabic' => 'ar',
+            'mixed' => ['ms', 'en'],
+            default => 'ms',
+        };
+
+        return $jsonLd;
+    }
+
+    /**
+     * Canonical URL for the described page: the date page when one was given,
+     * otherwise the event page.
+     */
+    protected function canonicalUrl(): string
+    {
+        return $this->url ?? route('events.show', $this->event);
+    }
+
+    /**
+     * Get Schema.org event status.
+     */
+    protected function getEventStatus(): string
+    {
+        if (in_array((string) $this->event->status, ['rejected', 'cancelled'], true)) {
+            return 'https://schema.org/EventCancelled';
+        }
+
+        if ($this->event->primaryOccurrence && in_array((string) $this->event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) {
+            return 'https://schema.org/EventPostponed';
+        }
+
+        $notice = $this->event->latestPublishedChangeAnnouncement;
+
+        if ($notice instanceof EventChangeAnnouncement
+            && in_array($notice->update_type, [
+                EventChangeType::RescheduledEarlier,
+                EventChangeType::RescheduledLater,
+                EventChangeType::ScheduleChanged,
+            ], true)) {
+            return 'https://schema.org/EventRescheduled';
+        }
+
+        return 'https://schema.org/EventScheduled';
+    }
+
+    /**
+     * Get Schema.org attendance mode.
+     */
+    protected function getAttendanceMode(): string
+    {
+        if ($this->event->live_url) {
+            return 'https://schema.org/MixedEventAttendanceMode';
+        }
+
+        return 'https://schema.org/OfflineEventAttendanceMode';
+    }
+
+    /**
+     * Get Schema.org availability.
+     */
+    protected function getAvailability(): string
+    {
+        $event = $this->event;
+        $accessPolicy = $event->accessPolicy;
+
+        if (in_array((string) $event->status, ['rejected', 'cancelled'], true)) {
+            return 'https://schema.org/Discontinued';
+        }
+
+        if ($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) {
+            return 'https://schema.org/Discontinued';
+        }
+
+        if ($accessPolicy instanceof EventAccessPolicy
+            && $accessPolicy->registration_required
+            && $accessPolicy->capacity !== null
+                && $event->registrations()->where('status', '!=', 'cancelled')->count() >= $accessPolicy->capacity) {
+            return 'https://schema.org/SoldOut';
+        }
+
+        return 'https://schema.org/InStock';
+    }
+}

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\Event;
-use App\Models\MediaLink;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\MediaLink;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
  */
 class MediaLinkFactory extends Factory
 {
+    protected $model = MediaLink::class;
+
     /**
      * Define the model's default state.
      *

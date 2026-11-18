@@ -7,7 +7,7 @@ use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\EditEventTerm;
 use App\Features\Events\Actions\Authoring\SyncEventTermDomainMappingAction;
 use App\Models\User;
 use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Support\Submission\SubmitEventOptionsProvider;
+use App\Features\Events\Services\SubmitEventOptionsProvider;
 use Livewire\Livewire;
 
 function termMappingAdminUser(): User

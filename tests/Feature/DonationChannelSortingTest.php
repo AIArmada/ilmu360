@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\DonationChannel;
-use App\Models\Institution;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Institutions\Models\Institution;
 
 it('orders donation channels with the default one first', function () {
     // 1. Create an institution.

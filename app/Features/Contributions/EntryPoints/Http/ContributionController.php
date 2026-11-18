@@ -1,0 +1,1166 @@
+<?php
+
+namespace App\Features\Contributions\EntryPoints\Http;
+
+use AIArmada\Addressing\Support\ModelResolver;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Persons\Enums\Gender;
+use App\Features\Contributions\Api\ContributionDirectUpdates;
+use App\Features\Contributions\Api\ContributionRequestLifecycle;
+use App\Features\Contributions\Api\ContributionRequestReader;
+use App\Features\Contributions\Api\ContributionReviewAccess;
+use App\Features\Contributions\Api\ContributionSubmissionPreparation;
+use App\Features\Contributions\Api\ContributionUpdateContextReader;
+use App\Features\Contributions\Api\StagedContributionCreates;
+use App\Features\Institutions\Api\InstitutionMapsSelection;
+use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
+use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Models\User;
+use App\Platform\Http\FrontendController;
+use App\Platform\Location\DiscoverWebsiteSocialProfilesAction;
+use App\Platform\Location\FetchGooglePlaceDetailsAction;
+use App\Platform\Location\GooglePlaceIdentity;
+use App\Platform\Location\ResolveGooglePlaceSelectionAction;
+use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Models\MorphModelResolver;
+use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
+use App\Platform\Validation\Rules\ValidAreaAssignmentRoles;
+use App\Features\Contributions\Services\ContributionEntityStateService;
+use App\Shared\Contributions\ContributionRequestGuard;
+use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Shared\Directory\Enums\InstitutionType;
+use App\Features\Events\Services\EventContributionUpdateStateMapper;
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Endpoint;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\PathParameter;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Fluent;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Validator;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+
+#[Group(
+    'Contribution',
+    'Authenticated public contribution flows for creating institutions or persons and suggesting edits to existing events, institutions, persons, or references. '
+    .'Update suggestions are permission-aware: the same endpoint either edits directly or creates a review request.',
+    weight: 20,
+)]
+class ContributionController extends FrontendController
+{
+    #[Endpoint(
+        title: 'List contribution requests and pending approvals',
+        description: 'Returns the authenticated user\'s own contribution requests plus any pending approvals they are allowed to review.',
+    )]
+    public function index(Request $request, ContributionReviewAccess $contributionReviewAccess): JsonResponse
+    {
+        $user = $this->requireUser($request);
+        $requestIds = app(ContributionRequestReader::class)->requestIdsForProposer((string) $user->getKey());
+
+        $myRequests = $requestIds === []
+            ? ContributionRequest::query()->whereRaw('1 = 0')->get()
+            : ContributionRequest::query()
+                ->whereKey($requestIds)
+                ->with(['entity', 'proposer', 'reviewer'])
+                ->latest('created_at')
+                ->get();
+
+        $pendingApprovals = ContributionRequest::query()
+            ->whereKey($contributionReviewAccess->pendingRequestIds((string) $user->getKey()))
+            ->with(['entity', 'proposer'])
+            ->latest('created_at')
+            ->get();
+
+        return response()->json([
+            'data' => [
+                'my_requests' => $myRequests->map(fn (ContributionRequest $contributionRequest): array => $this->contributionRequestData($contributionRequest, $user))->all(),
+                'pending_approvals' => $pendingApprovals->map(fn (ContributionRequest $contributionRequest): array => $this->contributionRequestData($contributionRequest, $user))->all(),
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ]);
+    }
+
+    #[Endpoint(
+        title: 'Create an institution contribution',
+        description: 'Creates a new public institution contribution request. '
+            .'The proposer is not automatically added as an institution owner, admin, editor, or member; they only receive review outcome notifications. '
+            .'Duplicate institutions are rejected by Google CID when available, then by place ID, and finally by normalized name and locality. '
+            .'Institution payloads must include a Google Maps `address.google_place_id` selected from Places search. The server verifies that place and derives canonical address fields and Google identifiers from the provider response; caller-supplied map URLs or identifiers cannot replace verification. '
+            .'If `type` is omitted, the server infers it from a clear Google category or institution name; unclassified places require an explicit type. '
+            .'Fetch `GET /forms/contributions/institutions` first to discover required fields, defaults, media support, and conditional rules.',
+    )]
+    public function storeInstitution(
+        Request $request,
+        StagedContributionCreates $stagedCreates,
+        MediaCollectionSync $mediaCollectionSync,
+        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
+        ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
+        DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
+        InstitutionMapsSelection $institutionMapsSelection,
+    ): JsonResponse {
+        $user = $this->requireUser($request);
+        $this->ensureDirectoryFeedbackAllowed($user);
+        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
+
+        $validated = $request->validate([
+            'type' => ['sometimes', 'nullable', 'string', Rule::in(array_column(InstitutionType::cases(), 'value'))],
+            'name' => ['nullable', 'string', 'max:255'],
+            'names' => ['nullable', 'array'],
+            'names.*.name_type' => ['required_with:names', 'string', 'max:255'],
+            'names.*.full_name' => ['required_with:names', 'string', 'max:255'],
+            'names.*.language_code' => ['required_with:names', 'string', 'max:10'],
+            'names.*.is_primary' => ['nullable', 'boolean'],
+            'description' => ['nullable'],
+            'address' => ['present', 'array'],
+            'address.country_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
+            'address.state_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::stateClass(), 'id')],
+            'address.city_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::cityClass(), 'id')],
+            'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
+            'address.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
+            'address.line1' => ['nullable', 'string', 'max:255'],
+            'address.line2' => ['nullable', 'string', 'max:255'],
+            'address.postcode' => ['nullable', 'string', 'max:16'],
+            'address.latitude' => ['nullable', 'numeric'],
+            'address.longitude' => ['nullable', 'numeric'],
+            'address.google_maps_url' => ['prohibited'],
+            'address.google_place_id' => ['required', 'string', 'max:255'],
+            'address.google_feature_id' => ['prohibited'],
+            'address.google_cid' => ['prohibited'],
+            'address.google_entity_id' => ['prohibited'],
+            'address.waze_url' => ['nullable', 'url', 'max:255'],
+            'contactMethods' => ['nullable', 'array'],
+            'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
+            'contacts.*.value' => ['required_with:contacts', 'string', 'max:255'],
+            'contacts.*.purpose' => ['nullable', 'string', 'max:255'],
+            'contacts.*.is_public' => ['nullable', 'boolean'],
+            'social_media' => ['nullable', 'array'],
+            'social_media.*.platform' => ['required_with:social_media', 'string', 'max:255'],
+            'social_media.*.handle' => ['nullable', 'string', 'max:255'],
+            'social_media.*.url' => ['nullable', 'url', 'max:255'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
+            'gallery' => ['nullable', 'array'],
+            'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
+        ]);
+
+        $place = $fetchGooglePlaceDetailsAction->handle(
+            $validated['address']['google_place_id'],
+            'address.google_place_id',
+        );
+
+        $institutionType = $validated['type'] ?? $institutionMapsSelection->inferType($place)?->value;
+
+        if (! is_string($institutionType)) {
+            throw ValidationException::withMessages([
+                'type' => __('The institution type could not be inferred from Google Maps. Please choose an institution type.'),
+            ]);
+        }
+
+        $validated['type'] = $institutionType;
+
+        $identity = GooglePlaceIdentity::fromPlace($place);
+        $location = is_array($place['location'] ?? null) ? $place['location'] : [];
+        $resolvedAddress = $resolveGooglePlaceSelectionAction->handle([
+            'placeId' => $identity['google_place_id'],
+            'displayName' => $place['displayName'] ?? null,
+            'formattedAddress' => $identity['formatted_address'],
+            'googleMapsURI' => $place['googleMapsUri'] ?? null,
+            'googleFeatureId' => $identity['google_feature_id'],
+            'googleCid' => $identity['google_cid'],
+            'googleEntityId' => $identity['google_entity_id'],
+            'location' => [
+                'lat' => $location['latitude'] ?? null,
+                'lng' => $location['longitude'] ?? null,
+            ],
+            'addressComponents' => $identity['components'],
+        ]);
+
+        if (! is_string($resolvedAddress['country_id'] ?? null)) {
+            throw ValidationException::withMessages([
+                'address.country_id' => __('The selected Google Maps place has no country available in the address catalog.'),
+            ]);
+        }
+
+        $validated['address'] = array_merge(
+            $validated['address'],
+            $resolvedAddress,
+            Arr::only($identity, [
+                'google_place_id',
+                'google_feature_id',
+                'google_cid',
+                'google_entity_id',
+                'components',
+                'formatted_address',
+                'metadata',
+                'navigation_links',
+            ]),
+        );
+
+        if (! is_string($validated['name'] ?? null) || trim($validated['name']) === '') {
+            $placeName = data_get($place, 'displayName.text');
+            $validated['name'] = is_string($placeName) && trim($placeName) !== '' ? trim($placeName) : null;
+        }
+
+        if (! is_string($validated['name'] ?? null)) {
+            throw ValidationException::withMessages([
+                'name' => __('The selected Google Maps place does not include an institution name.'),
+            ]);
+        }
+
+        $websiteUrl = $this->httpUrl($place['websiteUri'] ?? null);
+        $contacts = is_array($validated['contactMethods'] ?? null) ? $validated['contactMethods'] : [];
+        $phone = $place['internationalPhoneNumber'] ?? $place['nationalPhoneNumber'] ?? null;
+
+        if ($websiteUrl !== null && ! $this->hasContactType($contacts, ContactMethodType::Website->value)) {
+            $contacts[] = [
+                'type' => ContactMethodType::Website->value,
+                'value' => $websiteUrl,
+                'purpose' => ContactPurpose::General->value,
+                'is_public' => true,
+            ];
+        }
+
+        if (is_string($phone) && trim($phone) !== '' && ! $this->hasContactType($contacts, ContactMethodType::Phone->value)) {
+            $contacts[] = [
+                'type' => ContactMethodType::Phone->value,
+                'value' => trim($phone),
+                'purpose' => ContactPurpose::General->value,
+                'is_public' => true,
+            ];
+        }
+
+        $validated['contactMethods'] = $contacts;
+
+        if ($websiteUrl !== null) {
+            $socialProfiles = is_array($validated['social_media'] ?? null) ? $validated['social_media'] : [];
+            $existingProfiles = collect($socialProfiles)
+                ->filter(fn (mixed $profile): bool => is_array($profile))
+                ->map(fn (array $profile): string => ($profile['platform'] ?? '').'|'.($profile['handle'] ?? ''))
+                ->all();
+
+            foreach ($discoverWebsiteSocialProfilesAction->handle($websiteUrl) as $socialProfile) {
+                $key = $socialProfile['platform'].'|'.$socialProfile['handle'];
+
+                if (! in_array($key, $existingProfiles, true)) {
+                    $socialProfiles[] = $socialProfile;
+                    $existingProfiles[] = $key;
+                }
+            }
+
+            $validated['social_media'] = $socialProfiles;
+        }
+
+        $validated = $this->normalizeContributionAddressPayload($validated);
+
+        $institutionId = $stagedCreates->submit(
+            ContributionSubjectType::Institution,
+            $validated,
+            (string) $user->getKey(),
+            function (string $institutionId) use ($request, $mediaCollectionSync): void {
+                $institution = Institution::query()->findOrFail($institutionId);
+                $mediaCollectionSync->syncSingle($institution, $request->file('cover'), 'cover');
+                $mediaCollectionSync->syncMultiple(
+                    $institution,
+                    is_array($request->file('gallery')) ? $request->file('gallery') : null,
+                    'gallery',
+                );
+            },
+        );
+        $institution = Institution::query()->findOrFail($institutionId);
+
+        return response()->json([
+            'message' => __('Thank you. Your institution submission has been received. We will notify you if it is approved or rejected.'),
+            'data' => [
+                'institution' => [
+                    'id' => $institution->getKey(),
+                    'slug' => $institution->slug,
+                    'name' => $institution->name,
+                    'status' => $institution->status->value,
+                ],
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ], 201);
+    }
+
+    #[Endpoint(
+        title: 'Create a person contribution',
+        description: 'Creates a new public person contribution request using a region-level address payload plus an explicit country selection. '
+            .'The payload may also set one affiliated institution and an optional position label. '
+            .'Clients must send `address.country_id`, but must not send state, city, detailed street, or map keys here. '
+            .'Duplicate persons are rejected when the normalized name, gender, title set, and country match an existing person. '
+            .'Fetch `GET /forms/contributions/persons` first to discover required fields, defaults, media support, and conditional rules.',
+    )]
+    public function storePerson(
+        Request $request,
+        StagedContributionCreates $stagedCreates,
+        MediaCollectionSync $mediaCollectionSync,
+    ): JsonResponse {
+        $user = $this->requireUser($request);
+        $this->ensureDirectoryFeedbackAllowed($user);
+        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'gender' => ['required', Rule::in(array_column(Gender::cases(), 'value'))],
+            'bio' => ['nullable'],
+            'institutions' => ['nullable', 'array'],
+            'institutions.*.institution_id' => ['required', 'uuid', 'exists:institutions,id'],
+            'institutions.*.position' => ['nullable', 'string', 'max:255'],
+            'institutions.*.is_primary' => ['nullable', 'boolean'],
+            'address' => ['required', 'array'],
+            'address.country_id' => ['required', 'uuid', Rule::exists(ModelResolver::countryClass(), 'id')],
+            'address.state_id' => ['prohibited'],
+            'address.city_id' => ['prohibited'],
+            'address.area_assignments' => ['sometimes', 'array', new ValidAreaAssignmentRoles],
+            'address.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
+            'address.line1' => ['prohibited'],
+            'address.line2' => ['prohibited'],
+            'address.postcode' => ['prohibited'],
+            'address.latitude' => ['prohibited'],
+            'address.longitude' => ['prohibited'],
+            'address.google_maps_url' => ['prohibited'],
+            'address.google_place_id' => ['prohibited'],
+            'address.google_feature_id' => ['prohibited'],
+            'address.google_cid' => ['prohibited'],
+            'address.google_entity_id' => ['prohibited'],
+            'address.waze_url' => ['prohibited'],
+            'language_ids' => ['nullable', 'array'],
+            'language_ids.*' => ['uuid'],
+            'contactMethods' => ['nullable', 'array'],
+            'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
+            'contacts.*.value' => ['required_with:contacts', 'string', 'max:255'],
+            'contacts.*.purpose' => ['nullable', 'string', 'max:255'],
+            'contacts.*.is_public' => ['nullable', 'boolean'],
+            'social_media' => ['nullable', 'array'],
+            'social_media.*.platform' => ['required_with:social_media', 'string', 'max:255'],
+            'social_media.*.handle' => ['nullable', 'string', 'max:255'],
+            'social_media.*.url' => ['nullable', 'url', 'max:255'],
+            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
+            'gallery' => ['nullable', 'array'],
+            'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
+        ]);
+        $validated = $this->normalizeContributionAddressPayload($validated);
+
+        $personId = $stagedCreates->submit(
+            ContributionSubjectType::Person,
+            $validated,
+            (string) $user->getKey(),
+            function (string $personId) use ($request, $mediaCollectionSync): void {
+                $person = Person::query()->findOrFail($personId);
+                $mediaCollectionSync->syncSingle($person, $request->file('avatar'), 'avatar');
+                $mediaCollectionSync->syncSingle($person, $request->file('cover'), 'cover');
+                $mediaCollectionSync->syncMultiple(
+                    $person,
+                    is_array($request->file('gallery')) ? $request->file('gallery') : null,
+                    'gallery',
+                );
+            },
+        );
+        $person = Person::query()->findOrFail($personId);
+
+        return response()->json([
+            'message' => __('Thank you. Your person submission has been received. We will notify you if it is approved or rejected.'),
+            'data' => [
+                'person' => [
+                    'id' => $person->getKey(),
+                    'slug' => $person->slug,
+                    'name' => $person->name,
+                    'status' => $person->status,
+                ],
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ], 201);
+    }
+
+    #[PathParameter(
+        'subjectType',
+        'Editable public subject type. Supported public route values are `majlis`, `institusi`, `penceramah`, and `rujukan`.',
+        example: 'penceramah',
+    )]
+    #[PathParameter(
+        'subject',
+        'Target entity slug or UUID.',
+        example: 'ustaz-hasan',
+    )]
+    #[Endpoint(
+        title: 'Get editable contribution context',
+        description: 'Returns the current editable state, presentation metadata, and permission flags for an existing subject. '
+            .'Call this before submitting an update so you know whether the caller can edit directly, which sparse top-level fields are supported, whether the caller has a pending request, and whether any pending request currently blocks updates. '
+            .'Only direct-edit media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `logo`/`cover`/`gallery`, person `avatar`/`cover`/`gallery`, event `cover`/`poster`/`gallery`, and reference `front_cover`/`back_cover`/`gallery`.',
+    )]
+    public function suggestContext(
+        string $subjectType,
+        string $subject,
+        Request $request,
+        ContributionUpdateContextReader $contributionUpdateContextReader,
+        ContributionSubjectPresenter $contributionSubjectPresenter,
+        ContributionRequestReader $pendingContributionReader,
+    ): JsonResponse {
+        $user = $this->requireUser($request);
+        $this->ensureDirectoryFeedbackAllowed($user);
+
+        $context = $contributionUpdateContextReader->resolve($subjectType, $subject);
+        /** @var Event|Institution|Person|Reference $entity */
+        $entity = MorphModelResolver::resolve($context['entity_type'])::query()->findOrFail($context['entity_id']);
+        $initialState = $this->apiInitialState($entity, $context['initial_state']);
+        $canDirectEdit = $user->can('update', $entity);
+
+        abort_unless($user->can('view', $entity), 403);
+
+        return response()->json([
+            'data' => [
+                'entity' => $this->entityData($entity),
+                'initial_state' => $initialState,
+                'accepts_partial_updates' => $context['contract']['accepts_partial_updates'],
+                'fields' => $context['contract']['fields'],
+                'conditional_rules' => $context['contract']['conditional_rules'],
+                'direct_edit_media_fields' => $canDirectEdit ? $context['contract']['direct_edit_media_fields'] : [],
+                'direct_edit_media_contract' => $canDirectEdit
+                    ? $this->directEditMediaContract($entity, $context['contract']['direct_edit_media_fields'] ?? [])
+                    : [],
+                'current_media' => $canDirectEdit
+                    ? $this->directEditCurrentMediaData($entity, $context['contract']['direct_edit_media_fields'] ?? [])
+                    : [],
+                'subject_presentation' => $contributionSubjectPresenter->present($entity),
+                'can_direct_edit' => $canDirectEdit,
+                'pending_update_blocked' => $pendingContributionReader->pendingRequestIdForEntity(
+                    $context['entity_type'],
+                    $context['entity_id'],
+                ) !== null,
+                'latest_pending_request' => ($latestPendingId = $pendingContributionReader->pendingRequestIdForProposerAndEntity(
+                    (string) $user->getKey(),
+                    $entity->getMorphClass(),
+                    (string) $entity->getKey(),
+                )) !== null
+                    ? $this->contributionRequestData(ContributionRequest::query()->findOrFail($latestPendingId), $user)
+                    : null,
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ]);
+    }
+
+    #[PathParameter(
+        'subjectType',
+        'Editable public subject type. Supported public route values are `majlis`, `institusi`, `penceramah`, and `rujukan`.',
+        example: 'majlis',
+    )]
+    #[PathParameter(
+        'subject',
+        'Target entity slug or UUID.',
+        example: 'kuliah-maghrib-masjid-jamek',
+    )]
+    #[BodyParameter(
+        'proposer_note',
+        'Optional note from the proposer explaining why the requested changes are needed.',
+        required: false,
+        type: 'string',
+        infer: false,
+        example: 'Please update the person list and correct the title spelling.',
+    )]
+    #[Endpoint(
+        title: 'Submit a contribution update',
+        description: 'Submits a sparse top-level payload for an existing event, institution, person, or reference. '
+            .'Fetch `GET /forms/contributions/{subjectType}/{subject}/suggest` first to discover the editable field contract and current values. '
+            .'Only files named in `direct_edit_media_fields` may be uploaded, and only when the current user can edit the subject directly. '
+            .'If any pending contribution request already exists for the subject, the update is rejected until that request is reviewed. '
+            .'If the caller can update the subject directly, the changes are applied immediately and the response `mode` is `direct_edit`; otherwise a contribution review request is created and the response `mode` is `review`.',
+    )]
+    public function suggestUpdate(
+        string $subjectType,
+        string $subject,
+        Request $request,
+        ContributionUpdateContextReader $contributionUpdateContextReader,
+        ContributionSubmissionPreparation $submissionPreparation,
+        ContributionDirectUpdates $directUpdates,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
+        ContributionRequestGuard $contributionRequestGuard,
+        ContributionSubjectPresenter $contributionSubjectPresenter,
+        MediaCollectionSync $mediaCollectionSync,
+        ContributionEntityStateService $contributionEntityMutationService,
+    ): JsonResponse {
+        $user = $this->requireUser($request);
+        $this->ensureDirectoryFeedbackAllowed($user);
+
+        $context = $contributionUpdateContextReader->resolve($subjectType, $subject);
+        /** @var Event|Institution|Person|Reference $entity */
+        $entity = MorphModelResolver::resolve($context['entity_type'])::query()->findOrFail($context['entity_id']);
+        $publicInitialState = $this->apiInitialState($entity, $context['initial_state']);
+        $comparableOriginalData = $entity instanceof Event
+            ? $context['initial_state']
+            : $publicInitialState;
+        $canDirectEdit = $user->can('update', $entity);
+        $directEditMediaFields = $canDirectEdit
+            ? array_values(array_filter(
+                $context['contract']['direct_edit_media_fields'] ?? [],
+                static fn (string $field): bool => $field !== '',
+            ))
+            : [];
+
+        abort_unless($user->can('view', $entity), 403);
+
+        $contributionRequestGuard->ensureNoPending(
+            $context['entity_type'],
+            $context['entity_id'],
+        );
+
+        $uploadedFiles = array_keys($request->allFiles());
+
+        if ($uploadedFiles !== []) {
+            $unsupportedFileFields = array_values(array_diff($uploadedFiles, $directEditMediaFields));
+
+            if ($unsupportedFileFields !== []) {
+                throw ValidationException::withMessages([
+                    'files' => [__('This update flow only supports the direct-edit media fields exposed by the contract for this subject.')],
+                ]);
+            }
+
+            validator($request->all(), $this->directEditMediaValidationRules($entity, $directEditMediaFields))->validate();
+        }
+
+        $payload = collect($request->all())
+            ->only(array_merge(array_keys($publicInitialState), ['proposer_note']))
+            ->all();
+
+        $suggestionValidator = validator(
+            $payload,
+            array_merge(
+                $contributionEntityMutationService->updateRulesFor($entity),
+                ['proposer_note' => ['sometimes', 'nullable', 'string', 'max:2000']],
+            ),
+        );
+
+        $this->addDonationChannelIdentityRules($suggestionValidator, $payload);
+
+        $validatedPayload = $suggestionValidator->validate();
+        $validatedPayload = $this->normalizeSuggestionPayload($entity, $validatedPayload);
+
+        $submissionState = $submissionPreparation->normalize($validatedPayload);
+        $normalizedState = $submissionState['state'];
+
+        if ($entity instanceof Event && $normalizedState !== []) {
+            $mergedState = array_replace_recursive($publicInitialState, $normalizedState);
+
+            if (
+                array_key_exists('event_date', $normalizedState)
+                && ! array_key_exists('end_date', $normalizedState)
+                && $normalizedState['event_date'] !== ($publicInitialState['event_date'] ?? null)
+            ) {
+                $mergedState['end_date'] = null;
+            }
+
+            $normalizedState = EventContributionUpdateStateMapper::toPersistenceState($mergedState, $entity);
+        }
+        $comparableSubmissionState = $entity instanceof Person
+            ? $this->apiInitialState($entity, $normalizedState)
+            : $normalizedState;
+        $changes = $submissionPreparation->changedPayload(
+            $comparableSubmissionState,
+            $comparableOriginalData + EventContributionUpdateStateMapper::provenanceOriginals($entity),
+        );
+        $hasDirectEditMediaChange = collect($directEditMediaFields)
+            ->contains(fn (string $field): bool => $request->hasFile($field));
+
+        if ($changes === [] && ! $hasDirectEditMediaChange) {
+            throw ValidationException::withMessages([
+                'data' => __('Make at least one change before continuing.'),
+            ]);
+        }
+
+        if ($canDirectEdit) {
+            if ($changes !== []) {
+                $directUpdates->apply($entity->getMorphClass(), (string) $entity->getKey(), $changes);
+                $entity->refresh();
+            }
+
+            if ($hasDirectEditMediaChange) {
+                $this->syncDirectEditMediaChanges($entity, $request, $mediaCollectionSync, $directEditMediaFields);
+            }
+
+            return response()->json([
+                'data' => [
+                    'entity' => $this->entityData($entity->fresh() ?? $entity),
+                    'subject_presentation' => $contributionSubjectPresenter->present($entity),
+                    'mode' => 'direct_edit',
+                ],
+                'meta' => [
+                    'request_id' => $this->requestId($request),
+                ],
+            ]);
+        }
+
+        $requestId = $contributionRequestLifecycle->submitUpdate(
+            $entity->getMorphClass(),
+            (string) $entity->getKey(),
+            (string) $user->getKey(),
+            $changes,
+            $submissionState['proposer_note'],
+        );
+
+        $contributionRequest = ContributionRequest::query()
+            ->with(['entity', 'proposer', 'reviewer'])
+            ->findOrFail($requestId);
+
+        return response()->json([
+            'data' => [
+                'request' => $this->contributionRequestData($contributionRequest, $user),
+                'mode' => 'review',
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ], 201);
+    }
+
+    #[Endpoint(
+        title: 'Approve a contribution request',
+        description: 'Approves a reviewable contribution request and applies the proposed changes.',
+    )]
+    public function approve(
+        string $requestId,
+        Request $request,
+        ContributionReviewAccess $contributionReviewAccess,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
+    ): JsonResponse {
+        $user = $this->requireUser($request);
+        $contributionRequest = ContributionRequest::query()->with('entity')->findOrFail(
+            $contributionReviewAccess->reviewableRequestId((string) $user->getKey(), $requestId)
+        );
+        $reviewNote = $request->validate(['reviewer_note' => ['nullable', 'string', 'max:2000']])['reviewer_note'] ?? null;
+
+        $contributionRequestLifecycle->approve((string) $contributionRequest->getKey(), (string) $user->getKey(), $reviewNote);
+
+        $approvedRequest = ContributionRequest::query()
+            ->with(['entity', 'proposer', 'reviewer'])
+            ->findOrFail($contributionRequest->getKey());
+
+        return response()->json([
+            'data' => [
+                'request' => $this->contributionRequestData($approvedRequest, $user),
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ]);
+    }
+
+    #[Endpoint(
+        title: 'Reject a contribution request',
+        description: 'Rejects a reviewable contribution request with a reason code and optional reviewer note.',
+    )]
+    public function reject(
+        string $requestId,
+        Request $request,
+        ContributionReviewAccess $contributionReviewAccess,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
+    ): JsonResponse {
+        $user = $this->requireUser($request);
+        $validated = $request->validate([
+            'reason_code' => ['required', Rule::in(array_keys(ContributionRequestPresenter::rejectionReasonOptions()))],
+            'reviewer_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $contributionRequest = ContributionRequest::query()->with('entity')->findOrFail(
+            $contributionReviewAccess->reviewableRequestId((string) $user->getKey(), $requestId)
+        );
+        $contributionRequestLifecycle->reject(
+            (string) $contributionRequest->getKey(),
+            (string) $user->getKey(),
+            (string) $validated['reason_code'],
+            $validated['reviewer_note'] ?? null,
+        );
+
+        $rejectedRequest = ContributionRequest::query()
+            ->with(['entity', 'proposer', 'reviewer'])
+            ->findOrFail($contributionRequest->getKey());
+
+        return response()->json([
+            'data' => [
+                'request' => $this->contributionRequestData($rejectedRequest, $user),
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ]);
+    }
+
+    #[Endpoint(
+        title: 'Cancel a contribution request',
+        description: 'Cancels the authenticated user\'s own pending contribution request.',
+    )]
+    public function cancel(
+        string $requestId,
+        Request $request,
+        ContributionRequestReader $contributionRequestReader,
+        ContributionRequestLifecycle $contributionRequestLifecycle,
+    ): JsonResponse {
+        $user = $this->requireUser($request);
+        $contributionRequest = ContributionRequest::query()->with('entity')->findOrFail(
+            $contributionRequestReader->findRequestIdForProposer((string) $user->getKey(), $requestId)
+        );
+        $contributionRequestLifecycle->cancel((string) $contributionRequest->getKey(), (string) $user->getKey());
+
+        $cancelledRequest = ContributionRequest::query()
+            ->with(['entity', 'proposer', 'reviewer'])
+            ->findOrFail($contributionRequest->getKey());
+
+        return response()->json([
+            'data' => [
+                'request' => $this->contributionRequestData($cancelledRequest, $user),
+            ],
+            'meta' => [
+                'request_id' => $this->requestId($request),
+            ],
+        ]);
+    }
+
+    private function ensureDirectoryFeedbackAllowed(User $user): void
+    {
+        if (! $user->canSubmitDirectoryFeedback()) {
+            abort(403, $user->directoryFeedbackBanMessage());
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $initialState
+     * @return array<string, mixed>
+     */
+    private function apiInitialState(Event|Institution|Reference|Person $entity, array $initialState): array
+    {
+        if ($entity instanceof Event) {
+            $helperState = EventContributionUpdateStateMapper::toHelperState($initialState);
+
+            unset(
+                $helperState['starts_at'],
+                $helperState['ends_at'],
+                $helperState['timing_mode'],
+                $helperState['prayer_reference'],
+                $helperState['prayer_offset'],
+                $helperState['prayer_display_text'],
+                $helperState['primary_organizer_kind'],
+                $helperState['primary_organizer_institution_id'],
+                $helperState['primary_organizer_person_id'],
+                $helperState['institution_id'],
+                $helperState['venue_id'],
+            );
+
+            return $helperState;
+        }
+
+        if (! $entity instanceof Person) {
+            return $initialState;
+        }
+
+        if (! is_array($initialState['address'] ?? null)) {
+            unset($initialState['address']);
+
+            return $initialState;
+        }
+
+        $personAddress = $initialState['address'];
+        $projectedAddress = ['country_id' => $personAddress['country_id'] ?? null];
+
+        if (array_key_exists('area_assignments', $personAddress)) {
+            $projectedAddress['area_assignments'] = $personAddress['area_assignments'];
+        }
+
+        $initialState['address'] = $projectedAddress;
+
+        return $initialState;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeContributionAddressPayload(array $payload): array
+    {
+        if (! is_array($payload['address'] ?? null)) {
+            return $payload;
+        }
+
+        $address = $payload['address'];
+        $countryProvided = SharedFormSchema::countrySelectionProvided($address);
+        $payload['address'] = SharedFormSchema::prepareAddressPersistenceData($address);
+
+        if (! $countryProvided) {
+            throw ValidationException::withMessages([
+                'address.country_id' => __('The address country is required.'),
+            ]);
+        }
+
+        if (! is_string($payload['address']['country_id'] ?? null)) {
+            throw ValidationException::withMessages([
+                'address.country_id' => __('The selected country is invalid.'),
+            ]);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeSuggestionPayload(Event|Institution|Reference|Person $entity, array $payload): array
+    {
+        if (! $entity instanceof Institution && ! $entity instanceof Person) {
+            return $payload;
+        }
+
+        if (! array_key_exists('address', $payload)) {
+            return $payload;
+        }
+
+        return $this->normalizeContributionAddressPayload($payload);
+    }
+
+    /**
+     * @param  list<string>  $directEditMediaFields
+     * @return array<string, mixed>
+     */
+    private function directEditMediaValidationRules(Event|Institution|Reference|Person $entity, array $directEditMediaFields): array
+    {
+        $rules = [];
+        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
+
+        if (in_array('avatar', $directEditMediaFields, true)) {
+            $rules['avatar'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"];
+        }
+
+        if (in_array('logo', $directEditMediaFields, true)) {
+            $rules['logo'] = ['nullable', 'image:allow_svg', 'mimes:jpg,jpeg,png,webp,svg', "max:{$maxUploadSizeKb}"];
+        }
+
+        if (in_array('cover', $directEditMediaFields, true)) {
+            $rules['cover'] = $entity instanceof Event
+                ? ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=16/9', "max:{$maxUploadSizeKb}"]
+                : ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"];
+        }
+
+        if (in_array('poster', $directEditMediaFields, true)) {
+            $rules['poster'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=3/4', "max:{$maxUploadSizeKb}"];
+        }
+
+        if (in_array('gallery', $directEditMediaFields, true)) {
+            $rules['gallery'] = ['nullable', 'array'];
+            $rules['gallery.*'] = ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Require per-method donation identity fields that the base
+     * `sometimes`/`nullable` rules cannot express per item: a submitted
+     * channel must carry enough identity to sync. Mirrors
+     * ContributionEntityStateService::normalizeDonationChannelRow().
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function addDonationChannelIdentityRules(Validator $validator, array $payload): void
+    {
+        $rows = $payload['donation_channels'] ?? null;
+
+        if (! is_array($rows)) {
+            return;
+        }
+
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
+
+            if ($method === 'bank_account') {
+                $validator->sometimes(
+                    "donation_channels.{$index}.account_number",
+                    ['required', 'string', 'max:2000'],
+                    fn (): bool => true,
+                );
+            }
+
+            if ($method === 'duitnow') {
+                $validator->sometimes(
+                    "donation_channels.{$index}.duitnow_value",
+                    ['required', 'string', 'max:2000'],
+                    fn (): bool => true,
+                );
+            }
+
+            if ($method === 'ewallet') {
+                $validator->sometimes(
+                    "donation_channels.{$index}.ewallet_provider",
+                    ['required', 'string', 'max:255'],
+                    fn (): bool => true,
+                );
+                $validator->sometimes(
+                    "donation_channels.{$index}.ewallet_handle",
+                    ['required', 'string', 'max:255'],
+                    fn (Fluent $input): bool => blank($input->get("donation_channels.{$index}.ewallet_qr_payload")),
+                );
+                $validator->sometimes(
+                    "donation_channels.{$index}.ewallet_qr_payload",
+                    ['required', 'string', 'max:2000'],
+                    fn (Fluent $input): bool => blank($input->get("donation_channels.{$index}.ewallet_handle")),
+                );
+            }
+        }
+    }
+
+    /**
+     * @param  list<string>  $directEditMediaFields
+     * @return array<string, array<string, mixed>>
+     */
+    private function directEditMediaContract(Event|Institution|Reference|Person $entity, array $directEditMediaFields): array
+    {
+        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
+        $contract = [];
+
+        foreach ($directEditMediaFields as $field) {
+            $contract[$field] = [
+                'accepted_mime_types' => ['image/jpeg', 'image/png', 'image/webp'],
+                'max_file_size_kb' => $maxUploadSizeKb,
+            ];
+
+            if ($entity instanceof Event && $field === 'cover') {
+                $contract[$field]['required_aspect_ratio'] = '16:9';
+                $contract[$field]['media_role'] = 'website_app_cover';
+            }
+
+            if ($entity instanceof Event && $field === 'poster') {
+                $contract[$field]['required_aspect_ratio'] = '3:4';
+                $contract[$field]['media_role'] = 'external_distribution_poster';
+            }
+
+            if ($field === 'gallery') {
+                $contract[$field]['max_files'] = 10;
+            }
+
+            if ($entity instanceof Institution && $field === 'logo') {
+                $contract[$field]['accepted_mime_types'][] = 'image/svg+xml';
+            }
+        }
+
+        return $contract;
+    }
+
+    /**
+     * @param  list<string>  $directEditMediaFields
+     */
+    private function syncDirectEditMediaChanges(
+        Event|Institution|Reference|Person $entity,
+        Request $request,
+        MediaCollectionSync $mediaCollectionSync,
+        array $directEditMediaFields,
+    ): void {
+        foreach ($directEditMediaFields as $field) {
+            if (! $request->hasFile($field)) {
+                continue;
+            }
+
+            if ($field === 'gallery') {
+                $mediaCollectionSync->syncMultiple(
+                    $entity,
+                    is_array($request->file('gallery')) ? $request->file('gallery') : null,
+                    'gallery',
+                    replace: true,
+                );
+
+                continue;
+            }
+
+            $mediaCollectionSync->syncSingle($entity, $request->file($field), $field);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function contributionRequestData(ContributionRequest $contributionRequest, User $currentUser): array
+    {
+        $presentation = $contributionRequest->entity instanceof Event
+            || $contributionRequest->entity instanceof Institution
+            || $contributionRequest->entity instanceof Reference
+            || $contributionRequest->entity instanceof Person
+                ? app(ContributionSubjectPresenter::class)->present($contributionRequest->entity)
+                : null;
+
+        return [
+            'id' => $contributionRequest->getKey(),
+            'type' => $this->enumValue($contributionRequest->type),
+            'type_label' => ContributionRequestPresenter::labelForType($contributionRequest->type),
+            'subject_type' => $this->enumValue($contributionRequest->subject_type),
+            'subject_label' => ContributionRequestPresenter::labelForSubject($contributionRequest->subject_type),
+            'entity_title' => ContributionRequestPresenter::entityTitle($contributionRequest),
+            'status' => $this->enumValue($contributionRequest->status),
+            'status_label' => ContributionRequestPresenter::labelForStatus($contributionRequest->status),
+            'reason_code' => $contributionRequest->reason_code,
+            'proposer_note' => $contributionRequest->proposer_note,
+            'reviewer_note' => $contributionRequest->reviewer_note,
+            'changed_fields' => array_keys($contributionRequest->proposed_data ?? []),
+            'created_at' => $this->optionalDateTimeString($contributionRequest->created_at),
+            'reviewed_at' => $this->optionalDateTimeString($contributionRequest->reviewed_at),
+            'cancelled_at' => $this->optionalDateTimeString($contributionRequest->cancelled_at),
+            'can_cancel' => $contributionRequest->isPending() && (string) $contributionRequest->proposer_id === (string) $currentUser->getKey(),
+            'presentation' => $presentation,
+            'proposer' => $contributionRequest->proposer?->only(['id', 'name', 'email']),
+            'reviewer' => $contributionRequest->reviewer?->only(['id', 'name', 'email']),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function entityData(Event|Institution|Reference|Person $entity): array
+    {
+        return match (true) {
+            $entity instanceof Institution => [
+                'id' => $entity->getKey(),
+                'type' => 'institution',
+                'slug' => $entity->slug,
+                'title' => $entity->display_name,
+                'status' => $entity->status,
+            ],
+            $entity instanceof Person => [
+                'id' => $entity->getKey(),
+                'type' => 'person',
+                'slug' => $entity->slug,
+                'title' => $entity->formatted_name,
+                'status' => $entity->status,
+            ],
+            $entity instanceof Reference => [
+                'id' => $entity->getKey(),
+                'type' => 'reference',
+                'slug' => $entity->slug,
+                'title' => $entity->title,
+                'status' => $entity->status,
+            ],
+            default => [
+                'id' => $entity->getKey(),
+                'type' => 'event',
+                'slug' => $entity->slug,
+                'title' => $entity->title,
+                'status' => (string) $entity->status,
+            ],
+        };
+    }
+
+    /**
+     * @param  list<string>  $directEditMediaFields
+     * @return array<string, list<array{id: string, name: string, url: string, thumb_url: string|null}>>
+     */
+    private function directEditCurrentMediaData(Event|Institution|Reference|Person $entity, array $directEditMediaFields): array
+    {
+        $entity->loadMissing('media');
+        $state = [];
+
+        foreach ($directEditMediaFields as $field) {
+            if ($field === 'gallery') {
+                $state[$field] = $this->multipleDirectEditMediaData(
+                    $entity->getMedia('gallery')->all(),
+                    $entity instanceof Event ? ['thumb'] : ['gallery_thumb', 'thumb'],
+                );
+
+                continue;
+            }
+
+            $state[$field] = $this->singleDirectEditMediaData($entity->getFirstMedia($field), match ($field) {
+                'avatar' => ['profile', 'thumb'],
+                'cover' => ['banner'],
+                'poster' => ['poster_thumb'],
+                default => ['thumb'],
+            });
+        }
+
+        return $state;
+    }
+
+    /**
+     * @param  list<string>  $preferredConversions
+     * @return list<array{id: string, name: string, url: string, thumb_url: string|null}>
+     */
+    private function singleDirectEditMediaData(?Media $media, array $preferredConversions = []): array
+    {
+        if (! $media instanceof Media) {
+            return [];
+        }
+
+        $url = $media->getAvailableUrl($preferredConversions);
+
+        if ($url === '') {
+            $url = $media->getUrl();
+        }
+
+        if ($url === '') {
+            return [];
+        }
+
+        return [[
+            'id' => (string) $media->getKey(),
+            'name' => $media->name,
+            'url' => $url,
+            'thumb_url' => $url,
+        ]];
+    }
+
+    /**
+     * @param  list<Media>  $mediaItems
+     * @param  list<string>  $preferredConversions
+     * @return list<array{id: string, name: string, url: string, thumb_url: string|null}>
+     */
+    private function multipleDirectEditMediaData(array $mediaItems, array $preferredConversions = []): array
+    {
+        return collect($mediaItems)
+            ->map(function (Media $media) use ($preferredConversions): array {
+                $thumbUrl = $media->getAvailableUrl($preferredConversions);
+
+                if ($thumbUrl === '') {
+                    $thumbUrl = $media->getUrl();
+                }
+
+                return [
+                    'id' => (string) $media->getKey(),
+                    'name' => $media->name,
+                    'url' => $media->getUrl(),
+                    'thumb_url' => $thumbUrl !== '' ? $thumbUrl : null,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function httpUrl(mixed $value): ?string
+    {
+        if (! is_string($value) || filter_var($value, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
+        return in_array(strtolower((string) parse_url($value, PHP_URL_SCHEME)), ['http', 'https'], true)
+            ? $value
+            : null;
+    }
+
+    /** @param  array<int|string, mixed>  $contacts */
+    private function hasContactType(array $contacts, string $type): bool
+    {
+        return array_any($contacts, fn ($contact) => is_array($contact) && ($contact['type'] ?? null) === $type);
+    }
+}

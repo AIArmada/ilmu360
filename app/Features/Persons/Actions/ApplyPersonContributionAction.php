@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions;
 
 use AIArmada\Persons\Enums\Gender;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 
 /**
  * Apply an approved contribution update to an existing person.

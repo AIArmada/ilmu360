@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Persistence;
 
 use App\Features\Events\Api\EventHomepageStats;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use Illuminate\Support\Facades\Cache;
 
 final readonly class EventHomepageStatsCacheStore implements EventHomepageStats

@@ -15,7 +15,7 @@ use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Api\PushDestinationManagement;
 use App\Features\Communications\Api\PushDestinationSnapshot;
-use App\Models\Concerns\HasUserRestoration;
+use App\Features\Identity\Support\HasUserRestoration;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Auth\Notifications\ResetPasswordNotification;
 use App\Platform\Auth\Notifications\VerifyEmailNotification;

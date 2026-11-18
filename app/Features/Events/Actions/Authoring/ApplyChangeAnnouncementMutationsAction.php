@@ -8,7 +8,7 @@ use AIArmada\Events\Contracts\EventLifecycleWorkflow;
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Support\EventModel;
 use App\Features\Places\Api\SpaceEligibility;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Shared\Events\Enums\EventChangeType;
 use Illuminate\Validation\ValidationException;
 

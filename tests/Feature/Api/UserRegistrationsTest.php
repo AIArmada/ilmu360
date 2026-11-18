@@ -1,10 +1,10 @@
 <?php
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use Laravel\Sanctum\Sanctum;
 
 test('authenticated user can list own registrations', function () {

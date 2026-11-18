@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Middleware\SetFilamentTimezone;
+use App\Platform\Time\Http\Middleware\SetFilamentTimezone;
 use App\Models\User;
 use Illuminate\Http\Request;
 

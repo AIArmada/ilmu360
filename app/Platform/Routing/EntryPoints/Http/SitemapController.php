@@ -1,0 +1,102 @@
+<?php
+
+namespace App\Platform\Routing\EntryPoints\Http;
+
+use App\Http\Controllers\Controller;
+
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use Illuminate\Http\Response;
+
+class SitemapController extends Controller
+{
+    public function index(): Response
+    {
+        $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        $content .= '<sitemap><loc>'.route('sitemap.events').'</loc></sitemap>';
+        $content .= '<sitemap><loc>'.route('sitemap.institutions').'</loc></sitemap>';
+        $content .= '<sitemap><loc>'.route('sitemap.persons').'</loc></sitemap>';
+        $content .= '</sitemapindex>';
+
+        return response($content)
+            ->header('Content-Type', 'application/xml');
+    }
+
+    public function events(): Response
+    {
+        $events = Event::query()
+            ->active()
+            ->orderBy('updated_at', 'desc')
+            ->take(50000)
+            ->get(['slug', 'updated_at']);
+
+        $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+
+        foreach ($events as $event) {
+            $content .= '<url>';
+            $content .= '<loc>'.route('events.show', $event->slug).'</loc>';
+            $content .= '<lastmod>'.$event->updated_at->toW3cString().'</lastmod>';
+            $content .= '<changefreq>weekly</changefreq>';
+            $content .= '<priority>0.8</priority>';
+            $content .= '</url>';
+        }
+
+        $content .= '</urlset>';
+
+        return response($content)
+            ->header('Content-Type', 'application/xml');
+    }
+
+    public function institutions(): Response
+    {
+        $institutions = Institution::query()
+            ->orderBy('updated_at', 'desc')
+            ->take(50000)
+            ->get(['slug', 'updated_at']);
+
+        $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+
+        foreach ($institutions as $institution) {
+            $content .= '<url>';
+            $content .= '<loc>'.route('institutions.show', $institution->slug).'</loc>';
+            $content .= '<lastmod>'.$institution->updated_at->toW3cString().'</lastmod>';
+            $content .= '<changefreq>monthly</changefreq>';
+            $content .= '<priority>0.6</priority>';
+            $content .= '</url>';
+        }
+
+        $content .= '</urlset>';
+
+        return response($content)
+            ->header('Content-Type', 'application/xml');
+    }
+
+    public function persons(): Response
+    {
+        $persons = Person::query()
+            ->orderBy('updated_at', 'desc')
+            ->take(50000)
+            ->get(['slug', 'updated_at']);
+
+        $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+
+        foreach ($persons as $person) {
+            $content .= '<url>';
+            $content .= '<loc>'.route('persons.show', $person->slug).'</loc>';
+            $content .= '<lastmod>'.$person->updated_at->toW3cString().'</lastmod>';
+            $content .= '<changefreq>monthly</changefreq>';
+            $content .= '<priority>0.5</priority>';
+            $content .= '</url>';
+        }
+
+        $content .= '</urlset>';
+
+        return response($content)
+            ->header('Content-Type', 'application/xml');
+    }
+}

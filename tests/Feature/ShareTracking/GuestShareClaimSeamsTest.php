@@ -5,12 +5,12 @@ declare(strict_types=1);
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ClaimRecipients;
 use App\Shared\ShareTracking\GuestClaims;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
-use App\Support\ShareTracking\ClaimRecipientLookup;
-use App\Support\ShareTracking\GuestClaimLookup;
+use App\Features\ShareTracking\Queries\ClaimRecipientLookup;
+use App\Features\ShareTracking\Queries\GuestClaimLookup;
 use Illuminate\Http\Request;
 
 it('binds the feature claim api and the shared recipient seam', function (): void {

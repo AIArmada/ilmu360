@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Features\Persons\Actions\SyncPersonSearchProjectionAction;
 use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Persistence\PersonSearchCacheStore;
-use App\Support\Search\PersonSearchService;
+use App\Features\Persons\Services\PersonSearchService;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function (): void {

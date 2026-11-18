@@ -22,6 +22,9 @@
     ],
     "table:share_source_attribution_receipts": [
       "App\\Features\\ShareTracking\\Persistence\\DatabaseSourceAttributionReceipts"
+    ],
+    "store:share-analytics-dashboard": [
+      "App\\Features\\ShareTracking\\Persistence\\ShareAnalyticsDashboardCacheStore"
     ]
   },
   "aliases": {

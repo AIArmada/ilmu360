@@ -19,7 +19,7 @@ use AIArmada\Rewards\Enums\RewardAwardStatus;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Models\RewardAward;
-use App\Models\RewardDigestSlot;
+use App\Features\Rewards\Models\RewardDigestSlot;
 use Carbon\CarbonImmutable;
 use Tests\Feature\Rewards\Host\Support\FakeRewardSourceFactReader;
 use Tests\Feature\Rewards\Host\Support\RewardCharacterizationFixtures;

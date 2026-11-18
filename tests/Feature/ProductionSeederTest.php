@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
-use App\Models\Space;
+use App\Features\Places\Models\Space;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\FacilityTypeSeeder;
 use Database\Seeders\InspirationSeeder;

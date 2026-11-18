@@ -2,7 +2,7 @@
 
 namespace App\Platform\Language;
 
-use App\Models\Language;
+use App\Platform\Language\Models\Language;
 use App\Shared\Language\LanguageCatalog;
 
 final class DatabaseLanguageCatalog implements LanguageCatalog

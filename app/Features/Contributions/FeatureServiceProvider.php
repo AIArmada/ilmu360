@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions;
 
+use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
+use App\Platform\Admin\FilamentResourceRegistry;
+
 use App\Features\Contributions\Actions\ApplyDirectContributionUpdateAction;
 use App\Features\Contributions\Actions\EnsureNoPendingContributionRequestAction;
 use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
@@ -44,7 +47,7 @@ use App\Shared\Contributions\InstitutionClaimGuard;
  * duplicate re-check, staged-entity verification, mutate-then-status order,
  * post-transaction notification and staged-media ordering all stay identical.
  * Directory and Events row mutations run through their public Api contracts;
- * the root ContributionEntityMutationService stays a read/projection adapter
+ * the root ContributionEntityStateService stays a read/projection adapter
  * and holds no request writes.
  *
  * ContributionsAccountLifecycleContributor rewrites proposer/reviewer links
@@ -75,5 +78,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->tag([
             ContributionsAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
+
+        $this->app->make(FilamentResourceRegistry::class)->register(ContributionRequestResource::class);
     }
 }

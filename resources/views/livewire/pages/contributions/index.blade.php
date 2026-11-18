@@ -374,7 +374,7 @@
                                         </div>
 
                                         <p class="text-base font-semibold text-slate-900">
-                                            {{ \App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter::entityTitle($request) }}
+                                            {{ \App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter::entityTitle($request) }}
                                         </p>
 
                                         <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $request->created_at?->diffForHumans()]) }}</p>
@@ -439,7 +439,7 @@
                                         </div>
 
                                         <p class="text-base font-semibold text-slate-900">
-                                            {{ \App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter::entityTitle($request) }}
+                                            {{ \App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter::entityTitle($request) }}
                                         </p>
 
                                         <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $request->created_at?->diffForHumans()]) }}</p>

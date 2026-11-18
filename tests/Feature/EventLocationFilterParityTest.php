@@ -3,14 +3,14 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
-use App\Data\Api\Frontend\Search\EventListData;
-use App\Data\EventDiscoveryCriteriaFactory;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Venue;
-use App\Services\EventSearchService;
-use App\Services\PostgresEventDiscovery;
-use App\Support\EventDiscovery\EventCardRelationshipProvider;
+use App\Features\Discovery\EntryPoints\Http\Data\EventListData;
+use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Places\Models\Venue;
+use App\Features\Discovery\Services\EventSearchService;
+use App\Features\Discovery\Services\PostgresEventDiscovery;
+use App\Features\Discovery\Queries\EventCardRelationshipProvider;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 

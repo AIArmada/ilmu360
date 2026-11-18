@@ -1,7 +1,7 @@
 <?php
 
-use App\Livewire\Pages\Events\Index;
-use App\Models\Institution;
+use App\Features\Events\EntryPoints\Livewire\Pages\Index;
+use App\Features\Institutions\Models\Institution;
 use Filament\Forms\Components\Select;
 use Livewire\Livewire;
 

@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Persons\Models\Person;
 use Database\Seeders\ProductionSpeakerSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;

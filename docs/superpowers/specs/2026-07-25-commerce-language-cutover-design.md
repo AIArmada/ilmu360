@@ -12,7 +12,7 @@ Remove the `nnjeim/world` package dependency and replace its `languages` table a
 ### In scope
 
 - Replace `languages` reference table (integer PK → UUID PK)
-- Replace `Nnjeim\World\Models\Language` → new `App\Models\Language`
+- Replace `Nnjeim\World\Models\Language` → new `App\Platform\Language\Models\Language`
 - Update `languageables` pivot column type (`bigint` → `uuid`)
 - Update all ~15 app files importing `Nnjeim\World\Models\Language`
 - Update all form fields, API endpoints, seeders, factories, tests
@@ -66,7 +66,7 @@ No nnjeim/world dependency.
 
 | Artifact | Purpose |
 |----------|---------|
-| `App\Models\Language` | Eloquent model for commerce-support's `languages` table (the package provides no model) |
+| `App\Platform\Language\Models\Language` | Eloquent model for commerce-support's `languages` table (the package provides no model) |
 | Migration: drop old `languages`, create new UUID-schema `languages` | Replace the reference table |
 | Migration: alter `languageables.language_id` `bigint` → `uuid` | Match new PK type |
 
@@ -101,7 +101,7 @@ No nnjeim/world dependency.
 
 The `event_languages` table stores `language_code` directly (string, no FK). Schema unchanged.
 
-## 5. New `App\Models\Language`
+## 5. New `App\Platform\Language\Models\Language`
 
 ```php
 namespace App\Models;
@@ -126,8 +126,8 @@ class Language extends Model
 
 | File | Change |
 |------|--------|
-| `app/Models/Concerns/HasLanguages.php` | `use Nnjeim\World\Models\Language` → `use App\Models\Language`; return type unchanged |
-| `app/Models/Event.php` | `use Nnjeim\World\Models\Language` → `use App\Models\Language`; `syncLanguages()` resolves UUIDs to codes |
+| `app/Models/Concerns/HasLanguages.php` | `use Nnjeim\World\Models\Language` → `use App\Platform\Language\Models\Language`; return type unchanged |
+| `app/Models/Event.php` | `use Nnjeim\World\Models\Language` → `use App\Platform\Language\Models\Language`; `syncLanguages()` resolves UUIDs to codes |
 | `app/Models/Person.php` | No import change (uses `HasLanguages` concern) |
 | `app/Models/Series.php` | No import change (uses `HasLanguages` concern) |
 | `app/Models/Institution.php` | No import change (uses `HasLanguages` concern) |
@@ -136,8 +136,8 @@ class Language extends Model
 
 | File | Change |
 |------|--------|
-| `app/Forms/EventContributionFormSchema.php` | `use Nnjeim\World\Models\Language` → `use App\Models\Language` |
-| `app/Forms/PersonContributionFormSchema.php` | `use Nnjeim\World\Models\Language` → `use App\Models\Language` |
+| `app/Forms/EventContributionFormSchema.php` | `use Nnjeim\World\Models\Language` → `use App\Platform\Language\Models\Language` |
+| `app/Forms/PersonContributionFormSchema.php` | `use Nnjeim\World\Models\Language` → `use App\Platform\Language\Models\Language` |
 | `app/Livewire/Pages/Events/AdvancedFiltersPanel.php` | Same import swap |
 | `app/Livewire/Pages/Events/Index.php` | Same import swap |
 | `app/Livewire/Pages/SubmitEvent/Create.php` | Same import swap |
@@ -148,7 +148,7 @@ class Language extends Model
 |------|--------|
 | `app/Filament/Resources/Series/Schemas/SeriesForm.php` | `->relationship('languages', 'name')` — continues to work via `HasLanguages` concern |
 | `app/Filament/Resources/Persons/Schemas/PersonForm.php` | Same — no change needed |
-| `app/Filament/Resources/Series/Pages/EditSeries.php` | `use Nnjeim\World\Models\Language` → `use App\Models\Language` |
+| `app/Filament/Resources/Series/Pages/EditSeries.php` | `use Nnjeim\World\Models\Language` → `use App\Platform\Language\Models\Language` |
 | `app/Filament/Resources/Series/Pages/CreateSeries.php` | Same import swap |
 
 ### services & support
@@ -182,7 +182,7 @@ class Language extends Model
 
 | File | Change |
 |------|--------|
-| `resources/views/livewire/pages/events/index.blade.php` | `\Nnjeim\World\Models\Language` → `\App\Models\Language` |
+| `resources/views/livewire/pages/events/index.blade.php` | `\Nnjeim\World\Models\Language` → `\App\Platform\Language\Models\Language` |
 | `resources/views/components/pages/submit-event/partials/review-preview.blade.php` | Same FQN swap |
 
 ### config & dependencies
@@ -232,7 +232,7 @@ No change to `event_languages` table or the stored `language_code` values.
 ```
 (`id` is UUID string)
 
-### Admin API: ContributionEntityMutationService
+### Admin API: ContributionEntityStateService
 
 Validation `'language_ids.*' => ['integer', 'exists:languages,id']` changes to `['string', 'uuid', 'exists:languages,id']`.
 

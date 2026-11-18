@@ -1,0 +1,56 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Places\EntryPoints\Filament\Resources\Venues;
+
+use AIArmada\FilamentEvents\Resources\VenueResource as PackageVenueResource;
+use App\Features\Places\EntryPoints\Filament\Resources\Venues\Pages\ListVenues;
+use App\Features\Places\EntryPoints\Filament\Resources\Venues\Pages\ViewVenue;
+use App\Features\Places\EntryPoints\Filament\Resources\Venues\RelationManagers\SpacesRelationManager;
+use App\Features\Places\Models\Venue;
+use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+
+final class VenueResource extends Resource
+{
+    #[\Override]
+    protected static ?string $model = Venue::class;
+
+    #[\Override]
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
+
+    #[\Override]
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getNavigationGroup(): string
+    {
+        return 'Directory';
+    }
+
+    public static function table(Table $table): Table
+    {
+        return PackageVenueResource::table($table);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return PackageVenueResource::infolist($schema);
+    }
+
+    public static function getRelations(): array
+    {
+        return [SpacesRelationManager::class];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListVenues::route('/'),
+            'view' => ViewVenue::route('/{record}'),
+        ];
+    }
+}

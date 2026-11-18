@@ -12,8 +12,8 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
-use App\Shared\Events\OrganizerResolver;
-use App\Shared\Submission\SubmissionTimingPolicy;
+use App\Features\Events\Services\OrganizerResolver;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,7 +41,7 @@ final readonly class AdminEventInputPreparer
     ) {}
 
     /**
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @param  array<string, mixed>  $data
      * @return PreparedAdminEventInput
      */
@@ -75,7 +75,7 @@ final readonly class AdminEventInputPreparer
     }
 
     /**
-     * @param  \App\Models\Event  $event
+     * @param  \App\Features\Events\Models\Event  $event
      * @param  PreparedAdminEventInput  $input
      * @return array<string, mixed>
      */

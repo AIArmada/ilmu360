@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 use AIArmada\Organizations\Models\Organization;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 
 return [
 

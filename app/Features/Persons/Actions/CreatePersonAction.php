@@ -6,7 +6,7 @@ namespace App\Features\Persons\Actions;
 
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Membership\Api\MembershipCommands;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;

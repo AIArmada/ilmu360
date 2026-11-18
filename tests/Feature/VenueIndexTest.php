@@ -5,7 +5,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 

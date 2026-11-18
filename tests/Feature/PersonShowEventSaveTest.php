@@ -2,9 +2,9 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Bookmark;
-use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use Livewire\Livewire;

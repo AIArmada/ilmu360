@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Persons\Models\Person;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

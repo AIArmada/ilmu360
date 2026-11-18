@@ -2,7 +2,7 @@
 
 namespace App\Platform\Auditing;
 
-use App\Models\Audit;
+use App\Platform\Auditing\Models\Audit;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;

@@ -6,7 +6,7 @@ use App\Features\Communications\Api\NotificationCatalog;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
 use App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard\AccountSettings;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Auth\Notifications\VerifyEmailNotification;
 use Filament\Forms\Components\Select as FormSelect;

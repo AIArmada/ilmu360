@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 
 it('renders the redesigned person hero with stable event totals and sharing anchor', function () {
     $person = Person::factory()->create(['status' => 'verified']);

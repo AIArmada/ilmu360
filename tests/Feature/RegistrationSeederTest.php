@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Events\Models\EventAccessPolicy;
-use App\Models\Event;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Database\Seeders\RegistrationSeeder;
 use Illuminate\Support\Facades\Schema;

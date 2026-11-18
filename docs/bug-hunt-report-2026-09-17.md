@@ -117,7 +117,7 @@ Verified untracked via `git status` (`?? public/images/institutions/`, `?? publi
 - **DB constraints:** no `->constrained()` or `->cascadeOnDelete()` in `database/migrations/` — the UUID-no-FK policy holds.
 - **SoftDeletes:** none; `spatie/laravel-deleted-models` convention holds.
 - **Uncommitted view/CSS work:** the `living-majlis` art-direction changes are internally consistent — all referenced CSS classes exist in `app.css` (45 occurrences), the reduced-motion block covers every animated selector including the new `living-majlis-header-button`, `forced-colors` handling is present, `wire:key` usage is correct, and the fallback chain `public_cover_url → public_logo_url → placeholder` is null-safe.
-- **`Event::active()` scope:** resolves correctly via the Laravel `#[Scope]` attribute (`protected function active(Builder $query)` on `App\Models\Event`) — initially a false alarm during the hunt, confirmed present.
+- **`Event::active()` scope:** resolves correctly via the Laravel `#[Scope]` attribute (`protected function active(Builder $query)` on `App\Features\Events\Models\Event`) — initially a false alarm during the hunt, confirmed present.
 - **Home date-filter component:** counts events per user-local day via `UserDateTimeFormatter::format($event->starts_at, 'Y-m-d')` and passes matching date-only strings to the events index — correct timezone handling.
 
 ---

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\References\Persistence;
 
 use App\Features\References\Api\ReferenceHomepageStats;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use Illuminate\Support\Facades\Cache;
 
 final readonly class ReferenceHomepageStatsCacheStore implements ReferenceHomepageStats

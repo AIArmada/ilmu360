@@ -9,7 +9,7 @@ namespace App\Shared\Contributions;
  *
  * Contributions computes `original_data` for update requests from the target
  * entity's current state. The projection stays with the conventional
- * ContributionEntityMutationService while the owning features still expose
+ * ContributionEntityStateService while the owning features still expose
  * their state through it; this contract lets the Contributions feature consume
  * the projection without importing the root adapter.
  */

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 
 it('keeps only one default donation channel per owner when creating a new default', function () {
     $institution = Institution::factory()->create();

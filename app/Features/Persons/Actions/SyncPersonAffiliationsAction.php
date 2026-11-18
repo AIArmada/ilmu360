@@ -6,8 +6,8 @@ namespace App\Features\Persons\Actions;
 
 use AIArmada\Persons\Enums\AffiliationType;
 use App\Features\Institutions\Api\InstitutionLookup;
-use App\Models\Affiliation;
-use App\Models\Person;
+use App\Features\Persons\Models\Affiliation;
+use App\Features\Persons\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;

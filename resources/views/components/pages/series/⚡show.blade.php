@@ -2,9 +2,9 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Livewire\Concerns\LoadsEventPageData;
-use App\Models\Event;
-use App\Models\Series;
+use App\Features\Events\EntryPoints\Livewire\Concerns\LoadsEventPageData;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\Series;
 use App\Shared\Auth\IntendedRedirect;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -162,7 +162,7 @@ new
         'fallbackTitle' => $series->title,
         'payloadEndpoint' => route('share.payload'),
     ];
-    $seriesShareLinks = app(\App\Services\ShareTracking\AffiliatesShareTrackingService::class)->redirectLinks(
+    $seriesShareLinks = app(\App\Features\ShareTracking\Services\AffiliatesShareTrackingService::class)->redirectLinks(
         $seriesUrl,
         $seriesShareText,
         $series->title,
@@ -172,9 +172,9 @@ new
     $backCover = null;
 
     // ── Helpers identical to person page ────────────────────────────────────
-    $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Platform\Ui\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
+    $resolveEventCategoryLabel = static fn (\App\Features\Events\Models\Event $event): string => app(\App\Features\Events\EntryPoints\Ui\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
 
-    $resolveVenueLocation = static function (\App\Models\Event $event) use ($resolveEventCategoryLabel): string {
+    $resolveVenueLocation = static function (\App\Features\Events\Models\Event $event) use ($resolveEventCategoryLabel): string {
         $primaryLocationName = $event->resolvedLocationName();
         $address = $event->resolvedLocationAddress();
 
@@ -186,13 +186,13 @@ new
         return $parts !== [] ? implode(', ', $parts) : (string) $primaryLocationName;
     };
 
-    $resolveEventTimeDisplay = static function (\App\Models\Event $event): string {
+    $resolveEventTimeDisplay = static function (\App\Features\Events\Models\Event $event): string {
         return $event->timing_display !== ''
             ? $event->timing_display
             : \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'h:i A');
     };
 
-    $resolveEventEndTimeDisplay = static function (\App\Models\Event $event): string {
+    $resolveEventEndTimeDisplay = static function (\App\Features\Events\Models\Event $event): string {
         return \App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
     };
 @endphp
@@ -567,7 +567,7 @@ new
                                             $venueLocation = $resolveVenueLocation($event);
                                             $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                             $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
-                                            $isPendingEvent = $event->status instanceof \App\States\EventStatus\Pending;
+                                            $isPendingEvent = $event->status instanceof \App\Features\Events\States\EventStatus\Pending;
                                         @endphp
                                         <a href="{{ route('events.show', $event) }}" wire:navigate
                                             wire:key="upcoming-{{ $event->id }}"
@@ -677,7 +677,7 @@ new
                                             $pastVenueLocation = $resolveVenueLocation($event);
                                             $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                             $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
-                                            $isPendingEvent = $event->status instanceof \App\States\EventStatus\Pending;
+                                            $isPendingEvent = $event->status instanceof \App\Features\Events\States\EventStatus\Pending;
                                         @endphp
                                         <a href="{{ route('events.show', $event) }}" wire:navigate
                                             wire:key="past-{{ $event->id }}"

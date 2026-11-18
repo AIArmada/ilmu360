@@ -1,12 +1,12 @@
 <?php
 
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Models\Event;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Events\Models\Event;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Support\Search\ReferenceSearchService;
+use App\Features\References\Services\ReferenceSearchService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;

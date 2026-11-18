@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
-use App\Filament\Resources\Institutions\Pages\EditInstitution;
-use App\Filament\Resources\Institutions\RelationManagers\EventsRelationManager;
-use App\Models\Event;
-use App\Models\Institution;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Pages\EditInstitution;
+use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\RelationManagers\EventsRelationManager;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Shared\Events\Enums\EventFormat;
 use Illuminate\Database\Eloquent\Relations\HasMany;

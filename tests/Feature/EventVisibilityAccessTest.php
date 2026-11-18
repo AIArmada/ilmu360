@@ -1,8 +1,8 @@
 <?php
 
-use App\Livewire\Pages\Events\Show;
-use App\Models\Event;
-use App\Models\EventSubmission;
+use App\Features\Events\EntryPoints\Livewire\Pages\Show;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventSubmission;
 use App\Models\User;
 use App\Shared\Events\Enums\EventVisibility;
 use Livewire\Livewire;

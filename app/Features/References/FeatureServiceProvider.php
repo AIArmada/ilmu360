@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\References;
 
+use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
+use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
+use App\Platform\Admin\FilamentResourceRegistry;
+
 use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceQueries;
@@ -15,7 +19,7 @@ use App\Features\References\Queries\EloquentReferenceLookup;
 use App\Features\References\Queries\ReferenceResourceSearchAdapter;
 use App\Features\References\Services\ReferenceQueryService;
 use App\Features\References\Services\ReferenceWorkflowService;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -35,6 +39,10 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(ReferenceLookup::class, EloquentReferenceLookup::class);
         $this->app->bind(ReferenceHomepageStats::class, ReferenceHomepageStatsCacheStore::class);
         $this->app->tag([ReferenceResourceSearchAdapter::class], ResourceSearchAdapter::TAG);
+
+        $resources = $this->app->make(FilamentResourceRegistry::class);
+        $resources->register(ReferenceResource::class, FilamentResourceRegistry::PANEL_ADMIN);
+        $resources->register(AhliReferenceResource::class, FilamentResourceRegistry::PANEL_AHLI);
     }
 
     public function boot(): void

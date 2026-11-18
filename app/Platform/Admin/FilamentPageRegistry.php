@@ -13,13 +13,17 @@ use InvalidArgumentException;
  */
 final class FilamentPageRegistry
 {
-    /** @var list<class-string<Page>> */
+    public const string PANEL_ADMIN = 'admin';
+
+    public const string PANEL_AHLI = 'ahli';
+
+    /** @var array<string, list<class-string<Page>>> */
     private array $pages = [];
 
     /**
      * @param  class-string<Page>  $page
      */
-    public function register(string $page): void
+    public function register(string $page, string $panel = self::PANEL_ADMIN): void
     {
         if (! is_subclass_of($page, Page::class)) {
             throw new InvalidArgumentException(sprintf(
@@ -29,16 +33,16 @@ final class FilamentPageRegistry
             ));
         }
 
-        if (! in_array($page, $this->pages, true)) {
-            $this->pages[] = $page;
+        if (! in_array($page, $this->pages[$panel] ?? [], true)) {
+            $this->pages[$panel][] = $page;
         }
     }
 
     /**
      * @return list<class-string<Page>>
      */
-    public function all(): array
+    public function all(string $panel = self::PANEL_ADMIN): array
     {
-        return $this->pages;
+        return $this->pages[$panel] ?? [];
     }
 }

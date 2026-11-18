@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Scout\Jobs\MakeSearchable;
 

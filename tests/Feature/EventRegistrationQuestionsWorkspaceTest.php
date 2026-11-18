@@ -5,7 +5,7 @@ declare(strict_types=1);
 use AIArmada\Events\Enums\EventRegistrationQuestionStatus;
 use AIArmada\Events\Models\EventRegistrationQuestion;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\RegistrationQuestions;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 use Livewire\Livewire;
 

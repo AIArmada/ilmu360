@@ -207,7 +207,7 @@ Not fixed (out of scope for this session); needs a dependency/asset-level invest
 
 ## 9. NEW FIX — `middle_name` dropped from person update requests
 
-The public suggest-update form (`/sumbangan/penceramah/{slug}/kemas-kini`) silently discarded `middle_name` changes: `ContributionEntityMutationService::personState()` omitted `middle_name`, and `ResolveContributionChangedPayloadAction` only diffs keys present in the baseline (`array_key_exists` guard), so the update request's `proposed_data` never contained it.
+The public suggest-update form (`/sumbangan/penceramah/{slug}/kemas-kini`) silently discarded `middle_name` changes: `ContributionEntityStateService::personState()` omitted `middle_name`, and `ResolveContributionChangedPayloadAction` only diffs keys present in the baseline (`array_key_exists` guard), so the update request's `proposed_data` never contained it.
 
 - Fix: added `'middle_name' => $person->middle_name,` to `personState()` (1 line).
 - Regression test: `it('captures middle name changes in a non-owner person update request')` in `tests/Feature/ContributionPagesTest.php` — PASS.

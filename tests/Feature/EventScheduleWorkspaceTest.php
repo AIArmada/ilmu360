@@ -5,7 +5,7 @@ declare(strict_types=1);
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Events\EntryPoints\Livewire\Pages\Dashboard\Events\Schedule;
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Livewire\Livewire;

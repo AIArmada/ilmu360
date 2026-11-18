@@ -6,7 +6,7 @@ use App\Features\Contributions\Support\ContributionModel;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Shared\Contributions\ContributionRequestNotifier;
+use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use Illuminate\Database\Eloquent\Model;
@@ -24,8 +24,8 @@ class RejectContributionRequestAction
     ) {}
 
     /**
-     * @param  \App\Models\ContributionRequest  $request
-     * @return \App\Models\ContributionRequest
+     * @param  \App\Features\Contributions\Models\ContributionRequest  $request
+     * @return \App\Features\Contributions\Models\ContributionRequest
      */
     public function handle(
         Model $request,

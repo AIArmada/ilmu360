@@ -1,7 +1,7 @@
 <?php
 
 use App\Features\Persons\Api\SpeakerStatus;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 
 it('shows the first five eligible featured speakers in curated order', function () {
     $featured = collect([

@@ -23,7 +23,7 @@ use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardRecovery;
-use App\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;

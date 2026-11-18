@@ -2,7 +2,7 @@
 
 namespace App\Platform\Auditing;
 
-use App\Models\Audit;
+use App\Platform\Auditing\Models\Audit;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Tabs;

@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventSeriesFactory;
-use App\Models\Series;
+use App\Features\Events\Models\Series;
 use Illuminate\Support\Str;
 
 class SeriesFactory extends EventSeriesFactory

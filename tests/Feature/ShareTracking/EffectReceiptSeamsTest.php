@@ -6,7 +6,7 @@ use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
-use App\Models\ShareEffectReceipt;
+use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Platform\FeatureCatalog;
 use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;

@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Models\Reference;
+use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Policies\ReferencePolicy;
-use App\Support\Authz\MemberPermissionGate;
+use App\Features\References\Policies\ReferencePolicy;
+use App\Features\Membership\Services\MemberPermissionGate;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {

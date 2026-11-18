@@ -50,7 +50,7 @@ use Illuminate\Support\Facades\Gate;
  * `PlanRewardGratitudeDigestAction`, `DispatchDueRewardDigestsAction` and
  * `CancelRewardDigestAction` under `Actions\GratitudeDigests`.
  *
- * The slot model stays root (`App\Models\RewardDigestSlot`) with a literal
+ * The slot model stays root (`App\Features\Rewards\Models\RewardDigestSlot`) with a literal
  * `$table`; feature code resolves it through the `reward_digest_slot` morph
  * alias and `Support\RewardsModel`, never by importing the root model.
  *

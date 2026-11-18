@@ -17,7 +17,7 @@
         ?? $scheduleLeaf->sessions->first()?->locations->first();
     $sessions = $sessions ?? $scheduleLeaf->sessions;
     $locationPrimary = $location?->venue?->name ?? $location?->label ?? $event->resolvedLocationName();
-    $address = $location?->venue instanceof \App\Models\Venue
+    $address = $location?->venue instanceof \App\Features\Places\Models\Venue
         ? $location->venue->primaryAddress()
         : null;
     $address ??= $event->resolvedLocationAddress();

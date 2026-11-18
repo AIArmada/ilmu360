@@ -15,11 +15,11 @@ use AIArmada\Communications\Enums\NotificationTrigger as PackageNotificationTrig
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationInboxManagement;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Services\Notifications\EventNotificationService;
+use App\Features\Events\Notifications\EventNotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
 

@@ -1,0 +1,60 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels;
+
+use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Pages\CreateDonationChannel;
+use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Pages\EditDonationChannel;
+use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Pages\ListDonationChannels;
+use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Schemas\DonationChannelForm;
+use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Tables\DonationChannelsTable;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Platform\Auditing\AuditsRelationManager;
+use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+
+class DonationChannelResource extends Resource
+{
+    #[\Override]
+    protected static ?string $model = DonationChannel::class;
+
+    #[\Override]
+    protected static bool $shouldRegisterNavigation = false;
+
+    #[\Override]
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    #[\Override]
+    public static function form(Schema $schema): Schema
+    {
+        return DonationChannelForm::configure($schema);
+    }
+
+    #[\Override]
+    public static function table(Table $table): Table
+    {
+        return DonationChannelsTable::configure($table);
+    }
+
+    #[\Override]
+    public static function getRelations(): array
+    {
+        return [
+            AuditsRelationManager::class,
+        ];
+    }
+
+    #[\Override]
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListDonationChannels::route('/'),
+            'create' => CreateDonationChannel::route('/create'),
+            'edit' => EditDonationChannel::route('/{record}/edit'),
+        ];
+    }
+}

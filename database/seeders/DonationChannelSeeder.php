@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\DonationChannel;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;

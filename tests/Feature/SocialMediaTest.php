@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Contacting\Models\SocialProfile;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Venue;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Venue;
 
 test('institution can have social media', function () {
     $institution = Institution::factory()->create();

@@ -1,12 +1,12 @@
 <?php
 
 use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
-use App\Models\ContributionRequest;
-use App\Models\Institution;
+use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;

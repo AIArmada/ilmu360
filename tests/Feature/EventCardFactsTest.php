@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Event;
-use App\Models\Institution;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
 use App\Shared\Events\Enums\EventFormat;
 
 it('shows approval only for approved events independently of schedule notices', function (string $status, ?string $approvalLabel) {

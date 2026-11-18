@@ -49,7 +49,7 @@
         'draft' => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
         default => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
     };
-    $eventDateParts = static function (\App\Models\Event $event): array {
+    $eventDateParts = static function (\App\Features\Events\Models\Event $event): array {
         if (! $event->starts_at instanceof \Carbon\CarbonInterface) {
             return [
                 'day' => '--',
@@ -64,7 +64,7 @@
             'weekday' => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'D'),
         ];
     };
-    $eventTimeLabel = static function (\App\Models\Event $event): string {
+    $eventTimeLabel = static function (\App\Features\Events\Models\Event $event): string {
         if (! $event->starts_at instanceof \Carbon\CarbonInterface) {
             return __('Time to be confirmed');
         }
@@ -81,19 +81,19 @@
 
         return $start.' - '.\App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
     };
-    $eventLocationLabel = static fn (\App\Models\Event $event): string => \App\Platform\Ui\Places\SpaceLocationPresenter::name($event->primaryLocation)
+    $eventLocationLabel = static fn (\App\Features\Events\Models\Event $event): string => \App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter::name($event->primaryLocation)
         ?? $event->venue?->name
         ?? $event->institution?->display_name
         ?? __('Location to be confirmed');
     $canEditInstitution = $selectedInstitution !== null && (auth()->user()?->can('update', $selectedInstitution) ?? false);
     $institutionEditUrl = $canEditInstitution
         ? route('contributions.suggest-update', [
-            'subjectType' => \App\Shared\Contributions\Enums\ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectType' => \App\Features\Contributions\Support\ContributionSubjectType::Institution->publicRouteSegment(),
             'subjectId' => $selectedInstitution->slug,
         ])
         : null;
     $ahliInstitutionInvitationsUrl = $selectedInstitution !== null && $canManageMembers
-        ? \App\Filament\Ahli\Resources\Institutions\InstitutionResource::getUrl('edit', ['record' => $selectedInstitution, 'relation' => 'member_invitations'], panel: 'ahli')
+        ? \App\Features\Institutions\EntryPoints\Filament\Ahli\Resources\Institutions\InstitutionResource::getUrl('edit', ['record' => $selectedInstitution, 'relation' => 'member_invitations'], panel: 'ahli')
         : null;
     $institutionSubmitUrl = $selectedInstitution !== null && $canUseSelectedInstitutionForScopedSubmission
         ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitution->id])
@@ -366,7 +366,7 @@
                                         $dateParts = $eventDateParts($event);
                                         $canEditEvent = auth()->user()?->can('update', $event) ?? false;
                                         $ahliEventEditUrl = $canEditEvent
-                                            ? \App\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
+                                            ? \App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
                                             : null;
                                         $duplicateEventUrl = $canEditEvent && $canUseSelectedInstitutionForScopedSubmission
                                             ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitution->id, 'duplicate' => $event->id])
@@ -471,7 +471,7 @@
                                         $statusValue = (string) $event->status;
                                         $canEditEvent = auth()->user()?->can('update', $event) ?? false;
                                         $ahliEventEditUrl = $canEditEvent
-                                            ? \App\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
+                                            ? \App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
                                             : null;
                                     @endphp
 

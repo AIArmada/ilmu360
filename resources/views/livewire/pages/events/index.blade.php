@@ -707,9 +707,9 @@
                                         $primaryLocationName = $scheduleLocation?->venue?->name
                                             ?? $scheduleLocation?->label
                                             ?? $event->resolvedLocationName();
-                                        $locationSpaceName = \App\Platform\Ui\Places\SpaceLocationPresenter::name($scheduleLocation);
+                                        $locationSpaceName = \App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter::name($scheduleLocation);
                                         $scheduleVenue = $scheduleLocation?->venue;
-                                        $addressModel = $scheduleVenue instanceof \App\Models\Venue
+                                        $addressModel = $scheduleVenue instanceof \App\Features\Places\Models\Venue
                                             ? $scheduleVenue->primaryAddress()
                                             : null;
                                         $addressModel ??= $event->resolvedLocationAddress();
@@ -729,9 +729,9 @@
                                         $cardTimingText = $scheduleLeaf->timingText();
                                         $scheduleStatus = $primaryOccurrence->status;
                                         $statusBadgeLabel = $eventChangeBadgeLabel;
-                                        $statusBadgeClass = $event->status instanceof \App\States\EventStatus\Pending
+                                        $statusBadgeClass = $event->status instanceof \App\Features\Events\States\EventStatus\Pending
                                             ? 'border-amber-100 bg-amber-50 text-amber-700'
-                                            : (in_array((string) $scheduleStatus, ['postponed', 'rescheduled'], true) || $event->status instanceof \App\States\EventStatus\Cancelled
+                                            : (in_array((string) $scheduleStatus, ['postponed', 'rescheduled'], true) || $event->status instanceof \App\Features\Events\States\EventStatus\Cancelled
                                                 ? 'border-rose-100 bg-rose-50 text-rose-700'
                                                 : ($eventChangeBadgeLabel ? 'border-sky-100 bg-sky-50 text-sky-700' : 'border-emerald-100 bg-emerald-50 text-emerald-700'));
                                         $eventUrl = $scheduleLeaf->url();

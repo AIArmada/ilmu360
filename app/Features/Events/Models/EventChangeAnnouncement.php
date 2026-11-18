@@ -1,0 +1,115 @@
+<?php
+
+namespace App\Features\Events\Models;
+
+use AIArmada\Events\Models\EventUpdate;
+use AIArmada\Events\Models\EventUpdateItem;
+use App\Features\Events\Api\EventChangeSeverity;
+use App\Shared\Events\Enums\EventChangeType;
+use Database\Factories\EventChangeAnnouncementFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\User;
+
+class EventChangeAnnouncement extends EventUpdate
+{
+    protected $table = 'event_updates';
+
+    /**
+     * The inherited items relation resolves its foreign key from the parent
+     * class name (event_change_announcement_id), which does not exist. Pin
+     * the real key.
+     *
+     * @return HasMany<EventUpdateItem, $this>
+     */
+    #[\Override]
+    public function items(): HasMany
+    {
+        return $this->hasMany(EventUpdateItem::class, 'event_update_id');
+    }
+
+    #[\Override]
+    protected $fillable = [
+        'id',
+        'event_id',
+        'replacement_event_id',
+        'update_type',
+        'title',
+        'message',
+        'notes',
+        'severity',
+        'visibility',
+        'published_at',
+        'archived_at',
+        'created_by_type',
+        'created_by_id',
+        'metadata',
+    ];
+
+    #[\Override]
+    protected function casts(): array
+    {
+        return array_merge(parent::casts(), [
+            'update_type' => EventChangeType::class,
+            'severity' => EventChangeSeverity::class,
+        ]);
+    }
+
+    #[\Override]
+    public function event(): BelongsTo
+    {
+        /** @phpstan-ignore-next-line childReturnType (covariant override) */
+        return $this->belongsTo(Event::class);
+    }
+
+    /**
+     * @return BelongsTo<Event, $this>
+     */
+    public function replacementEvent(): BelongsTo
+    {
+        return $this->belongsTo(Event::class, 'replacement_event_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    #[\Override]
+    protected static function newFactory(): EventChangeAnnouncementFactory
+    {
+        return EventChangeAnnouncementFactory::new();
+    }
+
+    #[\Override]
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (self $model): void {
+            if (empty($model->title)) {
+                $model->title = $model->message ?? 'Pengumuman perubahan';
+            }
+
+            if (empty($model->visibility)) {
+                $model->visibility = 'public';
+            }
+        });
+    }
+
+    /**
+     * @param  Builder<EventChangeAnnouncement>  $query
+     */
+    #[Scope]
+    protected function published(Builder $query): void
+    {
+        $query
+            ->whereNotNull('published_at')
+            ->whereNull('archived_at');
+    }
+}

@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Shared\Directory\Enums\ReferenceType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
  */
 class ReferenceFactory extends Factory
 {
+    protected $model = Reference::class;
+
     /**
      * Define the model's default state.
      *

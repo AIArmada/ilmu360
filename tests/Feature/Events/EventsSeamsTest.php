@@ -14,17 +14,17 @@ use App\Features\Events\Services\EventReportSubjectResolver;
 use App\Features\Events\Services\EventSubmissionsService;
 use App\Features\Events\Support\EventModel;
 use App\Features\Reports\Services\CompositeReportSubjectResolver;
-use App\Models\Event;
-use App\Models\EventKeyPerson;
-use App\Models\EventSubmission;
-use App\Models\Registration;
-use App\Models\Series;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\Models\EventSubmission;
+use App\Features\Registration\Models\Registration;
+use App\Features\Events\Models\Series;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Reports\ReportSubjectResolver;
 use App\Shared\Taxonomy\EventTaxonomyCode;
-use App\Support\Events\EventModerationAdapter;
+use App\Features\Events\Services\EventModerationAdapter;
 
 it('binds the events seams to their current implementations', function (): void {
     expect(app(GuestSubmissionClaims::class))->toBeInstanceOf(ClaimGuestSubmissionsAction::class)

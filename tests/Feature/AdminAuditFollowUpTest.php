@@ -1,15 +1,15 @@
 <?php
 
 use App\Features\Persons\Api\PersonWorkflow;
-use App\Filament\Resources\Series\Pages\EditSeries;
-use App\Filament\Resources\Spaces\Pages\EditSpace;
-use App\Models\Affiliation;
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Language;
-use App\Models\Person;
-use App\Models\Series;
-use App\Models\Space;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\EditSeries;
+use App\Features\Places\EntryPoints\Filament\Resources\Spaces\Pages\EditSpace;
+use App\Features\Persons\Models\Affiliation;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Platform\Language\Models\Language;
+use App\Features\Persons\Models\Person;
+use App\Features\Events\Models\Series;
+use App\Features\Places\Models\Space;
 use App\Models\User;
 use App\Platform\Auditing\AuditValuePresenter;
 use Database\Seeders\PermissionSeeder;

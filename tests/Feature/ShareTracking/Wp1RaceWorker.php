@@ -8,7 +8,7 @@ declare(strict_types=1);
 // execute it.
 
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\RealDriverFixture;

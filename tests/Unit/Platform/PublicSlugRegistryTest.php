@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Models\Event;
-use App\Models\Institution;
-use App\Models\Person;
-use App\Models\Reference;
-use App\Models\Venue;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
+use App\Features\Places\Models\Venue;
 use App\Platform\Routing\PublicSlugRegistry;
 use Tests\TestCase;
 

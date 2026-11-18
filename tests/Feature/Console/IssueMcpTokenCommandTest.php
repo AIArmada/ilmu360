@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Mcp\McpTokenManager;
 use Illuminate\Support\Str;

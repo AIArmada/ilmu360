@@ -4,6 +4,19 @@ declare(strict_types=1);
 
 namespace App\Features\Events;
 
+use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
+use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\SeriesResource;
+use App\Features\Events\EntryPoints\Filament\Widgets\EventInventoryOverview;
+use App\Features\Events\EntryPoints\Filament\Widgets\PendingApprovalEventsWidget;
+use App\Platform\Admin\FilamentPageRegistry;
+use App\Platform\Admin\FilamentWidgetRegistry;
+use App\Platform\Admin\FilamentResourceRegistry;
+
+use AIArmada\Checkout\Contracts\StepContributor;
+use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
+
 use App\Features\Events\Actions\Authoring\CreateEventWithInitialOccurrenceAction;
 use App\Features\Events\Actions\Authoring\CreateEventWithRegistrationAction;
 use App\Features\Events\Actions\Authoring\PrepareAdvancedParentProgramSubmissionAction;
@@ -156,6 +169,10 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        if (interface_exists(StepContributor::class)) {
+            $this->app->tag(TicketCheckoutStepContributor::class, 'checkout.steps');
+        }
+
         $this->app->bind(ShareCardWarmScheduler::class, ScheduleShareCardWarmAction::class);
         $this->app->bind(ProductSignalsInsights::class, ProductSignalsInsightsService::class);
         $this->commands([
@@ -217,6 +234,18 @@ class FeatureServiceProvider extends FeatureModule
 
         $this->app->singleton(EventCategoryCatalogContract::class, EventCategoryCatalog::class);
         $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);
+
+        $resources = $this->app->make(FilamentResourceRegistry::class);
+        $resources->register(EventResource::class, FilamentResourceRegistry::PANEL_ADMIN);
+        $resources->register(EventResource::class, FilamentResourceRegistry::PANEL_AHLI);
+        $resources->register(SeriesResource::class);
+
+        $pages = $this->app->make(FilamentPageRegistry::class);
+        $pages->register(ModerationQueue::class);
+        $pages->register(ProductSignals::class);
+
+        $this->app->make(FilamentWidgetRegistry::class)->register(PendingApprovalEventsWidget::class, FilamentWidgetRegistry::PANEL_AHLI);
+        $this->app->make(FilamentWidgetRegistry::class)->register(EventInventoryOverview::class);
     }
 
     public function boot(): void

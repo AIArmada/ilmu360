@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\Event;
+use App\Features\Events\Models\Event;
 use App\Shared\Events\HeroBackdrop;
 
 it('resolves a bundled hero backdrop from the site set', function (): void {

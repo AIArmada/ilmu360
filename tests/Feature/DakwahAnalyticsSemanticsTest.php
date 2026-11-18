@@ -4,8 +4,8 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Models\User;
-use App\Services\ShareTracking\AffiliatesShareTrackingService;
-use App\Services\ShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {

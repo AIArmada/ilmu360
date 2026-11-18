@@ -21,8 +21,9 @@ use AIArmada\FilamentSignals\Concerns\TracksSignalsPanel;
 use AIArmada\FilamentSignals\FilamentSignalsPlugin;
 use AIArmada\FilamentTicketing\FilamentTicketingPlugin;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Filament\Pages\AdminDashboard;
+use App\Platform\Admin\EntryPoints\Filament\Pages\AdminDashboard;
 use App\Platform\Admin\FilamentPageRegistry;
+use App\Platform\Admin\FilamentWidgetRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
 use Filament\Http\Middleware\Authenticate;
@@ -52,6 +53,7 @@ class AdminPanelProvider extends PanelProvider
         $adminDomain = $this->resolvePanelDomain('admin');
         $registeredResources = $this->app->make(FilamentResourceRegistry::class)->all();
         $registeredPages = $this->app->make(FilamentPageRegistry::class)->all();
+        $registeredWidgets = $this->app->make(FilamentWidgetRegistry::class)->all();
         $authzPlugin = FilamentAuthzPlugin::make()
             ->centralApp()
             ->userRoleScopeMode('global_only');
@@ -78,17 +80,14 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->font('Outfit')
             ->maxContentWidth('full')
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->resources($registeredResources)
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 AdminDashboard::class,
                 ...$registeredPages,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                // AccountWidget::class,
-                // FilamentInfoWidget::class,
+                StatsOverview::class,
+                ...$registeredWidgets,
             ])
             ->plugins([
                 FilamentSignalsPlugin::make(),

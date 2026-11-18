@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use AIArmada\Contacting\Data\ContactMethodData;
 use AIArmada\Events\States\RegistrationStatus\Confirmed;
-use App\Models\Event;
-use App\Models\Registration;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;

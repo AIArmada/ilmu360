@@ -6,13 +6,13 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Persons\Actions\SyncPersonRelationsAction;
-use App\Forms\SharedFormSchema;
-use App\Models\ContributionRequest;
-use App\Models\Institution;
-use App\Models\Person;
+use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Services\ContributionEntityMutationService;
-use App\Shared\Contributions\Enums\ContributionSubjectType;
+use App\Features\Contributions\Services\ContributionEntityStateService;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
@@ -70,7 +70,7 @@ it('preserves area assignments when direct updates omit them', function () {
     $user = User::factory()->create();
     $geo = createTestPackageGeography();
 
-    $institution = app(ContributionEntityMutationService::class)->createInstitution([
+    $institution = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Kekal Daerah',
         'type' => 'masjid',
         'address' => [
@@ -102,7 +102,7 @@ it('clears area assignments when direct updates explicitly empty them', function
     $user = User::factory()->create();
     $geo = createTestPackageGeography();
 
-    $institution = app(ContributionEntityMutationService::class)->createInstitution([
+    $institution = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Padam Daerah',
         'type' => 'masjid',
         'address' => [
@@ -235,7 +235,7 @@ it('uses only UUID country ids as country selections', function () {
 it('rejects a non-uuid country selection on a sparse address update', function () {
     $user = User::factory()->create();
     $geo = createTestPackageGeography();
-    $institution = app(ContributionEntityMutationService::class)->createInstitution([
+    $institution = app(ContributionEntityStateService::class)->createInstitution([
         'name' => 'Masjid Negara Sedia Ada',
         'type' => 'masjid',
         'address' => [

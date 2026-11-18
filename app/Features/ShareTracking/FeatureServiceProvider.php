@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking;
 
+use AIArmada\Checkout\Contracts\StepContributor;
+use App\Features\ShareTracking\EntryPoints\Checkout\ShareCheckoutStepContributor;
+use App\Features\ShareTracking\EntryPoints\Filament\Pages\ShareAnalytics;
+use App\Platform\Admin\FilamentPageRegistry;
+
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Events\Events\EventCancelled;
 use AIArmada\Events\Events\EventOccurrenceCancelled;
@@ -140,6 +145,12 @@ class FeatureServiceProvider extends FeatureModule
 
     public function register(): void
     {
+        if (interface_exists(StepContributor::class)) {
+            $this->app->tag(ShareCheckoutStepContributor::class, 'checkout.steps');
+        }
+
+        $this->app->make(FilamentPageRegistry::class)->register(ShareAnalytics::class);
+
         $this->commands([
             EntryPoints\Console\Commands\DispatchShareEffectReceiptsCommand::class,
             EntryPoints\Console\Commands\DrainCommittedShareSignalsCommand::class,

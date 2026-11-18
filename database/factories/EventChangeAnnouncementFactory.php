@@ -6,8 +6,8 @@ namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventUpdateFactory;
 use App\Features\Events\Api\EventChangeSeverity;
-use App\Models\Event;
-use App\Models\EventChangeAnnouncement;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Models\User;
 use App\Shared\Events\Enums\EventChangeType;
 

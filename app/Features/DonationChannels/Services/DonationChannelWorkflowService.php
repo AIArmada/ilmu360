@@ -12,7 +12,7 @@ use App\Features\DonationChannels\Actions\SaveDonationChannelAction;
 use App\Features\DonationChannels\Actions\SyncInstitutionDonationChannelsAction;
 use App\Features\DonationChannels\Actions\TransitionDonationChannelStatusAction;
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
-use App\Models\DonationChannel;
+use App\Features\DonationChannels\Models\DonationChannel;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use LogicException;
 

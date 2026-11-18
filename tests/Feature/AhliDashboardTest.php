@@ -1,7 +1,7 @@
 <?php
 
-use App\Filament\Pages\AhliDashboard;
-use App\Models\Institution;
+use App\Platform\Admin\EntryPoints\Filament\Pages\AhliDashboard;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 
 it('uses Dashboard as the ahli dashboard label in Malay locale for ahli members', function () {

@@ -1,0 +1,66 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Events\EntryPoints\Filament\Resources\Series;
+
+use App\Features\Events\EntryPoints\Filament\Resources\Events\RelationManagers\EventsRelationManager;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\CreateSeries;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\EditSeries;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\ListSeries;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\Schemas\SeriesForm;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\Tables\SeriesTable;
+use App\Features\Events\Models\Series;
+use App\Platform\Auditing\AuditsRelationManager;
+use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+use UnitEnum;
+
+class SeriesResource extends Resource
+{
+    #[\Override]
+    protected static ?string $model = Series::class;
+
+    #[\Override]
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
+
+    #[\Override]
+    protected static ?string $recordTitleAttribute = 'title';
+
+    #[\Override]
+    protected static string|UnitEnum|null $navigationGroup = 'Content';
+
+    #[\Override]
+    public static function form(Schema $schema): Schema
+    {
+        return SeriesForm::configure($schema);
+    }
+
+    #[\Override]
+    public static function table(Table $table): Table
+    {
+        return SeriesTable::configure($table);
+    }
+
+    #[\Override]
+    public static function getRelations(): array
+    {
+        return [
+            EventsRelationManager::class,
+            AuditsRelationManager::class,
+        ];
+    }
+
+    #[\Override]
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListSeries::route('/'),
+            'create' => CreateSeries::route('/create'),
+            'edit' => EditSeries::route('/{record}/edit'),
+        ];
+    }
+}

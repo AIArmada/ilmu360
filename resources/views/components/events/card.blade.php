@@ -46,7 +46,7 @@
     $cardStartsAt = $startsAt ?? $event->starts_at;
     $cardSignalEntityType = $signalEntityType;
     $cardSignalEntityId = $signalEntityId ?? $event->getKey();
-    $cardGoingAvailable = in_array((string) $event->status, \App\Models\Event::ENGAGEABLE_STATUSES, true)
+    $cardGoingAvailable = in_array((string) $event->status, \App\Features\Events\Models\Event::ENGAGEABLE_STATUSES, true)
         && $event->goingWindow()->isOpenAt(now());
     $speakerAvatarsTestId = $testidPrefix !== null ? ' data-testid="'.$testidPrefix.'-speaker-avatars"' : '';
     $speakersTestId = $testidPrefix !== null ? ' data-testid="'.$testidPrefix.'-speakers"' : '';
@@ -54,7 +54,7 @@
     $eventSpeakers = $event->persons->unique('id');
     $eventSpeakerNames = $eventSpeakers->pluck('formatted_name')->filter()->join(', ');
     $speakerAvatarItems = $eventSpeakers
-        ->map(fn (\App\Models\Person $person): array => [
+        ->map(fn (\App\Features\Persons\Models\Person $person): array => [
             'name' => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)),
             'url' => $person->public_avatar_url,
         ])

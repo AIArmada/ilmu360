@@ -2,8 +2,8 @@
 
 namespace App\Platform\Models\Concerns;
 
-use App\Models\Language;
-use App\Shared\Support\RelatedModels;
+use App\Platform\Language\Models\Language;
+use App\Platform\Models\Support\RelatedModels;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**

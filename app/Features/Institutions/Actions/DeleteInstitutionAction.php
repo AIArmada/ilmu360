@@ -6,7 +6,7 @@ namespace App\Features\Institutions\Actions;
 
 use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Places\Api\InstitutionSpaceLinks;
-use App\Models\Institution;
+use App\Features\Institutions\Models\Institution;
 
 /**
  * Delete an institution and its Directory bridges atomically.

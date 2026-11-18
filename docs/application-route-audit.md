@@ -744,7 +744,7 @@ Passport              → OAuth routes for token issuance
 
 ### Key Models
 
-#### `App\Models\Event` (Spaghetti Model States)
+#### `App\Features\Events\Models\Event` (Spaghetti Model States)
 
 | Property | Value |
 |----------|-------|

@@ -2,9 +2,9 @@
 
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
-use App\Livewire\Pages\Events\Index;
-use App\Models\Event;
-use App\Models\Venue;
+use App\Features\Events\EntryPoints\Livewire\Pages\Index;
+use App\Features\Events\Models\Event;
+use App\Features\Places\Models\Venue;
 use Livewire\Livewire;
 
 function createCascadeTestEvent(Venue $venue, string $title): Event

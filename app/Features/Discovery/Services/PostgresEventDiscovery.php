@@ -1,0 +1,1251 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Discovery\Services;
+
+use AIArmada\Addressing\Data\AddressLocationData;
+use AIArmada\Addressing\Support\AddressingTableResolver;
+use AIArmada\CommerceSupport\Support\StringSimilarity;
+use AIArmada\Events\Contracts\EventSearchRelationProvider;
+use AIArmada\Events\Models\EventLanguage;
+use App\Features\Discovery\Api\EventDiscoveryAdapter;
+use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Features\References\Api\ReferenceQueries;
+use App\Features\Events\Models\Builders\EventBuilder;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Places\Models\Venue;
+use App\Platform\Time\UserDateTimeFormatter;
+use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Shared\Events\Enums\EventVisibility;
+use App\Shared\Events\Enums\TimingMode;
+use App\Shared\Events\EventCategoryCatalog;
+use App\Shared\Prayer\EventPrayerTime;
+use App\Shared\Prayer\PrayerOffset;
+use App\Shared\Prayer\PrayerReference;
+use App\Features\Discovery\Services\EventDiscoveryFilterSet;
+use App\Features\Discovery\Services\FuzzyEventMatcher;
+use App\Features\Events\Queries\PrimaryLocationSql;
+use App\Features\Events\Queries\PrimaryOccurrenceSql;
+use App\Features\Institutions\Services\InstitutionSearchService;
+use App\Features\Persons\Services\PersonSearchService;
+use App\Features\References\Services\ReferenceSearchService;
+use Carbon\CarbonInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Str;
+use Throwable;
+
+final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
+{
+    public function __construct(
+        private FuzzyEventMatcher $fuzzyMatcher,
+        private EventDiscoveryFilterSet $filterSet,
+        private PersonSearchService $personSearch,
+        private InstitutionSearchService $institutionSearch,
+        private ReferenceSearchService $referenceSearch,
+        private EventCategoryCatalog $categoryCatalog,
+        private EventSearchRelationProvider $relationProvider,
+        private ReferenceQueries $referenceQueries,
+    ) {}
+
+    /** @return LengthAwarePaginator<int, Event> */
+    public function search(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        $query = $this->normalizeSearchQuery($criteria->text);
+        $filters = $criteria->filters;
+        $perPage = $criteria->perPage;
+        $sort = $criteria->sort;
+
+        if ($query === null) {
+            $queryBuilder = $this->buildDatabaseQuery(null, $filters)
+                ->with($this->relationProvider->relations());
+
+            $this->applyDatabaseOrdering($queryBuilder, $sort, null);
+
+            return $queryBuilder->paginate($perPage);
+        }
+
+        $directQuery = $this->buildDatabaseQuery(null, $filters)
+            ->with($this->relationProvider->relations());
+        $this->applyDirectSearch(
+            $directQuery,
+            $query,
+            (bool) ($filters['search_include_institutions'] ?? true),
+            (bool) ($filters['search_include_persons'] ?? true),
+            (bool) ($filters['search_include_references'] ?? true),
+        );
+        $this->applyDatabaseOrdering($directQuery, $sort, $query);
+
+        $directMatches = $directQuery->paginate($perPage);
+
+        if ($directMatches->total() > 0 || mb_strlen($query) < 3) {
+            return $directMatches;
+        }
+
+        return $this->fuzzySearchWithDatabase($filters, $query, $perPage);
+    }
+
+    /** @return LengthAwarePaginator<int, Event> */
+    public function nearby(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->searchNearbyWithDatabase(
+            $criteria->latitude ?? 0.0,
+            $criteria->longitude ?? 0.0,
+            (int) ($criteria->radiusKm ?? 0.0),
+            $criteria->filters,
+            $criteria->perPage,
+        );
+    }
+
+    /** @return LengthAwarePaginator<int, Event> */
+    public function nearbyWithQuery(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->searchNearbyWithDatabaseQuery(
+            $criteria->text ?? '',
+            $criteria->latitude ?? 0.0,
+            $criteria->longitude ?? 0.0,
+            (int) ($criteria->radiusKm ?? 0.0),
+            $criteria->filters,
+            $criteria->perPage,
+        );
+    }
+
+    /**
+     * Build the public parent-event query used by schedule-unit discovery.
+     *
+     * The caller can remove parent-projected time filters before hydration and
+     * apply them to the effective occurrence/session timestamp instead.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function publicEventQuery(?string $query, array $filters): EventBuilder
+    {
+        return $this->buildDatabaseQuery($this->normalizeSearchQuery($query), $filters);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    protected function buildDatabaseQuery(?string $query, array $filters): EventBuilder
+    {
+        $timeScope = $this->normalizeTimeScope($filters['time_scope'] ?? null);
+
+        $queryBuilder = Event::query();
+        $table = $queryBuilder->getModel()->getTable();
+        $startsAtColumn = PrimaryOccurrenceSql::column('starts_at', $table);
+        $endsAtColumn = PrimaryOccurrenceSql::column('ends_at', $table);
+        $endInstantColumn = "coalesce({$endsAtColumn}, {$startsAtColumn})";
+
+        $queryBuilder
+            ->whereIn("{$table}.status", Event::PUBLIC_STATUSES)
+            ->where("{$table}.visibility", EventVisibility::Public->value)
+            ->whereNotNull("{$table}.published_at")
+            ->whereHas('occurrences');
+
+        $startsAfter = $this->startsAfterDateTime($filters, $timeScope);
+
+        if ($startsAfter instanceof CarbonInterface) {
+            $queryBuilder->whereRaw($endInstantColumn.' >= ?', [$startsAfter]);
+        }
+
+        $startsBefore = $this->startsBeforeDateTime($filters);
+
+        if ($startsBefore instanceof CarbonInterface) {
+            $queryBuilder->whereRaw($startsAtColumn.' <= ?', [$startsBefore]);
+        } elseif ($timeScope === 'past') {
+            $queryBuilder->whereRaw($endInstantColumn.' < ?', [now()]);
+        }
+
+        $startsOnLocalDateRange = $this->startsOnLocalDateRange($filters);
+
+        if ($startsOnLocalDateRange !== null) {
+            [$startsOnLocalDateStart, $startsOnLocalDateEnd] = $startsOnLocalDateRange;
+
+            $queryBuilder->whereRaw($startsAtColumn.' between ? and ?', [$startsOnLocalDateStart, $startsOnLocalDateEnd]);
+        }
+
+        if (filled($query)) {
+            $this->applyDirectSearch(
+                $queryBuilder,
+                $query,
+                (bool) ($filters['search_include_institutions'] ?? true),
+                (bool) ($filters['search_include_persons'] ?? true),
+                (bool) ($filters['search_include_references'] ?? true),
+            );
+        }
+
+        $this->applyLocationAddressFilter($queryBuilder, $this->filterSet->location($filters));
+
+        $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
+
+        if ($languageCodes !== []) {
+            $eventTable = $queryBuilder->getModel()->getTable();
+            $languageTable = (new EventLanguage)->getTable();
+
+            $queryBuilder->whereExists(function ($languageQuery) use ($eventTable, $languageCodes, $languageTable): void {
+                $languageQuery
+                    ->selectRaw('1')
+                    ->from("{$languageTable} as event_language_filters")
+                    ->whereColumn('event_language_filters.event_id', "{$eventTable}.id")
+                    ->whereIn('event_language_filters.language_code', $languageCodes);
+            });
+        }
+
+        $categoryIds = $this->categoryCatalog->descendantIds($this->normalizeArrayFilter($filters['event_category_ids'] ?? null));
+
+        if ($categoryIds !== []) {
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($categoryIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $categoryIds)
+                    ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE);
+            });
+        }
+
+        $eventFormats = $this->normalizeArrayFilter($filters['event_format'] ?? null);
+
+        if ($eventFormats !== []) {
+            $queryBuilder->whereIn('delivery_mode', $eventFormats);
+        }
+
+        if (! empty($filters['gender'])) {
+            $queryBuilder->whereHas('audiences', function (Builder $genderQuery) use ($filters): void {
+                $genderQuery
+                    ->where('audience_type', 'gender')
+                    ->where('value', $filters['gender']);
+            });
+        }
+
+        $ageGroups = $this->normalizeArrayFilter($filters['age_group'] ?? null);
+
+        if ($ageGroups !== []) {
+            $queryBuilder->whereHas('audiences', function (Builder $ageGroupQuery) use ($ageGroups): void {
+                $ageGroupQuery
+                    ->where('audience_type', 'age_group')
+                    ->whereIn('value', $ageGroups);
+            });
+        }
+
+        $childrenAllowed = $this->normalizeBooleanFilter($filters['children_allowed'] ?? null);
+
+        if ($childrenAllowed !== null) {
+            $queryBuilder->whereHas('audienceProfiles', fn (Builder $q) => $q->where('is_child_friendly', $childrenAllowed));
+        }
+
+        $isMuslimOnly = $this->normalizeBooleanFilter($filters['is_muslim_only'] ?? null);
+
+        if ($isMuslimOnly !== null) {
+            if ($isMuslimOnly) {
+                $queryBuilder->whereHas('audiences', fn (Builder $q) => $q->where('audience_type', 'religion')->where('value', 'muslim_only'));
+            } else {
+                $queryBuilder->whereDoesntHave('audiences', fn (Builder $q) => $q->where('audience_type', 'religion'));
+            }
+        }
+
+        if (! empty($filters['institution_id'])) {
+            $queryBuilder->where('institution_id', $filters['institution_id']);
+        }
+
+        $savedEventIds = $this->uuidFilterValues($filters['saved_event_ids'] ?? null);
+
+        if ($savedEventIds !== []) {
+            $queryBuilder->whereIn('events.id', $savedEventIds);
+        }
+
+        $goingEventIds = $this->uuidFilterValues($filters['going_event_ids'] ?? null);
+
+        if ($goingEventIds !== []) {
+            $queryBuilder->whereIn('events.id', $goingEventIds);
+        }
+
+        if (! empty($filters['venue_id'])) {
+            $venueId = $filters['venue_id'];
+
+            $queryBuilder->where(function (Builder $venueFilterQuery) use ($venueId): void {
+                // An explicit default marker always wins: the package
+                // branch only applies when no default is set, mirroring
+                // the resolver and the geographic address filter. A
+                // missing (orphan) default marker is still explicit, so
+                // it suppresses the package branch too.
+                $venueFilterQuery
+                    ->where('default_venue_id', $venueId)
+                    ->orWhere(function (Builder $packageVenueQuery) use ($venueId): void {
+                        $packageVenueQuery
+                            ->whereNull('events.default_venue_id')
+                            ->whereHas('locations', function (Builder $locationQuery) use ($venueId): void {
+                                PrimaryLocationSql::constrainToSelected($locationQuery->getQuery());
+                                $locationQuery->where('venue_id', $venueId);
+                            });
+                    });
+            });
+        }
+
+        $personIds = $this->uuidFilterValues($filters['person_ids'] ?? null);
+
+        if ($personIds !== []) {
+            $queryBuilder->whereHas('persons', function (Builder $personQuery) use ($personIds) {
+                $personQuery->whereIn('persons.id', $personIds);
+            });
+        }
+
+        $keyPersonRoles = $this->normalizeKeyPersonRoles($filters['key_person_roles'] ?? null);
+
+        if ($keyPersonRoles !== []) {
+            $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($keyPersonRoles): void {
+                $keyPersonQuery->whereIn('role_code', $keyPersonRoles);
+            });
+        }
+
+        foreach ([
+            'person_in_charge_ids' => EventKeyPersonRole::PersonInCharge,
+            'moderator_ids' => EventKeyPersonRole::Moderator,
+            'imam_ids' => EventKeyPersonRole::Imam,
+            'khatib_ids' => EventKeyPersonRole::Khatib,
+            'bilal_ids' => EventKeyPersonRole::Bilal,
+        ] as $filterKey => $role) {
+            $roleSpecificIds = $this->uuidFilterValues($filters[$filterKey] ?? null);
+
+            if ($roleSpecificIds === []) {
+                continue;
+            }
+
+            $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($roleSpecificIds, $role): void {
+                $keyPersonQuery
+                    ->where('role_code', $role->value)
+                    ->where('involveable_type', 'person')
+                    ->whereIn('involveable_id', $roleSpecificIds);
+            });
+        }
+
+        $personInChargeSearch = $this->normalizeTextFilter($filters['person_in_charge_search'] ?? null);
+
+        if ($personInChargeSearch !== null) {
+            $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($personInChargeSearch): void {
+                $keyPersonQuery
+                    ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
+                    ->where(function (Builder $personInChargeQuery) use ($personInChargeSearch): void {
+                        $personInChargeQuery
+                            ->whereLike('event_involvements.display_name', "%{$personInChargeSearch}%")
+                            ->orWhereHas('person', function (Builder $personQuery) use ($personInChargeSearch): void {
+                                $personQuery
+                                    ->whereLike('persons.name', "%{$personInChargeSearch}%")
+                                    ->orWhereLike('persons.searchable_name', "%{$personInChargeSearch}%");
+                            });
+                    });
+            });
+        }
+
+        $personNameSearch = $this->normalizeTextFilter($filters['person_name_search'] ?? null);
+
+        if ($personNameSearch !== null) {
+            $queryBuilder->where(function (Builder $personNameQuery) use ($personNameSearch): void {
+                $personNameQuery
+                    ->whereHas('persons', function (Builder $speakerQuery) use ($personNameSearch): void {
+                        $speakerQuery
+                            ->whereLike('persons.name', "%{$personNameSearch}%")
+                            ->orWhereLike('persons.searchable_name', "%{$personNameSearch}%");
+                    })
+                    ->orWhereHas('keyPeople', function (Builder $keyPersonQuery) use ($personNameSearch): void {
+                        $keyPersonQuery
+                            ->whereLike('event_involvements.display_name', "%{$personNameSearch}%")
+                            ->orWhereHas('person', function (Builder $personQuery) use ($personNameSearch): void {
+                                $personQuery
+                                    ->whereLike('persons.name', "%{$personNameSearch}%")
+                                    ->orWhereLike('persons.searchable_name', "%{$personNameSearch}%");
+                            });
+                    });
+            });
+        }
+
+        $disciplineTagIds = $this->normalizeArrayFilter($filters['discipline_tag_ids'] ?? null);
+
+        if ($disciplineTagIds !== []) {
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($disciplineTagIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $disciplineTagIds)
+                    ->where('taxonomy_code', 'discipline');
+            });
+        }
+
+        $domainTagIds = $this->normalizeArrayFilter($filters['domain_tag_ids'] ?? null);
+
+        if ($domainTagIds !== []) {
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($domainTagIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $domainTagIds)
+                    ->where('taxonomy_code', 'domain');
+            });
+        }
+
+        $sourceTagIds = $this->normalizeArrayFilter($filters['source_tag_ids'] ?? null);
+
+        if ($sourceTagIds !== []) {
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($sourceTagIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $sourceTagIds)
+                    ->where('taxonomy_code', 'source');
+            });
+        }
+
+        $issueTagIds = $this->normalizeArrayFilter($filters['issue_tag_ids'] ?? null);
+
+        if ($issueTagIds !== []) {
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($issueTagIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $issueTagIds)
+                    ->where('taxonomy_code', 'issue');
+            });
+        }
+
+        $referenceFilter = $this->resolvedReferenceFilter($filters);
+
+        if ($referenceFilter['ids'] !== []) {
+            $queryBuilder->whereHas('references', function (Builder $referenceQuery) use ($referenceFilter): void {
+                $this->referenceQueries->applyPublicVisibility($referenceQuery)
+                    ->whereIn('references.id', $referenceFilter['ids']);
+            });
+        } elseif ($referenceFilter['has_author_filter'] || $referenceFilter['has_id_filter']) {
+            $queryBuilder->whereRaw('1 = 0');
+        }
+
+        $timingMode = $this->normalizeTimingModeFilter($filters['timing_mode'] ?? null);
+        $prayerTimes = $this->normalizePrayerTimeFilters($filters['prayer_time'] ?? null);
+
+        if ($prayerTimes !== [] && $timingMode !== TimingMode::Absolute->value) {
+            $queryBuilder
+                ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($prayerTimes): void {
+                    $prayerQuery->where('time_mode', TimingMode::PrayerRelative->value);
+                    $prayerQuery->where('anchor_type', 'prayer');
+
+                    $prayerQuery->where(function (Builder $inner) use ($prayerTimes): void {
+                        foreach ($prayerTimes as $prayerTime) {
+                            $inner->orWhere(function (Builder $matchingPrayerQuery) use ($prayerTime): void {
+                                $prayerTimeEnum = EventPrayerTime::tryFrom($prayerTime);
+
+                                if ($prayerTimeEnum instanceof EventPrayerTime) {
+                                    $prayerReference = $prayerTimeEnum->toPrayerReference();
+                                    $prayerLabel = mb_strtolower($prayerTimeEnum->getLabel());
+
+                                    if ($prayerReference instanceof PrayerReference) {
+                                        $offset = $prayerTimeEnum->getDefaultOffset();
+                                        $relation = $offset instanceof PrayerOffset && $offset->minutes() < 0 ? 'before' : 'after';
+
+                                        $matchingPrayerQuery
+                                            ->where('relation', $relation)
+                                            ->where(function (Builder $prayerMatch) use ($prayerLabel, $prayerReference): void {
+                                                $prayerMatch
+                                                    ->where('anchor_code', $prayerReference->value)
+                                                    ->orWhereLike('display_label', "%{$prayerLabel}%");
+                                            });
+
+                                        return;
+                                    }
+
+                                    $matchingPrayerQuery->whereLike('display_label', "%{$prayerLabel}%");
+
+                                    return;
+                                }
+
+                                $matchingPrayerQuery->whereLike('display_label', "%{$prayerTime}%");
+
+                                if (($prayerReference = $this->resolvePrayerReferenceFromFilter($prayerTime)) instanceof PrayerReference) {
+                                    $matchingPrayerQuery->orWhere('anchor_code', $prayerReference->value);
+                                }
+                            });
+                        }
+                    });
+                });
+        }
+
+        if ($timingMode !== null) {
+            if ($timingMode === TimingMode::PrayerRelative->value) {
+                $queryBuilder->whereHas('timeExpressions', fn (Builder $timeQuery) => $timeQuery->where('time_mode', TimingMode::PrayerRelative->value));
+            } else {
+                $queryBuilder->whereDoesntHave('timeExpressions', fn (Builder $timeQuery) => $timeQuery->where('time_mode', TimingMode::PrayerRelative->value));
+            }
+        }
+
+        $startsTimeFrom = $this->normalizeTimeFilter($filters['starts_time_from'] ?? null);
+        $startsTimeUntil = $this->normalizeTimeFilter($filters['starts_time_until'] ?? null);
+
+        if (
+            $timingMode === TimingMode::Absolute->value
+            && ($startsTimeFrom !== null || $startsTimeUntil !== null)
+        ) {
+            $this->applyAbsoluteTimeRangeFilter($queryBuilder, $startsTimeFrom, $startsTimeUntil);
+        }
+
+        $hasEventUrl = $this->normalizeBooleanFilter($filters['has_event_url'] ?? null);
+
+        if ($hasEventUrl === true) {
+            $queryBuilder->whereHas('links', fn (Builder $q) => $q->where('link_type', 'external')->where('url', '!=', ''));
+        } elseif ($hasEventUrl === false) {
+            $queryBuilder->whereDoesntHave('links', fn (Builder $q) => $q->where('link_type', 'external')->where('url', '!=', ''));
+        }
+
+        $hasLiveUrl = $this->normalizeBooleanFilter($filters['has_live_url'] ?? null);
+
+        if ($hasLiveUrl === true) {
+            $queryBuilder->whereHas('links', fn (Builder $q) => $q->where('link_type', 'streaming')->where('url', '!=', ''));
+        } elseif ($hasLiveUrl === false) {
+            $queryBuilder->whereDoesntHave('links', fn (Builder $q) => $q->where('link_type', 'streaming')->where('url', '!=', ''));
+        }
+
+        $hasEndTime = $this->normalizeBooleanFilter($filters['has_end_time'] ?? null);
+
+        if ($hasEndTime === true) {
+            $queryBuilder->whereRaw($endsAtColumn.' is not null');
+        } elseif ($hasEndTime === false) {
+            $queryBuilder->whereRaw($endsAtColumn.' is null');
+        }
+
+        return $queryBuilder;
+    }
+
+    protected function applyDirectSearch(
+        EventBuilder $queryBuilder,
+        string $search,
+        bool $includeInstitutions = true,
+        bool $includePersons = true,
+        bool $includeReferences = true,
+    ): void {
+        $normalizedSearch = trim($search);
+
+        if ($normalizedSearch === '') {
+            return;
+        }
+
+        $collapsedSearch = preg_replace('/\s+/u', ' ', $normalizedSearch) ?? '';
+        $collapsedWildcardSearch = '%'.str_replace(' ', '%', $collapsedSearch).'%';
+
+        /** @var list<string> $searchTokens */
+        $searchTokens = array_values(array_filter(
+            explode(' ', $collapsedSearch),
+            static fn (string $token): bool => $token !== ''
+        ));
+
+        $personIds = $includePersons ? $this->personSearch->publicSearchIds($normalizedSearch) : [];
+        $institutionIds = $includeInstitutions ? $this->institutionSearch->publicSearchIds($normalizedSearch) : [];
+        $referenceIds = $includeReferences ? $this->referenceSearch->publicSearchIds($normalizedSearch) : [];
+
+        $queryBuilder->where(function (Builder $nestedQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens, $personIds, $institutionIds, $referenceIds, $includePersons): void {
+            $nestedQuery->where(function (Builder $titleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                $titleQuery
+                    ->whereLike('title', "%{$normalizedSearch}%")
+                    ->orWhereLike('title', $collapsedWildcardSearch);
+
+                foreach ($searchTokens as $token) {
+                    if (mb_strlen($token) < 3) {
+                        continue;
+                    }
+
+                    $titleQuery->orWhereLike('title', "%{$token}%");
+                }
+            });
+
+            $nestedQuery->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                $occurrenceQuery
+                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                    ->where(function (Builder $scheduleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                        $scheduleQuery->where(function (Builder $titleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                            $titleQuery
+                                ->whereLike('title', "%{$normalizedSearch}%")
+                                ->orWhereLike('title', $collapsedWildcardSearch);
+
+                            foreach ($searchTokens as $token) {
+                                if (mb_strlen($token) < 3) {
+                                    continue;
+                                }
+
+                                $titleQuery->orWhereLike('title', "%{$token}%");
+                            }
+                        })
+                            ->orWhereHas('sessions', function (Builder $sessionQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                                $sessionQuery
+                                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                                    ->where(function (Builder $titleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                                        $titleQuery
+                                            ->whereLike('title', "%{$normalizedSearch}%")
+                                            ->orWhereLike('title', $collapsedWildcardSearch);
+
+                                        foreach ($searchTokens as $token) {
+                                            if (mb_strlen($token) < 3) {
+                                                continue;
+                                            }
+
+                                            $titleQuery->orWhereLike('title', "%{$token}%");
+                                        }
+                                    });
+                            });
+                    });
+            });
+
+            if ($institutionIds !== []) {
+                $institutionIdExpression = 'events.institution_id';
+
+                $nestedQuery->orWhere(function (Builder $institutionQuery) use ($institutionIdExpression, $institutionIds): void {
+                    foreach ($institutionIds as $index => $institutionId) {
+                        if ($index === 0) {
+                            $institutionQuery->whereRaw("{$institutionIdExpression} = ?", [$institutionId]);
+
+                            continue;
+                        }
+
+                        $institutionQuery->orWhereRaw("{$institutionIdExpression} = ?", [$institutionId]);
+                    }
+                });
+            }
+
+            if ($includePersons) {
+                $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($personIds, $normalizedSearch): void {
+                    $keyPeopleQuery->where(function (Builder $inner) use ($personIds, $normalizedSearch): void {
+                        $inner
+                            ->whereLike('event_involvements.display_name', "%{$normalizedSearch}%")
+                            ->orWhereHas('person', fn (Builder $personQuery) => $personQuery
+                                ->whereLike('name', "%{$normalizedSearch}%")
+                                ->orWhereLike('searchable_name', "%{$normalizedSearch}%")
+                            );
+
+                        if ($personIds !== []) {
+                            $inner->orWhereIn('event_involvements.involveable_id', $personIds);
+                        }
+                    });
+                });
+            }
+
+            if ($referenceIds !== []) {
+                $nestedQuery->orWhereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
+                    $this->referenceQueries->applyPublicVisibility($referenceQuery)
+                        ->whereIn('references.id', $referenceIds);
+                });
+            }
+        });
+    }
+
+    /**
+     * @param  Builder<Event>  $queryBuilder
+     */
+    protected function applyDatabaseOrdering(Builder $queryBuilder, string $sort, ?string $query): void
+    {
+        $startsAtColumn = PrimaryOccurrenceSql::column('starts_at', $queryBuilder->getModel()->getTable());
+
+        if ($sort === 'relevance' && is_string($query) && $query !== '') {
+            $operator = $this->databaseLikeOperator();
+
+            $queryBuilder
+                ->orderByRaw(
+                    "CASE
+                        WHEN events.title {$operator} ? THEN 1
+                        ELSE 2
+                    END",
+                    ["%{$query}%"]
+                )
+                ->orderByRaw("{$startsAtColumn} asc");
+
+            return;
+        }
+
+        if ($sort === 'popular') {
+            $queryBuilder
+                ->withCount('savedBy')
+                ->orderByDesc('saved_by_count')
+                ->orderByRaw("{$startsAtColumn} asc");
+
+            return;
+        }
+
+        $queryBuilder->orderByRaw("{$startsAtColumn} asc");
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<int, Event>
+     */
+    protected function fuzzySearchWithDatabase(array $filters, string $search, int $perPage): LengthAwarePaginator
+    {
+        $normalizedSearch = StringSimilarity::normalize($search);
+
+        if ($normalizedSearch === '') {
+            $queryBuilder = $this->buildDatabaseQuery(null, $filters)
+                ->with($this->relationProvider->relations())
+                ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc');
+
+            return $queryBuilder->paginate($perPage);
+        }
+
+        $candidateQuery = $this->buildDatabaseQuery(null, $filters)
+            ->select(['events.id', 'events.title'])
+            ->tap(fn (Builder $query): Builder => $this->fuzzyMatcher->applyFuzzyTitleCandidateFilter($query, $normalizedSearch))
+            ->tap(fn (Builder $query): Builder => $this->fuzzyMatcher->applyFuzzyTitleCandidateOrdering($query, $normalizedSearch));
+
+        $rankedCandidates = $candidateQuery
+            ->get()
+            ->map(fn (Event $event): array => [
+                'id' => $event->id,
+                'score' => $this->fuzzyMatcher->eventSimilarityScore($normalizedSearch, $event),
+            ])
+            ->filter(static fn (array $candidate): bool => $candidate['score'] >= 0.70)
+            ->sortByDesc('score')
+            ->values();
+
+        $currentPage = max(1, (int) Paginator::resolveCurrentPage());
+        $paginationMeta = [
+            'path' => request()->url(),
+            'query' => request()->query(),
+        ];
+
+        if ($rankedCandidates->isEmpty()) {
+            return new Paginator(collect(), 0, $perPage, $currentPage, $paginationMeta);
+        }
+
+        /** @var list<string> $orderedIds */
+        $orderedIds = $rankedCandidates->pluck('id')->all();
+        $paginatedIds = array_slice($orderedIds, ($currentPage - 1) * $perPage, $perPage);
+
+        if ($paginatedIds === []) {
+            return new Paginator(collect(), count($orderedIds), $perPage, $currentPage, $paginationMeta);
+        }
+
+        $events = $this->buildDatabaseQuery(null, $filters)
+            ->with($this->relationProvider->relations())
+            ->whereIn('events.id', $paginatedIds)
+            ->get()
+            ->sortBy(static function (Event $event) use ($paginatedIds): int {
+                $position = array_search($event->id, $paginatedIds, true);
+
+                return is_int($position) ? $position : PHP_INT_MAX;
+            })
+            ->values();
+
+        return new Paginator($events, count($orderedIds), $perPage, $currentPage, $paginationMeta);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<int, Event>
+     */
+    protected function searchNearbyWithDatabase(
+        float $lat,
+        float $lng,
+        int $radiusKm,
+        array $filters,
+        int $perPage
+    ): LengthAwarePaginator {
+        return $this->paginateNearby($this->buildDatabaseQuery(null, $filters), $lat, $lng, $radiusKm, $perPage);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<int, Event>
+     */
+    protected function searchNearbyWithDatabaseQuery(
+        string $query,
+        float $lat,
+        float $lng,
+        int $radiusKm,
+        array $filters,
+        int $perPage
+    ): LengthAwarePaginator {
+        $queryBuilder = $this->buildDatabaseQuery(null, $filters);
+        $this->applyDirectSearch($queryBuilder, $query,
+            (bool) ($filters['search_include_institutions'] ?? true),
+            (bool) ($filters['search_include_persons'] ?? true),
+            (bool) ($filters['search_include_references'] ?? true),
+        );
+
+        return $this->paginateNearby($queryBuilder, $lat, $lng, $radiusKm, $perPage);
+    }
+
+    /**
+     * Join the effective venue (default, otherwise the canonically ordered
+     * primary package location venue) plus the institution place, then
+     * measure distance from the selected address entirely in SQL.
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    private function paginateNearby(EventBuilder $queryBuilder, float $lat, float $lng, int $radiusKm, int $perPage): LengthAwarePaginator
+    {
+        $addressablesTable = AddressingTableResolver::resolve('addressables');
+        $addressesTable = AddressingTableResolver::resolve('addresses');
+        $eventsTable = (new Event)->getTable();
+        $institutionIdExpression = "{$eventsTable}.institution_id";
+
+        $primaryPackageVenue = PrimaryLocationSql::venueId($eventsTable);
+        $effectiveVenue = "coalesce({$eventsTable}.default_venue_id, {$primaryPackageVenue})";
+        $venueTable = (new Venue)->getTable();
+        $venueExists = "exists (select 1 from {$venueTable} where {$venueTable}.id = ({$effectiveVenue}))";
+        $latitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.latitude when {$venueExists} then venue_addresses.latitude end";
+        $longitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.longitude when {$venueExists} then venue_addresses.longitude end";
+        $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
+        $venueMorphType = (new Venue)->getMorphClass();
+        $institutionMorphType = (new Institution)->getMorphClass();
+
+        return $queryBuilder
+            ->leftJoin("{$addressablesTable} as venue_addressables", function ($join) use ($venueMorphType, $effectiveVenue) {
+                $join->whereRaw("venue_addressables.addressable_id = {$effectiveVenue}")
+                    ->where('venue_addressables.addressable_type', $venueMorphType)
+                    ->where('venue_addressables.is_primary', true);
+            })
+            ->leftJoin("{$addressesTable} as venue_addresses", 'venue_addresses.id', '=', 'venue_addressables.address_id')
+            ->leftJoin("{$addressablesTable} as institution_addressables", function ($join) use ($institutionIdExpression, $institutionMorphType) {
+                $join->whereRaw("institution_addressables.addressable_id = {$institutionIdExpression}")
+                    ->where('institution_addressables.addressable_type', $institutionMorphType)
+                    ->where('institution_addressables.is_primary', true);
+            })
+            ->leftJoin("{$addressesTable} as institution_addresses", 'institution_addresses.id', '=', 'institution_addressables.address_id')
+            ->whereRaw("{$latitudeExpression} is not null")
+            ->whereRaw("{$longitudeExpression} is not null")
+            ->select("{$eventsTable}.*")
+            ->selectRaw("{$distanceSql} as distance_km", [$lat, $lng, $lat])
+            ->whereRaw("{$distanceSql} <= ?", [$lat, $lng, $lat, $radiusKm])
+            ->with($this->relationProvider->relations())
+            ->orderBy('distance_km', 'asc')
+            ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc')
+            ->paginate($perPage);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    protected function startsAfterDateTime(array $filters, string $timeScope = 'upcoming'): ?CarbonInterface
+    {
+        $startsAfter = $this->parseDateFilter($filters['starts_after'] ?? null, false);
+
+        if ($startsAfter instanceof CarbonInterface) {
+            if ($timeScope === 'upcoming' && now()->greaterThan($startsAfter)) {
+                return now();
+            }
+
+            return $startsAfter;
+        }
+
+        if ($timeScope === 'upcoming') {
+            return now();
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    protected function startsBeforeDateTime(array $filters): ?CarbonInterface
+    {
+        return $this->parseDateFilter($filters['starts_before'] ?? null, true);
+    }
+
+    protected function applyLocationAddressFilter(EventBuilder $queryBuilder, AddressLocationData $location): void
+    {
+        $criteria = $location->criteria();
+        $assignments = $location->assignments();
+
+        if ($criteria === [] && $assignments === []) {
+            return;
+        }
+
+        $addressesTable = AddressingTableResolver::resolve('addresses');
+        $addressablesTable = AddressingTableResolver::resolve('addressables');
+        $assignmentsTable = AddressingTableResolver::resolve('address_area_assignments');
+        $venueTable = (new Venue)->getTable();
+        $venueMorphType = (new Venue)->getMorphClass();
+        $institutionMorphType = (new Institution)->getMorphClass();
+
+        $matchesOwnerAddress = static function (Builder $ownerQuery, string $ownerColumn, string $morphType) use ($addressesTable, $addressablesTable, $assignmentsTable, $criteria, $assignments): void {
+            $ownerQuery->whereExists(function ($addressQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $ownerColumn, $morphType, $criteria, $assignments): void {
+                $addressQuery
+                    ->selectRaw('1')
+                    ->from($addressesTable)
+                    ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
+                    ->whereRaw("{$addressablesTable}.addressable_id = {$ownerColumn}")
+                    ->where("{$addressablesTable}.addressable_type", $morphType)
+                    ->where("{$addressablesTable}.is_primary", true);
+
+                foreach ($criteria as $column => $value) {
+                    $addressQuery->where("{$addressesTable}.{$column}", $value);
+                }
+
+                foreach ($assignments as $role => $areaId) {
+                    $addressQuery->whereExists(function ($assignmentQuery) use ($assignmentsTable, $addressesTable, $role, $areaId): void {
+                        $assignmentQuery
+                            ->selectRaw('1')
+                            ->from($assignmentsTable)
+                            ->whereColumn("{$assignmentsTable}.address_id", "{$addressesTable}.id")
+                            ->where("{$assignmentsTable}.role", $role)
+                            ->where("{$assignmentsTable}.address_area_id", $areaId)
+                            ->where("{$assignmentsTable}.is_primary", true);
+                    });
+                }
+            });
+        };
+
+        $matchesEventVenueAddress = static function (Builder $eventQuery) use ($matchesOwnerAddress, $venueTable, $venueMorphType): void {
+            // The primary package venue only places the event when no
+            // default venue wins; a set default marker suppresses this
+            // branch even when the default venue itself does not match.
+            // Only the selected canonical primary row can match: a leading
+            // no-venue row means the event is placed by its institution.
+            $eventQuery
+                ->whereNull('events.default_venue_id')
+                ->whereHas('locations', function (Builder $locationQuery) use ($matchesOwnerAddress, $venueTable, $venueMorphType): void {
+                    PrimaryLocationSql::constrainToSelected($locationQuery->getQuery());
+                    $locationQuery->whereHas('venue', function (Builder $venueQuery) use ($matchesOwnerAddress, $venueTable, $venueMorphType): void {
+                        $matchesOwnerAddress($venueQuery, "{$venueTable}.id", $venueMorphType);
+                    });
+                });
+        };
+
+        $queryBuilder->where(function (Builder $locationQuery) use ($matchesEventVenueAddress, $matchesOwnerAddress, $institutionMorphType, $venueMorphType): void {
+            $locationQuery
+                ->where(function (Builder $venueQuery) use ($matchesEventVenueAddress, $matchesOwnerAddress, $venueMorphType): void {
+                    $venueQuery
+                        ->where(function (Builder $venueLocationQuery) use ($matchesEventVenueAddress, $matchesOwnerAddress, $venueMorphType): void {
+                            $venueLocationQuery
+                                ->where(function (Builder $defaultVenueQuery) use ($matchesOwnerAddress, $venueMorphType): void {
+                                    $defaultVenueQuery->whereNotNull('events.default_venue_id');
+                                    $matchesOwnerAddress($defaultVenueQuery, 'events.default_venue_id', $venueMorphType);
+                                })
+                                ->orWhere(function (Builder $eventLocationQuery) use ($matchesEventVenueAddress): void {
+                                    $matchesEventVenueAddress($eventLocationQuery);
+                                });
+                        });
+                })
+                ->orWhere(function (Builder $institutionQuery) use ($matchesOwnerAddress, $institutionMorphType): void {
+                    $institutionQuery
+                        ->whereNotNull('events.institution_id')
+                        ->whereNull('events.default_venue_id')
+                        ->whereDoesntHave('locations', function (Builder $locationQuery): void {
+                            PrimaryLocationSql::constrainToSelected($locationQuery->getQuery());
+                            $locationQuery->whereNotNull('venue_id');
+                        });
+                    $matchesOwnerAddress($institutionQuery, 'events.institution_id', $institutionMorphType);
+                });
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    protected function startsAfterTimestamp(array $filters, string $timeScope = 'upcoming'): ?int
+    {
+        return $this->startsAfterDateTime($filters, $timeScope)?->timestamp;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    protected function startsBeforeTimestamp(array $filters): ?int
+    {
+        $startsBefore = $this->startsBeforeDateTime($filters);
+
+        return $startsBefore?->timestamp;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{0: CarbonInterface, 1: CarbonInterface}|null
+     */
+    protected function startsOnLocalDateRange(array $filters): ?array
+    {
+        $startsOnLocalDateStart = $this->parseDateFilter($filters['starts_on_local_date'] ?? null, false);
+        $startsOnLocalDateEnd = $this->parseDateFilter($filters['starts_on_local_date'] ?? null, true);
+
+        if ($startsOnLocalDateStart instanceof CarbonInterface && $startsOnLocalDateEnd instanceof CarbonInterface) {
+            return [$startsOnLocalDateStart, $startsOnLocalDateEnd];
+        }
+
+        return null;
+    }
+
+    protected function normalizeTimeScope(mixed $value): string
+    {
+        if (! is_string($value)) {
+            return 'upcoming';
+        }
+
+        return in_array($value, ['upcoming', 'past', 'all'], true) ? $value : 'upcoming';
+    }
+
+    protected function parseDateFilter(mixed $value, bool $endOfDay): ?CarbonInterface
+    {
+        return UserDateTimeFormatter::parseUserDateToUtc($value, $endOfDay);
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected function normalizeArrayFilter(mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        $values = is_array($value) ? $value : [$value];
+
+        return array_values(array_filter($values, fn (mixed $item): bool => $item !== null && $item !== ''));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function uuidFilterValues(mixed $value): array
+    {
+        return array_values(array_filter(
+            $this->normalizeArrayFilter($value),
+            fn (string $candidate): bool => Str::isUuid($candidate),
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function expandedReferenceIdsForFiltering(mixed $value): array
+    {
+        $referenceIds = $this->uuidFilterValues($value);
+
+        return $this->referenceQueries->expandReferenceIdsForFiltering($referenceIds);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{ids: list<string>, has_author_filter: bool, has_id_filter: bool}
+     */
+    protected function resolvedReferenceFilter(array $filters): array
+    {
+        $hasIdFilter = $this->uuidFilterValues($filters['reference_ids'] ?? null) !== [];
+        $referenceIds = $this->expandedReferenceIdsForFiltering($filters['reference_ids'] ?? null);
+        $hasAuthorFilter = false;
+
+        foreach ($this->normalizeArrayFilter($filters['reference_author_search'] ?? null) as $authorSearch) {
+            if (! is_string($authorSearch) && ! is_numeric($authorSearch)) {
+                continue;
+            }
+
+            $authorSearch = trim((string) $authorSearch);
+
+            if ($authorSearch === '') {
+                continue;
+            }
+
+            $hasAuthorFilter = true;
+            $referenceIds = array_values(array_unique([
+                ...$referenceIds,
+                ...$this->referenceSearch->publicSearchIds($authorSearch),
+            ]));
+        }
+
+        return [
+            'ids' => $referenceIds,
+            'has_author_filter' => $hasAuthorFilter,
+            'has_id_filter' => $hasIdFilter,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function normalizeKeyPersonRoles(mixed $value): array
+    {
+        return collect($this->normalizeArrayFilter($value))
+            ->map(fn (mixed $role): ?string => EventKeyPersonRole::tryFrom((string) $role)?->value)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    protected function normalizeBooleanFilter(mixed $value): ?bool
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (in_array($value, [1, '1', 'true', 'on', 'yes'], true)) {
+            return true;
+        }
+
+        if (in_array($value, [0, '0', 'false', 'off', 'no'], true)) {
+            return false;
+        }
+
+        return null;
+    }
+
+    protected function normalizeTextFilter(mixed $value): ?string
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return null;
+        }
+
+        $normalized = trim((string) $value);
+
+        return $normalized === '' ? null : $normalized;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function normalizePrayerTimeFilters(mixed $value): array
+    {
+        $values = is_array($value) ? $value : [$value];
+        $normalizedPrayerTimes = [];
+
+        foreach ($values as $prayerTime) {
+            if (! is_string($prayerTime)) {
+                continue;
+            }
+
+            $normalized = mb_strtolower(trim($prayerTime));
+
+            if ($normalized === '') {
+                continue;
+            }
+
+            $enum = EventPrayerTime::tryFrom($normalized);
+            $normalized = $enum instanceof EventPrayerTime ? $enum->value : $normalized;
+            $normalizedPrayerTimes[$normalized] = $normalized;
+        }
+
+        return array_values($normalizedPrayerTimes);
+    }
+
+    protected function normalizeTimingModeFilter(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        return in_array($value, [TimingMode::Absolute->value, TimingMode::PrayerRelative->value], true)
+            ? $value
+            : null;
+    }
+
+    protected function normalizeTimeFilter(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $normalized = trim($value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        try {
+            return now(UserDateTimeFormatter::resolveTimezone())
+                ->setTimeFromTimeString($normalized)
+                ->format('H:i');
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    protected function applyAbsoluteTimeRangeFilter(
+        EventBuilder $queryBuilder,
+        ?string $startsTimeFrom,
+        ?string $startsTimeUntil
+    ): void {
+        if ($startsTimeFrom === null && $startsTimeUntil === null) {
+            return;
+        }
+
+        $expression = $this->startsAtUserTimeSqlExpression($this->userUtcOffsetMinutes());
+
+        if ($startsTimeFrom !== null && $startsTimeUntil !== null) {
+            if ($startsTimeFrom <= $startsTimeUntil) {
+                $queryBuilder
+                    ->whereRaw("{$expression} >= ?", [$startsTimeFrom])
+                    ->whereRaw("{$expression} <= ?", [$startsTimeUntil]);
+
+                return;
+            }
+
+            $queryBuilder->where(function (Builder $timeQuery) use ($expression, $startsTimeFrom, $startsTimeUntil): void {
+                $timeQuery
+                    ->whereRaw("{$expression} >= ?", [$startsTimeFrom])
+                    ->orWhereRaw("{$expression} <= ?", [$startsTimeUntil]);
+            });
+
+            return;
+        }
+
+        if ($startsTimeFrom !== null) {
+            $queryBuilder->whereRaw("{$expression} >= ?", [$startsTimeFrom]);
+
+            return;
+        }
+
+        $queryBuilder->whereRaw("{$expression} <= ?", [(string) $startsTimeUntil]);
+    }
+
+    protected function resolvePrayerReferenceFromFilter(string $prayerTime): ?PrayerReference
+    {
+        if (str_contains($prayerTime, 'jumaat') || str_contains($prayerTime, 'friday')) {
+            return PrayerReference::FridayPrayer;
+        }
+
+        if (str_contains($prayerTime, 'maghrib')) {
+            return PrayerReference::Maghrib;
+        }
+
+        if (str_contains($prayerTime, 'asar') || str_contains($prayerTime, 'asr')) {
+            return PrayerReference::Asr;
+        }
+
+        if (str_contains($prayerTime, 'subuh') || str_contains($prayerTime, 'fajr')) {
+            return PrayerReference::Fajr;
+        }
+
+        if (str_contains($prayerTime, 'zohor') || str_contains($prayerTime, 'zuhur') || str_contains($prayerTime, 'dhuhr')) {
+            return PrayerReference::Dhuhr;
+        }
+
+        if (str_contains($prayerTime, 'isyak') || str_contains($prayerTime, 'isha')) {
+            return PrayerReference::Isha;
+        }
+
+        return null;
+    }
+
+    protected function databaseDriver(): string
+    {
+        /** @var Connection $connection */
+        $connection = Event::query()->getConnection();
+
+        return $connection->getDriverName();
+    }
+
+    private function databaseLikeOperator(): string
+    {
+        return $this->databaseDriver() === 'pgsql' ? 'ILIKE' : 'LIKE';
+    }
+
+    private function startsAtUserTimeSqlExpression(int $offsetMinutes): string
+    {
+        return PrimaryOccurrenceSql::startsAtUserTimeExpression($offsetMinutes);
+    }
+
+    private function userUtcOffsetMinutes(): int
+    {
+        return now(UserDateTimeFormatter::resolveTimezone())->utcOffset();
+    }
+
+    private function normalizeSearchQuery(?string $query): ?string
+    {
+        if (! is_string($query)) {
+            return null;
+        }
+
+        $normalizedQuery = trim($query);
+
+        return $normalizedQuery === '' ? null : $normalizedQuery;
+    }
+}

@@ -164,7 +164,7 @@ php artisan vendor:publish --tag=filament-persons-config --no-interaction
 
 ```php
 'models' => [
-    'person' => \App\Models\Person::class,
+    'person' => \App\Features\Persons\Models\Person::class,
     'country' => \AIArmada\Addressing\Models\AddressCountry::class,
     'institution' => null,
 ],
@@ -197,7 +197,7 @@ Also set navigation group to match existing convention:
 php artisan tinker --execute 'echo config("persons.models.person");'
 ```
 
-Expected: `App\Models\Person`
+Expected: `App\Features\Persons\Models\Person`
 
 ---
 
@@ -339,7 +339,7 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Models\Person as BasePerson;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Concerns\AuditsModelChanges;
-use App\Models\Concerns\HasDonationChannels;
+use App\Features\DonationChannels\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
 use Carbon\CarbonInterface;
 use Database\Factories\PersonFactory;
@@ -895,10 +895,10 @@ Key point: The package Person already provides `formatted_name` accessor and `Ha
 php artisan tinker --execute 'echo get_class(resolve(\AIArmada\Persons\Support\ModelResolver::class)->personClass());'
 ```
 
-Expected: `App\Models\Person`
+Expected: `App\Features\Persons\Models\Person`
 
 ```bash
-php artisan tinker --execute 'echo get_parent_class(\App\Models\Person::class);'
+php artisan tinker --execute 'echo get_parent_class(\App\Features\Persons\Models\Person::class);'
 ```
 
 Expected: `AIArmada\Persons\Models\Person`
@@ -952,12 +952,12 @@ namespace App\Filament\Resources\Persons;
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
 use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\EventsRelationManager;
-use App\Filament\Resources\Persons\RelationManagers\FollowersRelationManager;
-use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
-use App\Filament\Resources\Persons\RelationManagers\MembersRelationManager;
-use App\Filament\Resources\Persons\Schemas\PersonForm;
-use App\Filament\Resources\Persons\Tables\PersonsTable;
-use App\Models\Person;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers\FollowersRelationManager;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers\MembersRelationManager;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Schemas\PersonForm;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Tables\PersonsTable;
+use App\Features\Persons\Models\Person;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 
@@ -1009,13 +1009,13 @@ class PersonResource extends PackagePersonResource
 
 namespace App\Filament\Ahli\Resources\Persons;
 
-use App\Filament\Ahli\Resources\Persons\Pages\EditPerson;
-use App\Filament\Ahli\Resources\Persons\Pages\ListPersons;
-use App\Filament\Ahli\Resources\Persons\Pages\ViewPerson;
+use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\Pages\EditPerson;
+use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\Pages\ListPersons;
+use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\Pages\ViewPerson;
 use App\Filament\RelationManagers\AuditsRelationManager;
-use App\Filament\Resources\Persons\PersonResource as AdminPersonResource;
-use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
-use App\Models\Person;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource as AdminPersonResource;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
+use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -1179,7 +1179,7 @@ rg -l "App\\\\Models\\\\PersonName" app/ tests/ database/ resources/
 For each file found, replace:
 - `App\Enums\PersonNameType` → `AIArmada\Persons\Enums\PersonNameType`
 - `App\Enums\Gender` → `AIArmada\Persons\Enums\Gender`
-- `App\Models\PersonName` → `AIArmada\Persons\Models\PersonName`
+- `App\Features\Persons\Models\PersonName` → `AIArmada\Persons\Models\PersonName`
 
 ---
 
@@ -1188,15 +1188,15 @@ For each file found, replace:
 **Files to check and adapt:**
 - `app/Actions/Persons/SavePersonAction.php`
 - `app/Actions/Persons/GeneratePersonSlugAction.php`
-- `app/Services/ContributionEntityMutationService.php`
+- `app/Services/ContributionEntityStateService.php`
 - `app/Support/Search/PersonSearchService.php`
 - `app/Observers/PersonObserver.php`
 
 - [ ] **Step 1: Read each file and adapt field references**
 
 Key changes needed:
-1. Any reference to `App\Models\Person` should still work (it's the same class name, just extends differently now)
-2. Any reference to `App\Models\PersonName` should change to `AIArmada\Persons\Models\PersonName`
+1. Any reference to `App\Features\Persons\Models\Person` should still work (it's the same class name, just extends differently now)
+2. Any reference to `App\Features\Persons\Models\PersonName` should change to `AIArmada\Persons\Models\PersonName`
 3. Any reference to `App\Enums\PersonNameType` should change to `AIArmada\Persons\Enums\PersonNameType`
 4. Any reference to `App\Enums\Gender` should change to `AIArmada\Persons\Enums\Gender`
 5. The Person model now has `middle_name` field — add it to fillable/field mapping
@@ -1207,7 +1207,7 @@ Key changes needed:
 ```bash
 php -l app/Actions/Persons/SavePersonAction.php
 php -l app/Actions/Persons/GeneratePersonSlugAction.php
-php -l app/Services/ContributionEntityMutationService.php
+php -l app/Services/ContributionEntityStateService.php
 php -l app/Support/Search/PersonSearchService.php
 php -l app/Observers/PersonObserver.php
 ```
@@ -1235,7 +1235,7 @@ For gender: since it's now cast to `Gender` enum, DTOs that read `$person->gende
 
 - [ ] **Step 2: Update form schemas**
 
-In `PersonFormSchema.php` and `PersonContributionFormSchema.php`, update if they reference removed classes like `App\Enums\Gender` or `App\Models\PersonName`.
+In `PersonFormSchema.php` and `PersonContributionFormSchema.php`, update if they reference removed classes like `App\Enums\Gender` or `App\Features\Persons\Models\PersonName`.
 
 ---
 
@@ -1261,7 +1261,7 @@ Read `database/factories/PersonFactory.php`. Change it to extend the package fac
 namespace Database\Factories;
 
 use AIArmada\Persons\Enums\Gender;
-use App\Models\Person;
+use App\Features\Persons\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

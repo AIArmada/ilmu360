@@ -39,6 +39,7 @@ use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\AhliPanelProvider;
 use App\Providers\FortifyServiceProvider;
 use App\Providers\HorizonServiceProvider;
+use App\Providers\LivewireComponentAliasServiceProvider;
 use App\Providers\RateLimitServiceProvider;
 use Laravel\Mcp\Server\McpServiceProvider;
 use Laravel\Passport\PassportServiceProvider;
@@ -78,6 +79,7 @@ return [
     SlugRedirectsServiceProvider::class,
     ShareTrackingServiceProvider::class,
     BlazeServiceProvider::class,
+    LivewireComponentAliasServiceProvider::class,
     FilamentPhoneInputServiceProvider::class,
     AhliPanelProvider::class,
     AdminPanelProvider::class,

@@ -1,9 +1,9 @@
 <?php
 
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Models\Event;
-use App\Models\Person;
-use App\Models\Reference;
+use App\Features\Events\Models\Event;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;

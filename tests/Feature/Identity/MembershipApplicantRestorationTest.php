@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\MembershipApplication;
+use App\Features\Membership\Models\MembershipApplication;
 use App\Models\User;
 
 it('restores the membership application applicant and reviewer attribution', function (): void {

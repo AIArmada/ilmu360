@@ -7,7 +7,7 @@ use AIArmada\Engagement\Enums\FollowStatus;
 use AIArmada\Engagement\Models\Follow;
 use App\Features\Engagement\Contributors\EngagementAccountLifecycleContributor;
 use App\Models\User;
-use App\Models\Venue;
+use App\Features\Places\Models\Venue;
 
 it('snapshots, detaches and restores venue follows with the venue morph alias', function (): void {
     $user = User::factory()->create();
