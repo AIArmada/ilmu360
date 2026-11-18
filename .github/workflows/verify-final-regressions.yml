@@ -4,7 +4,7 @@ on:
     branches: [refactor]
     paths:
       - '.github/workflows/verify-final-regressions.yml'
-      - 'app/View/Components/EventJsonLd.php'
+      - 'app/Platform/Ui/Components/EventJsonLd.php'
       - 'tests/Feature/FilamentEventResourceTest.php'
       - 'app/Features/Registration/Actions/ConfirmOfflineAdmissionAction.php'
       - 'app/Features/Registration/Actions/IssueOfflineAdmissionAction.php'
