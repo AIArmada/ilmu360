@@ -18,6 +18,7 @@ final readonly class PendingPersonsStat implements AdminStatProvider
         yield new AdminStat(
             label: 'Persons Needing Approval',
             count: $count,
+            sort: 20,
             description: 'Review pending persons',
             url: PersonResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending',
         );

@@ -5,10 +5,6 @@ declare(strict_types=1);
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\FeatureServiceProvider as ShareTrackingServiceProvider;
-use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
-use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
-use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
-use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
@@ -16,6 +12,10 @@ use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
 use App\Features\ShareTracking\Models\ShareSignalReaderSkip;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
+use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
+use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
+use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Platform\FeatureCatalog;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
@@ -47,6 +47,7 @@ it('claims the browser selection, source receipt, effect receipt, outcome correc
             'table:share_signal_reader_cursors' => [DrainCommittedShareSignalsAction::class],
             'table:share_signal_reader_skips' => [DrainCommittedShareSignalsAction::class],
             'table:share_source_attribution_receipts' => [DatabaseSourceAttributionReceipts::class],
+            'store:share-analytics-dashboard' => [App\Features\ShareTracking\Persistence\ShareAnalyticsDashboardCacheStore::class],
         ])
         ->and($catalog['owners'])->toHaveKey('table:share_browser_selections')
         ->and($catalog['owners']['table:share_browser_selections'])->toBe('ShareTracking')
@@ -62,7 +63,7 @@ it('claims the browser selection, source receipt, effect receipt, outcome correc
         ->and($catalog['owners']['table:share_signal_reader_skips'])->toBe('ShareTracking')
         ->and($catalog['owners'])->toHaveKey('table:share_source_attribution_receipts')
         ->and($catalog['owners']['table:share_source_attribution_receipts'])->toBe('ShareTracking')
-        ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(7)
+        ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(8)
         ->and(array_keys($providers, ShareTrackingServiceProvider::class, true))->toHaveCount(1);
 });
 

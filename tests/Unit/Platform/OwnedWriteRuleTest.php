@@ -864,11 +864,12 @@ PHP);
 
 it('keys an inherited token write exception to its trait source file', function (): void {
     $project = new FixtureProject;
+    $project->feature('Identity');
 
     try {
-        $project->write('app/Models/Concerns/HasUserRestoration.php', <<<'PHP'
+        $project->write('app/Features/Identity/Support/HasUserRestoration.php', <<<'PHP'
 <?php
-namespace App\Models\Concerns;
+namespace App\Features\Identity\Support;
 trait HasUserRestoration
 {
     protected function deleteAuthenticationState(): void
@@ -894,7 +895,7 @@ PHP);
 
         $exception = [
             'rule' => 'architecture.writeLocation',
-            'file' => 'app/Models/Concerns/HasUserRestoration.php',
+            'file' => 'app/Features/Identity/Support/HasUserRestoration.php',
             'target' => 'table:unknown',
             'model' => Laravel\Sanctum\PersonalAccessToken::class,
             'relation' => 'tokens',

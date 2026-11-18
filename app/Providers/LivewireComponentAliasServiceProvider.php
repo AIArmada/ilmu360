@@ -49,6 +49,9 @@ final class LivewireComponentAliasServiceProvider extends ServiceProvider
         'pages.persons.show' => \App\Features\Persons\EntryPoints\Livewire\Pages\Show::class,
         'pages.references.show' => \App\Features\References\EntryPoints\Livewire\Pages\Show::class,
         'pages.submit-event.create' => \App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create::class,
+        'components.event-filters' => \App\Features\Discovery\EntryPoints\Livewire\Components\EventFilters::class,
+        'pages.events.occurrence' => \App\Features\Events\EntryPoints\Livewire\Pages\Occurrence::class,
+        'pages.events.session' => \App\Features\Events\EntryPoints\Livewire\Pages\Session::class,
     ];
 
     public function boot(): void

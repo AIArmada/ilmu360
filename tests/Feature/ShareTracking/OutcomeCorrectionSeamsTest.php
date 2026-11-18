@@ -10,11 +10,11 @@ use App\Features\Referrals\EntryPoints\Jobs\ReverseReferralRewardsForShareOutcom
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
-use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
+use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Models\User;
 use App\Platform\FeatureCatalog;
 use App\Shared\ShareTracking\ShareEffectStatus;
@@ -85,7 +85,7 @@ it('claims the outcome correction table for its single persistence writer', func
         ])
         ->and($writers)->toBe([DatabaseOutcomeCorrections::class])
         ->and($catalog['writes'][DatabaseOutcomeCorrections::class] ?? null)->toContain('table:share_outcome_corrections')
-        ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(7);
+        ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(8);
 });
 
 it('binds the outcome correction Api and resolves the root model through its morph alias', function (): void {

@@ -18,6 +18,7 @@ final readonly class PendingReferencesStat implements AdminStatProvider
         yield new AdminStat(
             label: 'References Needing Approval',
             count: $count,
+            sort: 40,
             description: 'Review pending references',
             url: ReferenceResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending',
         );

@@ -18,6 +18,7 @@ final readonly class PendingVenuesStat implements AdminStatProvider
         yield new AdminStat(
             label: 'Venues Needing Approval',
             count: $count,
+            sort: 50,
             description: 'Review pending venues',
             url: VenueResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending',
         );

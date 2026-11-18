@@ -2,31 +2,30 @@
 
 declare(strict_types=1);
 
-use App\Features\ShareTracking\Support\ShareMetricDefinitions;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
+use App\Features\ShareTracking\Queries\ShareMetricReader;
 use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
 use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Services\ShareCohortAuthority;
+use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Support\ShareMetricDefinitions;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use App\Shared\ShareTracking\ShareTrackingRetention;
-use App\Features\ShareTracking\Services\ShareCohortAuthority;
-use App\Features\ShareTracking\Queries\ShareMetricReader;
-use App\Features\ShareTracking\Services\ShareProfileScope;
 use Carbon\CarbonImmutable;
 
-it('keeps the analytics readers as documented root adapters', function (string $class, string $relativePath): void {
+it('keeps the analytics readers with their owning feature', function (string $class, string $relativePath): void {
     $file = new ReflectionClass($class)->getFileName();
 
-    expect(realpath((string) $file))->toBe(realpath(base_path($relativePath)))
-        ->and((string) $file)->not->toStartWith(app_path('Features/ShareTracking'));
+    expect(realpath((string) $file))->toBe(realpath(base_path($relativePath)));
 })->with([
-    'user analytics' => [ShareTrackingAnalyticsService::class, 'app/Services/ShareTrackingAnalyticsService.php'],
-    'affiliate analytics' => [AffiliatesShareTrackingAnalyticsService::class, 'app/Services/ShareTracking/AffiliatesShareTrackingAnalyticsService.php'],
-    'admin analytics' => [AdminShareAnalyticsService::class, 'app/Services/ShareTracking/AdminShareAnalyticsService.php'],
-    'metric reader' => [ShareMetricReader::class, 'app/Support/Share/ShareMetricReader.php'],
+    'user analytics' => [ShareTrackingAnalyticsService::class, 'app/Features/ShareTracking/Services/ShareTrackingAnalyticsService.php'],
+    'affiliate analytics' => [AffiliatesShareTrackingAnalyticsService::class, 'app/Features/ShareTracking/Services/Analytics/AffiliatesShareTrackingAnalyticsService.php'],
+    'admin analytics' => [AdminShareAnalyticsService::class, 'app/Features/ShareTracking/Services/Analytics/AdminShareAnalyticsService.php'],
+    'metric reader' => [ShareMetricReader::class, 'app/Features/ShareTracking/Queries/ShareMetricReader.php'],
     'measurement contract' => [ShareTrackingMeasurement::class, 'app/Shared/ShareTracking/ShareTrackingMeasurement.php'],
-    'profile scope' => [ShareProfileScope::class, 'app/Support/Share/ShareProfileScope.php'],
-    'cohort authority' => [ShareCohortAuthority::class, 'app/Support/Share/ShareCohortAuthority.php'],
+    'profile scope' => [ShareProfileScope::class, 'app/Features/ShareTracking/Services/ShareProfileScope.php'],
+    'cohort authority' => [ShareCohortAuthority::class, 'app/Features/ShareTracking/Services/ShareCohortAuthority.php'],
 ]);
 
 it('keeps every named metric unit distinct and versioned', function (): void {

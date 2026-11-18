@@ -18,6 +18,7 @@ final readonly class PendingEventsStat implements AdminStatProvider
         yield new AdminStat(
             label: 'Events Needing Approval',
             count: $count,
+            sort: 10,
             description: 'Open pending moderation queue',
             url: ModerationQueue::getUrl(panel: 'admin').'?tab=pending',
         );

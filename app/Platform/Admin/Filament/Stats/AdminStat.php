@@ -11,5 +11,6 @@ final readonly class AdminStat
         public int $count,
         public string $description,
         public ?string $url = null,
+        public int $sort = 0,
     ) {}
 }

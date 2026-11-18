@@ -12,7 +12,7 @@ it('clears end_time client-side only for custom times, never for prayer labels',
 
     // Extract the shipped watcher bodies verbatim from the schema source —
     // the test executes these exact bytes, not a copy.
-    $schema = (string) file_get_contents(app_path('Livewire/Pages/SubmitEvent/EventSubmissionFormSchema.php'));
+    $schema = (string) file_get_contents(app_path('Features/Events/EntryPoints/Livewire/Pages/SubmitEvent/EventSubmissionFormSchema.php'));
 
     // Flexible-heredoc closings sit bare (`JS` + newline) or trail the call
     // (`JS)`, `JS),`, `JS,`); accept both so matches never span blocks.

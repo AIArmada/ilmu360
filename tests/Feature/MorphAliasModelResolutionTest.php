@@ -6,26 +6,26 @@ use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Institutions\Models\Institution;
-use App\Platform\Language\Models\Language;
 use App\Features\Membership\Models\MemberInvitation;
 use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Features\Places\Models\Venue;
-use App\Shared\Support\MorphAliasModel;
+use App\Platform\Language\Models\Language;
 use App\Platform\Models\Support\RelatedModels;
+use App\Shared\Support\MorphAliasModel;
 
 it('resolves every cross-feature relation target through its morph alias', function (): void {
-    expect(RelatedModels::event())->toBe(Event::class)
-        ->and(RelatedModels::institution())->toBe(Institution::class)
-        ->and(RelatedModels::person())->toBe(Person::class)
-        ->and(RelatedModels::reference())->toBe(Reference::class)
-        ->and(RelatedModels::venue())->toBe(Venue::class)
-        ->and(RelatedModels::user())->toBe(User::class)
-        ->and(RelatedModels::eventKeyPerson())->toBe(EventKeyPerson::class)
-        ->and(RelatedModels::memberInvitation())->toBe(MemberInvitation::class)
-        ->and(RelatedModels::donationChannel())->toBe(DonationChannel::class)
-        ->and(RelatedModels::language())->toBe(Language::class);
+    expect(RelatedModels::event(Event::class))->toBe(Event::class)
+        ->and(RelatedModels::institution(Institution::class))->toBe(Institution::class)
+        ->and(RelatedModels::person(Person::class))->toBe(Person::class)
+        ->and(RelatedModels::reference(Reference::class))->toBe(Reference::class)
+        ->and(RelatedModels::venue(Venue::class))->toBe(Venue::class)
+        ->and(RelatedModels::user(User::class))->toBe(User::class)
+        ->and(RelatedModels::eventKeyPerson(EventKeyPerson::class))->toBe(EventKeyPerson::class)
+        ->and(RelatedModels::memberInvitation(MemberInvitation::class))->toBe(MemberInvitation::class)
+        ->and(RelatedModels::donationChannel(DonationChannel::class))->toBe(DonationChannel::class)
+        ->and(RelatedModels::language(Language::class))->toBe(Language::class);
 });
 
 it('rejects an unregistered morph alias', function (): void {

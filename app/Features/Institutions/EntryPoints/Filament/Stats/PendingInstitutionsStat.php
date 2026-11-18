@@ -18,6 +18,7 @@ final readonly class PendingInstitutionsStat implements AdminStatProvider
         yield new AdminStat(
             label: 'Institutions Needing Approval',
             count: $count,
+            sort: 30,
             description: 'Review pending institutions',
             url: InstitutionResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending',
         );

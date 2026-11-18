@@ -39,11 +39,11 @@ use App\Features\Rewards\Policies\RewardProgramPolicy;
 use App\Features\Rewards\Policies\RewardRecoveryPolicy;
 use App\Features\Rewards\Support\RewardMemberPresenter;
 use App\Features\Rewards\Support\RewardPayoutMethods;
-use App\Platform\Mcp\Servers\AdminServer;
 use App\Models\User;
+use App\Platform\Api\Admin\AdminResourceMutationService;
 use App\Platform\FeatureCatalog;
 use App\Platform\FeatureModule;
-use App\Platform\Api\Admin\AdminResourceMutationService;
+use App\Platform\Mcp\Servers\AdminServer;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Sanctum\Sanctum;
@@ -165,7 +165,7 @@ it('keeps member reward presentation feature-local and the readers uncached', fu
     $memberReadSurfaces = [
         ...glob(app_path('Features/Rewards/EntryPoints/Http/Reward*Controller.php')) ?: [],
         app_path('Features/Rewards/EntryPoints/Livewire/Pages/Dashboard/RewardMemberIndex.php'),
-        app_path('Livewire/Pages/Dashboard/UserDashboard.php'),
+        app_path('Features/Identity/EntryPoints/Livewire/Pages/Dashboard/UserDashboard.php'),
     ];
 
     foreach ($memberReadSurfaces as $path) {
