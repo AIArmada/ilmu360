@@ -18,7 +18,7 @@ class TrackShareAttribution
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $cookieValue = $this->shareTrackingService->captureRequest($request);
+        $cookieValue = $this->shareTrackingService->captureRequest(\App\Shared\ShareTracking\ShareRequestContext::fromRequest($request));
 
         /** @var Response $response */
         $response = $next($request);

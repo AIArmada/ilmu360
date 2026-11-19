@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Enums\FraudSeverity;
 // R1 proof: ShareCohortAuthority implements the landing → signup →
 // first COMMITTED outbound share → accepted participation funnel with
 // a fixed 30-day PER-SIGNUP maturation. Weeks mature only once their
@@ -9,18 +10,18 @@ declare(strict_types=1);
 // only CONFIRMED fraud excludes (corrections are not fraud). Every
 // fact below is written by real production ingestion.
 
-use AIArmada\Affiliates\Enums\FraudSeverity;
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
+use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Features\Events\Models\Event;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\ShareCohortAuthority;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Features\ShareTracking\Services\ShareCohortAuthority;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -73,7 +74,7 @@ function scoSignup(TestCase $testCase, User $sharer, string $name, string $email
     $request = Request::create('/register', 'POST');
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $outcome = app(AffiliatesShareTrackingService::class)->recordSignup($user, $request);
+    $outcome = app(AffiliatesShareTrackingService::class)->recordSignup($user, ShareRequestContext::fromRequest($request));
 
     Carbon::setTestNow();
 
@@ -120,7 +121,7 @@ function scoParticipation(TestCase $testCase, User $sharer, CarbonImmutable $at)
         $key,
         null,
         $actor,
-        $request,
+        ShareRequestContext::fromRequest($request),
         [],
         $at,
     );

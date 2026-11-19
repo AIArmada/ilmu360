@@ -16,13 +16,14 @@ use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Features\ShareTracking\Api\GuestShareClaims;
-use App\Models\User;
-use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Services\ShareProfileScope;
+use App\Models\User;
 use App\Shared\Auth\SignupAttributionContext;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
+use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use App\Features\ShareTracking\Services\ShareProfileScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -82,7 +83,7 @@ it('claims reads and revokes guest history with ownership enabled', function (bo
     $signupBefore = User::factory()->create();
     $service = app(AffiliatesShareTrackingService::class);
     $identityService = app(AffiliatesShareTrackingService::class);
-    $payload = $service->sharePayload(null, route('events.index'), 'Share', 'Page', 'web', Request::create(route('events.index')));
+    $payload = $service->sharePayload(null, route('events.index'), 'Share', 'Page', 'web', ShareRequestContext::fromRequest(Request::create(route('events.index'))));
     $link = AffiliateLink::query()->withoutGlobalScope(OwnerScope::class)->where('custom_slug', $payload['tracking_token'])->firstOrFail();
     $request = Request::create(route('share.claim.show'));
     $request->headers->set('X-Claim-Capability', $payload['guest_claim_capability']);

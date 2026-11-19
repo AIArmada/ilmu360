@@ -57,5 +57,4 @@ class MediaLink extends Model implements AuditableContract
     {
         return MediaLinkFactory::new();
     }
-
 }

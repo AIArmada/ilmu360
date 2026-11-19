@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Models\AffiliateLink;
 // Permanent race worker for Wp3RealDriverRaceTest. Executed only as a
 // standalone OS process (`php Wp3RaceWorker.php --database=... ...`); returns
 // immediately when merely included, so test runners and autoloaders never
 // execute it.
 
-use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\ShareTracking\Api\GuestShareClaims;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -229,8 +230,7 @@ try {
                 'Majlis',
                 'Majlis',
                 'web',
-                $request
-            );
+                ShareRequestContext::fromRequest($request));
 
             $returnedAt = microtime(true);
 

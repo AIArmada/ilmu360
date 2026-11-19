@@ -5,8 +5,9 @@ declare(strict_types=1);
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Communications\Contracts\PayloadRedactor;
 use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Http\Request;
 
 beforeEach(function (): void {
@@ -31,8 +32,7 @@ function wp3crGuestShare(): array
         'Share this page',
         'Shared Page',
         'web',
-        Request::create(route('events.index'), 'GET')
-    );
+        ShareRequestContext::fromRequest(Request::create(route('events.index'), 'GET')));
 
     $link = AffiliateLink::query()->where('custom_slug', $payload['tracking_token'])->firstOrFail();
 

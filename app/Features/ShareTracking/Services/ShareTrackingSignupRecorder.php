@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\Services;
 
 use App\Models\User;
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\SignupRecorder;
 use Illuminate\Http\Request;
 
@@ -21,6 +20,6 @@ final readonly class ShareTrackingSignupRecorder implements SignupRecorder
             return;
         }
 
-        $this->shareTracking->recordSignup($user, $request);
+        $this->shareTracking->recordSignup($user, $request instanceof Request ? \App\Shared\ShareTracking\ShareRequestContext::fromRequest($request) : null);
     }
 }

@@ -8,8 +8,9 @@ use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -143,8 +144,7 @@ final class ShareMetricRaceHarness
     public static function landing(string $url, ?string $cookie = null): ?string
     {
         return app(AffiliatesShareTrackingService::class)->captureRequest(
-            Wp2RealDriverHarness::landingRequest($url, $cookie)
-        );
+            ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($url, $cookie)));
     }
 
     /** @return array<string, mixed> */
@@ -152,6 +152,6 @@ final class ShareMetricRaceHarness
     {
         $request = Request::create($url, 'GET');
 
-        return app(AffiliatesShareTrackingService::class)->sharePayload(null, $url, 'Share this page', 'Shared Page', 'web', $request);
+        return app(AffiliatesShareTrackingService::class)->sharePayload(null, $url, 'Share this page', 'Shared Page', 'web', ShareRequestContext::fromRequest($request));
     }
 }

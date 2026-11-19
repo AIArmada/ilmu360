@@ -492,13 +492,14 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
-      "target": "table:unknown",
+      "target": "table:affiliate_balances",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateBalance",
       "relation": "balances",
       "relation_owner": "AIArmada\\Affiliates\\Models\\Affiliate",
       "reason": "The root account-restoration path removes balances through Affiliate::balances() only when no financial obligations require retaining the profile.",
       "owner": "ShareTracking",
-      "expires": "2027-06-30"
+      "expires": "2027-06-30",
+      "validated_by": "phpstan"
     },
     {
       "rule": "architecture.writeLocation",
@@ -521,11 +522,12 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
-      "target": "table:unknown",
+      "target": "table:affiliate_links",
       "model": "AIArmada\\Affiliates\\Models\\AffiliateLink",
       "reason": "The root ShareTracking gateway retains tracked-link reuse, redirect, and account-cleanup behavior, including destination snapshots, touch times, click counts, deactivation, and deletion; the dynamically configured table remains package-owned.",
       "owner": "ShareTracking",
-      "expires": "2027-06-30"
+      "expires": "2027-06-30",
+      "validated_by": "phpstan"
     },
     {
       "rule": "architecture.writeLocation",
@@ -1896,22 +1898,6 @@
       "expires": "2027-12-31"
     },
     {
-      "rule": "api-shape",
-      "file": "app/Features/ShareTracking/Api/ShareTrackingContract.php",
-      "target": "Illuminate\\Database\\Eloquent\\Model",
-      "reason": "The published boundary contract preserves the existing framework transport or pagination signature required by unchanged public API responses.",
-      "owner": "Platform",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "api-shape",
-      "file": "app/Features/ShareTracking/Api/ShareTrackingContract.php",
-      "target": "Illuminate\\Http\\Request",
-      "reason": "The published boundary contract preserves the existing framework transport or pagination signature required by unchanged public API responses.",
-      "owner": "Platform",
-      "expires": "2027-12-31"
-    },
-    {
       "rule": "platform-direction",
       "file": "app/Platform/Admin/EntryPoints/Filament/Pages/AhliDashboard.php",
       "target": "App\\Features\\Events\\EntryPoints\\Filament\\Widgets\\PendingApprovalEventsWidget",
@@ -2473,6 +2459,48 @@
       "reason": "Feature-owned event state transition updates the event status column inside its own lifecycle.",
       "owner": "Events",
       "expires": "2027-12-31"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Contributions/EntryPoints/Livewire/Pages/SuggestUpdate.php",
+      "target": "table:media",
+      "model": "Spatie\\MediaLibrary\\MediaCollections\\Models\\Media",
+      "reason": "Contribution suggestion media adoption uploads the staged file into the pending request collection and deletes the transfer row through the package Media model; Media Library owns the media table.",
+      "owner": "Contributions",
+      "expires": "2027-06-30",
+      "validated_by": "phpstan"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Events/Services/EventModerationAdapter.php",
+      "target": "table:moderation_actions",
+      "model": "App\\Platform\\Moderation\\Models\\ModerationReview",
+      "reason": "Event moderation cleanup deletes the package moderation review rows attached to an event through the canonical wrapper model.",
+      "owner": "Events",
+      "expires": "2027-06-30",
+      "validated_by": "phpstan",
+      "relation": "moderationReviews",
+      "relation_owner": "App\\Features\\Events\\Models\\Event"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Membership/Persistence/EloquentScopedMembershipRoleStore.php",
+      "target": "table:model_has_roles",
+      "model": "Illuminate\\Database\\Query\\Builder",
+      "reason": "Membership scoped-role storage snapshots, restores and deletes package permission pivot rows through the configured table; the permission package owns these tables.",
+      "owner": "Membership",
+      "expires": "2027-06-30",
+      "validated_by": "phpstan"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Membership/Persistence/EloquentScopedMembershipRoleStore.php",
+      "target": "table:model_has_permissions",
+      "model": "Illuminate\\Database\\Query\\Builder",
+      "reason": "Membership scoped-permission storage snapshots, restores and deletes package permission pivot rows through the configured table; the permission package owns these tables.",
+      "owner": "Membership",
+      "expires": "2027-06-30",
+      "validated_by": "phpstan"
     }
   ],
   "read_adapters": {

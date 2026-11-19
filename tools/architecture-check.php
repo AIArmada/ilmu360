@@ -409,6 +409,31 @@ try {
             return false;
         }
 
+        if (($exception['validated_by'] ?? null) === 'phpstan') {
+            $verifiedTarget = $exception['target'];
+            $verifiedModel = $exception['model'] ?? null;
+
+            if (! str_starts_with($verifiedTarget, 'table:') || $verifiedTarget === 'table:unknown'
+                || ! is_string($verifiedModel) || str_starts_with($verifiedModel, 'App\\Features\\')) {
+                return false;
+            }
+
+            if ($verifiedModel !== 'Illuminate\\Database\\Query\\Builder') {
+                $verifiedRelation = $exception['relation'] ?? null;
+                $shortModel = substr($verifiedModel, (int) strrpos($verifiedModel, '\\') + 1);
+
+                if (is_string($verifiedRelation) && $verifiedRelation !== '') {
+                    if (! str_contains($source, $verifiedRelation)) {
+                        return false;
+                    }
+                } elseif (! str_contains($source, $shortModel)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         $target = $exception['target'];
         $owner = $owners[$target] ?? null;
         $sourceFeature = preg_match('~^app/Features/([^/]+)/~', $relative, $match) === 1 ? $match[1] : null;

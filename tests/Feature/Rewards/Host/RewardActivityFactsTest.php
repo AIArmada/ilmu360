@@ -26,17 +26,18 @@ use AIArmada\Rewards\Models\RewardMilestoneCycle;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Models\RewardSourceComponentClaim;
-use App\Features\Rewards\Api\MemberEnrollment;
-use App\Features\Rewards\EntryPoints\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
-use App\Models\User;
+use App\Features\Rewards\Api\MemberEnrollment;
+use App\Features\Rewards\EntryPoints\Livewire\Pages\Dashboard\RewardMemberIndex;
+use App\Features\Rewards\Queries\ActivityRewardSourceFactReader;
+use App\Features\Rewards\Queries\ShareAttributionRewardSourceFactReader;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Features\Rewards\Queries\ActivityRewardSourceFactReader;
-use App\Features\Rewards\Queries\ShareAttributionRewardSourceFactReader;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
@@ -121,11 +122,11 @@ function activityShareRequest(User $sharer): array
     $landing = Request::create($pageUrl.'?share='.$link->custom_slug, 'GET');
     $route = app('router')->getRoutes()->match($landing);
     $landing->setRouteResolver(static fn (): mixed => $route);
-    $cookie = $tracking->captureRequest($landing);
+    $cookie = $tracking->captureRequest(ShareRequestContext::fromRequest($landing));
     $request = Request::create($pageUrl);
     $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
 
-    $attribution = $tracking->resolveActiveAttribution($request);
+    $attribution = $tracking->resolveActiveAttribution(ShareRequestContext::fromRequest($request));
 
     if ($attribution === null) {
         throw new RuntimeException('The captured share link did not resolve to an active attribution.');
@@ -628,7 +629,7 @@ it('evaluates eligible preclaim signup facts for both the sharer and participant
     $tracking = app(AffiliatesShareTrackingService::class);
     $tracking->recordSignup($member);
     $share = activityShareRequest($member);
-    $tracking->recordSignup($visitor, $share['request']);
+    $tracking->recordSignup($visitor, ShareRequestContext::fromRequest($share['request']));
 
     Queue::fake([EvaluateRewardEntitlementJob::class]);
     Sanctum::actingAs($member);
@@ -844,7 +845,7 @@ it('keeps enroll-first share rewards and source claims idempotent after reaccept
     $share = activityShareRequest($sharer);
     $shareKey = ShareOutcomeBusinessKey::signup((string) $visitor->getKey());
     Queue::fake([EvaluateRewardEntitlementJob::class]);
-    app(AffiliatesShareTrackingService::class)->recordSignup($visitor, $share['request']);
+    app(AffiliatesShareTrackingService::class)->recordSignup($visitor, ShareRequestContext::fromRequest($share['request']));
 
     evaluateScopedRewardJob($shareKey);
 

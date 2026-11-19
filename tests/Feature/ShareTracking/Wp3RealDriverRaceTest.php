@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Models\Affiliate;
 // WP3 real-driver OS-process race proof.
 //
 // Two independent OS processes with independent connections run the actual
@@ -16,7 +17,6 @@ declare(strict_types=1);
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateBalance;
 use AIArmada\Affiliates\Models\AffiliateClaim;
@@ -26,9 +26,10 @@ use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Links\Models\Link;
 use App\Features\ShareTracking\Api\GuestShareClaims;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
+use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -93,8 +94,7 @@ function wp3ClaimRaceCase(TestCase $testCase): void
             'Majlis',
             'Majlis',
             'web',
-            Request::create(route('events.index'), 'GET')
-        );
+            ShareRequestContext::fromRequest(Request::create(route('events.index'), 'GET')));
 
         $capability = (string) ($payload['guest_claim_capability'] ?? '');
 
@@ -314,8 +314,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
             'Majlis',
             'Majlis',
             'web',
-            Request::create($pageUrl, 'GET')
-        );
+            ShareRequestContext::fromRequest(Request::create($pageUrl, 'GET')));
 
         $credential = (string) $issued['guest_credential'];
         $affiliateId = (string) AffiliateLink::query()->where('custom_slug', (string) $issued['tracking_token'])->value('affiliate_id');
@@ -351,8 +350,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
                     'Majlis',
                     'Majlis',
                     'web',
-                    $requestForRace()
-                );
+                    ShareRequestContext::fromRequest($requestForRace()));
 
                 $commitStartedAt = microtime(true);
 
@@ -403,8 +401,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
             'Majlis',
             'Majlis',
             'web',
-            $requestForRace()
-        ))->toThrow(InvalidArgumentException::class)
+            ShareRequestContext::fromRequest($requestForRace())))->toThrow(InvalidArgumentException::class)
             ->and(AffiliateLink::query()->where('affiliate_id', $affiliateId)->count())->toBe(2)
             ->and(Link::query()->withoutOwnerScope()->count())->toBe($managedBefore);
     } finally {
@@ -478,8 +475,7 @@ function wp3DeleteBeforeClaimRaceCase(TestCase $testCase): void
             'Majlis',
             'Majlis',
             'web',
-            Request::create(route('events.index'), 'GET')
-        );
+            ShareRequestContext::fromRequest(Request::create(route('events.index'), 'GET')));
 
         $capability = (string) $payload['guest_claim_capability'];
         $guestAffiliateId = (string) AffiliateLink::query()
@@ -556,8 +552,7 @@ function wp3ClaimBeforeDeleteRaceCase(TestCase $testCase): void
             'Majlis',
             'Majlis',
             'web',
-            Request::create(route('events.index'), 'GET')
-        );
+            ShareRequestContext::fromRequest(Request::create(route('events.index'), 'GET')));
 
         $capability = (string) $payload['guest_claim_capability'];
         $guestAffiliateId = (string) AffiliateLink::query()
@@ -657,8 +652,7 @@ function wp3DeletePreservesObligationsCase(TestCase $testCase): void
             'Majlis',
             'Majlis',
             'web',
-            Request::create(route('events.index'), 'GET')
-        );
+            ShareRequestContext::fromRequest(Request::create(route('events.index'), 'GET')));
 
         $guestAffiliateId = (string) AffiliateLink::query()
             ->where('custom_slug', (string) $payload['tracking_token'])
@@ -736,8 +730,7 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
             'Majlis',
             'Majlis',
             'web',
-            Request::create($pageUrl, 'GET')
-        );
+            ShareRequestContext::fromRequest(Request::create($pageUrl, 'GET')));
 
         $credential = (string) $issued['guest_credential'];
         $capability = (string) $issued['guest_claim_capability'];
@@ -834,8 +827,7 @@ function wp3ClaimSealsRacingCreationCase(TestCase $testCase): void
         // Legitimate new traffic on the existing claimed public link still
         // records against its original guest source.
         $cookie = app(AffiliatesShareTrackingService::class)->captureRequest(
-            Wp2RealDriverHarness::landingRequest($pageUrl.'?share='.$originalToken)
-        );
+            ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($pageUrl.'?share='.$originalToken)));
 
         expect($cookie)->toBeString()
             ->and($cookie)->not->toBe('')
@@ -860,8 +852,7 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase): void
             'Majlis',
             'Majlis',
             'web',
-            Request::create($pageUrl, 'GET')
-        );
+            ShareRequestContext::fromRequest(Request::create($pageUrl, 'GET')));
 
         $credential = (string) $issued['guest_credential'];
         $capability = (string) $issued['guest_claim_capability'];
@@ -897,8 +888,7 @@ function wp3CreationBeforeClaimRaceCase(TestCase $testCase): void
                     'Majlis',
                     'Majlis',
                     'web',
-                    $request
-                );
+                    ShareRequestContext::fromRequest($request));
 
                 $commitStartedAt = microtime(true);
 

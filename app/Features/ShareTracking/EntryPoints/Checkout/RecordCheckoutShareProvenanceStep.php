@@ -9,12 +9,13 @@ use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
-use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;
-use App\Models\User;
+use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
@@ -100,7 +101,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
                 type: ShareOutcomeType::EventRegistration,
                 businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                 persistedAttributionId: $effectiveAttributionId,
-                subject: $subject instanceof Model ? $subject : null,
+                subject: $subject instanceof Model ? ShareSubjectFactory::fromModel($subject) : null,
                 actor: $actor,
                 metadata: [
                     'registration_id' => (string) $registration->getKey(),

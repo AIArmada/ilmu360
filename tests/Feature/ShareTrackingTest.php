@@ -11,22 +11,23 @@ use AIArmada\Events\Contracts\RegistrationServiceInterface;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentAffiliates\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
-use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearchesIndex;
-use App\Features\ShareTracking\EntryPoints\Livewire\Pages\DakwahIndex;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Events\Models\Event;
-use App\Features\Registration\Models\EventCheckin;
 use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
+use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
-use App\Features\Events\Models\Series;
+use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearchesIndex;
+use App\Features\ShareTracking\EntryPoints\Livewire\Pages\DakwahIndex;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
-use App\Platform\Auth\Fortify\CreateNewUser;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Models\User;
+use App\Platform\Auth\Fortify\CreateNewUser;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -34,6 +35,7 @@ use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
@@ -233,7 +235,7 @@ test('a deactivated share link records no later visits or attributed signup cred
     $signupRequest = Request::create($destination, 'POST');
     $signupRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $signupKey = ShareOutcomeBusinessKey::signup((string) $visitor->getKey());
-    app(AffiliatesShareTrackingService::class)->recordSignup($visitor, $signupRequest);
+    app(AffiliatesShareTrackingService::class)->recordSignup($visitor, ShareRequestContext::fromRequest($signupRequest));
 
     $receipt = ShareSourceAttributionReceipt::query()
         ->where('business_key', $signupKey)
@@ -1077,16 +1079,16 @@ test('registration refunds reverse attributed registration and check-in outcomes
     $trackingService->recordOutcome(
         ShareOutcomeType::EventRegistration,
         $registrationKey,
-        $event,
+        ShareSubjectFactory::fromModel($event),
         $visitor,
-        $request,
+        ShareRequestContext::fromRequest($request),
     );
     $trackingService->recordOutcome(
         ShareOutcomeType::EventCheckin,
         $checkinKey,
-        $event,
+        ShareSubjectFactory::fromModel($event),
         $visitor,
-        $request,
+        ShareRequestContext::fromRequest($request),
     );
 
     $registrationConversion = AffiliateConversion::query()
@@ -1469,7 +1471,7 @@ test('resolved active attribution prefers canonical affiliate subject fields', f
     $request = Request::create(route('events.show', $event));
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $resolved = app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($request);
+    $resolved = app(AffiliatesShareTrackingService::class)->resolveActiveAttribution(ShareRequestContext::fromRequest($request));
 
     expect($resolved)->not->toBeNull()
         ->and($resolved?->subjectType)->toBe('event')

@@ -7,8 +7,9 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\Support\IpHasher;
 use App\Features\Events\Models\Event;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
@@ -164,7 +165,7 @@ it('ignores tracking writes for private paths presented with share tokens', func
             'GET',
         );
 
-        expect($service->captureRequest($request))->toBeNull();
+        expect($service->captureRequest(ShareRequestContext::fromRequest($request)))->toBeNull();
     }
 
     expect(AffiliateAttribution::query()->count())->toBe(0)

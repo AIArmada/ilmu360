@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 // Late-arrival real-driver proof: on the isolated PostgreSQL 18, an
 // older source delayed by a Signals outage is recovered from an
 // INDEPENDENT OS process through the real producer API. Normal
@@ -13,17 +14,17 @@ declare(strict_types=1);
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
-use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
+use App\Models\User;
 use App\Shared\ShareTracking\CommittedShareSignal;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
@@ -191,7 +192,7 @@ function cslaLateArrivalCase(TestCase $testCase): void
                 'copy_link',
                 $member,
                 (string) $link->custom_slug,
-                Request::create($pageUrl, 'POST'),
+                ShareRequestContext::fromRequest(Request::create($pageUrl, 'POST')),
             );
 
             $testCase->fail('The injected outage must surface.');
@@ -214,7 +215,7 @@ function cslaLateArrivalCase(TestCase $testCase): void
                 'whatsapp',
                 $member,
                 (string) $link->custom_slug,
-                Request::create($pageUrl, 'POST'),
+                ShareRequestContext::fromRequest(Request::create($pageUrl, 'POST')),
             );
         } finally {
             $testCase->travelBack();

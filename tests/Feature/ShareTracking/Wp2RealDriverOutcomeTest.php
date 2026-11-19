@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Enums\FraudSeverity;
 // WP2 real-driver proof for the atomic outcome slice.
 //
 // Every case runs the actual current application + affiliates flows
@@ -15,7 +16,6 @@ declare(strict_types=1);
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Enums\FraudSeverity;
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
@@ -28,20 +28,21 @@ use AIArmada\Affiliates\Services\FraudDetectionService;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Events\Models\Event;
+use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Features\Events\Models\Event;
-use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
@@ -115,8 +116,7 @@ function wp2OutcomeLink(User $sharer, string $url): AffiliateLink
 function wp2OutcomeLanding(string $url, ?string $cookie = null): ?string
 {
     return app(AffiliatesShareTrackingService::class)->captureRequest(
-        Wp2RealDriverHarness::landingRequest($url, $cookie)
-    );
+        ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($url, $cookie)));
 }
 
 function wp2OutcomeRequest(?string $cookie = null): Request
@@ -152,7 +152,7 @@ function wp2OutcomeCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
             ['saved_search_id' => 'wp2'],
             $occurredAt,
         );
@@ -178,7 +178,7 @@ function wp2OutcomeCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest(),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest()),
             [],
             CarbonImmutable::now(),
         );
@@ -213,7 +213,7 @@ function wp2UnattributedCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest(),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest()),
         ))->toBeNull();
 
         $receipt = ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail();
@@ -228,7 +228,7 @@ function wp2UnattributedCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         ))->toBeNull()
             ->and(AffiliateConversion::query()->count())->toBe(0);
     } finally {
@@ -262,7 +262,7 @@ function wp2FraudRejectionCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         ))->toBeNull();
 
         $conversion = AffiliateConversion::query()->firstOrFail();
@@ -283,7 +283,7 @@ function wp2FraudRejectionCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         ))->toBeNull()
             ->and(AffiliateConversion::query()->count())->toBe(1);
     } finally {
@@ -315,7 +315,7 @@ function wp2RollbackCase(TestCase $testCase): void
                 $businessKey,
                 null,
                 $actor,
-                wp2OutcomeRequest($cookie),
+                ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
             );
         } catch (RuntimeException $exception) {
             $failure = $exception->getMessage();
@@ -375,7 +375,7 @@ function wp2AccountingFaultCase(TestCase $testCase): void
                 $businessKey,
                 null,
                 $actor,
-                wp2OutcomeRequest($cookie),
+                ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
             );
         } catch (RuntimeException $exception) {
             $failure = $exception->getMessage();
@@ -399,7 +399,7 @@ function wp2AccountingFaultCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         );
 
         expect($retry)->not->toBeNull()
@@ -432,7 +432,7 @@ function wp2DispatchRecoveryCase(TestCase $testCase): void
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         );
 
         $dispatcher = app(PendingShareEffects::class);
@@ -456,7 +456,7 @@ function wp2DispatchRecoveryCase(TestCase $testCase): void
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         );
 
         $stranded = ShareEffectReceipt::query()->where('status', ShareEffectStatus::Pending->value)->firstOrFail();
@@ -523,7 +523,7 @@ function wp2TtlDedupeCase(TestCase $testCase): void
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         );
 
         expect($staleOutcome)->toBeNull()
@@ -538,7 +538,7 @@ function wp2TtlDedupeCase(TestCase $testCase): void
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
-            wp2OutcomeRequest($freshCookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($freshCookie)),
         );
 
         expect($freshOutcome)->not->toBeNull()
@@ -569,7 +569,7 @@ function wp2InheritanceCase(TestCase $testCase): void
             $sourceKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         ))->not->toBeNull();
 
         $sourceReceipt = ShareSourceAttributionReceipt::query()->where('business_key', $sourceKey)->firstOrFail();
@@ -624,7 +624,7 @@ function wp2CorrectionCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         ))->not->toBeNull();
 
         $reverser = app(ShareOutcomeReversals::class);
@@ -653,7 +653,7 @@ function wp2CorrectionCase(TestCase $testCase): void
             $moneyKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookie),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)),
         ))->not->toBeNull();
 
         $moneyConversion = AffiliateConversion::query()->where('idempotency_key', hash('sha256', $moneyKey))->firstOrFail();
@@ -826,12 +826,12 @@ function wp2BrowserReversedArrivalCase(TestCase $testCase): void
         $selection = ShareBrowserSelection::query()->firstOrFail();
         expect((string) $selection->current_attribution_id)->toBe((string) $winnerB->getKey());
 
-        $resolved = $service->resolveActiveAttribution(wp2OutcomeRequest($cookieA));
+        $resolved = $service->resolveActiveAttribution(ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieA)));
         expect($resolved)->not->toBeNull()
             ->and((string) $resolved->id)->toBe((string) $winnerB->getKey());
 
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
-        $outcome = $service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookieA));
+        $outcome = $service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieA)));
 
         expect($outcome)->not->toBeNull()
             ->and((string) $outcome->linkId)->toBe((string) $linkB->getKey());
@@ -864,10 +864,10 @@ function wp2BrowserInvalidTokenCase(TestCase $testCase): void
         $cleared = wp2OutcomeLanding($pageUrl.'?share=deadbeef-dead-beef-dead-beefdeadbeef', $cookie);
         expect($cleared)->toBeString()->not->toBe('')
             ->and(ShareBrowserSelection::query()->whereNotNull('current_attribution_id')->count())->toBe(0)
-            ->and($service->resolveActiveAttribution(wp2OutcomeRequest($cookie)))->toBeNull();
+            ->and($service->resolveActiveAttribution(ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie))))->toBeNull();
 
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
-        expect($service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookie)))->toBeNull();
+        expect($service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie))))->toBeNull();
 
         $receipt = ShareSourceAttributionReceipt::query()->where('business_key', $businessKey)->firstOrFail();
         expect($receipt->isAttributed())->toBeFalse()
@@ -917,7 +917,7 @@ function wp2BrowserSameLinkTtlCase(TestCase $testCase): void
         expect(wp2SameInstant($latest->expires_at, $expectedExpiry))->toBeTrue()
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $latest->getKey());
 
-        $passive = app(AffiliatesShareTrackingService::class)->captureRequest(wp2OutcomeRequest($cookie2));
+        $passive = app(AffiliatesShareTrackingService::class)->captureRequest(ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie2)));
         expect($passive)->toBeString()->not->toBe('')
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $latest->getKey());
@@ -939,7 +939,7 @@ function wp2CancelledSourceInheritanceCase(TestCase $testCase): void
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
-        $source = $service->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, null, $actor, wp2OutcomeRequest($cookie));
+        $source = $service->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, null, $actor, ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie)));
         expect($source)->not->toBeNull();
 
         $correction = app(ShareOutcomeReversals::class)->reverse($sourceKey, 'registration_cancelled', (string) $actor->getKey());
@@ -972,7 +972,7 @@ function wp2FraudConfirmedInheritanceCase(TestCase $testCase): void
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $sourceKey = ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid());
-        expect($service->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
+        expect($service->recordOutcome(ShareOutcomeType::EventRegistration, $sourceKey, null, $actor, ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie))))->not->toBeNull();
 
         $sourceConversion = AffiliateConversion::query()->where('idempotency_key', hash('sha256', $sourceKey))->firstOrFail();
         AffiliateFraudSignal::query()->create([
@@ -1010,8 +1010,8 @@ function wp2CorrectionDispatchCase(TestCase $testCase): void
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $revokedKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
         $validKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
-        expect($service->recordOutcome(ShareOutcomeType::EventSave, $revokedKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull()
-            ->and($service->recordOutcome(ShareOutcomeType::EventSave, $validKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull()
+        expect($service->recordOutcome(ShareOutcomeType::EventSave, $revokedKey, null, $actor, ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie))))->not->toBeNull()
+            ->and($service->recordOutcome(ShareOutcomeType::EventSave, $validKey, null, $actor, ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie))))->not->toBeNull()
             ->and(app(ShareOutcomeReversals::class)->reverse($revokedKey, 'registration_cancelled', (string) $actor->getKey()))->not->toBeNull();
 
         $processed = app(PendingShareEffects::class)->dispatch(10);
@@ -1037,7 +1037,7 @@ function wp2LeaseFencingCase(TestCase $testCase): void
 
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
-        expect($service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, wp2OutcomeRequest($cookie)))->not->toBeNull();
+        expect($service->recordOutcome(ShareOutcomeType::EventSave, $businessKey, null, $actor, ShareRequestContext::fromRequest(wp2OutcomeRequest($cookie))))->not->toBeNull();
 
         $effect = ShareEffectReceipt::query()->where('source_id', $businessKey)->firstOrFail();
         $effect->forceFill([
@@ -1150,12 +1150,12 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase): void
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->where('affiliate_link_id', $linkA->getKey())->count())->toBe(1)
             ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->where('affiliate_link_id', $linkB->getKey())->count())->toBe(1);
 
-        $resolvedStale = $service->resolveActiveAttribution(wp2OutcomeRequest($cookieB));
+        $resolvedStale = $service->resolveActiveAttribution(ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieB)));
 
         expect($resolvedStale)->not->toBeNull()
             ->and((string) $resolvedStale->id)->toBe((string) $winnerA2->getKey());
 
-        $resolvedLatest = $service->resolveActiveAttribution(wp2OutcomeRequest($cookieA2));
+        $resolvedLatest = $service->resolveActiveAttribution(ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieA2)));
 
         expect((string) $resolvedLatest->id)->toBe((string) $winnerA2->getKey());
 
@@ -1165,7 +1165,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookieB),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieB)),
         );
 
         expect($outcome)->not->toBeNull()
@@ -1189,7 +1189,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase): void
         expect((string) $selectionRefresh->current_attribution_id)->toBe((string) $winnerA2->getKey())
             ->and(wp2SameInstant($selectionRefresh->accepted_at, $acceptedA2))->toBeTrue();
 
-        $navSame = $service->captureRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieA2));
+        $navSame = $service->captureRequest(ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieA2)));
 
         expect($navSame)->toBeString()->not->toBe('')
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)
@@ -1197,7 +1197,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase): void
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerA2->getKey())
             ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedA2))->toBeTrue();
 
-        $navOther = $service->captureRequest(Wp2RealDriverHarness::landingRequest($otherPageUrl, $cookieA2));
+        $navOther = $service->captureRequest(ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($otherPageUrl, $cookieA2)));
 
         expect($navOther)->toBeString()->not->toBe('')
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)
@@ -1210,7 +1210,7 @@ function wp2BrowserAbaDifferentSharersCase(TestCase $testCase): void
         expect((string) $navVisit->affiliate_link_id)->toBe((string) $linkA->getKey())
             ->and((string) $navVisit->affiliate_attribution_id)->toBe((string) $winnerA2->getKey());
 
-        $navStale = $service->captureRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieB));
+        $navStale = $service->captureRequest(ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieB)));
 
         expect($navStale)->toBeString()->not->toBe('')
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerA2->getKey())
@@ -1294,7 +1294,7 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase): void
             ->and(wp2SameInstant($winnerA2->first_seen_at, $acceptedA2))->toBeTrue()
             ->and(wp2SameInstant($winnerA2->expires_at, CarbonImmutable::parse($winnerA2->first_seen_at)->addDays(30)))->toBeTrue();
 
-        $resolvedStale = $service->resolveActiveAttribution(wp2OutcomeRequest($cookieB));
+        $resolvedStale = $service->resolveActiveAttribution(ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieB)));
 
         expect($resolvedStale)->not->toBeNull()
             ->and((string) $resolvedStale->id)->toBe((string) $winnerA2->getKey());
@@ -1305,7 +1305,7 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookieB),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieB)),
         );
 
         expect($outcome)->not->toBeNull()
@@ -1320,7 +1320,7 @@ function wp2BrowserAbaSameSharerCase(TestCase $testCase): void
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerA2->getKey())
             ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedA2))->toBeTrue();
 
-        $navSame = $service->captureRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieA2));
+        $navSame = $service->captureRequest(ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieA2)));
 
         expect($navSame)->toBeString()->not->toBe('')
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerA2->getKey())
@@ -1404,7 +1404,7 @@ function wp2BrowserChannelChangeCase(TestCase $testCase): void
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerTg->getKey())
             ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedTg))->toBeTrue();
 
-        $resolvedStale = $service->resolveActiveAttribution(wp2OutcomeRequest($cookieWa));
+        $resolvedStale = $service->resolveActiveAttribution(ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieWa)));
 
         expect($resolvedStale)->not->toBeNull()
             ->and((string) $resolvedStale->id)->toBe((string) $winnerTg->getKey());
@@ -1415,7 +1415,7 @@ function wp2BrowserChannelChangeCase(TestCase $testCase): void
             $businessKey,
             null,
             $actor,
-            wp2OutcomeRequest($cookieWa),
+            ShareRequestContext::fromRequest(wp2OutcomeRequest($cookieWa)),
         );
 
         expect($outcome)->not->toBeNull()
@@ -1428,7 +1428,7 @@ function wp2BrowserChannelChangeCase(TestCase $testCase): void
             ->and((string) $conversion->affiliate_attribution_id)->toBe((string) $winnerTg->getKey())
             ->and((string) $conversion->channel)->toBe('telegram');
 
-        $navSame = $service->captureRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieTg));
+        $navSame = $service->captureRequest(ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($pageUrl, $cookieTg)));
 
         expect($navSame)->toBeString()->not->toBe('')
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)
@@ -1436,7 +1436,7 @@ function wp2BrowserChannelChangeCase(TestCase $testCase): void
             ->and((string) ShareBrowserSelection::query()->firstOrFail()->current_attribution_id)->toBe((string) $winnerTg->getKey())
             ->and(wp2SameInstant(ShareBrowserSelection::query()->firstOrFail()->accepted_at, $acceptedTg))->toBeTrue();
 
-        $navOther = $service->captureRequest(Wp2RealDriverHarness::landingRequest($otherPageUrl, $cookieTg));
+        $navOther = $service->captureRequest(ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($otherPageUrl, $cookieTg)));
 
         expect($navOther)->toBeString()->not->toBe('')
             ->and(AffiliateAttribution::query()->where('attribution_type', 'landing')->count())->toBe(3)

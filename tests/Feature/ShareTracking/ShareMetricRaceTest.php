@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Enums\FraudSeverity;
 // R1 real-driver proof: actual ingestion races (duplicate outcomes,
 // concurrent shares, concurrent A-B landings) on the isolated
 // cohort authority asserting exact end states on each driver. If the
@@ -12,7 +13,6 @@ declare(strict_types=1);
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Enums\FraudSeverity;
 use AIArmada\Affiliates\Enums\FraudSignalStatus;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
@@ -21,12 +21,13 @@ use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
+use App\Features\ShareTracking\Queries\ShareMetricReader;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\ShareCohortAuthority;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Features\ShareTracking\Services\ShareCohortAuthority;
-use App\Features\ShareTracking\Queries\ShareMetricReader;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -120,7 +121,7 @@ function smrIngestionRaceCase(TestCase $testCase): void
             (string) $guest['guest_credential']
         );
         app(AffiliatesShareTrackingService::class)->recordShareAction(
-            'copy_link', null, (string) $guest['tracking_token'], $guestRequest,
+            'copy_link', null, (string) $guest['tracking_token'], ShareRequestContext::fromRequest($guestRequest),
         );
         app(GuestShareClaims::class)->claim((string) $member->getKey(), $member->getMorphClass(), (string) $guest['guest_claim_capability'], true,
         );
@@ -202,7 +203,7 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
         $signupCookie = ShareMetricRaceHarness::landing($pageUrl.'?share='.$founderLink->custom_slug);
         $signupRequest = Request::create($pageUrl, 'GET');
         $signupRequest->cookies->set((string) config('share-tracking.cookie.name'), (string) $signupCookie);
-        app(AffiliatesShareTrackingService::class)->recordSignup($member, $signupRequest);
+        app(AffiliatesShareTrackingService::class)->recordSignup($member, ShareRequestContext::fromRequest($signupRequest));
 
         $link = ShareMetricRaceHarness::link($member, $pageUrl);
         $landingCookie = ShareMetricRaceHarness::landing($pageUrl.'?share='.$link->custom_slug);
@@ -271,7 +272,7 @@ function smrCohortBoundaryRaceCase(TestCase $testCase): void
             $fraudKey,
             null,
             $fraudActor,
-            $fraudRequest,
+            ShareRequestContext::fromRequest($fraudRequest),
             [],
             CarbonImmutable::parse('2026-05-20T11:00:00Z'),
         );

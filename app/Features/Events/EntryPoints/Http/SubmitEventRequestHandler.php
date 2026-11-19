@@ -4,7 +4,8 @@ namespace App\Features\Events\EntryPoints\Http;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\ShareTracking\Api\ShareTrackingContract;
+use App\Features\Contributions\Services\EntitySubmissionAccess;
+use App\Features\Contributions\Services\SubmissionContextResolver;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Events\Api\EventSubmissionInput;
@@ -12,19 +13,21 @@ use App\Features\Events\Api\EventSubmissionOrganizerKind;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Notifications\EventOccurrenceSubmittedNotification;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Models\User;
-use App\Features\Events\Notifications\EventOccurrenceSubmittedNotification;
 use App\Shared\Captcha\CaptchaVerifier;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Features\Contributions\Services\EntitySubmissionAccess;
-use App\Features\Contributions\Services\SubmissionContextResolver;
-use App\Features\Events\Support\SubmissionTimingPolicy;
+use App\Shared\ShareTracking\ShareRequestContext;
+use App\Shared\ShareTracking\ShareSubjectType;
 use App\Shared\Submission\SubmissionValues;
 use App\Shared\Submission\SubmitterContactRules;
 use Carbon\Carbon;
@@ -333,9 +336,9 @@ final readonly class SubmitEventRequestHandler
             $this->shareTracking->recordOutcome(
                 type: ShareOutcomeType::EventSubmission,
                 businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
-                subject: $event,
+                subject: ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), $event->title),
                 actor: $submitter,
-                request: $request ?? request(),
+                request: ShareRequestContext::fromRequest($request ?? request()),
                 metadata: [
                     'submission_id' => $submission->getKey(),
                     'session_submission' => true,
@@ -355,9 +358,9 @@ final readonly class SubmitEventRequestHandler
             $this->shareTracking->recordOutcome(
                 type: ShareOutcomeType::EventSubmission,
                 businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
-                subject: $event,
+                subject: ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), $event->title),
                 actor: $submitter,
-                request: $request ?? request(),
+                request: ShareRequestContext::fromRequest($request ?? request()),
                 metadata: [
                     'submission_id' => $submission->getKey(),
                     'event_occurrence_id' => $occurrence?->getKey(),
@@ -375,9 +378,9 @@ final readonly class SubmitEventRequestHandler
         $this->shareTracking->recordOutcome(
             type: ShareOutcomeType::EventSubmission,
             businessKey: ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
-            subject: $event,
+            subject: ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), $event->title),
             actor: $submitter,
-            request: $request ?? request(),
+            request: ShareRequestContext::fromRequest($request ?? request()),
             metadata: [
                 'submission_id' => $submission->getKey(),
                 'event_occurrence_id' => $occurrence?->getKey(),

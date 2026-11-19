@@ -13,12 +13,12 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\ShareProfileScope;
+use App\Models\User;
 use App\Shared\Auth\SignupAttributionSource;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use App\Features\ShareTracking\Services\ShareProfileScope;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -56,7 +56,7 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
     /** @return array{source: SignupAttributionSource, referred_at: CarbonInterface}|null */
     private function resolveShare(Request $request): ?array
     {
-        $selection = $this->shareTrackingService->resolveActiveAttribution($request);
+        $selection = $this->shareTrackingService->resolveActiveAttribution(\App\Shared\ShareTracking\ShareRequestContext::fromRequest($request));
 
         if (! $selection instanceof ShareTrackingAttributionData) {
             return null;

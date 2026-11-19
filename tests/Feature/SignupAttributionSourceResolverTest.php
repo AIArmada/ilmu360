@@ -13,12 +13,13 @@ use AIArmada\Affiliates\States\Disabled;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\ShareTracking\Api\GuestShareClaims;
+use App\Features\ShareTracking\Integrations\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use App\Shared\Auth\SignupAttributionSource;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
-use App\Features\ShareTracking\Integrations\Auth\AffiliateSignupAttributionSourceResolver;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -46,13 +47,13 @@ function signupResolverShareFixture(?User $sharer = null): array
         'Share this page',
         'Shared Page',
         'web',
-        Request::create($pageUrl, 'GET'),
+        ShareRequestContext::fromRequest(Request::create($pageUrl, 'GET')),
     );
     $link = AffiliateLink::query()->where('custom_slug', $payload['tracking_token'])->firstOrFail();
     $landing = Request::create($pageUrl.'?share='.$payload['tracking_token'], 'GET');
     $route = app('router')->getRoutes()->match($landing);
     $landing->setRouteResolver(static fn (): mixed => $route);
-    $cookie = $service->captureRequest($landing);
+    $cookie = $service->captureRequest(ShareRequestContext::fromRequest($landing));
     $request = Request::create(route('register'), 'POST');
     $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
 

@@ -11,13 +11,14 @@ use AIArmada\Affiliates\Models\AffiliateCredential;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\Events\Models\Event;
+use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
-use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareGuestClaimResult;
+use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
@@ -401,7 +402,7 @@ it('re-evaluates self credit after the claim without rewriting frozen attributio
 
     // The claimant acting through their own claimed history earns
     // nothing: self credit with an honest unattributed receipt.
-    $outcome = app(AffiliatesShareTrackingService::class)->recordSignup($this->claimant, $signupRequest);
+    $outcome = app(AffiliatesShareTrackingService::class)->recordSignup($this->claimant, ShareRequestContext::fromRequest($signupRequest));
 
     expect($outcome)->toBeNull();
 
@@ -748,8 +749,8 @@ it('attributes later anonymous history to its own claimant, never the first', fu
         return $request;
     };
 
-    expect(app(AffiliatesShareTrackingService::class)->recordSignup($this->claimant, $requestFor($cookie)))->not->toBeNull()
-        ->and(app(AffiliatesShareTrackingService::class)->recordSignup($this->rival, $requestFor($cookie)))->toBeNull();
+    expect(app(AffiliatesShareTrackingService::class)->recordSignup($this->claimant, ShareRequestContext::fromRequest($requestFor($cookie))))->not->toBeNull()
+        ->and(app(AffiliatesShareTrackingService::class)->recordSignup($this->rival, ShareRequestContext::fromRequest($requestFor($cookie))))->toBeNull();
 
     // The claimant keeps recording on their owned tokens after the seal;
     // strangers and the other claimant are refused on each history.
@@ -923,7 +924,7 @@ it('preserves settlement and the public redirect when a claimant is deleted', fu
     $request = Request::create(route('events.show', $event), 'GET');
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    expect(app(AffiliatesShareTrackingService::class)->recordSignup($stranger, $request))->not->toBeNull();
+    expect(app(AffiliatesShareTrackingService::class)->recordSignup($stranger, ShareRequestContext::fromRequest($request)))->not->toBeNull();
 
     $conversionId = (string) AffiliateConversion::query()->value('id');
 

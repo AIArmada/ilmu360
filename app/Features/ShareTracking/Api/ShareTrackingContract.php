@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Api;
 
+use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
 
 interface ShareTrackingContract
 {
@@ -33,7 +33,7 @@ interface ShareTrackingContract
     /**
      * @return array<string, mixed>
      */
-    public function sharePayload(?User $user, string $url, string $shareText, ?string $fallbackTitle = null, ?string $origin = null, ?Request $request = null): array;
+    public function sharePayload(?AccountActor $user, string $url, string $shareText, ?string $fallbackTitle = null, ?string $origin = null, ?ShareRequestContext $request = null): array;
 
     /**
      * @return array<string, string>
@@ -42,28 +42,28 @@ interface ShareTrackingContract
 
     public function redirectUrl(
         string $provider,
-        ?User $user,
+        ?AccountActor $user,
         string $url,
         string $shareText,
         ?string $fallbackTitle = null,
         ?string $origin = null,
-        ?Request $request = null,
+        ?ShareRequestContext $request = null,
     ): string;
 
-    public function attributedUrl(User $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): string;
+    public function attributedUrl(AccountActor $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): string;
 
     public function recordShareAction(
         string $provider,
-        ?User $user,
+        ?AccountActor $user,
         string $trackingToken,
-        ?Request $request = null,
+        ?ShareRequestContext $request = null,
     ): void;
 
-    public function captureRequest(Request $request): ?string;
+    public function captureRequest(ShareRequestContext $request): ?string;
 
-    public function resolveActiveAttribution(?Request $request = null): ?ShareTrackingAttributionData;
+    public function resolveActiveAttribution(?ShareRequestContext $request = null): ?ShareTrackingAttributionData;
 
-    public function recordSignup(User $user, ?Request $request = null): ?ShareTrackingOutcomeData;
+    public function recordSignup(AccountActor $user, ?ShareRequestContext $request = null): ?ShareTrackingOutcomeData;
 
     /**
      * @param  array<string, mixed>  $metadata
@@ -71,9 +71,9 @@ interface ShareTrackingContract
     public function recordOutcome(
         ShareOutcomeType $type,
         string $businessKey,
-        ?Model $subject = null,
-        ?User $actor = null,
-        ?Request $request = null,
+        ?ShareSubject $subject = null,
+        ?AccountActor $actor = null,
+        ?ShareRequestContext $request = null,
         array $metadata = [],
         ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData;
@@ -85,8 +85,8 @@ interface ShareTrackingContract
         ShareOutcomeType $type,
         string $businessKey,
         string $sourceBusinessKey,
-        ?Model $subject = null,
-        ?User $actor = null,
+        ?ShareSubject $subject = null,
+        ?AccountActor $actor = null,
         array $metadata = [],
         ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData;
@@ -98,13 +98,13 @@ interface ShareTrackingContract
         ShareOutcomeType $type,
         string $businessKey,
         ?string $persistedAttributionId,
-        ?Model $subject = null,
-        ?User $actor = null,
+        ?ShareSubject $subject = null,
+        ?AccountActor $actor = null,
         array $metadata = [],
         ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData;
 
-    public function createOrReuseLink(User $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): ShareTrackingLinkData;
+    public function createOrReuseLink(AccountActor $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): ShareTrackingLinkData;
 
-    public function deleteUserTracking(User $user): void;
+    public function deleteUserTracking(AccountActor $user): void;
 }

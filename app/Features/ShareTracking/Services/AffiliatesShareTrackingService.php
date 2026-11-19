@@ -34,11 +34,12 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Actions\UpdateLink;
 use AIArmada\Links\Models\Link;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
-use App\Features\ShareTracking\Api\ShareTrackingContract;
+use App\Features\References\Models\Reference;
 use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\CreateLandingAttributionData;
 use App\Features\ShareTracking\Api\CreateOutboundShareAttributionData;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
@@ -52,29 +53,25 @@ use App\Features\ShareTracking\Api\OutboundShareAttributionWriter;
 use App\Features\ShareTracking\Api\OutboundShareTouchpointData;
 use App\Features\ShareTracking\Api\OutboundShareTouchpointWriter;
 use App\Features\ShareTracking\Api\PassiveNavigationAttributionWriter;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
 use App\Features\ShareTracking\Api\VisitTouchpointData;
 use App\Features\ShareTracking\Api\VisitTouchpointWriter;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
-use App\Features\Events\Models\Series;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Models\User;
-use App\Features\ShareTracking\Services\ShareTrackingUrlService;
+use App\Shared\Auth\AccountActor;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\SealedGuestIdentityException;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareProfileNotEligibleException;
+use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\ShareTracking\ShareTrackingFinance;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use App\Features\ShareTracking\Services\ShareProfileScope;
 use Carbon\CarbonInterface;
 use Illuminate\Cookie\CookieValuePrefix;
 use Illuminate\Database\Eloquent\Builder;
@@ -143,8 +140,10 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
     /**
      * @return array<string, mixed>
      */
-    public function sharePayload(?User $user, string $url, string $shareText, ?string $fallbackTitle = null, ?string $origin = null, ?Request $request = null): array
+    public function sharePayload(?AccountActor $user, string $url, string $shareText, ?string $fallbackTitle = null, ?string $origin = null, ?ShareRequestContext $request = null): array
     {
+        $httpRequest = $request?->toRequest();
+        $user = $user !== null ? $this->resolveActorUser($user) : null;
         $resolvedOrigin = $this->resolveShareOrigin($origin);
 
         if ($user instanceof User) {
@@ -160,10 +159,10 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             ));
         }
 
-        if ($request instanceof Request) {
-            return OwnerContext::withOwner(null, function () use ($request, $url, $fallbackTitle, $resolvedOrigin, $shareText): array {
+        if ($httpRequest instanceof Request) {
+            return OwnerContext::withOwner(null, function () use ($httpRequest, $url, $fallbackTitle, $resolvedOrigin, $shareText): array {
                 [$link, $issuedCredential, $issuedClaimCapability] = $this->createOrReuseGuestAffiliateLink(
-                    $request,
+                    $httpRequest,
                     $url,
                     $fallbackTitle,
                     $resolvedOrigin,
@@ -218,16 +217,19 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
 
     public function redirectUrl(
         string $provider,
-        ?User $user,
+        ?AccountActor $user,
         string $url,
         string $shareText,
         ?string $fallbackTitle = null,
         ?string $origin = null,
-        ?Request $request = null,
+        ?ShareRequestContext $request = null,
     ): string {
+        $httpRequest = $request?->toRequest();
+        $user = $user !== null ? $this->resolveActorUser($user) : null;
+
         if ($user instanceof User) {
             try {
-                return OwnerContext::withOwner($user, function () use ($provider, $user, $url, $shareText, $fallbackTitle, $origin, $request): string {
+                return OwnerContext::withOwner($user, function () use ($provider, $user, $url, $shareText, $fallbackTitle, $origin, $httpRequest): string {
                     $link = $this->createOrReuseAffiliateLinkForAffiliate(
                         $this->ensureAffiliateForUser($user),
                         $url,
@@ -235,14 +237,14 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                         $origin,
                     );
 
-                    DB::transaction(function () use ($link, $user, $provider, $request): void {
+                    DB::transaction(function () use ($link, $user, $provider, $httpRequest): void {
                         $lockedLink = $this->lockedEligibleShareLink($link);
 
                         if (! $lockedLink instanceof AffiliateLink) {
                             throw new InvalidArgumentException('This share link has been disabled. Ask an administrator to review it before sharing again.');
                         }
 
-                        $this->recordOutboundShare($lockedLink, $user, $provider, $request);
+                        $this->recordOutboundShare($lockedLink, $user, $provider, $httpRequest);
                     });
 
                     return $this->shareTrackingUrlService->platformLinks($this->shortUrlForLink($link), $shareText)[$provider] ?? $url;
@@ -255,18 +257,18 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             }
         }
 
-        if ($request instanceof Request) {
-            return OwnerContext::withOwner(null, function () use ($provider, $url, $shareText, $fallbackTitle, $origin, $request): string {
-                [$link] = $this->createOrReuseGuestAffiliateLink($request, $url, $fallbackTitle, $origin);
+        if ($httpRequest instanceof Request) {
+            return OwnerContext::withOwner(null, function () use ($provider, $url, $shareText, $fallbackTitle, $origin, $httpRequest): string {
+                [$link] = $this->createOrReuseGuestAffiliateLink($httpRequest, $url, $fallbackTitle, $origin);
 
-                DB::transaction(function () use ($link, $provider, $request): void {
+                DB::transaction(function () use ($link, $provider, $httpRequest): void {
                     $lockedLink = $this->lockedEligibleShareLink($link);
 
                     if (! $lockedLink instanceof AffiliateLink) {
                         throw new InvalidArgumentException('This share link has been disabled. Ask an administrator to review it before sharing again.');
                     }
 
-                    $this->recordOutboundShare($lockedLink, null, $provider, $request);
+                    $this->recordOutboundShare($lockedLink, null, $provider, $httpRequest);
                 });
 
                 return $this->shareTrackingUrlService->platformLinks($this->shortUrlForLink($link), $shareText)[$provider] ?? $url;
@@ -278,18 +280,22 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         return $this->shareTrackingUrlService->platformLinks($shareUrl, $shareText)[$provider] ?? $shareUrl;
     }
 
-    public function attributedUrl(User $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): string
+    public function attributedUrl(AccountActor $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): string
     {
+        $user = $this->resolveActorUser($user);
+
         return OwnerContext::withOwner($user, fn (): string => $this->shortUrlForLink($this->createOrReuseAffiliateLink($user, $url, $fallbackTitle, $origin)));
     }
 
     public function recordShareAction(
         string $provider,
-        ?User $user,
+        ?AccountActor $user,
         string $trackingToken,
-        ?Request $request = null,
+        ?ShareRequestContext $request = null,
     ): void {
-        $link = $this->resolveLinkFromTrackingToken($trackingToken, $user, $request);
+        $httpRequest = $request?->toRequest();
+        $user = $user !== null ? $this->resolveOptionalActorUser($user) : null;
+        $link = $this->resolveLinkFromTrackingToken($trackingToken, $user, $httpRequest);
 
         if (! $link instanceof AffiliateLink) {
             throw new InvalidArgumentException('The share tracking token is invalid. Refresh the page and try sharing again.');
@@ -297,36 +303,37 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
 
         $owner = $user ?? $this->ownerForAffiliateLink($link);
 
-        DB::transaction(fn (): mixed => OwnerContext::withOwner($owner, function () use ($link, $user, $provider, $request): void {
+        DB::transaction(fn (): mixed => OwnerContext::withOwner($owner, function () use ($link, $user, $provider, $httpRequest): void {
             $lockedLink = $this->lockedEligibleShareLink($link);
 
             if (! $lockedLink instanceof AffiliateLink) {
                 throw new InvalidArgumentException('The share tracking token is invalid. Refresh the page and try sharing again.');
             }
 
-            $this->recordOutboundShare($lockedLink, $user, $provider, $request);
+            $this->recordOutboundShare($lockedLink, $user, $provider, $httpRequest);
         }));
     }
 
-    public function captureRequest(Request $request): ?string
+    public function captureRequest(ShareRequestContext $request): ?string
     {
-        $cookieState = $this->readCookieState($request);
+        $httpRequest = $request->toRequest();
+        $cookieState = $this->readCookieState($httpRequest);
 
-        if (! $request->isMethod('GET') || $request->expectsJson() || $request->ajax() || $this->isBotRequest($request)) {
+        if (! $httpRequest->isMethod('GET') || $httpRequest->expectsJson() || $httpRequest->ajax() || $this->isBotRequest($httpRequest)) {
             return $cookieState['encoded'] ?? null;
         }
 
-        if (! $this->shareTrackingUrlService->isPublicTrackableNavigation($request)) {
+        if (! $this->shareTrackingUrlService->isPublicTrackableNavigation($httpRequest)) {
             return $cookieState['encoded'] ?? null;
         }
 
         $parameter = (string) config('share-tracking.query_parameter', 'share');
-        $shareToken = $request->query($parameter);
+        $shareToken = $httpRequest->query($parameter);
         $incomingBrowserKey = $cookieState['visitor_key'] ?? null;
         $browserKey = is_string($incomingBrowserKey) && $incomingBrowserKey !== '' && mb_strlen($incomingBrowserKey) <= 160
             ? $incomingBrowserKey
             : (string) Str::ulid();
-        $shareProvider = $this->shareProviderFromRequest($request);
+        $shareProvider = $this->shareProviderFromRequest($httpRequest);
 
         if (is_string($shareToken) && $shareToken !== '') {
             $link = $this->resolveLinkFromShareToken($shareToken);
@@ -343,7 +350,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 }, 3);
             }
 
-            return DB::transaction(fn (): string => OwnerContext::withOwner($this->ownerForAffiliateLink($link), function () use ($link, $request, $browserKey, $shareProvider): string {
+            return DB::transaction(fn (): string => OwnerContext::withOwner($this->ownerForAffiliateLink($link), function () use ($link, $httpRequest, $browserKey, $shareProvider): string {
                 $selectionId = $this->browserSelections->lockOrCreate($browserKey);
                 $lockedLink = $this->lockedEligibleShareLink($link);
 
@@ -354,7 +361,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 }
 
                 $current = $this->lockedBrowserWinner($selectionId, $browserKey);
-                $safeUrl = $this->minimalPersistedUrl($request->fullUrl());
+                $safeUrl = $this->minimalPersistedUrl($httpRequest->fullUrl());
                 $deduped = $this->dedupeVisitExists($browserKey, (string) $lockedLink->getKey(), $safeUrl);
 
                 if ($deduped) {
@@ -363,30 +370,30 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                         return $this->encodeCookieState($browserKey, (string) $current->cookie_value);
                     }
 
-                    $attribution = $this->createLandingAttribution($lockedLink, $request, $browserKey, $shareProvider);
+                    $attribution = $this->createLandingAttribution($lockedLink, $httpRequest, $browserKey, $shareProvider);
 
                     $this->browserSelections->accept($selectionId, $attribution->attributionId);
 
                     return $this->encodeCookieState($browserKey, $attribution->cookieValue);
                 }
 
-                $attribution = $this->createLandingAttribution($lockedLink, $request, $browserKey, $shareProvider);
+                $attribution = $this->createLandingAttribution($lockedLink, $httpRequest, $browserKey, $shareProvider);
 
                 $this->browserSelections->accept($selectionId, $attribution->attributionId);
 
-                $this->recordVisitTouchpoint($attribution, $request, 'landing', $safeUrl);
+                $this->recordVisitTouchpoint($attribution, $httpRequest, 'landing', $safeUrl);
 
                 return $this->encodeCookieState($browserKey, $attribution->cookieValue);
             }), 3);
         }
 
-        $navigationBrowserKey = $this->browserKeyFromRequest($request);
+        $navigationBrowserKey = $this->browserKeyFromRequest($httpRequest);
 
         if ($navigationBrowserKey === null) {
             return $cookieState['encoded'] ?? null;
         }
 
-        return DB::transaction(function () use ($request, $navigationBrowserKey): string {
+        return DB::transaction(function () use ($httpRequest, $navigationBrowserKey): string {
             $selectionId = $this->browserSelections->lockExisting($navigationBrowserKey);
 
             if ($selectionId === null) {
@@ -401,8 +408,8 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 return $this->encodeCookieState($navigationBrowserKey, '');
             }
 
-            return OwnerContext::withOwner($this->ownerForAffiliateAttribution($winner), function () use ($winner, $request, $navigationBrowserKey): string {
-                $safeUrl = $this->minimalPersistedUrl($request->fullUrl());
+            return OwnerContext::withOwner($this->ownerForAffiliateAttribution($winner), function () use ($winner, $httpRequest, $navigationBrowserKey): string {
+                $safeUrl = $this->minimalPersistedUrl($httpRequest->fullUrl());
                 $linkId = (string) $winner->affiliate_link_id;
 
                 if ($linkId !== '' && $this->dedupeVisitExists($navigationBrowserKey, $linkId, $safeUrl)) {
@@ -412,27 +419,29 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 $this->passiveNavigationAttributions->touchPassiveNavigation((string) $winner->getKey());
 
                 $kind = $safeUrl === (string) $winner->landing_url ? 'return' : 'navigated';
-                $this->recordVisitTouchpoint($winner, $request, $kind, $safeUrl);
+                $this->recordVisitTouchpoint($winner, $httpRequest, $kind, $safeUrl);
 
                 return $this->encodeCookieState($navigationBrowserKey, (string) $winner->cookie_value);
             });
         }, 3);
     }
 
-    public function resolveActiveAttribution(?Request $request = null): ?ShareTrackingAttributionData
+    public function resolveActiveAttribution(?ShareRequestContext $request = null): ?ShareTrackingAttributionData
     {
-        $attribution = $this->resolveActiveAffiliateAttribution($request);
+        $attribution = $this->resolveActiveAffiliateAttribution($request?->toRequest());
 
         return $attribution instanceof AffiliateAttribution ? $this->mapAttribution($attribution) : null;
     }
 
-    public function recordSignup(User $user, ?Request $request = null): ?ShareTrackingOutcomeData
+    public function recordSignup(AccountActor $user, ?ShareRequestContext $requestContext = null): ?ShareTrackingOutcomeData
     {
+        $user = $this->resolveActorUser($user);
+
         return $this->recordOutcome(
             type: ShareOutcomeType::Signup,
             businessKey: ShareOutcomeBusinessKey::signup((string) $user->getKey()),
             actor: $user,
-            request: $request,
+            request: $requestContext,
             metadata: [
                 'signed_up_user_id' => $user->getKey(),
             ],
@@ -446,12 +455,13 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
     public function recordOutcome(
         ShareOutcomeType $type,
         string $businessKey,
-        ?Model $subject = null,
-        ?User $actor = null,
-        ?Request $request = null,
+        ?ShareSubject $subject = null,
+        ?AccountActor $actor = null,
+        ?ShareRequestContext $request = null,
         array $metadata = [],
         ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData {
+        $httpRequest = $request?->toRequest();
         $parsed = ShareOutcomeBusinessKey::parse($businessKey, $type);
         $businessKey = $parsed['namespace'].':'.$parsed['outcome_type'].':'.$parsed['source_transition_id'];
         $sourceTransitionId = $parsed['source_transition_id'];
@@ -466,7 +476,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             return $this->mapReceiptReplay($receipt, $businessKey);
         }
 
-        $browserKey = $this->browserKeyFromRequest($request);
+        $browserKey = $this->browserKeyFromRequest($httpRequest);
 
         $outcome = DB::transaction(function () use ($browserKey, $type, $businessKey, $sourceTransitionId, $subject, $metadata, $actor, $occurredAt): ?ShareTrackingOutcomeData {
             $selectionId = is_string($browserKey) ? $this->browserSelections->lockExisting($browserKey) : null;
@@ -607,7 +617,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                         'origin' => $winner->origin,
                         'affiliate_link_id' => $winner->affiliate_link_id,
                         'sharer_user_id' => $sharerUserId ?: null,
-                        'actor_user_id' => $actor?->getKey(),
+                        'actor_user_id' => $actor?->actorId(),
                         'occurred_at' => $occurredAt,
                         'approved_at' => $occurredAt,
                         'dispatch_event' => false,
@@ -740,8 +750,8 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         ShareOutcomeType $type,
         string $businessKey,
         string $sourceBusinessKey,
-        ?Model $subject = null,
-        ?User $actor = null,
+        ?ShareSubject $subject = null,
+        ?AccountActor $actor = null,
         array $metadata = [],
         ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData {
@@ -886,7 +896,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                         'origin' => $attribution->origin,
                         'affiliate_link_id' => $attribution->affiliate_link_id,
                         'sharer_user_id' => $sharerUserId ?: null,
-                        'actor_user_id' => $actor?->getKey(),
+                        'actor_user_id' => $actor?->actorId(),
                         'occurred_at' => $occurredAt,
                         'approved_at' => $occurredAt,
                         'dispatch_event' => false,
@@ -951,8 +961,8 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         ShareOutcomeType $type,
         string $businessKey,
         ?string $persistedAttributionId,
-        ?Model $subject = null,
-        ?User $actor = null,
+        ?ShareSubject $subject = null,
+        ?AccountActor $actor = null,
         array $metadata = [],
         ?CarbonInterface $occurredAt = null,
     ): ?ShareTrackingOutcomeData {
@@ -1092,7 +1102,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                         'origin' => $attribution->origin,
                         'affiliate_link_id' => $attribution->affiliate_link_id,
                         'sharer_user_id' => $sharerUserId ?: null,
-                        'actor_user_id' => $actor?->getKey(),
+                        'actor_user_id' => $actor?->actorId(),
                         'occurred_at' => $occurredAt,
                         'approved_at' => $occurredAt,
                         'dispatch_event' => false,
@@ -1133,13 +1143,17 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         }, 3);
     }
 
-    public function createOrReuseLink(User $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): ShareTrackingLinkData
+    public function createOrReuseLink(AccountActor $user, string $url, ?string $fallbackTitle = null, ?string $origin = null): ShareTrackingLinkData
     {
+        $user = $this->resolveActorUser($user);
+
         return OwnerContext::withOwner($user, fn (): ShareTrackingLinkData => $this->mapLink($this->createOrReuseAffiliateLink($user, $url, $fallbackTitle, $origin)));
     }
 
-    public function deleteUserTracking(User $user): void
+    public function deleteUserTracking(AccountActor $user): void
     {
+        $user = $this->resolveActorUser($user);
+
         OwnerContext::withOwner($user, function () use ($user): void {
             // Claimant-scoped revocation runs first and unconditionally:
             // claims detach and their source identities disarm even when
@@ -2152,8 +2166,10 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         return $lockedLink;
     }
 
-    private function isProvenSelfCredit(Affiliate $affiliate, AffiliateAttribution $attribution, ?Model $actor): bool
+    private function isProvenSelfCredit(Affiliate $affiliate, AffiliateAttribution $attribution, ?AccountActor $actor): bool
     {
+        $actor = $actor !== null ? $this->resolveOptionalActorUser($actor) : null;
+
         if (! $actor instanceof User) {
             return false;
         }
@@ -2698,16 +2714,14 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
     /**
      * @return array{subject_type: string, subject_id: string|null, subject_key: string, title_snapshot: string}
      */
-    private function resolveOutcomeSubjectData(?Model $subject, AffiliateAttribution $attribution, ?AffiliateLink $link): array
+    private function resolveOutcomeSubjectData(?ShareSubject $subject, AffiliateAttribution $attribution, ?AffiliateLink $link): array
     {
-        if ($subject instanceof Model) {
-            $classifiedSubject = $this->shareTrackingUrlService->classifySubjectModel($subject);
-
+        if ($subject instanceof ShareSubject) {
             return [
-                'subject_type' => $classifiedSubject['subject_type'],
-                'subject_id' => is_string($classifiedSubject['subject_id'] ?? null) ? $classifiedSubject['subject_id'] : null,
-                'subject_key' => $classifiedSubject['subject_key'],
-                'title_snapshot' => $this->subjectTitleSnapshotForModel($subject)
+                'subject_type' => $subject->type,
+                'subject_id' => $subject->id,
+                'subject_key' => $subject->key,
+                'title_snapshot' => $subject->title
                     ?? $this->nullableString($link?->subject_title_snapshot)
                     ?? $this->nullableString($attribution->subject_title_snapshot)
                     ?? (string) config('app.name'),
@@ -2724,16 +2738,24 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         ];
     }
 
-    private function subjectTitleSnapshotForModel(Model $subject): ?string
+    private function resolveActorUser(AccountActor $actor): User
     {
-        return match (true) {
-            $subject instanceof Event => $this->nullableString($subject->title),
-            $subject instanceof Institution => $this->nullableString($subject->name),
-            $subject instanceof Person => $this->nullableString($subject->formatted_name),
-            $subject instanceof Series => $this->nullableString($subject->title),
-            $subject instanceof Reference => $this->nullableString($subject->title),
-            default => null,
-        };
+        if ($actor instanceof User) {
+            return $actor;
+        }
+
+        $user = User::query()->find($actor->actorId());
+
+        if (! $user instanceof User) {
+            throw new InvalidArgumentException('Share tracking requires a persisted account actor.');
+        }
+
+        return $user;
+    }
+
+    private function resolveOptionalActorUser(AccountActor $actor): ?User
+    {
+        return $actor instanceof User ? $actor : User::query()->find($actor->actorId());
     }
 
     private function nullableString(mixed $value): ?string

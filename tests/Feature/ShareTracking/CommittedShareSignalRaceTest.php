@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 // R2 real-driver proof: two independent drain workers race the same
 // committed-share signal log on the isolated PostgreSQL 18 and
 // apply every signal exactly once with no stale overwrite: a stale
@@ -11,15 +12,15 @@ declare(strict_types=1);
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
-use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
+use App\Models\User;
 use App\Shared\ShareTracking\CommittedShareSignal;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Http\Request;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
 use Tests\TestCase;
@@ -41,7 +42,7 @@ function cssDrainRaceCase(TestCase $testCase): void
                 $provider,
                 $member,
                 (string) $link->custom_slug,
-                Request::create($pageUrl, 'POST'),
+                ShareRequestContext::fromRequest(Request::create($pageUrl, 'POST')),
             );
         }
 

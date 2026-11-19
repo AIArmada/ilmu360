@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 // R2 proof: ONE named committed outbound-share Signals producer through
 // the INSTALLED Signals package ingestor, and the ACTUAL reader of the
 // package's durable signal log — with semantic keys, explicit effect
@@ -9,23 +10,23 @@ declare(strict_types=1);
 // Signals outage can never roll back the committed source; later
 // recovery applies once.
 
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
+use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Api\PendingShareEffects;
-use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
-use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
+use App\Models\User;
 use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -228,7 +229,7 @@ it('projects signals into cohort stages and resumes after partial drains', funct
         ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.(Str::uuid())),
         null,
         $actor,
-        $request,
+        ShareRequestContext::fromRequest($request),
         [],
         CarbonImmutable::parse('2026-05-12T08:00:00Z'),
     );
@@ -340,7 +341,7 @@ it('keeps the generic dispatcher away from committed-share work, both directions
         ShareOutcomeBusinessKey::for(ShareOutcomeType::EventCheckin, 'checkin:'.(Str::uuid())),
         null,
         $actor,
-        $request,
+        ShareRequestContext::fromRequest($request),
         [],
         CarbonImmutable::parse('2026-05-12T08:00:00Z'),
     );

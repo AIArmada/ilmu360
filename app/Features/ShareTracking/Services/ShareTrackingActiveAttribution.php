@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ActiveAttribution;
 use Illuminate\Http\Request;
 
@@ -23,6 +22,6 @@ final readonly class ShareTrackingActiveAttribution implements ActiveAttribution
     {
         $httpRequest = $request instanceof Request ? $request : null;
 
-        return $this->shareTracking->resolveActiveAttribution($httpRequest)?->id;
+        return $this->shareTracking->resolveActiveAttribution($httpRequest instanceof Request ? \App\Shared\ShareTracking\ShareRequestContext::fromRequest($httpRequest) : null)?->id;
     }
 }

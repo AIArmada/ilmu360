@@ -17,15 +17,17 @@ use AIArmada\Affiliates\States\Disabled;
 use AIArmada\Affiliates\States\PaidConversion;
 use AIArmada\Affiliates\Support\IpHasher;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\MemberAffiliateProfileResult;
 use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
-use App\Features\Events\Models\Event;
-use App\Models\User;
-use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -229,14 +231,14 @@ it('invalidates a stale cookie once its link is deactivated', function (): void 
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
     $request->setUserResolver(fn (): User => $visitor);
 
-    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull();
+    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution(ShareRequestContext::fromRequest($request)))->toBeNull();
 
     $outcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
-        $this->event,
+        ShareSubjectFactory::fromModel($this->event),
         $visitor,
-        $request,
+        ShareRequestContext::fromRequest($request),
     );
 
     expect($outcome)->toBeNull()
@@ -259,7 +261,7 @@ it('clears an unrelated stale selection when an explicit token is invalid', func
     $request = Request::create(route('events.show', $this->event), 'GET');
     $request->cookies->set((string) config('share-tracking.cookie.name'), (string) $cleared?->getValue());
 
-    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull()
+    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution(ShareRequestContext::fromRequest($request)))->toBeNull()
         ->and(AffiliateAttribution::query()->count())->toBe(1);
 });
 
@@ -296,9 +298,9 @@ it('excludes proven self-referral credit without inventing identities', function
     $outcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
-        $this->event,
+        ShareSubjectFactory::fromModel($this->event),
         $this->sharer,
-        $request,
+        ShareRequestContext::fromRequest($request),
     );
 
     expect($outcome)->toBeNull()
@@ -312,9 +314,9 @@ it('excludes proven self-referral credit without inventing identities', function
     $credited = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
-        $this->event,
+        ShareSubjectFactory::fromModel($this->event),
         $visitor,
-        $visitorRequest,
+        ShareRequestContext::fromRequest($visitorRequest),
     );
 
     expect($credited)->not->toBeNull()
@@ -1015,16 +1017,16 @@ it('excludes new credit for marked profiles whose member owner is missing', func
         'attribution_cookie' => 'cookie-wp1-orphan',
     ], JSON_THROW_ON_ERROR)));
 
-    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($request))->toBeNull();
+    expect(app(AffiliatesShareTrackingService::class)->resolveActiveAttribution(ShareRequestContext::fromRequest($request)))->toBeNull();
 
     $visitor = User::factory()->create(['email' => 'wp1-orphan-visitor@example.test']);
 
     expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
-        $this->event,
+        ShareSubjectFactory::fromModel($this->event),
         $visitor,
-        $request,
+        ShareRequestContext::fromRequest($request),
     ))->toBeNull()
         ->and(AffiliateConversion::query()->count())->toBe(0);
 });

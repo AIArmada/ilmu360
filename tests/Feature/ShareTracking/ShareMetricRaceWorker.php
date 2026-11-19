@@ -2,17 +2,18 @@
 
 declare(strict_types=1);
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 // Permanent race worker for ShareMetricRaceTest. Executed only as a
 // ...`); returns immediately when merely included, so test runners and
 // autoloaders never execute it.
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -148,7 +149,7 @@ try {
                 (string) $provider,
                 $user,
                 (string) ($payload['tracking_token'] ?? ''),
-                $request,
+                ShareRequestContext::fromRequest($request),
             );
 
             return ['shared' => true];
@@ -172,7 +173,7 @@ try {
                 $businessKey,
                 null,
                 $actor,
-                $request,
+                ShareRequestContext::fromRequest($request),
             );
 
             $receipt = ShareSourceAttributionReceipt::query()
@@ -196,7 +197,7 @@ try {
                 $request->cookies->set($cookieName, $cookie);
             }
 
-            return ['encoded' => app(AffiliatesShareTrackingService::class)->captureRequest($request)];
+            return ['encoded' => app(AffiliatesShareTrackingService::class)->captureRequest(ShareRequestContext::fromRequest($request))];
         })(),
         'drain' => (static function () use ($payload): array {
             $report = app(CommittedShareSignals::class)->drain((int) ($payload['batch'] ?? 25));

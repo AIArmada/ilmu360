@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Registration\Models\EventCheckin;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
+use App\Features\ShareTracking\Support\ShareSubjectFactory;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Shared\ShareTracking\ParticipationAttribution;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -62,9 +63,9 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         $this->shareTracking->recordOutcome(
             type: ShareOutcomeType::EventRegistration,
             businessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
-            subject: $subject,
+            subject: $subject instanceof Model ? ShareSubjectFactory::fromModel($subject) : null,
             actor: $actor,
-            request: $request instanceof Request ? $request : request(),
+            request: ShareRequestContext::fromRequest($request instanceof Request ? $request : request()),
             metadata: $metadata,
             occurredAt: $createdAt instanceof CarbonInterface ? $createdAt : now(),
         );
@@ -81,9 +82,9 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         $this->shareTracking->recordOutcome(
             type: ShareOutcomeType::EventCheckin,
             businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
-            subject: $this->findEvent($eventId),
+            subject: ShareSubjectFactory::fromModel($this->findEvent($eventId)),
             actor: $this->findActor($actorId),
-            request: $request instanceof Request ? $request : request(),
+            request: ShareRequestContext::fromRequest($request instanceof Request ? $request : request()),
             metadata: $this->checkinMetadata($checkin),
             occurredAt: $checkin->created_at ?? now(),
         );
@@ -101,7 +102,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             type: ShareOutcomeType::EventCheckin,
             businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
             sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
-            subject: $this->findEvent($eventId),
+            subject: ShareSubjectFactory::fromModel($this->findEvent($eventId)),
             actor: $this->findActor($actorId),
             metadata: $this->checkinMetadata($checkin),
             occurredAt: $checkin->created_at ?? now(),
@@ -120,7 +121,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             type: ShareOutcomeType::EventCheckin,
             businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
             sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
-            subject: $this->findEvent($eventId),
+            subject: ShareSubjectFactory::fromModel($this->findEvent($eventId)),
             metadata: [
                 'registration_id' => $registrationId,
                 'staff_assisted' => true,

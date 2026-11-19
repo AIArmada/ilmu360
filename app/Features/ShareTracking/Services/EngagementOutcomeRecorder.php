@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
+use App\Features\ShareTracking\Support\ShareSubjectFactory;
 use App\Models\User;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -154,9 +156,9 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
         $this->shareTracking->recordOutcome(
             type: $type,
             businessKey: $businessKey,
-            subject: $subject,
+            subject: $subject instanceof Model ? ShareSubjectFactory::fromModel($subject) : null,
             actor: $actor instanceof User ? $actor : null,
-            request: $request,
+            request: $request !== null ? ShareRequestContext::fromRequest($request) : null,
             metadata: $metadata,
             occurredAt: $occurredAt,
         );

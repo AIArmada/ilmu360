@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\Services;
 
 use App\Features\Events\Models\Event;
+use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
-use App\Features\Events\Models\Series;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\ShareTracking\ShareSubjectType;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
@@ -212,45 +211,6 @@ final readonly class ShareTrackingUrlService
                 'query' => $query,
             ],
         );
-    }
-
-    /**
-     * @return array{subject_type: string, subject_id: string|null, subject_key: string}
-     */
-    public function classifySubjectModel(Model $subject): array
-    {
-        return match (true) {
-            $subject instanceof Event => [
-                'subject_type' => ShareSubjectType::Event->value,
-                'subject_id' => $subject->id,
-                'subject_key' => 'event:'.$subject->id,
-            ],
-            $subject instanceof Institution => [
-                'subject_type' => ShareSubjectType::Institution->value,
-                'subject_id' => $subject->id,
-                'subject_key' => 'institution:'.$subject->id,
-            ],
-            $subject instanceof Person => [
-                'subject_type' => ShareSubjectType::Person->value,
-                'subject_id' => $subject->id,
-                'subject_key' => 'person:'.$subject->id,
-            ],
-            $subject instanceof Series => [
-                'subject_type' => ShareSubjectType::Series->value,
-                'subject_id' => $subject->id,
-                'subject_key' => 'series:'.$subject->id,
-            ],
-            $subject instanceof Reference => [
-                'subject_type' => ShareSubjectType::Reference->value,
-                'subject_id' => $subject->id,
-                'subject_key' => 'reference:'.$subject->id,
-            ],
-            default => [
-                'subject_type' => ShareSubjectType::Page->value,
-                'subject_id' => null,
-                'subject_key' => 'page:model:'.$subject->getMorphClass().':'.$subject->getKey(),
-            ],
-        };
     }
 
     /**

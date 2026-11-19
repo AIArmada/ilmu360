@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Models\Affiliate;
 // WP2 real-driver OS-process race proof.
 //
 // Two independent OS processes with independent connections run the actual
@@ -15,7 +16,6 @@ declare(strict_types=1);
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
@@ -28,17 +28,18 @@ use AIArmada\Events\Actions\SyncPrimaryEventOccurrenceAction;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Seating\Enums\SeatingMode;
-use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Events\Models\Event;
+use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
@@ -88,8 +89,7 @@ function wp2RaceLink(User $sharer, string $url): AffiliateLink
 function wp2RaceLanding(string $url, ?string $cookie = null): ?string
 {
     return app(AffiliatesShareTrackingService::class)->captureRequest(
-        Wp2RealDriverHarness::landingRequest($url, $cookie)
-    );
+        ShareRequestContext::fromRequest(Wp2RealDriverHarness::landingRequest($url, $cookie)));
 }
 
 function wp2AttributedUnattributedRaceCase(TestCase $testCase): void
@@ -357,7 +357,7 @@ function wp2DispatchFencingRaceCase(TestCase $testCase): void
             ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
             null,
             $actor,
-            $request,
+            ShareRequestContext::fromRequest($request),
         );
 
         // Two dispatcher workers race the same pending receipt. Lease
@@ -495,7 +495,7 @@ function wp2InheritCorrectionRaceCase(TestCase $testCase): void
             $sourceKey,
             null,
             $actor,
-            $request,
+            ShareRequestContext::fromRequest($request),
         ))->not->toBeNull();
 
         Wp2RealDriverHarness::runRace([

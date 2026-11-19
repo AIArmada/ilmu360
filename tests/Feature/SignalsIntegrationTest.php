@@ -7,11 +7,13 @@ use AIArmada\Signals\Models\SignalSession;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Signals\SignalsServiceProvider;
 use App\Features\Events\Models\Event;
-use App\Models\User;
 use App\Features\Places\Models\Venue;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -140,9 +142,9 @@ it('records authoritative share outcomes without writing unread share-fact telem
     $outcome = $shareService->recordOutcome(
         ShareOutcomeType::EventSave,
         $businessKey,
-        $event,
+        ShareSubjectFactory::fromModel($event),
         $visitor,
-        $request,
+        ShareRequestContext::fromRequest($request),
     );
 
     expect($outcome)->not->toBeNull()
@@ -185,9 +187,9 @@ it('records authoritative share outcomes when signals delivery is unavailable', 
     $outcome = $shareService->recordOutcome(
         ShareOutcomeType::EventSave,
         $businessKey,
-        $event,
+        ShareSubjectFactory::fromModel($event),
         $visitor,
-        $request,
+        ShareRequestContext::fromRequest($request),
     );
 
     expect($outcome)->not->toBeNull()

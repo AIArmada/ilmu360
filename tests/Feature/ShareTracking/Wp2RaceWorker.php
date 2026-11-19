@@ -2,24 +2,25 @@
 
 declare(strict_types=1);
 
+use AIArmada\Checkout\Models\CheckoutSession;
 // Permanent race worker for Wp2RealDriverRaceTest. Executed only as a
 // standalone OS process (`php Wp2RaceWorker.php --database=... ...`); returns
 // immediately when merely included, so test runners and autoloaders never
 // execute it.
 
-use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Ticketing\Models\TicketType;
+use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -160,7 +161,7 @@ try {
                 type: $type,
                 businessKey: (string) $payload['business_key'],
                 actor: $actor,
-                request: $buildRequest(is_string($cookie) ? $cookie : null),
+                request: ShareRequestContext::fromRequest($buildRequest(is_string($cookie) ? $cookie : null)),
                 metadata: ['wp2_race_slot' => $slot],
             );
 
@@ -203,7 +204,7 @@ try {
                 $request->cookies->set((string) config('share-tracking.cookie.name', 'i360_share'), $cookie);
             }
 
-            $encoded = app(AffiliatesShareTrackingService::class)->captureRequest($request);
+            $encoded = app(AffiliatesShareTrackingService::class)->captureRequest(ShareRequestContext::fromRequest($request));
 
             if ($mode === 'landing_ordered') {
                 file_put_contents($readyDir.'/done-'.$slot, (string) getmypid());

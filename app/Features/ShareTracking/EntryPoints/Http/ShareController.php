@@ -2,10 +2,9 @@
 
 namespace App\Features\ShareTracking\EntryPoints\Http;
 
-use App\Http\Controllers\Controller;
-
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareProfileNotEligibleException;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -54,7 +53,7 @@ class ShareController extends Controller
                 shareText: $data['text'],
                 fallbackTitle: $data['title'] ?? null,
                 origin: $data['origin'] ?? null,
-                request: $request,
+                request: \App\Shared\ShareTracking\ShareRequestContext::fromRequest($request),
             ));
         } catch (\InvalidArgumentException $exception) {
             throw ValidationException::withMessages([
@@ -78,7 +77,7 @@ class ShareController extends Controller
                 provider: $data['provider'],
                 user: $this->authenticatedUser($request),
                 trackingToken: $data['tracking_token'],
-                request: $request,
+                request: \App\Shared\ShareTracking\ShareRequestContext::fromRequest($request),
             );
 
             return response()->noContent();
@@ -145,7 +144,7 @@ class ShareController extends Controller
                 $data['text'],
                 $data['title'] ?? null,
                 $data['origin'] ?? null,
-                $request,
+                \App\Shared\ShareTracking\ShareRequestContext::fromRequest($request),
             );
         } catch (ShareProfileNotEligibleException) {
             return $shareTrackingService->sharePayload(

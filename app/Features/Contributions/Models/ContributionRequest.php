@@ -2,10 +2,11 @@
 
 namespace App\Features\Contributions\Models;
 
+use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use Database\Factories\ContributionRequestFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +18,6 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Models\User;
 
 class ContributionRequest extends Model implements AuditableContract, HasMedia
 {
@@ -123,5 +123,4 @@ class ContributionRequest extends Model implements AuditableContract, HasMedia
     {
         return ContributionRequestFactory::new();
     }
-
 }

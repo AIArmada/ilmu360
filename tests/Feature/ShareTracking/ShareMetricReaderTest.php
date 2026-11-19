@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Models\AffiliateConversion;
 // R1 proof: ShareMetricReader reads ONLY frozen authorities — committed
 // outbound_share touchpoints, the visitor_key historical union over
 // landing attributions + visit touchpoints, and scoped conversions —
@@ -11,19 +12,19 @@ declare(strict_types=1);
 // real production ingestion (payload/track HTTP, landing capture,
 // recordOutcome, real reversal, real guest claim).
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Features\Events\Models\Event;
-use App\Models\User;
-use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
+use App\Features\ShareTracking\Queries\ShareMetricReader;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
+use App\Features\ShareTracking\Services\ShareCohortAuthority;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
+use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Features\ShareTracking\Services\ShareCohortAuthority;
-use App\Features\ShareTracking\Queries\ShareMetricReader;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -95,7 +96,7 @@ function smrRecordOutcome(ShareOutcomeType $type, string $businessKey, ?User $ac
         $businessKey,
         null,
         $actor,
-        $cookieValue === null ? null : smrOutcomeRequest($cookieValue),
+        $cookieValue === null ? null : ShareRequestContext::fromRequest(smrOutcomeRequest($cookieValue)),
         [],
         $at,
     );

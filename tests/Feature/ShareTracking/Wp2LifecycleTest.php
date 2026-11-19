@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Models\AffiliateConversion;
+use AIArmada\Affiliates\Models\AffiliateLink;
 // WP2 lifecycle proof for the source callers that need the full
 // application schema (events, engagement, follows, saved searches).
 //
@@ -12,9 +15,6 @@ declare(strict_types=1);
 // every caller freezes, inherits, or reverses coherently. If any
 // correction hook or atomic wrapper below were deleted, its test fails.
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Services\FraudDetectionService;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Checkout\Models\CheckoutSession;
@@ -30,33 +30,35 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Features\ShareTracking\EntryPoints\Checkout\RecordCheckoutShareProvenanceStep;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Models\Series;
+use App\Features\Events\Services\ModerationService;
+use App\Features\Institutions\EntryPoints\Livewire\Pages\Show;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
 use App\Features\Registration\Actions\UpdateEventParticipantAttendanceAction;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionRegistration;
+use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
-use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\OfflineAdmissions;
-use App\Features\Institutions\EntryPoints\Livewire\Pages\Show;
-use App\Features\Events\Models\Event;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Events\Models\EventSubmission;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
-use App\Features\Registration\Models\Registration;
-use App\Features\Events\Models\Series;
+use App\Features\ShareTracking\EntryPoints\Checkout\RecordCheckoutShareProvenanceStep;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Models\User;
-use App\Features\Events\Services\ModerationService;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Models\User;
 use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Shared\ShareTracking\ShareEffectStatus;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -419,8 +421,8 @@ it('reverses event-scope submissions on reject without cascading into session su
     $eventKey = ShareOutcomeBusinessKey::eventSubmission((string) $eventSubmission->getKey());
     $sessionKey = ShareOutcomeBusinessKey::eventSubmission((string) $sessionSubmission->getKey());
 
-    expect($service->recordOutcome(ShareOutcomeType::EventSubmission, $eventKey, $event, $actor, $request))->not->toBeNull()
-        ->and($service->recordOutcome(ShareOutcomeType::EventSubmission, $sessionKey, $event, $actor, $request))->not->toBeNull();
+    expect($service->recordOutcome(ShareOutcomeType::EventSubmission, $eventKey, ShareSubjectFactory::fromModel($event), $actor, ShareRequestContext::fromRequest($request)))->not->toBeNull()
+        ->and($service->recordOutcome(ShareOutcomeType::EventSubmission, $sessionKey, ShareSubjectFactory::fromModel($event), $actor, ShareRequestContext::fromRequest($request)))->not->toBeNull();
 
     app(ModerationService::class)->reject($event, $moderator, 'spam', 'WP2 probe');
 
@@ -461,9 +463,9 @@ it('reverses registration outcomes on cancel and reject through the lifecycle li
     expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) $rejected->getKey()),
-        $event,
+        ShareSubjectFactory::fromModel($event),
         null,
-        $attributedRequest,
+        ShareRequestContext::fromRequest($attributedRequest),
     ))->not->toBeNull();
 
     $cancelKey = ShareOutcomeBusinessKey::eventRegistration((string) $cancelled->getKey());
@@ -960,7 +962,7 @@ it('fails checkout inheritance closed on unknown refs and self-credit', function
     $selfRequest = Request::create($pageUrl, 'GET');
     $selfRequest->cookies->set((string) config('share-tracking.cookie.name'), $cookie);
 
-    $attributionId = (string) app(AffiliatesShareTrackingService::class)->resolveActiveAttribution($selfRequest)?->id;
+    $attributionId = (string) app(AffiliatesShareTrackingService::class)->resolveActiveAttribution(ShareRequestContext::fromRequest($selfRequest))?->id;
 
     expect($attributionId)->not->toBeEmpty()
         ->and(app(AffiliatesShareTrackingService::class)->recordCheckoutInheritedOutcome(ShareOutcomeType::EventRegistration, ShareOutcomeBusinessKey::eventRegistration((string) Str::uuid()), $attributionId, null, $this->sharer, [], now()))->toBeNull()
@@ -1003,9 +1005,9 @@ it('reverses participation outcomes on event cancel while preserving contributio
     expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSubmission,
         ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
-        $event,
+        ShareSubjectFactory::fromModel($event),
         $actor,
-        $attributedRequest,
+        ShareRequestContext::fromRequest($attributedRequest),
     ))->not->toBeNull();
 
     $otherEvent = wp2lcRegistrationEvent();
@@ -1094,9 +1096,9 @@ it('scopes occurrence and session cancellations to their actual registrations', 
         expect($service->recordOutcome(
             ShareOutcomeType::EventRegistration,
             ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
-            $event,
+            ShareSubjectFactory::fromModel($event),
             null,
-            $attributedRequest,
+            ShareRequestContext::fromRequest($attributedRequest),
         ))->not->toBeNull();
     }
 

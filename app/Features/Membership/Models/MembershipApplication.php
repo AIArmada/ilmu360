@@ -61,5 +61,4 @@ class MembershipApplication extends BaseMembershipApplication implements Auditab
     {
         return MembershipApplicationFactory::new();
     }
-
 }
