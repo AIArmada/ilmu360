@@ -1,7 +1,7 @@
 <?php
 
-use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
 use App\Features\Persons\Models\Person;
 use Illuminate\Validation\ValidationException;
 

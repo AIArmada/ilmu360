@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class DonationChannelFactory extends Factory
 {
+    #[\Override]
     protected $model = DonationChannel::class;
 
     /**

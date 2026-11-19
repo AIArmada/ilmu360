@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Mcp\Tools\Admin;
 
-use App\Platform\Mcp\McpWriteSchemaFormatter;
 use App\Platform\Api\Admin\AdminResourceService;
+use App\Platform\Mcp\McpWriteSchemaFormatter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;

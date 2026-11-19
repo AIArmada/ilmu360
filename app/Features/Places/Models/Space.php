@@ -2,18 +2,17 @@
 
 namespace App\Features\Places\Models;
 
-use Database\Factories\SpaceFactory;
-
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Events\Models\VenueSpace;
+use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Platform\Auditing\AuditsModelChanges;
+use Database\Factories\SpaceFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Validation\ValidationException;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
-use App\Features\Institutions\Models\Institution;
 
 /**
  * @property string|null $slug
@@ -116,6 +115,4 @@ class Space extends VenueSpace implements AuditableContract
 
         return $override !== null ? (int) $override : ($this->capacity !== null ? (int) $this->capacity : null);
     }
-
-
 }

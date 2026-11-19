@@ -5,10 +5,10 @@ namespace App\Features\Institutions\Observers;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Features\Institutions\Models\Institution;
-use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use App\Features\Institutions\Services\InstitutionSearchService;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
+use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class InstitutionObserver implements ShouldHandleEventsAfterCommit

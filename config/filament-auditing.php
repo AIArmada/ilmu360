@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\AuditResource;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
-use App\Models\User;
 use App\Features\Places\Models\Venue;
+use App\Models\User;
+use App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\AuditResource;
 use Filament\Tables\Columns\TextColumn;
 
 return [

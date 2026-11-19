@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
-use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
-use App\Features\GitHubIssues\Services\NullGitHubIssueReporter;
-use App\Features\Inspirations\Models\Inspiration;
-use App\Features\Reports\Actions\SaveReportAction;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Events\Models\Event;
-use App\Features\Persons\Models\Person;
-use App\Models\User;
-use App\Features\Places\Models\Venue;
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
-use App\Shared\Captcha\CaptchaVerifier;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Support\ContributionSubjectType;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Models\Event;
 use App\Features\Events\States\EventStatus\Approved;
 use App\Features\Events\States\EventStatus\Cancelled;
 use App\Features\Events\States\EventStatus\Pending;
 use App\Features\Events\States\EventStatus\Transitions\CancelEvent;
+use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
+use App\Features\GitHubIssues\Services\NullGitHubIssueReporter;
+use App\Features\Inspirations\Models\Inspiration;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Venue;
+use App\Features\Reports\Actions\SaveReportAction;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
+use App\Shared\Captcha\CaptchaVerifier;
+use App\Shared\Contributions\Enums\ContributionRequestStatus;
+use App\Shared\Contributions\Enums\ContributionRequestType;
+use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Support\Facades\Schema;
 
 it('sets cancelled_at when cancelling an event', function () {

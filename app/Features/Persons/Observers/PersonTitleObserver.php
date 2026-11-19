@@ -7,8 +7,8 @@ namespace App\Features\Persons\Observers;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Features\Persons\Models\Person;
-use App\Shared\Cache\SelectionCatalogCache;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 final readonly class PersonTitleObserver implements ShouldHandleEventsAfterCommit

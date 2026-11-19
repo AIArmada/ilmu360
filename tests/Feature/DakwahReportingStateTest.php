@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 
 test('unconfigured reporting ignores measurement filters supplied in the URL', function (): void {
     $user = User::factory()->create();

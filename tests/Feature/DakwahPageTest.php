@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 
 beforeEach(function (): void {
     config(['share-tracking.reporting.reporting_start' => '2026-10-01']);

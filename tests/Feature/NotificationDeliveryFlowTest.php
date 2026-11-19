@@ -16,10 +16,10 @@ use AIArmada\Communications\Models\NotificationInbox;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Notifications\EventNotificationService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Features\Events\Notifications\EventNotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
 

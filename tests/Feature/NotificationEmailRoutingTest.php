@@ -2,19 +2,19 @@
 
 use AIArmada\Communications\Models\CommunicationDestination;
 use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Notifications\EventEscalationNotification;
+use App\Features\Events\Notifications\EventSubmittedNotification;
 use App\Features\Feedback\Models\AppFeedback;
 use App\Features\Feedback\Models\AppFeedbackMessage;
 use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
 use App\Features\Membership\Notifications\MemberInvitationNotification;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Notifications\ReportResolvedNotification;
-use App\Features\Events\Models\Event;
 use App\Models\User;
 use App\Platform\Auth\Notifications\ResetPasswordNotification;
 use App\Platform\Auth\Notifications\VerifyEmailNotification;
 use App\Platform\Auth\Notifications\WelcomeNotification;
-use App\Features\Events\Notifications\EventEscalationNotification;
-use App\Features\Events\Notifications\EventSubmittedNotification;
 
 it('routes mail notifications through the user email address and tracks destination verification', function () {
     $user = User::factory()->create([

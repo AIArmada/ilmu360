@@ -50,7 +50,7 @@ it('allows foreign feature model type and relation references', function (string
     $result = $this->project->check();
     $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'] ?? [];
 
-    expect($result['stderr'])->toBe('')
+    expect($result['stderr'])->toBeEmpty()
         ->and(array_column($findings, 'rule'))->not->toContain('feature-private')
         ->and(array_column($findings, 'rule'))->not->toContain('foreign-model-domain-operation');
 })->with([

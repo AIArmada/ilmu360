@@ -2,8 +2,8 @@
 
 namespace App\Features\Events\EntryPoints\Http;
 
-use App\Features\Events\EntryPoints\Http\SubmitEventRequestHandler;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
@@ -13,7 +13,6 @@ use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
-use App\Features\Events\Services\OrganizerResolver;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Submission\SubmitterContactRules;
 use Dedoc\Scramble\Attributes\Endpoint;

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Mcp;
 
 use App\Features\Discovery\EntryPoints\Http\Data\EventListData;
-use App\Features\Events\Models\Event;
 use App\Features\Discovery\Services\EventSearchService;
+use App\Features\Events\Models\Event;
 use App\Shared\Discovery\SearchFilterKeys;
 use App\Shared\Events\Enums\TimingMode;
 use Illuminate\Contracts\JsonSchema\JsonSchema;

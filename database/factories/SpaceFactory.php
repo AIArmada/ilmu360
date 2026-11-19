@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
  */
 class SpaceFactory extends Factory
 {
+    #[\Override]
     protected $model = Space::class;
 
     /**

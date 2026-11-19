@@ -4,13 +4,14 @@ namespace App\Features\Registration\Models;
 
 use AIArmada\Events\Models\EventAttendance;
 use AIArmada\Events\Models\EventAttendanceLog;
+use App\Models\User;
 use Database\Factories\EventCheckinFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\User;
 
 class EventCheckin extends EventAttendance
 {
+    #[\Override]
     protected $table = 'event_attendances';
 
     #[\Override]

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Mcp\Prompts\Concerns;
 
-use App\Features\Events\Models\Event;
 use App\Features\Events\EntryPoints\Mcp\EventCoverPromptBuilder;
+use App\Features\Events\Models\Event;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Prompts\Argument;

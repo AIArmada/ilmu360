@@ -2,9 +2,8 @@
 
 namespace App\Platform\Language\EntryPoints\Http;
 
-use App\Http\Controllers\Controller;
-
 use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

@@ -4,8 +4,8 @@ namespace App\Features\Persons\EntryPoints\Http\Data;
 
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use Spatie\LaravelData\Data;
 use App\Platform\Api\Frontend\Data\CountryData;
+use Spatie\LaravelData\Data;
 
 class PersonListData extends Data
 {

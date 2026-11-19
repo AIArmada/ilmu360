@@ -7,6 +7,7 @@ namespace App\Features\Events\Services\ShareCards;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\Services\EventDetailPresenter;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Events\Enums\EventChangeType;
@@ -15,7 +16,6 @@ use App\Shared\Media\ShareCards\ShareCardRenderInput;
 use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerOffset;
 use App\Shared\Prayer\PrayerReference;
-use App\Features\Events\Services\EventDetailPresenter;
 use Carbon\CarbonInterface;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 

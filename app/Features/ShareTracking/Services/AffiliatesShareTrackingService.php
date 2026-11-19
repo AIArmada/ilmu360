@@ -143,7 +143,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
     public function sharePayload(?AccountActor $user, string $url, string $shareText, ?string $fallbackTitle = null, ?string $origin = null, ?ShareRequestContext $request = null): array
     {
         $httpRequest = $request?->toRequest();
-        $user = $user !== null ? $this->resolveActorUser($user) : null;
+        $user = $user instanceof AccountActor ? $this->resolveActorUser($user) : null;
         $resolvedOrigin = $this->resolveShareOrigin($origin);
 
         if ($user instanceof User) {
@@ -225,7 +225,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         ?ShareRequestContext $request = null,
     ): string {
         $httpRequest = $request?->toRequest();
-        $user = $user !== null ? $this->resolveActorUser($user) : null;
+        $user = $user instanceof AccountActor ? $this->resolveActorUser($user) : null;
 
         if ($user instanceof User) {
             try {
@@ -294,7 +294,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         ?ShareRequestContext $request = null,
     ): void {
         $httpRequest = $request?->toRequest();
-        $user = $user !== null ? $this->resolveOptionalActorUser($user) : null;
+        $user = $user instanceof AccountActor ? $this->resolveOptionalActorUser($user) : null;
         $link = $this->resolveLinkFromTrackingToken($trackingToken, $user, $httpRequest);
 
         if (! $link instanceof AffiliateLink) {
@@ -2168,7 +2168,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
 
     private function isProvenSelfCredit(Affiliate $affiliate, AffiliateAttribution $attribution, ?AccountActor $actor): bool
     {
-        $actor = $actor !== null ? $this->resolveOptionalActorUser($actor) : null;
+        $actor = $actor instanceof AccountActor ? $this->resolveOptionalActorUser($actor) : null;
 
         if (! $actor instanceof User) {
             return false;

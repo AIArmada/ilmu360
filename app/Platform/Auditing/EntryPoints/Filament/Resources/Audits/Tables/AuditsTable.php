@@ -2,8 +2,8 @@
 
 namespace App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\Tables;
 
-use App\Platform\Auditing\Models\Audit;
 use App\Platform\Auditing\AuditValuePresenter;
+use App\Platform\Auditing\Models\Audit;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\Column;
 use Filament\Tables\Columns\TextColumn;

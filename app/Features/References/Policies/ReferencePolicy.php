@@ -2,9 +2,9 @@
 
 namespace App\Features\References\Policies;
 
+use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Features\Membership\Services\MemberPermissionGate;
 
 class ReferencePolicy
 {

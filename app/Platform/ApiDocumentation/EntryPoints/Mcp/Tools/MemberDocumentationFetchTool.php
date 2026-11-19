@@ -6,6 +6,7 @@ namespace App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools;
 
 use App\Features\Mcp\Services\MemberMcpDocumentationPreflight;
 use App\Features\Mcp\Services\MemberVerifiedDocumentationCatalog;
+use App\Platform\Mcp\Tools\Member\AbstractMemberTool;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -14,7 +15,6 @@ use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use App\Platform\Mcp\Tools\Member\AbstractMemberTool;
 
 #[IsReadOnly]
 #[IsIdempotent]

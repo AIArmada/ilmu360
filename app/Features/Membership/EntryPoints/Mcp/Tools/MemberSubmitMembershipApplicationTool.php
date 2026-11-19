@@ -7,13 +7,14 @@ namespace App\Features\Membership\EntryPoints\Mcp\Tools;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
-use App\Platform\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;
 use App\Models\User;
-use App\Platform\Mcp\McpFilePayloadNormalizer;
-use App\Platform\Media\StagedUploadFactory;
-use App\Shared\Membership\MembershipSubjectCatalog;
 use App\Platform\Api\Member\MemberResourceService;
 use App\Platform\Mcp\McpAuthenticatedUserResolver;
+use App\Platform\Mcp\McpFilePayloadNormalizer;
+use App\Platform\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;
+use App\Platform\Mcp\Tools\Member\AbstractMemberWriteTool;
+use App\Platform\Media\StagedUploadFactory;
+use App\Shared\Membership\MembershipSubjectCatalog;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Http\UploadedFile;
 use Illuminate\JsonSchema\Types\Type;
@@ -27,7 +28,6 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use RuntimeException;
-use App\Platform\Mcp\Tools\Member\AbstractMemberWriteTool;
 
 #[IsReadOnly(false)]
 #[IsIdempotent(false)]

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Persons\Queries;
 
 use App\Features\Persons\Models\Person;
-use App\Platform\Search\ResourceSearchAdapter;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Platform\Search\ResourceSearchAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 

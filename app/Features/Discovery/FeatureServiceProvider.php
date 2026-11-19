@@ -30,5 +30,4 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
         $this->app->bind(SearchFilterRules::class, EventSearchFilterRules::class);
     }
-
 }

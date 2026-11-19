@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Queries;
 
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use App\Shared\ShareTracking\ClaimRecipients;
 use App\Shared\ShareTracking\ClaimRecipientSnapshot;
 use InvalidArgumentException;

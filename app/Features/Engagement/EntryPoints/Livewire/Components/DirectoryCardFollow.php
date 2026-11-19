@@ -3,9 +3,9 @@
 namespace App\Features\Engagement\EntryPoints\Livewire\Components;
 
 use App\Features\Engagement\Api\SubjectFollowCommands;
+use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
-use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Component;

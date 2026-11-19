@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
-use App\Features\Institutions\EntryPoints\Livewire\Pages\Show;
 use App\Features\Events\Models\Event;
+use App\Features\Institutions\EntryPoints\Livewire\Pages\Show;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Location\VisitorCountryResolver;
 use App\Platform\Time\UserDateTimeFormatter;

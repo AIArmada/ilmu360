@@ -4,12 +4,12 @@ namespace App\Features\Events\EntryPoints\Filament\Widgets;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
+use App\Features\Events\EntryPoints\Ui\SubmitterContactPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Features\Events\EntryPoints\Ui\SubmitterContactPresenter;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectType;

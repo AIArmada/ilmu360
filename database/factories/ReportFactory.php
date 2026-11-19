@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Features\Reports\Models\Report;
 use App\Features\Events\Models\Event;
+use App\Features\Reports\Models\Report;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

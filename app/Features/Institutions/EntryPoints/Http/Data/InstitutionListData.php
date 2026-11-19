@@ -5,10 +5,10 @@ namespace App\Features\Institutions\EntryPoints\Http\Data;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Models\User;
+use App\Platform\Api\Frontend\Data\CountryData;
 use App\Platform\Location\AddressHierarchyFormatter;
 use App\Shared\Directory\Enums\InstitutionType;
 use Spatie\LaravelData\Data;
-use App\Platform\Api\Frontend\Data\CountryData;
 
 class InstitutionListData extends Data
 {

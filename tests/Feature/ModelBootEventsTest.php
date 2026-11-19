@@ -2,8 +2,8 @@
 
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Models\User;
 use App\Features\Places\Models\Venue;
+use App\Models\User;
 
 it('sets verified_by on institution when status changes to verified', function () {
     $user = User::factory()->create();

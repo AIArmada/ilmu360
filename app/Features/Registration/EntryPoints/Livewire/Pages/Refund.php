@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\EntryPoints\Livewire\Pages;
 
-use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Events\Models\Event;
+use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;

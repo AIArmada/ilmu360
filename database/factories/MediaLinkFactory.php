@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
  */
 class MediaLinkFactory extends Factory
 {
+    #[\Override]
     protected $model = MediaLink::class;
 
     /**

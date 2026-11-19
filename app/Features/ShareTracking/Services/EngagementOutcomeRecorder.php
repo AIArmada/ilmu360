@@ -158,7 +158,7 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
             businessKey: $businessKey,
             subject: $subject instanceof Model ? ShareSubjectFactory::fromModel($subject) : null,
             actor: $actor instanceof User ? $actor : null,
-            request: $request !== null ? ShareRequestContext::fromRequest($request) : null,
+            request: $request instanceof Request ? ShareRequestContext::fromRequest($request) : null,
             metadata: $metadata,
             occurredAt: $occurredAt,
         );

@@ -3,8 +3,8 @@
 namespace App\Features\Registration\EntryPoints\Http;
 
 use App\Features\Registration\EntryPoints\Http\Data\UserRegistrationItemData;
-use App\Http\Controllers\Controller;
 use App\Features\Registration\Models\Registration;
+use App\Http\Controllers\Controller;
 use App\Platform\Api\ApiPagination;
 use App\Shared\Events\AccountEventFacts;
 use Dedoc\Scramble\Attributes\Endpoint;

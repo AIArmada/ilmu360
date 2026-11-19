@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Mcp\Concerns;
 
-use App\Platform\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;
-
 use App\Features\Events\Api\EventImageCollection;
 use App\Features\Events\Api\EventImageUploadResult;
 use App\Features\Events\Api\EventImageUploads;
 use App\Features\Events\Api\UploadEventImageInput;
 use App\Features\Events\Models\Event;
-use App\Platform\Mcp\McpFilePayloadNormalizer;
-use App\Platform\Media\StagedUploadFactory;
 use App\Platform\Api\Admin\AdminResourceRegistry;
 use App\Platform\Api\Member\MemberResourceRegistry;
+use App\Platform\Mcp\McpFilePayloadNormalizer;
+use App\Platform\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;
+use App\Platform\Media\StagedUploadFactory;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Http\UploadedFile;
 use Illuminate\JsonSchema\Types\Type;

@@ -3,9 +3,10 @@
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\FeatureServiceProvider as ContributionsServiceProvider;
+use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
 use App\Features\Contributions\Support\ContributionModel;
-use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
@@ -16,7 +17,6 @@ use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use Illuminate\Support\Facades\Storage;
 
 it('declares the owned table literally on the root model', function (): void {

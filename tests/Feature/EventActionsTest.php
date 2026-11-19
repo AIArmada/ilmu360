@@ -15,9 +15,9 @@ use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
+use App\Platform\Api\Frontend\FrontendFormContractService;
 use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Prayer\HardcodedPrayerFallback;
-use App\Platform\Api\Frontend\FrontendFormContractService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 

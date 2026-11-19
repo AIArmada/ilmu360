@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Platform\Telemetry\EntryPoints\Http;
 
-use App\Platform\Telemetry\EntryPoints\Http\Requests\StoreMobileTelemetryRequest;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
+use App\Platform\Telemetry\EntryPoints\Http\Requests\StoreMobileTelemetryRequest;
 use App\Platform\Telemetry\RecordMobileTelemetryBatchAction;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

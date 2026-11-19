@@ -2,10 +2,10 @@
 
 namespace App\Features\Engagement\EntryPoints\Http\Data;
 
+use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
-use App\Features\Events\Models\Series;
 use App\Models\User;
 use Spatie\LaravelData\Data;
 

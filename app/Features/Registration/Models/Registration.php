@@ -5,8 +5,10 @@ namespace App\Features\Registration\Models;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
 use AIArmada\Events\Models\EventRegistrationParticipant;
+use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\EventRegistrationDeletion;
 use App\Features\Registration\Api\RegistrationExportRecord;
+use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\RegistrationFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -17,12 +19,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
-use App\Features\Events\Models\Event;
-use App\Models\User;
 
 /** @extends PackageEventRegistration<Event> */
 class Registration extends PackageEventRegistration implements AuditableContract, RegistrationExportRecord
 {
+    #[\Override]
     protected $table = 'event_registrations';
 
     /** @use HasFactory<RegistrationFactory> */

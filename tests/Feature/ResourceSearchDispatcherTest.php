@@ -1,13 +1,13 @@
 <?php
 
-use App\Features\References\Queries\ReferenceResourceSearchAdapter;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Queries\InstitutionResourceSearchAdapter;
 use App\Features\Persons\Models\Person;
+use App\Features\Persons\Queries\PersonResourceSearchAdapter;
 use App\Features\References\Models\Reference;
+use App\Features\References\Queries\ReferenceResourceSearchAdapter;
 use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Search\ResourceSearchDispatcher;
-use App\Features\Institutions\Queries\InstitutionResourceSearchAdapter;
-use App\Features\Persons\Queries\PersonResourceSearchAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 

@@ -13,8 +13,8 @@ use AIArmada\Links\Actions\DeactivateLink;
 use AIArmada\Links\Models\Link;
 use AIArmada\Links\Models\LinkClick;
 use App\Features\Events\Models\Event;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 
 beforeEach(function (): void {
     $this->sharer = User::factory()->create([

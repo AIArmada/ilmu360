@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** @extends EventInvolvement<Event> */
 class EventKeyPerson extends EventInvolvement
 {
+    #[\Override]
     protected $table = 'event_involvements';
 
     /**

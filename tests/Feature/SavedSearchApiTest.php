@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Features\SavedSearches\Models\SavedSearch;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;

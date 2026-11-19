@@ -2,13 +2,13 @@
 
 namespace App\Features\Discovery\EntryPoints\Http\Data;
 
+use App\Features\Events\EntryPoints\Ui\EventCategoryPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
 use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Features\Events\EntryPoints\Ui\EventCategoryPresenter;
 use App\Shared\Events\Enums\EventFormat;
 use BackedEnum;
 use Carbon\CarbonInterface;

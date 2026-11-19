@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
-use App\Platform\Mcp\Servers\AdminServer;
-use App\Platform\Diagnostics\EntryPoints\Mcp\Tools\AdminReadDebugLogTool;
 use App\Models\User;
+use App\Platform\Diagnostics\EntryPoints\Mcp\Tools\AdminReadDebugLogTool;
+use App\Platform\Mcp\Servers\AdminServer;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 

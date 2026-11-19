@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Contributors;
 
-use App\Platform\Moderation\Models\ModerationReview;
 use App\Models\User;
+use App\Platform\Moderation\Models\ModerationReview;
 use App\Shared\Auth\AccountLifecycleContributor;
 
 /**

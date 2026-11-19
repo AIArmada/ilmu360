@@ -7,12 +7,12 @@ namespace App\Features\ShareTracking\Queries;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\CommerceSupport\Support\OwnerScope;
+use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Models\User;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\ShareTracking\GuestClaims;
 use App\Shared\ShareTracking\GuestClaimSnapshot;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use App\Features\ShareTracking\Services\ShareProfileScope;
 use DateTimeImmutable;
 use DateTimeInterface;
 

@@ -4,8 +4,8 @@ namespace App\Features\Places\Observers;
 
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Places\Api\VenueWorkflow;
-use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Features\Places\Models\Venue;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\EntryPoints\Http;
 
-use App\Http\Controllers\Controller;
-
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
-use App\Features\ShareTracking\Services\ShareTrackingUrlService;
-use App\Shared\ShareTracking\ShareTrackingProfile;
 use App\Features\ShareTracking\Policies\ShareDestinationPolicy;
+use App\Features\ShareTracking\Services\ShareTrackingUrlService;
+use App\Http\Controllers\Controller;
+use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 

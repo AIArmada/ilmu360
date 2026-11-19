@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Events\Models\Event;
 use App\Features\Inspirations\Actions\SaveInspirationAction;
 use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\InspirationResource;
 use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\CreateInspiration;
@@ -7,7 +8,6 @@ use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\
 use App\Features\Inspirations\EntryPoints\Filament\Resources\Inspirations\Pages\ListInspirations;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Features\Inspirations\Models\Inspiration;
-use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Models\User;

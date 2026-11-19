@@ -26,13 +26,7 @@ class MemberResourceMutationService
      */
     public function supports(string $resourceClass): bool
     {
-        foreach ($this->hooks->all() as $hooks) {
-            if ($hooks->adminResourceClass($resourceClass) !== null) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($this->hooks->all(), fn ($hooks) => $hooks->adminResourceClass($resourceClass) !== null);
     }
 
     /**

@@ -10,13 +10,13 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Features\ShareTracking\Api\MarkedShareAffiliateIds;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Models\User;
 use App\Shared\ShareTracking\CommittedShareSignal;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
-use App\Features\ShareTracking\Services\ShareProfileScope;
 
 /**
  * Bounded aggregate reader over committed share facts.

@@ -6,6 +6,7 @@ namespace App\Features\Membership\EntryPoints\Mcp\Tools;
 
 use App\Features\Membership\Api\MembershipApplicationDetail;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Platform\Mcp\Tools\Member\AbstractMemberTool;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -13,7 +14,6 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use App\Platform\Mcp\Tools\Member\AbstractMemberTool;
 
 #[IsReadOnly]
 #[IsIdempotent]

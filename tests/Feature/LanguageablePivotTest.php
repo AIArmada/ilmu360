@@ -1,7 +1,7 @@
 <?php
 
-use App\Platform\Language\Models\Language;
 use App\Features\Events\Models\Series;
+use App\Platform\Language\Models\Language;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 

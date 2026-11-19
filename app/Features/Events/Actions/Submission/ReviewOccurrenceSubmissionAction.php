@@ -13,8 +13,8 @@ use AIArmada\Events\States\EventModerationStatus\Pending as SubmissionPending;
 use AIArmada\Events\States\EventModerationStatus\Rejected as SubmissionRejected;
 use AIArmada\Events\States\OccurrenceStatus\Archived;
 use AIArmada\Events\States\OccurrenceStatus\Scheduled;
-use App\Features\Events\Support\EventModel;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Support\EventModel;
 use Illuminate\Validation\ValidationException;
 
 /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Contributions\EntryPoints\Mcp\Tools;
 
 use App\Features\Contributions\EntryPoints\Member\MemberContributionWorkflowService;
+use App\Platform\Mcp\Tools\Member\AbstractMemberTool;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -14,7 +15,6 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use App\Platform\Mcp\Tools\Member\AbstractMemberTool;
 
 #[IsReadOnly(false)]
 #[IsIdempotent(false)]

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\Queries;
 
 use App\Features\ShareTracking\Api\ShareAnalytics;
-use Carbon\CarbonImmutable;
 use App\Features\ShareTracking\Services\ShareCohortAuthority;
+use Carbon\CarbonImmutable;
 
 final readonly class ShareAnalyticsReader implements ShareAnalytics
 {

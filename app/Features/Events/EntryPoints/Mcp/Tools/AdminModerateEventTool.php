@@ -7,6 +7,7 @@ namespace App\Features\Events\EntryPoints\Mcp\Tools;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\EntryPoints\Admin\AdminEventModerationService;
 use App\Platform\Mcp\McpAuthenticatedUserResolver;
+use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -16,7 +17,6 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
 
 #[IsReadOnly(false)]
 #[IsIdempotent(false)]

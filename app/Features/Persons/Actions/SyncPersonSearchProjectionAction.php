@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
-use App\Features\Persons\Persistence\PersonSearchCacheStore;
 use App\Features\Persons\Models\Person;
+use App\Features\Persons\Persistence\PersonSearchCacheStore;
 use App\Shared\Directory\PersonSearchText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;

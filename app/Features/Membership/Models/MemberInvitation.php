@@ -5,11 +5,11 @@ namespace App\Features\Membership\Models;
 use AIArmada\Membership\Enums\InvitationStatus;
 use AIArmada\Membership\Models\MembershipInvitation as PackageMembershipInvitation;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Contracts\Auditable;
-use App\Models\User;
 
 /**
  * @property MemberSubjectType|null $subject_type
@@ -26,6 +26,7 @@ use App\Models\User;
  */
 class MemberInvitation extends PackageMembershipInvitation implements Auditable
 {
+    #[\Override]
     protected $table = 'membership_invitations';
 
     use AuditsModelChanges;

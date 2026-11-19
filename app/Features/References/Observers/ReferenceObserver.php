@@ -4,10 +4,10 @@ namespace App\Features\References\Observers;
 
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Features\References\Models\Reference;
-use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use App\Features\References\Services\ReferenceSearchService;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
+use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class ReferenceObserver implements ShouldHandleEventsAfterCommit

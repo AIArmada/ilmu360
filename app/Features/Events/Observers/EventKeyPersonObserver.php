@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Events\Observers;
 
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
-use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Persons\Api\PersonListingCacheVersion;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class EventKeyPersonObserver implements ShouldHandleEventsAfterCommit

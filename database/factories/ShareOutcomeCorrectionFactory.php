@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
  */
 class ShareOutcomeCorrectionFactory extends Factory
 {
+    #[\Override]
     protected $model = ShareOutcomeCorrection::class;
 
     public function definition(): array

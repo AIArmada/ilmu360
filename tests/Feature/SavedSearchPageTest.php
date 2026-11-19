@@ -3,11 +3,11 @@
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearchesIndex;
-use App\Features\SavedSearches\Models\SavedSearch;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
+use App\Features\SavedSearches\EntryPoints\Livewire\Pages\SavedSearchesIndex;
+use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use App\Platform\Location\VisitorCountryResolver;
 use App\Shared\Events\Enums\EventKeyPersonRole;

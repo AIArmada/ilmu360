@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
+use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Features\References\EntryPoints\Filament\Resources\References\Pages\CreateReference;
 use App\Features\References\EntryPoints\Filament\Resources\References\Pages\EditReference;
-use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Cache\SelectionCatalogCache;

@@ -3,10 +3,10 @@
 namespace App\Features\Registration\Policies;
 
 use App\Features\Events\Models\Event;
+use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Shared\Commerce\EventCommercePolicy;
-use App\Features\Membership\Services\MemberPermissionGate;
 
 class RegistrationPolicy
 {

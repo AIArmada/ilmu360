@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
-use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\Events\Models\Event;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Features\References\Observers\ReferenceObserver;
 use App\Shared\Directory\Enums\ReferenceType;

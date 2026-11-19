@@ -3,8 +3,8 @@
 namespace App\Features\Contributions\Queries;
 
 use App\Features\Contributions\Support\ContributionModel;
-use App\Platform\Models\SlugOrUuidResolver;
 use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Platform\Models\SlugOrUuidResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;

@@ -1,8 +1,8 @@
 <?php
 
-use App\Platform\Admin\EntryPoints\Filament\Pages\AhliDashboard;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
+use App\Platform\Admin\EntryPoints\Filament\Pages\AhliDashboard;
 
 it('uses Dashboard as the ahli dashboard label in Malay locale for ahli members', function () {
     $user = User::factory()->create();

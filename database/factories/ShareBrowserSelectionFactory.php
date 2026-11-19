@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
  */
 class ShareBrowserSelectionFactory extends Factory
 {
+    #[\Override]
     protected $model = ShareBrowserSelection::class;
 
     public function definition(): array

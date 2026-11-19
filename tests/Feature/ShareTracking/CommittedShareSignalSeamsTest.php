@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
-use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
 use App\Features\ShareTracking\Models\ShareSignalReaderSkip;
+use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Platform\FeatureCatalog;
 use App\Shared\ShareTracking\CommittedShareSignal;
 

@@ -3,18 +3,15 @@
 namespace App\Features\Discovery\Services;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\EventSearchCache;
-use App\Features\References\Api\ReferenceQueries;
 use App\Features\Events\Models\Event;
-use App\Platform\Search\TypesenseHealthCheckService;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Features\Discovery\Services\EventDiscoveryFilterSet;
-use App\Features\Discovery\Services\FuzzyEventMatcher;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Services\ReferenceSearchService;
+use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Events\EventCategoryCatalog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\Log;

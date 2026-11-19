@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Queries;
 
 use App\Features\Institutions\Models\Institution;
-use App\Platform\Search\ResourceSearchAdapter;
 use App\Features\Institutions\Services\InstitutionSearchService;
+use App\Platform\Search\ResourceSearchAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 

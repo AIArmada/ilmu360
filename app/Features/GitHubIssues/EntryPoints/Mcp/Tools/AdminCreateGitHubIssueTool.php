@@ -8,8 +8,9 @@ use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\GitHubIssues\Api\GitHubIssueSubmissionData;
 use App\Features\GitHubIssues\Api\SubmitGitHubIssueReport;
-use App\Shared\Integrations\GitHubIssueReportingException;
 use App\Platform\Mcp\McpAuthenticatedUserResolver;
+use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
+use App\Shared\Integrations\GitHubIssueReportingException;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -19,7 +20,6 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
 
 #[IsReadOnly(false)]
 #[IsIdempotent(false)]

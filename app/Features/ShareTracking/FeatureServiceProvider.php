@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking;
 
-use AIArmada\Checkout\Contracts\StepContributor;
-use App\Features\ShareTracking\EntryPoints\Checkout\ShareCheckoutStepContributor;
-use App\Features\ShareTracking\EntryPoints\Filament\Pages\ShareAnalytics;
-use App\Platform\Admin\FilamentPageRegistry;
-
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Checkout\Contracts\StepContributor;
 use AIArmada\Events\Events\EventCancelled;
 use AIArmada\Events\Events\EventOccurrenceCancelled;
 use AIArmada\Events\Events\EventSessionCancelled;
@@ -48,6 +44,8 @@ use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
 use App\Features\ShareTracking\Api\VisitTouchpointWriter;
+use App\Features\ShareTracking\EntryPoints\Checkout\ShareCheckoutStepContributor;
+use App\Features\ShareTracking\EntryPoints\Filament\Pages\ShareAnalytics;
 use App\Features\ShareTracking\EntryPoints\Listeners\ReverseScheduleCancellationShareOutcome;
 use App\Features\ShareTracking\EntryPoints\Observers\CommittedShareTouchpointObserver;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
@@ -57,6 +55,7 @@ use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
 use App\Features\ShareTracking\Queries\AffiliateFinancialObligationReader as DatabaseFinancialObligationReader;
 use App\Features\ShareTracking\Queries\DatabaseMarkedShareAffiliateIds;
 use App\Features\ShareTracking\Queries\DatabaseShareOutcomeEvidenceReader;
+use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
 use Illuminate\Support\Facades\Event as EventFacade;
 

@@ -2,11 +2,11 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Concerns;
 
+use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Features\Discovery\Support\PublicScheduleLeaf;
 use App\Features\Events\Models\Event;
-use App\Platform\Time\UserDateTimeFormatter;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
+use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;

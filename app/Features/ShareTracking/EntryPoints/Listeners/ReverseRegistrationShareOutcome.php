@@ -8,8 +8,8 @@ use AIArmada\Events\Events\EventRegistrationCancelled;
 use AIArmada\Events\Events\EventRegistrationRefunded;
 use AIArmada\Events\Events\EventRegistrationRejected;
 use App\Features\Events\Api\TicketAffiliateReversals;
-use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\Registration\Models\EventCheckin;
+use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 

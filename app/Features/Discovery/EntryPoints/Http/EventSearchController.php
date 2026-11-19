@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\EntryPoints\Http;
 
-use App\Http\Controllers\Controller;
 use App\Features\Discovery\EntryPoints\Http\Requests\SearchAdminEventsRequest;
 use App\Features\Events\EntryPoints\Mcp\McpEventSearchService;
+use App\Http\Controllers\Controller;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

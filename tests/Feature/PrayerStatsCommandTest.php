@@ -3,9 +3,9 @@
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Models\Event;
 use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
-use App\Features\Events\Models\Event;
 use App\Shared\Events\Enums\TimingMode;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;

@@ -3,6 +3,8 @@
 namespace App\Features\Contributions\Actions;
 
 use App\Features\Contributions\Support\ContributionModel;
+use App\Features\Contributions\Support\ContributionRequestNotifier;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventMedia;
@@ -14,10 +16,8 @@ use App\Features\References\Api\ReferenceWorkflow;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Media\MediaCollectionSync;
-use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Shared\Contributions\InstitutionClaimGuard;

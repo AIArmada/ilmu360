@@ -8,8 +8,8 @@ use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
 use App\Features\Places\Models\Venue;
+use App\Features\References\Models\Reference;
 use App\Shared\Events\PublicScheduleSlug;
 use Illuminate\Support\Facades\DB;
 

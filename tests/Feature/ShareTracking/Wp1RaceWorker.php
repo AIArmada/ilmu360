@@ -7,8 +7,8 @@ declare(strict_types=1);
 // immediately when merely included, so test runners and autoloaders never
 // execute it.
 
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\RealDriverFixture;

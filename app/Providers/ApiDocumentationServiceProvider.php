@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
+use App\Platform\ApiDocumentation\ApiExceptionToResponseExtension;
 use App\Platform\ApiDocumentation\EntryPoints\Http\DocsIndexController;
 use App\Platform\ApiDocumentation\EntryPoints\Http\DocsJsonController;
 use App\Platform\ApiDocumentation\EntryPoints\Http\DocsSectionController;
 use App\Platform\ApiDocumentation\EntryPoints\Http\DocsUiController;
-use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
-use App\Platform\ApiDocumentation\ApiExceptionToResponseExtension;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;

@@ -7,8 +7,8 @@ namespace App\Features\ShareTracking\Services;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
-use App\Models\User;
 use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 

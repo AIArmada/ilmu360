@@ -3,16 +3,16 @@
 declare(strict_types=1);
 
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
-use App\Features\References\Api\ReferenceQueries;
-use App\Features\Events\Models\Event;
-use App\Features\Discovery\Services\PostgresEventDiscovery;
-use App\Features\Discovery\Services\TypesenseEventDiscovery;
-use App\Shared\Events\EventCategoryCatalog;
 use App\Features\Discovery\Services\EventDiscoveryFilterSet;
 use App\Features\Discovery\Services\FuzzyEventMatcher;
+use App\Features\Discovery\Services\PostgresEventDiscovery;
+use App\Features\Discovery\Services\TypesenseEventDiscovery;
+use App\Features\Events\Models\Event;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Services\ReferenceSearchService;
+use App\Shared\Events\EventCategoryCatalog;
 use Tests\Support\RecordingEventSearchRelationProvider;
 
 it('makes PostgreSQL discovery consume the injected relation provider', function (): void {

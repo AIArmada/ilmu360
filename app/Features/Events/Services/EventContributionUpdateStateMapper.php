@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use App\Features\Events\Api\EventAuthoring;
-use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\Events\Services\OrganizerResolver;
-use App\Shared\Prayer\EventPrayerTime;
+use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Features\Prayer\Support\PrayerLocation;
+use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Prayer\PrayerTargetSelector;
-use App\Features\Events\Support\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;

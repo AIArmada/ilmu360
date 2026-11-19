@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Events\Models\EventAttendanceLog;
-use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Participants;
 use App\Features\Events\Models\Event;
+use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Participants;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;

@@ -2,8 +2,8 @@
 
 namespace App\Features\Registration\EntryPoints\Http;
 
-use App\Http\Controllers\Controller;
 use App\Features\Events\Models\Event;
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;

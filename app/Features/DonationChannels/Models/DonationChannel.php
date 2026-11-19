@@ -3,8 +3,9 @@
 namespace App\Features\DonationChannels\Models;
 
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
-use App\Platform\Auditing\AuditsModelChanges;
 use App\Features\Reports\Support\ReportModelClass;
+use App\Models\User;
+use App\Platform\Auditing\AuditsModelChanges;
 use App\Shared\Directory\Enums\DonationChannelStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\DonationChannelFactory;
@@ -20,7 +21,6 @@ use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Models\User;
 
 /**
  * @property DonationChannelStatus $status
@@ -274,5 +274,4 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     {
         return DonationChannelFactory::new();
     }
-
 }

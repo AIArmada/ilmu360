@@ -1,12 +1,12 @@
 <?php
 
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Events\EntryPoints\Mcp\McpEventSearchService;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Features\Events\EntryPoints\Mcp\McpEventSearchService;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Events\QueryExecuted;

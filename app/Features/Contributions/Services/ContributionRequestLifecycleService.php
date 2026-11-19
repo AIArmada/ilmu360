@@ -12,9 +12,9 @@ use App\Features\Contributions\Actions\SubmitContributionCreateRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Support\ContributionModel;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auth\AccountDirectory;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 

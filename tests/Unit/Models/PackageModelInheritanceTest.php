@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use App\Features\Events\Models\Event;
 use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
 use App\Features\Registration\Models\Registration;
-use App\Features\Places\Models\Venue;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class);

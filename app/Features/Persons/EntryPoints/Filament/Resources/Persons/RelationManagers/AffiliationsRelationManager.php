@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
-use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;

@@ -6,8 +6,8 @@ namespace Tests\Feature\ShareCards;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
-use App\Shared\Media\ShareCards\ShareCardRenderInput;
 use App\Features\Events\Services\ShareCards\ShareCardEventPresenter;
+use App\Shared\Media\ShareCards\ShareCardRenderInput;
 use RuntimeException;
 
 final readonly class Wp3ScThrowingPresenter extends ShareCardEventPresenter

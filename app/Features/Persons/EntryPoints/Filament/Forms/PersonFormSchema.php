@@ -3,6 +3,7 @@
 namespace App\Features\Persons\EntryPoints\Filament\Forms;
 
 use AIArmada\Persons\Enums\Gender;
+use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use Filament\Schemas\Components\Component;
@@ -10,7 +11,6 @@ use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
 
 class PersonFormSchema
 {

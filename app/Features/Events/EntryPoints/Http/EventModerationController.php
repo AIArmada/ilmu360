@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Http;
 
+use App\Features\Events\EntryPoints\Admin\AdminEventModerationService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Features\Events\EntryPoints\Admin\AdminEventModerationService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;

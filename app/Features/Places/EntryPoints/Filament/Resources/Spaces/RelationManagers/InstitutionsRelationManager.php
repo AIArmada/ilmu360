@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces\RelationManagers;
 
-use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
+use App\Features\Places\Api\InstitutionSpaceLinks;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;

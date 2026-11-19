@@ -6,7 +6,6 @@ namespace App\Features\Events\Notifications;
 
 use App\Features\Events\Models\Event;
 use App\Models\User;
-use App\Features\Events\Notifications\EventEscalationNotification;
 use App\Shared\Events\EventEscalationTransport;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;

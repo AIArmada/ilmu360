@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Actions;
 
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
-use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Auth\AccountActor;

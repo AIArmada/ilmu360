@@ -12,8 +12,8 @@ use AIArmada\Referrals\Enums\ReferralInviteStatus;
 use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Models\User;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Models\User;
 use Illuminate\Support\Str;
 
 /** @return array{ReferralInvite, string} */

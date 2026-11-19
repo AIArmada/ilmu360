@@ -10,6 +10,7 @@ use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateFraudSignal;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use App\Features\ShareTracking\Queries\ShareMetricReader;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Carbon\CarbonImmutable;
@@ -17,7 +18,6 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
-use App\Features\ShareTracking\Queries\ShareMetricReader;
 
 /**
  * Canonical cohort authority: landing → signup → first COMMITTED

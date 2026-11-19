@@ -15,7 +15,6 @@ use App\Shared\Media\ShareCards\ShareCardError;
 use App\Shared\Media\ShareCards\ShareCardRenderer;
 use App\Shared\Media\ShareCards\ShareCardRenderInput;
 use App\Shared\Media\ShareCards\ShareCardRenderResult;
-use App\Features\Events\Services\ShareCards\ShareCardEventPresenter;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use DateTimeZone;

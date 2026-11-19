@@ -3,8 +3,8 @@
 namespace App\Platform\Api\Frontend\EntryPoints\Http;
 
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Platform\Http\FrontendController;
 use App\Platform\Api\Frontend\FrontendFormContractService;
+use App\Platform\Http\FrontendController;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

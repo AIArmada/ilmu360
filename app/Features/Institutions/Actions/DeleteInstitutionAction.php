@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Actions;
 
 use App\Features\Institutions\Api\InstitutionVenueLinks;
-use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Places\Api\InstitutionSpaceLinks;
 
 /**
  * Delete an institution and its Directory bridges atomically.

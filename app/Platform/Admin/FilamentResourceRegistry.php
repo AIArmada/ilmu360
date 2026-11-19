@@ -17,11 +17,11 @@ final class FilamentResourceRegistry
 
     public const string PANEL_AHLI = 'ahli';
 
-    /** @var array<string, list<class-string<Resource>>> */
+    /** @var array<string, list<class-string<resource>>> */
     private array $resources = [];
 
     /**
-     * @param  class-string<Resource>  $resource
+     * @param  class-string<resource>  $resource
      */
     public function register(string $resource, string $panel = self::PANEL_ADMIN): void
     {
@@ -39,7 +39,7 @@ final class FilamentResourceRegistry
     }
 
     /**
-     * @return list<class-string<Resource>>
+     * @return list<class-string<resource>>
      */
     public function all(string $panel = self::PANEL_ADMIN): array
     {

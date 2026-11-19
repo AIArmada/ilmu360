@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Policies;
 
-use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
-use App\Features\Events\Models\Series;
 use App\Features\ShareTracking\Services\ShareTrackingUrlService;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\ShareTracking\ShareSubjectType;

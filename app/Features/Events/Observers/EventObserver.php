@@ -8,10 +8,10 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\ShareCardWarmScheduler;
+use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
-use App\Features\Events\Models\Event;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

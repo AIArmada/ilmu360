@@ -3,9 +3,9 @@
 namespace App\Features\Institutions\EntryPoints\Http;
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
 use App\Shared\Events\Enums\EventVisibility;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Diagnostics\EntryPoints\Mcp\Tools;
 
+use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
 use App\Platform\Mcp\Tools\Concerns\ReadsDebugLog;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -12,7 +13,6 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
 
 #[IsReadOnly]
 #[IsIdempotent]

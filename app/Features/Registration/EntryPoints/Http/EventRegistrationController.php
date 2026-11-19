@@ -2,15 +2,15 @@
 
 namespace App\Features\Registration\EntryPoints\Http;
 
-use App\Features\Registration\EntryPoints\Http\Data\EventRegistrationData;
-use App\Features\Registration\Api\AdmissionRegistration;
-use App\Http\Controllers\Controller;
-use App\Features\Registration\EntryPoints\Http\Requests\RegisterEventRequest;
 use App\Features\Events\Models\Event;
-use App\Features\Registration\Models\Registration;
-use App\Models\User;
 use App\Features\Events\Notifications\EventNotificationService;
 use App\Features\Events\Policies\EventTicketingPolicy;
+use App\Features\Registration\Api\AdmissionRegistration;
+use App\Features\Registration\EntryPoints\Http\Data\EventRegistrationData;
+use App\Features\Registration\EntryPoints\Http\Requests\RegisterEventRequest;
+use App\Features\Registration\Models\Registration;
+use App\Http\Controllers\Controller;
+use App\Models\User;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

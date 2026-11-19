@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\EntryPoints\Http;
 
+use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;

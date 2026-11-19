@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Features\Events\EntryPoints\Mcp\McpEventSearchService;
 use App\Shared\Discovery\SearchFilterKeys;
 use App\Shared\Discovery\SearchFilterRules;
-use App\Features\Events\EntryPoints\Mcp\McpEventSearchService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 

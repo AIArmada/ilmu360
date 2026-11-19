@@ -2,10 +2,10 @@
 
 namespace App\Features\Events\EntryPoints\Http\Data;
 
-use App\Features\Registration\EntryPoints\Http\Data\EventCheckInStateData;
 use App\Features\Engagement\EntryPoints\Http\Data\EventGoingStateData;
-use App\Features\Registration\EntryPoints\Http\Data\EventRegistrationStatusData;
 use App\Features\Engagement\EntryPoints\Http\Data\EventSaveStateData;
+use App\Features\Registration\EntryPoints\Http\Data\EventCheckInStateData;
+use App\Features\Registration\EntryPoints\Http\Data\EventRegistrationStatusData;
 use Spatie\LaravelData\Data;
 
 class EventMeData extends Data

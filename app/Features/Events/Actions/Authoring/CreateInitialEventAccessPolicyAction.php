@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use App\Features\Events\Support\EventModel;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Support\EventModel;
 
 /**
  * Creates the event-level admission policy for a newly created Event.

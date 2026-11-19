@@ -9,6 +9,8 @@ use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\PlaceLookup;
 use App\Features\References\Api\ReferenceLookup;
+use App\Platform\Api\Admin\AdminResourceService;
+use App\Platform\Mcp\Tools\Admin\AbstractAdminWriteTool;
 use App\Platform\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -16,7 +18,6 @@ use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Platform\Api\Admin\AdminResourceService;
 use Generator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -29,7 +30,6 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use App\Platform\Mcp\Tools\Admin\AbstractAdminWriteTool;
 
 #[IsReadOnly(false)]
 #[IsIdempotent(false)]

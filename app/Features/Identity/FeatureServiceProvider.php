@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Identity;
 
-use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
-use App\Platform\Admin\FilamentResourceRegistry;
-
 use App\Features\Identity\Actions\RecordNewAccountAttributionAction;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountLifecycle;
@@ -20,6 +17,7 @@ use App\Features\Identity\Contributors\ReportsAccountLifecycleContributor;
 use App\Features\Identity\Contributors\SavedSearchesAccountLifecycleContributor;
 use App\Features\Identity\Contributors\VerificationAttributionContributor;
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
+use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Identity\Services\AccountAdministrationService;
 use App\Features\Identity\Services\AccountLifecycleCoordinator;
 use App\Features\Identity\Services\AccountPreferencesService;
@@ -28,6 +26,7 @@ use App\Features\Identity\Services\SignupAttributionsService;
 use App\Features\Identity\Services\SignupAttributionWorkflowService;
 use App\Features\Identity\Services\SocialAccountsService;
 use App\Platform\Admin\FilamentPageRegistry;
+use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\NewAccountAttribution;

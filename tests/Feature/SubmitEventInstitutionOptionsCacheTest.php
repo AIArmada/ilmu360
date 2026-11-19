@@ -1,12 +1,12 @@
 <?php
 
+use App\Features\Events\Services\SubmitEventOptionsProvider;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
-use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Features\Events\Services\SubmitEventOptionsProvider;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Carbon;

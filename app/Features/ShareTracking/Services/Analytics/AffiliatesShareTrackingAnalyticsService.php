@@ -13,16 +13,16 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
+use App\Features\ShareTracking\Queries\ShareMetricReader;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
-use App\Features\ShareTracking\Queries\ShareMetricReader;
-use App\Features\ShareTracking\Services\ShareProfileScope;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 
 final readonly class AffiliatesShareTrackingAnalyticsService
 {

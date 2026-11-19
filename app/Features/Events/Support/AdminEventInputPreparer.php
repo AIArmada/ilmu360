@@ -4,6 +4,7 @@ namespace App\Features\Events\Support;
 
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
+use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
@@ -12,8 +13,6 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Events\EventCategoryPolicyResolver;
-use App\Features\Events\Services\OrganizerResolver;
-use App\Features\Events\Support\SubmissionTimingPolicy;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;

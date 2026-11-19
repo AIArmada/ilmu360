@@ -3,10 +3,10 @@
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
-use App\Models\User;
 use App\Features\Events\States\EventStatus\Approved;
 use App\Features\Events\States\EventStatus\Draft;
 use App\Features\Events\States\EventStatus\Pending;
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\PermissionRegistrar;
 

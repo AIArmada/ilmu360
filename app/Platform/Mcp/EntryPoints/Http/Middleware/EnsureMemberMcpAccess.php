@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Platform\Mcp\EntryPoints\Http\Middleware;
 
 use App\Models\User;
-use App\Platform\Mcp\McpTokenManager;
 use App\Platform\Mcp\McpAuthenticatedUserResolver;
+use App\Platform\Mcp\McpTokenManager;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;

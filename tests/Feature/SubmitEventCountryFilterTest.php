@@ -1,7 +1,9 @@
 <?php
 
 use AIArmada\Events\Models\EventTerm;
+use App\Features\Contributions\Services\EntitySubmissionAccess;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\Services\SubmitEventOptionsProvider;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
@@ -10,8 +12,6 @@ use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Features\Contributions\Services\EntitySubmissionAccess;
-use App\Features\Events\Services\SubmitEventOptionsProvider;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;

@@ -3,9 +3,9 @@
 use AIArmada\Authz\Models\Role;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Contributions\Policies\ContributionRequestPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
-use App\Features\Contributions\Policies\ContributionRequestPolicy;
 use App\Shared\Contributions\Enums\ContributionRequestType;
 use Database\Seeders\PermissionSeeder;
 use Spatie\Permission\PermissionRegistrar;

@@ -1,15 +1,15 @@
 <?php
 
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Platform\Language\Models\Language;
-use App\Features\Persons\Models\Person;
-use App\Features\Places\Models\Venue;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Features\Events\States\EventStatus\Approved;
 use App\Features\Events\States\EventStatus\Cancelled;
 use App\Features\Events\States\EventStatus\Draft;
 use App\Features\Events\States\EventStatus\Pending;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Venue;
+use App\Platform\Language\Models\Language;
+use App\Shared\Events\Enums\EventKeyPersonRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

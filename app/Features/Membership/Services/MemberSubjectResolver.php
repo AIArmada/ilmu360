@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
+use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
-use AIArmada\Organizations\Models\Organization;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 

@@ -1,10 +1,10 @@
 <?php
 
-use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Schemas\PersonForm;
-use App\Features\Events\EntryPoints\Filament\Resources\Series\Schemas\SeriesForm;
-use App\Features\Places\EntryPoints\Filament\Resources\Spaces\Schemas\SpaceForm;
 use App\Features\Contributions\EntryPoints\Filament\Forms\EventContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
+use App\Features\Events\EntryPoints\Filament\Resources\Series\Schemas\SeriesForm;
+use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Schemas\PersonForm;
+use App\Features\Places\EntryPoints\Filament\Resources\Spaces\Schemas\SpaceForm;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
 

@@ -387,7 +387,7 @@ class MemberResourceRegistry
     }
 
     /** @return array<string, mixed> */
-    private function hookAttributes(string $resourceClass, Model $record): array
+    private function hookAttributes(Model $record): array
     {
         foreach ($this->hooks->all() as $hooks) {
             $attributes = $hooks->recordAttributes($record);
@@ -428,7 +428,7 @@ class MemberResourceRegistry
             'id' => (string) $record->getKey(),
             'route_key' => (string) $record->getRouteKey(),
             'title' => $this->hookTitle($resourceClass, $record),
-            'attributes' => $this->hookAttributes($resourceClass, $record),
+            'attributes' => $this->hookAttributes($record),
             'abilities' => $this->recordAbilities($record),
             'panel_routes' => [
                 'view' => array_key_exists('view', $pages) ? $resourceClass::getUrl('view', ['record' => $record], panel: 'ahli') : null,
@@ -455,7 +455,7 @@ class MemberResourceRegistry
         return [
             'route_key' => (string) $record->getRouteKey(),
             'title' => $this->hookTitle($resourceClass, $record),
-            'attributes' => $this->hookAttributes($resourceClass, $record),
+            'attributes' => $this->hookAttributes($record),
             'abilities' => $this->recordAbilities($record),
             'panel_routes' => [
                 'view' => array_key_exists('view', $pages) ? $resourceClass::getUrl('view', ['record' => $record], panel: 'ahli') : null,

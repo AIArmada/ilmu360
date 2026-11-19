@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventSeries as PackageEventSeries;
 use AIArmada\Events\Models\EventSeriesItem;
 use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventSeriesRule;
+use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
 use Database\Factories\SeriesFactory;
@@ -23,7 +24,6 @@ use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Models\User;
 
 /**
  * @property string $id
@@ -41,6 +41,7 @@ use App\Models\User;
  */
 class Series extends PackageEventSeries implements AuditableContract, Followable, HasMedia
 {
+    #[\Override]
     protected $table = 'event_series';
 
     #[\Override]

@@ -2,11 +2,11 @@
 
 namespace App\Features\Engagement\EntryPoints\Http;
 
+use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\EntryPoints\Http\Data\EventEngagementListItemData;
 use App\Features\Engagement\EntryPoints\Http\Data\EventGoingStateData;
-use App\Features\Engagement\Api\EventGoingCommands;
-use App\Http\Controllers\Controller;
 use App\Features\Events\Models\Event;
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
 use App\Shared\Events\Enums\EventVisibility;

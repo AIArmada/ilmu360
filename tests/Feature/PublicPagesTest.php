@@ -2,16 +2,16 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
-use App\Features\Events\Models\Series;
-use App\Models\User;
 use App\Features\Places\Models\Venue;
-use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Features\References\Models\Reference;
+use App\Models\User;
 use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;

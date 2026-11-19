@@ -4,8 +4,8 @@ namespace App\Features\References\Services;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\References\Enums\ReferenceContributorRole;
-use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\Persons\Models\Person;
+use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Models\Reference;
 use App\Platform\Search\FuzzySearchPolicy;
 use App\Platform\Search\TypesenseHealthCheckService;

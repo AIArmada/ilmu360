@@ -3,9 +3,9 @@
 namespace App\Features\Contributions\Actions;
 
 use App\Features\Contributions\Support\ContributionModel;
+use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;

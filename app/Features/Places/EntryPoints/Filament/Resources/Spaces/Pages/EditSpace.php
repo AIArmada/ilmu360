@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces\Pages;
 
 use AIArmada\FilamentCommerceSupport\Concerns\AuditsRelatedStateChanges;
+use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\EntryPoints\Filament\Resources\Spaces\SpaceResource;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Models\Space;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;

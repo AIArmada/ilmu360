@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\EntryPoints\Http;
 
+use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;

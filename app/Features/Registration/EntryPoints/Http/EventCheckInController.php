@@ -2,12 +2,12 @@
 
 namespace App\Features\Registration\EntryPoints\Http;
 
-use App\Features\Registration\EntryPoints\Http\Data\EventCheckInData;
+use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
-use App\Http\Controllers\Controller;
-use App\Features\Events\Models\Event;
+use App\Features\Registration\EntryPoints\Http\Data\EventCheckInData;
 use App\Features\Registration\Models\EventCheckin;
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

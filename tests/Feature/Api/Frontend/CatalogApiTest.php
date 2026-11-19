@@ -3,11 +3,11 @@
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Features\Places\Models\Venue;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use Laravel\Sanctum\Sanctum;
 

@@ -3,8 +3,8 @@
 namespace App\Features\Events\Services;
 
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
-use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Shared\Submission\PublicSubmissionLockSweeper;

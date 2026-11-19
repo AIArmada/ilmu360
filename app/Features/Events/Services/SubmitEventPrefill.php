@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
+use App\Features\Contributions\Services\EntitySubmissionAccess;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\EventSubmissionFormSchema;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
@@ -17,8 +19,6 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Features\Contributions\Services\EntitySubmissionAccess;
-use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Shared\Taxonomy\EventTaxonomyCode;
 use BackedEnum;
 use Carbon\CarbonInterface;

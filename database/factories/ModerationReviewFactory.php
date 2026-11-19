@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Features\Events\Models\Event;
-use App\Platform\Moderation\Models\ModerationReview;
 use App\Models\User;
+use App\Platform\Moderation\Models\ModerationReview;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

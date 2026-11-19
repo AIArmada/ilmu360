@@ -6,17 +6,17 @@ namespace App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResourc
 
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
-use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Identity\Api\AccountAdministration;
-use App\Features\Membership\Api\MembershipCommands;
-use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Events\Models\Event;
+use App\Features\Identity\Api\AccountAdministration;
+use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Membership\Queries\MemberDirectorySummary;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Membership\MembershipSubjectType;
-use App\Features\Membership\Queries\MemberDirectorySummary;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;

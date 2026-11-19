@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers;
 
 use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;

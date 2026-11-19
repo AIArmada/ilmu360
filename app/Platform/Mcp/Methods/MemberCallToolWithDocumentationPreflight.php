@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Platform\Mcp\Methods;
 
-use App\Platform\Mcp\Methods\Concerns\BuildsToolJsonRpcResponse;
-use App\Platform\Mcp\Methods\Concerns\LogsMcpToolExecution;
 use App\Features\Mcp\Services\MemberMcpDocumentationPreflight;
 use App\Features\Mcp\Services\MemberVerifiedDocumentationCatalog;
+use App\Platform\Mcp\Methods\Concerns\BuildsToolJsonRpcResponse;
+use App\Platform\Mcp\Methods\Concerns\LogsMcpToolExecution;
 use Generator;
 use Illuminate\Container\Container;
 use Laravel\Mcp\Exceptions\JsonRpcException;

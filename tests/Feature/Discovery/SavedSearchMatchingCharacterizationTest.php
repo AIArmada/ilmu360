@@ -5,12 +5,12 @@ declare(strict_types=1);
 use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationTrigger;
-use App\Features\SavedSearches\Models\SavedSearch;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Models\User;
 use App\Features\Discovery\Services\EventSearchService;
+use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;
+use App\Features\Institutions\Models\Institution;
+use App\Features\SavedSearches\Models\SavedSearch;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 

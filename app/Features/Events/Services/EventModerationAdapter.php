@@ -7,10 +7,8 @@ namespace App\Features\Events\Services;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Models\Event;
-use App\Models\User;
-use App\Features\Events\Services\ModerationService;
 use App\Features\Events\States\EventStatus\Approved;
-use App\Features\Events\Services\EventModerationWorkflow;
+use App\Models\User;
 
 /**
  * Root adapter for the Events moderation boundary.

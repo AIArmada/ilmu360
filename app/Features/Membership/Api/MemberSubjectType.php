@@ -2,8 +2,6 @@
 
 namespace App\Features\Membership\Api;
 
-use App\Features\Membership\Api\MembershipApplicationSubjectType;
-
 enum MemberSubjectType: string
 {
     case Institution = 'institution';

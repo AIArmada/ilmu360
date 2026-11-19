@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
  */
 class ShareSourceAttributionReceiptFactory extends Factory
 {
+    #[\Override]
     protected $model = ShareSourceAttributionReceipt::class;
 
     public function definition(): array

@@ -5,10 +5,10 @@ declare(strict_types=1);
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Rewards\Queries\ActivityRewardSourceFactReader;
 use App\Models\User;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
-use App\Features\Rewards\Queries\ActivityRewardSourceFactReader;
 
 it('reads saved event reward facts through the engagement reader', function (): void {
     $user = User::factory()->create();

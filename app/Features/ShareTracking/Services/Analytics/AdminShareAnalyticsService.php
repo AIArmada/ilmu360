@@ -10,15 +10,15 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Support\OwnerScope;
+use App\Features\ShareTracking\Queries\ShareMetricReader;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use App\Shared\ShareTracking\ShareTrackingProfile;
-use App\Features\ShareTracking\Queries\ShareMetricReader;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 
 /**
  * @phpstan-type ShareAnalyticsSummary array{

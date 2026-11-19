@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
  */
 class InstitutionFactory extends Factory
 {
+    #[\Override]
     protected $model = Institution::class;
 
     /**

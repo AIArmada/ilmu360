@@ -3,9 +3,9 @@
 use AIArmada\Authz\Models\Role;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
+use App\Features\Events\Models\Event;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
-use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;

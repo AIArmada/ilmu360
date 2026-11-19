@@ -2,9 +2,9 @@
 
 namespace App\Features\Persons\Policies;
 
+use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Features\Membership\Services\MemberPermissionGate;
 
 class PersonPolicy
 {

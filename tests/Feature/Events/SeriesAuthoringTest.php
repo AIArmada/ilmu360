@@ -5,9 +5,9 @@ use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\CreateSeries
 use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\EditSeries;
 use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\ListSeries;
 use App\Features\Events\Models\Event;
-use App\Platform\Language\Models\Language;
 use App\Features\Events\Models\Series;
 use App\Models\User;
+use App\Platform\Language\Models\Language;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;

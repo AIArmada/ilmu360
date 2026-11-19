@@ -3,10 +3,10 @@
 use AIArmada\Events\Models\EventAttendance;
 use AIArmada\Events\Models\EventRegistrationItem;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Platform\Auditing\Models\Audit;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
+use App\Platform\Auditing\Models\Audit;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;

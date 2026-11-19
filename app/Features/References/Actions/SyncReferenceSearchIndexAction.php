@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\References\Actions;
 
-use App\Features\References\Support\ReferenceFamily;
 use App\Features\References\Models\Reference;
+use App\Features\References\Support\ReferenceFamily;
 use Illuminate\Database\Eloquent\Model;
 
 /**

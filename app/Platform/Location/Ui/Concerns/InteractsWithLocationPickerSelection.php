@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Platform\Location\Ui\Concerns;
 
-use App\Platform\Ui\Forms\SharedFormSchema;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\GooglePlaceIdentity;
 use App\Platform\Location\ResolveGooglePlaceSelectionAction;
+use App\Platform\Ui\Forms\SharedFormSchema;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 

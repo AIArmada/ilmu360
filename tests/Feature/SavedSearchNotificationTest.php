@@ -5,11 +5,11 @@ declare(strict_types=1);
 use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationTrigger;
-use App\Features\SavedSearches\Models\SavedSearch;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Models\User;
 use App\Features\Events\Notifications\EventNotificationService;
+use App\Features\Institutions\Models\Institution;
+use App\Features\SavedSearches\Models\SavedSearch;
+use App\Models\User;
 use Illuminate\Support\Str;
 
 class SavedSearchNotificationRecorder extends EventNotificationService

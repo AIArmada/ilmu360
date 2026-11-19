@@ -300,7 +300,6 @@ final readonly class EventAuthoringService implements EventAuthoring
         return AdminEventTimeMapper::normalizeForPersistence($data);
     }
 
-    /** @return Event */
     private function resolveEvent(string $eventId): Model
     {
         return EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);

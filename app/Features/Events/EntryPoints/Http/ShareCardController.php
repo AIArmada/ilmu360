@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Http;
 
-use App\Http\Controllers\Controller;
-
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\ShareCards\ShareCardService;
+use App\Http\Controllers\Controller;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;

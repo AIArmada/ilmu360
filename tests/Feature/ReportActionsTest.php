@@ -1,11 +1,11 @@
 <?php
 
-use App\Features\Reports\Actions\ResolveReportCategoryOptionsAction;
-use App\Features\Reports\Actions\ResolveReportEntityMetadataAction;
-use App\Features\Reports\Actions\ResolveReportFormContextAction;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
+use App\Features\Reports\Actions\ResolveReportCategoryOptionsAction;
+use App\Features\Reports\Actions\ResolveReportEntityMetadataAction;
+use App\Features\Reports\Actions\ResolveReportFormContextAction;
 use App\Shared\Reports\ReportSubjectResolver;
 
 it('resolves shared report category options for public and admin report surfaces', function () {

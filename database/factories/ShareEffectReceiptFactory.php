@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
  */
 class ShareEffectReceiptFactory extends Factory
 {
+    #[\Override]
     protected $model = ShareEffectReceipt::class;
 
     public function definition(): array

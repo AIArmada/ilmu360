@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Auditing\Policies;
 
-use App\Platform\Auditing\Models\Audit;
 use App\Models\User;
+use App\Platform\Auditing\Models\Audit;
 
 class FilamentAuditPolicy
 {

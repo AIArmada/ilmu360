@@ -1,7 +1,7 @@
 <?php
 
-use App\Platform\Admin\EntryPoints\Filament\Pages\AdminDashboard;
 use App\Models\User;
+use App\Platform\Admin\EntryPoints\Filament\Pages\AdminDashboard;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Panel;

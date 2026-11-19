@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Platform\Auditing\EntryPoints\Filament\Resources\Audits;
 
+use App\Platform\Auditing\AuditInfolist;
 use App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\Pages\ListAudits;
 use App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\Pages\ViewAudit;
 use App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\Tables\AuditsTable;
 use App\Platform\Auditing\Models\Audit;
-use App\Platform\Auditing\AuditInfolist;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\Pages;
 
-use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource;
 use App\Features\Persons\Actions\ReordersFeaturedPersons;
+use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListPersons extends ListRecords

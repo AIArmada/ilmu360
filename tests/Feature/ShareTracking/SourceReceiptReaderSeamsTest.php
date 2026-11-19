@@ -6,8 +6,8 @@ declare(strict_types=1);
 // preclaim evaluation consumes instead of importing the receipt model.
 
 use App\Features\ShareTracking\Api\SourceReceiptReader;
-use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;

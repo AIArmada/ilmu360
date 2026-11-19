@@ -7,8 +7,8 @@ namespace App\Features\Events\Actions\Delete;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Api\EventDeletionScope;
 use App\Features\Events\Api\EventOccurrenceDeletionPreflight;
-use App\Features\Registration\Api\EventRegistrationDeletion;
 use App\Features\Events\Models\Event;
+use App\Features\Registration\Api\EventRegistrationDeletion;
 use Illuminate\Validation\ValidationException;
 
 /**

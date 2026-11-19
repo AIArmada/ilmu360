@@ -8,13 +8,13 @@ use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\References\Api\ReferenceWorkflow;
-use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
-use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Features\References\Api\ReferenceWorkflow;
+use App\Features\References\Models\Reference;
 use App\Features\References\Services\ReferenceSearchService;
+use App\Features\SlugRedirects\Api\SlugRedirectCommands;
+use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class PersonObserver implements ShouldHandleEventsAfterCommit

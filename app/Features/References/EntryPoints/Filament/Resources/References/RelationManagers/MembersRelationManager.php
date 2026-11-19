@@ -3,8 +3,8 @@
 namespace App\Features\References\EntryPoints\Filament\Resources\References\RelationManagers;
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource as AuthzUserResource;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Membership\MembershipSubjectType;

@@ -12,7 +12,6 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\EventPrayerTime;
-use App\Features\Events\Support\SubmissionTimingPolicy;
 use BackedEnum;
 use Illuminate\Support\Collection;
 

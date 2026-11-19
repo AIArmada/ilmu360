@@ -34,10 +34,8 @@ class AdminResourceMutationService
     {
         return $this->isReportResource($resourceClass)
             || $this->isInspirationResource($resourceClass)
-            || $this->hooks->for($resourceClass) !== null
-            || in_array($resourceClass, [
-                AddressAreaResource::class,
-            ], true);
+            || $this->hooks->for($resourceClass) instanceof Contracts\AdminMutationHooks
+            || $resourceClass === AddressAreaResource::class;
     }
 
     /**
@@ -77,7 +75,7 @@ class AdminResourceMutationService
 
         $hook = $this->hooks->for($resourceClass);
 
-        if ($hook !== null) {
+        if ($hook instanceof Contracts\AdminMutationHooks) {
             $schema = $hook->schema($resourceClass, $resourceKey, $operation, $record, $defaults);
 
             if ($schema !== null) {
@@ -122,7 +120,7 @@ class AdminResourceMutationService
 
         $hook = $this->hooks->for($resourceClass);
 
-        if ($hook !== null && ($rules = $hook->rules($resourceClass, $updating)) !== null) {
+        if ($hook instanceof Contracts\AdminMutationHooks && ($rules = $hook->rules($resourceClass, $updating)) !== null) {
             return $rules;
         }
 
@@ -141,7 +139,7 @@ class AdminResourceMutationService
     {
         $hook = $this->hooks->for($resourceClass);
 
-        if ($hook !== null) {
+        if ($hook instanceof Contracts\AdminMutationHooks) {
             $validated = $hook->normalize($resourceClass, $validated, $record);
         }
 
@@ -178,7 +176,7 @@ class AdminResourceMutationService
 
         $hook = $this->hooks->for($resourceClass);
 
-        if ($hook !== null && ($record = $hook->store($resourceClass, $validated, $actor)) !== null) {
+        if ($hook instanceof Contracts\AdminMutationHooks && ($record = $hook->store($resourceClass, $validated, $actor)) instanceof Model) {
             return $record;
         }
 
@@ -208,7 +206,7 @@ class AdminResourceMutationService
 
         $hook = $this->hooks->for($resourceClass);
 
-        if ($hook !== null && ($updated = $hook->update($resourceClass, $record, $validated, $actor)) !== null) {
+        if ($hook instanceof Contracts\AdminMutationHooks && ($updated = $hook->update($resourceClass, $record, $validated, $actor)) instanceof Model) {
             return $updated;
         }
 
@@ -258,7 +256,7 @@ class AdminResourceMutationService
 
         $hook = $this->hooks->for($resourceClass);
 
-        if ($hook !== null && ($defaults = $hook->defaultsForCreate($resourceClass)) !== null) {
+        if ($hook instanceof Contracts\AdminMutationHooks && ($defaults = $hook->defaultsForCreate($resourceClass)) !== null) {
             return $defaults;
         }
 
