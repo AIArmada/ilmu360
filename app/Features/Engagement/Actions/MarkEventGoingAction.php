@@ -10,8 +10,11 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Contracts\Respondable;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Ticketing\Enums\PricingMode;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
 use App\Features\Registration\Api\AdmissionRegistration;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Shared\Auth\AccountActor;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -40,7 +43,7 @@ final readonly class MarkEventGoingAction
     /**
      * @return array{status: 'created'|'existing', going_count: int, response_created: bool}
      */
-    public function handle(Model&Respondable $event, Model&CanInteract&Authenticatable $user, ?Request $request = null): array
+    public function handle(Model&Respondable $event, Model&CanInteract&Authenticatable&AccountActor $user, ?Request $request = null): array
     {
         return DB::transaction(function () use ($event, $user, $request): array {
             $alreadyGoing = Response::query()
@@ -94,9 +97,9 @@ final readonly class MarkEventGoingAction
             if ($responseCreated) {
                 $this->shareOutcomes->recordResponse(
                     responseId: (string) $response->getKey(),
-                    subject: $event,
+                    subject: ShareSubject::for('event', (string) $event->getKey(), (string) data_get($event, 'title')),
                     actor: $user,
-                    request: $request,
+                    request: $request instanceof Request ? ShareRequestContext::fromRequest($request) : null,
                     metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
                     occurredAt: $response->created_at,
                 );

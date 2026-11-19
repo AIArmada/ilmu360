@@ -9,6 +9,7 @@ use AIArmada\Engagement\Contracts\CanInteract;
 use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Contracts\Respondable;
 use App\Platform\Models\MorphModelResolver;
+use App\Shared\Auth\AccountActor;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
@@ -17,11 +18,11 @@ use RuntimeException;
 /** Resolve active morph identities without importing another feature's private models. */
 final class EngagementModels
 {
-    public static function actor(string $actorId): Model&CanInteract&Authenticatable
+    public static function actor(string $actorId): Model&CanInteract&Authenticatable&AccountActor
     {
         $actor = MorphModelResolver::resolve('user')::query()->findOrFail($actorId);
 
-        if (! $actor instanceof CanInteract || ! $actor instanceof Authenticatable) {
+        if (! $actor instanceof CanInteract || ! $actor instanceof Authenticatable || ! $actor instanceof AccountActor) {
             throw new RuntimeException('The user morph must support authenticated engagement.');
         }
 

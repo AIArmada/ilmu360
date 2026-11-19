@@ -10,17 +10,18 @@ use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Models\Bookmark;
 use App\Features\Engagement\Actions\SaveEventAction;
 use App\Features\Engagement\Actions\UnsaveEventAction;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
 use App\Features\Events\Models\Event;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Shared\Auth\AccountActor;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -159,9 +160,9 @@ it('records and reverses the bookmark through the engagement share outcomes cont
         ->once()
         ->withArgs(function (
             string $bookmarkId,
-            ?Model $subject,
-            ?Authenticatable $actor,
-            ?Request $receivedRequest,
+            ?ShareSubject $subject,
+            ?AccountActor $actor,
+            ?ShareRequestContext $receivedRequest,
             array $metadata,
             ?CarbonInterface $occurredAt,
         ) use (&$recorded): bool {
@@ -174,7 +175,7 @@ it('records and reverses the bookmark through the engagement share outcomes cont
         ->withArgs(function (
             string $bookmarkId,
             string $reason,
-            ?Authenticatable $actor,
+            ?AccountActor $actor,
         ) use (&$reversed): bool {
             $reversed = ['bookmarkId' => $bookmarkId, 'reason' => $reason, 'actor' => $actor];
 
@@ -190,9 +191,12 @@ it('records and reverses the bookmark through the engagement share outcomes cont
     app(UnsaveEventAction::class)->handle($event, $user);
 
     expect($recorded['bookmarkId'])->toBe((string) $saved->bookmark?->getKey())
-        ->and($recorded['subject']?->is($event))->toBeTrue()
-        ->and($recorded['actor']?->is($user))->toBeTrue()
-        ->and($recorded['receivedRequest'])->toBe($request)
+        ->and($recorded['subject'])->toBeInstanceOf(ShareSubject::class)
+        ->and($recorded['subject']?->type)->toBe('event')
+        ->and($recorded['subject']?->id)->toBe((string) $event->getKey())
+        ->and($recorded['subject']?->title)->toBe($event->title)
+        ->and($recorded['actor']?->actorId())->toBe((string) $user->getKey())
+        ->and($recorded['receivedRequest']?->toRequest())->toBe($request)
         ->and($recorded['metadata'])->toBe([
             'subject_id' => $event->getKey(),
             'subject_type' => $event->getMorphClass(),
@@ -201,5 +205,5 @@ it('records and reverses the bookmark through the engagement share outcomes cont
         ->and($unsaved->removed)->toBeTrue()
         ->and($reversed['bookmarkId'])->toBe((string) $saved->bookmark?->getKey())
         ->and($reversed['reason'])->toBe('save_removed')
-        ->and($reversed['actor']?->is($user))->toBeTrue();
+        ->and($reversed['actor']?->actorId())->toBe((string) $user->getKey());
 });

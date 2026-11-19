@@ -5,10 +5,13 @@ declare(strict_types=1);
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
 use App\Features\Engagement\Contributors\EngagementAccountLifecycleContributor;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
@@ -17,7 +20,8 @@ use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\EngagementOutcomeRecorder;
 use App\Models\User;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Shared\Auth\AccountActor;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
@@ -49,21 +53,23 @@ it('records bookmark outcomes with the event save business key and the caller me
     $request = Request::create('/events');
     $occurredAt = CarbonImmutable::parse('2026-11-12 09:00:00', 'UTC');
     $metadata = ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()];
+    $subject = ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), $event->title);
 
     $tracking->shouldReceive('recordOutcome')
         ->once()
-        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?App\Features\ShareTracking\Api\Data\ShareSubject $subject, ?User $actor, ?App\Shared\ShareTracking\ShareRequestContext $receivedRequest, array $receivedMetadata, ?CarbonImmutable $receivedOccurredAt): bool => $type === ShareOutcomeType::EventSave
+        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?ShareSubject $subject, ?AccountActor $actor, ?ShareRequestContext $receivedRequest, array $receivedMetadata, ?CarbonImmutable $receivedOccurredAt): bool => $type === ShareOutcomeType::EventSave
             && $businessKey === ShareOutcomeBusinessKey::eventSave($bookmarkId)
-            && $subject instanceof App\Features\ShareTracking\Api\Data\ShareSubject
-            && $subject->type === 'event'
+            && $subject instanceof ShareSubject
+            && $subject->type === ShareSubjectType::Event->value
             && $subject->id === (string) $event->getKey()
-            && $actor?->is($user) === true
+            && $subject->title === $event->title
+            && $actor?->actorId() === (string) $user->getKey()
             && $receivedRequest?->toRequest() === $request
             && $receivedMetadata === $metadata
             && $receivedOccurredAt?->equalTo($occurredAt) === true)
         ->andReturnNull();
 
-    $recorder->recordBookmark($bookmarkId, $event, $user, $request, $metadata, $occurredAt);
+    $recorder->recordBookmark($bookmarkId, $subject, $user, ShareRequestContext::fromRequest($request), $metadata, $occurredAt);
 });
 
 it('records going responses with the event going business key', function (): void {
@@ -80,7 +86,13 @@ it('records going responses with the event going business key', function (): voi
             && $businessKey === ShareOutcomeBusinessKey::eventGoing($responseId))
         ->andReturnNull();
 
-    $recorder->recordResponse($responseId, $event, $user, null, $metadata);
+    $recorder->recordResponse(
+        $responseId,
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), $event->title),
+        $user,
+        null,
+        $metadata,
+    );
 });
 
 it('records follow outcomes with the per-surface metadata shape unchanged', function (): void {
@@ -92,22 +104,24 @@ it('records follow outcomes with the per-surface metadata shape unchanged', func
     $cardMetadata = ['institution_id' => $event->getKey()];
     $apiMetadata = ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()];
 
+    $subject = ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), $event->title);
+
     $tracking->shouldReceive('recordOutcome')
         ->once()
-        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?App\Features\ShareTracking\Api\Data\ShareSubject $subject, ?User $actor, ?App\Shared\ShareTracking\ShareRequestContext $request, array $metadata): bool => $type === ShareOutcomeType::InstitutionFollow
+        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?ShareSubject $subject, ?AccountActor $actor, ?ShareRequestContext $request, array $metadata): bool => $type === ShareOutcomeType::InstitutionFollow
             && $businessKey === ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, $followId)
             && $metadata === $cardMetadata)
         ->andReturnNull();
 
     $tracking->shouldReceive('recordOutcome')
         ->once()
-        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?App\Features\ShareTracking\Api\Data\ShareSubject $subject, ?User $actor, ?App\Shared\ShareTracking\ShareRequestContext $request, array $metadata): bool => $type === ShareOutcomeType::InstitutionFollow
+        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?ShareSubject $subject, ?AccountActor $actor, ?ShareRequestContext $request, array $metadata): bool => $type === ShareOutcomeType::InstitutionFollow
             && $businessKey === ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, $followId)
             && $metadata === $apiMetadata)
         ->andReturnNull();
 
-    $recorder->recordFollow(ShareOutcomeType::InstitutionFollow, $followId, $event, $user, null, $cardMetadata);
-    $recorder->recordFollow(ShareOutcomeType::InstitutionFollow, $followId, $event, $user, null, $apiMetadata);
+    $recorder->recordFollow(ShareOutcomeType::InstitutionFollow, $followId, $subject, $user, null, $cardMetadata);
+    $recorder->recordFollow(ShareOutcomeType::InstitutionFollow, $followId, $subject, $user, null, $apiMetadata);
 });
 
 it('rejects non-follow outcome types on follow recording', function (): void {
@@ -135,9 +149,10 @@ it('does not reverse outcomes when account restore or event cleanup deletes enga
     $response = $user->respond($event, 'going');
 
     $recorder = app(EngagementShareOutcomes::class);
+    $subject = ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), $event->title);
     $recorder->recordBookmark(
         (string) $bookmark->getKey(),
-        $event,
+        $subject,
         $user,
         null,
         ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
@@ -145,7 +160,7 @@ it('does not reverse outcomes when account restore or event cleanup deletes enga
     );
     $recorder->recordResponse(
         (string) $response->getKey(),
-        $event,
+        $subject,
         $user,
         null,
         ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],

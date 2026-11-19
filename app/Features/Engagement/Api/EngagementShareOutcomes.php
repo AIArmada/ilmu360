@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Engagement;
+namespace App\Features\Engagement\Api;
 
+use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
+use App\Shared\Auth\AccountActor;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
 
 /**
  * Records and reverses the share outcomes produced by the engagement surfaces
@@ -31,9 +31,9 @@ interface EngagementShareOutcomes
      */
     public function recordBookmark(
         string $bookmarkId,
-        ?Model $subject,
-        ?Authenticatable $actor,
-        ?Request $request,
+        ?ShareSubject $subject,
+        ?AccountActor $actor,
+        ?ShareRequestContext $request,
         array $metadata,
         ?CarbonInterface $occurredAt = null,
     ): void;
@@ -41,7 +41,7 @@ interface EngagementShareOutcomes
     public function reverseBookmark(
         string $bookmarkId,
         string $reason,
-        ?Authenticatable $actor = null,
+        ?AccountActor $actor = null,
     ): void;
 
     /**
@@ -49,9 +49,9 @@ interface EngagementShareOutcomes
      */
     public function recordResponse(
         string $responseId,
-        ?Model $subject,
-        ?Authenticatable $actor,
-        ?Request $request,
+        ?ShareSubject $subject,
+        ?AccountActor $actor,
+        ?ShareRequestContext $request,
         array $metadata,
         ?CarbonInterface $occurredAt = null,
     ): void;
@@ -59,7 +59,7 @@ interface EngagementShareOutcomes
     public function reverseResponse(
         string $responseId,
         string $reason,
-        ?Authenticatable $actor = null,
+        ?AccountActor $actor = null,
     ): void;
 
     /**
@@ -68,9 +68,9 @@ interface EngagementShareOutcomes
     public function recordFollow(
         ShareOutcomeType $type,
         string $followId,
-        ?Model $subject,
-        ?Authenticatable $actor,
-        ?Request $request,
+        ?ShareSubject $subject,
+        ?AccountActor $actor,
+        ?ShareRequestContext $request,
         array $metadata,
         ?CarbonInterface $occurredAt = null,
     ): void;
@@ -79,6 +79,6 @@ interface EngagementShareOutcomes
         ShareOutcomeType $type,
         string $followId,
         string $reason,
-        ?Authenticatable $actor = null,
+        ?AccountActor $actor = null,
     ): void;
 }

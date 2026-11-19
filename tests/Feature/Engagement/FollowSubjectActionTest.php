@@ -9,11 +9,13 @@ use AIArmada\Engagement\Enums\FollowStatus;
 use AIArmada\Engagement\Models\Follow;
 use App\Features\Engagement\Actions\FollowSubjectAction;
 use App\Features\Engagement\Actions\UnfollowSubjectAction;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\References\Models\Reference;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
@@ -21,10 +23,9 @@ use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Shared\Auth\AccountActor;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
@@ -204,9 +205,9 @@ it('records and reverses the series follow through the engagement share outcomes
         ->withArgs(function (
             ShareOutcomeType $type,
             string $followId,
-            ?Model $subject,
-            ?Authenticatable $actor,
-            ?Request $receivedRequest,
+            ?ShareSubject $subject,
+            ?AccountActor $actor,
+            ?ShareRequestContext $receivedRequest,
             array $metadata,
             ?CarbonInterface $occurredAt,
         ) use (&$recorded): bool {
@@ -220,7 +221,7 @@ it('records and reverses the series follow through the engagement share outcomes
             ShareOutcomeType $type,
             string $followId,
             string $reason,
-            ?Authenticatable $actor,
+            ?AccountActor $actor,
         ) use (&$reversed): bool {
             $reversed = ['type' => $type, 'followId' => $followId, 'reason' => $reason, 'actor' => $actor];
 
@@ -247,14 +248,17 @@ it('records and reverses the series follow through the engagement share outcomes
 
     expect($recorded['type'])->toBe(ShareOutcomeType::SeriesFollow)
         ->and($recorded['followId'])->toBe((string) $follow->follow->getKey())
-        ->and($recorded['subject']?->is($series))->toBeTrue()
-        ->and($recorded['actor']?->is($user))->toBeTrue()
-        ->and($recorded['receivedRequest'])->toBe($request)
+        ->and($recorded['subject'])->toBeInstanceOf(ShareSubject::class)
+        ->and($recorded['subject']?->type)->toBe('series')
+        ->and($recorded['subject']?->id)->toBe((string) $series->getKey())
+        ->and($recorded['subject']?->title)->toBe($series->title)
+        ->and($recorded['actor']?->actorId())->toBe((string) $user->getKey())
+        ->and($recorded['receivedRequest']?->toRequest())->toBe($request)
         ->and($recorded['metadata'])->toBe(['series_id' => $series->getKey()])
         ->and($recorded['occurredAt']?->equalTo($follow->follow->created_at))->toBeTrue()
         ->and($unfollow->removed)->toBeTrue()
         ->and($reversed['type'])->toBe(ShareOutcomeType::SeriesFollow)
         ->and($reversed['followId'])->toBe((string) $follow->follow->getKey())
         ->and($reversed['reason'])->toBe('unfollowed')
-        ->and($reversed['actor']?->is($user))->toBeTrue();
+        ->and($reversed['actor']?->actorId())->toBe((string) $user->getKey());
 });

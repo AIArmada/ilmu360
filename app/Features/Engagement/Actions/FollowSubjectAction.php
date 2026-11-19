@@ -9,8 +9,11 @@ use AIArmada\Engagement\Contracts\CanInteract;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Models\Follow;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Shared\Auth\AccountActor;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -43,7 +46,7 @@ final readonly class FollowSubjectAction
      */
     public function handle(
         Model&Followable $subject,
-        Model&CanInteract&Authenticatable $user,
+        Model&CanInteract&Authenticatable&AccountActor $user,
         array $metadata,
         ?Request $request = null,
     ): FollowSubjectResult {
@@ -59,9 +62,17 @@ final readonly class FollowSubjectAction
                 $this->shareOutcomes->recordFollow(
                     type: $this->outcomeTypeFor($subject),
                     followId: (string) $follow->getKey(),
-                    subject: $subject,
+                    subject: ShareSubject::for(
+                        type: $subject->getMorphClass(),
+                        id: (string) $subject->getKey(),
+                        title: match ($subject->getMorphClass()) {
+                            'person' => (string) data_get($subject, 'formatted_name'),
+                            'institution' => (string) data_get($subject, 'name'),
+                            default => (string) data_get($subject, 'title'),
+                        },
+                    ),
                     actor: $user,
-                    request: $request,
+                    request: $request instanceof Request ? ShareRequestContext::fromRequest($request) : null,
                     metadata: $metadata,
                     occurredAt: $follow->created_at,
                 );

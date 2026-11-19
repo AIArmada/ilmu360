@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
+use App\Features\Engagement\Api\EngagementShareOutcomes;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
-use App\Features\ShareTracking\Support\ShareSubjectFactory;
 use App\Models\User;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Shared\Auth\AccountActor;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
 use InvalidArgumentException;
 
 /**
@@ -44,9 +42,9 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
 
     public function recordBookmark(
         string $bookmarkId,
-        ?Model $subject,
-        ?Authenticatable $actor,
-        ?Request $request,
+        ?ShareSubject $subject,
+        ?AccountActor $actor,
+        ?ShareRequestContext $request,
         array $metadata,
         ?CarbonInterface $occurredAt = null,
     ): void {
@@ -64,7 +62,7 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
     public function reverseBookmark(
         string $bookmarkId,
         string $reason,
-        ?Authenticatable $actor = null,
+        ?AccountActor $actor = null,
     ): void {
         $this->reverseOutcome(
             ShareOutcomeBusinessKey::eventSave($bookmarkId),
@@ -75,9 +73,9 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
 
     public function recordResponse(
         string $responseId,
-        ?Model $subject,
-        ?Authenticatable $actor,
-        ?Request $request,
+        ?ShareSubject $subject,
+        ?AccountActor $actor,
+        ?ShareRequestContext $request,
         array $metadata,
         ?CarbonInterface $occurredAt = null,
     ): void {
@@ -95,7 +93,7 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
     public function reverseResponse(
         string $responseId,
         string $reason,
-        ?Authenticatable $actor = null,
+        ?AccountActor $actor = null,
     ): void {
         $this->reverseOutcome(
             ShareOutcomeBusinessKey::eventGoing($responseId),
@@ -107,9 +105,9 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
     public function recordFollow(
         ShareOutcomeType $type,
         string $followId,
-        ?Model $subject,
-        ?Authenticatable $actor,
-        ?Request $request,
+        ?ShareSubject $subject,
+        ?AccountActor $actor,
+        ?ShareRequestContext $request,
         array $metadata,
         ?CarbonInterface $occurredAt = null,
     ): void {
@@ -130,7 +128,7 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
         ShareOutcomeType $type,
         string $followId,
         string $reason,
-        ?Authenticatable $actor = null,
+        ?AccountActor $actor = null,
     ): void {
         $this->assertFollowOutcome($type);
 
@@ -147,18 +145,18 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
     private function record(
         ShareOutcomeType $type,
         string $businessKey,
-        ?Model $subject,
-        ?Authenticatable $actor,
-        ?Request $request,
+        ?ShareSubject $subject,
+        ?AccountActor $actor,
+        ?ShareRequestContext $request,
         array $metadata,
         ?CarbonInterface $occurredAt,
     ): void {
         $this->shareTracking->recordOutcome(
             type: $type,
             businessKey: $businessKey,
-            subject: $subject instanceof Model ? ShareSubjectFactory::fromModel($subject) : null,
+            subject: $subject,
             actor: $actor instanceof User ? $actor : null,
-            request: $request instanceof Request ? ShareRequestContext::fromRequest($request) : null,
+            request: $request,
             metadata: $metadata,
             occurredAt: $occurredAt,
         );
@@ -167,7 +165,7 @@ final readonly class EngagementOutcomeRecorder implements EngagementShareOutcome
     private function reverseOutcome(
         string $businessKey,
         string $reason,
-        ?Authenticatable $actor,
+        ?AccountActor $actor,
     ): void {
         $this->reverse->reverse(
             $businessKey,

@@ -4,7 +4,7 @@ namespace App\Platform\Ui\Forms;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use App\Platform\Contributions\ContributionPayload;
+use App\Features\Contributions\Api\ContributionPayload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;

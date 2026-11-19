@@ -7,7 +7,10 @@ namespace App\Features\Engagement\Actions;
 use AIArmada\Engagement\Contracts\Bookmarkable;
 use AIArmada\Engagement\Contracts\CanInteract;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Shared\Auth\AccountActor;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -30,7 +33,7 @@ final readonly class SaveEventAction
         private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
-    public function handle(Model&Bookmarkable $event, Model&CanInteract&Authenticatable $user, ?Request $request = null): SaveEventResult
+    public function handle(Model&Bookmarkable $event, Model&CanInteract&Authenticatable&AccountActor $user, ?Request $request = null): SaveEventResult
     {
         return DB::transaction(function () use ($event, $user, $request): SaveEventResult {
             $bookmark = $this->engagement->bookmark($user, $event);
@@ -39,9 +42,9 @@ final readonly class SaveEventAction
             if ($created) {
                 $this->shareOutcomes->recordBookmark(
                     bookmarkId: (string) $bookmark->getKey(),
-                    subject: $event,
+                    subject: ShareSubject::for('event', (string) $event->getKey(), (string) data_get($event, 'title')),
                     actor: $user,
-                    request: $request,
+                    request: $request instanceof Request ? ShareRequestContext::fromRequest($request) : null,
                     metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
                     occurredAt: $bookmark->created_at,
                 );

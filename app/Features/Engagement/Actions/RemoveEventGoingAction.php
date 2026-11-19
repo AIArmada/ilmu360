@@ -9,7 +9,8 @@ use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Contracts\Respondable;
 use AIArmada\Engagement\Models\Response;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
+use App\Shared\Auth\AccountActor;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ final readonly class RemoveEventGoingAction
     /**
      * @return array{deleted: bool, going_count: int}
      */
-    public function handle(Model&Respondable $event, Model&CanInteract&Authenticatable $user): array
+    public function handle(Model&Respondable $event, Model&CanInteract&Authenticatable&AccountActor $user): array
     {
         return DB::transaction(function () use ($event, $user): array {
             $response = Response::query()

@@ -9,8 +9,9 @@ use AIArmada\Engagement\Contracts\CanInteract;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Models\Follow;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
-use App\Shared\Engagement\EngagementShareOutcomes;
+use App\Shared\Auth\AccountActor;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +34,7 @@ final readonly class UnfollowSubjectAction
         private EngagementShareOutcomes $shareOutcomes,
     ) {}
 
-    public function handle(Model&Followable $subject, Model&CanInteract&Authenticatable $user): UnfollowSubjectResult
+    public function handle(Model&Followable $subject, Model&CanInteract&Authenticatable&AccountActor $user): UnfollowSubjectResult
     {
         return DB::transaction(function () use ($subject, $user): UnfollowSubjectResult {
             $follow = OwnerContext::withOwner(null, fn (): ?Follow => Follow::query()

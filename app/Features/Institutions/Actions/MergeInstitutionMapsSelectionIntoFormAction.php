@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use App\Platform\Contributions\ContributionPayload;
+use App\Features\Contributions\Api\ContributionPayload;
 use BackedEnum;
 use Illuminate\Support\Arr;
 use Lorisleiva\Actions\Concerns\AsAction;
