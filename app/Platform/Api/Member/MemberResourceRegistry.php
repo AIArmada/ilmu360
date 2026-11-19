@@ -5,25 +5,13 @@ declare(strict_types=1);
 namespace App\Platform\Api\Member;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Organizations\Models\Organization;
-use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
-use App\Features\Institutions\EntryPoints\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
-use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
-use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource as AhliEventResource;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Platform\Location\AddressAssignments;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use UnitEnum;
@@ -60,6 +48,7 @@ class MemberResourceRegistry
 
     public function __construct(
         private readonly MemberResourceMutationService $mutationService,
+        private readonly MemberResourceHookRegistry $hooks,
     ) {}
 
     /**
@@ -67,12 +56,21 @@ class MemberResourceRegistry
      */
     public function resources(): array
     {
-        return $this->resourcesCache ??= [
-            AhliInstitutionResource::class,
-            AhliPersonResource::class,
-            AhliReferenceResource::class,
-            AhliEventResource::class,
-        ];
+        if (is_array($this->resourcesCache)) {
+            return $this->resourcesCache;
+        }
+
+        $resources = [];
+
+        foreach ($this->hooks->all() as $hooks) {
+            foreach ($hooks->resources() as $resource) {
+                if (! in_array($resource, $resources, true)) {
+                    $resources[] = $resource;
+                }
+            }
+        }
+
+        return $this->resourcesCache = $resources;
     }
 
     /**
@@ -102,12 +100,8 @@ class MemberResourceRegistry
      */
     public function resolveForModel(string $modelClass): ?string
     {
-        if (is_a($modelClass, Event::class, true)) {
-            return AhliEventResource::class;
-        }
-
         foreach ($this->resources() as $resourceClass) {
-            if ($this->modelClassFor($resourceClass) === $modelClass) {
+            if (is_a($modelClass, $this->modelClassFor($resourceClass), true)) {
                 return $resourceClass;
             }
         }
@@ -124,19 +118,16 @@ class MemberResourceRegistry
         }
 
         $memberships = app(MembershipDirectory::class);
-        $accountId = $user->actorId();
-        $hasInstitution = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution) !== [];
-        $hasPerson = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Person) !== [];
-        $hasReference = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Reference) !== [];
-        $hasEvent = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Event) !== [];
 
-        return match ($resourceClass) {
-            AhliInstitutionResource::class => $hasInstitution,
-            AhliPersonResource::class => $hasPerson,
-            AhliReferenceResource::class => $hasReference,
-            AhliEventResource::class => $hasInstitution || $hasPerson || $hasEvent,
-            default => false,
-        };
+        foreach ($this->hooks->all() as $hooks) {
+            $allowed = $hooks->canAccess($resourceClass, $user, $memberships);
+
+            if ($allowed !== null) {
+                return $allowed;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -152,14 +143,15 @@ class MemberResourceRegistry
         $pages = $resourceClass::getPages();
         $relations = $this->relationNames($resourceClass);
         $modelClass = $this->modelClassFor($resourceClass);
-        $dateSemantics = $this->isEventResource($resourceClass)
-            ? [
-                'storage_timezone' => 'UTC',
-                'viewer_timezone' => 'resolved at request time',
-                'local_fields' => ['starts_at_local', 'starts_on_local_date', 'ends_at_local'],
-                'local_date_filter' => 'starts_on_local_date',
-            ]
-            : null;
+        $dateSemantics = null;
+
+        foreach ($this->hooks->all() as $hooks) {
+            $dateSemantics = $hooks->dateSemantics($resourceClass);
+
+            if ($dateSemantics !== null) {
+                break;
+            }
+        }
 
         return $this->metadataCache[$resourceClass] = [
             'key' => $key,
@@ -203,15 +195,15 @@ class MemberResourceRegistry
      */
     public function queryFor(string $resourceClass): Builder
     {
-        if ($this->isEventResource($resourceClass)) {
-            /** @var Builder<Event> $query */
-            $query = Event::query()->withCount('occurrences');
+        foreach ($this->hooks->all() as $hooks) {
+            $query = $hooks->queryFor($resourceClass);
 
-            $this->scopeEventsToCurrentMember($query);
-            $this->applyDefaultApiEagerLoads($query);
+            if ($query instanceof Builder) {
+                $this->applyDefaultApiEagerLoads($query);
 
-            /** @var Builder<Model> $query */
-            return $query;
+                /** @var Builder<Model> $query */
+                return $query;
+            }
         }
 
         /** @var Builder<Model> $query */
@@ -381,77 +373,39 @@ class MemberResourceRegistry
      *
      * @return class-string<Model>
      */
-    private function modelClassFor(string $resourceClass): string
+    private function hookTitle(string $resourceClass, Model $record): string
     {
-        if ($this->isEventResource($resourceClass)) {
-            return Event::class;
+        foreach ($this->hooks->all() as $hooks) {
+            $title = $hooks->recordTitle($record);
+
+            if ($title !== null) {
+                return $title;
+            }
         }
 
+        return $this->htmlableToString($resourceClass::getRecordTitle($record));
+    }
+
+    /** @return array<string, mixed> */
+    private function hookAttributes(string $resourceClass, Model $record): array
+    {
+        foreach ($this->hooks->all() as $hooks) {
+            $attributes = $hooks->recordAttributes($record);
+
+            if ($attributes !== null) {
+                return $attributes;
+            }
+        }
+
+        return $this->serializeAttributes($record);
+    }
+
+    private function modelClassFor(string $resourceClass): string
+    {
         /** @var class-string<Model> $modelClass */
         $modelClass = $resourceClass::getModel();
 
         return $modelClass;
-    }
-
-    private function isEventResource(string $resourceClass): bool
-    {
-        return $resourceClass === AhliEventResource::class;
-    }
-
-    /**
-     * @param  Builder<Event>  $query
-     */
-    private function scopeEventsToCurrentMember(Builder $query): void
-    {
-        $user = auth()->user();
-
-        if (! $user instanceof AccountActor) {
-            $query->whereRaw('1 = 0');
-
-            return;
-        }
-
-        $memberships = app(MembershipDirectory::class);
-        $accountId = $user->actorId();
-        $institutionIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution);
-        $personIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Person);
-        $eventIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Event);
-        $organizationIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Organization);
-
-        // Membership is the workspace boundary, so private and draft events
-        // remain readable to members even when guests cannot open their public
-        // routes.
-        $query->where(function (Builder $eventQuery) use ($institutionIds, $personIds, $eventIds, $organizationIds): void {
-            $eventQuery
-                ->whereIn('institution_id', $institutionIds)
-                ->orWhereIn('events.id', $eventIds)
-                ->orWhere(function (Builder $organizationEventQuery) use ($organizationIds): void {
-                    $organizationEventQuery
-                        ->where('events.owner_type', (new Organization)->getMorphClass())
-                        ->whereIn('events.owner_id', $organizationIds);
-                })
-                ->orWhereHas('persons', function (Builder $personQuery) use ($personIds): void {
-                    $personQuery->whereIn('persons.id', $personIds);
-                })
-                ->orWhereHas('involvements', function (Builder $involvementQuery) use ($institutionIds, $personIds): void {
-                    $involvementQuery
-                        ->where('role_code', 'organizer')
-                        ->where('is_primary', true)
-                        ->where(function (Builder $organizerQuery) use ($institutionIds, $personIds): void {
-                            $organizerQuery
-                                ->where(function (Builder $institutionQuery) use ($institutionIds): void {
-                                    $institutionQuery
-                                        ->where('involveable_type', (new Institution)->getMorphClass())
-                                        ->whereIn('involveable_id', $institutionIds);
-                                })
-                                ->orWhere(function (Builder $personQuery) use ($personIds): void {
-                                    $personQuery
-                                        ->where('involveable_type', (new Person)->getMorphClass())
-                                        ->whereIn('involveable_id', $personIds);
-                                });
-                        });
-                });
-        });
     }
 
     /**
@@ -473,10 +427,8 @@ class MemberResourceRegistry
         return [
             'id' => (string) $record->getKey(),
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $record instanceof Event
-                ? $record->title
-                : $this->htmlableToString($resourceClass::getRecordTitle($record)),
-            'attributes' => $this->serializeAttributes($record),
+            'title' => $this->hookTitle($resourceClass, $record),
+            'attributes' => $this->hookAttributes($resourceClass, $record),
             'abilities' => $this->recordAbilities($record),
             'panel_routes' => [
                 'view' => array_key_exists('view', $pages) ? $resourceClass::getUrl('view', ['record' => $record], panel: 'ahli') : null,
@@ -502,10 +454,8 @@ class MemberResourceRegistry
 
         return [
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->htmlableToString($resourceClass::getRecordTitle($record)),
-            'attributes' => $record instanceof Event
-                ? EventPayloadData::fromModel($record)->toArray()
-                : $this->serializeAttributes($record),
+            'title' => $this->hookTitle($resourceClass, $record),
+            'attributes' => $this->hookAttributes($resourceClass, $record),
             'abilities' => $this->recordAbilities($record),
             'panel_routes' => [
                 'view' => array_key_exists('view', $pages) ? $resourceClass::getUrl('view', ['record' => $record], panel: 'ahli') : null,
@@ -570,8 +520,8 @@ class MemberResourceRegistry
             $relationNames[] = $name;
         }
 
-        if ($this->isEventResource($resourceClass)) {
-            $relationNames[] = 'child_events';
+        foreach ($this->hooks->all() as $hooks) {
+            array_push($relationNames, ...$hooks->extraRelations($resourceClass));
         }
 
         return array_values(array_unique($relationNames));
@@ -638,15 +588,6 @@ class MemberResourceRegistry
             $attributes['address'] = $address instanceof Address
                 ? $address->toArray()
                 : [];
-
-            if ($record instanceof Person && is_array($attributes['address'])) {
-                $attributes['address'] = Arr::only($attributes['address'], [
-                    'country_id',
-                    'state_id',
-                    'city_id',
-                ]);
-                $attributes['address']['area_assignments'] = AddressAssignments::forAddress($address);
-            }
         }
 
         if (array_key_exists('contactMethods', $attributes)) {
@@ -660,6 +601,10 @@ class MemberResourceRegistry
         }
 
         unset($attributes['addresses']);
+
+        foreach ($this->hooks->all() as $hooks) {
+            $attributes = $hooks->augmentAttributes($record, $attributes);
+        }
 
         return $attributes;
     }

@@ -4,19 +4,10 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Member;
 
-use App\Features\Institutions\EntryPoints\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
-use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
-use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource as AhliEventResource;
-use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
-use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
-use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
-use App\Features\Events\Models\Event;
+use App\Features\Membership\Api\MemberPermissions;
 use App\Models\User;
-use App\Platform\Mcp\McpWriteSchemaFormatter;
 use App\Platform\Api\Admin\AdminResourceMutationService;
-use App\Features\Membership\Services\MemberPermissionGate;
+use App\Platform\Mcp\McpWriteSchemaFormatter;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -25,7 +16,8 @@ class MemberResourceMutationService
 {
     public function __construct(
         private readonly AdminResourceMutationService $adminMutationService,
-        private readonly MemberPermissionGate $memberPermissionGate,
+        private readonly MemberPermissions $memberPermissions,
+        private readonly MemberResourceHookRegistry $hooks,
         private readonly McpWriteSchemaFormatter $schemaFormatter,
     ) {}
 
@@ -34,12 +26,13 @@ class MemberResourceMutationService
      */
     public function supports(string $resourceClass): bool
     {
-        return in_array($resourceClass, [
-            AhliInstitutionResource::class,
-            AhliPersonResource::class,
-            AhliReferenceResource::class,
-            AhliEventResource::class,
-        ], true);
+        foreach ($this->hooks->all() as $hooks) {
+            if ($hooks->adminResourceClass($resourceClass) !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -51,16 +44,15 @@ class MemberResourceMutationService
             return false;
         }
 
-        return match ($resourceClass) {
-            AhliInstitutionResource::class => $this->memberPermissionGate->hasAnyInstitutionPermission($user, 'institution.update'),
-            AhliPersonResource::class => $this->memberPermissionGate->hasAnyPersonPermission($user, 'person.update'),
-            AhliReferenceResource::class => $this->memberPermissionGate->hasAnyReferencePermission($user, 'reference.update'),
-            AhliEventResource::class => $this->memberPermissionGate->hasAnyEventPermission($user, 'event.update')
-                || $this->memberPermissionGate->hasAnyInstitutionPermission($user, 'event.update')
-                || $this->memberPermissionGate->hasAnyPersonPermission($user, 'event.update')
-                || $this->memberPermissionGate->hasAnyOrganizationPermission($user, 'event.update'),
-            default => false,
-        };
+        foreach ($this->hooks->all() as $hooks) {
+            $allowed = $hooks->canWriteResource($resourceClass, $user, $this->memberPermissions);
+
+            if ($allowed !== null) {
+                return $allowed;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -72,11 +64,15 @@ class MemberResourceMutationService
             return false;
         }
 
-        if ($resourceClass !== AhliEventResource::class || ! $record instanceof Event) {
-            return $user->can('update', $record);
+        foreach ($this->hooks->all() as $hooks) {
+            $allowed = $hooks->canWriteRecord($resourceClass, $user, $record);
+
+            if ($allowed !== null) {
+                return $allowed;
+            }
         }
 
-        return $record->userHasScopedEventPermission($user, 'event.update');
+        return $user->can('update', $record);
     }
 
     /**
@@ -155,12 +151,14 @@ class MemberResourceMutationService
      */
     private function adminResourceClass(string $resourceClass): string
     {
-        return match ($resourceClass) {
-            AhliInstitutionResource::class => InstitutionResource::class,
-            AhliPersonResource::class => PersonResource::class,
-            AhliReferenceResource::class => ReferenceResource::class,
-            AhliEventResource::class => EventResource::class,
-            default => throw new NotFoundHttpException,
-        };
+        foreach ($this->hooks->all() as $hooks) {
+            $admin = $hooks->adminResourceClass($resourceClass);
+
+            if ($admin !== null) {
+                return $admin;
+            }
+        }
+
+        throw new NotFoundHttpException;
     }
 }

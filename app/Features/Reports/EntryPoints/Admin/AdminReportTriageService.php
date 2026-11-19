@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\EntryPoints\Admin;
 
+use App\Features\Reports\Api\AdminReportTriage;
 use App\Features\Reports\Api\ReportCommands;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Api\TriageReportInput;
 use App\Models\User;
+use App\Platform\Api\Admin\AdminResourceRegistry;
 use App\Platform\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use RuntimeException;
-use App\Platform\Api\Admin\AdminResourceRegistry;
 
-final readonly class AdminReportTriageService
+final readonly class AdminReportTriageService implements AdminReportTriage
 {
     use ProvidesWorkflowResponse;
 

@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Admin;
 
+use App\Features\Events\Api\AdminEventModeration;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Models\User;
+use App\Platform\Api\Admin\AdminResourceRegistry;
 use App\Platform\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use App\Platform\Api\Admin\AdminResourceRegistry;
 
-final readonly class AdminEventModerationService
+final readonly class AdminEventModerationService implements AdminEventModeration
 {
     use ProvidesWorkflowResponse;
 

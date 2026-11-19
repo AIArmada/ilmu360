@@ -5,22 +5,17 @@ declare(strict_types=1);
 namespace App\Platform\Api\Admin;
 
 use AIArmada\Membership\Enums\ApplicationStatus;
+use App\Features\Contributions\Api\AdminContributionRequestReview;
+use App\Features\Events\Api\AdminEventModeration;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Reports\Api\AdminReportTriage;
 use App\Features\Reports\Api\ReportTriageContract;
-use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
-use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
-use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Events\Models\Event;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\ResolvesAccessibleResource;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
-use App\Features\Events\EntryPoints\Admin\AdminEventModerationService;
-use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 
 final readonly class AdminRecordActionService
 {
@@ -28,9 +23,9 @@ final readonly class AdminRecordActionService
 
     public function __construct(
         private AdminResourceRegistry $registry,
-        private AdminEventModerationService $eventModerationService,
-        private AdminReportTriageService $reportTriageService,
-        private AdminContributionRequestReviewService $contributionRequestReviewService,
+        private AdminEventModeration $eventModerationService,
+        private AdminReportTriage $reportTriageService,
+        private AdminContributionRequestReview $contributionRequestReviewService,
         private ReportTriageContract $reportTriageContract,
         private MembershipApplications $membershipApplications,
     ) {}
@@ -168,7 +163,7 @@ final readonly class AdminRecordActionService
     {
         $actions = [];
 
-        if ($resourceClass === EventResource::class && $record instanceof Event) {
+        if ($this->registry->keyFor($resourceClass) === 'events' && $record->getMorphClass() === 'event') {
             $actions = [...$actions, ...$this->eventImageGenerationActions($recordKey)];
             $actions = [...$actions, ...$this->eventWorkflowActions($recordKey, $actor)];
         }
@@ -179,11 +174,11 @@ final readonly class AdminRecordActionService
             $actions = [...$actions, ...$this->reportWorkflowActions($recordKey, $actor)];
         }
 
-        if ($resourceClass === ContributionRequestResource::class && $record instanceof ContributionRequest) {
+        if ($this->registry->keyFor($resourceClass) === 'contribution-requests' && $record->getMorphClass() === 'contribution_request') {
             $actions = [...$actions, ...$this->contributionRequestWorkflowActions($record, $recordKey, $actor)];
         }
 
-        if ($resourceClass === MembershipApplicationResource::class) {
+        if ($this->registry->keyFor($resourceClass) === 'membership-applications') {
             $application = $this->membershipApplications->find($recordKey);
 
             if ($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail) {
@@ -302,9 +297,9 @@ final readonly class AdminRecordActionService
     /**
      * @return list<array<string, mixed>>
      */
-    private function contributionRequestWorkflowActions(ContributionRequest $record, string $recordKey, ?User $actor = null): array
+    private function contributionRequestWorkflowActions(Model $record, string $recordKey, ?User $actor = null): array
     {
-        if (! $record->isPending() || ! $this->contributionRequestReviewService->canReview($actor)) {
+        if (! method_exists($record, 'isPending') || ! $record->isPending() || ! $this->contributionRequestReviewService->canReview($actor)) {
             return [];
         }
 

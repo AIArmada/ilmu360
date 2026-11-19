@@ -5,6 +5,7 @@ namespace App\Features\Membership\Services;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
@@ -15,7 +16,7 @@ use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
-final readonly class MemberPermissionGate implements MembershipPermissionEvaluator
+final readonly class MemberPermissionGate implements MemberPermissions, MembershipPermissionEvaluator
 {
     private const array ROLE_WEIGHT = [
         'owner' => 100,

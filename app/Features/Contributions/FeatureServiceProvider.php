@@ -8,6 +8,7 @@ use App\Features\Contributions\Actions\ApplyDirectContributionUpdateAction;
 use App\Features\Contributions\Actions\EnsureNoPendingContributionRequestAction;
 use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Features\Contributions\Actions\SubmitStagedContributionCreateAction;
+use App\Features\Contributions\Api\AdminContributionRequestReview;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
@@ -18,6 +19,7 @@ use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\SubmissionCatalog;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContributor;
+use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\Persistence\CacheVerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
@@ -65,6 +67,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(AdminContributionRequestReview::class, AdminContributionRequestReviewService::class);
+
         $this->app->bind(SubmissionCatalog::class, EloquentSubmissionCatalog::class);
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);
         $this->app->bind(ContributionUpdateContextReader::class, ResolveContributionUpdateContextAction::class);

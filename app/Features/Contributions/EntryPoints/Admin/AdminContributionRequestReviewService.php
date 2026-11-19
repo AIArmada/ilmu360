@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\EntryPoints\Admin;
 
+use App\Features\Contributions\Api\AdminContributionRequestReview;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Models\User;
+use App\Platform\Api\Admin\AdminResourceRegistry;
 use App\Platform\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use App\Platform\Api\Admin\AdminResourceRegistry;
 
-final readonly class AdminContributionRequestReviewService
+final readonly class AdminContributionRequestReviewService implements AdminContributionRequestReview
 {
     use ProvidesWorkflowResponse;
 

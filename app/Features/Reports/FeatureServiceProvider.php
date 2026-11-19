@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Reports;
 
+use App\Features\Reports\Api\AdminReportTriage;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Contracts\ReportLifecycle;
+use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Persistence\ReportLifecycle as ReportLifecycleImplementation;
@@ -28,6 +30,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(AdminReportTriage::class, AdminReportTriageService::class);
+
         $this->app->bind(ReportSubjectResolver::class, CompositeReportSubjectResolver::class);
         $this->app->bind(ReportLifecycle::class, ReportLifecycleImplementation::class);
         $this->app->bind(ReportCommandsContract::class, ReportCommands::class);

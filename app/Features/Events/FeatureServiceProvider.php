@@ -22,6 +22,7 @@ use App\Features\Events\Actions\ScheduleShareCardWarmAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
 use App\Features\Events\Actions\Submission\CompleteFrontendEventSubmissionAction;
 use App\Features\Events\Actions\Submission\ModerateEventOccurrenceSubmissionAction;
+use App\Features\Events\Api\AdminEventModeration;
 use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\AdmissionEventCreator;
 use App\Features\Events\Api\AdvancedBuilderContext;
@@ -59,7 +60,10 @@ use App\Features\Events\Api\ShareCardWarmScheduler;
 use App\Features\Events\Api\TaxonomyCatalog;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
+use App\Features\Events\EntryPoints\Admin\AdminEventModerationService;
+use App\Features\Events\EntryPoints\Admin\Member\EventMemberResourceHooks;
 use App\Features\Events\EntryPoints\Admin\Resources\EventAdminHooks;
+use App\Features\Events\EntryPoints\Admin\Resources\EventMutationHooks;
 use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
 use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
 use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
@@ -97,6 +101,8 @@ use App\Features\Events\Support\ScopedEventDeletionScope;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Admin\FilamentWidgetRegistry;
+use App\Platform\Api\Admin\AdminMutationHookRegistry;
+use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -172,6 +178,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(AdminEventModeration::class, AdminEventModerationService::class);
+
         $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new EventAdminHooks);
 
         $this->app->bind(TaxonomyCatalog::class, PackageTaxonomyCatalog::class);
@@ -261,6 +269,10 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(EventMemberResourceHooks::class));
+
+        $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(EventMutationHooks::class));
 
         if ($this->app->runningInConsole()) {
             Schedule::job(new EscalatePendingEvents)

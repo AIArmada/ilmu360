@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership;
 
+use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitations;
@@ -61,6 +62,7 @@ final class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);
+        $this->app->bind(MemberPermissions::class, Services\MemberPermissionGate::class);
         $this->app->bind(MembershipSubjectOptionsCatalog::class, EloquentMembershipSubjectOptionsCatalog::class);
         $this->app->bind(MembershipDirectory::class, MembershipDirectoryService::class);
         $this->app->bind(MembershipAuthorization::class, MembershipAuthorizationService::class);

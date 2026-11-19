@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Admin;
 
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
-use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
-use App\Features\Events\Models\Event;
 use App\Models\User;
+use App\Platform\Api\Admin\Concerns\ResolvesAccessibleResource;
 use App\Platform\Api\ApiPagination;
 use App\Platform\Api\SurfaceSyncPolicy;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
@@ -19,7 +17,6 @@ use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\Enums\TimingMode;
 use App\Shared\Events\EventCategoryCatalog;
 use App\Shared\Prayer\PrayerReference;
-use App\Platform\Api\Admin\Concerns\ResolvesAccessibleResource;
 use Carbon\CarbonInterface;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
@@ -326,8 +323,8 @@ class AdminResourceService
             'media_count' => count($media),
         ];
 
-        if ($record instanceof Event) {
-            $data['card_image_url'] = $record->card_image_url;
+        if ($record->getMorphClass() === 'event' && method_exists($record, 'getFirstMediaUrl')) {
+            $data['card_image_url'] = $record->getAttribute('card_image_url');
             $data['poster_url'] = $record->getFirstMediaUrl('poster', 'poster_thumb') ?: $record->getFirstMediaUrl('poster');
             $data['cover_url'] = $record->getFirstMediaUrl('cover', 'thumb') ?: $record->getFirstMediaUrl('cover');
         }
@@ -920,13 +917,13 @@ class AdminResourceService
             return;
         }
 
-        if ($resourceClass === PersonResource::class) {
+        if ($this->registry->keyFor($resourceClass) === 'people') {
             $this->applyPersonFilters($query, $filters);
 
             return;
         }
 
-        if ($resourceClass === EventResource::class) {
+        if ($this->registry->keyFor($resourceClass) === 'events') {
             $this->applyEventFilters($query, $filters);
         }
     }

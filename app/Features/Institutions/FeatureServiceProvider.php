@@ -16,6 +16,7 @@ use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Institutions\EntryPoints\Admin\Member\InstitutionMemberResourceHooks;
 use App\Features\Institutions\EntryPoints\Admin\Resources\InstitutionMutationHooks;
 use App\Features\Institutions\EntryPoints\Console\Commands\PruneOrphanedEntities;
 use App\Features\Institutions\EntryPoints\Console\FlagStaleInactiveInstitutions;
@@ -34,6 +35,7 @@ use App\Features\Institutions\Services\InstitutionVenueLinkService;
 use App\Features\Institutions\Services\InstitutionWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
+use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 
@@ -69,6 +71,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(InstitutionMemberResourceHooks::class));
 
         $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(InstitutionMutationHooks::class));
         $this->commands([FlagStaleInactiveInstitutions::class, PruneOrphanedEntities::class]);

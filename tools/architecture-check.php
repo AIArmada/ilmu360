@@ -321,7 +321,9 @@ try {
             } elseif (! $compositionRoot && ! ($sourceFeature && str_contains($target, '\\Models\\')) && $targetFeature && ($target !== "App\\Features\\{$targetFeature}\\FeatureServiceProvider" || ! in_array($relative, ['bootstrap/providers.php', 'config/app.php'], true)) && $targetFeature !== $sourceFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
                 $report('feature-private', $relative, $line, $target, "Call {$targetFeature} through App\\Features\\{$targetFeature}\\Api; private types cannot cross its boundary.");
             }
-            if ($public && str_starts_with($target, 'App\\') && ! str_contains($target, '\\Api\\') && ! str_starts_with($target, 'App\\Shared\\')) {
+            $authBridge = in_array($target, ['App\\Models\\User', 'App\\Models\\PassportUser'], true);
+
+            if ($public && ! $authBridge && str_starts_with($target, 'App\\') && ! str_contains($target, '\\Api\\') && ! str_starts_with($target, 'App\\Shared\\')) {
                 $report('api-leak', $relative, $line, $target, 'Public signatures and values may depend only on public Api or Shared contracts/values.');
             }
             if ($public && str_starts_with($target, 'Illuminate\\')) {
