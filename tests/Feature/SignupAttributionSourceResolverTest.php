@@ -34,6 +34,13 @@ beforeEach(function (): void {
     ]);
 });
 
+function resolveSignupSource(Request $request): ?SignupAttributionSource
+{
+    app()->instance('request', $request);
+
+    return app(AffiliateSignupAttributionSourceResolver::class)->resolve();
+}
+
 /**
  * @return array{request: Request, affiliate: Affiliate, link: AffiliateLink, attribution: AffiliateAttribution, capability: ?string}
  */
@@ -122,7 +129,7 @@ it('captures the referring member from a real tracked share landing', function (
     $sharer = User::factory()->create();
     $fixture = signupResolverShareFixture($sharer);
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
+    $source = resolveSignupSource($fixture['request']);
 
     expect($source?->toArray())->toBe([
         'type' => 'share_member',
@@ -139,8 +146,10 @@ it('resolves a tracked share across owner scopes without changing the ambient ow
     $unrelatedOwner = User::factory()->create();
     $fixture = OwnerContext::withOwner($sharer, fn (): array => signupResolverShareFixture($sharer));
 
-    $source = OwnerContext::withOwner($unrelatedOwner, function () use ($fixture, $unrelatedOwner): ?SignupAttributionSource {
-        $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
+    app()->instance('request', $fixture['request']);
+
+    $source = OwnerContext::withOwner($unrelatedOwner, function () use ($unrelatedOwner): ?SignupAttributionSource {
+        $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve();
         expect((string) OwnerContext::resolve()?->getKey())->toBe((string) $unrelatedOwner->getKey());
 
         return $source;
@@ -153,7 +162,7 @@ it('resolves a tracked share across owner scopes without changing the ambient ow
 it('preserves an unclaimed guest share without inventing a referring account', function (): void {
     $fixture = signupResolverShareFixture();
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
+    $source = resolveSignupSource($fixture['request']);
 
     expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest)
         ->and($source?->referrerUserId)->toBeNull()
@@ -167,7 +176,7 @@ it('resolves the existing explicit guest claimant without changing the guest pro
     $result = app(GuestShareClaims::class)->claim((string) $claimant->getKey(), $claimant->getMorphClass(), (string) $fixture['capability'], true);
     expect($result)->toBe(ShareGuestClaimResult::Claimed);
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
+    $source = resolveSignupSource($fixture['request']);
 
     expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest)
         ->and($source?->referrerUserId)->toBe((string) $claimant->getKey())
@@ -182,7 +191,7 @@ it('does not resolve a revoked guest claimant', function (): void {
     $hostClaim = AffiliateClaim::query()->where('affiliate_id', $fixture['affiliate']->getKey())->firstOrFail();
     app(RevokeAffiliateClaim::class)->handle($hostClaim);
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
+    $source = resolveSignupSource($fixture['request']);
 
     expect($source?->type)->toBe(SignupAttributionSourceType::ShareGuest)
         ->and($source?->referrerUserId)->toBeNull();
@@ -192,7 +201,7 @@ it('captures a commercial affiliate owner through a valid cookie', function (?st
     $owner = User::factory()->create();
     $fixture = signupResolverCommercialFixture($owner, $purpose);
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
+    $source = resolveSignupSource($fixture['request']);
 
     expect($source?->toArray())->toBe([
         'type' => 'commercial_affiliate',
@@ -209,8 +218,10 @@ it('resolves a commercial source in its verified owner scope and restores the am
     $unrelatedOwner = User::factory()->create();
     $fixture = OwnerContext::withOwner($owner, fn (): array => signupResolverCommercialFixture($owner));
 
-    $source = OwnerContext::withOwner($unrelatedOwner, function () use ($fixture, $unrelatedOwner): ?SignupAttributionSource {
-        $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
+    app()->instance('request', $fixture['request']);
+
+    $source = OwnerContext::withOwner($unrelatedOwner, function () use ($unrelatedOwner): ?SignupAttributionSource {
+        $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve();
         expect((string) OwnerContext::resolve()?->getKey())->toBe((string) $unrelatedOwner->getKey());
 
         return $source;
@@ -224,7 +235,7 @@ it('accepts a commercial code attribution that has no campaign link', function (
     $fixture = signupResolverCommercialFixture(User::factory()->create());
     $fixture['attribution']->forceFill(['affiliate_link_id' => null])->save();
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']);
+    $source = resolveSignupSource($fixture['request']);
 
     expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate)
         ->and($source?->affiliateLinkId)->toBeNull();
@@ -238,7 +249,7 @@ it('prefers the current tracked share when explicit referral timestamps tie', fu
     $cookieName = (string) config('affiliates.cookies.name', 'affiliate_session');
     $share['request']->cookies->set($cookieName, $commercial['request']->cookie($cookieName));
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
+    $source = resolveSignupSource($share['request']);
 
     expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember)
         ->and($source?->referrerUserId)->toBe((string) $sharer->getKey())
@@ -259,7 +270,7 @@ it('chooses a newer commercial referral over an older tracked share', function (
     $cookieName = (string) config('affiliates.cookies.name', 'affiliate_session');
     $share['request']->cookies->set($cookieName, $commercial['request']->cookie($cookieName));
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
+    $source = resolveSignupSource($share['request']);
 
     expect($source?->type)->toBe(SignupAttributionSourceType::CommercialAffiliate)
         ->and($source?->referrerUserId)->toBe((string) $owner->getKey());
@@ -279,7 +290,7 @@ it('chooses a newer share despite later passive commercial cookie maintenance', 
     $cookieName = (string) config('affiliates.cookies.name', 'affiliate_session');
     $share['request']->cookies->set($cookieName, $commercial['request']->cookie($cookieName));
 
-    $source = app(AffiliateSignupAttributionSourceResolver::class)->resolve($share['request']);
+    $source = resolveSignupSource($share['request']);
 
     expect($source?->type)->toBe(SignupAttributionSourceType::ShareMember)
         ->and($source?->referrerUserId)->toBe((string) $sharer->getKey());
@@ -289,7 +300,7 @@ it('abstains from an undated commercial attribution without inferring an explici
     $fixture = signupResolverCommercialFixture(User::factory()->create());
     $fixture['attribution']->forceFill(['last_referred_at' => null])->save();
 
-    expect(app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']))->toBeNull();
+    expect(resolveSignupSource($fixture['request']))->toBeNull();
 });
 
 it('abstains from a share selection without an acceptance time despite its landing timestamps', function (): void {
@@ -297,14 +308,14 @@ it('abstains from a share selection without an acceptance time despite its landi
     ShareBrowserSelection::query()->where('current_attribution_id', $fixture['attribution']->getKey())
         ->update(['accepted_at' => null]);
 
-    expect(app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']))->toBeNull();
+    expect(resolveSignupSource($fixture['request']))->toBeNull();
 });
 
 it('ignores unusable commercial cookies', function (mixed $cookie): void {
     $request = Request::create(route('register'), 'POST');
     $request->cookies->set((string) config('affiliates.cookies.name', 'affiliate_session'), $cookie);
 
-    expect(app(AffiliateSignupAttributionSourceResolver::class)->resolve($request))->toBeNull();
+    expect(resolveSignupSource($request))->toBeNull();
 })->with([
     'absent' => [null],
     'empty' => [''],
@@ -324,7 +335,7 @@ it('rejects commercial attribution whose source is no longer eligible', function
     ];
     $models[$subject]->forceFill($attributes)->save();
 
-    expect(app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']))->toBeNull();
+    expect(resolveSignupSource($fixture['request']))->toBeNull();
 })->with([
     'expired cookie' => ['attribution', ['expires_at' => '2026-10-28 11:59:00+00:00']],
     'disabled affiliate' => ['affiliate', ['status' => Disabled::class]],
@@ -340,7 +351,7 @@ it('rejects a commercial attribution whose owner does not match its affiliate', 
     $otherOwner = User::factory()->create();
     $fixture['attribution']->forceFill(['owner_id' => $otherOwner->getKey()])->save();
 
-    expect(app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']))->toBeNull();
+    expect(resolveSignupSource($fixture['request']))->toBeNull();
 });
 
 it('rejects a commercial attribution whose campaign link belongs to another affiliate', function (): void {
@@ -348,14 +359,14 @@ it('rejects a commercial attribution whose campaign link belongs to another affi
     $otherAffiliate = signupResolverCommercialAffiliate(User::factory()->create());
     $fixture['link']->forceFill(['affiliate_id' => $otherAffiliate->getKey()])->save();
 
-    expect(app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']))->toBeNull();
+    expect(resolveSignupSource($fixture['request']))->toBeNull();
 });
 
 it('rejects a stale tracked share after its link is deactivated', function (): void {
     $fixture = signupResolverShareFixture(User::factory()->create());
     $fixture['link']->deactivate();
 
-    expect(app(AffiliateSignupAttributionSourceResolver::class)->resolve($fixture['request']))->toBeNull();
+    expect(resolveSignupSource($fixture['request']))->toBeNull();
 });
 
 it('round trips a frozen source without re-resolving its referring account', function (): void {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Events;
+namespace App\Features\Events\Contracts;
 
 /** Deliver an occurrence review notification after the moderation transaction. */
 interface OccurrenceReviewNotifier

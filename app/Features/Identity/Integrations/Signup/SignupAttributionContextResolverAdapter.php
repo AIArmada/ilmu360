@@ -8,19 +8,20 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Referrals\Exceptions\ReferralInviteNotFoundException;
 use AIArmada\Referrals\Support\ReferralProgramGuard;
 use App\Features\Identity\Api\SignupAttributionContext;
-use App\Shared\Auth\SignupAttributionContextResolver;
-use App\Shared\Auth\SignupAttributionSourceResolver;
-use Illuminate\Http\Request;
+use App\Features\Identity\Api\SignupAttributionContextResolver;
+use App\Features\Identity\Api\SignupAttributionSourceResolver;
 
 final readonly class SignupAttributionContextResolverAdapter implements SignupAttributionContextResolver
 {
     public function __construct(private SignupAttributionSourceResolver $sourceResolver) {}
 
-    public function resolve(?Request $request): SignupAttributionContext
+    public function resolve(): SignupAttributionContext
     {
-        $token = $request?->input('referral_invite_token');
+        $request = request();
 
-        if (! is_string($token) && $request?->hasSession()) {
+        $token = $request->input('referral_invite_token');
+
+        if (! is_string($token) && $request->hasSession()) {
             $token = $request->session()->get('referrals.invite_token');
         }
 
@@ -37,7 +38,7 @@ final readonly class SignupAttributionContextResolverAdapter implements SignupAt
 
         return new SignupAttributionContext(
             referralInviteId: $inviteId,
-            affiliateSource: $this->sourceResolver->resolve($request)?->toArray(),
+            affiliateSource: $this->sourceResolver->resolve()?->toArray(),
         );
     }
 }

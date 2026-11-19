@@ -7,7 +7,7 @@ namespace App\Features\ShareTracking\EntryPoints\Filament\Pages;
 use AIArmada\FilamentSignals\Pages\PageViewsReport;
 use App\Features\ShareTracking\Persistence\ShareAnalyticsDashboardCacheStore;
 use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
-use App\Shared\ShareTracking\ShareTrackingMeasurement;
+use App\Features\ShareTracking\Support\ShareTrackingMeasurement;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;

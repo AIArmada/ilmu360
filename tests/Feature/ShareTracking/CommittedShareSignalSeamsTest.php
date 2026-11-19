@@ -7,9 +7,9 @@ use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
 use App\Features\ShareTracking\Models\ShareSignalReaderSkip;
+use App\Features\ShareTracking\Support\CommittedShareSignal;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Platform\FeatureCatalog;
-use App\Shared\ShareTracking\CommittedShareSignal;
 
 it('binds the committed-share signals api to its feature action', function (): void {
     expect(app(CommittedShareSignals::class))->toBeInstanceOf(DrainCommittedShareSignalsAction::class);

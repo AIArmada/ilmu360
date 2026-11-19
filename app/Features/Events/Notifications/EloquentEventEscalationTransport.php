@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Notifications;
 
+use App\Features\Events\Contracts\EventEscalationTransport;
 use App\Features\Events\Models\Event;
 use App\Models\User;
-use App\Shared\Events\EventEscalationTransport;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;
 

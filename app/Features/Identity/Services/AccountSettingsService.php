@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Features\Identity\Services;
 
 use App\Features\Communications\Api\AccountNotificationPreferences;
+use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountProfileUpdate;
 use App\Features\Identity\Api\AccountSettingsStore;
 use App\Features\Identity\Api\PrayerType;
-use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use Illuminate\Support\Facades\DB;
 

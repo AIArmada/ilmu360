@@ -6,10 +6,10 @@ namespace App\Features\Events\Notifications;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Events\Contracts\OccurrenceReviewNotifier;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Models\User;
-use App\Shared\Events\OccurrenceReviewNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 

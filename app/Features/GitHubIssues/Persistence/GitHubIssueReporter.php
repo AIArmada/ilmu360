@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\GitHubIssues\Persistence;
 
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
-use App\Shared\Integrations\GitHubIssueReportingException;
+use App\Features\GitHubIssues\Exceptions\GitHubIssueReportingException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;

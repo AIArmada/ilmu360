@@ -6,13 +6,14 @@ use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Identity\Actions\ResolveSocialiteUserAction;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\GuestSubmissionNotice;
+use App\Features\Identity\Api\SignupAttributionContextResolver;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Features\Identity\Support\SocialiteProviderConfiguration;
+use App\Features\ShareTracking\Api\SignupRecorder;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\IntendedRedirect;
-use App\Shared\Auth\SignupAttributionContextResolver;
-use App\Shared\ShareTracking\SignupRecorder;
+use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -48,7 +49,7 @@ class SocialiteController extends Controller
             $provider,
             $intended,
             is_string($existingVerifier) && $existingVerifier !== '' ? $existingVerifier : null,
-            $attributionContext->resolve(request()),
+            $attributionContext->resolve(),
         );
 
         $socialiteProvider = Socialite::driver($provider);
@@ -138,7 +139,7 @@ class SocialiteController extends Controller
                     $transaction['signup_attribution_context'],
                     true,
                 );
-                $signupRecorder->recordSignup($resolved['profile']->id, request());
+                $signupRecorder->recordSignup($resolved['profile']->id, ShareRequestContext::current());
             }
 
             return $resolved;

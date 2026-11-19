@@ -9,9 +9,9 @@ use AIArmada\Events\States\EventModerationStatus\Pending as SubmissionPending;
 use AIArmada\Events\States\EventModerationStatus\Rejected as SubmissionRejected;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
+use App\Features\Events\Contracts\OccurrenceReviewNotifier;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Shared\Events\OccurrenceReviewNotifier;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Support\Facades\DB;
 

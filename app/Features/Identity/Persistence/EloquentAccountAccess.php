@@ -4,21 +4,18 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Persistence;
 
+use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountSession;
 use App\Models\User;
 use App\Platform\Auth\Fortify\CreateNewUser;
-use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Laravel\Sanctum\PersonalAccessToken;
 
 final readonly class EloquentAccountAccess implements AccountAccess
 {
@@ -73,20 +70,13 @@ final readonly class EloquentAccountAccess implements AccountAccess
         event(new Registered($this->user($accountId)));
     }
 
-    public function revokeCurrentToken(Authenticatable $account): void
+    public function revokeCurrentToken(string $accountId, int|string|null $accessTokenId): void
     {
-        if ($account instanceof User) {
-            $this->revokeCurrentTokenForUser($account);
+        if ($accessTokenId === null) {
+            return;
         }
-    }
 
-    private function revokeCurrentTokenForUser(User $user): void
-    {
-        $token = $user->currentAccessToken();
-
-        if ($token instanceof PersonalAccessToken) {
-            $token->delete();
-        }
+        $this->user($accountId)->tokens()->whereKey($accessTokenId)->delete();
     }
 
     public function markEmailVerified(string $accountId): void
@@ -99,16 +89,16 @@ final readonly class EloquentAccountAccess implements AccountAccess
         $this->user($accountId)->sendEmailVerificationNotification();
     }
 
-    public function persistResetPassword(string $accountId, string $password, ?Request $request = null): void
+    public function persistResetPassword(string $accountId, string $password): void
     {
-        $this->persistResetPasswordForUser($this->user($accountId), $password, $request);
+        $this->persistResetPasswordForUser($this->user($accountId), $password);
     }
 
-    public function resetPassword(string $accountId, string $password, ?Request $request = null): void
+    public function resetPassword(string $accountId, string $password): void
     {
         $user = $this->user($accountId);
 
-        $this->persistResetPasswordForUser($user, $password, $request);
+        $this->persistResetPasswordForUser($user, $password);
 
         $user->forceFill([
             'remember_token' => Str::random(60),
@@ -117,7 +107,7 @@ final readonly class EloquentAccountAccess implements AccountAccess
         event(new PasswordReset($user));
     }
 
-    private function persistResetPasswordForUser(User $user, string $password, ?Request $request): void
+    private function persistResetPasswordForUser(User $user, string $password): void
     {
         $user->forceFill([
             'password' => $password,
@@ -127,7 +117,7 @@ final readonly class EloquentAccountAccess implements AccountAccess
             eventName: 'auth.password_reset.completed',
             eventCategory: 'auth',
             actorId: (string) $user->getKey(),
-            request: $request ?? request(),
+            request: request(),
         );
     }
 

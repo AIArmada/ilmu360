@@ -12,6 +12,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\Identity\Api\SignupAttributionSource;
+use App\Features\Identity\Api\SignupAttributionSourceResolver;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
 use App\Features\ShareTracking\Api\ShareTrackingProfile;
@@ -19,7 +20,6 @@ use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Models\User;
-use App\Shared\Auth\SignupAttributionSourceResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -32,11 +32,9 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
         private AffiliateLookup $affiliateLookup,
     ) {}
 
-    public function resolve(?Request $request): ?SignupAttributionSource
+    public function resolve(): ?SignupAttributionSource
     {
-        if (! $request instanceof Request) {
-            return null;
-        }
+        $request = request();
 
         $share = $this->resolveShare($request);
         $commercial = $this->resolveCommercialAffiliate($request);

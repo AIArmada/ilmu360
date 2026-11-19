@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Actions;
 
+use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountSession;
+use App\Features\Identity\Api\SignupAttributionContextResolver;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Support\SocialiteProviderConfiguration;
-use App\Shared\Auth\AccountAccess;
-use App\Shared\Auth\SignupAttributionContextResolver;
-use App\Shared\ShareTracking\SignupRecorder;
+use App\Features\ShareTracking\Api\SignupRecorder;
+use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -65,10 +66,10 @@ final readonly class AuthenticateSocialiteApiUserAction
             if ($resolved['created_account']) {
                 $this->signupAttribution->recordForNewAccount(
                     $resolved['profile']->id,
-                    $this->attributionContext->resolve($request),
+                    $this->attributionContext->resolve(),
                     true,
                 );
-                $this->signupRecorder->recordSignup($resolved['profile']->id, $request);
+                $this->signupRecorder->recordSignup($resolved['profile']->id, ShareRequestContext::fromRequest($request));
             }
 
             return $resolved;

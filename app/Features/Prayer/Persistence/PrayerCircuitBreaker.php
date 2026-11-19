@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Persistence;
 
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
 use Illuminate\Contracts\Cache\LockProvider;

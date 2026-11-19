@@ -9,7 +9,6 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Models\Venue;
-use App\Shared\Prayer\PrayerAreaTypes;
 
 /**
  * Extracts prayer-resolution inputs from a package address.

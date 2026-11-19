@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\ShareTracking;
+namespace App\Features\ShareTracking\Support;
 
 /**
  * Retention holds for share-tracking history.

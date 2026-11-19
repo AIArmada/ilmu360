@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Features\ShareTracking\Enums\ShareEffectStatus;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
-use App\Shared\ShareTracking\ShareEffectStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 

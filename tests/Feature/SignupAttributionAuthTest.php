@@ -8,14 +8,13 @@ use AIArmada\Referrals\Actions\CreateReferralProgram;
 use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use App\Features\Identity\Api\SignupAttributionSource as SharedSignupAttributionSource;
+use App\Features\Identity\Api\SignupAttributionSourceResolver;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\Identity\Api\SignupAttributionStatus;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Models\User;
 use App\Platform\Auth\Fortify\CreateNewUser;
-use App\Shared\Auth\SignupAttributionSourceResolver;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -269,7 +268,7 @@ it('rejects oauth state with missing or malformed signup context instead of reca
 it('rolls back the new account when its signup attribution cannot be stored', function (): void {
     app()->instance(SignupAttributionSourceResolver::class, new class implements SignupAttributionSourceResolver
     {
-        public function resolve(?Request $request): ?SharedSignupAttributionSource
+        public function resolve(): ?SharedSignupAttributionSource
         {
             throw new RuntimeException('Signup attribution storage failed.');
         }

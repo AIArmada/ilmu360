@@ -7,7 +7,7 @@ namespace App\Features\Prayer\Services;
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Api\PrayerTimesProvider;
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 
 /**
  * Null-object provider for tests and disabled-provider environments.

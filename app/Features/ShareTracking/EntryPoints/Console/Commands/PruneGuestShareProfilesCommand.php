@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\EntryPoints\Console\Commands;
 
 use App\Features\ShareTracking\Api\GuestProfilePruner;
-use App\Shared\ShareTracking\ShareTrackingRetention;
+use App\Features\ShareTracking\Support\ShareTrackingRetention;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;

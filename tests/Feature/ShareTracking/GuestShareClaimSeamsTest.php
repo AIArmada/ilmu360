@@ -6,11 +6,11 @@ use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
 use App\Features\ShareTracking\Api\GuestClaims;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\ShareGuestClaimResult;
+use App\Features\ShareTracking\Contracts\ClaimRecipients;
 use App\Features\ShareTracking\Queries\ClaimRecipientLookup;
 use App\Features\ShareTracking\Queries\GuestClaimLookup;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
-use App\Shared\ShareTracking\ClaimRecipients;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Http\Request;
 

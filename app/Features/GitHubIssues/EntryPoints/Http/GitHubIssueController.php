@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\GitHubIssues\EntryPoints\Http;
 
 use App\Features\GitHubIssues\Actions\SubmitGitHubIssueReportAction;
-use App\Shared\Integrations\GitHubIssueReportingException;
+use App\Features\GitHubIssues\Exceptions\GitHubIssueReportingException;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

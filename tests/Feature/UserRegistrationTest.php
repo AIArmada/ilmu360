@@ -2,10 +2,10 @@
 
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Identity\Models\SignupAttribution;
+use App\Features\ShareTracking\Api\SignupRecorder;
 use App\Models\User;
 use App\Platform\Auth\Fortify\CreateNewUser;
-use App\Shared\ShareTracking\SignupRecorder;
-use Illuminate\Http\Request;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Validation\ValidationException;
 
 it('can create user with email only', function () {
@@ -84,7 +84,7 @@ it('records a completed Fortify signup through the share-tracking contract exact
 
         public ?string $accountId = null;
 
-        public function recordSignup(string $accountId, ?Request $request = null): void
+        public function recordSignup(string $accountId, ?ShareRequestContext $request = null): void
         {
             $this->calls++;
             $this->accountId = $accountId;
@@ -108,7 +108,7 @@ it('records a completed Fortify signup through the share-tracking contract exact
 it('rolls back account creation when the share signup recording fails', function () {
     $recorder = new class implements SignupRecorder
     {
-        public function recordSignup(string $accountId, ?Request $request = null): void
+        public function recordSignup(string $accountId, ?ShareRequestContext $request = null): void
         {
             throw new RuntimeException('Share signup recording failed.');
         }

@@ -2,7 +2,7 @@
 
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Services\JakimMirrorProvider;
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;

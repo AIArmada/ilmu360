@@ -2,9 +2,9 @@
 
 namespace App\Platform\Auth\Fortify;
 
+use App\Features\Identity\Api\AccountAccess;
 use App\Models\User;
 use App\Platform\Auth\PasswordValidationRules;
-use App\Shared\Auth\AccountAccess;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;
 
@@ -28,7 +28,6 @@ class ResetUserPassword implements ResetsUserPasswords
         $this->accounts->persistResetPassword(
             (string) $user->getKey(),
             $input['password'],
-            request(),
         );
 
         $user->refresh();

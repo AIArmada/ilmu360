@@ -2,12 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Auth;
-
-use App\Features\Identity\Api\AccountProfile;
-use App\Features\Identity\Api\AccountSession;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Http\Request;
+namespace App\Features\Identity\Api;
 
 /**
  * Conventional authentication adapter for the Identity capability.
@@ -48,7 +43,10 @@ interface AccountAccess
      */
     public function dispatchRegistered(string $accountId): void;
 
-    public function revokeCurrentToken(Authenticatable $account): void;
+    /**
+     * Revoke the persisted bearer token when the caller resolved one.
+     */
+    public function revokeCurrentToken(string $accountId, int|string|null $accessTokenId): void;
 
     public function markEmailVerified(string $accountId): void;
 
@@ -57,7 +55,7 @@ interface AccountAccess
     /**
      * Persist the reset password and completion Signal before caller-owned token and event effects.
      */
-    public function persistResetPassword(string $accountId, string $password, ?Request $request = null): void;
+    public function persistResetPassword(string $accountId, string $password): void;
 
-    public function resetPassword(string $accountId, string $password, ?Request $request = null): void;
+    public function resetPassword(string $accountId, string $password): void;
 }

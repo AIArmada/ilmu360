@@ -2,12 +2,13 @@
 
 namespace App\Platform\Auth\Fortify;
 
+use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\NewAccountAttribution;
+use App\Features\Identity\Api\SignupAttributionContextResolver;
+use App\Features\ShareTracking\Api\SignupRecorder;
 use App\Models\User;
 use App\Platform\Auth\PasswordValidationRules;
-use App\Shared\Auth\AccountAccess;
-use App\Shared\Auth\SignupAttributionContextResolver;
-use App\Shared\ShareTracking\SignupRecorder;
+use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -58,10 +59,10 @@ class CreateNewUser implements CreatesNewUsers
 
             app(NewAccountAttribution::class)->recordForNewAccount(
                 (string) $user->getKey(),
-                app(SignupAttributionContextResolver::class)->resolve(request()),
+                app(SignupAttributionContextResolver::class)->resolve(),
                 true,
             );
-            app(SignupRecorder::class)->recordSignup((string) $user->getKey(), request());
+            app(SignupRecorder::class)->recordSignup((string) $user->getKey(), ShareRequestContext::current());
             app(SignalRecorder::class)->record(
                 eventName: 'auth.signup.completed',
                 eventCategory: 'auth',

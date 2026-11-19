@@ -13,6 +13,7 @@ use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Referrals\Models\ReferralReward;
 use App\Features\Identity\Api\SignupAttributionContext;
+use App\Features\Identity\Api\SignupAttributionContextResolver;
 use App\Features\Identity\Api\SignupAttributions;
 use App\Features\Identity\Api\SignupAttributionSnapshot;
 use App\Features\Identity\Api\SignupAttributionSource;
@@ -24,7 +25,6 @@ use App\Features\Referrals\Api\ReferralInvitations;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\ShareGuestClaimResult;
 use App\Models\User;
-use App\Shared\Auth\SignupAttributionContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
@@ -192,7 +192,8 @@ it('refuses revoked invitations and invalid public tokens as signup evidence', f
     RevokeReferralInvite::run($invite, 'signup-test');
     $user = User::factory()->emailOnly()->create(['email' => 'revoked-signup@example.test']);
     $attribution = recordSignupAttribution($user, signupAcquisitionContext(invite: $invite));
-    $captured = app(SignupAttributionContextResolver::class)->resolve(Request::create('/', 'POST', ['referral_invite_token' => str_repeat('z', 32)]));
+    app()->instance('request', Request::create('/', 'POST', ['referral_invite_token' => str_repeat('z', 32)]));
+    $captured = app(SignupAttributionContextResolver::class)->resolve();
 
     expect($attribution?->sourceType)->toBe(SignupAttributionSourceType::Direct)
         ->and($captured->referralInviteId)->toBeNull();

@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Identity\Support;
 
 use App\Features\Identity\Api\SignupAttributionSource;
-use App\Shared\Auth\SignupAttributionSourceResolver;
-use Illuminate\Http\Request;
+use App\Features\Identity\Api\SignupAttributionSourceResolver;
 
 final class NullSignupAttributionSourceResolver implements SignupAttributionSourceResolver
 {
-    public function resolve(?Request $request): ?SignupAttributionSource
+    public function resolve(): ?SignupAttributionSource
     {
         return null;
     }

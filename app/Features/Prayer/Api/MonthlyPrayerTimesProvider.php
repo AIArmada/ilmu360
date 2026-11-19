@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Api;
 
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 
 /**
  * Providers that can fetch a whole month in one call (bulk prefetch).

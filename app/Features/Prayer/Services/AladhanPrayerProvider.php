@@ -9,7 +9,7 @@ use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Api\PrayerTimesProvider;
 use App\Features\Prayer\Persistence\PrayerCircuitBreaker;
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Response;

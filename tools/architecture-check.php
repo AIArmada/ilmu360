@@ -157,7 +157,7 @@ try {
     $sanctumExceptionRelations = [
         'app/Features/Identity/Support/HasUserRestoration.php' => 'tokens',
         'app/Features/Identity/Persistence/HasUserRestoration.php' => 'tokens',
-        'app/Features/Identity/Persistence/EloquentAccountAccess.php' => 'currentAccessToken',
+        'app/Features/Identity/Persistence/EloquentAccountAccess.php' => 'tokens',
         'app/Features/Identity/Persistence/EloquentAccountSettingsStore.php' => 'tokens',
         'app/Platform/Auth/EloquentAccountAccess.php' => 'currentAccessToken',
         'app/Platform/Auth/EloquentAccountSettingsStore.php' => 'tokens',

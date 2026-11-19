@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Actions;
 
+use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\SocialAccounts;
 use App\Features\Identity\Api\SocialAccountSnapshot;
-use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use Laravel\Socialite\AbstractUser;
 use Laravel\Socialite\Contracts\User as SocialiteUser;

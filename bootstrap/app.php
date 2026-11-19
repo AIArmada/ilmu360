@@ -32,7 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         App\Platform\Media\Commands\MigrateMediaToNewStructure::class,
         App\Platform\Mcp\Commands\IssueMcpToken::class,
         App\Platform\Console\Commands\SyncPublicSubmissionLocks::class,
-        App\Platform\Console\Commands\ActivateLocalShareExamples::class,
+        App\Features\ShareTracking\EntryPoints\Console\ActivateLocalShareExamples::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

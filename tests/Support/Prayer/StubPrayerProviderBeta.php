@@ -7,7 +7,7 @@ namespace Tests\Support\Prayer;
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Api\PrayerTimesProvider;
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 
 class StubPrayerProviderBeta implements PrayerTimesProvider
 {

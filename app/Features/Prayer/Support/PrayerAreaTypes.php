@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Prayer;
+namespace App\Features\Prayer\Support;
 
 final readonly class PrayerAreaTypes
 {

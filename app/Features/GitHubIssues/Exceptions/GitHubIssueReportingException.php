@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Integrations;
+namespace App\Features\GitHubIssues\Exceptions;
 
 use RuntimeException;
 use Throwable;

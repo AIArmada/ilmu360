@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Actions;
 
+use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountSession;
-use App\Shared\Auth\AccountAccess;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;

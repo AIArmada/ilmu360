@@ -3,7 +3,7 @@
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Persistence\PrayerCircuitBreaker;
 use App\Features\Prayer\Services\AladhanPrayerProvider;
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\FileStore;
 use Illuminate\Cache\Lock;

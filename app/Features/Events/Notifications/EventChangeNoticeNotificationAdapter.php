@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Notifications;
 
+use App\Features\Events\Contracts\EventChangeNoticeNotifier;
 use App\Features\Events\Models\EventChangeAnnouncement;
-use App\Shared\Events\EventChangeNoticeNotifier;
 
 final readonly class EventChangeNoticeNotificationAdapter implements EventChangeNoticeNotifier
 {

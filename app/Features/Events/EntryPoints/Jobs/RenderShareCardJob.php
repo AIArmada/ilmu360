@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Jobs;
 
-use App\Shared\Events\EventShareCardPrewarm;
+use App\Features\Events\Contracts\EventShareCardPrewarm;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;

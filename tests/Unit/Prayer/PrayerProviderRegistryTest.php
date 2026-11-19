@@ -3,7 +3,7 @@
 use App\Features\Prayer\Api\PrayerQuery;
 use App\Features\Prayer\Services\NullPrayerTimesProvider;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 use Illuminate\Support\Facades\Cache;
 use Tests\Support\Prayer\StubPrayerProviderAlpha;
 use Tests\Support\Prayer\StubPrayerProviderBeta;

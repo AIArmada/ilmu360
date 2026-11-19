@@ -6,12 +6,12 @@ use App\Features\Identity\Actions\AuthenticateApiUserAction;
 use App\Features\Identity\Actions\AuthenticateSocialiteApiUserAction;
 use App\Features\Identity\Actions\RegisterApiUserAction;
 use App\Features\Identity\Actions\RevokeCurrentApiTokenAction;
+use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountSession;
 use App\Features\Identity\EntryPoints\Http\Data\AuthTokenData;
 use App\Features\Identity\EntryPoints\Http\Data\AuthTokenResponseData;
 use App\Shared\Api\MessageResponseData;
-use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -187,10 +187,10 @@ class AuthController extends Controller
 
         $status = Password::broker($this->passwordBroker())->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (mixed $user, string $password) use ($accounts, $request): void {
+            function (mixed $user, string $password) use ($accounts): void {
                 abort_unless($user instanceof Authenticatable, 500);
 
-                $accounts->resetPassword((string) $user->getAuthIdentifier(), $password, $request);
+                $accounts->resetPassword((string) $user->getAuthIdentifier(), $password);
             }
         );
 

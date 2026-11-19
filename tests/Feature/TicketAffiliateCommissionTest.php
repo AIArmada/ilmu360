@@ -31,9 +31,9 @@ use App\Features\Events\States\EventStatus\Approved as EventApproved;
 use App\Features\Events\States\EventStatus\Transitions\CancelEvent;
 use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\PendingShareEffects;
+use App\Features\ShareTracking\Enums\ShareEffectStatus;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareEffectStatus;
 use Illuminate\Support\Str;
 
 /**

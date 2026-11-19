@@ -36,7 +36,7 @@ return [
     ],
 
     'guest_profile' => [
-        'retention_days' => App\Shared\ShareTracking\ShareTrackingRetention::GUEST_PROFILE_DAYS,
+        'retention_days' => App\Features\ShareTracking\Support\ShareTrackingRetention::GUEST_PROFILE_DAYS,
     ],
 
     'claim_cookie' => [

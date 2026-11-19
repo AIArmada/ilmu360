@@ -5,11 +5,11 @@ declare(strict_types=1);
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\PendingShareEffects;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
+use App\Features\ShareTracking\Enums\ShareEffectStatus;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Platform\FeatureCatalog;
-use App\Shared\ShareTracking\ShareEffectStatus;
 use Illuminate\Support\Str;
 
 function effectReceiptBusinessKey(): string

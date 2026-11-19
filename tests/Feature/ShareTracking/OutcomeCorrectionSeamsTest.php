@@ -12,6 +12,7 @@ use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
+use App\Features\ShareTracking\Enums\ShareEffectStatus;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
@@ -19,7 +20,6 @@ use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Models\User;
 use App\Platform\FeatureCatalog;
-use App\Shared\ShareTracking\ShareEffectStatus;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 

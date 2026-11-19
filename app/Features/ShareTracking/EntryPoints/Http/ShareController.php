@@ -2,10 +2,10 @@
 
 namespace App\Features\ShareTracking\EntryPoints\Http;
 
+use App\Features\ShareTracking\Exceptions\ShareProfileNotEligibleException;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareProfileNotEligibleException;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

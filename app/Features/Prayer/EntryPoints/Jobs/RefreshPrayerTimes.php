@@ -10,7 +10,7 @@ use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Api\PrayerTimesProvider;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
-use App\Shared\Integrations\ProviderUnavailable;
+use App\Shared\Exceptions\ProviderUnavailable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;

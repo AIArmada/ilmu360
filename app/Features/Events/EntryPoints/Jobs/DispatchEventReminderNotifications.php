@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Jobs;
 
-use App\Shared\Events\EventReminderNotificationDispatch;
+use App\Features\Events\Contracts\EventReminderNotificationDispatch;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Directory;
+namespace App\Features\Persons\Support;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use Illuminate\Database\Eloquent\Model;
