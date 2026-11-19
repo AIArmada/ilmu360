@@ -7,6 +7,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\User;
 use App\Platform\Admin\ExcludedFromAdminApi;
+use App\Platform\Api\Admin\Contracts\AdminResourceHooks;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
@@ -197,7 +198,7 @@ class AdminResourceRegistry
         $pages = $resourceClass::getPages();
         $supportsMutation = $this->mutationService->supports($resourceClass);
         $filters = $this->filterMetadata($resourceClass);
-        $dateSemantics = $this->hooks->for($resourceClass)?->dateSemantics($resourceClass);
+        $dateSemantics = $this->hooksFor($resourceClass)?->dateSemantics($resourceClass);
 
         return $this->metadataCache[$resourceClass] = [
             'key' => $key,
@@ -243,7 +244,7 @@ class AdminResourceRegistry
                     ? route('api.admin.resources.update', ['resourceKey' => $key, 'recordKey' => 'record'], false)
                     : null,
             ],
-            'mcp_tools' => $this->mcpTools($key, $supportsMutation, $pages, $dateSemantics, $filters),
+            'mcp_tools' => $this->mcpTools($resourceClass, $key, $supportsMutation, $pages, $dateSemantics, $filters),
             'panel_routes' => [
                 'index' => $this->safePanelUrl($resourceClass, 'index'),
                 'create' => $this->safePanelUrl($resourceClass, 'create'),
@@ -324,6 +325,14 @@ class AdminResourceRegistry
     }
 
     /**
+     * @param  class-string  $resourceClass
+     */
+    public function hooksFor(string $resourceClass): ?AdminResourceHooks
+    {
+        return $this->hooks->for($resourceClass);
+    }
+
+    /**
      * @return list<array{key: string, label: string, type: string, options?: array<string, string>}>
      */
     public function filters(string $resourceClass): array
@@ -332,7 +341,7 @@ class AdminResourceRegistry
             return $this->filtersCache[$resourceClass];
         }
 
-        return $this->filtersCache[$resourceClass] = $this->hooks->for($resourceClass)?->filters($resourceClass) ?? [];
+        return $this->filtersCache[$resourceClass] = $this->hooksFor($resourceClass)?->filters($resourceClass) ?? [];
     }
 
     /**
@@ -347,12 +356,13 @@ class AdminResourceRegistry
     }
 
     /**
+     * @param  class-string  $resourceClass
      * @param  array<string, mixed>  $pages
      * @param  array<string, mixed>|null  $dateSemantics
      * @param  list<array{key: string, label: string, type: string, options?: array<string, string>}>  $filters
      * @return array<string, mixed>
      */
-    private function mcpTools(string $key, bool $supportsMutation, array $pages, ?array $dateSemantics, array $filters): array
+    private function mcpTools(string $resourceClass, string $key, bool $supportsMutation, array $pages, ?array $dateSemantics, array $filters): array
     {
         $listRecordsArguments = [
             'resource_key' => $key,
@@ -369,6 +379,16 @@ class AdminResourceRegistry
             $listRecordsArguments['starts_after'] = null;
             $listRecordsArguments['starts_before'] = null;
             $listRecordsArguments['starts_on_local_date'] = null;
+        }
+
+        $hook = $this->hooksFor($resourceClass);
+        $ownerImageUploadTools = $hook?->imageUploadMcpTools($resourceClass, $key) ?? [];
+        $imageUploadTools = [];
+
+        foreach ($this->hooks->all() as $availableHook) {
+            foreach ($availableHook->imageUploadMcpToolKeys() as $slot) {
+                $imageUploadTools[$slot] = $ownerImageUploadTools[$slot] ?? null;
+            }
         }
 
         return [
@@ -414,24 +434,7 @@ class AdminResourceRegistry
                     'record_key' => 'record',
                 ],
             ],
-            'generate_event_cover_image' => $key === 'events'
-                ? [
-                    'tool' => 'admin-upload-event-cover-image',
-                    'arguments' => [
-                        'event_key' => 'record',
-                    ],
-                    'prerequisite_prompt' => 'admin-event-cover-image-prompt',
-                ]
-                : null,
-            'generate_event_poster_image' => $key === 'events'
-                ? [
-                    'tool' => 'admin-upload-event-poster-image',
-                    'arguments' => [
-                        'event_key' => 'record',
-                    ],
-                    'prerequisite_prompt' => 'admin-event-poster-image-prompt',
-                ]
-                : null,
+            ...$imageUploadTools,
             'get_create_schema' => $supportsMutation
                 ? [
                     'tool' => 'admin-get-write-schema',
@@ -497,9 +500,9 @@ class AdminResourceRegistry
             'id' => (string) $record->getKey(),
             'route_key' => (string) $record->getRouteKey(),
             'title' => $this->communicationsRecordTitle($record)
-                ?? $this->hooks->for($resourceClass)?->recordTitle($record)
+                ?? $this->hooksFor($resourceClass)?->recordTitle($record)
                 ?? $this->htmlableToString($resourceClass::getRecordTitle($record)),
-            'attributes' => $this->hooks->for($resourceClass)?->recordAttributes($record)
+            'attributes' => $this->hooksFor($resourceClass)?->recordAttributes($record)
                 ?? $this->serializeAttributes($record),
             'abilities' => $this->recordAbilities($resourceClass, $record),
             'panel_routes' => [
@@ -524,13 +527,13 @@ class AdminResourceRegistry
 
         $this->loadMissingApiRelations($record);
 
-        $attributes = $this->hooks->for($resourceClass)?->recordAttributes($record)
+        $attributes = $this->hooksFor($resourceClass)?->recordAttributes($record)
             ?? $this->serializeAttributes($record);
 
         return [
             'route_key' => (string) $record->getRouteKey(),
             'title' => $this->communicationsRecordTitle($record)
-                ?? $this->hooks->for($resourceClass)?->recordTitle($record)
+                ?? $this->hooksFor($resourceClass)?->recordTitle($record)
                 ?? $this->htmlableToString($resourceClass::getRecordTitle($record)),
             'attributes' => $this->stripResponsiveImages($attributes),
             'abilities' => $this->recordAbilities($resourceClass, $record),

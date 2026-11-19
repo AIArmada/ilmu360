@@ -4,7 +4,7 @@ use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\ApiDocumentation\ApiDocumentationVersionResolver;
 use App\Platform\ApiDocumentation\ApiRequestBodyExamplesExtension;
 use App\Platform\ApiDocumentation\ApiSecurityRequirementExtension;
-use App\Platform\ApiDocumentation\ApiWorkflowSchemasTransformer;
+use App\Platform\ApiDocumentation\DocumentSchemaTransformer;
 use Dedoc\Scramble\Generator;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Auth\Middleware\Authenticate;
@@ -753,7 +753,7 @@ it('publishes explicit auth response schemas for ai clients', function () {
             ApiRequestBodyExamplesExtension::class,
         ])
         ->withDocumentTransformers([
-            ApiWorkflowSchemasTransformer::class,
+            DocumentSchemaTransformer::class,
         ])
         ->routes(static fn (IlluminateRoute $route): bool => in_array($route->uri(), [
             'api/v1/auth/register',

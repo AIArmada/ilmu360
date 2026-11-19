@@ -22,6 +22,11 @@ final readonly class EventMemberResourceHooks implements MemberResourceHooks
         return [\App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource::class];
     }
 
+    public function supports(string $resourceClass): bool
+    {
+        return in_array($resourceClass, $this->resources(), true);
+    }
+
     public function canAccess(string $resourceClass, AccountActor $user, MembershipDirectory $memberships): ?bool
     {
         if (! in_array($resourceClass, $this->resources(), true)) {
@@ -65,6 +70,55 @@ final readonly class EventMemberResourceHooks implements MemberResourceHooks
     public function extraRelations(string $resourceClass): array
     {
         return in_array($resourceClass, $this->resources(), true) ? ['child_events'] : [];
+    }
+
+    /**
+     * @param  class-string  $resourceClass
+     * @return list<array{key: string, label: string, type: string, options?: array<string, string>}>
+     */
+    public function filters(string $resourceClass): array
+    {
+        return [];
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @param  class-string  $resourceClass
+     * @param  array<string, mixed>  $filters
+     */
+    public function applyFilters(Builder $query, string $resourceClass, array $filters): bool
+    {
+        return false;
+    }
+
+    /** @return list<string> */
+    public function imageUploadMcpToolKeys(): array
+    {
+        return ['generate_event_cover_image', 'generate_event_poster_image'];
+    }
+
+    public function imageUploadMcpTools(string $resourceClass, string $key): array
+    {
+        if (! $this->supports($resourceClass)) {
+            return [];
+        }
+
+        return [
+            'generate_event_cover_image' => [
+                'tool' => 'member-upload-event-cover-image',
+                'arguments' => [
+                    'event_key' => 'record',
+                ],
+                'prerequisite_prompt' => 'member-event-cover-image-prompt',
+            ],
+            'generate_event_poster_image' => [
+                'tool' => 'member-upload-event-poster-image',
+                'arguments' => [
+                    'event_key' => 'record',
+                ],
+                'prerequisite_prompt' => 'member-event-poster-image-prompt',
+            ],
+        ];
     }
 
     /** @return array<string, mixed>|null */

@@ -4,14 +4,10 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Admin;
 
-use App\Features\Events\Api\Enums\EventFormat;
-use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\Enums\TimingMode;
-use App\Features\Events\Api\EventCategoryCatalog;
-use App\Features\Prayer\Api\PrayerReference;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\ResolvesAccessibleResource;
 use App\Platform\Api\ApiPagination;
+use App\Platform\Api\Resources\ResourceReadSupport;
 use App\Platform\Api\SurfaceSyncPolicy;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\Documentation\DocumentationLibrary;
@@ -23,7 +19,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -756,45 +751,11 @@ class AdminResourceService
             return $this->registry->serializeRecord($resourceClass, $record);
         }
 
-        return [
-            'id' => (string) $record->getKey(),
-            'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->registry->communicationsRecordTitle($record) ?? $this->genericRecordTitle($record),
-            'attributes' => $this->registry->serializeGenericAttributes($record),
-        ];
-    }
-
-    private function genericRecordTitle(Model $record): string
-    {
-        $table = $record->getTable();
-        $candidates = [
-            'title',
-            'name',
-            'middle_name',
-            'family_name',
-            'label',
-            'slug',
-            'email',
-            $record->getRouteKeyName(),
-        ];
-
-        foreach (array_values(array_unique(array_filter($candidates, static fn (string $column): bool => $column !== ''))) as $column) {
-            if (! Schema::hasColumn($table, $column)) {
-                continue;
-            }
-
-            $value = $record->getAttribute($column);
-
-            if (is_string($value) && trim($value) !== '') {
-                return $value;
-            }
-
-            if (is_scalar($value) && trim((string) $value) !== '') {
-                return (string) $value;
-            }
-        }
-
-        return (string) $record->getRouteKey();
+        return ResourceReadSupport::serializeRelatedRecord(
+            $record,
+            $this->registry->serializeGenericAttributes($record),
+            $this->registry->communicationsRecordTitle($record),
+        );
     }
 
     /**
@@ -802,33 +763,7 @@ class AdminResourceService
      */
     private function applyDefaultOrderingForModel(Builder $query, Model $model): void
     {
-        $table = $model->getTable();
-        $candidates = [
-            'family_name',
-            'middle_name',
-            'name',
-            'title',
-            'label',
-            'slug',
-        ];
-
-        foreach ($candidates as $candidate) {
-            if (! Schema::hasColumn($table, $candidate)) {
-                continue;
-            }
-
-            $query->orderBy($model->qualifyColumn($candidate));
-
-            return;
-        }
-
-        if (Schema::hasColumn($table, 'created_at')) {
-            $query->orderBy($model->qualifyColumn('created_at'), 'desc');
-
-            return;
-        }
-
-        $query->orderBy($model->qualifyColumn($model->getKeyName()));
+        ResourceReadSupport::applyDefaultOrderingForModel($query, $model);
     }
 
     /**
@@ -836,8 +771,7 @@ class AdminResourceService
      */
     private function applyGenericSearch(Builder $query, Model $model, string $search): void
     {
-        $table = $model->getTable();
-        $candidates = [
+        ResourceReadSupport::applyGenericSearch($query, $model, $search, [
             'title',
             'name',
             'label',
@@ -845,19 +779,7 @@ class AdminResourceService
             'email',
             'description',
             $model->getRouteKeyName(),
-        ];
-        $columns = array_values(array_filter(array_unique($candidates), static fn (string $column): bool => Schema::hasColumn($table, $column)));
-
-        if ($columns === []) {
-            return;
-        }
-
-        $query->where(function (Builder $builder) use ($columns, $search, $model): void {
-            foreach ($columns as $index => $column) {
-                $method = $index === 0 ? 'where' : 'orWhere';
-                $builder->{$method}($model->qualifyColumn($column), 'like', "%{$search}%");
-            }
-        });
+        ]);
     }
 
     /**
@@ -866,19 +788,7 @@ class AdminResourceService
      */
     public function applyDefaultOrdering(Builder $query, string $resourceClass): void
     {
-        $model = $query->getModel();
-        $table = $model->getTable();
-        $recordTitleAttribute = $resourceClass::getRecordTitleAttribute();
-
-        if (is_string($recordTitleAttribute) && $recordTitleAttribute !== '' && Schema::hasColumn($table, $recordTitleAttribute)) {
-            $sortColumn = $recordTitleAttribute;
-        } elseif (Schema::hasColumn($table, 'created_at')) {
-            $sortColumn = 'created_at';
-        } else {
-            $sortColumn = $model->getKeyName();
-        }
-
-        $query->orderBy($model->qualifyColumn($sortColumn), $sortColumn === 'created_at' ? 'desc' : 'asc');
+        ResourceReadSupport::applyDefaultOrdering($query, $resourceClass);
     }
 
     /**
@@ -917,233 +827,11 @@ class AdminResourceService
             return;
         }
 
-        if ($this->registry->keyFor($resourceClass) === 'people') {
-            $this->applyPersonFilters($query, $filters);
+        $hooks = $this->registry->hooksFor($resourceClass);
 
+        if ($hooks instanceof Contracts\AdminResourceHooks && $hooks->applyFilters($query, $resourceClass, $filters)) {
             return;
         }
-
-        if ($this->registry->keyFor($resourceClass) === 'events') {
-            $this->applyEventFilters($query, $filters);
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @param  Builder<Model>  $query
-     */
-    private function applyPersonFilters(Builder $query, array $filters): void
-    {
-        $model = $query->getModel();
-
-        if (array_key_exists('status', $filters)) {
-            $rawStatus = $filters['status'];
-
-            if ($rawStatus !== null && $rawStatus !== '') {
-                $status = $this->normalizeStatusFilter($rawStatus);
-
-                if ($status === null || ! in_array($status, ['pending', 'verified', 'rejected', 'inactive'], true)) {
-                    $query->whereRaw('1 = 0');
-
-                    return;
-                }
-
-                $query->where($model->qualifyColumn('status'), $status);
-            }
-        }
-
-        if (array_key_exists('has_events', $filters)) {
-            $rawHasEvents = $filters['has_events'];
-
-            if ($rawHasEvents !== null && $rawHasEvents !== '') {
-                $hasEvents = $this->normalizeBooleanFilter($rawHasEvents);
-
-                if ($hasEvents === null) {
-                    $query->whereRaw('1 = 0');
-
-                    return;
-                }
-
-                if ($hasEvents) {
-                    $query->whereHas('events');
-
-                    return;
-                }
-
-                $query->whereDoesntHave('events');
-            }
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @param  Builder<Model>  $query
-     */
-    private function applyEventFilters(Builder $query, array $filters): void
-    {
-        $model = $query->getModel();
-
-        if (array_key_exists('status', $filters)) {
-            $statuses = $this->normalizeArrayFilter($filters['status']);
-
-            if ($statuses === []) {
-                $query->whereRaw('1 = 0');
-
-                return;
-            }
-
-            $query->whereIn($model->qualifyColumn('status'), $statuses);
-        }
-
-        if (array_key_exists('visibility', $filters)) {
-            $visibleValues = array_values(array_filter(
-                array_map(static fn (string $value): ?string => EventVisibility::tryFrom($value)?->value, $this->normalizeArrayFilter($filters['visibility'])),
-            ));
-
-            if ($visibleValues === []) {
-                $query->whereRaw('1 = 0');
-
-                return;
-            }
-
-            $query->whereIn($model->qualifyColumn('visibility'), $visibleValues);
-        }
-
-        if (array_key_exists('event_format', $filters)) {
-            $formats = array_values(array_filter(
-                array_map(static fn (string $value): ?string => EventFormat::tryFrom($value)?->value, $this->normalizeArrayFilter($filters['event_format'])),
-            ));
-
-            if ($formats === []) {
-                $query->whereRaw('1 = 0');
-
-                return;
-            }
-
-            $query->whereIn($model->qualifyColumn('delivery_mode'), $formats);
-        }
-
-        if (array_key_exists('event_category_ids', $filters)) {
-            $categoryIds = app(EventCategoryCatalog::class)->descendantIds($this->normalizeArrayFilter($filters['event_category_ids']));
-
-            if ($categoryIds === []) {
-                $query->whereRaw('1 = 0');
-
-                return;
-            }
-
-            $query->whereHas('classifications', function (Builder $classificationQuery) use ($categoryIds): void {
-                $classificationQuery
-                    ->whereIn('event_term_id', $categoryIds)
-                    ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE);
-            });
-        }
-
-        if (array_key_exists('timing_mode', $filters)) {
-            $timingModes = array_values(array_filter(
-                array_map(static fn (string $value): ?string => TimingMode::tryFrom($value)?->value, $this->normalizeArrayFilter($filters['timing_mode'])),
-            ));
-
-            if ($timingModes === []) {
-                $query->whereRaw('1 = 0');
-
-                return;
-            }
-
-            $query->where(function (Builder $timingQuery) use ($timingModes): void {
-                if (in_array(TimingMode::PrayerRelative->value, $timingModes, true)) {
-                    $timingQuery->whereHas('timeExpressions', fn (Builder $expressionQuery) => $expressionQuery->where('time_mode', TimingMode::PrayerRelative->value));
-                }
-
-                if (in_array(TimingMode::Absolute->value, $timingModes, true)) {
-                    $callback = fn (Builder $expressionQuery): Builder => $expressionQuery->where('time_mode', TimingMode::PrayerRelative->value);
-
-                    if (in_array(TimingMode::PrayerRelative->value, $timingModes, true)) {
-                        $timingQuery->orWhereDoesntHave('timeExpressions', $callback);
-                    } else {
-                        $timingQuery->whereDoesntHave('timeExpressions', $callback);
-                    }
-                }
-            });
-        }
-
-        if (array_key_exists('prayer_reference', $filters)) {
-            $prayerReferences = array_values(array_filter(
-                array_map(static fn (string $value): ?string => PrayerReference::tryFrom($value)?->value, $this->normalizeArrayFilter($filters['prayer_reference'])),
-            ));
-
-            if ($prayerReferences === []) {
-                $query->whereRaw('1 = 0');
-
-                return;
-            }
-
-            $query->whereHas('timeExpressions', function (Builder $expressionQuery) use ($prayerReferences): void {
-                $expressionQuery
-                    ->where('time_mode', TimingMode::PrayerRelative->value)
-                    ->where('anchor_type', 'prayer')
-                    ->whereIn('anchor_code', $prayerReferences);
-            });
-        }
-
-        if (array_key_exists('published', $filters)) {
-            $rawPublished = $filters['published'];
-
-            if ($rawPublished !== null && $rawPublished !== '') {
-                $published = $this->normalizeBooleanFilter($rawPublished);
-
-                if ($published === null) {
-                    $query->whereRaw('1 = 0');
-
-                    return;
-                }
-
-                if ($published) {
-                    $query->whereNotNull($model->qualifyColumn('published_at'));
-                } else {
-                    $query->whereNull($model->qualifyColumn('published_at'));
-                }
-            }
-        }
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function normalizeArrayFilter(mixed $value): array
-    {
-        if ($value === null || $value === '') {
-            return [];
-        }
-
-        if (is_string($value) && str_contains($value, ',')) {
-            $value = array_map(trim(...), explode(',', $value));
-        }
-
-        $values = is_array($value) ? $value : [$value];
-
-        return array_values(array_filter(
-            array_map(static fn (mixed $item): string => (string) $item, $values),
-            static fn (string $item): bool => $item !== ''
-        ));
-    }
-
-    private function normalizeStatusFilter(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $normalized = trim($value);
-
-        return $normalized !== '' ? $normalized : null;
-    }
-
-    private function normalizeBooleanFilter(mixed $value): ?bool
-    {
-        $normalized = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
-
-        return is_bool($normalized) ? $normalized : null;
     }
 
     /**
@@ -1199,11 +887,7 @@ class AdminResourceService
      */
     protected function recordsMeta(string $resourceClass, LengthAwarePaginator $records, string $search): array
     {
-        return [
-            'resource' => $this->registry->metadata($resourceClass),
-            'search' => $search !== '' ? $search : null,
-            'pagination' => ApiPagination::paginationMeta($records),
-        ];
+        return ResourceReadSupport::recordsMeta($this->registry->metadata($resourceClass), $records, $search);
     }
 
     /**

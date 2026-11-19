@@ -1,0 +1,24 @@
+
+ * * * * * php artisan communications:dispatch-due Next Due: 19 saat dari sekarang
+ 0 * * * * escalate-pending-events .. Next Due: 15 minit dari sekarang
+ */15 * * * * notification-reminders .. Next Due: 19 saat dari sekarang
+ 30 19 * * * php artisan app:prayer:prefetch Next Due: 5 jam dari sekarang
+ 0 * * * * php artisan app:prayer:stats --alert-queue-depth=5000 Next Due: 15 minit dari sekarang
+ */5 * * * * php artisan seating:release-expired-holds Next Due: 19 saat dari sekarang
+ 0 * * * * php artisan ticketing:expire-transfers Next Due: 15 minit dari sekarang
+ */5 * * * * php artisan signals:drain-committed-shares Next Due: 19 saat dari sekarang
+ 0 * * * * php artisan rewards:dispatch-gratitude-digests Next Due: 15 minit dari sekarang
+ 0 * * * * php artisan referrals:expire-invites Next Due: 15 minit dari sekarang
+ 15 2 * * * php artisan rewards:apply-source-corrections Next Due: 12 jam dari sekarang
+ 5 3 * * * php artisan rewards:expire-point-lots Next Due: 13 jam dari sekarang
+ 0 16 * * * php artisan app:prune-orphaned-entities Next Due: 2 jam dari sekarang
+ 0 * * * * php artisan app:sync-public-submission-locks Next Due: 15 minit dari sekarang
+ 30 19 * * * php artisan app:prune-share-cards Next Due: 5 jam dari sekarang
+ 30 18 * * * php artisan media-library:clean --delete-orphaned --force Next Due: 4 jam dari sekarang
+ 0 19 * * 6 php artisan media-library:regenerate --only-missing --with-responsive-images --force Next Due: 2 hari dari sekarang
+ */5 * * * * php artisan horizon:snapshot Next Due: 19 saat dari sekarang
+ */5 * * * * php artisan share:dispatch-pending-effects Next Due: 19 saat dari sekarang
+ 45 3 * * * php artisan share:prune-guest-profiles Next Due: 14 jam dari sekarang
+ 30 1 * * * php artisan affiliates:process-maturity Next Due: 11 jam dari sekarang
+ */15 * * * * php artisan affiliates:process-payouts Next Due: 19 saat dari sekarang
+

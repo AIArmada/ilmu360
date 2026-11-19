@@ -23,4 +23,16 @@ final class MemberResourceHookRegistry
     {
         return $this->hooks;
     }
+
+    /** @param class-string $resourceClass */
+    public function for(string $resourceClass): ?MemberResourceHooks
+    {
+        foreach ($this->hooks as $hooks) {
+            if ($hooks->supports($resourceClass)) {
+                return $hooks;
+            }
+        }
+
+        return null;
+    }
 }

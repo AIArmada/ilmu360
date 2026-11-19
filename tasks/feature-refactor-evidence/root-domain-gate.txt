@@ -1,0 +1,18 @@
+app/Services = 0
+app/Support = 0
+app/Data = 0
+app/Forms = 0
+app/Checkout = 0
+app/Listeners = 0
+app/Observers = 0
+app/Policies = 0
+app/States = 0
+app/Contracts = 0
+app/Enums = 0
+app/Filament = 0
+app/Mcp = 0
+app/Livewire = 0
+
+app/Models:
+app/Models/PassportUser.php
+app/Models/User.php

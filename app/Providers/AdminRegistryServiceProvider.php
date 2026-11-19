@@ -14,6 +14,7 @@ use App\Platform\Api\Frontend\Contributors\FrontendManifestContributor;
 use App\Platform\Api\Frontend\Contributors\MobileTelemetryFormContractContributor;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\Api\Member\MemberWorkflowToolRegistry;
 use App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\AuditResource;
 use Illuminate\Support\ServiceProvider;
 
@@ -30,6 +31,7 @@ class AdminRegistryServiceProvider extends ServiceProvider
         $this->app->singleton(FilamentWidgetRegistry::class);
         $this->app->singleton(AdminMutationHookRegistry::class);
         $this->app->singleton(MemberResourceHookRegistry::class);
+        $this->app->singleton(MemberWorkflowToolRegistry::class);
         $this->app->singleton(AdminResourceHookRegistry::class);
         $this->app->singleton(RecordActionContributorRegistry::class);
         $this->app->singleton(FrontendFormContractRegistry::class);

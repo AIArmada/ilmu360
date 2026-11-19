@@ -2481,5 +2481,9 @@
       "removal_task": "Replace direct Event, Institution, Person, Reference, Series Eloquent reads with the owning feature Api in this owner slice.",
       "expires": "2027-03-31"
     }
-  }
+  },
+  "root_models": [
+    "app/Models/User.php",
+    "app/Models/PassportUser.php"
+  ]
 }

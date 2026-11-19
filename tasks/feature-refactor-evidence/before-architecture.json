@@ -1,0 +1,33 @@
+{
+    "schema": 2,
+    "findings": [],
+    "features": [
+        "Ai",
+        "Communications",
+        "Community",
+        "Contributions",
+        "Discovery",
+        "DonationChannels",
+        "Engagement",
+        "Events",
+        "Feedback",
+        "GitHubIssues",
+        "Identity",
+        "Inspirations",
+        "Institutions",
+        "Mcp",
+        "Membership",
+        "Organizations",
+        "Persons",
+        "Places",
+        "Prayer",
+        "References",
+        "Referrals",
+        "Registration",
+        "Reports",
+        "Rewards",
+        "SavedSearches",
+        "ShareTracking",
+        "SlugRedirects"
+    ]
+}

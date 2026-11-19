@@ -178,7 +178,7 @@ class MemberResourceRegistry
                 'store' => false,
                 'update' => $this->canWriteResource($resourceClass),
             ],
-            'mcp_tools' => $this->mcpTools($key, $this->canWriteResource($resourceClass), $dateSemantics, $relations),
+            'mcp_tools' => $this->mcpTools($resourceClass, $key, $this->canWriteResource($resourceClass), $dateSemantics, $relations),
             'panel_routes' => [
                 'index' => array_key_exists('index', $pages) ? $resourceClass::getUrl('index', panel: 'ahli') : null,
                 'create' => null,
@@ -261,11 +261,12 @@ class MemberResourceRegistry
     }
 
     /**
+     * @param  class-string  $resourceClass
      * @param  array<string, mixed>|null  $dateSemantics
      * @param  list<string>  $relations
      * @return array<string, mixed>
      */
-    private function mcpTools(string $key, bool $canWrite, ?array $dateSemantics, array $relations): array
+    private function mcpTools(string $resourceClass, string $key, bool $canWrite, ?array $dateSemantics, array $relations): array
     {
         $listRecordsArguments = [
             'resource_key' => $key,
@@ -278,6 +279,16 @@ class MemberResourceRegistry
             $listRecordsArguments['starts_after'] = null;
             $listRecordsArguments['starts_before'] = null;
             $listRecordsArguments['starts_on_local_date'] = null;
+        }
+
+        $hook = $this->hooks->for($resourceClass);
+        $ownerImageUploadTools = $hook?->imageUploadMcpTools($resourceClass, $key) ?? [];
+        $imageUploadTools = [];
+
+        foreach ($this->hooks->all() as $availableHook) {
+            foreach ($availableHook->imageUploadMcpToolKeys() as $slot) {
+                $imageUploadTools[$slot] = $ownerImageUploadTools[$slot] ?? null;
+            }
         }
 
         return [
@@ -324,24 +335,7 @@ class MemberResourceRegistry
                     'record_key' => 'record',
                 ],
             ],
-            'generate_event_cover_image' => $key === 'events'
-                ? [
-                    'tool' => 'member-upload-event-cover-image',
-                    'arguments' => [
-                        'event_key' => 'record',
-                    ],
-                    'prerequisite_prompt' => 'member-event-cover-image-prompt',
-                ]
-                : null,
-            'generate_event_poster_image' => $key === 'events'
-                ? [
-                    'tool' => 'member-upload-event-poster-image',
-                    'arguments' => [
-                        'event_key' => 'record',
-                    ],
-                    'prerequisite_prompt' => 'member-event-poster-image-prompt',
-                ]
-                : null,
+            ...$imageUploadTools,
             'get_update_schema' => $canWrite
                 ? [
                     'tool' => 'member-get-write-schema',

@@ -27,12 +27,17 @@ final readonly class FixtureProject
      * @param  list<array<string, string>>  $exceptions
      * @param  array<string, string>  $rootStoreWriters
      */
-    public function configure(array $exceptions = [], array $rootStoreWriters = []): void
+    /**
+     * @param  array<string, list<string>>  $rootStoreWriters
+     * @param  array<string, mixed>  $extra
+     */
+    public function configure(array $exceptions = [], array $rootStoreWriters = [], array $extra = []): void
     {
         $this->write('tools/architecture.json', json_encode([
             'schema' => 2,
             'root_store_writers' => $rootStoreWriters,
             'exceptions' => $exceptions,
+            ...$extra,
         ], JSON_THROW_ON_ERROR));
     }
 

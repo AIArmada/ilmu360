@@ -6,6 +6,7 @@ namespace App\Platform\Api\Member;
 
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
+use App\Platform\Api\Resources\ResourceReadSupport;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\Search\ResourceSearchDispatcher;
 use App\Platform\Time\UserDateTimeFormatter;
@@ -16,7 +17,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -28,6 +28,7 @@ class MemberResourceService
         private readonly MemberResourceMutationService $mutationService,
         private readonly ApiDocumentationUrlResolver $urlResolver,
         private readonly ResourceSearchDispatcher $resourceSearchDispatcher,
+        private readonly MemberWorkflowToolRegistry $workflowTools,
     ) {}
 
     /**
@@ -55,29 +56,7 @@ class MemberResourceService
                     'list_related_records_tool' => 'member-list-related-records',
                     'update_tool' => 'member-update-record',
                 ],
-                'workflow_tools' => [
-                    'list_contribution_requests' => [
-                        'tool' => 'member-list-contribution-requests',
-                    ],
-                    'approve_contribution_request' => [
-                        'tool' => 'member-approve-contribution-request',
-                    ],
-                    'reject_contribution_request' => [
-                        'tool' => 'member-reject-contribution-request',
-                    ],
-                    'cancel_contribution_request' => [
-                        'tool' => 'member-cancel-contribution-request',
-                    ],
-                    'list_membership_applications' => [
-                        'tool' => 'member-list-membership-applications',
-                    ],
-                    'submit_membership_application' => [
-                        'tool' => 'member-submit-membership-application',
-                    ],
-                    'cancel_membership_application' => [
-                        'tool' => 'member-cancel-membership-application',
-                    ],
-                ],
+                'workflow_tools' => $this->workflowTools->tools(),
                 'rules' => [
                     'Use the returned resource keys to scope follow-up MCP reads to your own memberships and related records.',
                     'Resource visibility follows the Ahli workspace boundary and live membership relationships, not the full admin panel.',
@@ -331,19 +310,7 @@ class MemberResourceService
      */
     public function applyDefaultOrdering(Builder $query, string $resourceClass): void
     {
-        $model = $query->getModel();
-        $table = $model->getTable();
-        $recordTitleAttribute = $resourceClass::getRecordTitleAttribute();
-
-        if (is_string($recordTitleAttribute) && $recordTitleAttribute !== '' && Schema::hasColumn($table, $recordTitleAttribute)) {
-            $sortColumn = $recordTitleAttribute;
-        } elseif (Schema::hasColumn($table, 'created_at')) {
-            $sortColumn = 'created_at';
-        } else {
-            $sortColumn = $model->getKeyName();
-        }
-
-        $query->orderBy($model->qualifyColumn($sortColumn), $sortColumn === 'created_at' ? 'desc' : 'asc');
+        ResourceReadSupport::applyDefaultOrdering($query, $resourceClass);
     }
 
     /**
@@ -362,45 +329,10 @@ class MemberResourceService
             return $this->registry->serializeRecord($resourceClass, $record);
         }
 
-        return [
-            'id' => (string) $record->getKey(),
-            'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->genericRecordTitle($record),
-            'attributes' => $this->serializeGenericAttributes($record),
-        ];
-    }
-
-    private function genericRecordTitle(Model $record): string
-    {
-        $table = $record->getTable();
-        $candidates = [
-            'title',
-            'name',
-            'middle_name',
-            'family_name',
-            'label',
-            'slug',
-            'email',
-            $record->getRouteKeyName(),
-        ];
-
-        foreach (array_values(array_unique(array_filter($candidates, static fn (string $column): bool => $column !== ''))) as $column) {
-            if (! Schema::hasColumn($table, $column)) {
-                continue;
-            }
-
-            $value = $record->getAttribute($column);
-
-            if (is_string($value) && trim($value) !== '') {
-                return $value;
-            }
-
-            if (is_scalar($value) && trim((string) $value) !== '') {
-                return (string) $value;
-            }
-        }
-
-        return (string) $record->getRouteKey();
+        return ResourceReadSupport::serializeRelatedRecord(
+            $record,
+            $this->serializeGenericAttributes($record),
+        );
     }
 
     /**
@@ -429,33 +361,7 @@ class MemberResourceService
      */
     private function applyDefaultOrderingForModel(Builder $query, Model $model): void
     {
-        $table = $model->getTable();
-        $candidates = [
-            'family_name',
-            'middle_name',
-            'name',
-            'title',
-            'label',
-            'slug',
-        ];
-
-        foreach ($candidates as $candidate) {
-            if (! Schema::hasColumn($table, $candidate)) {
-                continue;
-            }
-
-            $query->orderBy($model->qualifyColumn($candidate));
-
-            return;
-        }
-
-        if (Schema::hasColumn($table, 'created_at')) {
-            $query->orderBy($model->qualifyColumn('created_at'), 'desc');
-
-            return;
-        }
-
-        $query->orderBy($model->qualifyColumn($model->getKeyName()));
+        ResourceReadSupport::applyDefaultOrderingForModel($query, $model);
     }
 
     /**
@@ -463,8 +369,7 @@ class MemberResourceService
      */
     private function applyGenericSearch(Builder $query, Model $model, string $search): void
     {
-        $table = $model->getTable();
-        $candidates = [
+        ResourceReadSupport::applyGenericSearch($query, $model, $search, [
             'title',
             'name',
             'middle_name',
@@ -474,19 +379,7 @@ class MemberResourceService
             'email',
             'description',
             $model->getRouteKeyName(),
-        ];
-        $columns = array_values(array_filter(array_unique($candidates), static fn (string $column): bool => Schema::hasColumn($table, $column)));
-
-        if ($columns === []) {
-            return;
-        }
-
-        $query->where(function (Builder $builder) use ($columns, $search, $model): void {
-            foreach ($columns as $index => $column) {
-                $method = $index === 0 ? 'where' : 'orWhere';
-                $builder->{$method}($model->qualifyColumn($column), 'like', "%{$search}%");
-            }
-        });
+        ]);
     }
 
     /**
@@ -568,11 +461,7 @@ class MemberResourceService
      */
     protected function recordsMeta(string $resourceClass, LengthAwarePaginator $records, string $search): array
     {
-        return [
-            'resource' => $this->registry->metadata($resourceClass),
-            'search' => $search !== '' ? $search : null,
-            'pagination' => ApiPagination::paginationMeta($records),
-        ];
+        return ResourceReadSupport::recordsMeta($this->registry->metadata($resourceClass), $records, $search);
     }
 
     /**

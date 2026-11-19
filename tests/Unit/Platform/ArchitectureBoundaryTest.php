@@ -518,7 +518,7 @@ class PackageOrder extends \Illuminate\Database\Eloquent\Model
     protected $table = 'orders';
 }
 PHP);
-    $this->project->write('app/Services/PackageOrderWriter.php', <<<'PHP'
+    $this->project->write('app/Platform/Adapters/PackageOrderWriter.php', <<<'PHP'
 <?php
 namespace App\Services;
 use Fixture\Package\PackageOrder;
@@ -532,7 +532,7 @@ class PackageOrderWriter
 PHP);
     $this->project->configure([[
         'rule' => 'architecture.writeLocation',
-        'file' => 'app/Services/PackageOrderWriter.php',
+        'file' => 'app/Platform/Adapters/PackageOrderWriter.php',
         'target' => 'table:unknown',
         'model' => 'Fixture\\Package\\PackageOrder',
         'reason' => 'This exact root adapter writes the package model it declares.',
@@ -3184,4 +3184,38 @@ it('rejects an expired owned-write exception', function (): void {
 
     expect($result['exitCode'])->toBe(2)
         ->and($result['stderr'])->toContain('Invalid/expired exception');
+});
+
+it('rejects classes left in a retired root domain directory', function (): void {
+    $this->project->write('app/Services/Legacy/BookingService.php', <<<'PHP'
+<?php
+namespace App\Services\Legacy;
+class BookingService {}
+PHP);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'] ?? [];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('root-domain')
+        ->and(array_column($findings, 'target'))->toContain('app/Services/Legacy/BookingService.php');
+});
+
+it('rejects a new root model outside the user allowlist', function (): void {
+    $this->project->configure(extra: [
+        'root_models' => ['app/Models/User.php', 'app/Models/PassportUser.php'],
+    ]);
+    $this->project->write('app/Models/Ticket.php', <<<'PHP'
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+class Ticket extends Model {}
+PHP);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'] ?? [];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('root-model')
+        ->and(array_column($findings, 'target'))->toContain('app/Models/Ticket.php');
 });

@@ -20,6 +20,24 @@ final readonly class ReferenceAdminHooks implements AdminResourceHooks
         return [];
     }
 
+    public function applyFilters(\Illuminate\Database\Eloquent\Builder $query, string $resourceClass, array $filters): bool
+    {
+        return false;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function imageUploadMcpTools(string $resourceClass, string $key): array
+    {
+        return [];
+    }
+
+    public function imageUploadMcpToolKeys(): array
+    {
+        return [];
+    }
+
     public function dateSemantics(string $resourceClass): ?array
     {
         return null;

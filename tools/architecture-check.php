@@ -107,9 +107,29 @@ try {
         }
     }
 
+    // Root domain folders are retired. Only genuinely unowned framework
+    // composition roots (Http, Providers, Platform, Shared, Features) and the
+    // two framework user models may live outside a feature or the platform.
+    $retiredRootDirectories = [
+        'Services', 'Support', 'Data', 'Forms', 'Checkout', 'Listeners', 'Observers',
+        'Policies', 'States', 'Contracts', 'Enums', 'Filament', 'Mcp', 'Livewire',
+    ];
+    // The explicit root-model allowlist lives in the checked-in configuration so
+    // fixture projects can opt in to the gate with their own allowlist.
+    $rootModelAllowlist = is_array($config['root_models'] ?? null) ? $config['root_models'] : null;
     foreach ($paths as $relative => $path) {
         if (str_starts_with($relative, 'app/Actions/') && ! in_array($relative, $fortifyEntrypoints, true)) {
             $report('root-domain-action', $relative, 1, $relative, 'Move this domain action into its owning feature, or place a genuine HTTP transport adapter under app/Http.');
+        }
+        foreach ($retiredRootDirectories as $retiredDirectory) {
+            if (str_starts_with($relative, 'app/'.$retiredDirectory.'/')) {
+                $report('root-domain', $relative, 1, $relative, 'app/'.$retiredDirectory.' is retired; move the class into its owning feature or app/Platform, without aliases or shims.');
+            }
+        }
+        if ($rootModelAllowlist !== null
+            && str_starts_with($relative, 'app/Models/')
+            && ! in_array($relative, $rootModelAllowlist, true)) {
+            $report('root-model', $relative, 1, $relative, 'Only app/Models/User.php and app/Models/PassportUser.php may stay at the root; move domain models into their owning feature.');
         }
     }
 
@@ -148,6 +168,23 @@ try {
 
                     $line = substr_count(substr($content, 0, $offset), "\n") + 1;
                     $report('dangling-root-action', $relative, $line, $className, 'Deleted root Action is still imported or referenced; update the caller to the new owner without aliases.');
+                }
+            }
+
+            if (in_array($directory, ['app', 'config', 'bootstrap', 'routes'], true)) {
+                $retiredPrefixes = array_map(static fn (string $retired): string => 'App\\'.$retired.'\\', $retiredRootDirectories);
+                $retiredModelClasses = array_map(
+                    static fn (string $model): string => 'App\\Models\\'.$model,
+                    ['Event', 'Institution', 'Person', 'Reference', 'Venue', 'Series', 'DonationChannel'],
+                );
+
+                foreach ([...$retiredPrefixes, ...$retiredModelClasses] as $retiredReference) {
+                    $offset = 0;
+                    while (($position = strpos($content, $retiredReference, $offset)) !== false) {
+                        $line = substr_count(substr($content, 0, $position), "\n") + 1;
+                        $report('root-namespace', $relative, $line, rtrim($retiredReference, '\\'), 'Retired root namespace is still referenced; import the owning feature or Platform class without aliases.');
+                        $offset = $position + strlen($retiredReference);
+                    }
                 }
             }
         }

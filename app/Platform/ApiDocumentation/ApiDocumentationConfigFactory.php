@@ -32,8 +32,7 @@ class ApiDocumentationConfigFactory
                 SignalsDocsExtension::class,
             ])
             ->withDocumentTransformers([
-                PublicDirectorySchemasTransformer::class,
-                ApiWorkflowSchemasTransformer::class,
+                DocumentSchemaTransformer::class,
             ])
             ->routes(static fn (IlluminateRoute $route): bool => $apiPath === '' || Str::startsWith($route->uri(), $apiPath));
     }

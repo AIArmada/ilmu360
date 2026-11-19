@@ -1,0 +1,22 @@
+App\Services\ = 1
+App\Support\ = 0
+App\Data\ = 0
+App\Forms\ = 0
+App\Checkout\ = 0
+App\Listeners\ = 0
+App\Observers\ = 0
+App\Policies\ = 0
+App\States\ = 0
+App\Contracts\ = 0
+App\Filament\ = 0
+App\Mcp\ = 0
+App\Models\Event = 0
+App\Models\Institution = 0
+App\Models\Person = 0
+App\Models\Reference = 0
+
+App\Livewire\ or App\Enums\ (comments/fixtures only expected):
+
+# Note
+App\Services\ = 1 is a negative assertion (tests/Feature/ShareTracking/AffiliateRuntimeDataPurgerTest.php:159
+expects class_exists(...) === false). It is not a live reference.

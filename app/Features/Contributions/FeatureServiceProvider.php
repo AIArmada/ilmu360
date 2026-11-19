@@ -24,6 +24,7 @@ use App\Features\Contributions\Contracts\ContributionRequestGuard;
 use App\Features\Contributions\Contracts\InstitutionClaimGuard;
 use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContributor;
 use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
+use App\Features\Contributions\EntryPoints\Admin\Member\ContributionRequestMemberWorkflowToolContributor;
 use App\Features\Contributions\EntryPoints\Admin\RecordActions\ContributionRequestRecordActionContributor;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminGetContributionRequestReviewSchemaTool;
@@ -43,6 +44,7 @@ use App\Features\Contributions\Support\Telemetry\ContributionsSignalSchemaContri
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
+use App\Platform\Api\Member\MemberWorkflowToolRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Telemetry\SignalSchemaRegistry;
@@ -113,6 +115,8 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->make(SignalSchemaRegistry::class)->register(new ContributionsSignalSchemaContributor);
 
         $this->app->make(RecordActionContributorRegistry::class)->register($this->app->make(ContributionRequestRecordActionContributor::class));
+
+        $this->app->make(MemberWorkflowToolRegistry::class)->register($this->app->make(ContributionRequestMemberWorkflowToolContributor::class));
 
         $surfaces = $this->app->make(McpSurfaceRegistry::class);
 
