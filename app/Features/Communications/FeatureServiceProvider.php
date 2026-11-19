@@ -19,6 +19,7 @@ use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Api\PushDestinationManagement;
 use App\Features\Communications\Contributors\CommunicationsAccountLifecycleContributor;
+use App\Features\Communications\EntryPoints\ApiDocumentation\CommunicationsRequestExampleContributor;
 use App\Features\Communications\EntryPoints\Channels\DigestMailChannel;
 use App\Features\Communications\EntryPoints\Channels\InboxChannel;
 use App\Features\Communications\EntryPoints\Channels\PushChannel;
@@ -35,7 +36,10 @@ use App\Features\Communications\Support\Integration\AppQuietHoursResolver;
 use App\Features\Communications\Support\Integration\AppRecipientSnapshotResolver;
 use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
 use App\Features\Communications\Support\Integration\ProbeSafeDestinationResolver;
+use App\Features\Communications\Support\Telemetry\CommunicationsSignalSchemaContributor;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Facades\Notification;
@@ -70,6 +74,9 @@ final class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(SignalSchemaRegistry::class)->register(new CommunicationsSignalSchemaContributor);
+        $this->app->make(RequestExampleRegistry::class)->register(new CommunicationsRequestExampleContributor);
 
         Notification::extend(
             NotificationTransport::Inbox->value,

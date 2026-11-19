@@ -25,6 +25,7 @@ use App\Features\References\Queries\ReferenceResourceSearchAdapter;
 use App\Features\References\Services\EloquentReferenceCatalog;
 use App\Features\References\Services\ReferenceQueryService;
 use App\Features\References\Services\ReferenceWorkflowService;
+use App\Features\References\Support\Telemetry\ReferencesSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
@@ -33,6 +34,7 @@ use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\ResourceSearchAdapter;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -62,6 +64,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(ReferenceContributionProjection::class));
+
+        $this->app->make(SignalSchemaRegistry::class)->register(new ReferencesSignalSchemaContributor);
 
         parent::boot();
 

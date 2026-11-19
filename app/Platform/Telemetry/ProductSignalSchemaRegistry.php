@@ -4,53 +4,18 @@ declare(strict_types=1);
 
 namespace App\Platform\Telemetry;
 
-final class ProductSignalSchemaRegistry
+final readonly class ProductSignalSchemaRegistry
 {
+    public function __construct(
+        private SignalSchemaRegistry $schemas,
+    ) {}
+
     /**
      * @return list<string>
      */
     public function allowedProperties(string $eventName): array
     {
-        $schemas = [
-            'auth.login' => ['method', 'created_account'],
-            'auth.signup.completed' => ['has_email', 'has_phone'],
-            'auth.password_reset.completed' => [],
-            'auth.email_verified' => [],
-            'rewards.program_enrolled' => ['program_id', 'program_family', 'enrollment_id', 'surface'],
-            'referrals.invite_created' => ['program_id', 'invite_id', 'surface'],
-            'referrals.invite_accepted' => ['program_id', 'invite_id', 'surface'],
-            'reference.quick_created' => ['reference_id', 'record_kind', 'parent_id', 'status', 'source'],
-            'author.quick_created' => ['person_id', 'status', 'source'],
-            'report.submitted' => ['report_id', 'entity_type', 'entity_id', 'category', 'status'],
-            'app_feedback.submitted' => ['category', 'status'],
-            'notification.read' => ['notification_id', 'family', 'trigger', 'action_url'],
-            'notification.read_all' => ['updated_count'],
-            'contribution.institution_maps_place_selected' => ['has_website', 'social_profile_count'],
-            'search.executed' => ['interaction_type', 'surface', 'query', 'filter_keys', 'filters', 'result_count', 'saved_search_id'],
-            'listing.filtered' => ['interaction_type', 'surface', 'filter_keys', 'filters', 'result_count', 'saved_search_id'],
-            'admin.event_cover.generated' => ['event_id', 'event_status'],
-            'admin.institution_facilities.updated' => ['institution_id', 'changed_codes', 'enabled_count', 'disabled_count', 'cleared'],
-        ];
-
-        if (array_key_exists($eventName, $schemas)) {
-            return $schemas[$eventName];
-        }
-
-        if (str_starts_with($eventName, 'moderation.event.occurrence_')) {
-            return [
-                'event_id', 'event_occurrence_id', 'submission_id', 'moderation_action',
-                'previous_status', 'current_status', 'moderator_id', 'reason_code', 'has_note',
-            ];
-        }
-
-        if (str_starts_with($eventName, 'moderation.event.')) {
-            return [
-                'event_id', 'moderation_action', 'previous_status', 'current_status',
-                'moderator_id', 'reason_code', 'has_note',
-            ];
-        }
-
-        return [];
+        return $this->schemas->allowedProperties($eventName);
     }
 
     /**

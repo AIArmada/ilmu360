@@ -9,6 +9,7 @@ use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\AccountSubmissionEligibility;
+use App\Features\Identity\Api\Frontend\AccountSettingsFormContractContributor;
 use App\Features\Identity\Api\NewAccountAttribution;
 use App\Features\Identity\Api\SignupAttributions;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
@@ -17,6 +18,7 @@ use App\Features\Identity\Contributors\IdentityAccountLifecycleContributor;
 use App\Features\Identity\Contributors\ReportsAccountLifecycleContributor;
 use App\Features\Identity\Contributors\SavedSearchesAccountLifecycleContributor;
 use App\Features\Identity\Contributors\VerificationAttributionContributor;
+use App\Features\Identity\EntryPoints\ApiDocumentation\IdentityRequestExampleContributor;
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Identity\Services\AccountAdministrationService;
@@ -26,9 +28,13 @@ use App\Features\Identity\Services\AccountSubmissionEligibilityService;
 use App\Features\Identity\Services\SignupAttributionsService;
 use App\Features\Identity\Services\SignupAttributionWorkflowService;
 use App\Features\Identity\Services\SocialAccountsService;
+use App\Features\Identity\Support\Telemetry\IdentitySignalSchemaContributor;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Frontend\FrontendFormContractRegistry;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Contracts\Foundation\Application;
 
@@ -57,5 +63,14 @@ class FeatureServiceProvider extends FeatureModule
 
         $this->app->make(FilamentPageRegistry::class)->register(DeletedUsers::class);
         $this->app->make(FilamentResourceRegistry::class)->register(UserResource::class);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->app->make(SignalSchemaRegistry::class)->register(new IdentitySignalSchemaContributor);
+        $this->app->make(RequestExampleRegistry::class)->register(new IdentityRequestExampleContributor);
+        $this->app->make(FrontendFormContractRegistry::class)->register(AccountSettingsFormContractContributor::class);
     }
 }

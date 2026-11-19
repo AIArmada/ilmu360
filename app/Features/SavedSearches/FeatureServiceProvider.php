@@ -11,10 +11,12 @@ use App\Features\SavedSearches\Api\DeleteSavedSearchWithAttributionReversal;
 use App\Features\SavedSearches\Api\SavedSearchCommands as SavedSearchCommandsContract;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
+use App\Features\SavedSearches\EntryPoints\ApiDocumentation\SavedSearchesRequestExampleContributor;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Features\SavedSearches\Policies\SavedSearchPolicy;
 use App\Features\SavedSearches\Queries\DatabaseSavedSearchReader;
 use App\Features\SavedSearches\Services\SavedSearchCommands;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Gate;
@@ -33,6 +35,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(RequestExampleRegistry::class)->register(new SavedSearchesRequestExampleContributor);
 
         Gate::policy(SavedSearch::class, SavedSearchPolicy::class);
         Gate::policy(SavedSearchSnapshot::class, SavedSearchPolicy::class);

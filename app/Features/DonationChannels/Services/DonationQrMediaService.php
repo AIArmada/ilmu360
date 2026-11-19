@@ -7,7 +7,7 @@ namespace App\Features\DonationChannels\Services;
 use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
-use App\Shared\Contributions\Support\DonationQrUploads;
+use App\Platform\Ui\Forms\DonationQrUploads;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;

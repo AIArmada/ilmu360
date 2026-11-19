@@ -15,6 +15,8 @@ use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionUpdateContextReader;
+use App\Features\Contributions\Api\Frontend\SubmitInstitutionFormContractContributor;
+use App\Features\Contributions\Api\Frontend\SubmitPersonFormContractContributor;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\SubmissionCatalog;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -37,10 +39,13 @@ use App\Features\Contributions\Services\ContributionRequestLifecycleService;
 use App\Features\Contributions\Services\ContributionReviewAccessService;
 use App\Features\Contributions\Services\ContributionSubmissionPreparationService;
 use App\Features\Contributions\Services\EloquentSubmissionCatalog;
+use App\Features\Contributions\Support\Telemetry\ContributionsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
+use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
 
 /**
@@ -100,6 +105,12 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $contracts = $this->app->make(FrontendFormContractRegistry::class);
+        $contracts->register(SubmitInstitutionFormContractContributor::class);
+        $contracts->register(SubmitPersonFormContractContributor::class);
+
+        $this->app->make(SignalSchemaRegistry::class)->register(new ContributionsSignalSchemaContributor);
 
         $this->app->make(RecordActionContributorRegistry::class)->register($this->app->make(ContributionRequestRecordActionContributor::class));
 

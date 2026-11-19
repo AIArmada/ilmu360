@@ -34,6 +34,25 @@ it('allowlists product signal properties and drops sensitive search input', func
         ->not->toHaveKey('secret_internal_flag');
 });
 
+it('resolves product signal schemas from feature contributors', function (): void {
+    $registry = app(ProductSignalSchemaRegistry::class);
+
+    expect($registry->allowedProperties('auth.login'))->toBe(['method', 'created_account'])
+        ->and($registry->allowedProperties('rewards.program_enrolled'))->toBe(['program_id', 'program_family', 'enrollment_id', 'surface'])
+        ->and($registry->allowedProperties('referrals.invite_created'))->toBe(['program_id', 'invite_id', 'surface'])
+        ->and($registry->allowedProperties('notification.read_all'))->toBe(['updated_count'])
+        ->and($registry->allowedProperties('admin.institution_facilities.updated'))->toBe(['institution_id', 'changed_codes', 'enabled_count', 'disabled_count', 'cleared'])
+        ->and($registry->allowedProperties('moderation.event.occurrence_approved'))->toBe([
+            'event_id', 'event_occurrence_id', 'submission_id', 'moderation_action',
+            'previous_status', 'current_status', 'moderator_id', 'reason_code', 'has_note',
+        ])
+        ->and($registry->allowedProperties('moderation.event.approved'))->toBe([
+            'event_id', 'moderation_action', 'previous_status', 'current_status',
+            'moderator_id', 'reason_code', 'has_note',
+        ])
+        ->and($registry->allowedProperties('unknown.event'))->toBeEmpty();
+});
+
 it('records a signals event for successful password login', function () {
     $user = User::factory()->create();
 

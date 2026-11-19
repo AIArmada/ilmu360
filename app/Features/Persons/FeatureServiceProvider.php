@@ -29,12 +29,14 @@ use App\Features\Persons\Queries\EloquentPersonLookup;
 use App\Features\Persons\Queries\PersonContributionProjection;
 use App\Features\Persons\Services\EloquentPersonCatalog;
 use App\Features\Persons\Services\PersonWorkflowService;
+use App\Features\Persons\Support\Telemetry\PersonsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -69,6 +71,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(PersonContributionProjection::class));
+
+        $this->app->make(SignalSchemaRegistry::class)->register(new PersonsSignalSchemaContributor);
 
         parent::boot();
 

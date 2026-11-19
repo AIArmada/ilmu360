@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Platform\ApiDocumentation\ApiRequestBodyExamplesExtension;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use Dedoc\Scramble\GeneratorConfig;
 use Dedoc\Scramble\Infer;
 use Dedoc\Scramble\OpenApiContext;
@@ -29,7 +30,7 @@ it('serializes route examples while preserving native request and media metadata
     $route = new Route('POST', 'api/v1/auth/login', static fn (): null => null);
     $config = new GeneratorConfig;
     $infer = app(Infer::class);
-    $extension = new ApiRequestBodyExamplesExtension($infer, new TypeTransformer($infer, new OpenApiContext(new OpenApi, $config)), $config);
+    $extension = new ApiRequestBodyExamplesExtension($infer, new TypeTransformer($infer, new OpenApiContext(new OpenApi, $config)), $config, app(RequestExampleRegistry::class));
 
     $extension->handle($operation, new RouteInfo($route, 'POST'));
     $serialized = $operation->requestBodyObject->{$serializer}();
@@ -50,6 +51,33 @@ it('serializes route examples while preserving native request and media metadata
     'multipart' => ['multipart/form-data'],
 ]);
 
+it('composes request examples from feature-owned contributors', function (): void {
+    $examples = app(RequestExampleRegistry::class)->examples();
+
+    expect($examples)
+        ->toHaveKeys([
+            'post auth/login',
+            'post auth/register',
+            'put account-settings',
+            'put notification-settings',
+            'post notification-destinations/push',
+            'put notification-destinations/push/{installation}',
+            'post events/{event}/registrations',
+            'post membership-applications/{subjectType}/{subject}',
+            'post institution-workspace/{institutionId}/members',
+            'put institution-workspace/{institutionId}/members/{memberId}',
+            'post saved-searches',
+            'put saved-searches/{savedSearch}',
+            'post reports',
+            'post mobile/telemetry/events',
+            'post github-issues',
+        ])
+        ->and($examples['post reports']['category'])->toBe('wrong_info')
+        ->and($examples['post institution-workspace/{institutionId}/members']['role_id'])->toBe('institution_admin')
+        ->and($examples['post mobile/telemetry/events']['events'])->toHaveCount(2)
+        ->and($examples['post mobile/telemetry/events']['events'][0]['event_name'])->toBe('screen.viewed');
+});
+
 it('leaves unrelated operation request bodies unchanged', function (): void {
     $body = RequestBodyObject::make()->setContent('application/json', Schema::fromType(new ObjectType));
     $operation = Operation::make('post')->addRequestBodyObject($body);
@@ -57,7 +85,7 @@ it('leaves unrelated operation request bodies unchanged', function (): void {
     $route = new Route('POST', 'api/v1/unrelated-operation', static fn (): null => null);
     $config = new GeneratorConfig;
     $infer = app(Infer::class);
-    $extension = new ApiRequestBodyExamplesExtension($infer, new TypeTransformer($infer, new OpenApiContext(new OpenApi, $config)), $config);
+    $extension = new ApiRequestBodyExamplesExtension($infer, new TypeTransformer($infer, new OpenApiContext(new OpenApi, $config)), $config, app(RequestExampleRegistry::class));
     $original = $body->serializeAs31();
 
     $extension->handle($operation, new RouteInfo($route, 'POST'));

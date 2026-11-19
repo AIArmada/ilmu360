@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Reports;
 
 use App\Features\Reports\Api\AdminReportTriage;
+use App\Features\Reports\Api\Frontend\ReportFormContractContributor;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
 use App\Features\Reports\Api\ReportReader;
@@ -13,6 +14,7 @@ use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 use App\Features\Reports\EntryPoints\Admin\RecordActions\ReportRecordActionContributor;
+use App\Features\Reports\EntryPoints\ApiDocumentation\ReportsRequestExampleContributor;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Features\Reports\EntryPoints\Mcp\Tools\AdminGetReportTriageSchemaTool;
 use App\Features\Reports\EntryPoints\Mcp\Tools\AdminTriageReportTool;
@@ -24,10 +26,14 @@ use App\Features\Reports\Services\CompositeReportSubjectResolver;
 use App\Features\Reports\Services\ReportAdmin;
 use App\Features\Reports\Services\ReportCommands;
 use App\Features\Reports\Services\ReportTriage;
+use App\Features\Reports\Support\Telemetry\ReportsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
+use App\Platform\Api\Frontend\FrontendFormContractRegistry;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 
@@ -51,10 +57,15 @@ class FeatureServiceProvider extends FeatureModule
     {
         parent::boot();
 
+        $this->app->make(SignalSchemaRegistry::class)->register(new ReportsSignalSchemaContributor);
+        $this->app->make(RequestExampleRegistry::class)->register(new ReportsRequestExampleContributor);
+
         Gate::policy(Report::class, ReportPolicy::class);
         Relation::morphMap(['report' => Report::class]);
 
         $this->app->make(RecordActionContributorRegistry::class)->register($this->app->make(ReportRecordActionContributor::class));
+
+        $this->app->make(FrontendFormContractRegistry::class)->register(ReportFormContractContributor::class);
 
         $surfaces = $this->app->make(McpSurfaceRegistry::class);
 

@@ -189,6 +189,7 @@ use App\Platform\Addressing\Policies\AddressAreaPolicy;
 use App\Platform\Addressing\Policies\AddressCountryPolicy;
 use App\Platform\Api\Admin\AdminValidateOnlyRemediationEnricher;
 use App\Platform\Api\ApiErrorDetailsEnricher;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\Auditing\AuditRecorder;
 use App\Platform\Auditing\EloquentAuditRecorder;
 use App\Platform\Auditing\Models\Audit as FilamentAudit;
@@ -215,7 +216,9 @@ use App\Platform\Moderation\Models\ModerationReview;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\ResourceSearchAdapter;
+use App\Platform\Telemetry\EntryPoints\ApiDocumentation\MobileTelemetryRequestExampleContributor;
 use App\Platform\Telemetry\ProductSignalRecorder;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Platform\Time\DefaultUserDateTimeFormatter;
 use App\Platform\Ui\ContentVersionedJs;
 use App\Shared\Auth\AccountDirectory;
@@ -327,6 +330,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(EventEngagement::class, EloquentEngagementReader::class);
         $this->app->bind(SubjectFollows::class, EloquentEngagementReader::class);
         $this->app->singleton(ContributionProjectionRegistry::class);
+        $this->app->singleton(SignalSchemaRegistry::class);
+        $this->app->singleton(RequestExampleRegistry::class);
         $this->app->singleton(McpSurfaceRegistry::class);
         $this->app->bind(ContributionEntityState::class, ContributionEntityStateService::class);
         $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
@@ -407,6 +412,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->app->make(RequestExampleRegistry::class)->register(new MobileTelemetryRequestExampleContributor);
 
         // Preserve the public <x-event-json-ld> tag after removing App/View.
         Blade::component(EventJsonLd::class, 'event-json-ld');

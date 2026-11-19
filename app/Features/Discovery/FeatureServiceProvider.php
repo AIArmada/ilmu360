@@ -12,7 +12,9 @@ use App\Features\Discovery\Services\EventSearchFilterCatalog;
 use App\Features\Discovery\Services\EventSearchFilterNormalizer;
 use App\Features\Discovery\Services\EventSearchFilterRules;
 use App\Features\Discovery\Services\PublicListingsCache;
+use App\Features\Discovery\Support\Telemetry\DiscoverySignalSchemaContributor;
 use App\Platform\FeatureModule;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 
 /**
  * Discovery owns the public search-filter normalization, validation and
@@ -29,5 +31,12 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(SearchFilterCatalog::class, EventSearchFilterCatalog::class);
         $this->app->bind(SearchFilterNormalizer::class, EventSearchFilterNormalizer::class);
         $this->app->bind(SearchFilterRules::class, EventSearchFilterRules::class);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->app->make(SignalSchemaRegistry::class)->register(new DiscoverySignalSchemaContributor);
     }
 }

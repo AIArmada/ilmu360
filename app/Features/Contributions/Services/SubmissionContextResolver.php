@@ -6,10 +6,10 @@ namespace App\Features\Contributions\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
-use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\PrayerTargetSelector;
@@ -28,7 +28,7 @@ use Illuminate\Validation\ValidationException;
 final readonly class SubmissionContextResolver
 {
     public function __construct(
-        private SubmissionTimingPolicy $timing,
+        private SubmissionTimingContract $timing,
         private SpaceSelectionEligibility $spaceEligibilityResolver,
         private EntitySubmissionAccess $entitySubmissionAccess,
     ) {}

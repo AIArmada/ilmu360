@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership;
 
+use App\Features\Membership\Api\Frontend\MembershipApplicationFormContractContributor;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipAuthorization;
@@ -14,6 +15,7 @@ use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipSubjectOptionsCatalog;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
 use App\Features\Membership\EntryPoints\Admin\RecordActions\MembershipApplicationRecordActionContributor;
+use App\Features\Membership\EntryPoints\ApiDocumentation\MembershipRequestExampleContributor;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index;
@@ -31,6 +33,8 @@ use App\Features\Membership\Services\MembershipDirectoryService;
 use App\Features\Membership\Services\MembershipInvitationsService;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
+use App\Platform\Api\Frontend\FrontendFormContractRegistry;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
@@ -89,10 +93,14 @@ final class FeatureServiceProvider extends FeatureModule
     {
         parent::boot();
 
+        $this->app->make(RequestExampleRegistry::class)->register(new MembershipRequestExampleContributor);
+
         Livewire::component('pages.membership-applications.create', Create::class);
         Livewire::component('pages.membership-applications.index', Index::class);
 
         $this->app->make(RecordActionContributorRegistry::class)->register($this->app->make(MembershipApplicationRecordActionContributor::class));
+
+        $this->app->make(FrontendFormContractRegistry::class)->register(MembershipApplicationFormContractContributor::class);
 
         $surfaces = $this->app->make(McpSurfaceRegistry::class);
 

@@ -707,14 +707,6 @@
     },
     {
       "rule": "feature-private",
-      "file": "app/Features/Contributions/Services/SubmissionContextResolver.php",
-      "target": "App\\Features\\Events\\Support\\SubmissionTimingPolicy",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
       "file": "app/Features/Discovery/EntryPoints/Http/Data/EventListData.php",
       "target": "App\\Features\\Events\\EntryPoints\\Ui\\EventCategoryPresenter",
       "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
@@ -1807,22 +1799,6 @@
       "target": "App\\Features\\Discovery\\Services\\EventSearchService",
       "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
       "owner": "Discovery",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
-      "target": "App\\Features\\ShareTracking\\Services\\AffiliatesShareTrackingService",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "ShareTracking",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
-      "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
-      "target": "App\\Features\\Events\\Support\\SubmissionTimingPolicy",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
       "expires": "2027-12-31"
     },
     {

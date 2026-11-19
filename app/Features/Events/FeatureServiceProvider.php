@@ -53,6 +53,8 @@ use App\Features\Events\Api\EventShareCardCache;
 use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Events\Api\EventSubmissionOptionsCache;
 use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Frontend\AdvancedEventFormContractContributor;
+use App\Features\Events\Api\Frontend\SubmitEventFormContractContributor;
 use App\Features\Events\Api\GuestEventSubmissionClaims;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
@@ -61,6 +63,7 @@ use App\Features\Events\Api\ProductSignalsInsights;
 use App\Features\Events\Api\RegistrationExportAccess;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Api\ShareCardWarmScheduler;
+use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\TaxonomyCatalog;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
@@ -69,6 +72,7 @@ use App\Features\Events\EntryPoints\Admin\Member\EventMemberResourceHooks;
 use App\Features\Events\EntryPoints\Admin\RecordActions\EventRecordActionContributor;
 use App\Features\Events\EntryPoints\Admin\Resources\EventAdminHooks;
 use App\Features\Events\EntryPoints\Admin\Resources\EventMutationHooks;
+use App\Features\Events\EntryPoints\ApiDocumentation\EventsRequestExampleContributor;
 use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
 use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
 use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
@@ -122,12 +126,16 @@ use App\Features\Events\Services\ProductSignalsInsightsService;
 use App\Features\Events\Services\SeriesAuthoringService;
 use App\Features\Events\Support\EventModel;
 use App\Features\Events\Support\ScopedEventDeletionScope;
+use App\Features\Events\Support\SubmissionTimingPolicy;
+use App\Features\Events\Support\Telemetry\EventsSignalSchemaContributor;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Admin\FilamentWidgetRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
+use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
@@ -135,6 +143,7 @@ use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Search\EventDiscoveryReaders;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 use Illuminate\Support\Facades\Schedule;
 
 /**
@@ -207,6 +216,8 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventDiscoveryReaders::class, EventDiscoveryReaderFactory::class);
         $this->app->bind(EventDiscoveryReader::class, PostgresEventDiscovery::class);
         $this->app->bind(EventScheduleQuery::class, PostgresEventDiscovery::class);
+
+        $this->app->bind(SubmissionTimingContract::class, SubmissionTimingPolicy::class);
 
         $this->app->bind(AdminEventModeration::class, AdminEventModerationService::class);
 
@@ -300,6 +311,11 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(EventContributionProjection::class));
 
+        $this->registerFrontendFormContracts();
+
+        $this->app->make(SignalSchemaRegistry::class)->register(new EventsSignalSchemaContributor);
+        $this->app->make(RequestExampleRegistry::class)->register(new EventsRequestExampleContributor);
+
         parent::boot();
 
         $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(EventMemberResourceHooks::class));
@@ -334,6 +350,14 @@ class FeatureServiceProvider extends FeatureModule
             searchColumns: ['title', 'slug'],
             labelAttribute: 'title',
         ));
+    }
+
+    private function registerFrontendFormContracts(): void
+    {
+        $contracts = $this->app->make(FrontendFormContractRegistry::class);
+
+        $contracts->register(SubmitEventFormContractContributor::class);
+        $contracts->register(AdvancedEventFormContractContributor::class);
     }
 
     private function registerMcpSurfaces(): void

@@ -8,6 +8,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Features\Contributions\Services\SubmissionContextResolver;
+use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
@@ -31,7 +32,7 @@ use Throwable;
  * lives in HardcodedPrayerFallback and is shared by every consumer.
  * Stored datetimes are always UTC; display-timezone concerns stay with callers.
  */
-final class SubmissionTimingPolicy
+final class SubmissionTimingPolicy implements SubmissionTimingContract
 {
     /**
      * Preferred representative when a country's linked zones share one

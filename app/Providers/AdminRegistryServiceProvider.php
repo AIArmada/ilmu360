@@ -10,6 +10,9 @@ use App\Platform\Admin\FilamentWidgetRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Admin\AdminResourceHookRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
+use App\Platform\Api\Frontend\Contributors\FrontendManifestContributor;
+use App\Platform\Api\Frontend\Contributors\MobileTelemetryFormContractContributor;
+use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\Auditing\EntryPoints\Filament\Resources\Audits\AuditResource;
 use Illuminate\Support\ServiceProvider;
@@ -29,7 +32,16 @@ class AdminRegistryServiceProvider extends ServiceProvider
         $this->app->singleton(MemberResourceHookRegistry::class);
         $this->app->singleton(AdminResourceHookRegistry::class);
         $this->app->singleton(RecordActionContributorRegistry::class);
+        $this->app->singleton(FrontendFormContractRegistry::class);
 
         $this->app->make(FilamentResourceRegistry::class)->register(AuditResource::class);
+    }
+
+    public function boot(): void
+    {
+        $contracts = $this->app->make(FrontendFormContractRegistry::class);
+
+        $contracts->register(FrontendManifestContributor::class);
+        $contracts->register(MobileTelemetryFormContractContributor::class);
     }
 }

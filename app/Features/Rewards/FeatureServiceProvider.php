@@ -40,8 +40,10 @@ use App\Features\Rewards\Policies\RewardProgramPolicy;
 use App\Features\Rewards\Policies\RewardRecoveryPolicy;
 use App\Features\Rewards\Support\DigestRewardGratitudePlanner;
 use App\Features\Rewards\Support\PublishedProgramVersionsAdapter;
+use App\Features\Rewards\Support\Telemetry\RewardsSignalSchemaContributor;
 use App\Features\Rewards\Support\VouchersRewardBenefitCouponFulfillment;
 use App\Platform\FeatureModule;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Auth\AccountActor;
 use Illuminate\Support\Facades\Gate;
 
@@ -143,6 +145,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(SignalSchemaRegistry::class)->register(new RewardsSignalSchemaContributor);
 
         Gate::policy(RewardAppeal::class, RewardAppealPolicy::class);
         Gate::policy(RewardAward::class, RewardAwardPolicy::class);

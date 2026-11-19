@@ -6,6 +6,7 @@ namespace App\Features\Institutions;
 
 use App\Features\Institutions\Actions\InstitutionSubmissionAccessAction;
 use App\Features\Institutions\Actions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Institutions\Api\Frontend\InstitutionWorkspaceFormContractContributor;
 use App\Features\Institutions\Api\InstitutionCatalog;
 use App\Features\Institutions\Api\InstitutionHomepageStats;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
@@ -18,6 +19,7 @@ use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\EntryPoints\Admin\Member\InstitutionMemberResourceHooks;
 use App\Features\Institutions\EntryPoints\Admin\Resources\InstitutionMutationHooks;
+use App\Features\Institutions\EntryPoints\ApiDocumentation\InstitutionWorkspaceRequestExampleContributor;
 use App\Features\Institutions\EntryPoints\Console\Commands\PruneOrphanedEntities;
 use App\Features\Institutions\EntryPoints\Console\FlagStaleInactiveInstitutions;
 use App\Features\Institutions\EntryPoints\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
@@ -34,12 +36,16 @@ use App\Features\Institutions\Queries\InstitutionContributionProjection;
 use App\Features\Institutions\Services\EloquentInstitutionCatalog;
 use App\Features\Institutions\Services\InstitutionVenueLinkService;
 use App\Features\Institutions\Services\InstitutionWorkflowService;
+use App\Features\Institutions\Support\Telemetry\InstitutionsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
+use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -74,7 +80,12 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(InstitutionContributionProjection::class));
 
+        $this->app->make(SignalSchemaRegistry::class)->register(new InstitutionsSignalSchemaContributor);
+        $this->app->make(RequestExampleRegistry::class)->register(new InstitutionWorkspaceRequestExampleContributor);
+
         parent::boot();
+
+        $this->app->make(FrontendFormContractRegistry::class)->register(InstitutionWorkspaceFormContractContributor::class);
 
         $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(InstitutionMemberResourceHooks::class));
 

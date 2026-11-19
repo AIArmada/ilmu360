@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Features\GitHubIssues;
 
 use App\Features\GitHubIssues\Actions\SubmitGitHubIssueReportAction;
+use App\Features\GitHubIssues\Api\Frontend\GitHubIssueReportFormContractContributor;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\GitHubIssues\Api\SubmitGitHubIssueReport;
+use App\Features\GitHubIssues\EntryPoints\ApiDocumentation\GitHubIssuesRequestExampleContributor;
 use App\Features\GitHubIssues\EntryPoints\Mcp\Tools\AdminCreateGitHubIssueTool;
 use App\Features\GitHubIssues\EntryPoints\Mcp\Tools\MemberCreateGitHubIssueTool;
 use App\Features\GitHubIssues\Persistence\GitHubIssueReporter;
 use App\Features\GitHubIssues\Services\NullGitHubIssueReporter;
+use App\Platform\Api\Frontend\FrontendFormContractRegistry;
+use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 
@@ -31,6 +35,10 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(RequestExampleRegistry::class)->register(new GitHubIssuesRequestExampleContributor);
+
+        $this->app->make(FrontendFormContractRegistry::class)->register(GitHubIssueReportFormContractContributor::class);
 
         $surfaces = $this->app->make(McpSurfaceRegistry::class);
 
