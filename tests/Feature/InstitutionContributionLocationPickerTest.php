@@ -14,10 +14,10 @@ use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitInstitution;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitPerson;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SuggestUpdate;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Ui\Forms\SharedFormSchema;
@@ -1598,7 +1598,7 @@ it('refuses to wipe all donation channels when every submitted row is invalid', 
         ]);
     });
 
-    expect(fn () => app(ContributionEntityStateService::class)->apply($institution, [
+    expect(fn () => app(InstitutionWorkflow::class)->applyContribution((string) $institution->getKey(), [
         'donation_channels' => [[
             'recipient' => 'Jawatankuasa Surau',
             'method' => 'ewallet',

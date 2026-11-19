@@ -50,18 +50,18 @@ use App\Shared\Contributions\InstitutionClaimGuard;
  * duplicate re-check, staged-entity verification, mutate-then-status order,
  * post-transaction notification and staged-media ordering all stay identical.
  * Directory and Events row mutations run through their public Api contracts;
- * the root ContributionEntityStateService stays a read/projection adapter
- * and holds no request writes.
+ * ContributionEntityStateService is a neutral dispatcher over owner-published
+ * contribution projections and holds no entity schema, model or write.
  *
  * ContributionsAccountLifecycleContributor rewrites proposer/reviewer links
  * during account deletion/restoration. It is tagged here with the unchanged
  * `contributions` key and priority 60 so existing deleted-account snapshots
  * stay readable.
  *
- * Reads stay conventional for now: the request reader Api, the Resolve, Find
- * and Ensure query actions, the notification service and the ContributionEntity
- * MutationService projection remain root; the feature consumes the small
- * Shared state/guard/notifier seams they implement.
+ * Reads stay conventional: the request reader Api, the Resolve, Find and
+ * Ensure query actions, and the notification service. Per-entity form
+ * contracts, current state and update rules are published by each owner and
+ * composed through the Shared ContributionProjection contract.
  */
 class FeatureServiceProvider extends FeatureModule
 {

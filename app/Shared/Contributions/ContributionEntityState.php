@@ -8,10 +8,9 @@ namespace App\Shared\Contributions;
  * Current contribution state projected from an entity.
  *
  * Contributions computes `original_data` for update requests from the target
- * entity's current state. The projection stays with the conventional
- * ContributionEntityStateService while the owning features still expose
- * their state through it; this contract lets the Contributions feature consume
- * the projection without importing the root adapter.
+ * entity's current state. The owning feature publishes the projection and the
+ * Contributions dispatcher resolves it by persisted morph alias, so callers
+ * never import entity models or private owner schema.
  */
 interface ContributionEntityState
 {

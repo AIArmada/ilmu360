@@ -26,11 +26,13 @@ use App\Features\Persons\Persistence\PersonListingCacheVersionStore;
 use App\Features\Persons\Persistence\PersonSearchCacheStore;
 use App\Features\Persons\Persistence\PersonSubmissionOptionsCacheStore;
 use App\Features\Persons\Queries\EloquentPersonLookup;
+use App\Features\Persons\Queries\PersonContributionProjection;
 use App\Features\Persons\Services\EloquentPersonCatalog;
 use App\Features\Persons\Services\PersonWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 
@@ -66,6 +68,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(PersonContributionProjection::class));
+
         parent::boot();
 
         $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(PersonMemberResourceHooks::class));

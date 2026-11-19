@@ -6,7 +6,6 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Actions\SyncPersonRelationsAction;
@@ -70,7 +69,7 @@ it('preserves area assignments when direct updates omit them', function () {
     $user = User::factory()->create();
     $geo = createTestPackageGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid Kekal Daerah',
         'type' => 'masjid',
         'address' => [
@@ -102,7 +101,7 @@ it('clears area assignments when direct updates explicitly empty them', function
     $user = User::factory()->create();
     $geo = createTestPackageGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid Padam Daerah',
         'type' => 'masjid',
         'address' => [
@@ -235,7 +234,7 @@ it('uses only UUID country ids as country selections', function () {
 it('rejects a non-uuid country selection on a sparse address update', function () {
     $user = User::factory()->create();
     $geo = createTestPackageGeography();
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid Negara Sedia Ada',
         'type' => 'masjid',
         'address' => [

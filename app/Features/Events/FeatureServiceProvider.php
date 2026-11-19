@@ -83,6 +83,7 @@ use App\Features\Events\Persistence\EventSearchCacheStore;
 use App\Features\Events\Persistence\EventShareCardCacheStore;
 use App\Features\Events\Persistence\EventSubmissionOptionsCacheStore;
 use App\Features\Events\Persistence\ProductSignalsDashboardCacheStore;
+use App\Features\Events\Queries\EventContributionProjection;
 use App\Features\Events\Services\AdminEventWriterService;
 use App\Features\Events\Services\EventAccountOwnershipService;
 use App\Features\Events\Services\EventAuthoringService;
@@ -103,6 +104,7 @@ use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Admin\FilamentWidgetRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -268,6 +270,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(EventContributionProjection::class));
+
         parent::boot();
 
         $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(EventMemberResourceHooks::class));

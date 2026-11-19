@@ -30,12 +30,14 @@ use App\Features\Institutions\Persistence\InstitutionListingCacheVersionStore;
 use App\Features\Institutions\Persistence\InstitutionSearchCacheStore;
 use App\Features\Institutions\Persistence\InstitutionSubmissionOptionsCacheStore;
 use App\Features\Institutions\Queries\EloquentInstitutionLookup;
+use App\Features\Institutions\Queries\InstitutionContributionProjection;
 use App\Features\Institutions\Services\EloquentInstitutionCatalog;
 use App\Features\Institutions\Services\InstitutionVenueLinkService;
 use App\Features\Institutions\Services\InstitutionWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 
@@ -70,6 +72,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(InstitutionContributionProjection::class));
+
         parent::boot();
 
         $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(InstitutionMemberResourceHooks::class));

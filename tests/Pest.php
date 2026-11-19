@@ -1099,3 +1099,24 @@ function publishEventChangeForTest(
 
     return EventChangeAnnouncement::query()->with(['event', 'replacementEvent'])->findOrFail($id);
 }
+
+function createContributionInstitution(array $payload, User $proposer): Institution
+{
+    return Institution::query()->findOrFail(
+        app(App\Features\Institutions\Api\InstitutionWorkflow::class)->createFromContribution($payload, (string) $proposer->getKey()),
+    );
+}
+
+function createContributionPerson(array $payload, User $proposer): Person
+{
+    return Person::query()->findOrFail(
+        app(App\Features\Persons\Api\PersonWorkflow::class)->createFromContribution($payload, (string) $proposer->getKey()),
+    );
+}
+
+function createContributionReference(array $payload): App\Features\References\Models\Reference
+{
+    return App\Features\References\Models\Reference::query()->withoutOwnerScope()->findOrFail(
+        app(App\Features\References\Api\ReferenceWorkflow::class)->createFromContribution($payload),
+    );
+}

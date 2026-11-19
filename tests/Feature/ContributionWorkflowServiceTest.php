@@ -56,7 +56,7 @@ it('creates staged pending institution records with structured relation data', f
 
     $country = ensureTestMalaysiaCountry();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid Al-Bayan',
         'type' => 'masjid',
         'description' => 'Pusat ilmu masyarakat.',
@@ -80,7 +80,7 @@ it('creates staged pending institution records with structured relation data', f
 it('creates staged pending person records with structured relation data', function () {
     $proposer = User::factory()->create();
 
-    $person = app(ContributionEntityStateService::class)->createPerson([
+    $person = createContributionPerson([
         'name' => 'Ustaz Arif',
         'gender' => 'male',
         'bio' => ['type' => 'doc', 'content' => []],

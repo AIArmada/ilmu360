@@ -170,6 +170,7 @@ use App\Platform\Auth\Listeners\SendRegisteredUserEmails;
 use App\Platform\Auth\PassportKeyProvisioner;
 use App\Platform\Captcha\NullCaptchaVerifier;
 use App\Platform\Captcha\TurnstileVerifier;
+use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\Language\Api\LanguageOptions;
 use App\Platform\Language\DatabaseLanguageCatalog;
 use App\Platform\Language\EloquentLanguageOptions;
@@ -324,6 +325,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
         $this->app->bind(EventEngagement::class, EloquentEngagementReader::class);
         $this->app->bind(SubjectFollows::class, EloquentEngagementReader::class);
+        $this->app->singleton(ContributionProjectionRegistry::class);
         $this->app->bind(ContributionEntityState::class, ContributionEntityStateService::class);
         $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
         $this->app->tag([

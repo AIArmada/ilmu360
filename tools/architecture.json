@@ -2546,12 +2546,6 @@
       "removal_task": "Replace direct Reference Eloquent reads with the owning feature Api in this owner slice.",
       "expires": "2027-03-31"
     },
-    "app/Features/Contributions/Services/ContributionEntityStateService.php": {
-      "owner": "Contributions",
-      "reason": "Temporary read-only ORM adapter reading Institution, Person, Reference; no owner writes occur here.",
-      "removal_task": "Replace direct Institution, Person, Reference Eloquent reads with the owning feature Api in this owner slice.",
-      "expires": "2027-03-31"
-    },
     "app/Features/Contributions/Services/EntitySubmissionAccess.php": {
       "owner": "Contributions",
       "reason": "Temporary read-only ORM adapter reading Institution, Person, Venue; no owner writes occur here.",

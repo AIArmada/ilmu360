@@ -8,7 +8,6 @@ use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
-use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Features\Events\Actions\Authoring\GenerateEventSlugAction;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Features\Events\Models\Event;
@@ -53,7 +52,7 @@ it('creates an institution slug redirect only after the old public path has been
     $proposer = User::factory()->create();
     $geography = createSlugRedirectGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid Lama',
         'type' => 'masjid',
         'address' => slugRedirectAddressPayload($geography),
@@ -82,7 +81,7 @@ it('creates a person slug redirect when a visited slug changes', function () {
     $proposer = User::factory()->create();
     $country = createSlugRedirectCountry();
 
-    $person = app(ContributionEntityStateService::class)->createPerson([
+    $person = createContributionPerson([
         'name' => 'Ustaz Lama',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
@@ -298,7 +297,7 @@ it('does not create redirect rows for unvisited slug changes', function () {
     $proposer = User::factory()->create();
     $geography = createSlugRedirectGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid Tidak Dilawat',
         'type' => 'masjid',
         'address' => slugRedirectAddressPayload($geography),
@@ -381,7 +380,7 @@ it('redirects old institution slugs to the current canonical public url', functi
     $proposer = User::factory()->create();
     $geography = createSlugRedirectGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid Laluan Lama',
         'type' => 'masjid',
         'address' => slugRedirectAddressPayload($geography),
@@ -411,7 +410,7 @@ it('shows slug redirects in the admin resource table', function () {
     $proposer = User::factory()->create();
     $geography = createSlugRedirectGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid Admin Lama',
         'type' => 'masjid',
         'address' => slugRedirectAddressPayload($geography),
@@ -441,7 +440,7 @@ it('allows administrators to create slug redirects in the admin resource', funct
     $proposer = User::factory()->create();
     $geography = createSlugRedirectGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid CRUD Baru',
         'type' => 'masjid',
         'address' => slugRedirectAddressPayload($geography),
@@ -475,7 +474,7 @@ it('allows administrators to edit slug redirects without changing usage metrics'
     $proposer = User::factory()->create();
     $geography = createSlugRedirectGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid CRUD Edit',
         'type' => 'masjid',
         'address' => slugRedirectAddressPayload($geography),
@@ -523,7 +522,7 @@ it('allows administrators to delete slug redirects in the admin resource', funct
     $proposer = User::factory()->create();
     $geography = createSlugRedirectGeography();
 
-    $institution = app(ContributionEntityStateService::class)->createInstitution([
+    $institution = createContributionInstitution([
         'name' => 'Masjid CRUD Padam',
         'type' => 'masjid',
         'address' => slugRedirectAddressPayload($geography),

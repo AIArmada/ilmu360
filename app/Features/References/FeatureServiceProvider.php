@@ -20,6 +20,7 @@ use App\Features\References\Models\Reference;
 use App\Features\References\Persistence\ReferenceHomepageStatsCacheStore;
 use App\Features\References\Persistence\ReferenceSearchCacheStore;
 use App\Features\References\Queries\EloquentReferenceLookup;
+use App\Features\References\Queries\ReferenceContributionProjection;
 use App\Features\References\Queries\ReferenceResourceSearchAdapter;
 use App\Features\References\Services\EloquentReferenceCatalog;
 use App\Features\References\Services\ReferenceQueryService;
@@ -27,6 +28,7 @@ use App\Features\References\Services\ReferenceWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -59,6 +61,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(ReferenceContributionProjection::class));
+
         parent::boot();
 
         $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(ReferenceMemberResourceHooks::class));
