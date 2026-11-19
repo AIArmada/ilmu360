@@ -6,13 +6,13 @@ use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberPermissions;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipPermissionEvaluator;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -50,13 +50,13 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
 
     public function canInstitution(AccountActor $user, string $permission, Institution $institution): bool
     {
-        return $this->memberCan(MembershipSubjectType::Institution, (string) $institution->getKey(), $user, $permission);
+        return $this->memberCan(MemberSubjectType::Institution, (string) $institution->getKey(), $user, $permission);
     }
 
     public function canPerson(AccountActor $user, string $permission, Person $person): bool
     {
         return $this->memberCan(
-            MembershipSubjectType::Person,
+            MemberSubjectType::Person,
             (string) $person->getKey(),
             $user,
             $permission,
@@ -66,12 +66,12 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
 
     public function canOrganization(AccountActor $user, string $permission, Organization $organization): bool
     {
-        return $this->memberCan(MembershipSubjectType::Organization, (string) $organization->getKey(), $user, $permission);
+        return $this->memberCan(MemberSubjectType::Organization, (string) $organization->getKey(), $user, $permission);
     }
 
     public function canEvent(AccountActor $user, string $permission, Event $event): bool
     {
-        return $this->memberCan(MembershipSubjectType::Event, (string) $event->getKey(), $user, $permission);
+        return $this->memberCan(MemberSubjectType::Event, (string) $event->getKey(), $user, $permission);
     }
 
     public function canEventThroughPerson(AccountActor $user, string $permission, Event $event): bool
@@ -93,7 +93,7 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
         }
 
         return array_any(
-            $this->memberships->membershipsFor($user->actorId(), MembershipSubjectType::Person),
+            $this->memberships->membershipsFor($user->actorId(), MemberSubjectType::Person),
             static fn ($membership): bool => in_array($membership->subjectId, $personIds, true)
                 && in_array($membership->role, $roles, true),
         );
@@ -101,13 +101,13 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
 
     public function canReference(AccountActor $user, string $permission, Reference $reference): bool
     {
-        return $this->memberCan(MembershipSubjectType::Reference, (string) $reference->getKey(), $user, $permission);
+        return $this->memberCan(MemberSubjectType::Reference, (string) $reference->getKey(), $user, $permission);
     }
 
     public function canOnSubject(
         string $accountId,
         string $permission,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): bool {
         $account = User::query()->find($accountId);
@@ -139,7 +139,7 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
     public function hasAnyOnSubjectType(
         string $accountId,
         string $permission,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
     ): bool {
         $account = User::query()->find($accountId);
 
@@ -148,16 +148,16 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
         }
 
         return match ($subjectType) {
-            MembershipSubjectType::Institution => $this->hasAnyInstitutionPermission($account, $permission),
-            MembershipSubjectType::Person => $this->hasAnyPersonPermission($account, $permission),
-            MembershipSubjectType::Event => $this->hasAnyEventPermission($account, $permission),
-            MembershipSubjectType::Reference => $this->hasAnyReferencePermission($account, $permission),
-            MembershipSubjectType::Organization => $this->hasAnyOrganizationPermission($account, $permission),
+            MemberSubjectType::Institution => $this->hasAnyInstitutionPermission($account, $permission),
+            MemberSubjectType::Person => $this->hasAnyPersonPermission($account, $permission),
+            MemberSubjectType::Event => $this->hasAnyEventPermission($account, $permission),
+            MemberSubjectType::Reference => $this->hasAnyReferencePermission($account, $permission),
+            MemberSubjectType::Organization => $this->hasAnyOrganizationPermission($account, $permission),
         };
     }
 
     public function memberAccountIdsWithPermission(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $permission,
     ): array {
@@ -190,19 +190,19 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
 
     public function hasAnyInstitutionPermission(AccountActor $user, string $permission): bool
     {
-        return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Institution, $permission);
+        return $this->hasAnyMembershipWithPermission($user, MemberSubjectType::Institution, $permission);
     }
 
     public function hasAnyEventPermission(AccountActor $user, string $permission): bool
     {
-        return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Event, $permission);
+        return $this->hasAnyMembershipWithPermission($user, MemberSubjectType::Event, $permission);
     }
 
     public function hasAnyPersonPermission(AccountActor $user, string $permission): bool
     {
         return $this->hasAnyMembershipWithPermission(
             $user,
-            MembershipSubjectType::Person,
+            MemberSubjectType::Person,
             $permission,
             $this->eligiblePersonScopeRoles($permission),
         );
@@ -210,12 +210,12 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
 
     public function hasAnyOrganizationPermission(AccountActor $user, string $permission): bool
     {
-        return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Organization, $permission);
+        return $this->hasAnyMembershipWithPermission($user, MemberSubjectType::Organization, $permission);
     }
 
     public function hasAnyReferencePermission(AccountActor $user, string $permission): bool
     {
-        return $this->hasAnyMembershipWithPermission($user, MembershipSubjectType::Reference, $permission);
+        return $this->hasAnyMembershipWithPermission($user, MemberSubjectType::Reference, $permission);
     }
 
     /**
@@ -223,7 +223,7 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
      */
     public function institutionMembersWithPermission(Institution $institution, string $permission): Collection
     {
-        return $this->membersWithPermission(MembershipSubjectType::Institution, (string) $institution->getKey(), $permission);
+        return $this->membersWithPermission(MemberSubjectType::Institution, (string) $institution->getKey(), $permission);
     }
 
     /**
@@ -232,7 +232,7 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
     public function personMembersWithPermission(Person $person, string $permission): Collection
     {
         return $this->membersWithPermission(
-            MembershipSubjectType::Person,
+            MemberSubjectType::Person,
             (string) $person->getKey(),
             $permission,
             $this->eligiblePersonScopeRoles($permission),
@@ -244,19 +244,19 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
      */
     public function eventMembersWithPermission(Event $event, string $permission): Collection
     {
-        return $this->membersWithPermission(MembershipSubjectType::Event, (string) $event->getKey(), $permission);
+        return $this->membersWithPermission(MemberSubjectType::Event, (string) $event->getKey(), $permission);
     }
 
     private function subject(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): Institution|Person|Event|Reference|Organization|null {
         return match ($subjectType) {
-            MembershipSubjectType::Institution => Institution::query()->find($subjectId),
-            MembershipSubjectType::Person => Person::query()->find($subjectId),
-            MembershipSubjectType::Event => Event::query()->find($subjectId),
-            MembershipSubjectType::Reference => Reference::query()->find($subjectId),
-            MembershipSubjectType::Organization => Organization::query()->find($subjectId),
+            MemberSubjectType::Institution => Institution::query()->find($subjectId),
+            MemberSubjectType::Person => Person::query()->find($subjectId),
+            MemberSubjectType::Event => Event::query()->find($subjectId),
+            MemberSubjectType::Reference => Reference::query()->find($subjectId),
+            MemberSubjectType::Organization => Organization::query()->find($subjectId),
         };
     }
 
@@ -294,7 +294,7 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
      * @param  list<string>|null  $roles
      */
     private function memberCan(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         AccountActor $user,
         string $permission,
@@ -312,7 +312,7 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
      * @return Collection<int, User>
      */
     private function membersWithPermission(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $permission,
         ?array $roles = null,
@@ -346,7 +346,7 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
      */
     private function hasAnyMembershipWithPermission(
         AccountActor $user,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $permission,
         ?array $roles = null,
     ): bool {

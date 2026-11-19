@@ -11,6 +11,7 @@ use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Platform\Concurrency\MapsIdentityLock;
@@ -21,7 +22,6 @@ use App\Shared\Contributions\Enums\ContributionRequestType;
 use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Shared\Contributions\InstitutionClaimGuard;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -453,7 +453,7 @@ class ApproveContributionRequestAction
         }
 
         $this->membershipCommands->assignOwner(
-            MembershipSubjectType::Person,
+            MemberSubjectType::Person,
             (string) $entity->getKey(),
             (string) $user->getKey(),
         );

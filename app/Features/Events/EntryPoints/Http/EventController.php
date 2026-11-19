@@ -8,6 +8,7 @@ use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Discovery\EntryPoints\Http\Data\EventListData;
+use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\EntryPoints\Http\Data\EventGoingStateData;
 use App\Features\Engagement\EntryPoints\Http\Data\EventSaveStateData;
 use App\Features\Events\EntryPoints\Http\Data\EventMeData;
@@ -29,7 +30,6 @@ use App\Models\User;
 use App\Platform\Api\ApiPagination;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Discovery\SearchSignal;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Events\Enums\TimingMode;
@@ -646,7 +646,7 @@ class EventController extends Controller
             ->active()
             ->count();
 
-        $isGoing = app(EngagementReader::class)->isGoingToEvent(
+        $isGoing = app(EventEngagement::class)->isGoingToEvent(
             (string) $user->getKey(),
             (string) $event->getKey(),
         );

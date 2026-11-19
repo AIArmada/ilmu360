@@ -8,6 +8,7 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitations;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
 use App\Features\Membership\FeatureServiceProvider as MembershipFeatureServiceProvider;
@@ -28,7 +29,6 @@ use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubjectCatalog;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
@@ -53,23 +53,23 @@ it('reads subjects, roles and members from the current member pivots', function 
     $institutionId = (string) $institution->getKey();
 
     $memberships = $directory->membershipsFor($accountId);
-    $members = $directory->members(MembershipSubjectType::Institution, $institutionId);
+    $members = $directory->members(MemberSubjectType::Institution, $institutionId);
 
-    expect($directory->subjectIdsFor($accountId, MembershipSubjectType::Institution))
+    expect($directory->subjectIdsFor($accountId, MemberSubjectType::Institution))
         ->toBe([$institutionId])
-        ->and($directory->subjectIdsFor($accountId, MembershipSubjectType::Institution, 'owner'))->toBeEmpty()
-        ->and($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'admin'))
+        ->and($directory->subjectIdsFor($accountId, MemberSubjectType::Institution, 'owner'))->toBeEmpty()
+        ->and($directory->hasRole($accountId, MemberSubjectType::Institution, $institutionId, 'admin'))
         ->toBeTrue()
-        ->and($directory->hasRole($accountId, MembershipSubjectType::Institution, (string) $otherInstitution->getKey(), 'admin'))
+        ->and($directory->hasRole($accountId, MemberSubjectType::Institution, (string) $otherInstitution->getKey(), 'admin'))
         ->toBeFalse()
-        ->and($directory->hasAnyRole($accountId, MembershipSubjectType::Institution, $institutionId, ['owner', 'admin']))
+        ->and($directory->hasAnyRole($accountId, MemberSubjectType::Institution, $institutionId, ['owner', 'admin']))
         ->toBeTrue()
         ->and($memberships)->toHaveCount(1)
         ->and($memberships[0]->accountId)->toBe($accountId)
         ->and($memberships[0]->subjectId)->toBe($institutionId)
         ->and($members)->toHaveCount(1)
         ->and($members[0]->role)->toBe('admin')
-        ->and($directory->membershipsFor($accountId, MembershipSubjectType::Person))->toBeEmpty();
+        ->and($directory->membershipsFor($accountId, MemberSubjectType::Person))->toBeEmpty();
 });
 
 it('authorizes through the current member permission rules', function (): void {
@@ -82,17 +82,17 @@ it('authorizes through the current member permission rules', function (): void {
     $accountId = (string) $user->getKey();
     $institutionId = (string) $institution->getKey();
 
-    expect($authorization->can($accountId, 'institution.update', MembershipSubjectType::Institution, $institutionId))
+    expect($authorization->can($accountId, 'institution.update', MemberSubjectType::Institution, $institutionId))
         ->toBeTrue()
-        ->and($authorization->can($accountId, 'institution.delete', MembershipSubjectType::Institution, $institutionId))
+        ->and($authorization->can($accountId, 'institution.delete', MemberSubjectType::Institution, $institutionId))
         ->toBeFalse()
-        ->and($authorization->hasAny($accountId, 'institution.update', MembershipSubjectType::Institution))
+        ->and($authorization->hasAny($accountId, 'institution.update', MemberSubjectType::Institution))
         ->toBeTrue()
-        ->and($authorization->hasAny($accountId, 'unknown.permission', MembershipSubjectType::Institution))
+        ->and($authorization->hasAny($accountId, 'unknown.permission', MemberSubjectType::Institution))
         ->toBeFalse()
-        ->and($authorization->membersWithPermission(MembershipSubjectType::Institution, $institutionId, 'institution.update'))
+        ->and($authorization->membersWithPermission(MemberSubjectType::Institution, $institutionId, 'institution.update'))
         ->toContain($accountId)
-        ->and($authorization->membersWithPermission(MembershipSubjectType::Institution, $institutionId, 'institution.delete'))->toBeEmpty();
+        ->and($authorization->membersWithPermission(MemberSubjectType::Institution, $institutionId, 'institution.delete'))->toBeEmpty();
 });
 
 it('authorizes event access through person membership', function (): void {
@@ -166,11 +166,11 @@ it('resolves membership subjects through directory, organization and event bound
     $catalog = app(MembershipSubjectCatalog::class);
     $accountId = (string) $user->getKey();
 
-    $institutionSubject = $catalog->find(MembershipSubjectType::Institution, (string) $institution->getKey());
-    $personSubject = $catalog->find(MembershipSubjectType::Person, (string) $person->getKey());
-    $referenceSubject = $catalog->find(MembershipSubjectType::Reference, (string) $reference->getKey());
-    $eventSubject = $catalog->find(MembershipSubjectType::Event, (string) $event->getKey());
-    $organizationSubject = $catalog->find(MembershipSubjectType::Organization, (string) $organization->getKey());
+    $institutionSubject = $catalog->find(MemberSubjectType::Institution, (string) $institution->getKey());
+    $personSubject = $catalog->find(MemberSubjectType::Person, (string) $person->getKey());
+    $referenceSubject = $catalog->find(MemberSubjectType::Reference, (string) $reference->getKey());
+    $eventSubject = $catalog->find(MemberSubjectType::Event, (string) $event->getKey());
+    $organizationSubject = $catalog->find(MemberSubjectType::Organization, (string) $organization->getKey());
 
     expect($institutionSubject?->label)->toBe('Masjid Katalog')
         ->and($institutionSubject?->publicUrl)->toBe(route('institutions.show', $institution))
@@ -179,11 +179,11 @@ it('resolves membership subjects through directory, organization and event bound
         ->and($eventSubject?->label)->toBe('Majlis Katalog')
         ->and($eventSubject?->publicUrl)->toBe(route('events.show', ['event' => 'majlis-katalog']))
         ->and($organizationSubject?->label)->toBe('Organisasi Katalog')
-        ->and($catalog->exists(MembershipSubjectType::Institution, (string) $institution->getKey()))->toBeTrue()
-        ->and($catalog->find(MembershipSubjectType::Institution, 'missing-subject'))->toBeNull()
-        ->and(array_map(static fn ($subject): string => $subject->id, $catalog->forAccount($accountId, MembershipSubjectType::Institution)))
+        ->and($catalog->exists(MemberSubjectType::Institution, (string) $institution->getKey()))->toBeTrue()
+        ->and($catalog->find(MemberSubjectType::Institution, 'missing-subject'))->toBeNull()
+        ->and(array_map(static fn ($subject): string => $subject->id, $catalog->forAccount($accountId, MemberSubjectType::Institution)))
         ->toBe([(string) $institution->getKey()])
-        ->and(array_map(static fn ($subject): string => $subject->id, $catalog->forAccount($accountId, MembershipSubjectType::Organization)))
+        ->and(array_map(static fn ($subject): string => $subject->id, $catalog->forAccount($accountId, MemberSubjectType::Organization)))
         ->toBe([(string) $organization->getKey()]);
 
     $catalogSource = file_get_contents(base_path('app/Features/Membership/Services/EloquentMembershipSubjectCatalog.php'));
@@ -201,23 +201,23 @@ it('writes membership pivots through the command boundary', function (): void {
     $accountId = (string) $user->getKey();
     $institutionId = (string) $institution->getKey();
 
-    $commands->addMember(MembershipSubjectType::Institution, $institutionId, $accountId, 'viewer');
+    $commands->addMember(MemberSubjectType::Institution, $institutionId, $accountId, 'viewer');
 
-    expect($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'viewer'))->toBeTrue();
+    expect($directory->hasRole($accountId, MemberSubjectType::Institution, $institutionId, 'viewer'))->toBeTrue();
 
-    $commands->changeMemberRole(MembershipSubjectType::Institution, $institutionId, $accountId, 'editor');
+    $commands->changeMemberRole(MemberSubjectType::Institution, $institutionId, $accountId, 'editor');
 
-    expect($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'editor'))->toBeTrue()
-        ->and($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'viewer'))->toBeFalse();
+    expect($directory->hasRole($accountId, MemberSubjectType::Institution, $institutionId, 'editor'))->toBeTrue()
+        ->and($directory->hasRole($accountId, MemberSubjectType::Institution, $institutionId, 'viewer'))->toBeFalse();
 
-    $commands->removeMember(MembershipSubjectType::Institution, $institutionId, $accountId);
+    $commands->removeMember(MemberSubjectType::Institution, $institutionId, $accountId);
 
-    expect($directory->hasRole($accountId, MembershipSubjectType::Institution, $institutionId, 'editor'))->toBeFalse();
+    expect($directory->hasRole($accountId, MemberSubjectType::Institution, $institutionId, 'editor'))->toBeFalse();
 });
 
 it('rejects bulk detachment of package-owned organization memberships', function (): void {
     expect(fn () => app(MembershipCommands::class)->removeAllMembers(
-        MembershipSubjectType::Organization,
+        MemberSubjectType::Organization,
         'organization-id',
     ))->toThrow(InvalidArgumentException::class, 'Organization membership is owned by the Organizations package.');
 });
@@ -260,8 +260,8 @@ it('reads applications and invitations through the feature query boundaries', fu
     $invitations = app(MembershipInvitations::class);
 
     expect($invitations->findByToken('seam-invitation-token')?->email)->toBe('invitee@example.com')
-        ->and($invitations->pendingForSubject(MembershipSubjectType::Institution, (string) $institution->getKey()))->toHaveCount(1)
-        ->and($invitations->pendingExistsForEmail(MembershipSubjectType::Institution, (string) $institution->getKey(), 'INVITEE@example.com'))->toBeTrue()
+        ->and($invitations->pendingForSubject(MemberSubjectType::Institution, (string) $institution->getKey()))->toHaveCount(1)
+        ->and($invitations->pendingExistsForEmail(MemberSubjectType::Institution, (string) $institution->getKey(), 'INVITEE@example.com'))->toBeTrue()
         ->and($invitations->find((string) $invitation->getKey())?->id)->toBe((string) $invitation->getKey());
 });
 
@@ -273,7 +273,7 @@ it('submits, cancels and discards applications through the feature boundary', fu
     $applicantId = (string) $applicant->getKey();
 
     $submitted = $applications->submit(new SubmitMembershipApplicationInput(
-        subjectType: MembershipSubjectType::Institution,
+        subjectType: MemberSubjectType::Institution,
         subjectId: (string) $institution->getKey(),
         accountId: $applicantId,
         justification: 'I help manage this institution.',
@@ -301,7 +301,7 @@ it('writes the invitation lifecycle through the invitation boundary', function (
     $institutionId = (string) $institution->getKey();
 
     $invited = $invitations->invite(
-        MembershipSubjectType::Institution,
+        MemberSubjectType::Institution,
         $institutionId,
         'Boundary-Invitee@example.com',
         'admin',
@@ -311,9 +311,9 @@ it('writes the invitation lifecycle through the invitation boundary', function (
     expect($invited->email)->toBe('boundary-invitee@example.com')
         ->and($invited->role)->toBe('admin')
         ->and($invited->isValid)->toBeTrue()
-        ->and($invitations->pendingExistsForEmail(MembershipSubjectType::Institution, $institutionId, 'BOUNDARY-INVITEE@example.com'))->toBeTrue()
+        ->and($invitations->pendingExistsForEmail(MemberSubjectType::Institution, $institutionId, 'BOUNDARY-INVITEE@example.com'))->toBeTrue()
         ->and(fn () => $invitations->invite(
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             $institutionId,
             'boundary-invitee@example.com',
             'viewer',
@@ -326,7 +326,7 @@ it('writes the invitation lifecycle through the invitation boundary', function (
         ->and($institution->members()->whereKey($invitee->getKey())->exists())->toBeTrue();
 
     $pending = $invitations->invite(
-        MembershipSubjectType::Institution,
+        MemberSubjectType::Institution,
         $institutionId,
         'revoked-invitee@example.com',
         'viewer',

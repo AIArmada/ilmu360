@@ -2,28 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Engagement;
+namespace App\Features\Engagement\Api;
 
+use App\Shared\Engagement\EngagementActivity;
 use Carbon\CarbonImmutable;
 
-interface EngagementReader
+/**
+ * Immutable engagement activity facts used by rewards and notifications.
+ */
+interface EngagementActivityReader
 {
-    /** @return list<string> */
-    public function followedSubjectIds(string $accountId, EngagementSubjectType $subjectType): array;
-
-    /** @return list<string> */
-    public function savedEventIds(string $accountId): array;
-
-    /** @return list<string> */
-    public function goingEventIds(string $accountId): array;
-
-    public function hasSavedEvent(string $accountId, string $eventId): bool;
-
-    public function isGoingToEvent(string $accountId, string $eventId): bool;
-
-    /** @return list<string> */
-    public function followerAccountIds(EngagementSubjectType $subjectType, string $subjectId): array;
-
     public function bookmarkActivity(string $bookmarkId): ?EngagementActivity;
 
     public function responseActivity(string $responseId): ?EngagementActivity;

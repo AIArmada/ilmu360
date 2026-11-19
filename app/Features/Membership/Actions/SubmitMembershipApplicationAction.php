@@ -8,9 +8,9 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\ApplyForMembershipAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\InvitationStatus;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +37,7 @@ final readonly class SubmitMembershipApplicationAction
      * @param  array<string, mixed>  $meta
      */
     public function handle(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
         string $justification,
@@ -68,11 +68,11 @@ final readonly class SubmitMembershipApplicationAction
     private function assertClaimIsAvailable(
         Model $subject,
         Model $account,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
     ): void {
-        if ($subjectType === MembershipSubjectType::Institution || $subjectType === MembershipSubjectType::Person) {
+        if ($subjectType === MemberSubjectType::Institution || $subjectType === MemberSubjectType::Person) {
             foreach ($this->membershipDirectory->members($subjectType, $subjectId) as $member) {
                 if ($member->accountId === $accountId) {
                     throw new RuntimeException('membership_application_already_member');
@@ -114,7 +114,7 @@ final readonly class SubmitMembershipApplicationAction
         }
     }
 
-    private function subject(MembershipSubjectType $subjectType, string $subjectId): Model
+    private function subject(MemberSubjectType $subjectType, string $subjectId): Model
     {
         $modelClass = MorphModelResolver::resolve($subjectType->value);
 

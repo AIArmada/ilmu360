@@ -2,10 +2,10 @@
 
 namespace App\Features\Engagement\EntryPoints\Livewire\Components;
 
+use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventGoing;
 use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventSave;
 use App\Models\User;
-use App\Shared\Engagement\EngagementReader;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -105,7 +105,7 @@ class EventCardEngagement extends Component
             return;
         }
 
-        $reader = app(EngagementReader::class);
+        $reader = app(EventEngagement::class);
 
         $this->isSaved = $reader->hasSavedEvent(
             (string) $user->getKey(),

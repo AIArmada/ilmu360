@@ -11,8 +11,8 @@ use App\Features\Membership\Actions\AcceptSubjectMemberInvitation;
 use App\Features\Membership\Actions\InviteSubjectMember;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
@@ -55,7 +55,7 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
     }
 
     public function pendingForSubject(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): array {
         return $this->pendingQuery($subjectType, $subjectId)
@@ -66,7 +66,7 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
     }
 
     public function recentForSubject(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         int $limit = 20,
     ): array {
@@ -81,7 +81,7 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
     }
 
     public function pendingExistsForEmail(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $email,
     ): bool {
@@ -91,7 +91,7 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
     }
 
     public function invite(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $email,
         string $role,
@@ -132,7 +132,7 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
         $this->revokeInvitation->handle($invitation, $this->account($actorId));
     }
 
-    private function subject(MembershipSubjectType $subjectType, string $subjectId): Model
+    private function subject(MemberSubjectType $subjectType, string $subjectId): Model
     {
         $modelClass = MorphModelResolver::resolve($subjectType->value);
 
@@ -150,7 +150,7 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
      * @return Builder<\App\Features\Membership\Models\MemberInvitation>
      */
     private function pendingQuery(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): Builder {
         return $this->query()

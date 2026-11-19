@@ -11,7 +11,6 @@ use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Shared\Membership\MembershipSubjectCatalog;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -180,15 +179,15 @@ final class MembershipApplicationAdminPresenter
         $subjectTypeValue = $application->subject_type instanceof \BackedEnum
             ? $application->subject_type->value
             : (string) $application->subject_type;
-        $subjectType = MembershipSubjectType::tryFrom((string) $subjectTypeValue);
+        $subjectType = MemberSubjectType::tryFrom((string) $subjectTypeValue);
 
-        if (! $subjectType instanceof MembershipSubjectType) {
+        if (! $subjectType instanceof MemberSubjectType) {
             return null;
         }
 
         $subject = app(MembershipSubjectCatalog::class)->find($subjectType, (string) $application->subject_id);
 
-        if ($subject === null || ! in_array($subjectType, [MembershipSubjectType::Institution, MembershipSubjectType::Person], true)) {
+        if ($subject === null || ! in_array($subjectType, [MemberSubjectType::Institution, MemberSubjectType::Person], true)) {
             return null;
         }
 

@@ -7,8 +7,8 @@ namespace App\Features\Membership\Actions;
 use AIArmada\Membership\Contracts\MembershipHook;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Shared\Membership\MembershipAuthorization;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -125,7 +125,7 @@ final readonly class TransferPersonOwnershipAction
         if (! $this->membershipAuthorization->can(
             (string) $actor->getKey(),
             'person.transfer-ownership',
-            MembershipSubjectType::Person,
+            MemberSubjectType::Person,
             (string) $person->getKey(),
         )) {
             throw new AuthorizationException('Only the current speaker owner can transfer ownership.');

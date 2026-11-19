@@ -10,6 +10,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
@@ -19,7 +20,6 @@ use App\Features\Places\Models\Venue;
 use App\Features\References\Api\ReferenceQueries;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\PublicScheduleSlug;
 use App\Shared\Prayer\EventPrayerTime;
@@ -143,7 +143,7 @@ final readonly class PublicScheduleDiscoveryService
     /** @return Collection<int, PublicScheduleLeaf> */
     public function homepageSelection(?User $user): Collection
     {
-        $engagement = app(EngagementReader::class);
+        $engagement = app(SubjectFollows::class);
         $accountId = $user?->getKey() !== null ? (string) $user->getKey() : null;
         $personIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Person) : [];
         $institutionIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Institution) : [];

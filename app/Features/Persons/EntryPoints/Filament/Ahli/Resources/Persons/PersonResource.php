@@ -2,6 +2,7 @@
 
 namespace App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons;
 
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\Pages\EditPerson;
 use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\Pages\ListPersons;
 use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\Pages\ViewPerson;
@@ -11,7 +12,6 @@ use App\Features\Persons\Models\Person;
 use App\Platform\Auditing\AuditsRelationManager;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
@@ -50,7 +50,7 @@ class PersonResource extends AdminPersonResource
 
         $subjectIds = app(MembershipDirectory::class)->subjectIdsFor(
             $user->actorId(),
-            MembershipSubjectType::Person,
+            MemberSubjectType::Person,
         );
 
         return $query->whereIn('persons.id', $subjectIds);

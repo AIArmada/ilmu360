@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Api\PersonSubmissionEligibility;
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
 use App\Features\Persons\Models\Person;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -95,7 +95,7 @@ final readonly class PersonSubmissionAccessAction implements PersonSubmissionAcc
     public function syncForAccount(string $accountId): int
     {
         $personIds = Person::query()
-            ->whereKey($this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Person))
+            ->whereKey($this->memberships->subjectIdsFor($accountId, MemberSubjectType::Person))
             ->where('allow_public_event_submission', false)
             ->pluck('persons.id')
             ->map(static fn (mixed $id): string => (string) $id)

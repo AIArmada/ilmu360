@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Membership;
 
+use App\Features\Membership\Api\MemberSubjectType;
+
 interface MembershipDirectory
 {
     /**
@@ -13,7 +15,7 @@ interface MembershipDirectory
      */
     public function subjectIdsFor(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         ?string $role = null,
     ): array;
 
@@ -24,7 +26,7 @@ interface MembershipDirectory
      */
     public function membershipsFor(
         string $accountId,
-        ?MembershipSubjectType $subjectType = null,
+        ?MemberSubjectType $subjectType = null,
     ): array;
 
     /**
@@ -32,11 +34,11 @@ interface MembershipDirectory
      *
      * @return list<MembershipRecord>
      */
-    public function members(MembershipSubjectType $subjectType, string $subjectId): array;
+    public function members(MemberSubjectType $subjectType, string $subjectId): array;
 
     public function hasRole(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $role,
     ): bool;
@@ -46,7 +48,7 @@ interface MembershipDirectory
      */
     public function hasAnyRole(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         array $roles,
     ): bool;
@@ -59,7 +61,7 @@ interface MembershipDirectory
      */
     public function hasAnyMembershipRole(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         array $roles,
     ): bool;
 }

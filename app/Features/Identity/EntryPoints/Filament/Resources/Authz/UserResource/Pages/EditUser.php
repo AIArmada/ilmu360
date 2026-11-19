@@ -16,7 +16,6 @@ use App\Features\Membership\Queries\MemberDirectorySummary;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Membership\MembershipSubjectType;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -142,7 +141,7 @@ class EditUser extends EditRecord
             $subject = $this->firstResolvedSubject($subjectType, $user);
 
             if ($subject !== null) {
-                $membershipSubjectType = MembershipSubjectType::from($subjectType->value);
+                $membershipSubjectType = MemberSubjectType::from($subjectType->value);
                 $subjectId = (string) $subject->getKey();
                 $accountId = (string) $user->getKey();
 
@@ -238,7 +237,7 @@ class EditUser extends EditRecord
 
     private function pivotRoleSlug(User $user, MemberSubjectType $subjectType): ?string
     {
-        $subjectType = MembershipSubjectType::from($subjectType->value);
+        $subjectType = MemberSubjectType::from($subjectType->value);
         $records = app(MemberDirectorySummary::class)->memberships($user, $subjectType);
         $record = $records[0] ?? null;
         $role = $record?->role;

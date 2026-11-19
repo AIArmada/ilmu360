@@ -14,6 +14,7 @@ use AIArmada\Events\Models\EventTerm;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventSaveCommands;
 use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventGoing;
 use App\Features\Events\Models\Event;
@@ -30,7 +31,6 @@ use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\Forms\SharedFormSchema;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Events\Enums\EventAgeGroup;
 use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Events\Enums\EventGenderRestriction;
@@ -1005,7 +1005,7 @@ class Index extends Component implements HasForms
             return;
         }
 
-        if (app(EngagementReader::class)->hasSavedEvent((string) $user->getKey(), (string) $event->getKey())) {
+        if (app(EventEngagement::class)->hasSavedEvent((string) $user->getKey(), (string) $event->getKey())) {
             app(EventSaveCommands::class)->unsave((string) $event->getKey(), (string) $user->getKey());
 
             return;
@@ -1039,7 +1039,7 @@ class Index extends Component implements HasForms
         }
 
         return array_values(array_intersect(
-            app(EngagementReader::class)->savedEventIds((string) $user->getKey()),
+            app(EventEngagement::class)->savedEventIds((string) $user->getKey()),
             $eventIds,
         ));
     }
@@ -1773,7 +1773,7 @@ class Index extends Component implements HasForms
             return $this->savedEventIdsForFilterCache = [];
         }
 
-        return $this->savedEventIdsForFilterCache = app(EngagementReader::class)
+        return $this->savedEventIdsForFilterCache = app(EventEngagement::class)
             ->savedEventIds((string) $user->getKey());
     }
 
@@ -1792,7 +1792,7 @@ class Index extends Component implements HasForms
             return $this->goingEventIdsForFilterCache = [];
         }
 
-        return $this->goingEventIdsForFilterCache = app(EngagementReader::class)
+        return $this->goingEventIdsForFilterCache = app(EventEngagement::class)
             ->goingEventIds((string) $user->getKey());
     }
 

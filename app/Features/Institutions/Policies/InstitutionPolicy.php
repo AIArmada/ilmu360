@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Policies;
 
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Membership\MembershipAuthorization;
-use App\Shared\Membership\MembershipSubjectType;
 
 class InstitutionPolicy
 {
@@ -36,7 +36,7 @@ class InstitutionPolicy
         return $this->authorization->can(
             $user->actorId(),
             'institution.view',
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
         );
     }
@@ -55,7 +55,7 @@ class InstitutionPolicy
         return $this->authorization->can(
             $user->actorId(),
             'institution.update',
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
         );
     }
@@ -69,7 +69,7 @@ class InstitutionPolicy
         return $this->authorization->can(
             $user->actorId(),
             'institution.delete',
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
         );
     }
@@ -88,7 +88,7 @@ class InstitutionPolicy
         return $this->authorization->can(
             $user->actorId(),
             'institution.manage-members',
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
         );
     }
@@ -102,7 +102,7 @@ class InstitutionPolicy
         return $this->authorization->can(
             $user->actorId(),
             'institution.manage-donation-channels',
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
         );
     }

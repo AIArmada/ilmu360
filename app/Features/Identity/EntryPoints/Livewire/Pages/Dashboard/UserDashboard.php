@@ -7,6 +7,8 @@ use AIArmada\Engagement\Models\Response;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
+use App\Features\Engagement\Api\EventEngagement;
+use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Institutions\Models\Institution;
@@ -21,7 +23,6 @@ use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;
 use App\Shared\Rewards\PublishedProgramVersions;
@@ -191,7 +192,7 @@ class UserDashboard extends Component
     public function followingInstitutions(): Collection
     {
         $user = $this->user();
-        $ids = app(EngagementReader::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Institution);
+        $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Institution);
 
         /** @var Collection<int, Institution> $institutions */
         $institutions = $ids === []
@@ -208,7 +209,7 @@ class UserDashboard extends Component
     public function followingReferences(): Collection
     {
         $user = $this->user();
-        $ids = app(EngagementReader::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Reference);
+        $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Reference);
 
         /** @var Collection<int, Reference> $references */
         $references = $ids === []
@@ -225,7 +226,7 @@ class UserDashboard extends Component
     public function followingPersons(): Collection
     {
         $user = $this->user();
-        $ids = app(EngagementReader::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Person);
+        $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Person);
 
         /** @var Collection<int, Person> $persons */
         $persons = $ids === []
@@ -629,7 +630,7 @@ class UserDashboard extends Component
      */
     protected function savedEventsQuery(User $user): Builder
     {
-        $ids = app(EngagementReader::class)->savedEventIds((string) $user->getKey());
+        $ids = app(EventEngagement::class)->savedEventIds((string) $user->getKey());
 
         return Event::query()
             ->whereKey($ids)

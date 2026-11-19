@@ -22,7 +22,7 @@ use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
@@ -549,7 +549,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function events(): HasMany
     {
-        return $this->hasMany(RelatedModels::event(Event::class));
+        return $this->hasMany(MorphModelResolver::resolve('event'));
     }
 
     /**
@@ -576,7 +576,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::user(User::class), 'verified_by');
+        return $this->belongsTo(MorphModelResolver::resolve('user'), 'verified_by');
     }
 
     /**
@@ -584,7 +584,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function memberInvitations(): HasMany
     {
-        return $this->hasMany(RelatedModels::memberInvitation(MemberInvitation::class), 'subject_id')
+        return $this->hasMany(MorphModelResolver::resolve('member_invitation'), 'subject_id')
             ->where('subject_type', $this->getMorphClass());
     }
 

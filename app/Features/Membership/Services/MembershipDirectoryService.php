@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipRecord;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,7 +29,7 @@ final readonly class MembershipDirectoryService implements MembershipDirectory
 
     public function subjectIdsFor(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         ?string $role = null,
     ): array {
         [$table, $subjectKey] = $this->subjectTable($subjectType);
@@ -48,11 +48,11 @@ final readonly class MembershipDirectoryService implements MembershipDirectory
 
     public function membershipsFor(
         string $accountId,
-        ?MembershipSubjectType $subjectType = null,
+        ?MemberSubjectType $subjectType = null,
     ): array {
-        $subjectTypes = $subjectType instanceof MembershipSubjectType
+        $subjectTypes = $subjectType instanceof MemberSubjectType
             ? [$subjectType]
-            : MembershipSubjectType::cases();
+            : MemberSubjectType::cases();
 
         $records = [];
 
@@ -78,7 +78,7 @@ final readonly class MembershipDirectoryService implements MembershipDirectory
         return $records;
     }
 
-    public function members(MembershipSubjectType $subjectType, string $subjectId): array
+    public function members(MemberSubjectType $subjectType, string $subjectId): array
     {
         [$table, $subjectKey] = $this->subjectTable($subjectType);
 
@@ -104,7 +104,7 @@ final readonly class MembershipDirectoryService implements MembershipDirectory
 
     public function hasRole(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $role,
     ): bool {
@@ -113,7 +113,7 @@ final readonly class MembershipDirectoryService implements MembershipDirectory
 
     public function hasAnyRole(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         array $roles,
     ): bool {
@@ -133,7 +133,7 @@ final readonly class MembershipDirectoryService implements MembershipDirectory
 
     public function hasAnyMembershipRole(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         array $roles,
     ): bool {
         [$table] = $this->subjectTable($subjectType);
@@ -152,9 +152,9 @@ final readonly class MembershipDirectoryService implements MembershipDirectory
     /**
      * @return array{0: string, 1: string}
      */
-    private function subjectTable(MembershipSubjectType $subjectType): array
+    private function subjectTable(MemberSubjectType $subjectType): array
     {
-        if ($subjectType === MembershipSubjectType::Organization) {
+        if ($subjectType === MemberSubjectType::Organization) {
             return [
                 (string) config('organizations.database.tables.members', 'organization_members'),
                 'organization_id',

@@ -8,11 +8,11 @@ use AIArmada\Organizations\Contracts\CurrentOrganizationResolver;
 use AIArmada\Organizations\Contracts\OrganizationAuthorization;
 use AIArmada\Organizations\Enums\OrganizationStatus;
 use AIArmada\Organizations\Models\Organization;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -73,7 +73,7 @@ final readonly class OrganizationAccessService implements OrganizationAccess
     {
         $organizationIds = $this->memberships->subjectIdsFor(
             $accountId,
-            MembershipSubjectType::Organization,
+            MemberSubjectType::Organization,
         );
 
         if ($organizationIds === []) {

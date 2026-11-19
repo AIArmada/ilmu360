@@ -54,7 +54,7 @@ use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Language\Models\Language;
 use App\Platform\Location\AddressAssignments;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use App\Platform\Moderation\Models\ModerationReview;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
@@ -1602,7 +1602,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function institution(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::institution(Institution::class));
+        return $this->belongsTo(MorphModelResolver::resolve('institution'));
     }
 
     /**
@@ -1610,7 +1610,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function venue(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::venue(Venue::class), 'default_venue_id');
+        return $this->belongsTo(MorphModelResolver::resolve('venue'), 'default_venue_id');
     }
 
     /**
@@ -1657,7 +1657,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $locations = PrimaryLocationSql::table();
 
         return $this->hasOneThrough(
-            RelatedModels::venue(Venue::class),
+            MorphModelResolver::resolve('venue'),
             EventLocation::class,
             'event_id',
             'id',
@@ -1830,7 +1830,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function persons(): BelongsToMany
     {
-        return $this->belongsToMany(RelatedModels::person(Person::class), 'event_involvements', 'event_id', 'involveable_id')
+        return $this->belongsToMany(MorphModelResolver::resolve('person'), 'event_involvements', 'event_id', 'involveable_id')
             ->using(EventKeyPersonPivot::class)
             ->withPivotValue('involveable_type', 'person')
             ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
@@ -1851,7 +1851,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function references(): BelongsToMany
     {
         return $this->belongsToMany(
-            RelatedModels::reference(Reference::class),
+            MorphModelResolver::resolve('reference'),
             config('events.database.tables.event_references', 'event_references'),
             'event_id',
             'referenceable_id',

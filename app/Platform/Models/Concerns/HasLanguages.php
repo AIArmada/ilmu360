@@ -3,7 +3,7 @@
 namespace App\Platform\Models\Concerns;
 
 use App\Platform\Language\Models\Language;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
@@ -18,7 +18,7 @@ trait HasLanguages
      */
     public function languages(): MorphToMany
     {
-        return $this->morphToMany(RelatedModels::language(Language::class), 'languageable', 'languageables');
+        return $this->morphToMany(MorphModelResolver::resolve('language'), 'languageable', 'languageables');
     }
 
     /**

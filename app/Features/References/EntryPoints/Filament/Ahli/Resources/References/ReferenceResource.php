@@ -2,6 +2,7 @@
 
 namespace App\Features\References\EntryPoints\Filament\Ahli\Resources\References;
 
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\Pages\EditReference;
 use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\Pages\ListReferences;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource as AdminReferenceResource;
@@ -10,7 +11,6 @@ use App\Features\References\Models\Reference;
 use App\Platform\Auditing\AuditsRelationManager;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
@@ -49,7 +49,7 @@ class ReferenceResource extends AdminReferenceResource
 
         $subjectIds = app(MembershipDirectory::class)->subjectIdsFor(
             $user->actorId(),
-            MembershipSubjectType::Reference,
+            MemberSubjectType::Reference,
         );
 
         return $query->whereIn('references.id', $subjectIds);

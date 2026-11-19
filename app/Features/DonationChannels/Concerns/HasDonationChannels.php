@@ -3,7 +3,7 @@
 namespace App\Features\DonationChannels\Concerns;
 
 use App\Features\DonationChannels\Models\DonationChannel;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 trait HasDonationChannels
@@ -13,7 +13,7 @@ trait HasDonationChannels
      */
     public function donationChannels(): MorphMany
     {
-        return $this->morphMany(RelatedModels::donationChannel(DonationChannel::class), 'donatable')
+        return $this->morphMany(MorphModelResolver::resolve('donation_channel'), 'donatable')
             ->orderByDesc('is_default')
             ->orderBy('created_at');
     }

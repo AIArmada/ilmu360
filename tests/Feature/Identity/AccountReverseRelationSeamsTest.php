@@ -11,19 +11,20 @@ use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Engagement\Api\EventEngagement;
+use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Persons\Models\Person;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\AccountEventFacts;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 
 it('serves membership, engagement and event facts without user reverse relations', function (): void {
     $user = User::factory()->create();
@@ -45,13 +46,14 @@ it('serves membership, engagement and event facts without user reverse relations
     $user->respond($sharedEvent, 'going');
 
     $memberships = app(MembershipDirectory::class);
-    expect($memberships->subjectIdsFor((string) $user->getKey(), MembershipSubjectType::Institution))->toBe([(string) $institution->id])
-        ->and($memberships->subjectIdsFor((string) $user->getKey(), MembershipSubjectType::Person))->toBe([(string) $person->id])
-        ->and($memberships->subjectIdsFor((string) $user->getKey(), MembershipSubjectType::Event))->toBe([(string) $event->id])
-        ->and($memberships->hasRole((string) $user->getKey(), MembershipSubjectType::Institution, (string) $institution->id, 'admin'))->toBeTrue();
+    expect($memberships->subjectIdsFor((string) $user->getKey(), MemberSubjectType::Institution))->toBe([(string) $institution->id])
+        ->and($memberships->subjectIdsFor((string) $user->getKey(), MemberSubjectType::Person))->toBe([(string) $person->id])
+        ->and($memberships->subjectIdsFor((string) $user->getKey(), MemberSubjectType::Event))->toBe([(string) $event->id])
+        ->and($memberships->hasRole((string) $user->getKey(), MemberSubjectType::Institution, (string) $institution->id, 'admin'))->toBeTrue();
 
-    $engagement = app(EngagementReader::class);
-    expect($engagement->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Institution))->toBe([(string) $institution->id])
+    $engagement = app(EventEngagement::class);
+    $follows = app(SubjectFollows::class);
+    expect($follows->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Institution))->toBe([(string) $institution->id])
         ->and($engagement->savedEventIds((string) $user->getKey()))->toBe([(string) $sharedEvent->id])
         ->and($engagement->goingEventIds((string) $user->getKey()))->toBe([(string) $sharedEvent->id])
         ->and($engagement->hasSavedEvent((string) $user->getKey(), (string) $sharedEvent->id))->toBeTrue()

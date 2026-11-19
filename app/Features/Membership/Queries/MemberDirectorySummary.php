@@ -8,12 +8,12 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipRecord;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -34,7 +34,7 @@ final readonly class MemberDirectorySummary
      */
     public function institutions(AccountActor $account): Collection
     {
-        return $this->subjects($account, MembershipSubjectType::Institution, Institution::class, 'name');
+        return $this->subjects($account, MemberSubjectType::Institution, Institution::class, 'name');
     }
 
     /**
@@ -42,7 +42,7 @@ final readonly class MemberDirectorySummary
      */
     public function persons(AccountActor $account): Collection
     {
-        return $this->subjects($account, MembershipSubjectType::Person, Person::class, 'name');
+        return $this->subjects($account, MemberSubjectType::Person, Person::class, 'name');
     }
 
     /**
@@ -52,7 +52,7 @@ final readonly class MemberDirectorySummary
     {
         return $this->subjects(
             $account,
-            MembershipSubjectType::Event,
+            MemberSubjectType::Event,
             Event::class,
             $orderColumn,
             $direction,
@@ -67,7 +67,7 @@ final readonly class MemberDirectorySummary
     {
         return $this->subjects(
             $account,
-            MembershipSubjectType::Reference,
+            MemberSubjectType::Reference,
             Reference::class,
             'title',
             'asc',
@@ -82,7 +82,7 @@ final readonly class MemberDirectorySummary
     {
         return $this->subjects(
             $account,
-            MembershipSubjectType::Organization,
+            MemberSubjectType::Organization,
             Organization::class,
             'name',
         );
@@ -91,7 +91,7 @@ final readonly class MemberDirectorySummary
     /**
      * @return list<MembershipRecord>
      */
-    public function memberships(AccountActor $account, MembershipSubjectType $subjectType): array
+    public function memberships(AccountActor $account, MemberSubjectType $subjectType): array
     {
         return $this->memberships->membershipsFor($account->actorId(), $subjectType);
     }
@@ -105,7 +105,7 @@ final readonly class MemberDirectorySummary
      */
     private function subjects(
         AccountActor $account,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $modelClass,
         string $orderColumn,
         string $direction = 'asc',

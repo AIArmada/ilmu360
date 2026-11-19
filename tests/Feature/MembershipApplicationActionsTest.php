@@ -14,7 +14,6 @@ use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Membership\Services\MemberRoleCatalog;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Shared\Membership\MembershipSubjectType;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Spatie\Permission\PermissionRegistrar;
@@ -210,7 +209,7 @@ function submitMembershipApplicationClaim(
     string $justification,
 ): MembershipApplication {
     $detail = app(MembershipApplications::class)->submit(new SubmitMembershipApplicationInput(
-        subjectType: MembershipSubjectType::from($subject->getMorphClass()),
+        subjectType: MemberSubjectType::from($subject->getMorphClass()),
         subjectId: (string) $subject->getKey(),
         accountId: (string) $claimant->getKey(),
         justification: $justification,

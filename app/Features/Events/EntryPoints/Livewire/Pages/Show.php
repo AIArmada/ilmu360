@@ -11,6 +11,7 @@ use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\Api\EventSaveCommands;
 use App\Features\Events\Models\Event;
@@ -36,7 +37,6 @@ use App\Platform\Language\Models\Language;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Cache\SelectionCatalogCache;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use App\Shared\Events\Enums\EventVisibility;
 use Carbon\Carbon;
@@ -1003,11 +1003,11 @@ class Show extends Component
             return;
         }
 
-        $this->isSaved = app(EngagementReader::class)->hasSavedEvent(
+        $this->isSaved = app(EventEngagement::class)->hasSavedEvent(
             (string) $user->getKey(),
             (string) $this->event->getKey(),
         );
-        $this->isGoing = app(EngagementReader::class)->isGoingToEvent(
+        $this->isGoing = app(EventEngagement::class)->isGoingToEvent(
             (string) $user->getKey(),
             (string) $this->event->getKey(),
         );

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Actions;
 
-use App\Shared\Membership\MembershipSubjectType;
+use App\Features\Membership\Api\MemberSubjectType;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -18,14 +18,14 @@ use InvalidArgumentException;
  */
 final readonly class DetachSubjectMembersAction
 {
-    public function handle(MembershipSubjectType $subjectType, string $subjectId): void
+    public function handle(MemberSubjectType $subjectType, string $subjectId): void
     {
         match ($subjectType) {
-            MembershipSubjectType::Institution => DB::table('institution_members')->where('institution_id', $subjectId)->delete(),
-            MembershipSubjectType::Person => DB::table('person_members')->where('person_id', $subjectId)->delete(),
-            MembershipSubjectType::Reference => DB::table('reference_members')->where('reference_id', $subjectId)->delete(),
-            MembershipSubjectType::Event => DB::table('event_members')->where('event_id', $subjectId)->delete(),
-            MembershipSubjectType::Organization => throw new InvalidArgumentException(
+            MemberSubjectType::Institution => DB::table('institution_members')->where('institution_id', $subjectId)->delete(),
+            MemberSubjectType::Person => DB::table('person_members')->where('person_id', $subjectId)->delete(),
+            MemberSubjectType::Reference => DB::table('reference_members')->where('reference_id', $subjectId)->delete(),
+            MemberSubjectType::Event => DB::table('event_members')->where('event_id', $subjectId)->delete(),
+            MemberSubjectType::Organization => throw new InvalidArgumentException(
                 'Organization membership is owned by the Organizations package.',
             ),
         };

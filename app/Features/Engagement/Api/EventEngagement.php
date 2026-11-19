@@ -29,4 +29,8 @@ interface EventEngagement
      * @return list<string>
      */
     public function goingEventIds(string $accountId): array;
+
+    public function hasSavedEvent(string $accountId, string $eventId): bool;
+
+    public function isGoingToEvent(string $accountId, string $eventId): bool;
 }

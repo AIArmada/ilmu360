@@ -138,9 +138,9 @@
                 $membershipAccountId = $authenticatedUser instanceof \App\Shared\Auth\AccountActor
                     ? $authenticatedUser->actorId()
                     : null;
-                $hasInstitutionDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Shared\Membership\MembershipSubjectType::Institution) !== [];
-                $hasPersonDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Shared\Membership\MembershipSubjectType::Person) !== [];
-                $hasOrganizationDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Shared\Membership\MembershipSubjectType::Organization) !== [];
+                $hasInstitutionDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Features\Membership\Api\MemberSubjectType::Institution) !== [];
+                $hasPersonDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Features\Membership\Api\MemberSubjectType::Person) !== [];
+                $hasOrganizationDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Features\Membership\Api\MemberSubjectType::Organization) !== [];
                 $hasManagedWorkspaceAccess = $hasInstitutionDashboardAccess || $hasPersonDashboardAccess || $hasOrganizationDashboardAccess;
                 $authenticatedUserAvatarUrl = $authenticatedUser !== null
                     ? app(\App\Features\Identity\Api\SocialAccounts::class)->avatarUrl((string) $authenticatedUser->getKey())

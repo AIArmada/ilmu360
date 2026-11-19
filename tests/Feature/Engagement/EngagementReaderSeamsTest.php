@@ -2,20 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Features\Engagement\Api\EngagementActivityReader;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
+use App\Features\Engagement\Queries\EloquentEngagementReader;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 
 it('binds the engagement read contracts to the root reader', function (): void {
-    expect(app(EventEngagement::class))->toBeInstanceOf(EngagementReader::class)
-        ->and(app(SubjectFollows::class))->toBeInstanceOf(EngagementReader::class);
+    expect(app(EventEngagement::class))->toBeInstanceOf(EloquentEngagementReader::class)
+        ->and(app(SubjectFollows::class))->toBeInstanceOf(EloquentEngagementReader::class)
+        ->and(app(EngagementActivityReader::class))->toBeInstanceOf(EloquentEngagementReader::class);
 });
 
 it('reads saved and going state with the card counts for one event', function (): void {
@@ -153,7 +155,7 @@ it('returns only active follower account ids for notification reads', function (
     $inactive->follow($institution);
     $inactive->unfollow($institution);
 
-    expect(app(EngagementReader::class)->followerAccountIds(
+    expect(app(SubjectFollows::class)->followerAccountIds(
         EngagementSubjectType::Institution,
         (string) $institution->getKey(),
     ))->toBe([(string) $active->getKey()]);
@@ -168,7 +170,7 @@ it('projects package activity records without exposing package models', function
     $response = $user->respond($event, 'going');
     $follow = $user->follow($institution);
 
-    $reader = app(EngagementReader::class);
+    $reader = app(EngagementActivityReader::class);
 
     $bookmarkActivity = $reader->bookmarkActivity((string) $bookmark->getKey());
     $responseActivity = $reader->responseActivity((string) $response->getKey());
@@ -198,7 +200,7 @@ it('detects earlier bookmark and follow activity for the same actor', function (
     $earlierFollow = $user->follow($institution);
     $earlierFollow->forceFill(['followed_at' => now()->subDay()])->save();
 
-    $reader = app(EngagementReader::class);
+    $reader = app(EngagementActivityReader::class);
 
     expect($reader->hasEarlierBookmarkActivity(
         $user->getMorphClass(),

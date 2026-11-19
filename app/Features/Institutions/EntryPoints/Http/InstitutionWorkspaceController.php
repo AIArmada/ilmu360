@@ -6,11 +6,11 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Builder;
@@ -167,7 +167,7 @@ class InstitutionWorkspaceController extends FrontendController
         }
 
         $membershipCommands->addMember(
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
             (string) $member->getKey(),
             MemberRole::from((string) $validated['role_id'])->value,
@@ -216,7 +216,7 @@ class InstitutionWorkspaceController extends FrontendController
         ]);
 
         $membershipCommands->changeMemberRole(
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
             (string) $member->getKey(),
             MemberRole::from((string) $validated['role_id'])->value,
@@ -262,7 +262,7 @@ class InstitutionWorkspaceController extends FrontendController
 
         try {
             $membershipCommands->removeMember(
-                MembershipSubjectType::Institution,
+                MemberSubjectType::Institution,
                 (string) $institution->getKey(),
                 (string) $member->getKey(),
             );
@@ -288,7 +288,7 @@ class InstitutionWorkspaceController extends FrontendController
     private function availableInstitutionsQuery(User $user): Builder
     {
         return Institution::query()->whereKey(
-            $this->memberships->subjectIdsFor((string) $user->getKey(), MembershipSubjectType::Institution),
+            $this->memberships->subjectIdsFor((string) $user->getKey(), MemberSubjectType::Institution),
         );
     }
 
@@ -347,7 +347,7 @@ class InstitutionWorkspaceController extends FrontendController
     {
         return $this->memberships->hasAnyMembershipRole(
             (string) $user->getKey(),
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             [MemberRole::Owner->value, MemberRole::Admin->value],
         );
     }
@@ -357,7 +357,7 @@ class InstitutionWorkspaceController extends FrontendController
         if (! isset($user->pivot) || ! $user->pivot->role) {
             return $this->memberships->hasAnyMembershipRole(
                 (string) $user->getKey(),
-                MembershipSubjectType::Institution,
+                MemberSubjectType::Institution,
                 [MemberRole::Owner->value],
             );
         }

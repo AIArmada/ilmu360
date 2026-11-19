@@ -4,7 +4,7 @@ namespace App\Features\Events\Models;
 
 use AIArmada\Events\Models\EventInvolvement;
 use App\Features\Persons\Models\Person;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** @extends EventInvolvement<Event> */
@@ -45,7 +45,7 @@ class EventKeyPerson extends EventInvolvement
      */
     public function person(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::person(Person::class), 'involveable_id');
+        return $this->belongsTo(MorphModelResolver::resolve('person'), 'involveable_id');
     }
 
     public function getResolvedNameAttribute(): string

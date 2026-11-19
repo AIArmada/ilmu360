@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Api;
 
-use App\Shared\Membership\MembershipSubjectType;
-
 enum MembershipApplicationSubjectType: string
 {
     case Institution = 'institution';
     case Person = 'person';
 
-    public function membershipSubjectType(): MembershipSubjectType
+    public function membershipSubjectType(): MemberSubjectType
     {
-        return MembershipSubjectType::from($this->value);
+        return MemberSubjectType::from($this->value);
     }
 
     public function publicRouteSegment(): string

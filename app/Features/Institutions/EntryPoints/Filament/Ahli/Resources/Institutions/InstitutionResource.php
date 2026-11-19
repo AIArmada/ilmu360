@@ -7,10 +7,10 @@ use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Relati
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Schemas\InstitutionForm;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Auditing\AuditsRelationManager;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -64,7 +64,7 @@ class InstitutionResource extends Resource
 
         $subjectIds = app(MembershipDirectory::class)->subjectIdsFor(
             $user->actorId(),
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
         );
 
         return $query->whereIn('institutions.id', $subjectIds);

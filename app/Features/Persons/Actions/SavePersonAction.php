@@ -6,11 +6,11 @@ namespace App\Features\Persons\Actions;
 
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Models\Person;
 use App\Platform\Addressing\AddressFormState;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
@@ -100,7 +100,7 @@ final readonly class SavePersonAction
 
             if ($assignOwner) {
                 $this->membershipCommands->assignOwner(
-                    MembershipSubjectType::Person,
+                    MemberSubjectType::Person,
                     (string) $person->getKey(),
                     (string) $actor->getKey(),
                 );

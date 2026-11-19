@@ -8,6 +8,7 @@ use App\Features\Contributions\Services\EntitySubmissionAccess;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter;
 use App\Models\User;
@@ -15,7 +16,6 @@ use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Events\Enums\EventVisibility;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use BackedEnum;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -205,7 +205,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         $role = MemberRole::tryFrom((string) $validated['newMemberRoleId']) ?? MemberRole::Viewer;
 
         OwnerContext::withOwner($institution, fn () => app(MembershipCommands::class)->addMember(
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
             (string) $member->getKey(),
             $role->value,
@@ -265,7 +265,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         $role = MemberRole::tryFrom((string) $validated['editingMemberRoleId']) ?? MemberRole::Viewer;
 
         app(MembershipCommands::class)->changeMemberRole(
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
             (string) $member->getKey(),
             $role->value,
@@ -291,7 +291,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         }
 
         app(MembershipCommands::class)->removeMember(
-            MembershipSubjectType::Institution,
+            MemberSubjectType::Institution,
             (string) $institution->getKey(),
             (string) $member->getKey(),
         );
@@ -720,7 +720,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         return Institution::query()->whereKey(
             app(MembershipDirectory::class)->subjectIdsFor(
                 (string) $user->getKey(),
-                MembershipSubjectType::Institution,
+                MemberSubjectType::Institution,
             ),
         );
     }

@@ -8,11 +8,11 @@ use App\Features\Events\EntryPoints\Ui\SubmitterContactPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -103,8 +103,8 @@ class PendingApprovalEventsWidget extends TableWidget
         }
 
         $memberships = app(MembershipDirectory::class);
-        $institutionIds = $memberships->subjectIdsFor($user->actorId(), MembershipSubjectType::Institution);
-        $personIds = $memberships->subjectIdsFor($user->actorId(), MembershipSubjectType::Person);
+        $institutionIds = $memberships->subjectIdsFor($user->actorId(), MemberSubjectType::Institution);
+        $personIds = $memberships->subjectIdsFor($user->actorId(), MemberSubjectType::Person);
 
         return $query->where(function (Builder $eventQuery) use ($institutionIds, $personIds): void {
             $eventQuery->orWhere(function (Builder $involvementOrganizerQuery) use ($institutionIds, $personIds): void {

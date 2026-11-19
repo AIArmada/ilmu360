@@ -6,6 +6,8 @@ namespace App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResourc
 
 use AIArmada\Authz\Facades\Authz;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Engagement\Api\EventEngagement;
+use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
@@ -26,7 +28,6 @@ use App\Models\User;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountToken;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -220,7 +221,7 @@ class ViewUser extends ViewRecord
         $user = $this->userRecord();
 
         return OwnerContext::withOwner(null, function () use ($user): Collection {
-            $ids = app(EngagementReader::class)->savedEventIds((string) $user->getKey());
+            $ids = app(EventEngagement::class)->savedEventIds((string) $user->getKey());
 
             return $ids === []
                 ? new Collection
@@ -237,7 +238,7 @@ class ViewUser extends ViewRecord
         $user = $this->userRecord();
 
         return OwnerContext::withOwner(null, function () use ($user): Collection {
-            $ids = app(EngagementReader::class)->goingEventIds((string) $user->getKey());
+            $ids = app(EventEngagement::class)->goingEventIds((string) $user->getKey());
 
             if ($ids === []) {
                 return new Collection;
@@ -439,7 +440,7 @@ class ViewUser extends ViewRecord
         $user = $this->userRecord();
 
         return OwnerContext::withOwner(null, function () use ($subjectType, $modelClass, $orderColumn, $user): Collection {
-            $ids = app(EngagementReader::class)->followedSubjectIds((string) $user->getKey(), $subjectType);
+            $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), $subjectType);
 
             return $ids === []
                 ? new Collection

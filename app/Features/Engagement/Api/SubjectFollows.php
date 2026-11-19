@@ -36,4 +36,9 @@ interface SubjectFollows
     public function followedSubjectIds(string $accountId, EngagementSubjectType $subjectType): array;
 
     public function followerCount(EngagementSubjectType $subjectType, string $subjectId): int;
+
+    /**
+     * @return list<string>
+     */
+    public function followerAccountIds(EngagementSubjectType $subjectType, string $subjectId): array;
 }

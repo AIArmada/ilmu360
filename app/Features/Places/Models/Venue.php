@@ -13,7 +13,7 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionVenue;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\InstitutionVenueRole;
 use App\Shared\Directory\Enums\VenueType;
 use Carbon\CarbonImmutable;
@@ -131,7 +131,7 @@ class Venue extends PackageVenue implements AuditableContract
      */
     public function events(): HasMany
     {
-        return $this->hasMany(RelatedModels::event(Event::class), 'default_venue_id');
+        return $this->hasMany(MorphModelResolver::resolve('event'), 'default_venue_id');
     }
 
     /**
@@ -263,6 +263,6 @@ class Venue extends PackageVenue implements AuditableContract
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::user(User::class), 'verified_by');
+        return $this->belongsTo(MorphModelResolver::resolve('user'), 'verified_by');
     }
 }

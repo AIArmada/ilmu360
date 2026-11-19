@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Api;
 
-use App\Shared\Membership\MembershipSubjectType;
-
 /**
  * Boundary for membership invitations.
  *
@@ -26,7 +24,7 @@ interface MembershipInvitations
      * @return list<MembershipInvitationDetail>
      */
     public function pendingForSubject(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): array;
 
@@ -36,13 +34,13 @@ interface MembershipInvitations
      * @return list<MembershipInvitationDetail>
      */
     public function recentForSubject(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         int $limit = 20,
     ): array;
 
     public function pendingExistsForEmail(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $email,
     ): bool;
@@ -54,7 +52,7 @@ interface MembershipInvitations
      * the same subject and email address.
      */
     public function invite(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $email,
         string $role,

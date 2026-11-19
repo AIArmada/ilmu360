@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipPermissionEvaluator;
-use App\Shared\Membership\MembershipSubjectType;
 
 /**
  * Scalar membership authorization boundary.
@@ -23,7 +23,7 @@ final readonly class MembershipAuthorizationService implements MembershipAuthori
     public function can(
         string $accountId,
         string $permission,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): bool {
         return $this->evaluator->canOnSubject($accountId, $permission, $subjectType, $subjectId);
@@ -37,13 +37,13 @@ final readonly class MembershipAuthorizationService implements MembershipAuthori
     public function hasAny(
         string $accountId,
         string $permission,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
     ): bool {
         return $this->evaluator->hasAnyOnSubjectType($accountId, $permission, $subjectType);
     }
 
     public function membersWithPermission(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $permission,
     ): array {

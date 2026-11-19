@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Membership;
 
+use App\Features\Membership\Api\MemberSubjectType;
+
 /**
  * Read boundary for membership subjects used by account, application and
  * invitation surfaces.
@@ -21,14 +23,14 @@ interface MembershipSubjectCatalog
      */
     public function forAccount(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         int $limit = 50,
     ): array;
 
-    public function find(MembershipSubjectType $subjectType, string $subjectId): ?MembershipSubject;
+    public function find(MemberSubjectType $subjectType, string $subjectId): ?MembershipSubject;
 
     /** Resolve UUID or public slug without loading membership presentation. */
-    public function resolveIdentifier(MembershipSubjectType $subjectType, string $identifier): ?string;
+    public function resolveIdentifier(MemberSubjectType $subjectType, string $identifier): ?string;
 
-    public function exists(MembershipSubjectType $subjectType, string $subjectId): bool;
+    public function exists(MemberSubjectType $subjectType, string $subjectId): bool;
 }

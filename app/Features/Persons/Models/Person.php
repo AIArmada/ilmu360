@@ -27,7 +27,7 @@ use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auditing\RecordsCustomAuditDifferences;
 use App\Shared\Auditing\RecordsCustomAuditEvents;
 use App\Shared\Events\Enums\EventKeyPersonRole;
@@ -499,7 +499,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(RelatedModels::event(Event::class), 'event_involvements', 'involveable_id', 'event_id')
+        return $this->belongsToMany(MorphModelResolver::resolve('event'), 'event_involvements', 'involveable_id', 'event_id')
             ->using(EventKeyPersonPivot::class)
             ->wherePivot('involveable_type', 'person')
             ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
@@ -522,7 +522,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function eventKeyPeople(): HasMany
     {
-        return $this->hasMany(RelatedModels::eventKeyPerson(EventKeyPerson::class), 'involveable_id')
+        return $this->hasMany(MorphModelResolver::resolve('event_key_person'), 'involveable_id')
             ->where('involveable_type', 'person');
     }
 
@@ -542,7 +542,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::user(User::class), 'verified_by');
+        return $this->belongsTo(MorphModelResolver::resolve('user'), 'verified_by');
     }
 
     /**

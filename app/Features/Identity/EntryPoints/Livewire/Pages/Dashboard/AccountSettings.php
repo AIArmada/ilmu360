@@ -9,6 +9,7 @@ use App\Features\Communications\Api\PushDestinationManagement;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Services\AccountSettingsService;
 use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
@@ -16,7 +17,6 @@ use App\Shared\Auth\AccountProfile;
 use App\Shared\Auth\AccountProfileUpdate;
 use App\Shared\Directory\DirectoryOption;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use DateTimeImmutable;
 use DateTimeZone;
 use Filament\Forms\Components\DatePicker;
@@ -692,10 +692,10 @@ class AccountSettings extends Component implements HasForms
         $memberships = app(MembershipDirectory::class);
 
         foreach ([
-            MembershipSubjectType::Institution,
-            MembershipSubjectType::Person,
-            MembershipSubjectType::Reference,
-            MembershipSubjectType::Event,
+            MemberSubjectType::Institution,
+            MemberSubjectType::Person,
+            MemberSubjectType::Reference,
+            MemberSubjectType::Event,
         ] as $subjectType) {
             if ($memberships->subjectIdsFor($accountId, $subjectType) !== []) {
                 return true;

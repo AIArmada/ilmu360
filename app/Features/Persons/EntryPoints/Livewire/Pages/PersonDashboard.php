@@ -11,12 +11,12 @@ use App\Features\Events\Models\Event;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
-use App\Shared\Membership\MembershipSubjectType;
 use BackedEnum;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -112,7 +112,7 @@ final class PersonDashboard extends Component
         }
 
         $membershipInvitations->invite(
-            MembershipSubjectType::Person,
+            MemberSubjectType::Person,
             (string) $person->getKey(),
             $email,
             (string) $validated['inviteRole'],
@@ -174,7 +174,7 @@ final class PersonDashboard extends Component
 
             OwnerContext::withOwner($person, function () use ($membershipCommands, $member, $person, $validated): void {
                 $membershipCommands->changeMemberRole(
-                    MembershipSubjectType::Person,
+                    MemberSubjectType::Person,
                     (string) $person->getKey(),
                     (string) $member->getKey(),
                     (string) $validated['editingRole'],
@@ -205,7 +205,7 @@ final class PersonDashboard extends Component
 
                 OwnerContext::withOwner($person, function () use ($member, $membershipCommands, $person): void {
                     $membershipCommands->removeMember(
-                        MembershipSubjectType::Person,
+                        MemberSubjectType::Person,
                         (string) $person->getKey(),
                         (string) $member->getKey(),
                     );
@@ -231,7 +231,7 @@ final class PersonDashboard extends Component
 
         abort_unless(
             $invitation instanceof MembershipInvitationDetail
-            && $invitation->subjectType === MembershipSubjectType::Person
+            && $invitation->subjectType === MemberSubjectType::Person
             && $invitation->subjectId === (string) $person->getKey(),
             404,
         );
@@ -273,7 +273,7 @@ final class PersonDashboard extends Component
     public function invitations(): array
     {
         return app(MembershipInvitations::class)->recentForSubject(
-            MembershipSubjectType::Person,
+            MemberSubjectType::Person,
             (string) $this->selectedPerson()->getKey(),
             20,
         );

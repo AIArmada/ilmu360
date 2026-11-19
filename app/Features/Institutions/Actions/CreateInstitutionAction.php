@@ -6,10 +6,10 @@ namespace App\Features\Institutions\Actions;
 
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\Enums\InstitutionType;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -49,7 +49,7 @@ final readonly class CreateInstitutionAction
 
         if ($actor instanceof Model && $assignOwner) {
             $this->membershipCommands->assignOwner(
-                MembershipSubjectType::Institution,
+                MemberSubjectType::Institution,
                 (string) $institution->getKey(),
                 (string) $actor->getKey(),
             );

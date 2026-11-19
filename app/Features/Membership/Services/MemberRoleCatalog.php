@@ -9,7 +9,6 @@ use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Collection;
 
 final readonly class MemberRoleCatalog
@@ -48,7 +47,7 @@ final readonly class MemberRoleCatalog
 
     private function subjectIdFor(AccountActor $user, MemberSubjectType $type): ?string
     {
-        $subjectType = MembershipSubjectType::from($type->value);
+        $subjectType = MemberSubjectType::from($type->value);
 
         return $this->memberships->subjectIdsFor($user->actorId(), $subjectType)[0] ?? null;
     }

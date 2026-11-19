@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Api;
 
-use App\Shared\Membership\MembershipSubjectType;
-
 /**
  * Write boundary for membership rows.
  *
@@ -16,27 +14,27 @@ use App\Shared\Membership\MembershipSubjectType;
 interface MembershipCommands
 {
     public function assignOwner(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
     ): void;
 
     public function addMember(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
         string $role,
     ): void;
 
     public function changeMemberRole(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
         string $role,
     ): void;
 
     public function removeMember(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
     ): void;
@@ -47,7 +45,7 @@ interface MembershipCommands
      * @throws \InvalidArgumentException when the subject is an Organization
      */
     public function removeAllMembers(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): void;
 

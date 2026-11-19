@@ -6,7 +6,6 @@ namespace App\Features\Membership\Api;
 
 use AIArmada\Membership\Enums\MemberRole;
 use App\Shared\Directory\Enums\InstitutionType;
-use App\Shared\Membership\MembershipSubjectType;
 
 final readonly class MembershipApplicationFormRules
 {
@@ -37,10 +36,10 @@ final readonly class MembershipApplicationFormRules
      * @return array<string, string>
      */
     public static function relationshipOptions(
-        ?MembershipSubjectType $subjectType = null,
+        ?MemberSubjectType $subjectType = null,
         ?InstitutionType $institutionType = null,
     ): array {
-        if ($subjectType !== MembershipSubjectType::Institution) {
+        if ($subjectType !== MemberSubjectType::Institution) {
             return [
                 'self' => __('Yourself'),
                 self::FAMILY_RELATIONSHIP => __('Family member'),
@@ -83,9 +82,9 @@ final readonly class MembershipApplicationFormRules
     {
         $labels = [
             ...self::relationshipOptions(),
-            ...self::relationshipOptions(MembershipSubjectType::Institution, InstitutionType::Masjid),
-            ...self::relationshipOptions(MembershipSubjectType::Institution, InstitutionType::Sekolah),
-            ...self::relationshipOptions(MembershipSubjectType::Institution),
+            ...self::relationshipOptions(MemberSubjectType::Institution, InstitutionType::Masjid),
+            ...self::relationshipOptions(MemberSubjectType::Institution, InstitutionType::Sekolah),
+            ...self::relationshipOptions(MemberSubjectType::Institution),
         ];
         $label = $labels[$relationship] ?? $relationship;
 

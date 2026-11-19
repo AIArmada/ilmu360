@@ -7,8 +7,8 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
-use App\Shared\Membership\MembershipSubjectType;
 use App\Shared\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -61,7 +61,7 @@ class MembersRelationManager extends RelationManager
                             $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner;
 
                             app(MembershipCommands::class)->addMember(
-                                MembershipSubjectType::Institution,
+                                MemberSubjectType::Institution,
                                 (string) $institution->getKey(),
                                 (string) $member->getKey(),
                                 $role->value,
@@ -86,7 +86,7 @@ class MembersRelationManager extends RelationManager
                         $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer;
 
                         app(MembershipCommands::class)->changeMemberRole(
-                            MembershipSubjectType::Institution,
+                            MemberSubjectType::Institution,
                             (string) $institution->getKey(),
                             (string) $record->getKey(),
                             $role->value,
@@ -103,7 +103,7 @@ class MembersRelationManager extends RelationManager
                         $institution = $this->getInstitutionOwner();
 
                         app(MembershipCommands::class)->removeMember(
-                            MembershipSubjectType::Institution,
+                            MemberSubjectType::Institution,
                             (string) $institution->getKey(),
                             (string) $record->getKey(),
                         );

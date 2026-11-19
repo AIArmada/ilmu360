@@ -18,7 +18,6 @@ use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
@@ -60,7 +59,7 @@ it('creates one follow row and outcome for the first follow and replays idempote
         ->and($second->follow->status)->toBe(FollowStatus::Active)
         ->and(Follow::query()->whereKey($first->follow->getKey())->count())->toBe(1)
         ->and($institution->followersCount())->toBe(1)
-        ->and(app(EngagementReader::class)->followedSubjectIds(
+        ->and(app(SubjectFollows::class)->followedSubjectIds(
             (string) $user->getKey(),
             EngagementSubjectType::Institution,
         ))->toContain((string) $institution->getKey())
@@ -104,7 +103,7 @@ it('reverses an attributed follow only once and keeps reactivation free of a sec
         ->and($second->removed)->toBeFalse()
         ->and(Follow::query()->whereKey($follow->follow->getKey())->value('status'))->toBe(FollowStatus::Unfollowed)
         ->and($institution->followersCount())->toBe(0)
-        ->and(app(EngagementReader::class)->followedSubjectIds(
+        ->and(app(SubjectFollows::class)->followedSubjectIds(
             (string) $user->getKey(),
             EngagementSubjectType::Institution,
         ))->not->toContain((string) $institution->getKey())
@@ -177,7 +176,7 @@ it('supports series follow and unfollow with reader and counter state', function
 
     expect($follow->created)->toBeTrue()
         ->and($series->followersCount())->toBe(1)
-        ->and(app(EngagementReader::class)->followedSubjectIds(
+        ->and(app(SubjectFollows::class)->followedSubjectIds(
             (string) $user->getKey(),
             EngagementSubjectType::Series,
         ))->toContain((string) $series->getKey());
@@ -186,7 +185,7 @@ it('supports series follow and unfollow with reader and counter state', function
 
     expect($unfollow->removed)->toBeTrue()
         ->and($series->followersCount())->toBe(0)
-        ->and(app(EngagementReader::class)->followedSubjectIds(
+        ->and(app(SubjectFollows::class)->followedSubjectIds(
             (string) $user->getKey(),
             EngagementSubjectType::Series,
         ))->not->toContain((string) $series->getKey());

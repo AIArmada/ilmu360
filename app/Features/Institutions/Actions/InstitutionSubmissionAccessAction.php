@@ -8,9 +8,9 @@ use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionSubmissionEligibility;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -95,7 +95,7 @@ final readonly class InstitutionSubmissionAccessAction implements InstitutionSub
     public function syncForAccount(string $accountId): int
     {
         $institutionIds = Institution::query()
-            ->whereKey($this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution))
+            ->whereKey($this->memberships->subjectIdsFor($accountId, MemberSubjectType::Institution))
             ->where('allow_public_event_submission', false)
             ->pluck('institutions.id')
             ->map(static fn (mixed $id): string => (string) $id)

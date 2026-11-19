@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\EntryPoints\Livewire\Components\DirectoryCardFollow;
 use App\Features\Engagement\EntryPoints\Livewire\Components\EventCardEngagement;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Shared\Engagement\EngagementReader;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 
@@ -87,7 +87,7 @@ it('accepts ongoing events through the effective end on cards and in the going A
         ->call('toggleGoing', (string) $event->getKey())
         ->assertSet('isGoing', true);
 
-    expect(app(EngagementReader::class)->isGoingToEvent(
+    expect(app(EventEngagement::class)->isGoingToEvent(
         (string) $cardUser->getKey(),
         (string) $event->getKey(),
     ))->toBeTrue();
@@ -116,7 +116,7 @@ it('saves pending public events on both cards and the save API', function (): vo
         ->call('toggleSave', (string) $event->getKey())
         ->assertSet('isSaved', true);
 
-    expect(app(EngagementReader::class)->hasSavedEvent(
+    expect(app(EventEngagement::class)->hasSavedEvent(
         (string) $cardUser->getKey(),
         (string) $event->getKey(),
     ))->toBeTrue();

@@ -10,13 +10,13 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
+use App\Features\Engagement\Api\EngagementActivityReader;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Models\User;
 use App\Shared\Engagement\EngagementActivity;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
@@ -157,7 +157,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         ShareOutcomeType $outcome,
         string $sourceTransitionId,
     ): ?EngagementActivity {
-        $reader = app(EngagementReader::class);
+        $reader = app(EngagementActivityReader::class);
 
         if ($outcome === ShareOutcomeType::EventSave) {
             $bookmarkId = $this->prefixedSourceId($sourceTransitionId, 'bookmark:');
@@ -231,7 +231,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         User $actor,
         CarbonImmutable $occurredAt,
     ): bool {
-        $reader = app(EngagementReader::class);
+        $reader = app(EngagementActivityReader::class);
         $actorType = $actor->getMorphClass();
         $actorId = (string) $actor->getKey();
 

@@ -3,6 +3,7 @@
 namespace App\Features\Engagement\EntryPoints\Http;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
+use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventSaveCommands;
 use App\Features\Engagement\EntryPoints\Http\Data\EventEngagementListItemData;
 use App\Features\Engagement\EntryPoints\Http\Data\EventSaveStateData;
@@ -10,7 +11,6 @@ use App\Features\Events\Models\Event;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Events\Enums\EventVisibility;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -31,7 +31,7 @@ class EventSaveController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser($request);
-        $savedEventIds = app(EngagementReader::class)->savedEventIds((string) $user->getKey());
+        $savedEventIds = app(EventEngagement::class)->savedEventIds((string) $user->getKey());
 
         $savedEvents = Event::query()
             ->whereKey($savedEventIds)

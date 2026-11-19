@@ -12,26 +12,26 @@ use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Language\Models\Language;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Support\MorphAliasModel;
 
 it('resolves every cross-feature relation target through its morph alias', function (): void {
-    expect(RelatedModels::event(Event::class))->toBe(Event::class)
-        ->and(RelatedModels::institution(Institution::class))->toBe(Institution::class)
-        ->and(RelatedModels::person(Person::class))->toBe(Person::class)
-        ->and(RelatedModels::reference(Reference::class))->toBe(Reference::class)
-        ->and(RelatedModels::venue(Venue::class))->toBe(Venue::class)
-        ->and(RelatedModels::user(User::class))->toBe(User::class)
-        ->and(RelatedModels::eventKeyPerson(EventKeyPerson::class))->toBe(EventKeyPerson::class)
-        ->and(RelatedModels::memberInvitation(MemberInvitation::class))->toBe(MemberInvitation::class)
-        ->and(RelatedModels::donationChannel(DonationChannel::class))->toBe(DonationChannel::class)
-        ->and(RelatedModels::language(Language::class))->toBe(Language::class);
+    expect(MorphModelResolver::resolve('event'))->toBe(Event::class)
+        ->and(MorphModelResolver::resolve('institution'))->toBe(Institution::class)
+        ->and(MorphModelResolver::resolve('person'))->toBe(Person::class)
+        ->and(MorphModelResolver::resolve('reference'))->toBe(Reference::class)
+        ->and(MorphModelResolver::resolve('venue'))->toBe(Venue::class)
+        ->and(MorphModelResolver::resolve('user'))->toBe(User::class)
+        ->and(MorphModelResolver::resolve('event_key_person'))->toBe(EventKeyPerson::class)
+        ->and(MorphModelResolver::resolve('member_invitation'))->toBe(MemberInvitation::class)
+        ->and(MorphModelResolver::resolve('donation_channel'))->toBe(DonationChannel::class)
+        ->and(MorphModelResolver::resolve('language'))->toBe(Language::class);
 });
 
 it('rejects an unregistered morph alias', function (): void {
     MorphAliasModel::classFor('missing_relation_target');
 })->throws(RuntimeException::class, 'The [missing_relation_target] morph alias must resolve to an Eloquent model class.');
 
-it('rejects a morph alias that resolves to a different model', function (): void {
-    RelatedModels::classFor('event', Institution::class);
-})->throws(RuntimeException::class, 'The [event] morph alias must resolve to [App\Features\Institutions\Models\Institution].');
+it('rejects an alias with no registered morph model', function (): void {
+    MorphModelResolver::resolve('missing_relation_target');
+})->throws(RuntimeException::class, 'The [missing_relation_target] morph alias must resolve to an Eloquent model.');

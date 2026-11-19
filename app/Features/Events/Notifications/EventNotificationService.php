@@ -12,6 +12,7 @@ use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\Discovery\Services\EventSearchService;
+use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventChangeSeverity;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
@@ -25,7 +26,6 @@ use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\User;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use App\Shared\Events\Enums\EventChangeType;
 use App\Shared\Events\Enums\EventVisibility;
@@ -664,7 +664,7 @@ class EventNotificationService implements EventReminderNotificationDispatch
         callable $labelResolver,
     ): void {
         $users = [];
-        $engagementReader = app(EngagementReader::class);
+        $engagementReader = app(SubjectFollows::class);
 
         foreach ($followables as $followable) {
             if (! $followable instanceof Person

@@ -16,6 +16,7 @@ use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Api\PushDestinationManagement;
 use App\Features\Communications\Api\PushDestinationSnapshot;
 use App\Features\Identity\Support\HasUserRestoration;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Auth\Notifications\ResetPasswordNotification;
 use App\Platform\Auth\Notifications\VerifyEmailNotification;
@@ -25,7 +26,6 @@ use App\Shared\Auth\IntegrationFeedbackUser;
 use App\Shared\Auth\ResourceOwner;
 use App\Shared\Feedback\FeedbackActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -356,10 +356,10 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
         $memberships = app(MembershipDirectory::class);
 
         return array_any([
-            MembershipSubjectType::Institution,
-            MembershipSubjectType::Person,
-            MembershipSubjectType::Reference,
-            MembershipSubjectType::Event,
+            MemberSubjectType::Institution,
+            MemberSubjectType::Person,
+            MemberSubjectType::Reference,
+            MemberSubjectType::Event,
         ], fn ($subjectType) => $memberships->subjectIdsFor($accountId, $subjectType) !== []);
     }
 

@@ -7,6 +7,7 @@ namespace App\Features\Engagement\Queries;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
+use App\Features\Engagement\Api\EngagementActivityReader;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementState;
 use App\Features\Engagement\Api\FollowState;
@@ -19,7 +20,6 @@ use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Engagement\EngagementActivity;
-use App\Shared\Engagement\EngagementReader;
 use App\Shared\Engagement\EngagementSubjectType;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -33,7 +33,7 @@ use Illuminate\Database\Eloquent\Model;
  * Until then this adapter replaces the User reverse relations with the same
  * follow/bookmark/response queries and supplies the Engagement feature Api.
  */
-final readonly class EloquentEngagementReader implements EngagementReader, EventEngagement, SubjectFollows
+final readonly class EloquentEngagementReader implements EngagementActivityReader, EventEngagement, SubjectFollows
 {
     public function followedSubjectIds(string $accountId, EngagementSubjectType $subjectType): array
     {

@@ -7,10 +7,10 @@ namespace App\Features\Events\EntryPoints\Admin\Member;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
 use App\Features\Events\Models\Event;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Api\Member\Contracts\MemberResourceHooks;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use App\Shared\Support\MorphAliasModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -30,9 +30,9 @@ final readonly class EventMemberResourceHooks implements MemberResourceHooks
 
         $accountId = $user->actorId();
 
-        return $memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution) !== []
-            || $memberships->subjectIdsFor($accountId, MembershipSubjectType::Person) !== []
-            || $memberships->subjectIdsFor($accountId, MembershipSubjectType::Event) !== [];
+        return $memberships->subjectIdsFor($accountId, MemberSubjectType::Institution) !== []
+            || $memberships->subjectIdsFor($accountId, MemberSubjectType::Person) !== []
+            || $memberships->subjectIdsFor($accountId, MemberSubjectType::Event) !== [];
     }
 
     public function adminResourceClass(string $resourceClass): ?string
@@ -125,10 +125,10 @@ final readonly class EventMemberResourceHooks implements MemberResourceHooks
 
         $memberships = app(MembershipDirectory::class);
         $accountId = $user->actorId();
-        $institutionIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution);
-        $personIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Person);
-        $eventIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Event);
-        $organizationIds = $memberships->subjectIdsFor($accountId, MembershipSubjectType::Organization);
+        $institutionIds = $memberships->subjectIdsFor($accountId, MemberSubjectType::Institution);
+        $personIds = $memberships->subjectIdsFor($accountId, MemberSubjectType::Person);
+        $eventIds = $memberships->subjectIdsFor($accountId, MemberSubjectType::Event);
+        $organizationIds = $memberships->subjectIdsFor($accountId, MemberSubjectType::Organization);
         $institutionMorph = $this->morphType('institution');
         $personMorph = $this->morphType('person');
 

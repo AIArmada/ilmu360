@@ -2,11 +2,11 @@
 
 namespace App\Features\Engagement\EntryPoints\Livewire\Concerns;
 
+use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Events\Models\Event;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
-use App\Shared\Engagement\EngagementReader;
 use Livewire\Attributes\Computed;
 
 trait TogglesEventGoing
@@ -37,7 +37,7 @@ trait TogglesEventGoing
             return;
         }
 
-        if (app(EngagementReader::class)->isGoingToEvent(
+        if (app(EventEngagement::class)->isGoingToEvent(
             (string) $user->getKey(),
             (string) $event->getKey(),
         )) {
@@ -66,6 +66,6 @@ trait TogglesEventGoing
             return [];
         }
 
-        return app(EngagementReader::class)->goingEventIds((string) $user->getKey());
+        return app(EventEngagement::class)->goingEventIds((string) $user->getKey());
     }
 }

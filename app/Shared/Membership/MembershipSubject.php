@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Membership;
 
+use App\Features\Membership\Api\MemberSubjectType;
+
 /**
  * Display snapshot of one membership subject.
  *
@@ -12,7 +14,7 @@ namespace App\Shared\Membership;
 final readonly class MembershipSubject
 {
     public function __construct(
-        public MembershipSubjectType $type,
+        public MemberSubjectType $type,
         public string $id,
         public string $label,
         public ?string $publicUrl = null,

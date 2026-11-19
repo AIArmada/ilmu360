@@ -5,9 +5,9 @@ namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationMa
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Shared\Membership\MembershipSubjectType;
 use App\Shared\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -60,7 +60,7 @@ class MembersRelationManager extends RelationManager
                             $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner;
 
                             app(MembershipCommands::class)->addMember(
-                                MembershipSubjectType::Person,
+                                MemberSubjectType::Person,
                                 (string) $person->getKey(),
                                 (string) $member->getKey(),
                                 $role->value,
@@ -87,7 +87,7 @@ class MembersRelationManager extends RelationManager
                             $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer;
 
                             app(MembershipCommands::class)->changeMemberRole(
-                                MembershipSubjectType::Person,
+                                MemberSubjectType::Person,
                                 (string) $person->getKey(),
                                 (string) $record->getKey(),
                                 $role->value,
@@ -107,7 +107,7 @@ class MembersRelationManager extends RelationManager
                             $person->lockForMembershipMutation();
 
                             app(MembershipCommands::class)->removeMember(
-                                MembershipSubjectType::Person,
+                                MemberSubjectType::Person,
                                 (string) $person->getKey(),
                                 (string) $record->getKey(),
                             );

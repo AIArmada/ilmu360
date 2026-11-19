@@ -19,7 +19,7 @@ use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Models\Support\RelatedModels;
+use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\ReferencePartType;
 use App\Shared\Directory\Enums\ReferenceType;
 use BackedEnum;
@@ -953,7 +953,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
      */
     public function verifier(): BelongsTo
     {
-        return $this->belongsTo(RelatedModels::user(User::class), 'verified_by');
+        return $this->belongsTo(MorphModelResolver::resolve('user'), 'verified_by');
     }
 
     /**
@@ -962,7 +962,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
     public function events(): BelongsToMany
     {
         return $this->morphToMany(
-            RelatedModels::event(Event::class),
+            MorphModelResolver::resolve('event'),
             'referenceable',
             config('events.database.tables.event_references', 'event_references'),
             'referenceable_id',
@@ -979,7 +979,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
      */
     public function memberInvitations(): HasMany
     {
-        return $this->hasMany(RelatedModels::memberInvitation(MemberInvitation::class), 'subject_id')
+        return $this->hasMany(MorphModelResolver::resolve('member_invitation'), 'subject_id')
             ->where('subject_type', MemberSubjectType::Reference->value);
     }
 

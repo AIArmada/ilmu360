@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Authoring;
 
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -21,8 +21,8 @@ final readonly class ResolveAdvancedBuilderMembershipOptionsAction implements Ad
 
     public function forAccount(string $accountId): array
     {
-        $institutionIds = $this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Institution);
-        $personIds = $this->memberships->subjectIdsFor($accountId, MembershipSubjectType::Person);
+        $institutionIds = $this->memberships->subjectIdsFor($accountId, MemberSubjectType::Institution);
+        $personIds = $this->memberships->subjectIdsFor($accountId, MemberSubjectType::Person);
 
         return [
             'institution_options' => $institutionIds === []

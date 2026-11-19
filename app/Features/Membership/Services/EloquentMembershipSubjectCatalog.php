@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Membership\Services;
 
 use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
 use App\Features\Persons\Api\PersonLookup;
@@ -13,7 +14,6 @@ use App\Platform\Models\MorphModelResolver;
 use App\Shared\Membership\MembershipDirectory;
 use App\Shared\Membership\MembershipSubject;
 use App\Shared\Membership\MembershipSubjectCatalog;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -36,7 +36,7 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
 
     public function forAccount(
         string $accountId,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         int $limit = 50,
     ): array {
         $subjectIds = array_slice(
@@ -58,23 +58,23 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
         return $subjects;
     }
 
-    public function find(MembershipSubjectType $subjectType, string $subjectId): ?MembershipSubject
+    public function find(MemberSubjectType $subjectType, string $subjectId): ?MembershipSubject
     {
         return match ($subjectType) {
-            MembershipSubjectType::Institution => $this->fromSummary($subjectType, $this->institutions->find($subjectId)),
-            MembershipSubjectType::Person => $this->fromSummary($subjectType, $this->persons->find($subjectId)),
-            MembershipSubjectType::Reference => $this->fromSummary($subjectType, $this->references->find($subjectId)),
-            MembershipSubjectType::Organization => $this->fromOrganization($subjectId),
-            MembershipSubjectType::Event => $this->fromEvent($subjectId),
+            MemberSubjectType::Institution => $this->fromSummary($subjectType, $this->institutions->find($subjectId)),
+            MemberSubjectType::Person => $this->fromSummary($subjectType, $this->persons->find($subjectId)),
+            MemberSubjectType::Reference => $this->fromSummary($subjectType, $this->references->find($subjectId)),
+            MemberSubjectType::Organization => $this->fromOrganization($subjectId),
+            MemberSubjectType::Event => $this->fromEvent($subjectId),
         };
     }
 
-    public function exists(MembershipSubjectType $subjectType, string $subjectId): bool
+    public function exists(MemberSubjectType $subjectType, string $subjectId): bool
     {
         return $this->find($subjectType, $subjectId) instanceof MembershipSubject;
     }
 
-    public function resolveIdentifier(MembershipSubjectType $subjectType, string $identifier): ?string
+    public function resolveIdentifier(MemberSubjectType $subjectType, string $identifier): ?string
     {
         $identifier = trim($identifier);
         if ($identifier === '') {
@@ -82,18 +82,18 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
         }
 
         return match ($subjectType) {
-            MembershipSubjectType::Institution => $this->institutions->resolveIdentifier($identifier),
-            MembershipSubjectType::Person => $this->persons->resolveIdentifier($identifier),
-            MembershipSubjectType::Reference => $this->references->resolveIdentifier($identifier),
-            MembershipSubjectType::Organization => $this->organizations->find($identifier)?->id,
-            MembershipSubjectType::Event => $this->fromEvent($identifier)?->id,
+            MemberSubjectType::Institution => $this->institutions->resolveIdentifier($identifier),
+            MemberSubjectType::Person => $this->persons->resolveIdentifier($identifier),
+            MemberSubjectType::Reference => $this->references->resolveIdentifier($identifier),
+            MemberSubjectType::Organization => $this->organizations->find($identifier)?->id,
+            MemberSubjectType::Event => $this->fromEvent($identifier)?->id,
         };
     }
 
     /**
      * @param  \App\Features\Institutions\Api\InstitutionSummary|\App\Features\Persons\Api\PersonSummary|\App\Features\References\Api\ReferenceSummary|null  $detail
      */
-    private function fromSummary(MembershipSubjectType $subjectType, mixed $detail): ?MembershipSubject
+    private function fromSummary(MemberSubjectType $subjectType, mixed $detail): ?MembershipSubject
     {
         if ($detail === null) {
             return null;
@@ -119,7 +119,7 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
         }
 
         return new MembershipSubject(
-            type: MembershipSubjectType::Organization,
+            type: MemberSubjectType::Organization,
             id: $summary->id,
             label: $summary->name,
             publicUrl: route('dashboard.organizations.show', ['organization' => $summary->id]),
@@ -139,7 +139,7 @@ final readonly class EloquentMembershipSubjectCatalog implements MembershipSubje
         $slug = $event->getAttribute('slug');
 
         return new MembershipSubject(
-            type: MembershipSubjectType::Event,
+            type: MemberSubjectType::Event,
             id: (string) $event->getKey(),
             label: (string) ($event->getAttribute('title') ?? $event->getAttribute('name') ?? ''),
             publicUrl: is_string($slug) && $slug !== ''

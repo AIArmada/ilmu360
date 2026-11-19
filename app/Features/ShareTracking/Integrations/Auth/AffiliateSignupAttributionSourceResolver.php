@@ -11,12 +11,13 @@ use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
+use App\Features\Identity\Api\SignupAttributionSource;
+use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Models\User;
-use App\Shared\Auth\SignupAttributionSource;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonInterface;
@@ -99,7 +100,7 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
 
         return [
             'source' => new SignupAttributionSource(
-                type: $isGuest ? 'share_guest' : 'share_member',
+                type: $isGuest ? SignupAttributionSourceType::ShareGuest : SignupAttributionSourceType::ShareMember,
                 referrerUserId: $referrerId,
                 affiliateId: (string) $affiliate->getKey(),
                 affiliateLinkId: (string) $link->getKey(),
@@ -177,7 +178,7 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
 
         return [
             'source' => new SignupAttributionSource(
-                type: 'commercial_affiliate',
+                type: SignupAttributionSourceType::CommercialAffiliate,
                 referrerUserId: $owner instanceof User ? (string) $owner->getKey() : null,
                 affiliateId: (string) $affiliate->getKey(),
                 affiliateLinkId: $link instanceof AffiliateLink ? (string) $link->getKey() : null,

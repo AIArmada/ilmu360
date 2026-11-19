@@ -11,8 +11,8 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Membership\Actions\DetachSubjectMembersAction;
 use App\Features\Membership\Actions\TransferPersonOwnershipAction;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -32,7 +32,7 @@ final readonly class MembershipCommandsService implements MembershipCommands
     ) {}
 
     public function assignOwner(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
     ): void {
@@ -44,7 +44,7 @@ final readonly class MembershipCommandsService implements MembershipCommands
     }
 
     public function addMember(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
         string $role,
@@ -57,7 +57,7 @@ final readonly class MembershipCommandsService implements MembershipCommands
     }
 
     public function changeMemberRole(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
         string $role,
@@ -70,7 +70,7 @@ final readonly class MembershipCommandsService implements MembershipCommands
     }
 
     public function removeMember(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $accountId,
     ): void {
@@ -81,7 +81,7 @@ final readonly class MembershipCommandsService implements MembershipCommands
     }
 
     public function removeAllMembers(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): void {
         $this->detachSubjectMembers->handle($subjectType, $subjectId);
@@ -93,13 +93,13 @@ final readonly class MembershipCommandsService implements MembershipCommands
         string $newOwnerId,
     ): void {
         $this->transferPersonOwnership->handle(
-            $this->subject(MembershipSubjectType::Person, $personId),
+            $this->subject(MemberSubjectType::Person, $personId),
             $this->account($actorId),
             $this->account($newOwnerId),
         );
     }
 
-    private function subject(MembershipSubjectType $subjectType, string $subjectId): Model
+    private function subject(MemberSubjectType $subjectType, string $subjectId): Model
     {
         $modelClass = MorphModelResolver::resolve($subjectType->value);
 

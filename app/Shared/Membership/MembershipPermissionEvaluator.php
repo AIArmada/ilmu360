@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Membership;
 
+use App\Features\Membership\Api\MemberSubjectType;
+
 /**
  * Scalar permission boundary for membership-aware authorization.
  *
@@ -16,7 +18,7 @@ interface MembershipPermissionEvaluator
     public function canOnSubject(
         string $accountId,
         string $permission,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): bool;
 
@@ -32,7 +34,7 @@ interface MembershipPermissionEvaluator
     public function hasAnyOnSubjectType(
         string $accountId,
         string $permission,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
     ): bool;
 
     /**
@@ -41,7 +43,7 @@ interface MembershipPermissionEvaluator
      * @return list<string>
      */
     public function memberAccountIdsWithPermission(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $permission,
     ): array;

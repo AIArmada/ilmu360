@@ -11,8 +11,8 @@ use App\Features\Membership\Api\MembershipApplicationEvidence;
 use App\Features\Membership\Api\MembershipApplicationReviewer;
 use App\Features\Membership\Api\MembershipApplicationSummary;
 use App\Features\Membership\Api\MembershipInvitationDetail;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Shared\Membership\MembershipSubjectCatalog;
-use App\Shared\Membership\MembershipSubjectType;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -28,7 +28,7 @@ final readonly class MembershipValueMapper
     {
         return new MembershipInvitationDetail(
             id: (string) $invitation->getKey(),
-            subjectType: MembershipSubjectType::from(self::stringValue($invitation->getAttribute('subject_type')) ?? ''),
+            subjectType: MemberSubjectType::from(self::stringValue($invitation->getAttribute('subject_type')) ?? ''),
             subjectId: (string) $invitation->getAttribute('subject_id'),
             email: (string) $invitation->getAttribute('email'),
             role: self::stringValue($invitation->getAttribute('role')) ?? '',
@@ -45,7 +45,7 @@ final readonly class MembershipValueMapper
     {
         return new MembershipApplicationSummary(
             id: (string) $application->getKey(),
-            subjectType: MembershipSubjectType::from(self::stringValue($application->getAttribute('subject_type')) ?? ''),
+            subjectType: MemberSubjectType::from(self::stringValue($application->getAttribute('subject_type')) ?? ''),
             subjectId: (string) $application->getAttribute('subject_id'),
             applicantId: (string) $application->getAttribute('applicant_id'),
             status: self::stringValue($application->getAttribute('status')) ?? '',

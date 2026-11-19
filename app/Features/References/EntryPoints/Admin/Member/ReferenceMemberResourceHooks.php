@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\References\EntryPoints\Admin\Member;
 
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Api\Member\Contracts\MemberResourceHooks;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -24,7 +24,7 @@ final readonly class ReferenceMemberResourceHooks implements MemberResourceHooks
             return null;
         }
 
-        return $memberships->subjectIdsFor($user->actorId(), MembershipSubjectType::Reference) !== [];
+        return $memberships->subjectIdsFor($user->actorId(), MemberSubjectType::Reference) !== [];
     }
 
     public function adminResourceClass(string $resourceClass): ?string

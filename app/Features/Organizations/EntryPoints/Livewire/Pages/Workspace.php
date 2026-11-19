@@ -12,11 +12,11 @@ use App\Features\Events\Models\Event;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -82,7 +82,7 @@ final class Workspace extends Component
         }
 
         $membershipInvitations->invite(
-            MembershipSubjectType::Organization,
+            MemberSubjectType::Organization,
             (string) $organization->getKey(),
             $email,
             (string) $validated['inviteRole'],
@@ -133,7 +133,7 @@ final class Workspace extends Component
 
         OwnerContext::withOwner($organization, function () use ($membershipCommands, $member, $organization, $validated): void {
             $membershipCommands->changeMemberRole(
-                MembershipSubjectType::Organization,
+                MemberSubjectType::Organization,
                 (string) $organization->getKey(),
                 (string) $member->getKey(),
                 (string) $validated['editingRole'],
@@ -153,7 +153,7 @@ final class Workspace extends Component
         try {
             OwnerContext::withOwner($organization, function () use ($membershipCommands, $member, $organization): void {
                 $membershipCommands->removeMember(
-                    MembershipSubjectType::Organization,
+                    MemberSubjectType::Organization,
                     (string) $organization->getKey(),
                     (string) $member->getKey(),
                 );
@@ -197,7 +197,7 @@ final class Workspace extends Component
 
         abort_unless(
             $invitation instanceof MembershipInvitationDetail
-            && $invitation->subjectType === MembershipSubjectType::Organization
+            && $invitation->subjectType === MemberSubjectType::Organization
             && $invitation->subjectId === (string) $organization->getKey(),
             404,
         );
@@ -259,7 +259,7 @@ final class Workspace extends Component
     public function invitations(): array
     {
         return app(MembershipInvitations::class)->recentForSubject(
-            MembershipSubjectType::Organization,
+            MemberSubjectType::Organization,
             (string) $this->selectedOrganization()->getKey(),
             20,
         );

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Models\User;
 use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectType;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -56,7 +56,7 @@ final class CreateOrganization extends Component
     {
         return app(MembershipDirectory::class)->subjectIdsFor(
             (string) $user->getKey(),
-            MembershipSubjectType::Organization,
+            MemberSubjectType::Organization,
         ) !== [];
     }
 

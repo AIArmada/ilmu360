@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Shared\Membership;
 
+use App\Features\Membership\Api\MemberSubjectType;
+
 interface MembershipAuthorization
 {
     public function can(
         string $accountId,
         string $permission,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
     ): bool;
 
@@ -21,7 +23,7 @@ interface MembershipAuthorization
     public function hasAny(
         string $accountId,
         string $permission,
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
     ): bool;
 
     /**
@@ -30,7 +32,7 @@ interface MembershipAuthorization
      * @return list<string>
      */
     public function membersWithPermission(
-        MembershipSubjectType $subjectType,
+        MemberSubjectType $subjectType,
         string $subjectId,
         string $permission,
     ): array;

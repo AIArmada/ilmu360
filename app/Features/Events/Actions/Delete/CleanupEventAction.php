@@ -9,8 +9,8 @@ use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Support\EventModel;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Registration\Api\EventRegistrationDeletion;
-use App\Shared\Membership\MembershipSubjectType;
 
 /**
  * Owns the application-level cleanup that runs before the event row is
@@ -47,7 +47,7 @@ final readonly class CleanupEventAction implements EventDeletion
         $this->registrationDeletion->assertEventRegistrationsCanBeDeleted($eventId);
 
         $this->membership->removeAllMembers(
-            MembershipSubjectType::Event,
+            MemberSubjectType::Event,
             $eventId,
         );
 

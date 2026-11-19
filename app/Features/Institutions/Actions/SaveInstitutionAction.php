@@ -7,12 +7,12 @@ namespace App\Features\Institutions\Actions;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Directory\InstitutionFacilities;
-use App\Shared\Membership\MembershipSubjectType;
 use App\Shared\Signals\SignalRecorder;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -92,7 +92,7 @@ final readonly class SaveInstitutionAction
             $institution->fill($attributes);
             $institution->save();
             $this->membershipCommands->assignOwner(
-                MembershipSubjectType::Institution,
+                MemberSubjectType::Institution,
                 (string) $institution->getKey(),
                 (string) $actor->getKey(),
             );
