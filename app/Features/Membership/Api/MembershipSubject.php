@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Api;
 
-use App\Features\Membership\Api\MemberSubjectType;
-
 /**
  * Display snapshot of one membership subject.
  *

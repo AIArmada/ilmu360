@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Api;
 
-use App\Features\Identity\Api\SignupAttributionSource;
 use InvalidArgumentException;
 
 /** Untrusted signup attribution context captured before account creation. */
