@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Prayer;
+namespace App\Features\Prayer\Api;
 
 use App\Features\Events\Api\Enums\EventFormat;
 use BackedEnum;
@@ -16,7 +16,7 @@ use BackedEnum;
  * targets null so every path degrades to the same country default.
  * Physical targets pass through untouched.
  */
-final class PrayerTargetSelector
+final readonly class PrayerTargetSelector
 {
     /**
      * @return array{0: string|null, 1: string|null}

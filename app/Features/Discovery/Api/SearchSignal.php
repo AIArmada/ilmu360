@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Discovery;
+namespace App\Features\Discovery\Api;
 
-final class SearchSignal
+final readonly class SearchSignal
 {
     /**
      * Normalize a discovery interaction into the exact product-signal payload.

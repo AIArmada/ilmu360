@@ -7,8 +7,8 @@ namespace App\Features\ShareTracking\Services;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\CommerceSupport\Support\OwnerScope;
+use App\Features\ShareTracking\Api\ShareTrackingProfile;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareTrackingProfile;
 use Illuminate\Database\Eloquent\Builder;
 
 /**

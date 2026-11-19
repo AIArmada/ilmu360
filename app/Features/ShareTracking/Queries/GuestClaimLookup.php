@@ -9,10 +9,10 @@ use AIArmada\Affiliates\Models\AffiliateClaim;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Api\GuestClaims;
 use App\Features\ShareTracking\Api\GuestClaimSnapshot;
+use App\Features\ShareTracking\Api\ShareTrackingProfile;
 use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Models\User;
 use App\Shared\Auth\UserMorphType;
-use App\Shared\ShareTracking\ShareTrackingProfile;
 use DateTimeImmutable;
 use DateTimeInterface;
 

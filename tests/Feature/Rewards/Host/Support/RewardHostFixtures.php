@@ -7,8 +7,8 @@ namespace Tests\Feature\Rewards\Host\Support;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\Active;
+use App\Features\ShareTracking\Api\ShareTrackingProfile;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 

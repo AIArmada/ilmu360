@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\SavedSearches\Services;
 
+use App\Features\Discovery\Api\SearchFilterKeys;
+use App\Features\Discovery\Api\SearchSignal;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Models\Event;
 use App\Features\SavedSearches\Api\SavedSearchExecutionResult;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\User;
-use App\Shared\Discovery\SearchFilterKeys;
-use App\Shared\Discovery\SearchSignal;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;

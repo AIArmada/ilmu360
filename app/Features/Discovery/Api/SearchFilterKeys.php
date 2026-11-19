@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Discovery;
+namespace App\Features\Discovery\Api;
 
-final class SearchFilterKeys
+final readonly class SearchFilterKeys
 {
     /**
      * @return list<string>

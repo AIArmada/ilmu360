@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Platform\Auth\Fortify;
 
 use App\Features\Events\Api\GuestEventSubmissionClaims;
+use App\Features\Identity\Api\GuestSubmissionNotice;
 use App\Models\User;
-use App\Shared\Auth\GuestSubmissionNotice;
 use App\Shared\Signals\SignalRecorder;
 use Closure;
 use Illuminate\Http\Request;

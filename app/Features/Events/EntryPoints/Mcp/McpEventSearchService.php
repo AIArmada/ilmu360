@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Mcp;
 
+use App\Features\Discovery\Api\SearchFilterKeys;
 use App\Features\Discovery\EntryPoints\Http\Data\EventListData;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;
-use App\Shared\Discovery\SearchFilterKeys;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;

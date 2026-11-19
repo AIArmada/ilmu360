@@ -11,12 +11,12 @@ use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
+use App\Features\ShareTracking\Api\ShareTrackingProfile;
 use App\Features\ShareTracking\Queries\ShareMetricReader;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareTrackingProfile;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 

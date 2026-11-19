@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Auth;
+namespace App\Features\Identity\Api;
 
 /**
  * Presents the outcome of the Events guest-submission claim to the visitor.
  */
-final class GuestSubmissionNotice
+final readonly class GuestSubmissionNotice
 {
     public static function flash(int $claimed): void
     {

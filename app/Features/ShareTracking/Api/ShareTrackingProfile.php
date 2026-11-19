@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\ShareTracking;
+namespace App\Features\ShareTracking\Api;
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\States\Active;
@@ -15,7 +15,7 @@ use App\Models\User;
  * metadata. The marker is the only adoption signal; profile codes, names and
  * descriptions do not determine ownership.
  */
-final class ShareTrackingProfile
+final readonly class ShareTrackingProfile
 {
     public const string MARKER_KEY = 'share_tracking_profile';
 

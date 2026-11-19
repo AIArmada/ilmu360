@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
+use App\Features\ShareTracking\Api\ShareTrackingProfile;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareTrackingProfile;
 
 it('marks guest share profiles with the neutral purpose', function (): void {
     $response = test()->getJson(route('share.payload', [

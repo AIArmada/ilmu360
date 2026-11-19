@@ -2,6 +2,7 @@
 
 namespace App\Features\Discovery\Services;
 
+use App\Features\Discovery\Api\SearchFilterKeys;
 use App\Features\Discovery\Api\SearchFilterNormalizer;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
@@ -9,7 +10,6 @@ use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Shared\Discovery\SearchFilterKeys;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;

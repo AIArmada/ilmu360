@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\ShareTracking;
+namespace App\Features\ShareTracking\Api;
 
-use App\Features\ShareTracking\Api\ShareOutcomeType;
+use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use InvalidArgumentException;
 
 /**
@@ -13,7 +13,7 @@ use InvalidArgumentException;
  * Source prefixes and UUID validation are shared with share outcome keys;
  * the namespace remains distinct so each reader fails closed on the other.
  */
-final class ActivityRewardBusinessKey
+final readonly class ActivityRewardBusinessKey
 {
     public const string NAMESPACE = 'activity';
 
