@@ -2,11 +2,11 @@
 
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\HardcodedPrayerFallback;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Bus;

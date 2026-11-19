@@ -1,9 +1,9 @@
 <?php
 
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
-use App\Shared\Events\Enums\EventVisibility;
 
 it('allows multiple registrations for the same event', function () {
     $event = Event::factory()

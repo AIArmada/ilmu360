@@ -6,11 +6,11 @@ namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\Events\Enums\ScheduleKind;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleFromInputAction;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventScheduleInput;
 use App\Features\Events\Support\EventModel;
 use App\Features\Places\Api\SpaceEligibility;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\PrayerOffset;
+use App\Features\Prayer\Api\PrayerOffset;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;

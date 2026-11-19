@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
+use App\Features\Feedback\Api\FeedbackActor;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\GlobalRole;
-use App\Shared\Feedback\FeedbackActor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;

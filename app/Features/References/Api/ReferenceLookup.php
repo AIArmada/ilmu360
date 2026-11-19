@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\Api;
 
-use App\Shared\Reports\ReportSubject;
+use App\Features\Reports\Api\ReportSubject;
 
 interface ReferenceLookup
 {

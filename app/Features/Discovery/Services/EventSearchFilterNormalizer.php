@@ -2,14 +2,14 @@
 
 namespace App\Features\Discovery\Services;
 
+use App\Features\Discovery\Api\SearchFilterNormalizer;
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\TimingMode;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Shared\Discovery\SearchFilterKeys;
-use App\Shared\Discovery\SearchFilterNormalizer;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\EventPrayerTime;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;

@@ -1,17 +1,17 @@
 <?php
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Services;
 
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionCatalog;
 use App\Features\Institutions\Models\Institution;
-use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Database\Eloquent\Builder;
 
 final readonly class EloquentInstitutionCatalog implements InstitutionCatalog

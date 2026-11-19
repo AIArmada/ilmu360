@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Filament\Widgets\EventInventoryOverview;
@@ -16,7 +17,6 @@ use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Admin\EntryPoints\Filament\Pages\AdminDashboard;
 use App\Platform\Admin\EntryPoints\Filament\Widgets\StatsOverview;
-use App\Shared\Events\Enums\EventVisibility;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;

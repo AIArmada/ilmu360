@@ -2,7 +2,7 @@
 
 use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Services\NotificationMessageRenderer;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Api\Enums\EventVisibility;
 
 it('returns fallback when definition is null', function () {
     $result = app(NotificationMessageRendering::class)->renderDefinition(null, fallback: 'default message');

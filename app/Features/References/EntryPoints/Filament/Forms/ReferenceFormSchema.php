@@ -4,12 +4,12 @@ namespace App\Features\References\EntryPoints\Filament\Forms;
 
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
+use App\Features\References\Api\Enums\ReferencePartType;
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Cache\SelectionCatalogCache;
-use App\Shared\Directory\Enums\ReferencePartType;
-use App\Shared\Directory\Enums\ReferenceType;
 use App\Shared\Signals\SignalRecorder;
 use BackedEnum;
 use Filament\Forms\Components\Placeholder;

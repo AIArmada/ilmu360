@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Authoring;
 
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Membership\MembershipDirectory;
 use Illuminate\Database\Eloquent\Model;
 
 /**

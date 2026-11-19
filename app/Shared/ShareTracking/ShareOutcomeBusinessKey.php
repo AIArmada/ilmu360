@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\ShareTracking;
 
+use App\Features\ShareTracking\Api\ShareOutcomeType;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 

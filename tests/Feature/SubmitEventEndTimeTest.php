@@ -2,15 +2,15 @@
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\EventTerm;
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Prayer\EventPrayerTime;
+use App\Features\Prayer\Api\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Filament\Forms\Components\TimePicker;
 use Illuminate\Support\Str;

@@ -1,8 +1,8 @@
 <?php
 
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Directory\Enums\ReferenceType;
 use Illuminate\Validation\ValidationException;
 
 it('auto-generates a slug when slug is blank on save', function () {

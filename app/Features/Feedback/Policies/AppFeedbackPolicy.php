@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Feedback\Policies;
 
+use App\Features\Feedback\Api\FeedbackActor;
 use App\Features\Feedback\Models\AppFeedback;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Feedback\FeedbackActor;
 
 class AppFeedbackPolicy
 {

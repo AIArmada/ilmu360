@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Institutions\Models\Institution;
@@ -8,7 +9,6 @@ use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;
 

@@ -1,9 +1,9 @@
 <?php
 
 use App\Features\Institutions\Actions\DeleteInstitutionAction;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionImportExclusion;
-use App\Shared\Directory\Enums\InstitutionStatus;
 
 it('records source-backed deletions as permanent exclusions', function () {
     $institution = Institution::factory()->create(['status' => InstitutionStatus::Verified->value]);

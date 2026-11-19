@@ -7,6 +7,7 @@ use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Events\States\EventStatus\Approved;
 use App\Features\Events\States\EventStatus\Cancelled;
@@ -24,7 +25,6 @@ use App\Models\User;
 use App\Shared\Captcha\CaptchaVerifier;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Support\Facades\Schema;
 
 it('sets cancelled_at when cancelling an event', function () {

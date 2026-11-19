@@ -8,7 +8,7 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
 use AIArmada\Events\Models\EventSession;
-use App\Shared\Events\Enums\EventAttendanceStatus;
+use App\Features\Registration\Api\Enums\EventAttendanceStatus;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use DateTimeInterface;

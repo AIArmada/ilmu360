@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Features\Contributions\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Prayer\PrayerTargetSelector;
 use App\Shared\Submission\SpaceSelectionEligibility;
 use App\Shared\Submission\SubmissionValues;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Auth\Listeners;
 
+use App\Features\Events\Api\GuestEventSubmissionClaims;
 use App\Models\User;
-use App\Shared\Auth\GuestEventSubmissionClaims;
 use App\Shared\Auth\GuestSubmissionNotice;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;

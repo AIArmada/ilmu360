@@ -9,6 +9,7 @@ use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\AccountSubmissionEligibility;
+use App\Features\Identity\Api\NewAccountAttribution;
 use App\Features\Identity\Api\SignupAttributions;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Api\SocialAccounts;
@@ -29,7 +30,6 @@ use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
-use App\Shared\Auth\NewAccountAttribution;
 use Illuminate\Contracts\Foundation\Application;
 
 class FeatureServiceProvider extends FeatureModule

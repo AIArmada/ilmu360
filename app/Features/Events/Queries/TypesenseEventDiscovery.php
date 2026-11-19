@@ -6,11 +6,11 @@ namespace App\Features\Events\Queries;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\References\Api\ReferenceQueries;
 use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Shared\Events\EventCategoryCatalog;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;

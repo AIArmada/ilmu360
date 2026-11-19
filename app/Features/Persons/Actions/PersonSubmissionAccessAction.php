@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Api\PersonSubmissionEligibility;
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
 use App\Features\Persons\Models\Person;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Membership\MembershipDirectory;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;

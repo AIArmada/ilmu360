@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Engagement\Services;
 
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
-use App\Shared\Directory\Enums\InstitutionStatus;
 use Illuminate\Support\Str;
 
 /**

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\References\EntryPoints\Admin\Member;
 
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Api\Member\Contracts\MemberResourceHooks;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipDirectory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 

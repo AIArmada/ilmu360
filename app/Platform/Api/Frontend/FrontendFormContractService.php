@@ -3,12 +3,20 @@
 namespace App\Platform\Api\Frontend;
 
 use AIArmada\Persons\Enums\Gender;
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use App\Platform\Api\SurfaceSyncPolicy;
@@ -16,14 +24,6 @@ use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\Documentation\DocumentationLibrary;
 use App\Platform\Language\Models\Language;
 use App\Platform\Mcp\McpTokenManager;
-use App\Shared\Directory\Enums\InstitutionType;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Taxonomy\EventTaxonomyCode;
 
 class FrontendFormContractService
 {

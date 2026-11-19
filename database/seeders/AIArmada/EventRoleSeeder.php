@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders\AIArmada;
 
 use AIArmada\Events\Models\EventRole;
-use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use Illuminate\Database\Seeder;
 
 class EventRoleSeeder extends Seeder

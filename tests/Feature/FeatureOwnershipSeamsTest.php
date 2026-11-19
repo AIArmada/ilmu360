@@ -7,6 +7,7 @@ use App\Features\DonationChannels\Queries\EloquentDonationChannelLookup;
 use App\Features\Events\Models\Event;
 use App\Features\Identity\Api\AccountSubmissionEligibility;
 use App\Features\Identity\Services\AccountSubmissionEligibilityService;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
@@ -32,12 +33,11 @@ use App\Features\Places\Services\VenueWorkflowService;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Models\Reference;
 use App\Features\References\Queries\EloquentReferenceLookup;
+use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Services\CompositeReportSubjectResolver;
 use App\Models\User;
 use App\Platform\Api\Frontend\CatalogDispatcher;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Reports\ReportSubjectResolver;
 
 it('binds the directory seams to their owning implementations', function (): void {
     expect(app(InstitutionLookup::class))->toBeInstanceOf(EloquentInstitutionLookup::class)

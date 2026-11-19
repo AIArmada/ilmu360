@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Admin;
 
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\Enums\TimingMode;
+use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Prayer\Api\PrayerReference;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\ResolvesAccessibleResource;
 use App\Platform\Api\ApiPagination;
@@ -12,11 +17,6 @@ use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\Documentation\DocumentationLibrary;
 use App\Platform\Search\ResourceSearchDispatcher;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonInterface;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;

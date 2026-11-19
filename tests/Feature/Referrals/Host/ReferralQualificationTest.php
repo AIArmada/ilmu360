@@ -27,10 +27,10 @@ use App\Features\Referrals\EntryPoints\Jobs\ReverseReferralRewardsForShareOutcom
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
+use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;

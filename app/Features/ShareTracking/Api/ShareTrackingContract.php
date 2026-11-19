@@ -9,7 +9,6 @@ use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Shared\Auth\AccountActor;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
 

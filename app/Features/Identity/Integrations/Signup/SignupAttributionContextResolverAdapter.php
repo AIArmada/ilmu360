@@ -7,7 +7,7 @@ namespace App\Features\Identity\Integrations\Signup;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Referrals\Exceptions\ReferralInviteNotFoundException;
 use AIArmada\Referrals\Support\ReferralProgramGuard;
-use App\Shared\Auth\SignupAttributionContext;
+use App\Features\Identity\Api\SignupAttributionContext;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SignupAttributionSourceResolver;
 use Illuminate\Http\Request;

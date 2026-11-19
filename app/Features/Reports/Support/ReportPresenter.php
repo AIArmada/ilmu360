@@ -2,9 +2,9 @@
 
 namespace App\Features\Reports\Support;
 
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Models\Report;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectResolver;
 use WeakMap;
 
 class ReportPresenter

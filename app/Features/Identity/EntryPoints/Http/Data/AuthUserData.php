@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\EntryPoints\Http\Data;
 
-use App\Shared\Auth\AccountProfile;
+use App\Features\Identity\Api\AccountProfile;
 use DateTimeInterface;
 use Spatie\LaravelData\Data;
 

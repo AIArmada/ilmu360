@@ -1,22 +1,22 @@
 <?php
 
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\SubmitEventOptionsProvider;
 use App\Features\Events\Services\SubmitEventPrefill;
+use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use App\Platform\Ui\Forms\SharedFormSchema;
-use App\Shared\Directory\Enums\InstitutionNameType;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;

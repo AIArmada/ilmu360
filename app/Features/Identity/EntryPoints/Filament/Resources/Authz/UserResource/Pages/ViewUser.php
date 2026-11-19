@@ -6,12 +6,14 @@ namespace App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResourc
 
 use AIArmada\Authz\Facades\Authz;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Identity\Api\AccountAdministration;
+use App\Features\Identity\Api\AccountToken;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
@@ -27,8 +29,6 @@ use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\User;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Shared\Auth\AccountToken;
-use App\Shared\Engagement\EngagementSubjectType;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;

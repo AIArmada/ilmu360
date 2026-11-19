@@ -9,10 +9,10 @@ use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceLookup;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectPresentation;
-use App\Shared\Reports\ReportSubjectResolver;
-use App\Shared\Reports\ReportSubjectType;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectPresentation;
+use App\Features\Reports\Api\ReportSubjectResolver;
+use App\Features\Reports\Api\ReportSubjectType;
 use InvalidArgumentException;
 
 /** Application adapter composing independently-owned report subjects. */

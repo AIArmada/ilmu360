@@ -1,11 +1,11 @@
 <?php
 
 use App\Features\Discovery\Services\EventSearchService;
+use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Events\Models\Event;
 use App\Platform\Language\Models\Language;
-use App\Shared\Events\Enums\EventAgeGroup;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;

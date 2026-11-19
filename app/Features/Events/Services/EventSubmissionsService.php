@@ -19,8 +19,8 @@ use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Support\EventModel;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Prayer\EventPrayerTime;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 

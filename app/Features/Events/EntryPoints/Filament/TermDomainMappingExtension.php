@@ -8,7 +8,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentEvents\Contracts\TermFormExtension;
 use App\Features\Events\Actions\Authoring\SyncEventTermDomainMappingAction;
-use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Features\Events\Api\EventTaxonomyCode;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;

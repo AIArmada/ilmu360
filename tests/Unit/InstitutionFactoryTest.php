@@ -1,7 +1,7 @@
 <?php
 
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;
-use App\Shared\Directory\Enums\InstitutionType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;

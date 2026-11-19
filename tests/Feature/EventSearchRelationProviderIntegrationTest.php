@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventDiscoveryFilterSet;
 use App\Features\Events\Queries\FuzzyEventMatcher;
@@ -12,7 +13,6 @@ use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\PlaceLookup;
 use App\Features\References\Api\ReferenceQueries;
-use App\Shared\Events\EventCategoryCatalog;
 use Tests\Support\RecordingEventSearchRelationProvider;
 
 it('makes PostgreSQL discovery consume the injected relation provider', function (): void {

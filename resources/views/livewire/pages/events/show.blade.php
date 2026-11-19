@@ -147,16 +147,16 @@
         ->filter()
         ->unique()
         ->values();
-    $genderRestriction = $event->gender instanceof \App\Shared\Events\Enums\EventGenderRestriction
+    $genderRestriction = $event->gender instanceof \App\Features\Events\Api\Enums\EventGenderRestriction
         ? $event->gender
-        : \App\Shared\Events\Enums\EventGenderRestriction::tryFrom((string) $event->gender);
+        : \App\Features\Events\Api\Enums\EventGenderRestriction::tryFrom((string) $event->gender);
     $muslimOnly = (bool) $event->is_muslim_only;
     $keyPeopleByRole = $this->keyPeopleByRole;
     $galleryImages = $this->galleryImages;
 
     $eventFormatLabel = match ((string) $event->delivery_mode) {
-        \App\Shared\Events\Enums\EventFormat::Online->value => __('Dalam talian'),
-        \App\Shared\Events\Enums\EventFormat::Hybrid->value => __('Hibrid'),
+        \App\Features\Events\Api\Enums\EventFormat::Online->value => __('Dalam talian'),
+        \App\Features\Events\Api\Enums\EventFormat::Hybrid->value => __('Hibrid'),
         default => __('Fizikal'),
     };
 
@@ -712,7 +712,7 @@
                                 <dd class="text-right font-medium text-[#14342e]">{{ $languageLabels->implode(', ') }}</dd>
                             </div>
                         @endif
-                        @if($genderRestriction instanceof \App\Shared\Events\Enums\EventGenderRestriction)
+                        @if($genderRestriction instanceof \App\Features\Events\Api\Enums\EventGenderRestriction)
                             <div class="flex items-baseline justify-between gap-4 py-2.5">
                                 <dt class="text-[#6b645e]">{{ __('Kehadiran') }}</dt>
                                 <dd class="text-right font-medium text-[#14342e]">{{ $genderRestriction->getLabel() }}</dd>

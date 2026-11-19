@@ -104,7 +104,7 @@
                     <div class="p-6 pb-0 pt-6 relative flex-1 flex flex-col">
                         <h3 class="font-heading text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors mb-2 leading-tight">
                             {{ $institution->name }}
-                            @if($institution->status === \App\Shared\Directory\Enums\InstitutionStatus::Verified)
+                            @if($institution->status === \App\Features\Institutions\Api\Enums\InstitutionStatus::Verified)
                                 <x-ui.verified-badge class="text-emerald-600" data-testid="verified-badge" />
                             @endif
                         </h3>

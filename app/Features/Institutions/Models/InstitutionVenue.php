@@ -2,8 +2,8 @@
 
 namespace App\Features\Institutions\Models;
 
+use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 use App\Features\Places\Models\Venue;
-use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;

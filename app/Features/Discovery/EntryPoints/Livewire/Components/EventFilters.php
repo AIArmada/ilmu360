@@ -2,12 +2,12 @@
 
 namespace App\Features\Discovery\EntryPoints\Livewire\Components;
 
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index as EventsIndex;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\TimingMode;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Shared\Location\VisitorCountryResolving;
-use App\Shared\Prayer\EventPrayerTime;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Features\SupportAttributes\AttributeCollection;

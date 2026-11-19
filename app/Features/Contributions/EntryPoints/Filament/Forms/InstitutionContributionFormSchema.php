@@ -2,10 +2,10 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
+use App\Features\Institutions\Api\Enums\InstitutionNameType;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Platform\Location\GooglePlacesConfiguration;
 use App\Platform\Ui\Forms\SharedFormSchema;
-use App\Shared\Directory\Enums\InstitutionNameType;
-use App\Shared\Directory\Enums\InstitutionType;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;

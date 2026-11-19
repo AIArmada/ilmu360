@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use App\Features\Prayer\Support\PrayerLocation;
-use App\Shared\Prayer\EventPrayerTime;
 
 /** Resolve a public submission's prayer clock from its selected location. */
 final readonly class ResolveEventSubmissionPrayerStartAction

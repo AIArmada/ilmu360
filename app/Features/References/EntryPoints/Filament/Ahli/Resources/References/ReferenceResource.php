@@ -2,6 +2,7 @@
 
 namespace App\Features\References\EntryPoints\Filament\Ahli\Resources\References;
 
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\Pages\EditReference;
 use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\Pages\ListReferences;
@@ -10,7 +11,6 @@ use App\Features\References\EntryPoints\Filament\Resources\References\RelationMa
 use App\Features\References\Models\Reference;
 use App\Platform\Auditing\AuditsRelationManager;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipDirectory;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;

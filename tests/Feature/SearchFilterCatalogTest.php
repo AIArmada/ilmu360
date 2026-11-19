@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Discovery\SearchFilterCatalog;
+use App\Features\Discovery\Api\SearchFilterCatalog;
 use Illuminate\Support\Str;
 
 it('exposes canonical discovery filter values', function (string $key, array $expected): void {

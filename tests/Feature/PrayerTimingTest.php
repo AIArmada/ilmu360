@@ -1,8 +1,8 @@
 <?php
 
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\PrayerOffset;
-use App\Shared\Prayer\PrayerReference;
+use App\Features\Events\Api\Enums\TimingMode;
+use App\Features\Prayer\Api\PrayerOffset;
+use App\Features\Prayer\Api\PrayerReference;
 use Carbon\Carbon;
 
 beforeEach(function () {

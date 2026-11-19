@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Features\Events\Api\EventTaxonomyCode;
 use Database\Seeders\AIArmada\EventSourceSeeder;
 
 it('seeds the primary reference sources with the canonical labels', function () {

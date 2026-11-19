@@ -3,10 +3,10 @@
 namespace App\Features\DonationChannels\Models;
 
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
+use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Shared\Directory\Enums\DonationChannelStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\DonationChannelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;

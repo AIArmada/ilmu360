@@ -2,8 +2,8 @@
 
 namespace App\Features\Reports\Notifications;
 
+use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Models\Report;
-use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;

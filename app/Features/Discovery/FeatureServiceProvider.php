@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Features\Discovery;
 
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
+use App\Features\Discovery\Api\SearchFilterCatalog;
+use App\Features\Discovery\Api\SearchFilterNormalizer;
+use App\Features\Discovery\Api\SearchFilterRules;
 use App\Features\Discovery\Services\EventSearchFilterCatalog;
 use App\Features\Discovery\Services\EventSearchFilterNormalizer;
 use App\Features\Discovery\Services\EventSearchFilterRules;
 use App\Features\Discovery\Services\PublicListingsCache;
 use App\Platform\FeatureModule;
-use App\Shared\Discovery\SearchFilterCatalog;
-use App\Shared\Discovery\SearchFilterNormalizer;
-use App\Shared\Discovery\SearchFilterRules;
 
 /**
  * Discovery owns the public search-filter normalization, validation and

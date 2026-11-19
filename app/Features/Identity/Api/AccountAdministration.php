@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Api;
 
-use App\Shared\Auth\AccountToken;
-
 /**
  * Administrative account mutations for the Filament user admin surface.
  * Transport adapters pass Form data; Identity owns the account write.

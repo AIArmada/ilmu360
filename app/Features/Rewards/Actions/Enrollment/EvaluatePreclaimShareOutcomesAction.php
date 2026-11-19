@@ -10,10 +10,10 @@ use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Rewards\Support\RewardSourceFact;
+use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Shared\ShareTracking\ActivityRewardBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 

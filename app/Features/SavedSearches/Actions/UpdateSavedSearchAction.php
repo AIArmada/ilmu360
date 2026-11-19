@@ -2,8 +2,8 @@
 
 namespace App\Features\SavedSearches\Actions;
 
+use App\Features\Discovery\Api\SearchFilterNormalizer;
 use App\Features\SavedSearches\Models\SavedSearch;
-use App\Shared\Discovery\SearchFilterNormalizer;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final readonly class UpdateSavedSearchAction

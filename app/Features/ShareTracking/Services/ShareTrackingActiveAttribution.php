@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Shared\ShareTracking\ActiveAttribution;
+use App\Features\ShareTracking\Api\ActiveAttribution;
 use Illuminate\Http\Request;
 
 /**

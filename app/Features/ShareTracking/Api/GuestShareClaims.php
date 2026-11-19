@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Api;
 
-use App\Shared\ShareTracking\ShareGuestClaimResult;
-
 /**
  * Explicit authenticated guest-share claim.
  *

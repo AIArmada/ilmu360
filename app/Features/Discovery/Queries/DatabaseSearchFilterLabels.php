@@ -9,11 +9,11 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTerm;
+use App\Features\Discovery\Api\SearchFilterLabels;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
-use App\Shared\Discovery\SearchFilterLabels;
 use Illuminate\Support\Str;
 
 final class DatabaseSearchFilterLabels implements SearchFilterLabels

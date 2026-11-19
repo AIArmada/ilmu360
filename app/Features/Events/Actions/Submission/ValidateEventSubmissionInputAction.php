@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Prayer\EventPrayerTime;
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Prayer\Api\EventPrayerTime;
 use BackedEnum;
 use Closure;
 use Illuminate\Support\Collection;

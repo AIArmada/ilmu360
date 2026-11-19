@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Membership\Services;
 
 use AIArmada\Authz\Models\Role;
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipDirectory;
 use Illuminate\Database\Eloquent\Collection;
 
 final readonly class MemberRoleCatalog

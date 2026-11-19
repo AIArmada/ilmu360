@@ -2,10 +2,10 @@
 
 namespace App\Features\Institutions\EntryPoints\Http\Data;
 
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Models\User;
-use App\Shared\Directory\Enums\InstitutionType;
 use Filament\Support\Contracts\HasLabel;
 use Spatie\LaravelData\Data;
 

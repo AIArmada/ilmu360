@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use App\Shared\Directory\Enums\InstitutionType;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final class InferInstitutionTypeAction

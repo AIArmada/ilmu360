@@ -3,10 +3,10 @@
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Seating\Enums\SeatingMode;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
-use App\Shared\Events\Enums\EventVisibility;
 use Laravel\Sanctum\Sanctum;
 
 function registrationReadyEvent(array $eventOverrides = []): Event

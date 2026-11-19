@@ -6,9 +6,9 @@ namespace App\Features\DonationChannels\Queries;
 
 use App\Features\DonationChannels\Api\DonationChannelLookup;
 use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectType;
 use App\Platform\Admin\AdminResourceUrl;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectType;
 
 final readonly class EloquentDonationChannelLookup implements DonationChannelLookup
 {

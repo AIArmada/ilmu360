@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
 use App\Features\Institutions\EntryPoints\Livewire\Pages\Show;
 use App\Features\Institutions\Models\Institution;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Livewire\Livewire;

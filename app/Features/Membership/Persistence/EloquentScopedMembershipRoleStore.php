@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Persistence;
 
-use App\Shared\Auth\ScopedMembershipRoleStore;
+use App\Features\Membership\Api\ScopedMembershipRoleStore;
 use App\Shared\Auth\UserMorphType;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;

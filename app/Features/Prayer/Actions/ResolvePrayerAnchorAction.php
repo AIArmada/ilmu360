@@ -6,13 +6,13 @@ namespace App\Features\Prayer\Actions;
 
 use App\Features\Prayer\Api\MonthlyPrayerTimesProvider;
 use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Api\PrayerReference;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Api\PrayerTimesProvider;
 use App\Features\Prayer\EntryPoints\Jobs\RefreshPrayerTimes;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Shared\Integrations\ProviderUnavailable;
-use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;

@@ -2,18 +2,18 @@
 
 namespace App\Features\Events\EntryPoints\Http;
 
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
 use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Prayer\EventPrayerTime;
 use App\Shared\Submission\SubmitterContactRules;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

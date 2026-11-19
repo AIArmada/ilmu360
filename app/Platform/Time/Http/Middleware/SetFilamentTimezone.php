@@ -2,8 +2,8 @@
 
 namespace App\Platform\Time\Http\Middleware;
 
+use App\Features\Identity\Api\AccountSettingsStore;
 use App\Platform\Time\UserTimezoneResolver;
-use App\Shared\Auth\AccountSettingsStore;
 use Closure;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Http\Request;

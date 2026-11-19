@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\ShareTracking;
 
+use App\Features\ShareTracking\Api\ShareGuestClaimResult;
+
 /**
  * Resolve the member affiliate that receives claimed guest share history.
  *

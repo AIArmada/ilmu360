@@ -8,10 +8,10 @@ use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonSummary;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectType;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectType;
 use BackedEnum;
 
 final readonly class EloquentPersonLookup implements PersonLookup

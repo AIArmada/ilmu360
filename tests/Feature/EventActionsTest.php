@@ -10,14 +10,14 @@ use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Events\Api\AdvancedProgramPreparation;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Models\User;
 use App\Platform\Api\Frontend\FrontendFormContractService;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\HardcodedPrayerFallback;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 

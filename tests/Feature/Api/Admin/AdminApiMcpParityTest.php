@@ -6,6 +6,8 @@ use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminGetContributionRequest
 use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminReviewContributionRequestTool;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\EntryPoints\Mcp\Tools\AdminGetEventModerationSchemaTool;
 use App\Features\Events\EntryPoints\Mcp\Tools\AdminModerateEventTool;
 use App\Features\Events\Models\Event;
@@ -26,8 +28,6 @@ use App\Platform\Mcp\Tools\Admin\AdminListRelatedRecordsTool;
 use App\Platform\Mcp\Tools\Admin\AdminUpdateRecordTool;
 use App\Platform\Moderation\Models\ModerationReview;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Testing\TestResponse as McpTestResponse;
 use Laravel\Sanctum\Sanctum;

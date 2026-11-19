@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\Support;
 
-use App\Shared\Directory\Enums\ReferenceType;
+use App\Features\References\Api\Enums\ReferenceType;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 

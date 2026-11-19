@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Queries;
 
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSummary;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectType;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\DirectoryOption;
-use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectType;
 use BackedEnum;
 
 final readonly class EloquentInstitutionLookup implements InstitutionLookup

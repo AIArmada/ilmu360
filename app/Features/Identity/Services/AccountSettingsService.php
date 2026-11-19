@@ -6,12 +6,12 @@ namespace App\Features\Identity\Services;
 
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\AccountProfile;
+use App\Features\Identity\Api\AccountProfileUpdate;
+use App\Features\Identity\Api\AccountSettingsStore;
 use App\Features\Identity\Api\PrayerType;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Auth\AccountProfile;
-use App\Shared\Auth\AccountProfileUpdate;
-use App\Shared\Auth\AccountSettingsStore;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AccountSettingsService

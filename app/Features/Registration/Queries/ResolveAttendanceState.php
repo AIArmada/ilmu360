@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Registration\Queries;
 
 use AIArmada\Events\Models\Event as PackageEvent;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Registration\Api\AttendanceState;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Events\Enums\EventVisibility;
 use Carbon\CarbonInterface;
 use Lorisleiva\Actions\Concerns\AsAction;
 

@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Communications\Models\CommunicationPreference;
+use App\Features\Identity\Api\AccountProfile;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Auth\AccountProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;

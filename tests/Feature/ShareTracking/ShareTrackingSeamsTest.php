@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
+use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\FeatureServiceProvider as ShareTrackingServiceProvider;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
@@ -18,7 +19,6 @@ use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Platform\FeatureCatalog;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Support\Str;
 
 dataset('share tracking owned tables', [

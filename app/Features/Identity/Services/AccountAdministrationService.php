@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Identity\Services;
 
 use App\Features\Identity\Api\AccountAdministration;
-use App\Shared\Auth\AccountSettingsStore;
+use App\Features\Identity\Api\AccountSettingsStore;
 
 final readonly class AccountAdministrationService implements AccountAdministration
 {

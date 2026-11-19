@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Platform\Auth;
 
 use AIArmada\Authz\Facades\Authz;
+use App\Features\Identity\Api\AccountProfile;
+use App\Features\Identity\Api\AccountRecord;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Auth\AccountProfile;
-use App\Shared\Auth\AccountRecord;
 use App\Shared\Auth\GlobalRole;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;

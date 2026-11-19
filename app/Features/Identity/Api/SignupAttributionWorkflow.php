@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Api;
 
-use App\Shared\Auth\SignupAttributionContext;
-
 /**
  * Identity-owned signup attribution workflow for conventional auth entry
  * points (Fortify registration, model verification hooks, share claims).

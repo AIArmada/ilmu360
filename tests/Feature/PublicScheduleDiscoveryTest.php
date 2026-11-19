@@ -4,6 +4,8 @@ use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventReference;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
@@ -11,12 +13,10 @@ use App\Features\Institutions\EntryPoints\Livewire\Pages\Show;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
+use App\Features\Prayer\Api\PrayerOffset;
+use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Models\Reference;
 use App\Platform\Location\VisitorCountryResolver;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\PrayerOffset;
-use App\Shared\Prayer\PrayerReference;
 use Livewire\Livewire;
 
 beforeEach(function (): void {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Prayer;
 
-use App\Shared\Events\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventFormat;
 use BackedEnum;
 
 /**

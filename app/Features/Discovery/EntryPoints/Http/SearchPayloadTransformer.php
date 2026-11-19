@@ -7,10 +7,10 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Platform\Api\Frontend\Data\CountryData;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\AddressHierarchyFormatter;
-use App\Shared\Events\Enums\EventKeyPersonRole;
 use BackedEnum;
 use Illuminate\Support\Str;
 

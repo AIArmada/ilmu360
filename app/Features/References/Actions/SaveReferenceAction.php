@@ -6,11 +6,11 @@ namespace App\Features\References\Actions;
 
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
+use App\Features\References\Api\Enums\ReferencePartType;
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
 use App\Features\References\Support\ReferencePayload;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Directory\Enums\ReferencePartType;
-use App\Shared\Directory\Enums\ReferenceType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;

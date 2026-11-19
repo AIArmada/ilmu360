@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
+use App\Features\Events\Api\AccountEventFacts;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Platform\Moderation\Models\ModerationReview;
-use App\Shared\Events\AccountEventFacts;
 
 /**
  * Root account-scoped Events fact reader used by account and reward projections.

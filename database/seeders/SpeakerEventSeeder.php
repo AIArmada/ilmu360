@@ -3,14 +3,14 @@
 namespace Database\Seeders;
 
 use AIArmada\Events\Models\EventRole;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
 use Database\Seeders\Concerns\SeedsEventLocations;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;

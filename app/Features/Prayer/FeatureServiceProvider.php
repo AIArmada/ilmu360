@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer;
 
+use App\Features\Prayer\Api\BuildPrayerPreviewAction;
 use App\Features\Prayer\Api\PrayerInstitutionCatalog;
+use App\Features\Prayer\Api\RamadanGate;
 use App\Features\Prayer\EntryPoints\Commands\PrayerStatsCommand;
 use App\Features\Prayer\EntryPoints\Commands\PrefetchPrayerTimes;
 use App\Features\Prayer\Services\PrayerInstitutionCatalogService;
 use App\Platform\FeatureModule;
-use App\Shared\Prayer\BuildPrayerPreviewAction;
-use App\Shared\Prayer\RamadanGate;
 use Illuminate\Support\Facades\Schedule;
 
 class FeatureServiceProvider extends FeatureModule

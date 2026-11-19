@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Features\Institutions\Actions\InferInstitutionTypeAction;
-use App\Shared\Directory\Enums\InstitutionType;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 
 it('maps supported Google place types to institution categories', function (string $googleType, InstitutionType $expected): void {
     expect(InferInstitutionTypeAction::run(['primaryType' => $googleType]))->toBe($expected);

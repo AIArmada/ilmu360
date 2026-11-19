@@ -18,14 +18,14 @@ use AIArmada\FilamentEvents\Resources\EventResource\RelationManagers\Occurrences
 use AIArmada\FilamentEvents\Resources\EventResource\RelationManagers\RegistrationsRelationManager;
 use AIArmada\FilamentEvents\Resources\EventResource\RelationManagers\SessionsRelationManager;
 use AIArmada\Ticketing\Enums\PricingMode;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\CreateEvent;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\EditEvent;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\ListEvents;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\ViewEvent;
 use App\Features\Events\Models\Event;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;

@@ -7,13 +7,13 @@ namespace App\Features\References\EntryPoints\Admin\Resources;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
+use App\Features\References\Api\Enums\ReferencePartType;
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Platform\Api\Admin\Contracts\AdminMutationHooks;
-use App\Shared\Directory\Enums\ReferencePartType;
-use App\Shared\Directory\Enums\ReferenceType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Persistence;
 
-use App\Shared\Auth\SignupAttributionContext;
+use App\Features\Identity\Api\SignupAttributionContext;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use InvalidArgumentException;

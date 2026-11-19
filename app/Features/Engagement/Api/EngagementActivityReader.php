@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Engagement\Api;
 
-use App\Shared\Engagement\EngagementActivity;
 use Carbon\CarbonImmutable;
 
 /**

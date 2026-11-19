@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Venues;
 
+use App\Features\Places\Api\Enums\VenueType;
 use App\Features\Places\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Directory\Enums\VenueType;
 use BackedEnum;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;

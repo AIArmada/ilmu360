@@ -1,8 +1,8 @@
 <?php
 
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Models\User;
-use App\Shared\Events\Enums\EventVisibility;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function (): void {

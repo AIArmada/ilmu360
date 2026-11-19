@@ -6,10 +6,10 @@ namespace App\Features\Events\Services;
 
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Support\EventModel;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectPresentation;
+use App\Features\Reports\Api\ReportSubjectType;
 use App\Platform\Models\SlugOrUuidResolver;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectPresentation;
-use App\Shared\Reports\ReportSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use InvalidArgumentException;

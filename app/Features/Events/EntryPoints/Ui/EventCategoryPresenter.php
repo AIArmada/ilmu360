@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Ui;
 
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
-use App\Shared\Events\EventCategoryCatalog;
 use Illuminate\Http\Request;
 
 final readonly class EventCategoryPresenter

@@ -31,6 +31,8 @@ use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Features\Events\Api\EventAccountOwnership;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventCategoryCatalog as EventCategoryCatalogContract;
+use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventChangePublisher;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventDeletionScope;
@@ -51,6 +53,7 @@ use App\Features\Events\Api\EventShareCardCache;
 use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Events\Api\EventSubmissionOptionsCache;
 use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\GuestEventSubmissionClaims;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
@@ -113,9 +116,6 @@ use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Search\EventDiscoveryReaders;
-use App\Shared\Auth\GuestEventSubmissionClaims;
-use App\Shared\Events\EventCategoryCatalog as EventCategoryCatalogContract;
-use App\Shared\Events\EventCategoryPolicyResolver;
 use Illuminate\Support\Facades\Schedule;
 
 /**

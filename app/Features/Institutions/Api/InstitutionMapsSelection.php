@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Api;
 
-use App\Shared\Directory\Enums\InstitutionType;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 
 /** Institution Google Maps selection for contribution and event forms. */
 interface InstitutionMapsSelection

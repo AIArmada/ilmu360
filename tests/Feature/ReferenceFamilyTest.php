@@ -1,11 +1,11 @@
 <?php
 
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
+use App\Features\References\Api\Enums\ReferencePartType;
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
 use App\Platform\Api\Frontend\CatalogDispatcher;
-use App\Shared\Directory\Enums\ReferencePartType;
-use App\Shared\Directory\Enums\ReferenceType;
-use App\Shared\Events\Enums\EventVisibility;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Support\Carbon;
 

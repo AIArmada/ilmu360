@@ -151,12 +151,12 @@
     $resolveKeyPersonRoleLabel = static function (\App\Features\Events\Models\EventKeyPerson $keyPerson): string {
         $role = $keyPerson->role_code;
 
-        if ($role instanceof \App\Shared\Events\Enums\EventKeyPersonRole) {
+        if ($role instanceof \App\Features\Events\Api\Enums\EventKeyPersonRole) {
             return $role->getLabel();
         }
 
         if (is_string($role) && $role !== '') {
-            return \App\Shared\Events\Enums\EventKeyPersonRole::tryFrom($role)?->getLabel() ?? \Illuminate\Support\Str::headline($role);
+            return \App\Features\Events\Api\Enums\EventKeyPersonRole::tryFrom($role)?->getLabel() ?? \Illuminate\Support\Str::headline($role);
         }
 
         return '';

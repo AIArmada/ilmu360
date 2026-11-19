@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Services;
 
-use App\Shared\Discovery\SearchFilterCatalog;
-use App\Shared\Events\Enums\EventAgeGroup;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Prayer\EventPrayerTime;
+use App\Features\Discovery\Api\SearchFilterCatalog;
+use App\Features\Events\Api\Enums\EventAgeGroup;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\TimingMode;
+use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Prayer\Api\EventPrayerTime;
 
 final readonly class EventSearchFilterCatalog implements SearchFilterCatalog
 {

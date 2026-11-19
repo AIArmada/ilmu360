@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Scheduling;
 
 use AIArmada\Events\Enums\ScheduleKind;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventScheduleInput;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Events\Enums\TimingMode;
 use Illuminate\Support\Carbon;
 
 /**

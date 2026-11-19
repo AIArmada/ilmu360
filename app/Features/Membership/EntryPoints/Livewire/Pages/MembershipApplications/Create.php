@@ -6,7 +6,9 @@ namespace App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplicati
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Feedback\Api\FeedbackActor;
 use App\Features\Identity\Api\AccountAdministration;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSummary;
 use App\Features\Membership\Api\MembershipApplicationFormRules;
@@ -18,8 +20,6 @@ use App\Features\Persons\Api\PersonSummary;
 use App\Platform\Media\StagedUploadFactory;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Directory\Enums\InstitutionType;
-use App\Shared\Feedback\FeedbackActor;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;

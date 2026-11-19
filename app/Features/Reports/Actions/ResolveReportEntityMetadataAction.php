@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\Actions;
 
-use App\Shared\Reports\ReportSubjectResolver;
+use App\Features\Reports\Api\ReportSubjectResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveReportEntityMetadataAction

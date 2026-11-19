@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Models;
 
+use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Shared\Directory\Enums\InstitutionNameType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

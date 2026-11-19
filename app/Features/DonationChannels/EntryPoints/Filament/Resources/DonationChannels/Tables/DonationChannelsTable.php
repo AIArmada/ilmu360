@@ -3,11 +3,11 @@
 namespace App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Tables;
 
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
+use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\Models\Person;
-use App\Shared\Directory\Enums\DonationChannelStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

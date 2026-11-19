@@ -3,14 +3,14 @@
 namespace App\Features\Institutions\EntryPoints\Http;
 
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Membership\MembershipDirectory;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Builder;

@@ -8,9 +8,9 @@ use App\Features\Reports\Actions\ResolveReportCategoryOptionsAction;
 use App\Features\Reports\Api\ReportPage;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;
+use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Support\ReportPresenter;
-use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Models\User;
-use App\Shared\Membership\MembershipDirectory;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;

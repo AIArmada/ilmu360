@@ -4,12 +4,12 @@ namespace App\Features\Contributions\Services;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
 use App\Models\User;
-use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Events\Enums\EventFormat;
 use App\Shared\Submission\SubmissionValues;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;

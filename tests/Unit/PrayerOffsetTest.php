@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Shared\Prayer\PrayerOffset;
+use App\Features\Prayer\Api\PrayerOffset;
 
 it('maps exact signed minutes to their offset case', function (int $minutes, PrayerOffset $expected) {
     expect(PrayerOffset::fromMinutes($minutes))->toBe($expected);

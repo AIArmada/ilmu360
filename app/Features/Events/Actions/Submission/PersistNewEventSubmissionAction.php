@@ -9,9 +9,9 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
 use App\Features\Events\Actions\Scheduling\ResolveInstitutionalPrayerSlotGroupAction;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Events\Enums\EventVisibility;
 use Illuminate\Support\Arr;
 use RuntimeException;
 

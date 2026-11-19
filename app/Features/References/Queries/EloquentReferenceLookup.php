@@ -7,10 +7,10 @@ namespace App\Features\References\Queries;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
 use App\Features\References\Models\Reference;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectType;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectType;
 use BackedEnum;
 
 final readonly class EloquentReferenceLookup implements ReferenceLookup

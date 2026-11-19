@@ -2,8 +2,8 @@
 
 namespace App\Features\Identity\EntryPoints\Filament\Pages;
 
+use App\Features\Identity\Api\AccountSettingsStore;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Auth\AccountSettingsStore;
 use App\Shared\Auth\UserMorphType;
 use BackedEnum;
 use Filament\Actions\Action;

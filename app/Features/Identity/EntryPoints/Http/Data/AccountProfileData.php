@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Identity\EntryPoints\Http\Data;
 
 use App\Features\Identity\Api\AccountPreferencesSnapshot;
-use App\Shared\Auth\AccountRecord;
+use App\Features\Identity\Api\AccountRecord;
 use DateTimeInterface;
 use Spatie\LaravelData\Data;
 

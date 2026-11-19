@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Features\Engagement\Api\EngagementActivityReader;
+use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Engagement\Queries\EloquentEngagementReader;
@@ -12,7 +13,6 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Engagement\EngagementSubjectType;
 
 it('binds the engagement read contracts to the root reader', function (): void {
     expect(app(EventEngagement::class))->toBeInstanceOf(EloquentEngagementReader::class)

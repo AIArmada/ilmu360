@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace App\Features\Membership\Services;
 
 use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Membership\Api\MembershipDirectory;
+use App\Features\Membership\Api\MembershipSubject;
+use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceLookup;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubject;
-use App\Shared\Membership\MembershipSubjectCatalog;
 use Illuminate\Database\Eloquent\Model;
 
 /**

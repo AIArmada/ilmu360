@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Platform\Api\Member;
 
 use AIArmada\Addressing\Models\Address;
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipDirectory;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;

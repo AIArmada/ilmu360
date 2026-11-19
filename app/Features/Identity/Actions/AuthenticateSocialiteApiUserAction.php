@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Actions;
 
+use App\Features\Identity\Api\AccountProfile;
+use App\Features\Identity\Api\AccountSession;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Shared\Auth\AccountAccess;
-use App\Shared\Auth\AccountProfile;
-use App\Shared\Auth\AccountSession;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\Auth\SocialiteProviderConfiguration;
 use App\Shared\ShareTracking\SignupRecorder;

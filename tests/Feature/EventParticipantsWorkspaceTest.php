@@ -2,12 +2,12 @@
 
 use AIArmada\Events\Models\EventAttendanceLog;
 use App\Features\Events\Models\Event;
+use App\Features\Registration\Api\Enums\EventAttendanceStatus;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Participants;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Shared\Commerce\EventCommercePolicy;
-use App\Shared\Events\Enums\EventAttendanceStatus;
 use App\Shared\Events\ParticipantIdentity;
 use Livewire\Livewire;
 

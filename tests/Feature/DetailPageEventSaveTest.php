@@ -2,11 +2,11 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Bookmark;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Events\Enums\EventVisibility;
 use Livewire\Livewire;
 
 it('saves and unsaves an event from the institution page majlis card', function () {

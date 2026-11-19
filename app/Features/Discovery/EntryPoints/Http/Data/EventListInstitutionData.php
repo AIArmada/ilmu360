@@ -2,8 +2,8 @@
 
 namespace App\Features\Discovery\EntryPoints\Http\Data;
 
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;
-use App\Shared\Directory\Enums\InstitutionType;
 use Spatie\LaravelData\Data;
 
 class EventListInstitutionData extends Data

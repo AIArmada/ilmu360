@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
+use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

@@ -2,12 +2,16 @@
 
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\MembershipAuthorization;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MembershipInvitations;
+use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
@@ -25,10 +29,6 @@ use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Auth\AccountLifecycleContributor;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Membership\MembershipAuthorization;
-use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectCatalog;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 

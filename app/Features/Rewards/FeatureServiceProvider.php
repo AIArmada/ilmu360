@@ -28,6 +28,7 @@ use App\Features\Rewards\Actions\Enrollment\EvaluatePreclaimShareOutcomesAction;
 use App\Features\Rewards\Actions\GratitudeDigests\GratitudeDigestAction;
 use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Api\MemberEnrollment;
+use App\Features\Rewards\Api\PublishedProgramVersions;
 use App\Features\Rewards\Policies\RewardAppealPolicy;
 use App\Features\Rewards\Policies\RewardAwardPolicy;
 use App\Features\Rewards\Policies\RewardBenefitGrantPolicy;
@@ -42,7 +43,6 @@ use App\Features\Rewards\Support\PublishedProgramVersionsAdapter;
 use App\Features\Rewards\Support\VouchersRewardBenefitCouponFulfillment;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Rewards\PublishedProgramVersions;
 use Illuminate\Support\Facades\Gate;
 
 /**

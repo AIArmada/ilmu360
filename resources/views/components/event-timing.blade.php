@@ -5,7 +5,7 @@
 ])
 
 @php
-    use App\Shared\Events\Enums\TimingMode;
+    use App\Features\Events\Api\Enums\TimingMode;
     use App\Platform\Time\UserDateTimeFormatter;
     
     $isPrayerRelative = $event->timing_mode === TimingMode::PrayerRelative;

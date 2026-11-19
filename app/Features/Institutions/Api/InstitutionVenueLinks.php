@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Api;
 
-use App\Shared\Directory\Enums\InstitutionVenueRole;
+use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 
 /**
  * Institution↔venue bridge boundary.

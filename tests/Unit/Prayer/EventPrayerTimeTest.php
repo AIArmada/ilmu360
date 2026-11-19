@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\PrayerOffset;
-use App\Shared\Prayer\PrayerReference;
+use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\PrayerOffset;
+use App\Features\Prayer\Api\PrayerReference;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class);

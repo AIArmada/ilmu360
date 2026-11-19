@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Actions;
 
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Api\PrayerReference;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 
 /**

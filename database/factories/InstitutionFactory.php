@@ -7,9 +7,9 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;
-use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Directory\Enums\InstitutionType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 

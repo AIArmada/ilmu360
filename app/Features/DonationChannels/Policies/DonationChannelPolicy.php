@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\DonationChannels\Policies;
 
+use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Directory\Enums\DonationChannelStatus;
 
 class DonationChannelPolicy
 {

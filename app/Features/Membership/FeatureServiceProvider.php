@@ -6,8 +6,11 @@ namespace App\Features\Membership;
 
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\MembershipAuthorization;
 use App\Features\Membership\Api\MembershipCommands;
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MembershipInvitations;
+use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipSubjectOptionsCatalog;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
@@ -23,9 +26,6 @@ use App\Features\Membership\Services\MembershipInvitationsService;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
-use App\Shared\Membership\MembershipAuthorization;
-use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipSubjectCatalog;
 use Livewire\Livewire;
 
 /**

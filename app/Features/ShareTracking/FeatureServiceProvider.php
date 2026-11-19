@@ -27,6 +27,7 @@ use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\FinancialObligationReader;
+use App\Features\ShareTracking\Api\GuestClaims;
 use App\Features\ShareTracking\Api\GuestProfilePruner;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\LandingAttributionWriter;

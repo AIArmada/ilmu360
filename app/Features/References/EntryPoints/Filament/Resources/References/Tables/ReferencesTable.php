@@ -2,9 +2,9 @@
 
 namespace App\Features\References\EntryPoints\Filament\Resources\References\Tables;
 
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
-use App\Shared\Directory\Enums\ReferenceType;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

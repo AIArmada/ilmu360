@@ -8,6 +8,7 @@ use App\Features\Reports\Api\AdminReportTriage;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
 use App\Features\Reports\Api\ReportReader;
+use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
@@ -22,7 +23,6 @@ use App\Features\Reports\Services\ReportCommands;
 use App\Features\Reports\Services\ReportTriage;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
-use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 

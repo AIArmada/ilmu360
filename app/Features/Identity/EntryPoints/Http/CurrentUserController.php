@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Identity\EntryPoints\Http;
 
 use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\AccountRecord;
+use App\Features\Identity\Api\AccountSettingsStore;
 use App\Features\Identity\EntryPoints\Http\Data\CurrentUserData;
 use App\Shared\Api\MessageResponseData;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Auth\AccountRecord;
-use App\Shared\Auth\AccountSettingsStore;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\Response;

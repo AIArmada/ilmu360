@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\EntryPoints\Admin\Member;
 
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Platform\Api\Member\Contracts\MemberResourceHooks;
 use App\Platform\Location\AddressAssignments;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipDirectory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;

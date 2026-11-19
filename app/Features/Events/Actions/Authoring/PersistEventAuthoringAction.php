@@ -6,13 +6,13 @@ namespace App\Features\Events\Actions\Authoring;
 
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\AdminEventSaveResult;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Support\AdminEventInputPreparer;
 use App\Features\Events\Support\AdminEventRelationsSynchronizer;
 use App\Features\Events\Support\AdminEventScheduleResolver;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\PrayerOffset;
+use App\Features\Prayer\Api\PrayerOffset;
 
 /**
  * Persists one admin/advanced event save without moderation.

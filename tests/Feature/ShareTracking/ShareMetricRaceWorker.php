@@ -8,11 +8,11 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 // autoloaders never execute it.
 
 use App\Features\ShareTracking\Api\CommittedShareSignals;
+use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;

@@ -9,12 +9,12 @@ use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
+use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 

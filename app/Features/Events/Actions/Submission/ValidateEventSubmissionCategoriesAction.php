@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Events\EventCategoryPolicyResolver;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Shared\Submission\SubmissionValues;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;

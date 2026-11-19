@@ -6,8 +6,8 @@ namespace App\Features\GitHubIssues\EntryPoints\Http;
 
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Features\GitHubIssues\Api\GitHubIssueSubmissionData;
-use App\Shared\Auth\IntegrationFeedbackIdentity;
-use App\Shared\Auth\IntegrationFeedbackUser;
+use App\Features\GitHubIssues\Api\IntegrationFeedbackIdentity;
+use App\Features\GitHubIssues\Api\IntegrationFeedbackUser;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;

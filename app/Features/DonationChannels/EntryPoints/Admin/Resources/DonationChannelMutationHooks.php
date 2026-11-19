@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Features\DonationChannels\EntryPoints\Admin\Resources;
 
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
+use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Models\User;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Platform\Api\Admin\Contracts\AdminMutationHooks;
-use App\Shared\Directory\Enums\DonationChannelStatus;
 use App\Shared\Support\MorphAliasModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;

@@ -4,11 +4,11 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Features\Discovery\Api\SearchFilterLabels;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
-use App\Shared\Discovery\SearchFilterLabels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 

@@ -11,20 +11,20 @@ use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\NotificationInboxManagement;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
+use App\Features\Events\Api\AccountEventFacts;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Persons\Models\Person;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Engagement\EngagementSubjectType;
-use App\Shared\Events\AccountEventFacts;
-use App\Shared\Membership\MembershipDirectory;
 
 it('serves membership, engagement and event facts without user reverse relations', function (): void {
     $user = User::factory()->create();

@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use App\Features\Contributions\Services\EntitySubmissionAccess;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventGenderRestriction;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\EventSubmissionFormSchema;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventGenderRestriction;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Taxonomy\EventTaxonomyCode;
 use BackedEnum;
 use Carbon\CarbonInterface;
 

@@ -8,7 +8,7 @@ use AIArmada\Events\Actions\SyncEventInvolvementsAction;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Shared\Events\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use Illuminate\Database\Eloquent\Model;
 
 /**

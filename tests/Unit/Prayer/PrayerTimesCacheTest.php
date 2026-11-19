@@ -2,15 +2,15 @@
 
 use App\Features\Prayer\Actions\ResolvePrayerAnchorAction;
 use App\Features\Prayer\Actions\ResolvePrayerStartClockAction;
+use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Api\PrayerReference;
 use App\Features\Prayer\Api\PrayerTimesDTO;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Features\Prayer\Services\JakimMirrorProvider;
 use App\Features\Prayer\Services\JakimZoneResolver;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Features\Prayer\Services\UmmahPrayerProvider;
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;

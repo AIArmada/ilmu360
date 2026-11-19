@@ -5,10 +5,13 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
@@ -19,12 +22,9 @@ use App\Features\Events\Services\EventReportSubjectResolver;
 use App\Features\Events\Services\EventSubmissionsService;
 use App\Features\Events\Support\EventModel;
 use App\Features\Registration\Models\Registration;
+use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Services\CompositeReportSubjectResolver;
 use App\Platform\Routing\PublicSlugRegistry;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Reports\ReportSubjectResolver;
-use App\Shared\Taxonomy\EventTaxonomyCode;
 
 it('binds the events seams to their current implementations', function (): void {
     expect(app(GuestSubmissionClaims::class))->toBeInstanceOf(ClaimGuestSubmissionsAction::class)

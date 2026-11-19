@@ -1,8 +1,10 @@
 <?php
 
+use App\Features\Engagement\Api\EngagementSubjectType;
+
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\Events\Models\Event;
 use App\Features\References\Models\Reference;
@@ -55,7 +57,7 @@ new
 
             $this->followingReferenceIds = app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds(
                 (string) $user->getKey(),
-                \App\Shared\Engagement\EngagementSubjectType::Reference,
+                \App\Features\Engagement\Api\EngagementSubjectType::Reference,
             );
         }
 
@@ -141,7 +143,7 @@ new
         {
             $user = auth()->user();
             $this->followingReferenceIds = $user instanceof User
-                ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Reference))
+                ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Features\Engagement\Api\EngagementSubjectType::Reference))
                 : [];
         }
 

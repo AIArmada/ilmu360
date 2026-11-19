@@ -29,9 +29,9 @@
 
 @php
     $cardReturnUrl = request()->isMethod('GET') ? request()->fullUrl() : url()->previous();
-    $cardFormat = $event->delivery_mode instanceof \App\Shared\Events\Enums\EventFormat
+    $cardFormat = $event->delivery_mode instanceof \App\Features\Events\Api\Enums\EventFormat
         ? $event->delivery_mode
-        : (\App\Shared\Events\Enums\EventFormat::tryFrom((string) $event->delivery_mode) ?? \App\Shared\Events\Enums\EventFormat::Physical);
+        : (\App\Features\Events\Api\Enums\EventFormat::tryFrom((string) $event->delivery_mode) ?? \App\Features\Events\Api\Enums\EventFormat::Physical);
     $cardFormatLabel = $formatLabel ?? $cardFormat->getLabel();
     $cardApprovalLabel = (string) $event->status === 'approved' ? __('Diluluskan') : null;
     $cardStatusLabel = $statusLabel ?? $event->public_change_badge_label;
@@ -63,9 +63,9 @@
     $speakerAvatarOverflow = max(0, $speakerAvatarItems->count() - 3);
     $speakerAvatarItems = $speakerAvatarItems->take(3)->values();
     $eventTopics = $event->classifications
-        ->whereIn('taxonomy_code', [\App\Shared\Taxonomy\EventTaxonomyCode::Discipline->value, \App\Shared\Taxonomy\EventTaxonomyCode::Domain->value])
+        ->whereIn('taxonomy_code', [\App\Features\Events\Api\EventTaxonomyCode::Discipline->value, \App\Features\Events\Api\EventTaxonomyCode::Domain->value])
         ->sortBy(fn (\AIArmada\Events\Models\EventClassification $classification): array => [
-            $classification->taxonomy_code === \App\Shared\Taxonomy\EventTaxonomyCode::Domain->value ? 0 : 1,
+            $classification->taxonomy_code === \App\Features\Events\Api\EventTaxonomyCode::Domain->value ? 0 : 1,
             (int) $classification->sort_order,
         ])
         ->map(fn (\AIArmada\Events\Models\EventClassification $classification): string => (string) ($classification->term?->name ?? $classification->term_code))
@@ -74,7 +74,7 @@
         ->take(3)
         ->values();
     $eventThemes = $event->classifications
-        ->where('taxonomy_code', \App\Shared\Taxonomy\EventTaxonomyCode::Issue->value)
+        ->where('taxonomy_code', \App\Features\Events\Api\EventTaxonomyCode::Issue->value)
         ->sortBy('sort_order')
         ->map(fn (\AIArmada\Events\Models\EventClassification $classification): string => (string) ($classification->term?->name ?? $classification->term_code))
         ->filter()
@@ -100,7 +100,7 @@
         $eventTime .= ' — '.\App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'g:i A');
     }
 
-    if ($cardFormat === \App\Shared\Events\Enums\EventFormat::Online) {
+    if ($cardFormat === \App\Features\Events\Api\Enums\EventFormat::Online) {
         $eventLocation = __('Online');
         $eventLocationSubtitle = '';
     } elseif ($locationPrimary !== null) {
@@ -147,7 +147,7 @@
                 </div>
             @endif
             <div class="mt-4 space-y-2 text-sm text-[#56716a]">
-                @if(! $hideLocation && $cardFormat !== \App\Shared\Events\Enums\EventFormat::Online)
+                @if(! $hideLocation && $cardFormat !== \App\Features\Events\Api\Enums\EventFormat::Online)
                     <div class="flex items-start gap-2" data-testid="event-card-location">
                         <flux:icon.map-pin class="mt-0.5 size-4 shrink-0 text-[#087f59]" />
                         <div class="min-w-0">
@@ -174,18 +174,18 @@
             </div>
             <div class="mt-auto flex flex-wrap items-center gap-2 pt-4">
                 <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-type-badge">{{ $event->eventType?->name ?? __('Kuliah') }}</span>
-                @if($cardFormat === \App\Shared\Events\Enums\EventFormat::Hybrid)
+                @if($cardFormat === \App\Features\Events\Api\Enums\EventFormat::Hybrid)
                     <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-format-badge">
                         <flux:icon.map-pin class="size-3.5 shrink-0" />
-                        {{ \App\Shared\Events\Enums\EventFormat::Physical->getLabel() }}
+                        {{ \App\Features\Events\Api\Enums\EventFormat::Physical->getLabel() }}
                     </span>
                     <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-format-online-badge">
                         <flux:icon.video-camera class="size-3.5 shrink-0" />
-                        {{ \App\Shared\Events\Enums\EventFormat::Online->getLabel() }}
+                        {{ \App\Features\Events\Api\Enums\EventFormat::Online->getLabel() }}
                     </span>
                 @else
                     <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700" data-testid="event-card-format-badge">
-                        @if($cardFormat === \App\Shared\Events\Enums\EventFormat::Online)<flux:icon.video-camera class="size-3.5 shrink-0" />@else<flux:icon.map-pin class="size-3.5 shrink-0" />@endif
+                        @if($cardFormat === \App\Features\Events\Api\Enums\EventFormat::Online)<flux:icon.video-camera class="size-3.5 shrink-0" />@else<flux:icon.map-pin class="size-3.5 shrink-0" />@endif
                         {{ $cardFormatLabel }}
                     </span>
                 @endif

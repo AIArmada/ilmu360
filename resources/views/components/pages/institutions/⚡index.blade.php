@@ -1,5 +1,7 @@
 <?php
 
+use App\Features\Engagement\Api\EngagementSubjectType;
+
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Platform\Ui\Forms\SharedFormSchema;
@@ -623,7 +625,7 @@ class extends Component
     {
         $user = auth()->user();
         $this->followingInstitutionIds = $user instanceof User
-            ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Institution))
+            ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Features\Engagement\Api\EngagementSubjectType::Institution))
             : [];
     }
 

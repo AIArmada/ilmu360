@@ -3,10 +3,10 @@
 namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Schemas;
 
 use AIArmada\Contacting\Enums\SocialPlatform;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\AddressHierarchyFormatter;
-use App\Shared\Directory\Enums\InstitutionStatus;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;

@@ -3,13 +3,13 @@
 namespace App\Features\Identity\EntryPoints\Http;
 
 use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\AccountProfile;
+use App\Features\Identity\Api\AccountProfileUpdate;
+use App\Features\Identity\Api\AccountRecord;
 use App\Features\Identity\EntryPoints\Http\Data\AccountProfileData;
 use App\Features\Identity\Services\AccountSettingsService;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Auth\AccountProfile;
-use App\Shared\Auth\AccountProfileUpdate;
-use App\Shared\Auth\AccountRecord;
 use DateTimeZone;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

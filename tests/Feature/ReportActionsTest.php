@@ -6,7 +6,7 @@ use App\Features\Persons\Models\Person;
 use App\Features\Reports\Actions\ResolveReportCategoryOptionsAction;
 use App\Features\Reports\Actions\ResolveReportEntityMetadataAction;
 use App\Features\Reports\Actions\ResolveReportFormContextAction;
-use App\Shared\Reports\ReportSubjectResolver;
+use App\Features\Reports\Api\ReportSubjectResolver;
 
 it('resolves shared report category options for public and admin report surfaces', function () {
     $categoryOptionsAction = app(ResolveReportCategoryOptionsAction::class);

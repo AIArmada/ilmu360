@@ -6,7 +6,7 @@ namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Features\Events\Api\EventTaxonomyCode;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 

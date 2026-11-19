@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
+use App\Features\Membership\Api\MembershipDirectory;
+use App\Features\Membership\Api\MembershipRecord;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipRecord;
 use Illuminate\Support\Facades\DB;
 
 /**

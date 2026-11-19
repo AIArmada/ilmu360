@@ -8,12 +8,12 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MembershipDirectory;
+use App\Features\Membership\Api\MembershipRecord;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipDirectory;
-use App\Shared\Membership\MembershipRecord;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 

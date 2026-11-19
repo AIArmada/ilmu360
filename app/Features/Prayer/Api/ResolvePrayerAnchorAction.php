@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Api;
 
-use App\Shared\Prayer\PrayerReference;
-
 interface ResolvePrayerAnchorAction
 {
     /**

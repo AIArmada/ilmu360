@@ -133,7 +133,7 @@
                 $currentLocale = app()->getLocale();
                 $authenticatedUser = auth()->user();
                 $memberships = $authenticatedUser instanceof \App\Shared\Auth\AccountActor
-                    ? app(\App\Shared\Membership\MembershipDirectory::class)
+                    ? app(\App\Features\Membership\Api\MembershipDirectory::class)
                     : null;
                 $membershipAccountId = $authenticatedUser instanceof \App\Shared\Auth\AccountActor
                     ? $authenticatedUser->actorId()

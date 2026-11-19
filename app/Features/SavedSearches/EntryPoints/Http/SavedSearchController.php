@@ -2,6 +2,7 @@
 
 namespace App\Features\SavedSearches\EntryPoints\Http;
 
+use App\Features\Discovery\Api\SearchFilterRules;
 use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\DeleteSavedSearchWithAttributionReversal;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
@@ -11,7 +12,6 @@ use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Features\SavedSearches\Enums\NotificationFrequency;
 use App\Features\SavedSearches\Exceptions\SavedSearchLimitReachedException;
 use App\Shared\Auth\ResourceOwner;
-use App\Shared\Discovery\SearchFilterRules;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

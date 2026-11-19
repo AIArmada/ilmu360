@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\DonationChannels\Actions;
 
+use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Directory\Enums\DonationChannelStatus;
 use Carbon\CarbonImmutable;
 use LogicException;
 

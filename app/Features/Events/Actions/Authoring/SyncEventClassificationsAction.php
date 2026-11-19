@@ -9,8 +9,8 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Taxonomy\EventTaxonomyCode;
+use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\EventTaxonomyCode;
 use Illuminate\Support\Collection;
 use Lorisleiva\Actions\Concerns\AsAction;
 

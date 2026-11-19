@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Membership\Api;
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Shared\Directory\Enums\InstitutionType;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 
 final readonly class MembershipApplicationFormRules
 {

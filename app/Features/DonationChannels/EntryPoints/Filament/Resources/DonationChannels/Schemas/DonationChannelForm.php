@@ -2,11 +2,11 @@
 
 namespace App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Schemas;
 
+use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Shared\Directory\Enums\DonationChannelStatus;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;

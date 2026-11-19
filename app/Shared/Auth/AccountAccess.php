@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Auth;
 
+use App\Features\Identity\Api\AccountProfile;
+use App\Features\Identity\Api\AccountSession;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 

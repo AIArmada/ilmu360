@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
+use App\Features\Membership\Api\MembershipAuthorization;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Shared\Membership\MembershipAuthorization;
 use App\Shared\Membership\MembershipPermissionEvaluator;
 
 /**

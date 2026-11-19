@@ -2,10 +2,10 @@
 
 namespace App\Platform\Auth\Fortify;
 
+use App\Features\Identity\Api\NewAccountAttribution;
 use App\Models\User;
 use App\Platform\Auth\PasswordValidationRules;
 use App\Shared\Auth\AccountAccess;
-use App\Shared\Auth\NewAccountAttribution;
 use App\Shared\Auth\SignupAttributionContextResolver;
 use App\Shared\ShareTracking\SignupRecorder;
 use App\Shared\Signals\SignalRecorder;

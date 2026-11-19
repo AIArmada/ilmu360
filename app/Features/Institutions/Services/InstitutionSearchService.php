@@ -3,12 +3,12 @@
 namespace App\Features\Institutions\Services;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionSearchCache;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Platform\Search\FuzzySearchPolicy;
 use App\Platform\Search\TypesenseHealthCheckService;
-use App\Shared\Directory\Enums\InstitutionStatus;
 use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;

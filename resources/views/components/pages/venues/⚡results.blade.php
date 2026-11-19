@@ -1,5 +1,7 @@
 <?php
 
+use App\Features\Places\Api\Enums\VenueType;
+
 use App\Features\Places\Models\Venue;
 use App\Platform\Location\LocationSlugResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -312,7 +314,7 @@ new
                         $address = $venue->primaryAddress();
                         $locationDisplay = $formatVenueLocation($address);
                         $venueType = $venue->venue_type;
-                        $typeLabel = $venueType instanceof \App\Shared\Directory\Enums\VenueType
+                        $typeLabel = $venueType instanceof \App\Features\Places\Api\Enums\VenueType
                             ? $venueType->getLabel()
                             : (filled($venueType) ? \Illuminate\Support\Str::headline((string) $venueType) : __('Venue'));
                     @endphp

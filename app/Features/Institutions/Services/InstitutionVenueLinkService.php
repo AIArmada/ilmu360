@@ -10,9 +10,9 @@ use App\Features\Institutions\Actions\DemoteInstitutionVenuePrimaryAction;
 use App\Features\Institutions\Actions\RemoveInstitutionVenueLinkAction;
 use App\Features\Institutions\Actions\SetInstitutionVenuePrimaryAction;
 use App\Features\Institutions\Actions\SyncInstitutionVenuesAction;
+use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Models\Institution;
-use App\Shared\Directory\Enums\InstitutionVenueRole;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 

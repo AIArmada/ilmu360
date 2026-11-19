@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Directory\Enums\InstitutionStatus;
-use App\Shared\Directory\Enums\InstitutionType;
 use Illuminate\Database\Eloquent\Model;
 
 /**

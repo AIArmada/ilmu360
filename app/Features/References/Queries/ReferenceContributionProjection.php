@@ -7,10 +7,10 @@ namespace App\Features\References\Queries;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
+use App\Features\References\Api\Enums\ReferencePartType;
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Directory\Enums\ReferencePartType;
-use App\Shared\Directory\Enums\ReferenceType;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 

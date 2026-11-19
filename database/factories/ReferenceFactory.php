@@ -3,9 +3,9 @@
 namespace Database\Factories;
 
 use App\Features\Persons\Models\Person;
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
-use App\Shared\Directory\Enums\ReferenceType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 

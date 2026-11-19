@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\HardcodedPrayerFallback;
+use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
 
 it('covers every non-custom prayer timing with a valid clock', function () {
     $expected = collect(EventPrayerTime::cases())

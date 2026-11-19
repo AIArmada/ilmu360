@@ -1,10 +1,10 @@
 @php
-    use App\Shared\Events\Enums\EventAgeGroup;
-    use App\Shared\Events\Enums\EventFormat;
-    use App\Shared\Events\Enums\EventGenderRestriction;
-    use App\Shared\Events\Enums\EventKeyPersonRole;
-    use App\Shared\Prayer\EventPrayerTime;
-    use App\Shared\Events\Enums\EventVisibility;
+    use App\Features\Events\Api\Enums\EventAgeGroup;
+    use App\Features\Events\Api\Enums\EventFormat;
+    use App\Features\Events\Api\Enums\EventGenderRestriction;
+    use App\Features\Events\Api\Enums\EventKeyPersonRole;
+    use App\Features\Prayer\Api\EventPrayerTime;
+    use App\Features\Events\Api\Enums\EventVisibility;
     use App\Features\Institutions\Models\Institution;
     use App\Features\References\Models\Reference;
     use App\Features\Places\Models\Space;
@@ -120,7 +120,7 @@
     };
 
     $eventTypeLabels = collect($asList($get('event_category_ids')))
-        ->map(fn (string $id): string => app(\App\Shared\Events\EventCategoryCatalog::class)->options()[$id] ?? $id)
+        ->map(fn (string $id): string => app(\App\Features\Events\Api\EventCategoryCatalog::class)->options()[$id] ?? $id)
         ->all();
 
     $prayerTimeState = $get('prayer_time');

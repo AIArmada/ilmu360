@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Platform\Api\Member\Contracts;
 
 use App\Features\Membership\Api\MemberPermissions;
+use App\Features\Membership\Api\MembershipDirectory;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipDirectory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 

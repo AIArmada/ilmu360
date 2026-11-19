@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Membership\Contributors;
 
 use App\Features\Membership\Actions\MembershipAccountStateAction;
+use App\Features\Membership\Api\ScopedMembershipRoleStore;
 use App\Shared\Auth\AccountLifecycleContributor;
-use App\Shared\Auth\ScopedMembershipRoleStore;
 
 /**
  * Preserves membership state across account deletion and restoration.

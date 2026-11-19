@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Engagement\Api;
 
-use App\Shared\Engagement\EngagementSubjectType;
-
 /**
  * Read-only follow state for account cards and directory surfaces.
  *

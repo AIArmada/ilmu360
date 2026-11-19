@@ -1,5 +1,7 @@
 <?php
 
+use App\Features\Events\Api\Enums\EventFormat;
+
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use App\Features\Discovery\Support\PublicScheduleLeaf;
@@ -109,7 +111,7 @@ new
             foreach ($this->featuredEvents as $leaf) {
                 $event = $leaf->event;
 
-                if ((string) $event->delivery_mode === \App\Shared\Events\Enums\EventFormat::Online->value) {
+                if ((string) $event->delivery_mode === \App\Features\Events\Api\Enums\EventFormat::Online->value) {
                     continue;
                 }
 

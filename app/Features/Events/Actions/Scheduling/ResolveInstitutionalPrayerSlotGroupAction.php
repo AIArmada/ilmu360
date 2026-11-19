@@ -8,10 +8,10 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Support\EventModel;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\PrayerReference;
+use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\PrayerReference;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 

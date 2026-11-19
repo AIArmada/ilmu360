@@ -9,11 +9,11 @@ use App\Features\Reports\Actions\SaveReportAction;
 use App\Features\Reports\Api\ReportAdminContract;
 use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
 use App\Features\Reports\Api\ReportSnapshot;
+use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Api\SaveReportInput;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Support\ReportModelClass;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
-use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Validation\Rule;
 
 final readonly class ReportAdmin implements ReportAdminContract

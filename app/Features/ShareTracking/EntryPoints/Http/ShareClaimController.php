@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\EntryPoints\Http;
 
 use App\Features\ShareTracking\Api\GuestShareClaims;
+use App\Features\ShareTracking\Api\ShareGuestClaimResult;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareGuestClaimResult;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

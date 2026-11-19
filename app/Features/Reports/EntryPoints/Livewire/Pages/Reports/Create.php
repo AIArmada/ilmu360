@@ -3,13 +3,13 @@
 namespace App\Features\Reports\EntryPoints\Livewire\Pages\Reports;
 
 use AIArmada\CommerceSupport\Support\RequestFingerprint;
+use App\Features\Feedback\Api\FeedbackActor;
 use App\Features\Reports\Actions\ResolveReportFormContextAction;
 use App\Features\Reports\Actions\SubmitReportAction;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectResolver;
+use App\Features\Reports\Api\ReportSubjectType;
 use App\Platform\Ui\InteractsWithToasts;
-use App\Shared\Feedback\FeedbackActor;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectResolver;
-use App\Shared\Reports\ReportSubjectType;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Concerns\InteractsWithForms;

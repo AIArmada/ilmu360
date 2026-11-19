@@ -10,13 +10,13 @@ use App\Features\Reports\Actions\TriageReportAction;
 use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Api\SaveReportInput;
 use App\Features\Reports\Api\SubmitReportInput;
 use App\Features\Reports\Api\TriageReportInput;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\Models\Report;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectResolver;
 use RuntimeException;
 
 final readonly class ReportCommands implements ReportCommandsContract

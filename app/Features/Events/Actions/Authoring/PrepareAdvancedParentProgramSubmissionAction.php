@@ -4,8 +4,8 @@ namespace App\Features\Events\Actions\Authoring;
 
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Events\Api\AdvancedProgramPreparation;
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\HardcodedPrayerFallback;
+use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 

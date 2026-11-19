@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Platform\Auth;
 
+use App\Features\Identity\Api\AccountProfile;
+use App\Features\Identity\Api\AccountProfileUpdate;
+use App\Features\Identity\Api\AccountSettingsStore;
+use App\Features\Identity\Api\AccountToken;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Auth\AccountProfile;
-use App\Shared\Auth\AccountProfileUpdate;
-use App\Shared\Auth\AccountSettingsStore;
-use App\Shared\Auth\AccountToken;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Laravel\Sanctum\PersonalAccessToken;

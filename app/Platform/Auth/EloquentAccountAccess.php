@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Platform\Auth;
 
+use App\Features\Identity\Api\AccountProfile;
+use App\Features\Identity\Api\AccountSession;
 use App\Models\User;
 use App\Platform\Auth\Fortify\CreateNewUser;
 use App\Shared\Auth\AccountAccess;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Auth\AccountProfile;
-use App\Shared\Auth\AccountSession;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;

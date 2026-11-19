@@ -2,10 +2,10 @@
 
 use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use App\Features\Events\Models\Event;
+use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Features\References\Observers\ReferenceObserver;
-use App\Shared\Directory\Enums\ReferenceType;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Validation\ValidationException;
 use Laravel\Scout\EngineManager;

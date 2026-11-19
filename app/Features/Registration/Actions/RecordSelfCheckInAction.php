@@ -7,9 +7,9 @@ namespace App\Features\Registration\Actions;
 use AIArmada\Events\Contracts\EventCheckInService;
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Registration\Api\AttendanceCommands;
+use App\Features\Registration\Api\CheckInNotifier;
+use App\Features\ShareTracking\Api\ParticipationAttribution;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Registration\CheckInNotifier;
-use App\Shared\ShareTracking\ParticipationAttribution;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 

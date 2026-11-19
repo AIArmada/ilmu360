@@ -6,6 +6,7 @@ namespace App\Features\Institutions\Actions;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Platform\Addressing\AddressAreaRoles;
 use App\Platform\Location\DiscoverWebsiteSocialProfilesAction;
@@ -37,7 +38,7 @@ final readonly class ResolveInstitutionMapsPlaceSelectionAction implements Insti
         return $this->mergeInstitutionMapsSelectionIntoFormAction->handle($formState, $selection, $previousSelection);
     }
 
-    public function inferType(array $place): ?\App\Shared\Directory\Enums\InstitutionType
+    public function inferType(array $place): ?InstitutionType
     {
         return $this->inferInstitutionTypeAction->handle($place);
     }

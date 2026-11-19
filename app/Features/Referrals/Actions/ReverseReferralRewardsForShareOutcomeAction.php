@@ -9,8 +9,8 @@ use AIArmada\Referrals\Enums\ReferralRewardStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Support\RewardSourceFact;
+use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 

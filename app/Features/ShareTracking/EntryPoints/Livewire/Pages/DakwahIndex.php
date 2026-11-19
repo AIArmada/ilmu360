@@ -4,9 +4,9 @@ namespace App\Features\ShareTracking\EntryPoints\Livewire\Pages;
 
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
+use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareOutcomeType;
 use App\Shared\ShareTracking\ShareSubjectType;
 use App\Shared\ShareTracking\ShareTrackingMeasurement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

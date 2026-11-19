@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Actions;
 
+use App\Features\Prayer\Api\BuildPrayerPreviewAction as BuildPrayerPreviewActionContract;
+use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Api\PrayerReference;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
-use App\Shared\Prayer\EventPrayerTime;
-use App\Shared\Prayer\HardcodedPrayerFallback;
-use App\Shared\Prayer\PrayerReference;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 
@@ -20,7 +21,7 @@ use InvalidArgumentException;
  * anything unresolvable degrades label-by-label to the hardcoded estimates.
  * Tarawih stays label-only, matching submit behavior.
  */
-final readonly class BuildPrayerPreviewAction implements \App\Shared\Prayer\BuildPrayerPreviewAction
+final readonly class BuildPrayerPreviewAction implements BuildPrayerPreviewActionContract
 {
     public function __construct(
         private ResolvePrayerAnchorAction $anchors,

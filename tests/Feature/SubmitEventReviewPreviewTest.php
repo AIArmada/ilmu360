@@ -1,11 +1,11 @@
 <?php
 
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
-use App\Shared\Directory\Enums\InstitutionNameType;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Str;
 use Livewire\Livewire;

@@ -2,10 +2,10 @@
 
 namespace App\Platform\Api\Frontend\EntryPoints\Http;
 
+use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Api\Frontend\CatalogDispatcher;
 use App\Platform\Http\FrontendController;
-use App\Shared\Taxonomy\EventTaxonomyCode;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;

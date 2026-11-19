@@ -7,8 +7,8 @@ namespace App\Features\GitHubIssues\Actions;
 use App\Features\GitHubIssues\Api\GitHubIssueReportContract;
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\GitHubIssues\Api\GitHubIssueSubmissionData;
+use App\Features\GitHubIssues\Api\IntegrationFeedbackIdentity;
 use App\Features\GitHubIssues\Api\SubmitGitHubIssueReport;
-use App\Shared\Auth\IntegrationFeedbackIdentity;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class SubmitGitHubIssueReportAction implements SubmitGitHubIssueReport

@@ -1,7 +1,7 @@
 <?php
 
 use App\Features\Events\Support\SubmissionTimingPolicy;
-use App\Shared\Prayer\EventPrayerTime;
+use App\Features\Prayer\Api\EventPrayerTime;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;

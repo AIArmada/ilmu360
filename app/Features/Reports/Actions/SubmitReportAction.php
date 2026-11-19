@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Features\Reports\Actions;
 
 use App\Features\Events\Api\EventModeration;
+use App\Features\Reports\Api\ReportSubject;
+use App\Features\Reports\Api\ReportSubjectType;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\Models\Report;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaEvidence;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Reports\ReportSubject;
-use App\Shared\Reports\ReportSubjectType;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;

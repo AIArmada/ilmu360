@@ -1,7 +1,7 @@
 <?php
 
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
-use App\Shared\Directory\Enums\InstitutionStatus;
 use Carbon\CarbonInterface;
 
 it('dry-runs by default without flagging anything', function () {

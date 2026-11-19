@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Registration\Notifications;
 
 use App\Features\Events\Notifications\EventNotificationService;
+use App\Features\Registration\Api\CheckInNotifier;
 use App\Features\Registration\Models\EventCheckin;
-use App\Shared\Registration\CheckInNotifier;
 
 /**
  * Root adapter for Registration's created-check-in notification boundary.

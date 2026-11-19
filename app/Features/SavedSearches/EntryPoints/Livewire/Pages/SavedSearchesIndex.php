@@ -2,6 +2,9 @@
 
 namespace App\Features\SavedSearches\EntryPoints\Livewire\Pages;
 
+use App\Features\Discovery\Api\SearchFilterCatalog;
+use App\Features\Discovery\Api\SearchFilterLabels;
+use App\Features\Discovery\Api\SearchFilterRules;
 use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -11,9 +14,6 @@ use App\Features\SavedSearches\Exceptions\SavedSearchLimitReachedException;
 use App\Platform\Location\LocationLevelLabels;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\ResourceOwner;
-use App\Shared\Discovery\SearchFilterCatalog;
-use App\Shared\Discovery\SearchFilterLabels;
-use App\Shared\Discovery\SearchFilterRules;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Time\UserDateTimeFormatting;
 use Carbon\Carbon;

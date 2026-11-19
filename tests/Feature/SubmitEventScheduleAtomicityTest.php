@@ -5,9 +5,9 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Prayer\PrayerReference;
+use App\Features\Prayer\Api\PrayerReference;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 
 beforeEach(function () {

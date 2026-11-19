@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\GitHubIssues\Api;
 
-use App\Shared\Auth\IntegrationFeedbackIdentity;
-
 interface SubmitGitHubIssueReport
 {
     /** @return array<string, mixed> */

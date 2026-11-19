@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Admin\Resources;
 
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\Enums\TimingMode;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
+use App\Features\Prayer\Api\PrayerReference;
 use App\Platform\Api\Admin\Contracts\AdminResourceHooks;
-use App\Shared\Events\Enums\EventFormat;
-use App\Shared\Events\Enums\EventVisibility;
-use App\Shared\Events\Enums\TimingMode;
-use App\Shared\Events\EventCategoryCatalog;
-use App\Shared\Prayer\PrayerReference;
 use Illuminate\Database\Eloquent\Model;
 
 final readonly class EventAdminHooks implements AdminResourceHooks

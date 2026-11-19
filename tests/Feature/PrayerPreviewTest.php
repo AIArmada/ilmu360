@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Features\Prayer\Services\JakimZoneResolver;
-use App\Shared\Prayer\HardcodedPrayerFallback;
 use Illuminate\Support\Facades\Http;
 
 it('previews exact start clocks from warm cache', function () {

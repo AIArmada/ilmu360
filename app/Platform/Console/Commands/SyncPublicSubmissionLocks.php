@@ -2,7 +2,7 @@
 
 namespace App\Platform\Console\Commands;
 
-use App\Shared\Submission\PublicSubmissionLockSweeper;
+use App\Features\Events\Api\PublicSubmissionLockSweeper;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;

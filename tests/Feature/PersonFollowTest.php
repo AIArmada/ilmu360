@@ -2,11 +2,11 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
+use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Inspirations\Models\Inspiration;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Shared\Engagement\EngagementSubjectType;
 use Livewire\Livewire;
 
 it('allows an authenticated user to follow a person', function () {

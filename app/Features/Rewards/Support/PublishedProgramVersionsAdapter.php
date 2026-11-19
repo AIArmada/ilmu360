@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Rewards\Support;
 
 use AIArmada\Rewards\Models\RewardProgram;
-use App\Shared\Rewards\PublishedProgramVersions;
-use App\Shared\Rewards\PublishedProgramVersionSnapshot;
+use App\Features\Rewards\Api\PublishedProgramVersions;
+use App\Features\Rewards\Api\PublishedProgramVersionSnapshot;
 
 /**
  * Shared-boundary adapter over Rewards' published-version timeline resolver.

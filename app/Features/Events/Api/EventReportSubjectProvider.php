@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
-use App\Shared\Reports\ReportSubjectResolver;
+use App\Features\Reports\Api\ReportSubjectResolver;
 
 /**
  * Events-owned report subject provider.

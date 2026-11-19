@@ -1,12 +1,14 @@
 <?php
 
+use App\Features\Engagement\Api\EngagementSubjectType;
+
 use AIArmada\CommerceSupport\Support\OwnerContext;
 
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Shared\Events\Enums\EventKeyPersonRole;
-use App\Shared\Events\Enums\EventVisibility;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Persons\Models\Person;
@@ -76,7 +78,7 @@ new
 
             $this->followingPersonIds = app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds(
                 (string) $user->getKey(),
-                \App\Shared\Engagement\EngagementSubjectType::Person,
+                \App\Features\Engagement\Api\EngagementSubjectType::Person,
             );
         }
 
@@ -204,7 +206,7 @@ new
         {
             $user = auth()->user();
             $this->followingPersonIds = $user instanceof User
-                ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Person))
+                ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Features\Engagement\Api\EngagementSubjectType::Person))
                 : [];
         }
 

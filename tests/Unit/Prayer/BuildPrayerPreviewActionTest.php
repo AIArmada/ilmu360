@@ -3,10 +3,10 @@
 use App\Features\Prayer\Actions\BuildPrayerPreviewAction;
 use App\Features\Prayer\Actions\ResolvePrayerAnchorAction;
 use App\Features\Prayer\Api\PrayerQuery;
+use App\Features\Prayer\Api\PrayerReference;
 use App\Features\Prayer\Persistence\PrayerTimesCache;
 use App\Features\Prayer\Services\JakimZoneResolver;
 use App\Features\Prayer\Services\PrayerProviderRegistry;
-use App\Shared\Prayer\PrayerReference;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
