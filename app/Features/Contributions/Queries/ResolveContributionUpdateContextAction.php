@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Contributions\Queries;
 
 use App\Features\Contributions\Api\ContributionUpdateContextReader;
+use App\Features\Contributions\Support\ContributionEntityMetadata;
 use App\Shared\Contributions\ContributionEntityState;
-use App\Shared\Contributions\Support\ContributionEntityMetadata;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
 

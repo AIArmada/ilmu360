@@ -6,9 +6,9 @@ use App\Features\Registration\Api\Enums\EventAttendanceStatus;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Participants;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Support\EventCommercePolicy;
 use App\Features\Registration\Support\ParticipantIdentity;
 use App\Models\User;
-use App\Shared\Commerce\EventCommercePolicy;
 use Livewire\Livewire;
 
 it('honours the event setting when live self check-in is disabled', function () {

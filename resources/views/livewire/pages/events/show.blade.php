@@ -414,7 +414,7 @@
                             @elseif($eventRegistration && ! $registrationOpen)
                                 <p class="mt-4 text-sm text-[#6b645e]">{{ __('Pendaftaran dalam talian ditutup buat masa ini.') }}</p>
                             @endif
-                            @if($paymentRequired && ! \App\Shared\Commerce\EventCommerceModes::publicPaidCheckoutEnabled())
+                            @if($paymentRequired && ! \App\Features\Registration\Support\EventCommerceModes::publicPaidCheckoutEnabled())
                                 <p class="mt-4 text-sm text-amber-900">{{ __('Maklumat tiket dipaparkan di sini. Pembelian tiket dalam talian belum tersedia untuk majlis ini.') }}</p>
                             @endif
                         </div>

@@ -5,8 +5,8 @@ namespace App\Features\Registration\Policies;
 use App\Features\Events\Models\Event;
 use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Support\EventCommercePolicy;
 use App\Models\User;
-use App\Shared\Commerce\EventCommercePolicy;
 
 class RegistrationPolicy
 {

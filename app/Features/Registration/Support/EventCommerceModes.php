@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Commerce;
+namespace App\Features\Registration\Support;
 
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Ticketing\Enums\PricingMode;

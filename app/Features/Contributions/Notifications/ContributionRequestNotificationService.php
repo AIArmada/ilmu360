@@ -9,6 +9,7 @@ use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Features\Contributions\Support\ContributionSubjectType;
@@ -16,7 +17,6 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use Illuminate\Support\Str;
 
 class ContributionRequestNotificationService implements ContributionRequestNotifier

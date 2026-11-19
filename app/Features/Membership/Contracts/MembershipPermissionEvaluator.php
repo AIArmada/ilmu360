@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Membership;
+namespace App\Features\Membership\Contracts;
 
 use App\Features\Membership\Api\MemberSubjectType;
 
 /**
  * Scalar permission boundary for membership-aware authorization.
  *
- * The root MemberPermissionGate implements this contract with its existing
- * role thresholds and subject-specific rules, so the Membership feature can
- * own the public seam without importing root models or the gate itself.
+ * MemberPermissionGate implements this contract with its existing role
+ * thresholds and subject-specific rules, so authorization callers depend on
+ * the scalar seam instead of the gate itself.
  */
 interface MembershipPermissionEvaluator
 {

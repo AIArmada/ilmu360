@@ -13,6 +13,7 @@ use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipSubjectOptionsCatalog;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
+use App\Features\Membership\EntryPoints\Admin\RecordActions\MembershipApplicationRecordActionContributor;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index;
@@ -29,6 +30,7 @@ use App\Features\Membership\Services\MembershipCommandsService;
 use App\Features\Membership\Services\MembershipDirectoryService;
 use App\Features\Membership\Services\MembershipInvitationsService;
 use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
@@ -89,6 +91,8 @@ final class FeatureServiceProvider extends FeatureModule
 
         Livewire::component('pages.membership-applications.create', Create::class);
         Livewire::component('pages.membership-applications.index', Index::class);
+
+        $this->app->make(RecordActionContributorRegistry::class)->register($this->app->make(MembershipApplicationRecordActionContributor::class));
 
         $surfaces = $this->app->make(McpSurfaceRegistry::class);
 

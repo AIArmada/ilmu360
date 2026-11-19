@@ -3,14 +3,14 @@
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Notifications\Notification;

@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\Api\Enums\EventVisibility;
@@ -23,8 +25,6 @@ use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use App\Shared\Captcha\CaptchaVerifier;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use Illuminate\Support\Facades\Schema;
 
 it('sets cancelled_at when cancelling an event', function () {

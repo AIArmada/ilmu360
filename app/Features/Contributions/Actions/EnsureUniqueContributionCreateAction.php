@@ -2,6 +2,9 @@
 
 namespace App\Features\Contributions\Actions;
 
+use App\Features\Contributions\Contracts\InstitutionClaimGuard;
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Features\Contributions\Support\ContributionSubjectType;
@@ -9,9 +12,6 @@ use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\GooglePlaceIdentity;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\InstitutionClaimGuard;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Contributions\Services;
 
 use App\Features\Contributions\Api\ContributionReviewAccess;
+use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;

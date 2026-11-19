@@ -2,6 +2,11 @@
 
 namespace App\Features\Contributions\Actions;
 
+use App\Features\Contributions\Contracts\InstitutionClaimGuard;
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
+use App\Features\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
+use App\Features\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Features\Contributions\Support\ContributionSubjectType;
@@ -17,11 +22,6 @@ use App\Features\References\Api\ReferenceWorkflow;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
-use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
-use App\Shared\Contributions\InstitutionClaimGuard;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;

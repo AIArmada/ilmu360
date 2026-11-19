@@ -2,11 +2,11 @@
 
 namespace App\Features\Contributions\Models;
 
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use Database\Factories\ContributionRequestFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

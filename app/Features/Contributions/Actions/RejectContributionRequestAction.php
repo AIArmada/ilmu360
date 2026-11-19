@@ -2,13 +2,13 @@
 
 namespace App\Features\Contributions\Actions;
 
+use App\Features\Contributions\Enums\ContributionRequestType;
+use App\Features\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Contributions\Exceptions\ContributionRequestNotPendingException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;

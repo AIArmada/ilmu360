@@ -1826,14 +1826,6 @@
       "expires": "2027-12-31"
     },
     {
-      "rule": "platform-direction",
-      "file": "app/Shared/Contributions/Support/ContributionEntityMetadata.php",
-      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Contributions",
-      "expires": "2027-12-31"
-    },
-    {
       "rule": "architecture.writeLocation",
       "file": "app/Features/Registration/Models/Registration.php",
       "target": "table:event_registrations",

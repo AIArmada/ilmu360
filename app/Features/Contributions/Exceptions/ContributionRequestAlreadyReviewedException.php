@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Contributions\Exceptions;
+namespace App\Features\Contributions\Exceptions;
 
 /**
  * Thrown when a review action reaches a request that has already been

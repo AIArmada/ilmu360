@@ -1,14 +1,14 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;

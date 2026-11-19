@@ -10,6 +10,8 @@ use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberApproveContributionRe
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberCancelContributionRequestTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberListContributionRequestsTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberRejectContributionRequestTool;
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\Api\Enums\EventChangeType;
@@ -45,8 +47,6 @@ use App\Platform\Mcp\Tools\Member\MemberListRecordsTool;
 use App\Platform\Mcp\Tools\Member\MemberListResourcesTool;
 use App\Platform\Mcp\Tools\Member\MemberUpdateRecordTool;
 use App\Platform\Media\MediaCollectionSync;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;

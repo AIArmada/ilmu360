@@ -10,7 +10,7 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Features\ShareTracking\Api\Data\ShareSubject;
-use App\Shared\ShareTracking\ShareSubjectType;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use Illuminate\Database\Eloquent\Model;
 
 final class ShareSubjectFactory

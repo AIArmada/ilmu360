@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Contributions\Enums;
+namespace App\Features\Contributions\Enums;
 
 enum ContributionRequestType: string
 {

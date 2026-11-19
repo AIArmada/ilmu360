@@ -35,7 +35,7 @@ final readonly class EloquentContributionRequestReader implements ContributionRe
             ->where('proposer_id', $proposerId)
             ->where('entity_type', $entityType)
             ->where('entity_id', $entityId)
-            ->where('status', \App\Shared\Contributions\Enums\ContributionRequestStatus::Pending)
+            ->where('status', \App\Features\Contributions\Enums\ContributionRequestStatus::Pending)
             ->latest('created_at')
             ->value('id');
 
@@ -47,7 +47,7 @@ final readonly class EloquentContributionRequestReader implements ContributionRe
         $id = ContributionModel::modelClass()::query()
             ->where('entity_type', $entityType)
             ->where('entity_id', $entityId)
-            ->where('status', \App\Shared\Contributions\Enums\ContributionRequestStatus::Pending)
+            ->where('status', \App\Features\Contributions\Enums\ContributionRequestStatus::Pending)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->value('id');

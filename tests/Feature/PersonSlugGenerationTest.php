@@ -3,6 +3,8 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
@@ -16,8 +18,6 @@ use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

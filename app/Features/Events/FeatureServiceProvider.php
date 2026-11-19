@@ -66,6 +66,7 @@ use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\Events\EntryPoints\Admin\AdminEventModerationService;
 use App\Features\Events\EntryPoints\Admin\Member\EventMemberResourceHooks;
+use App\Features\Events\EntryPoints\Admin\RecordActions\EventRecordActionContributor;
 use App\Features\Events\EntryPoints\Admin\Resources\EventAdminHooks;
 use App\Features\Events\EntryPoints\Admin\Resources\EventMutationHooks;
 use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
@@ -125,6 +126,7 @@ use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Admin\FilamentWidgetRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
+use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
@@ -303,6 +305,8 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(EventMemberResourceHooks::class));
 
         $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(EventMutationHooks::class));
+
+        $this->app->make(RecordActionContributorRegistry::class)->register($this->app->make(EventRecordActionContributor::class));
 
         $this->registerMcpSurfaces();
 

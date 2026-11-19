@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Member;
 
+use App\Platform\Api\Admin\Contracts\RecordActionContributor;
+use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class MemberRecordActionService
 {
     public function __construct(
         private MemberResourceRegistry $registry,
+        private RecordActionContributorRegistry $contributors,
     ) {}
 
     /**
@@ -39,7 +43,7 @@ final readonly class MemberRecordActionService
         $resolvedRecordKey = is_string($recordDetail['route_key'] ?? null)
             ? $recordDetail['route_key']
             : (string) $record->getRouteKey();
-        $actions = $this->actions($resource, $resolvedRecordKey, $abilities);
+        $actions = $this->actions($resource, $record, $resolvedRecordKey, $abilities);
 
         return [
             'data' => [
@@ -59,7 +63,7 @@ final readonly class MemberRecordActionService
      * @param  array<string, bool>  $abilities
      * @return list<array<string, mixed>>
      */
-    private function actions(array $resource, string $recordKey, array $abilities): array
+    private function actions(array $resource, Model $record, string $recordKey, array $abilities): array
     {
         $resourceKey = (string) ($resource['key'] ?? '');
         $relations = array_values(array_filter(
@@ -83,30 +87,7 @@ final readonly class MemberRecordActionService
             ],
         ];
 
-        if ($resourceKey === 'events') {
-            $actions[] = [
-                'key' => 'generate_event_cover_image',
-                'label' => 'Upload event cover image',
-                'category' => 'creative_asset',
-                'description' => 'Use the member-event-cover-image-prompt prompt to get the engineered prompt and reference images, generate with ChatGPT image generation, then upload the 16:9 result here.',
-                'tool' => 'member-upload-event-cover-image',
-                'arguments' => [
-                    'event_key' => $recordKey,
-                ],
-                'prerequisite_prompt' => 'member-event-cover-image-prompt',
-            ];
-            $actions[] = [
-                'key' => 'generate_event_poster_image',
-                'label' => 'Upload event poster image',
-                'category' => 'creative_asset',
-                'description' => 'Use the member-event-poster-image-prompt prompt to get the engineered prompt and reference images, generate with ChatGPT image generation, then upload the 3:4 result here.',
-                'tool' => 'member-upload-event-poster-image',
-                'arguments' => [
-                    'event_key' => $recordKey,
-                ],
-                'prerequisite_prompt' => 'member-event-poster-image-prompt',
-            ];
-        }
+        $actions = [...$actions, ...$this->contributedActions($resourceKey, $record)];
 
         if ($relations !== []) {
             $actions[] = [
@@ -152,6 +133,27 @@ final readonly class MemberRecordActionService
                     'validate_only' => true,
                 ],
                 'requires' => ['get_update_schema'],
+            ];
+        }
+
+        return $actions;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function contributedActions(string $resourceKey, Model $record): array
+    {
+        $actions = [];
+
+        foreach ($this->contributors->all() as $contributor) {
+            if (! $contributor->supports(RecordActionContributor::SURFACE_MEMBER, $resourceKey, $record)) {
+                continue;
+            }
+
+            $actions = [
+                ...$actions,
+                ...$contributor->actions(RecordActionContributor::SURFACE_MEMBER, $resourceKey, $record),
             ];
         }
 

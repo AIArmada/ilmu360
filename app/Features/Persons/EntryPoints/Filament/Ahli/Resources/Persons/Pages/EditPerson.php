@@ -6,7 +6,7 @@ namespace App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\Pages
 
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource;
-use App\Shared\Persons\PersonBioContent;
+use App\Features\Persons\Support\PersonBioContent;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;

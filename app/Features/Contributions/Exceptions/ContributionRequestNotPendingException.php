@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Contributions\Exceptions;
+namespace App\Features\Contributions\Exceptions;
 
 use RuntimeException;
 

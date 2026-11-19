@@ -18,8 +18,11 @@ use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\SubmissionCatalog;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
+use App\Features\Contributions\Contracts\ContributionRequestGuard;
+use App\Features\Contributions\Contracts\InstitutionClaimGuard;
 use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContributor;
 use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
+use App\Features\Contributions\EntryPoints\Admin\RecordActions\ContributionRequestRecordActionContributor;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminGetContributionRequestReviewSchemaTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminReviewContributionRequestTool;
@@ -35,11 +38,10 @@ use App\Features\Contributions\Services\ContributionReviewAccessService;
 use App\Features\Contributions\Services\ContributionSubmissionPreparationService;
 use App\Features\Contributions\Services\EloquentSubmissionCatalog;
 use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
-use App\Shared\Contributions\ContributionRequestGuard;
-use App\Shared\Contributions\InstitutionClaimGuard;
 
 /**
  * Contributions owns contribution requests from C3 onward.
@@ -98,6 +100,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(RecordActionContributorRegistry::class)->register($this->app->make(ContributionRequestRecordActionContributor::class));
 
         $surfaces = $this->app->make(McpSurfaceRegistry::class);
 

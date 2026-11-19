@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Shared\Directory;
+namespace App\Features\Institutions\Support;
 
 use InvalidArgumentException;
 

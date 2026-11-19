@@ -4,11 +4,11 @@ namespace App\Features\ShareTracking\EntryPoints\Livewire\Pages;
 
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Features\ShareTracking\Support\ShareTrackingMeasurement;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareSubjectType;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;

@@ -6,7 +6,7 @@ namespace App\Features\Membership\Services;
 
 use App\Features\Membership\Api\MembershipAuthorization;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Shared\Membership\MembershipPermissionEvaluator;
+use App\Features\Membership\Contracts\MembershipPermissionEvaluator;
 
 /**
  * Scalar membership authorization boundary.

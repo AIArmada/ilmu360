@@ -8,11 +8,11 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Membership\Contracts\MembershipPermissionEvaluator;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Membership\MembershipPermissionEvaluator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 

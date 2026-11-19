@@ -2,6 +2,8 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support;
 
+use App\Features\Contributions\Enums\ContributionRequestStatus;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
@@ -12,8 +14,6 @@ use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\Models\Person;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\Models\Reference;
-use App\Shared\Contributions\Enums\ContributionRequestStatus;
-use App\Shared\Contributions\Enums\ContributionRequestType;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 

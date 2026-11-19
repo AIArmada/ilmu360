@@ -4,18 +4,10 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Admin;
 
-use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Features\Contributions\Api\AdminContributionRequestReview;
-use App\Features\Events\Api\AdminEventModeration;
-use App\Features\Membership\Api\MembershipApplications;
-use App\Features\Reports\Api\AdminReportTriage;
-use App\Features\Reports\Api\ReportTriageContract;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\ResolvesAccessibleResource;
-use Filament\Resources\Resource;
+use App\Platform\Api\Admin\Contracts\RecordActionContributor;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 final readonly class AdminRecordActionService
 {
@@ -23,11 +15,7 @@ final readonly class AdminRecordActionService
 
     public function __construct(
         private AdminResourceRegistry $registry,
-        private AdminEventModeration $eventModerationService,
-        private AdminReportTriage $reportTriageService,
-        private AdminContributionRequestReview $contributionRequestReviewService,
-        private ReportTriageContract $reportTriageContract,
-        private MembershipApplications $membershipApplications,
+        private RecordActionContributorRegistry $contributors,
     ) {}
 
     /**
@@ -59,7 +47,7 @@ final readonly class AdminRecordActionService
 
         $actions = [
             ...$this->baseActions($resource, $resolvedRecordKey, $abilities),
-            ...$this->workflowActions($resourceClass, $record, $resolvedRecordKey, $actor),
+            ...$this->contributedActions((string) ($resource['key'] ?? ''), $record, $actor),
         ];
 
         return [
@@ -159,320 +147,22 @@ final readonly class AdminRecordActionService
     /**
      * @return list<array<string, mixed>>
      */
-    private function workflowActions(string $resourceClass, Model $record, string $recordKey, ?User $actor = null): array
+    private function contributedActions(string $resourceKey, Model $record, ?User $actor = null): array
     {
         $actions = [];
 
-        if ($this->registry->keyFor($resourceClass) === 'events' && $record->getMorphClass() === 'event') {
-            $actions = [...$actions, ...$this->eventImageGenerationActions($recordKey)];
-            $actions = [...$actions, ...$this->eventWorkflowActions($recordKey, $actor)];
-        }
-
-        $reportResourceClass = $this->registry->resolve('reports');
-
-        if ($reportResourceClass !== null && $resourceClass === $reportResourceClass) {
-            $actions = [...$actions, ...$this->reportWorkflowActions($recordKey, $actor)];
-        }
-
-        if ($this->registry->keyFor($resourceClass) === 'contribution-requests' && $record->getMorphClass() === 'contribution_request') {
-            $actions = [...$actions, ...$this->contributionRequestWorkflowActions($record, $recordKey, $actor)];
-        }
-
-        if ($this->registry->keyFor($resourceClass) === 'membership-applications') {
-            $application = $this->membershipApplications->find($recordKey);
-
-            if ($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail) {
-                $actions = [...$actions, ...$this->membershipApplicationWorkflowActions($application->application->status, $recordKey, $actor)];
-            }
-        }
-
-        return $actions;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function eventImageGenerationActions(string $recordKey): array
-    {
-        return [
-            [
-                'key' => 'generate_event_cover_image',
-                'label' => 'Upload event cover image',
-                'category' => 'creative_asset',
-                'description' => 'Use the admin-event-cover-image-prompt prompt to get the engineered prompt and reference images, generate with ChatGPT image generation, then upload the 16:9 result here.',
-                'tool' => 'admin-upload-event-cover-image',
-                'arguments' => [
-                    'event_key' => $recordKey,
-                ],
-                'prerequisite_prompt' => 'admin-event-cover-image-prompt',
-            ],
-            [
-                'key' => 'generate_event_poster_image',
-                'label' => 'Upload event poster image',
-                'category' => 'creative_asset',
-                'description' => 'Use the admin-event-poster-image-prompt prompt to get the engineered prompt and reference images, generate with ChatGPT image generation, then upload the 3:4 result here.',
-                'tool' => 'admin-upload-event-poster-image',
-                'arguments' => [
-                    'event_key' => $recordKey,
-                ],
-                'prerequisite_prompt' => 'admin-event-poster-image-prompt',
-            ],
-        ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function eventWorkflowActions(string $recordKey, ?User $actor = null): array
-    {
-        if (! $this->eventModerationService->canModerate($actor)) {
-            return [];
-        }
-
-        $schema = $this->trySchema(fn (): array => $this->eventModerationService->schema($recordKey, $actor));
-
-        if (! is_array($schema)) {
-            return [];
-        }
-
-        return [
-            $this->workflowSchemaActionDescriptor(
-                key: 'get_event_moderation_schema',
-                label: 'Fetch event moderation schema',
-                description: 'Read the explicit moderation workflow schema for this event before choosing the action.',
-                tool: 'admin-get-event-moderation-schema',
-                recordKey: $recordKey,
-                schema: $schema,
-            ),
-            $this->workflowActionDescriptor(
-                key: 'moderate_event',
-                label: 'Moderate event',
-                description: 'Run one explicit moderation action that is currently valid for this event.',
-                tool: 'admin-moderate-event',
-                recordKey: $recordKey,
-                schemaTool: 'admin-get-event-moderation-schema',
-                schemaActionKey: 'get_event_moderation_schema',
-                schema: $schema,
-            ),
-        ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function reportWorkflowActions(string $recordKey, ?User $actor = null): array
-    {
-        if (! $this->reportTriageContract->canTriage($actor)) {
-            return [];
-        }
-
-        $schema = $this->trySchema(fn (): array => $this->reportTriageService->schema($recordKey, $actor));
-
-        if (! is_array($schema)) {
-            return [];
-        }
-
-        return [
-            $this->workflowSchemaActionDescriptor(
-                key: 'get_report_triage_schema',
-                label: 'Fetch report triage schema',
-                description: 'Read the explicit triage workflow schema for this report before choosing the action.',
-                tool: 'admin-get-report-triage-schema',
-                recordKey: $recordKey,
-                schema: $schema,
-            ),
-            $this->workflowActionDescriptor(
-                key: 'triage_report',
-                label: 'Triage report',
-                description: 'Run one explicit triage action that is currently valid for this report.',
-                tool: 'admin-triage-report',
-                recordKey: $recordKey,
-                schemaTool: 'admin-get-report-triage-schema',
-                schemaActionKey: 'get_report_triage_schema',
-                schema: $schema,
-            ),
-        ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function contributionRequestWorkflowActions(Model $record, string $recordKey, ?User $actor = null): array
-    {
-        if (! method_exists($record, 'isPending') || ! $record->isPending() || ! $this->contributionRequestReviewService->canReview($actor)) {
-            return [];
-        }
-
-        $schema = $this->trySchema(fn (): array => $this->contributionRequestReviewService->schema($recordKey, $actor));
-
-        if (! is_array($schema)) {
-            return [];
-        }
-
-        return [
-            $this->workflowSchemaActionDescriptor(
-                key: 'get_contribution_request_review_schema',
-                label: 'Fetch contribution request review schema',
-                description: 'Read the explicit review schema for this contribution request before choosing the action.',
-                tool: 'admin-get-contribution-request-review-schema',
-                recordKey: $recordKey,
-                schema: $schema,
-            ),
-            $this->workflowActionDescriptor(
-                key: 'review_contribution_request',
-                label: 'Review contribution request',
-                description: 'Approve or reject this pending contribution request through the explicit review workflow.',
-                tool: 'admin-review-contribution-request',
-                recordKey: $recordKey,
-                schemaTool: 'admin-get-contribution-request-review-schema',
-                schemaActionKey: 'get_contribution_request_review_schema',
-                schema: $schema,
-            ),
-        ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function membershipApplicationWorkflowActions(string $status, string $recordKey, ?User $actor = null): array
-    {
-        if ($status !== ApplicationStatus::Pending->value || (! $actor instanceof User || ! $actor->hasAnyRole(['super_admin', 'admin', 'moderator']))) {
-            return [];
-        }
-
-        return [
-            [
-                'key' => 'get_membership_application_review_schema',
-                'label' => 'Fetch membership application review schema',
-                'category' => 'workflow_schema',
-                'description' => 'Read the explicit review schema for this membership application before choosing the action.',
-                'tool' => 'admin-get-membership-application-review-schema',
-                'arguments' => ['record_key' => $recordKey],
-            ],
-            [
-                'key' => 'review_membership_application',
-                'label' => 'Review membership application',
-                'category' => 'workflow',
-                'description' => 'Approve or reject this pending membership application through the explicit review workflow.',
-                'tool' => 'admin-review-membership-application',
-                'arguments' => ['record_key' => $recordKey, 'action' => 'approve', 'granted_role' => null, 'reviewer_note' => null],
-                'requires' => ['get_membership_application_review_schema'],
-                'schema_tool' => 'admin-get-membership-application-review-schema',
-                'schema_tool_arguments' => ['record_key' => $recordKey],
-                'schema_action_key' => 'get_membership_application_review_schema',
-            ],
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $schema
-     * @return array<string, mixed>
-     */
-    private function workflowSchemaActionDescriptor(string $key, string $label, string $description, string $tool, string $recordKey, array $schema): array
-    {
-        return [
-            'key' => $key,
-            'label' => $label,
-            'category' => 'workflow_schema',
-            'description' => $description,
-            'tool' => $tool,
-            'arguments' => [
-                'record_key' => $recordKey,
-            ],
-            'schema' => $this->normalizedSchemaPayload($schema),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $schema
-     * @return array<string, mixed>|null
-     */
-    private function workflowActionDescriptor(string $key, string $label, string $description, string $tool, string $recordKey, string $schemaTool, string $schemaActionKey, array $schema): ?array
-    {
-        $normalizedSchema = $this->normalizedSchemaPayload($schema);
-        $defaults = $normalizedSchema['defaults'];
-        $availableActions = $normalizedSchema['available_actions'];
-
-        if ($availableActions === []) {
-            return null;
-        }
-
-        return [
-            'key' => $key,
-            'label' => $label,
-            'category' => 'workflow',
-            'description' => $description,
-            'tool' => $tool,
-            'arguments' => array_merge(['record_key' => $recordKey], $defaults),
-            'requires' => [$schemaActionKey],
-            'schema_tool' => $schemaTool,
-            'schema_tool_arguments' => [
-                'record_key' => $recordKey,
-            ],
-            'schema_action_key' => $schemaActionKey,
-            'schema' => [
-                ...$normalizedSchema,
-            ],
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $schema
-     * @return array{defaults: array<string, mixed>, fields: list<array<string, mixed>>, conditional_rules: list<array<string, mixed>>, available_actions: list<array<string, mixed>>}
-     */
-    private function normalizedSchemaPayload(array $schema): array
-    {
-        return [
-            'defaults' => is_array($schema['defaults'] ?? null) ? $schema['defaults'] : [],
-            'fields' => array_values(array_filter(
-                is_array($schema['fields'] ?? null) ? $schema['fields'] : [],
-                is_array(...),
-            )),
-            'conditional_rules' => array_values(array_filter(
-                is_array($schema['conditional_rules'] ?? null) ? $schema['conditional_rules'] : [],
-                is_array(...),
-            )),
-            'available_actions' => $this->extractAvailableActions($schema),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $schema
-     * @return list<array<string, mixed>>
-     */
-    private function extractAvailableActions(array $schema): array
-    {
-        $availableActions = array_values(array_filter(
-            is_array($schema['available_actions'] ?? null) ? $schema['available_actions'] : [],
-            is_array(...),
-        ));
-
-        if ($availableActions !== []) {
-            return $availableActions;
-        }
-
-        $fields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
-
-        foreach ($fields as $field) {
-            if (! is_array($field) || ($field['name'] ?? null) !== 'action') {
+        foreach ($this->contributors->all() as $contributor) {
+            if (! $contributor->supports(RecordActionContributor::SURFACE_ADMIN, $resourceKey, $record)) {
                 continue;
             }
 
-            $allowedValues = array_values(array_filter(
-                is_array($field['allowed_values'] ?? null) ? $field['allowed_values'] : [],
-                static fn (mixed $value): bool => is_string($value) && $value !== '',
-            ));
-
-            return array_map(
-                static fn (string $value): array => [
-                    'key' => $value,
-                    'label' => Str::headline($value),
-                ],
-                $allowedValues,
-            );
+            $actions = [
+                ...$actions,
+                ...$contributor->actions(RecordActionContributor::SURFACE_ADMIN, $resourceKey, $record, $actor),
+            ];
         }
 
-        return [];
+        return $actions;
     }
 
     /**
@@ -551,21 +241,5 @@ final readonly class AdminRecordActionService
     private function hasWorkflowSchemaAction(array $actions): bool
     {
         return array_any($actions, fn ($action) => ($action['category'] ?? null) === 'workflow_schema');
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function trySchema(callable $resolver): ?array
-    {
-        try {
-            $response = $resolver();
-        } catch (HttpExceptionInterface) {
-            return null;
-        }
-
-        $schema = data_get($response, 'data.schema');
-
-        return is_array($schema) ? $schema : null;
     }
 }

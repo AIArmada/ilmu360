@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Contributions\Actions;
 
 use App\Features\Contributions\Api\ContributionRequestReader;
-use App\Shared\Contributions\ContributionRequestGuard;
+use App\Features\Contributions\Contracts\ContributionRequestGuard;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 

@@ -2,17 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Contributions\Support;
+namespace App\Features\Contributions\Support;
 
-use App\Features\Contributions\Support\ContributionSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
 /**
  * Resolve the contribution subject/entity metadata for a model.
  *
- * Shared by the Contributions feature lifecycle actions and the root read
- * queries so both resolve the subject through the Shared subject enum.
+ * Shared by the Contributions submit and update-context actions so both
+ * resolve the subject through the canonical subject enum.
  */
 final class ContributionEntityMetadata
 {
