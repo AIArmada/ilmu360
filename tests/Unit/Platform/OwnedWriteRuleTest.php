@@ -134,6 +134,7 @@ PHP);
             $project->write("app/Features/Orders/Actions/{$name}.php", <<<PHP
 <?php
 namespace App\Features\Orders\Actions;
+use App\Features\Orders\Models\Order;
 class {$name}
 {
     public function handle(Order \$order): void { \$order->{$method}(); }
@@ -144,6 +145,7 @@ PHP);
         $project->write('app/Features/Orders/EntryPoints/Unregistered.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\EntryPoints;
+use App\Features\Orders\Models\Order;
 class Unregistered
 {
     public function handle(Order $order): void { $order->update(['name' => 'Changed']); }
@@ -161,6 +163,7 @@ PHP);
         $project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
 class Charge
 {
     public function handle(Order $order): void { $order->save(); }
@@ -182,6 +185,7 @@ PHP);
             $project->write($path, <<<PHP
 <?php
 namespace {$namespace};
+use App\Features\Orders\Models\Order;
 class {$name}
 {
     public function handle(Order \$order): void { \$order->save(); }
@@ -219,6 +223,7 @@ it('suppresses exact owned-write exceptions for foreign and unregistered writes'
         $project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
 class Charge
 {
     public function handle(Order $order): void { $order->save(); }
@@ -227,6 +232,7 @@ PHP);
         $project->write('app/Features/Orders/EntryPoints/Unregistered.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\EntryPoints;
+use App\Features\Orders\Models\Order;
 class Unregistered
 {
     public function handle(Order $order): void { $order->update(['name' => 'Changed']); }
@@ -269,6 +275,7 @@ it('applies a foreign-write exception to its exact model', function (): void {
         $project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
 class Charge
 {
     public function handle(Order $order): void { $order->save(); }
@@ -341,6 +348,7 @@ PHP);
         $project->write('app/Features/Orders/Actions/PlaceOrder.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\Actions;
+use App\Features\Orders\Models\Order;
 class PlaceOrder
 {
     public function handle(Order $order): void
@@ -352,6 +360,7 @@ PHP);
         $project->write('app/Features/Orders/Actions/PlaceCastedOrder.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\Actions;
+use App\Features\Orders\Models\CastedOrder;
 class PlaceCastedOrder
 {
     public function handle(CastedOrder $order): void
@@ -363,6 +372,7 @@ PHP);
         $project->write('app/Features/Orders/Actions/PlaceElvisOrder.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\Actions;
+use App\Features\Orders\Models\ElvisOrder;
 class PlaceElvisOrder
 {
     public function handle(ElvisOrder $order): void
@@ -412,6 +422,7 @@ PHP);
         $project->write('app/Features/Orders/Actions/SaveConfiguredOrder.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\Actions;
+use App\Features\Orders\Models\ConfiguredOrder;
 class SaveConfiguredOrder
 {
     public function handle(ConfiguredOrder $order): void
@@ -451,6 +462,7 @@ PHP);
         $project->write('app/Features/Accounts/Models/AccountUser.php', <<<'PHP'
 <?php
 namespace App\Features\Accounts\Models;
+use App\Features\Accounts\Concerns\DeletesAccountUser;
 class AccountUser extends \Illuminate\Database\Eloquent\Model
 {
     use DeletesAccountUser;
@@ -662,6 +674,8 @@ PHP);
         $project->write('app/Features/Billing/Actions/RecordOrder.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\PackageRefund;
 class RecordOrder
 {
     public function handle(PackageOrder $order, PackageRefund $refund): void
@@ -740,6 +754,7 @@ it('does not suppress write exceptions for another file or target', function ():
         $project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
 class Charge
 {
     public function handle(Order $order): void { $order->save(); }
@@ -748,6 +763,7 @@ PHP);
         $project->write('app/Features/Orders/EntryPoints/Unregistered.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\EntryPoints;
+use App\Features\Orders\Models\Order;
 class Unregistered
 {
     public function handle(Order $order): void { $order->update(['name' => 'Changed']); }
@@ -812,6 +828,8 @@ PHP);
         $project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Unmapped\UnmappedOrder;
+use Fixture\Unmapped\UnmappedRefund;
 class Charge
 {
     public function handle(UnmappedOrder $order, UnmappedRefund $refund): void
@@ -863,6 +881,7 @@ PHP);
         $project->write('app/Models/User.php', <<<'PHP'
 <?php
 namespace App\Models;
+use App\Features\Identity\Support\HasUserRestoration;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Sanctum\HasApiTokens;
 class User extends Model
@@ -936,6 +955,7 @@ it('rejects a concrete table exception without an exact model', function (): voi
         $project->write('app/Features/Orders/EntryPoints/Unregistered.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\EntryPoints;
+use App\Features\Orders\Models\Order;
 class Unregistered
 {
     public function handle(Order $order): void

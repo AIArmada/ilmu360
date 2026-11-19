@@ -84,11 +84,11 @@ it('neutralizes invalid and other-claimant decisions behind one public code', fu
         ->and(ShareGuestClaimResult::RecipientIneligible->publicCode())->toBe('recipient_ineligible');
 });
 
-it('keeps the guest claim result in the shared contract layer', function (): void {
+it('keeps the guest claim result in the ShareTracking api layer', function (): void {
     $reflection = new ReflectionClass(ShareGuestClaimResult::class);
 
-    expect($reflection->getNamespaceName())->toBe('App\Shared\ShareTracking')
-        ->and($reflection->getFileName())->toBe(realpath(base_path('app/Shared/ShareTracking/ShareGuestClaimResult.php')))
+    expect($reflection->getNamespaceName())->toBe('App\Features\ShareTracking\Api')
+        ->and($reflection->getFileName())->toBe(realpath(base_path('app/Features/ShareTracking/Api/ShareGuestClaimResult.php')))
         ->and(class_exists('App\Enums\ShareGuestClaimResult', false))->toBeFalse();
 });
 

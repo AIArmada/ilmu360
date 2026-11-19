@@ -102,6 +102,7 @@ it('rejects cross-owner Eloquent model queries and construction', function (stri
     'static query' => [<<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
 class Charge
 {
     public function handle(): void { Order::query()->first(); }
@@ -110,6 +111,7 @@ PHP],
     'static create' => [<<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
 class Charge
 {
     public function handle(): void { Order::create(['id' => 'x']); }
@@ -118,6 +120,7 @@ PHP],
     'direct construction' => [<<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
 class Charge
 {
     public function handle(): Order { return new Order; }
@@ -129,6 +132,7 @@ it('rejects platform imports of feature models', function (): void {
     $this->project->write('app/Platform/Admin/Widget.php', <<<'PHP'
 <?php
 namespace App\Platform\Admin;
+use App\Features\Orders\Models\Order;
 class Widget
 {
     public function handle(Order $order): void {}
@@ -154,6 +158,7 @@ PHP);
     $this->project->write('app/Features/Orders/Actions/PlaceOrder.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\Actions;
+use App\Models\Order;
 class PlaceOrder
 {
     public function handle(): void { Order::query()->create(['id' => 'order']); }
@@ -265,6 +270,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Models\Order;
 class Charge
 {
     public function handle(): void { Order::query()->create(['id' => 'order']); }
@@ -299,6 +305,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\FindOrder;
 class Charge
 {
     public function __construct(private FindOrder $orders) {}
@@ -323,6 +330,7 @@ it('rejects an owned mutable model in a public boundary', function (): void {
     $this->project->write('app/Features/Orders/Api/FindOrder.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\Api;
+use App\Features\Orders\Models\Order;
 interface FindOrder
 {
     public function find(string $id): ?Order;
@@ -365,6 +373,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class Charge
 {
     public function handle(): void { PackageOrder::query()->create(['id' => 'order']); }
@@ -373,6 +382,7 @@ PHP);
     $this->project->write('app/Features/Orders/EntryPoints/Unregistered.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\EntryPoints;
+use Fixture\Package\PackageOrder;
 class Unregistered
 {
     public function handle(PackageOrder $order): void { $order->update(['name' => 'Changed']); }
@@ -435,6 +445,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class Charge
 {
     public function handle(PackageOrder $order): void { $order->save(); }
@@ -470,6 +481,7 @@ PHP);
 <?php
 namespace App\Features\Billing\Actions;
 use App\Platform\OwnerContext;
+use Fixture\Package\PackageOrder;
 use Illuminate\Support\Facades\DB;
 class Charge
 {
@@ -509,6 +521,7 @@ PHP);
     $this->project->write('app/Services/PackageOrderWriter.php', <<<'PHP'
 <?php
 namespace App\Services;
+use Fixture\Package\PackageOrder;
 class PackageOrderWriter
 {
     public function create(): void
@@ -546,6 +559,7 @@ PHP);
 <?php
 namespace App\Features\Billing\Actions;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use Fixture\Package\PackageOrder;
 class Charge
 {
     public function handle(PackageOrder $order): void
@@ -588,6 +602,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class Charge
 {
     public function handle(PackageOrder $order): void
@@ -600,6 +615,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ShadowCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class ShadowCharge
 {
     public function handle(PackageOrder $order, Profile $profile): void
@@ -649,6 +666,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class Charge
 {
     public function handle(PackageOrder $order, object $profile): void
@@ -691,6 +709,7 @@ PHP);
     $this->project->write('app/Models/User.php', <<<'PHP'
 <?php
 namespace App\Models;
+use App\Features\Identity\Support\HasUserRestoration;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Sanctum\HasApiTokens;
 class User extends Model
@@ -752,6 +771,7 @@ PHP);
     $this->project->write('app/Models/User.php', <<<'PHP'
 <?php
 namespace App\Models;
+use App\Features\Identity\Support\HasUserRestoration;
 use Laravel\Sanctum\HasApiTokens;
 class User extends \Illuminate\Database\Eloquent\Model
 {
@@ -980,6 +1000,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class Charge
 {
     public function handle(PackageOrder $order, object $profile): void
@@ -1016,6 +1037,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class Charge
 {
     private function order(): PackageOrder { return new PackageOrder; }
@@ -1054,6 +1076,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class Charge
 {
     public function handle(): void
@@ -1168,6 +1191,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/BuilderAliasCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\TitleAssignment;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 class BuilderAliasCharge
 {
@@ -1240,6 +1264,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/BuilderRelationCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\TitleAssignment;
 use Illuminate\Database\Eloquent\Builder;
 class BuilderRelationCharge
 {
@@ -1339,6 +1364,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class Charge
 {
     private function updateProfileOrReturnOrder(bool $returnOrder): PackageOrder
@@ -1358,6 +1385,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/AncestorCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class AncestorCharge
 {
     private function returnOrderAfterConditionalWrite(object $providedRecord, bool $write): PackageOrder
@@ -1387,6 +1415,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/BranchLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class BranchLeakCharge
 {
     public function handle(object $providedRecord, bool $writeOrder): void
@@ -1404,6 +1433,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ElseIfLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class ElseIfLeakCharge
 {
     public function handle(object $providedRecord, int $branch): void
@@ -1423,6 +1453,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/JoinLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class JoinLeakCharge
 {
     public function handle(bool $replace): void
@@ -1440,6 +1472,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ReferenceCaptureCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class ReferenceCaptureCharge
 {
     public function handle(PackageOrder $order): void
@@ -1457,6 +1491,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SiblingFlowCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SiblingFlowCharge
 {
     public function handle(PackageOrder $order, bool $replace): void
@@ -1474,6 +1510,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/TryCatchLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class TryCatchLeakCharge
 {
     public function handle(): void
@@ -1492,6 +1530,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/TryFinallyLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class TryFinallyLeakCharge
 {
     public function handle(): void
@@ -1509,6 +1549,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/CatchFinallyLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class CatchFinallyLeakCharge
 {
     public function handle(): void
@@ -1528,6 +1570,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/CatchSiblingLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class CatchSiblingLeakCharge
 {
     public function handle(object $providedRecord, bool $first): void
@@ -1551,6 +1594,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SwitchFallthroughLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SwitchFallthroughLeakCharge
 {
     public function handle(int $case): void
@@ -1572,6 +1617,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SwitchBreakFlowCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SwitchBreakFlowCharge
 {
     public function handle(int $case): void
@@ -1594,6 +1641,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/HeaderLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class HeaderLeakCharge
 {
     public function handle(): void
@@ -1609,6 +1658,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/TernaryLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class TernaryLeakCharge
 {
     public function handle(bool $isOrder): void
@@ -1621,6 +1672,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/TernarySameModelCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class TernarySameModelCharge
 {
     public function handle(bool $isOrder): void
@@ -1633,6 +1685,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ElseIfConditionLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class ElseIfConditionLeakCharge
 {
     public function handle(bool $first, bool $stop, bool $later): void
@@ -1652,6 +1706,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SwitchNestedFallthroughLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SwitchNestedFallthroughLeakCharge
 {
     public function handle(int $outer, int $inner): void
@@ -1677,6 +1733,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SwitchLabelLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SwitchLabelLeakCharge
 {
     public function handle(int $case): void
@@ -1698,6 +1756,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SwitchThrowFlowCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SwitchThrowFlowCharge
 {
     public function handle(int $case): void
@@ -1720,6 +1780,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SequentialIfLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SequentialIfLeakCharge
 {
     public function handle(bool $replace, bool $write): void
@@ -1739,6 +1801,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/LoopThenIfLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class LoopThenIfLeakCharge
 {
     public function handle(array $items, bool $write): void
@@ -1758,6 +1822,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SwitchThenIfLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SwitchThenIfLeakCharge
 {
     public function handle(int $case, bool $write): void
@@ -1781,6 +1847,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/DoConditionLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class DoConditionLeakCharge
 {
     public function handle(): void
@@ -1796,6 +1864,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/WhileConditionLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class WhileConditionLeakCharge
 {
     public function handle(): void
@@ -1811,6 +1881,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ForConditionLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class ForConditionLeakCharge
 {
     public function handle(): void
@@ -1826,6 +1898,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ForUpdateLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class ForUpdateLeakCharge
 {
     public function handle(bool $continue): void
@@ -1841,6 +1915,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ForeachRepeatBodyLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class ForeachRepeatBodyLeakCharge
 {
     public function handle(array $items): void
@@ -1857,6 +1933,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/WhileRepeatBodyLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class WhileRepeatBodyLeakCharge
 {
     public function handle(bool $continue): void
@@ -1873,6 +1951,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ForRepeatBodyLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class ForRepeatBodyLeakCharge
 {
     public function handle(int $count): void
@@ -1889,6 +1969,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/DoRepeatBodyLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class DoRepeatBodyLeakCharge
 {
     public function handle(bool $continue): void
@@ -1905,6 +1987,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/DoConditionNextBodyLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class DoConditionNextBodyLeakCharge
 {
     public function handle(bool $continue): void
@@ -1920,6 +2004,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/NestedLoopForUpdateLeakCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class NestedLoopForUpdateLeakCharge
 {
     public function handle(array $items, bool $continue): void
@@ -1937,6 +2023,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/SiblingLoopIdentityCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class SiblingLoopIdentityCharge
 {
     public function handle(array $first, array $second): void
@@ -2463,6 +2551,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Relations\BookmarkOwner;
 class Charge
 {
     public function handle(): void
@@ -2517,6 +2606,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Relations\BookmarkOwner;
 class Charge
 {
     public function handle(): void
@@ -2591,6 +2682,7 @@ PHP);
     $this->project->write('app/Platform/BookmarkOwnerAdapter.php', <<<'PHP'
 <?php
 namespace App\Platform;
+use Fixture\Relations\BookmarkOwner;
 class BookmarkOwnerAdapter
 {
     public function relationOwner(): BookmarkOwner
@@ -2607,6 +2699,7 @@ PHP);
     $this->project->write('app/Platform/OrderProvider.php', <<<'PHP'
 <?php
 namespace App\Platform;
+use Fixture\Package\PackageOrder;
 class OrderProvider implements OrderProviderMarker
 {
     public function order(): PackageOrder
@@ -2623,6 +2716,7 @@ PHP);
     $this->project->write('app/Platform/ProfileProvider.php', <<<'PHP'
 <?php
 namespace App\Platform;
+use Fixture\Package\Profile;
 class ProfileProvider
 {
     public function order(): Profile
@@ -2634,6 +2728,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/NullableExternalOwnerMethodCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Platform\BookmarkOwnerAdapter;
 class NullableExternalOwnerMethodCharge
 {
     public ?BookmarkOwnerAdapter $owner;
@@ -2647,6 +2742,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/IntersectionExternalModelMethodCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Platform\OrderProvider;
+use App\Platform\OrderProviderMarker;
 class IntersectionExternalModelMethodCharge
 {
     public OrderProvider&OrderProviderMarker $provider;
@@ -2660,6 +2757,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/DirectOwnerPropertyUnionCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Relations\BookmarkOwner;
+use Fixture\Relations\UnrelatedOwner;
 class DirectOwnerPropertyUnionCharge
 {
     public BookmarkOwner|UnrelatedOwner $owner;
@@ -2673,6 +2772,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ExternalOwnerMethodUnionCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Platform\BookmarkOwnerAdapter;
+use App\Platform\UnrelatedOwnerAdapter;
 class ExternalOwnerMethodUnionCharge
 {
     public BookmarkOwnerAdapter|UnrelatedOwnerAdapter $owner;
@@ -2686,6 +2787,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ExternalModelMethodUnionCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use App\Platform\OrderProvider;
+use App\Platform\ProfileProvider;
 class ExternalModelMethodUnionCharge
 {
     public OrderProvider|ProfileProvider $provider;
@@ -2788,6 +2891,7 @@ PHP);
 <?php
 namespace App\Features\Billing\Actions;
 use Fixture\Relations\BookmarkOwner as DeclaredOwner;
+use Fixture\Relations\PackageOwner;
 class Charge
 {
     /** @param DeclaredOwner $owner */
@@ -2816,7 +2920,9 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Relations\PackageOwner;
 use Fixture\Relations\BookmarkOwner as ExactOwner;
+use Fixture\Relations\UnrelatedOwner;
 class Charge
 {
     /** @param ExactOwner|UnrelatedOwner $owner */
@@ -2865,6 +2971,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/NullableModelCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
 class NullableModelCharge
 {
     public function handle(?PackageOrder $order): void
@@ -2876,6 +2983,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/IntersectionModelCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\IntersectionOrder;
+use Fixture\Package\OrderContract;
 class IntersectionModelCharge
 {
     public function handle(IntersectionOrder&OrderContract $order): void
@@ -2887,6 +2996,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/ModelUnionCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Package\PackageOrder;
+use Fixture\Package\Profile;
 class ModelUnionCharge
 {
     public function handle(PackageOrder|Profile $order): void
@@ -2898,6 +3009,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/NullableOwnerCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Relations\BookmarkOwner;
 class NullableOwnerCharge
 {
     public function handle(?BookmarkOwner $owner): void
@@ -2909,6 +3021,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/IntersectionOwnerCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Relations\BookmarkOwner;
+use Fixture\Relations\OwnerContract;
 class IntersectionOwnerCharge
 {
     public function handle(BookmarkOwner&OwnerContract $owner): void
@@ -2920,6 +3034,8 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/OwnerUnionCharge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Relations\BookmarkOwner;
+use Fixture\Relations\UnrelatedOwner;
 class OwnerUnionCharge
 {
     public function handle(BookmarkOwner|UnrelatedOwner $owner): void
@@ -3031,6 +3147,7 @@ PHP);
     $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
 <?php
 namespace App\Features\Billing\Actions;
+use Fixture\Unmapped\UnmappedOrder;
 class Charge
 {
     public function handle(UnmappedOrder $order): void { $order->save(); }
