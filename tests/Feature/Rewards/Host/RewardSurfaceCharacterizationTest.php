@@ -246,11 +246,22 @@ it('denies generic admin API mutation for every reward Filament resource', funct
 
     $appRewardResources = [];
 
-    foreach (File::allFiles(app_path('Filament')) as $file) {
-        $name = $file->getFilename();
+    $filamentPaths = array_filter(
+        array_merge(
+            glob(app_path('Features/*/EntryPoints/Filament'), GLOB_ONLYDIR) ?: [],
+            glob(app_path('Platform/*/EntryPoints/Filament'), GLOB_ONLYDIR) ?: [],
+            glob(app_path('Platform/*/Filament'), GLOB_ONLYDIR) ?: [],
+        ),
+        is_dir(...),
+    );
 
-        if (str_starts_with($name, 'Reward') && str_ends_with($name, 'Resource.php')) {
-            $appRewardResources[] = $name;
+    foreach ($filamentPaths as $filamentPath) {
+        foreach (File::allFiles($filamentPath) as $file) {
+            $name = $file->getFilename();
+
+            if (str_starts_with($name, 'Reward') && str_ends_with($name, 'Resource.php')) {
+                $appRewardResources[] = $name;
+            }
         }
     }
 

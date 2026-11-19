@@ -29,9 +29,9 @@ use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Events\Support\EventModel;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Default implementation of the Events authoring boundary.
@@ -268,7 +268,6 @@ final readonly class EventAuthoringService implements EventAuthoring
             ? $pricingMode
             : PricingMode::from((string) $pricingMode);
 
-        /** @var Event $event */
         $event = $this->resolveEvent($eventId);
 
         $this->configureEventAdmission->handle(
@@ -300,8 +299,14 @@ final readonly class EventAuthoringService implements EventAuthoring
         return AdminEventTimeMapper::normalizeForPersistence($data);
     }
 
-    private function resolveEvent(string $eventId): Model
+    private function resolveEvent(string $eventId): Event
     {
-        return EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
+        $event = EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
+
+        if (! $event instanceof Event) {
+            throw new RuntimeException('Expected the resolved record to be an event.');
+        }
+
+        return $event;
     }
 }

@@ -152,9 +152,9 @@ it('records the share outcome in the submission transaction', function () {
     $tracker->shouldReceive('recordOutcome')->once()->with(
         ShareOutcomeType::EventSubmission,
         Mockery::pattern('/^share-outcome:event_submission:submission:/'),
-        Mockery::type(Event::class),
+        Mockery::type(App\Features\ShareTracking\Api\Data\ShareSubject::class),
         Mockery::type(User::class),
-        Mockery::type(Request::class),
+        Mockery::type(App\Shared\ShareTracking\ShareRequestContext::class),
         Mockery::on(fn (array $metadata): bool => isset($metadata['submission_id'])),
         Mockery::type(CarbonInterface::class),
     );

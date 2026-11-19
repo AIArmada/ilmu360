@@ -19,7 +19,6 @@ use App\Shared\Engagement\EngagementShareOutcomes;
 use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use App\Shared\ShareTracking\ShareOutcomeType;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
@@ -53,12 +52,13 @@ it('records bookmark outcomes with the event save business key and the caller me
 
     $tracking->shouldReceive('recordOutcome')
         ->once()
-        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?Model $subject, ?User $actor, ?Request $receivedRequest, array $receivedMetadata, ?CarbonImmutable $receivedOccurredAt): bool => $type === ShareOutcomeType::EventSave
+        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?App\Features\ShareTracking\Api\Data\ShareSubject $subject, ?User $actor, ?App\Shared\ShareTracking\ShareRequestContext $receivedRequest, array $receivedMetadata, ?CarbonImmutable $receivedOccurredAt): bool => $type === ShareOutcomeType::EventSave
             && $businessKey === ShareOutcomeBusinessKey::eventSave($bookmarkId)
-            && $subject instanceof Event
-            && $subject->is($event)
+            && $subject instanceof App\Features\ShareTracking\Api\Data\ShareSubject
+            && $subject->type === 'event'
+            && $subject->id === (string) $event->getKey()
             && $actor?->is($user) === true
-            && $receivedRequest === $request
+            && $receivedRequest?->toRequest() === $request
             && $receivedMetadata === $metadata
             && $receivedOccurredAt?->equalTo($occurredAt) === true)
         ->andReturnNull();
@@ -94,14 +94,14 @@ it('records follow outcomes with the per-surface metadata shape unchanged', func
 
     $tracking->shouldReceive('recordOutcome')
         ->once()
-        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?Model $subject, ?User $actor, ?Request $request, array $metadata): bool => $type === ShareOutcomeType::InstitutionFollow
+        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?App\Features\ShareTracking\Api\Data\ShareSubject $subject, ?User $actor, ?App\Shared\ShareTracking\ShareRequestContext $request, array $metadata): bool => $type === ShareOutcomeType::InstitutionFollow
             && $businessKey === ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, $followId)
             && $metadata === $cardMetadata)
         ->andReturnNull();
 
     $tracking->shouldReceive('recordOutcome')
         ->once()
-        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?Model $subject, ?User $actor, ?Request $request, array $metadata): bool => $type === ShareOutcomeType::InstitutionFollow
+        ->withArgs(fn (ShareOutcomeType $type, string $businessKey, ?App\Features\ShareTracking\Api\Data\ShareSubject $subject, ?User $actor, ?App\Shared\ShareTracking\ShareRequestContext $request, array $metadata): bool => $type === ShareOutcomeType::InstitutionFollow
             && $businessKey === ShareOutcomeBusinessKey::follow(ShareOutcomeType::InstitutionFollow, $followId)
             && $metadata === $apiMetadata)
         ->andReturnNull();

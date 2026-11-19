@@ -399,7 +399,7 @@ it('awards the participant and sharer once each for attributed registration and 
         ShareOutcomeType::EventRegistration,
         $registrationShareKey,
         actor: $actor,
-        request: $request,
+        request: ShareRequestContext::fromRequest($request),
         occurredAt: $registration->registered_at,
     );
 
@@ -738,7 +738,7 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
             ShareOutcomeType::EventRegistration,
             $shareKey,
             actor: $actor,
-            request: $share['request'],
+            request: ShareRequestContext::fromRequest($share['request']),
             occurredAt: $registration->registered_at,
         );
     }
@@ -755,7 +755,7 @@ it('excludes preclaim facts outside the lookback and applies the daily cap acros
         ShareOutcomeType::EventRegistration,
         $oldKey,
         actor: $oldActor,
-        request: $share['request'],
+        request: ShareRequestContext::fromRequest($share['request']),
         occurredAt: $oldRegistration->registered_at,
     );
 
