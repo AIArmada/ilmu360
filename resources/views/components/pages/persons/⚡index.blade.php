@@ -74,7 +74,7 @@ new
                 return;
             }
 
-            $this->followingPersonIds = app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds(
+            $this->followingPersonIds = app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds(
                 (string) $user->getKey(),
                 \App\Shared\Engagement\EngagementSubjectType::Person,
             );
@@ -204,7 +204,7 @@ new
         {
             $user = auth()->user();
             $this->followingPersonIds = $user instanceof User
-                ? OwnerContext::withOwner(null, fn (): array => app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Person))
+                ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Person))
                 : [];
         }
 

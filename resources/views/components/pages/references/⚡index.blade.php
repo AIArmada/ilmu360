@@ -53,7 +53,7 @@ new
                 return;
             }
 
-            $this->followingReferenceIds = app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds(
+            $this->followingReferenceIds = app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds(
                 (string) $user->getKey(),
                 \App\Shared\Engagement\EngagementSubjectType::Reference,
             );
@@ -141,7 +141,7 @@ new
         {
             $user = auth()->user();
             $this->followingReferenceIds = $user instanceof User
-                ? OwnerContext::withOwner(null, fn (): array => app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Reference))
+                ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Reference))
                 : [];
         }
 

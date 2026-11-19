@@ -623,7 +623,7 @@ class extends Component
     {
         $user = auth()->user();
         $this->followingInstitutionIds = $user instanceof User
-            ? OwnerContext::withOwner(null, fn (): array => app(\App\Shared\Engagement\EngagementReader::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Institution))
+            ? OwnerContext::withOwner(null, fn (): array => app(\App\Features\Engagement\Api\SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), \App\Shared\Engagement\EngagementSubjectType::Institution))
             : [];
     }
 
