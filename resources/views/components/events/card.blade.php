@@ -203,8 +203,16 @@
                     @php
                         $sessionUrl = route('events.session', [
                             'event' => $event,
-                            'occurrenceSlug' => \App\Shared\Events\PublicScheduleSlug::occurrence($occurrence),
-                            'sessionSlug' => \App\Shared\Events\PublicScheduleSlug::session($session),
+                            'occurrenceSlug' => \App\Features\Events\Api\PublicScheduleSlug::occurrence(
+                                slug: (string) $occurrence->slug,
+                                title: $occurrence->title,
+                                id: (string) $occurrence->getKey(),
+                            ),
+                            'sessionSlug' => \App\Features\Events\Api\PublicScheduleSlug::session(
+                                slug: (string) $session->slug,
+                                title: $session->title,
+                                id: (string) $session->getKey(),
+                            ),
                         ]);
                         $sessionTimingLabel = $session->timeExpressions->firstWhere('anchor_type', 'prayer')?->display_label;
 

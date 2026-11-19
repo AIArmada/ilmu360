@@ -7,8 +7,9 @@ namespace App\Features\SavedSearches\Actions;
 use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
+use App\Features\ShareTracking\Api\SavedSearchShareOutcomes;
 use App\Shared\Auth\ResourceOwner;
-use App\Shared\ShareTracking\SavedSearchShareOutcomes;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -36,7 +37,7 @@ final readonly class CreateSavedSearchWithAttributionAction implements CreateSav
             $this->shareOutcomes->recordCreated(
                 savedSearchId: $savedSearch->id,
                 actor: $owner,
-                request: request(),
+                request: ShareRequestContext::current(),
                 occurredAt: $savedSearch->createdAt ?? now(),
             );
 

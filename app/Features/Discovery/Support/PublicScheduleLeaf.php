@@ -7,9 +7,9 @@ namespace App\Features\Discovery\Support;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
+use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Shared\Events\PublicScheduleSlug;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
@@ -96,7 +96,11 @@ final readonly class PublicScheduleLeaf
     {
         return route('events.occurrence', [
             'event' => $this->event,
-            'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+            'occurrenceSlug' => PublicScheduleSlug::occurrence(
+                slug: (string) $this->occurrence->slug,
+                title: $this->occurrence->title,
+                id: (string) $this->occurrence->getKey(),
+            ),
         ]);
     }
 }

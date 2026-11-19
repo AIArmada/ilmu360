@@ -5,12 +5,12 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
+use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
-use App\Shared\Events\PublicScheduleSlug;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
@@ -63,7 +63,7 @@ it('renders the occurrence page with a bounded enriched query budget', function 
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Siri Khas Muamalat')
@@ -112,7 +112,7 @@ it('keeps the occurrence budget stable when sibling dates grow', function (): vo
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))->assertOk();
 
     expect($queries)->toBeLessThanOrEqual(56);
@@ -146,7 +146,7 @@ it('lists only sibling dates in the related majlis section', function (): void {
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Majlis lain yang berkaitan')
@@ -156,7 +156,7 @@ it('lists only sibling dates in the related majlis section', function (): void {
         ->assertSee('Siri Kedua Saudara')
         ->assertSee(route('events.occurrence', [
             'event' => $this->event,
-            'occurrenceSlug' => PublicScheduleSlug::occurrence($sibling),
+            'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $sibling->slug, title: $sibling->title, id: (string) $sibling->getKey()),
         ]), false)
         ->assertDontSee('Majlis Bukan Saudara');
 });
@@ -164,7 +164,7 @@ it('lists only sibling dates in the related majlis section', function (): void {
 it('omits the related majlis section when the event has no sibling dates', function (): void {
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertDontSee('Majlis lain yang berkaitan');
@@ -183,7 +183,7 @@ it('shows shared parent info on the occurrence page', function (): void {
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Ustaz Induk Kongsi')
@@ -204,7 +204,7 @@ it('hides private parent records from the occurrence page', function (): void {
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertDontSee('Ustaz Sulit Peribadi')
@@ -225,7 +225,7 @@ it('shows classifications even without a parent description', function (): void 
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Akidah Ujian Klasifikasi');
@@ -237,7 +237,7 @@ it('shows the muslim-only audience marker on the occurrence page', function (): 
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Muslim');
@@ -253,7 +253,7 @@ it('shows shared key people beyond speakers on the occurrence page', function ()
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Peranan')
@@ -266,7 +266,7 @@ it('hides the onsite location section for online-only events', function (): void
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertDontSee('output=embed', false)
@@ -284,9 +284,16 @@ it('returns 404 for an unknown occurrence slug', function (): void {
 it('returns 404 for a non-public occurrence', function (): void {
     $this->occurrence->update(['status' => 'draft']);
 
+    /** @var EventOccurrence $occurrence */
+    $occurrence = $this->occurrence->fresh();
+
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence->fresh()),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(
+            slug: (string) $occurrence->slug,
+            title: $occurrence->title,
+            id: (string) $occurrence->getKey(),
+        ),
     ]))->assertNotFound();
 });
 
@@ -307,8 +314,8 @@ it('renders the session page with a bounded enriched query budget', function ():
 
     $this->get(route('events.session', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
-        'sessionSlug' => PublicScheduleSlug::session($session),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
+        'sessionSlug' => PublicScheduleSlug::session(slug: (string) $session->slug, title: $session->title, id: (string) $session->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Sesi Soal Jawab');
@@ -329,8 +336,8 @@ it('keeps an explicitly open-ended session open-ended', function (): void {
 
     $this->get(route('events.session', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
-        'sessionSlug' => PublicScheduleSlug::session($session),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
+        'sessionSlug' => PublicScheduleSlug::session(slug: (string) $session->slug, title: $session->title, id: (string) $session->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Sesi Halaqah Terbuka')
@@ -359,8 +366,8 @@ it('closes session booking when its parent occurrence is closed', function (stri
 
     $this->get(route('events.session', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
-        'sessionSlug' => PublicScheduleSlug::session($session),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
+        'sessionSlug' => PublicScheduleSlug::session(slug: (string) $session->slug, title: $session->title, id: (string) $session->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Closed Parent Session Ticket')
@@ -385,13 +392,13 @@ it('renders canonical occurrence links when its stored slug is absent', function
 
     $parameters = [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ];
     $occurrenceUrl = route('events.occurrence', $parameters);
 
     $response = $this->get(route('events.session', [
         ...$parameters,
-        'sessionSlug' => PublicScheduleSlug::session($session),
+        'sessionSlug' => PublicScheduleSlug::session(slug: (string) $session->slug, title: $session->title, id: (string) $session->getKey()),
     ]));
 
     $response
@@ -409,6 +416,26 @@ it('renders canonical occurrence links when its stored slug is absent', function
     'null slug' => [null],
     'empty slug' => [''],
 ]);
+
+it('derives the empty-slug route key from the title and primary key', function (): void {
+    $id = '01J8Z3K4M5N6P7Q8R9S0T1U2V3';
+
+    expect(PublicScheduleSlug::occurrence(
+        slug: '',
+        title: 'Malam @ Tadabbur Çekap',
+        id: $id,
+    ))->toBe('malam-at-tadabbur-cekap-01j8z3k4')
+        ->and(PublicScheduleSlug::session(
+            slug: '   ',
+            title: 'Sesi Q&A',
+            id: $id,
+        ))->toBe('sesi-qa-01j8z3k4')
+        ->and(PublicScheduleSlug::occurrence(
+            slug: '',
+            title: null,
+            id: $id,
+        ))->toBe('occurrence-01j8z3k4');
+});
 
 it('preserves event admission capacity on schedule child pages', function (string $page): void {
     $this->event->update([
@@ -447,7 +474,7 @@ it('preserves event admission capacity on schedule child pages', function (strin
 
     $parameters = [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ];
 
     if ($page === 'session') {
@@ -459,7 +486,7 @@ it('preserves event admission capacity on schedule child pages', function (strin
             'status' => 'published',
             'visibility' => 'public',
         ]);
-        $parameters['sessionSlug'] = PublicScheduleSlug::session($session);
+        $parameters['sessionSlug'] = PublicScheduleSlug::session(slug: (string) $session->slug, title: $session->title, id: (string) $session->getKey());
     }
 
     $this->get(route('events.'.$page, $parameters))
@@ -564,10 +591,10 @@ it('keeps hidden session records out of public date fallbacks', function (
 
     $parameters = [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ];
     if ($page === 'session') {
-        $parameters['sessionSlug'] = PublicScheduleSlug::session($selected);
+        $parameters['sessionSlug'] = PublicScheduleSlug::session(slug: (string) $selected->slug, title: $selected->title, id: (string) $selected->getKey());
     }
 
     $response = $this->get(route('events.'.$page, $parameters));
@@ -620,7 +647,7 @@ it('does not substitute the parent address for an addressless scoped venue', fun
     $scope = $this->occurrence;
     $parameters = [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ];
 
     if ($page === 'session') {
@@ -632,7 +659,7 @@ it('does not substitute the parent address for an addressless scoped venue', fun
             'status' => 'published',
             'visibility' => 'public',
         ]);
-        $parameters['sessionSlug'] = PublicScheduleSlug::session($scope);
+        $parameters['sessionSlug'] = PublicScheduleSlug::session(slug: (string) $scope->slug, title: $scope->title, id: (string) $scope->getKey());
     }
 
     $scope->locations()->create([
@@ -722,7 +749,7 @@ it('hides placeholder sessions without title or time from the occurrence page', 
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($this->occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $this->occurrence->slug, title: $this->occurrence->title, id: (string) $this->occurrence->getKey()),
     ]))
         ->assertOk()
         ->assertSee('Sesi Lengkap Berjadual')

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Services;
 
+use App\Features\Contributions\Api\ContributionEntityState;
 use App\Platform\Contributions\ContributionProjectionRegistry;
-use App\Shared\Contributions\ContributionEntityState;
 use App\Shared\Contributions\ContributionProjection;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;

@@ -2,25 +2,23 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\ShareTracking;
+namespace App\Features\ShareTracking\Api;
 
 use App\Shared\Auth\ResourceOwner;
+use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Http\Request;
 
 interface SavedSearchShareOutcomes
 {
     public function recordCreated(
         string $savedSearchId,
         ResourceOwner $actor,
-        Request $request,
+        ShareRequestContext $request,
         ?CarbonInterface $occurredAt = null,
     ): void;
 
     public function reverseDeleted(
         string $savedSearchId,
-        ?Authenticatable $actor,
-        Request $request,
+        ?ResourceOwner $actor = null,
     ): void;
 }

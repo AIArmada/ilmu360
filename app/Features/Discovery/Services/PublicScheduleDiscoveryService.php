@@ -13,6 +13,7 @@ use App\Features\Discovery\Support\PublicScheduleLeaf;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
@@ -23,7 +24,6 @@ use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\References\Api\ReferenceQueries;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Shared\Events\PublicScheduleSlug;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -282,7 +282,11 @@ final readonly class PublicScheduleDiscoveryService
 
         /** @var EventOccurrence|null $occurrence */
         $occurrence = $event->occurrences->first(
-            fn (EventOccurrence $candidate): bool => PublicScheduleSlug::occurrence($candidate) === $slug,
+            fn (EventOccurrence $candidate): bool => PublicScheduleSlug::occurrence(
+                slug: (string) $candidate->slug,
+                title: $candidate->title,
+                id: (string) $candidate->getKey(),
+            ) === $slug,
         );
 
         return $occurrence;
@@ -301,7 +305,11 @@ final readonly class PublicScheduleDiscoveryService
 
         /** @var EventSession|null $session */
         $session = $occurrence->sessions->first(
-            fn (EventSession $candidate): bool => PublicScheduleSlug::session($candidate) === $slug,
+            fn (EventSession $candidate): bool => PublicScheduleSlug::session(
+                slug: (string) $candidate->slug,
+                title: $candidate->title,
+                id: (string) $candidate->getKey(),
+            ) === $slug,
         );
 
         return $session;

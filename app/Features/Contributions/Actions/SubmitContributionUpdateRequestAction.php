@@ -2,12 +2,12 @@
 
 namespace App\Features\Contributions\Actions;
 
+use App\Features\Contributions\Api\ContributionEntityState;
 use App\Features\Contributions\Contracts\ContributionRequestGuard;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Support\ContributionEntityMetadata;
 use App\Features\Contributions\Support\ContributionModel;
-use App\Shared\Contributions\ContributionEntityState;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;

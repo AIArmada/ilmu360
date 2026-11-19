@@ -14,6 +14,7 @@ use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\TimingMode;
+use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Livewire\Pages\Show;
 use App\Features\Events\Models\Event;
@@ -23,7 +24,6 @@ use App\Features\Places\Models\Venue;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Events\PublicScheduleSlug;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -570,7 +570,7 @@ it('renders every public occurrence and session with hierarchical cover media', 
     // its own image and falls back upward to the date and then the event.
     $this->get(route('events.occurrence', [
         $event,
-        PublicScheduleSlug::occurrence($firstOccurrence),
+        PublicScheduleSlug::occurrence(slug: (string) $firstOccurrence->slug, title: $firstOccurrence->title, id: (string) $firstOccurrence->getKey()),
     ]))
         ->assertOk()
         ->assertSee('data-testid="event-session-'.$firstSession->id.'"', false)
@@ -622,7 +622,7 @@ it('offers attributed sharing on the event and occurrence pages', function (): v
     expect($occurrence)->not->toBeNull();
 
     $eventUrl = route('events.show', $event);
-    $occurrenceUrl = route('events.occurrence', [$event, PublicScheduleSlug::occurrence($occurrence)]);
+    $occurrenceUrl = route('events.occurrence', [$event, PublicScheduleSlug::occurrence(slug: (string) $occurrence->slug, title: $occurrence->title, id: (string) $occurrence->getKey())]);
 
     foreach ([$eventUrl, $occurrenceUrl] as $url) {
         $this->get($url)->assertOk()

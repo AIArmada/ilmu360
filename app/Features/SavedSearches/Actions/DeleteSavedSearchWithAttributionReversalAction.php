@@ -7,7 +7,8 @@ namespace App\Features\SavedSearches\Actions;
 use App\Features\SavedSearches\Api\DeleteSavedSearchWithAttributionReversal;
 use App\Features\SavedSearches\Api\SavedSearchCommands;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
-use App\Shared\ShareTracking\SavedSearchShareOutcomes;
+use App\Features\ShareTracking\Api\SavedSearchShareOutcomes;
+use App\Shared\Auth\ResourceOwner;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -22,16 +23,13 @@ final readonly class DeleteSavedSearchWithAttributionReversalAction implements D
 
     public function handle(SavedSearchSnapshot $savedSearch): void
     {
-        $request = request();
+        $actor = request()->user();
 
-        DB::transaction(function () use ($savedSearch, $request): void {
-            $actor = $request->user();
-
+        DB::transaction(function () use ($savedSearch, $actor): void {
             $this->commands->delete($savedSearch->userType, $savedSearch->userId, $savedSearch->id);
             $this->shareOutcomes->reverseDeleted(
                 savedSearchId: $savedSearch->id,
-                actor: $actor,
-                request: $request,
+                actor: $actor instanceof ResourceOwner ? $actor : null,
             );
         });
     }

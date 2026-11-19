@@ -2,7 +2,19 @@
 @php
     $shareCardOg = app(\App\Features\Events\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
 @endphp
-@section('og_url', route('events.session', [$event, \App\Shared\Events\PublicScheduleSlug::occurrence($occurrence), \App\Shared\Events\PublicScheduleSlug::session($session)]))
+@section('og_url', route('events.session', [
+    $event,
+    \App\Features\Events\Api\PublicScheduleSlug::occurrence(
+        slug: (string) $occurrence->slug,
+        title: $occurrence->title,
+        id: (string) $occurrence->getKey(),
+    ),
+    \App\Features\Events\Api\PublicScheduleSlug::session(
+        slug: (string) $session->slug,
+        title: $session->title,
+        id: (string) $session->getKey(),
+    ),
+]))
 @section('og_image', $shareCardOg['url'] ?? $event->card_image_url)
 @section('og_image_alt', $shareCardOg['alt'] ?? __('Poster untuk :title', ['title' => $event->title]))
 @section('og_image_width', $shareCardOg['url'] ? '1200' : '1024')
@@ -122,7 +134,11 @@
             <li aria-hidden="true">/</li>
             <li><a href="{{ route('events.show', $event) }}" wire:navigate class="hover:text-emerald-800">{{ $event->title }}</a></li>
             <li aria-hidden="true">/</li>
-            <li><a href="{{ route('events.occurrence', ['event' => $event, 'occurrenceSlug' => \App\Shared\Events\PublicScheduleSlug::occurrence($occurrence)]) }}" wire:navigate class="hover:text-emerald-800">{{ trim((string) ($occurrence->title ?: $event->title)) }}</a></li>
+            <li><a href="{{ route('events.occurrence', ['event' => $event, 'occurrenceSlug' => \App\Features\Events\Api\PublicScheduleSlug::occurrence(
+                slug: (string) $occurrence->slug,
+                title: $occurrence->title,
+                id: (string) $occurrence->getKey(),
+            )]) }}" wire:navigate class="hover:text-emerald-800">{{ trim((string) ($occurrence->title ?: $event->title)) }}</a></li>
             <li aria-hidden="true">/</li>
             <li class="text-slate-700" aria-current="page">{{ $session->title }}</li>
         </ol>
@@ -149,7 +165,11 @@
                     <p class="mt-3 text-xs font-semibold text-white/70">{{ __('Masa tamat tidak ditetapkan untuk sesi ini.') }}</p>
                 @endif
                 <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="{{ route('events.occurrence', ['event' => $event, 'occurrenceSlug' => \App\Shared\Events\PublicScheduleSlug::occurrence($occurrence)]) }}" wire:navigate class="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50">{{ __('Lihat tarikh') }}</a>
+                    <a href="{{ route('events.occurrence', ['event' => $event, 'occurrenceSlug' => \App\Features\Events\Api\PublicScheduleSlug::occurrence(
+                slug: (string) $occurrence->slug,
+                title: $occurrence->title,
+                id: (string) $occurrence->getKey(),
+            )]) }}" wire:navigate class="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50">{{ __('Lihat tarikh') }}</a>
                 </div>
             </div>
             <div class="relative min-h-56 bg-black/20">
@@ -346,7 +366,11 @@
                 <h2 id="session-date-title" class="font-heading text-xl font-bold">{{ __('Tarikh & majlis') }}</h2>
                 <p class="mt-2 text-sm leading-6 text-white/70">{{ trim((string) ($occurrence->title ?: $event->title)) }}</p>
                 <div class="mt-4 flex flex-col gap-2">
-                    <a href="{{ route('events.occurrence', ['event' => $event, 'occurrenceSlug' => \App\Shared\Events\PublicScheduleSlug::occurrence($occurrence)]) }}" wire:navigate class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50">{{ __('Lihat tarikh') }}</a>
+                    <a href="{{ route('events.occurrence', ['event' => $event, 'occurrenceSlug' => \App\Features\Events\Api\PublicScheduleSlug::occurrence(
+                slug: (string) $occurrence->slug,
+                title: $occurrence->title,
+                id: (string) $occurrence->getKey(),
+            )]) }}" wire:navigate class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50">{{ __('Lihat tarikh') }}</a>
                     <a href="{{ route('events.show', $event) }}" wire:navigate class="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/20">{{ __('Buka halaman majlis') }}</a>
                 </div>
             </section>

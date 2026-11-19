@@ -19,6 +19,7 @@ use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
+use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
 use App\Features\Events\EntryPoints\Http\SubmitEventRequestHandler;
 use App\Features\Events\Models\Event;
@@ -28,7 +29,6 @@ use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Events\PublicScheduleSlug;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Events\QueryExecuted;
@@ -557,7 +557,7 @@ it('renders the selected occurrence submission content on its public detail page
 
     $publicOccurrenceUrl = route('events.occurrence', [
         'event' => $event,
-        'occurrenceSlug' => PublicScheduleSlug::occurrence($occurrence),
+        'occurrenceSlug' => PublicScheduleSlug::occurrence(slug: (string) $occurrence->slug, title: $occurrence->title, id: (string) $occurrence->getKey()),
     ]);
     $this->withSession([
         'event_auto_approved' => true,

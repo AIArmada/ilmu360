@@ -11,6 +11,7 @@ use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Policies\PublicSchedulePolicy;
@@ -27,7 +28,6 @@ use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Time\UserTimezoneResolver;
 use App\Platform\Ui\InteractsWithToasts;
-use App\Shared\Events\PublicScheduleSlug;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -262,7 +262,14 @@ class Index extends Component implements HasForms
         if ($event instanceof Event && $event->isPubliclyReachable()) {
             if ($occurrence instanceof EventOccurrence) {
                 if (PublicSchedulePolicy::isPublicOccurrence($occurrence)) {
-                    $url = route('events.occurrence', [$event, PublicScheduleSlug::occurrence($occurrence)]);
+                    $url = route('events.occurrence', [
+                        $event,
+                        PublicScheduleSlug::occurrence(
+                            slug: (string) $occurrence->slug,
+                            title: $occurrence->title,
+                            id: (string) $occurrence->getKey(),
+                        ),
+                    ]);
                 }
             } else {
                 $url = route('events.show', $event);
