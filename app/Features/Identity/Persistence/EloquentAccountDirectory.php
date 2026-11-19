@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Auth;
+namespace App\Features\Identity\Persistence;
 
 use AIArmada\Authz\Facades\Authz;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountRecord;
+use App\Features\Identity\Support\GlobalRole;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
-use App\Shared\Auth\GlobalRole;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Contracts\Auth\Authenticatable;

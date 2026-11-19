@@ -7,10 +7,10 @@ use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Events\Support\SubmitterContactRules;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Shared\Submission\SubmitterContactRules;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Livewire\Livewire;
 

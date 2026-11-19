@@ -8,9 +8,9 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSession;
+use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Support\EventModel;
 use App\Features\References\Api\ReferenceQueries;
-use App\Shared\Submission\SubmissionValues;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 

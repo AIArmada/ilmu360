@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Shared\Submission;
+namespace App\Features\Events\Support;
 
+use App\Features\Events\Api\SubmissionValues;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;

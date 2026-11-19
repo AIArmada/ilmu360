@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Auth;
+namespace App\Features\Identity\Support;
 
 final class SocialiteProviderConfiguration
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Features\Identity\Support;
+namespace App\Features\Identity\Persistence;
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;

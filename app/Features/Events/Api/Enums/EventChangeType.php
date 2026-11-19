@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Shared\Events\Enums;
+namespace App\Features\Events\Api\Enums;
 
 enum EventChangeType: string
 {

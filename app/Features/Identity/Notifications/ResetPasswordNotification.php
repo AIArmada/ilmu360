@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Platform\Auth\Notifications;
+namespace App\Features\Identity\Notifications;
 
 use Illuminate\Auth\Notifications\ResetPassword as BaseResetPassword;
 use Illuminate\Bus\Queueable;

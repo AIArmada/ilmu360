@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Platform\Auth\Notifications;
+namespace App\Features\Identity\Notifications;
 
 use Illuminate\Auth\Notifications\VerifyEmail as BaseVerifyEmail;
 use Illuminate\Bus\Queueable;

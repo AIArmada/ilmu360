@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
-use App\Shared\Events\Enums\EventChangeType;
+use App\Features\Events\Api\Enums\EventChangeType;
 
 /** Authorize, mutate, publish, and optionally notify about event changes. */
 interface EventChangePublisher

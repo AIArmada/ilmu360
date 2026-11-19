@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Auth;
+namespace App\Features\Identity\Persistence;
 
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountSession;

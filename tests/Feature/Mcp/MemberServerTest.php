@@ -12,6 +12,7 @@ use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberListContributionReque
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberRejectContributionRequestTool;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\EventChangeSeverity;
 use App\Features\Events\EntryPoints\Mcp\Tools\MemberSearchEventsTool;
 use App\Features\Events\Models\Event;
@@ -46,7 +47,6 @@ use App\Platform\Mcp\Tools\Member\MemberUpdateRecordTool;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Contributions\Enums\ContributionRequestStatus;
 use App\Shared\Contributions\Enums\ContributionRequestType;
-use App\Shared\Events\Enums\EventChangeType;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;

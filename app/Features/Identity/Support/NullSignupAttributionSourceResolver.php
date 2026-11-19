@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Auth;
+namespace App\Features\Identity\Support;
 
 use App\Features\Identity\Api\SignupAttributionSource;
+use App\Shared\Auth\SignupAttributionSourceResolver;
 use Illuminate\Http\Request;
 
 final class NullSignupAttributionSourceResolver implements SignupAttributionSourceResolver

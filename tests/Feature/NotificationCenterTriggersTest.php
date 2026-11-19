@@ -2,6 +2,7 @@
 
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Engagement\Contracts\EngagementManager;
+use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
@@ -11,7 +12,6 @@ use App\Features\Persons\Models\Person;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
-use App\Shared\Events\Enums\EventChangeType;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;

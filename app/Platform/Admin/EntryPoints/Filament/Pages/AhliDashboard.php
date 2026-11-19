@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Admin\EntryPoints\Filament\Pages;
 
-use App\Features\Events\EntryPoints\Filament\Widgets\PendingApprovalEventsWidget;
+use App\Platform\Admin\FilamentWidgetRegistry;
 
 class AhliDashboard extends PanelDashboard
 {
@@ -23,9 +23,7 @@ class AhliDashboard extends PanelDashboard
     #[\Override]
     public function getWidgets(): array
     {
-        return [
-            PendingApprovalEventsWidget::class,
-        ];
+        return app(FilamentWidgetRegistry::class)->all(FilamentWidgetRegistry::PANEL_AHLI);
     }
 
     /**

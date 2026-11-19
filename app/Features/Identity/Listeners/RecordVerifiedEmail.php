@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Auth\Listeners;
+namespace App\Features\Identity\Listeners;
 
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;

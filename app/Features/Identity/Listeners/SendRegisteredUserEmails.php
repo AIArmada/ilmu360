@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Auth\Listeners;
+namespace App\Features\Identity\Listeners;
 
+use App\Features\Identity\Notifications\WelcomeNotification;
 use App\Models\User;
-use App\Platform\Auth\Notifications\WelcomeNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

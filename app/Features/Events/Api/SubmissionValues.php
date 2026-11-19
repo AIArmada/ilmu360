@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Submission;
+namespace App\Features\Events\Api;
 
 use BackedEnum;
 
@@ -15,7 +15,7 @@ use BackedEnum;
  * (model-attribute unwrap); those differ intentionally and must not be
  * merged into these post-validated helpers.
  */
-final class SubmissionValues
+final readonly class SubmissionValues
 {
     /**
      * Post-validated enum read: backed enums unwrap, strings pass through

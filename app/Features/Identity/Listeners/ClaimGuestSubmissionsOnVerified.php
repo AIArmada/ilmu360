@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Auth\Listeners;
+namespace App\Features\Identity\Listeners;
 
 use App\Features\Events\Api\GuestEventSubmissionClaims;
 use App\Features\Identity\Api\GuestSubmissionNotice;

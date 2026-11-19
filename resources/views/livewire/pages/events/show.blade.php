@@ -168,7 +168,7 @@
     $eventPosterUrl = $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb']);
     // Permanent ambient art: a rotating backdrop from the site's own set,
     // never the event cover. The cover itself lives in the body.
-    $heroBackdropUrl = \App\Shared\Events\HeroBackdrop::randomUrl();
+    $heroBackdropUrl = \App\Features\Events\EntryPoints\Ui\HeroBackdrop::randomUrl();
 
     // ── Actions ──────────────────────────────────────────────────────
     $eventActionsDisabled = $this->eventActionsDisabled();

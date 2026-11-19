@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
@@ -14,7 +15,6 @@ use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Events\Enums\EventChangeType;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 

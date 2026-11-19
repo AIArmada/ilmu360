@@ -6,10 +6,10 @@ namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\Events\Contracts\EventLifecycleWorkflow;
 use AIArmada\Events\Models\Event as PackageEvent;
+use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\EventModel;
 use App\Features\Places\Api\SpaceEligibility;
-use App\Shared\Events\Enums\EventChangeType;
 use Illuminate\Validation\ValidationException;
 
 /**

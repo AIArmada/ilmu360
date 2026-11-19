@@ -3,7 +3,7 @@
 @section('title', __('Log in') . ' - ' . config('app.name'))
 
 @section('content')
-    @php($googleOauthConfigured = \App\Shared\Auth\SocialiteProviderConfiguration::isConfigured('google'))
+    @php($googleOauthConfigured = \App\Features\Identity\Support\SocialiteProviderConfiguration::isConfigured('google'))
     @php($authRedirectTarget = $redirectTarget ?? null)
     @php($emailAuthenticationEnabled = (bool) config('fortify.email_authentication_enabled', false))
 

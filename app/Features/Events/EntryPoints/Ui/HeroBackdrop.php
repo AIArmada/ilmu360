@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Events;
+namespace App\Features\Events\EntryPoints\Ui;
 
 /**
  * Permanent ambient art for event hero headers.

@@ -5,8 +5,8 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\EventCategoryCatalog;
-use App\Shared\Taxonomy\Terms\DisciplineTermCode;
-use App\Shared\Taxonomy\Terms\DomainTermCode;
+use App\Features\Events\Enums\Terms\DisciplineTermCode;
+use App\Features\Events\Enums\Terms\DomainTermCode;
 use Database\Seeders\AIArmada\FoundationSeeder;
 
 use function Pest\Laravel\seed;

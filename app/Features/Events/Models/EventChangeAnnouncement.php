@@ -4,9 +4,9 @@ namespace App\Features\Events\Models;
 
 use AIArmada\Events\Models\EventUpdate;
 use AIArmada\Events\Models\EventUpdateItem;
+use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\EventChangeSeverity;
 use App\Models\User;
-use App\Shared\Events\Enums\EventChangeType;
 use Database\Factories\EventChangeAnnouncementFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;

@@ -2,9 +2,9 @@
 
 use AIArmada\Authz\Models\Role;
 use App\Features\Feedback\Api\FeedbackActor;
+use App\Features\Identity\Support\GlobalRole;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;
-use App\Shared\Auth\GlobalRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Auth;
+namespace App\Features\Identity\Persistence;
 
 use App\Models\User;
 use App\Shared\Auth\UserMorphType;

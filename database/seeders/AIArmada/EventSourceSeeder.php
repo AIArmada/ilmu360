@@ -7,7 +7,7 @@ namespace Database\Seeders\AIArmada;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Shared\Taxonomy\Terms\SourceTermCode;
+use App\Features\Events\Enums\Terms\SourceTermCode;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 

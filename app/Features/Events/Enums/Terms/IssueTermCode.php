@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Taxonomy\Terms;
+namespace App\Features\Events\Enums\Terms;
 
 enum IssueTermCode: string
 {

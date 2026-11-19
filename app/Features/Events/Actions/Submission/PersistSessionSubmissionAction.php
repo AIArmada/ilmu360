@@ -15,10 +15,10 @@ use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Support\EventModel;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
-use App\Shared\Submission\SubmissionValues;
 use BackedEnum;
 use Illuminate\Validation\ValidationException;
 

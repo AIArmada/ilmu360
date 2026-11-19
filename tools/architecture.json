@@ -59,37 +59,13 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/Identity/Support/HasUserRestoration.php",
+      "file": "app/Features/Identity/Persistence/HasUserRestoration.php",
       "target": "table:unknown",
       "model": "Laravel\\Sanctum\\PersonalAccessToken",
       "model_provider": "sanctum",
       "relation": "tokens",
       "relation_owner": "App\\Models\\User",
       "reason": "Identity revokes the user's configured Sanctum tokens through the package relation; token storage remains Sanctum-owned.",
-      "owner": "Identity",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Platform/Auth/EloquentAccountAccess.php",
-      "target": "table:unknown",
-      "model": "Laravel\\Sanctum\\PersonalAccessToken",
-      "model_provider": "sanctum",
-      "relation": "currentAccessToken",
-      "relation_owner": "App\\Models\\User",
-      "reason": "Identity's Laravel authentication adapter revokes the current token returned by Sanctum's currentAccessToken accessor; token storage remains Sanctum-owned.",
-      "owner": "Identity",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Platform/Auth/EloquentAccountSettingsStore.php",
-      "target": "table:unknown",
-      "model": "Laravel\\Sanctum\\PersonalAccessToken",
-      "model_provider": "sanctum",
-      "relation": "tokens",
-      "relation_owner": "App\\Models\\User",
-      "reason": "Identity's account-settings adapter revokes a user's tokens through Sanctum's canonical relation; token storage remains Sanctum-owned.",
       "owner": "Identity",
       "expires": "2027-06-30"
     },
@@ -107,7 +83,7 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/Identity/Support/HasUserRestoration.php",
+      "file": "app/Features/Identity/Persistence/HasUserRestoration.php",
       "target": "table:unknown",
       "model": "AIArmada\\Affiliates\\Models\\Affiliate",
       "reason": "Identity restores the user's validated member affiliate profile through the canonical Affiliates model; affiliate storage remains package-owned.",
@@ -1371,7 +1347,7 @@
     },
     {
       "rule": "feature-private",
-      "file": "app/Features/Identity/Support/HasUserRestoration.php",
+      "file": "app/Features/Identity/Persistence/HasUserRestoration.php",
       "target": "App\\Features\\ShareTracking\\Services\\AffiliatesShareTrackingService",
       "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
       "owner": "ShareTracking",
@@ -1835,14 +1811,6 @@
     },
     {
       "rule": "platform-direction",
-      "file": "app/Platform/Admin/EntryPoints/Filament/Pages/AhliDashboard.php",
-      "target": "App\\Features\\Events\\EntryPoints\\Filament\\Widgets\\PendingApprovalEventsWidget",
-      "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "platform-direction",
       "file": "app/Platform/Api/Frontend/FrontendFormContractService.php",
       "target": "App\\Features\\ShareTracking\\Services\\AffiliatesShareTrackingService",
       "reason": "Framework-facing platform adapter resolves the canonical owner type for registry and dispatch composition; business behaviour remains behind the owning feature.",
@@ -2077,6 +2045,48 @@
       "owner": "Membership",
       "expires": "2027-06-30",
       "validated_by": "phpstan"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Identity/Persistence/EloquentAccountAccess.php",
+      "target": "table:unknown",
+      "model": "Laravel\\Sanctum\\PersonalAccessToken",
+      "model_provider": "sanctum",
+      "relation": "currentAccessToken",
+      "relation_owner": "App\\Models\\User",
+      "reason": "Identity revokes the current Sanctum token returned by the package accessor; token storage remains Sanctum-owned.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Identity/Persistence/EloquentAccountSettingsStore.php",
+      "target": "table:unknown",
+      "model": "Laravel\\Sanctum\\PersonalAccessToken",
+      "model_provider": "sanctum",
+      "relation": "tokens",
+      "relation_owner": "App\\Models\\User",
+      "reason": "Identity revokes an account-scoped Sanctum token through the canonical User relation; token storage remains Sanctum-owned.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Identity/Persistence/EloquentAccountAccess.php",
+      "target": "table:users",
+      "model": "App\\Models\\User",
+      "reason": "Identity owns account lifecycle writes to the framework User model; the users table stays framework-owned and this exact persistence adapter is the only app writer.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Identity/Persistence/EloquentAccountSettingsStore.php",
+      "target": "table:users",
+      "model": "App\\Models\\User",
+      "reason": "Identity owns account lifecycle writes to the framework User model; the users table stays framework-owned and this exact persistence adapter is the only app writer.",
+      "owner": "Identity",
+      "expires": "2027-06-30"
     }
   ],
   "read_adapters": {

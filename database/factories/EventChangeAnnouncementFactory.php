@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventUpdateFactory;
+use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\EventChangeSeverity;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Models\User;
-use App\Shared\Events\Enums\EventChangeType;
 
 class EventChangeAnnouncementFactory extends EventUpdateFactory
 {

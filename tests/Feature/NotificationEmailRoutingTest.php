@@ -8,13 +8,13 @@ use App\Features\Events\Notifications\EventSubmittedNotification;
 use App\Features\Feedback\Models\AppFeedback;
 use App\Features\Feedback\Models\AppFeedbackMessage;
 use App\Features\Feedback\Notifications\AppFeedbackRepliedNotification;
+use App\Features\Identity\Notifications\ResetPasswordNotification;
+use App\Features\Identity\Notifications\VerifyEmailNotification;
+use App\Features\Identity\Notifications\WelcomeNotification;
 use App\Features\Membership\Notifications\MemberInvitationNotification;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Notifications\ReportResolvedNotification;
 use App\Models\User;
-use App\Platform\Auth\Notifications\ResetPasswordNotification;
-use App\Platform\Auth\Notifications\VerifyEmailNotification;
-use App\Platform\Auth\Notifications\WelcomeNotification;
 
 it('routes mail notifications through the user email address and tracks destination verification', function () {
     $user = User::factory()->create([

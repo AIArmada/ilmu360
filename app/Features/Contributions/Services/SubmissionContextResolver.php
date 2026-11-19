@@ -6,6 +6,7 @@ namespace App\Features\Contributions\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Support\SubmissionTimingPolicy;
@@ -14,7 +15,6 @@ use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Models\User;
 use App\Shared\Submission\SpaceSelectionEligibility;
-use App\Shared\Submission\SubmissionValues;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
