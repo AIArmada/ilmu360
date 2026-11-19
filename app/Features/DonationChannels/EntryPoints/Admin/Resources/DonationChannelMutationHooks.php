@@ -176,10 +176,10 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
         ];
     }
 
-    public function defaultsForRecord(Model $record): ?array
+    public function augmentDefaultsForRecord(Model $record, array $defaults): array
     {
         if (! $record instanceof DonationChannel) {
-            return null;
+            return $defaults;
         }
 
         return [

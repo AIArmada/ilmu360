@@ -11,6 +11,7 @@ use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\EntryPoints\Admin\Resources\ReferenceAdminHooks;
+use App\Features\References\EntryPoints\Admin\Resources\ReferenceMutationHooks;
 use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\EntryPoints\Filament\Stats\PendingReferencesStat;
@@ -23,6 +24,7 @@ use App\Features\References\Services\EloquentReferenceCatalog;
 use App\Features\References\Services\ReferenceQueryService;
 use App\Features\References\Services\ReferenceWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -56,6 +58,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(ReferenceMutationHooks::class));
         $this->app->make(PublicSlugRegistry::class)->register(new PublicSlugResource(
             parameter: 'reference',
             routeName: 'references.show',

@@ -11,6 +11,7 @@ use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
 use App\Features\Reports\Api\ReportSnapshot;
 use App\Features\Reports\Api\SaveReportInput;
 use App\Features\Reports\Models\Report;
+use App\Features\Reports\Support\ReportModelClass;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Shared\Reports\ReportSubjectResolver;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,11 @@ final readonly class ReportAdmin implements ReportAdminContract
         private ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
         private ReportSubjectResolver $reportSubjects,
     ) {}
+
+    public function modelClass(): string
+    {
+        return ReportModelClass::resolve();
+    }
 
     public function fields(): array
     {

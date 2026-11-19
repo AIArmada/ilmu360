@@ -6,6 +6,9 @@ namespace App\Features\Reports\Api;
 
 interface ReportAdminContract
 {
+    /** @return class-string<\Illuminate\Database\Eloquent\Model> */
+    public function modelClass(): string;
+
     /** @return list<array<string, mixed>> */
     public function fields(): array;
 

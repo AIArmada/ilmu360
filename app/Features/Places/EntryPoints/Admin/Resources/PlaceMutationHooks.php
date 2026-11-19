@@ -151,16 +151,16 @@ final readonly class PlaceMutationHooks implements AdminMutationHooks
         return null;
     }
 
-    public function defaultsForRecord(Model $record): ?array
+    public function augmentDefaultsForRecord(Model $record, array $defaults): array
     {
         if ($record instanceof Venue) {
-            return [
-                'status' => $record->status,
-                'visibility' => (string) ($record->visibility ?? 'public'),
-                'clear_main' => false,
-                'clear_cover' => false,
-                'clear_gallery' => false,
-            ];
+            $defaults['status'] = $record->status;
+            $defaults['visibility'] = (string) ($record->visibility ?? 'public');
+            $defaults['clear_main'] = false;
+            $defaults['clear_cover'] = false;
+            $defaults['clear_gallery'] = false;
+
+            return $defaults;
         }
 
         if ($record instanceof Space) {
@@ -193,7 +193,7 @@ final readonly class PlaceMutationHooks implements AdminMutationHooks
             ];
         }
 
-        return null;
+        return $defaults;
     }
 
     /** @return list<array<string, mixed>> */

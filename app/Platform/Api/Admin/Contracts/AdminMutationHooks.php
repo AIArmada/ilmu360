@@ -51,7 +51,8 @@ interface AdminMutationHooks
     public function defaultsForCreate(string $resourceClass): ?array;
 
     /**
-     * @return array<string, mixed>|null
+     * @param  array<string, mixed>  $defaults
+     * @return array<string, mixed>
      */
-    public function defaultsForRecord(Model $record): ?array;
+    public function augmentDefaultsForRecord(Model $record, array $defaults): array;
 }

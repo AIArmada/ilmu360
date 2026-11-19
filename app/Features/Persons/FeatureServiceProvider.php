@@ -14,6 +14,7 @@ use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\EntryPoints\Admin\Resources\PersonAdminHooks;
+use App\Features\Persons\EntryPoints\Admin\Resources\PersonMutationHooks;
 use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\EntryPoints\Filament\Stats\PendingPersonsStat;
@@ -27,6 +28,7 @@ use App\Features\Persons\Queries\EloquentPersonLookup;
 use App\Features\Persons\Services\EloquentPersonCatalog;
 use App\Features\Persons\Services\PersonWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 
@@ -58,5 +60,12 @@ class FeatureServiceProvider extends FeatureModule
         $resources = $this->app->make(FilamentResourceRegistry::class);
         $resources->register(PersonResource::class, FilamentResourceRegistry::PANEL_ADMIN);
         $resources->register(AhliPersonResource::class, FilamentResourceRegistry::PANEL_AHLI);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(PersonMutationHooks::class));
     }
 }
