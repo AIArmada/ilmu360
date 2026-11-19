@@ -2,7 +2,7 @@
 
 namespace App\Platform\Ui\Forms;
 
-use App\Platform\Contributions\ContributionPayload;
+use App\Features\Contributions\Api\ContributionPayload;
 use App\Shared\Contributions\Support\DonationQrUploads;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Contributions;
+namespace App\Features\Contributions\Api;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
@@ -11,7 +11,7 @@ use AIArmada\Contacting\Enums\ContactPurpose;
  * Projects submitted contribution payload fragments onto the canonical stored
  * shape so unchanged rows compare equal against persisted state.
  */
-final class ContributionPayload
+final readonly class ContributionPayload
 {
     /**
      * @param  array<string, mixed>|list<array<string, mixed>>  $data

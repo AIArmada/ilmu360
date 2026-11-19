@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Actions;
 
-use App\Platform\Contributions\ContributionPayload;
+use App\Features\Contributions\Api\ContributionPayload;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class NormalizeContributionSubmissionAction
