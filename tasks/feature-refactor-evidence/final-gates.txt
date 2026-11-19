@@ -1,0 +1,26 @@
+# Final gate evidence — HEAD 554805ec (2026-11-19T22:15:26Z)
+
+php tools/architecture-check.php
+0 architecture violation(s); 27 feature(s) checked.
+exit=0
+
+## Exception categories
+exceptions 235 {'architecture.writeLocation': 84, 'feature-private': 151}
+read_adapters 69
+root_models ['app/Models/User.php', 'app/Models/PassportUser.php']
+
+## Platform PHP files over 400 lines
+1148 app/Platform/Ui/Forms/AddressFields.php
+1047 app/Platform/Media/ShareCards/PangoShareCardRenderer.php
+936 app/Platform/Api/Admin/AdminResourceService.php
+915 app/Platform/Diagnostics/NetworkDiagnosticsService.php
+891 app/Platform/Api/Admin/AdminResourceRegistry.php
+808 app/Platform/Location/GooglePlaceGeographyResolver.php
+649 app/Platform/Api/Member/MemberResourceRegistry.php
+603 app/Platform/Mcp/McpFilePayloadNormalizer.php
+523 app/Platform/Api/Member/MemberResourceService.php
+518 app/Platform/Location/LocationSlugResolver.php
+496 app/Platform/Api/Admin/AdminResourceMutationService.php
+468 app/Platform/Admin/Concerns/BuildsAdminFieldMetadata.php
+424 app/Platform/Directory/EntityRelationSync.php
+405 app/Platform/Media/ShareCards/ShareCardFonts.php

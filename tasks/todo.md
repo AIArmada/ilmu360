@@ -824,3 +824,16 @@ Migration history: [completed stage records](agent-architecture-migration-histor
 The app-owned EventResource now directly defines its query, table, infolist, page list, and active relation-manager registrations. Admin and Ahli panels no longer register the package EventResource; create/edit go through SaveAdminEventAction and the Events authoring API. The app resource has no relationship-bound event writes, package-resource delegation, or `delivery_mode` table column. The retired References relation manager and its registration were deleted. No compatibility shim, legacy path, data backfill, or superseded EventResource wrapper was retained.
 
 Verification: the focused serial Pest selection passed 17/17 (178 assertions); the architecture scan reports 0 violations across 20 features; `graphify update .`, changed-file PHP lint, and `git diff --check` passed. The parallel runner failed before test execution with the Paratest WrapperRunner type error, so the same selection passed serially. Broader Documentation/MCP/admin composition and the final app-wide audit remain open.
+
+# R6 — Feature-ownership refactor (2026-11-19)
+
+- [x] Finish every owner move in `tasks/platform-shared-classification.csv` (0 remaining).
+- [x] Replace MCP, record-action, resource-hook, telemetry, request-example, frontend-form and docs-schema god classes with neutral Platform registries plus owner contributors.
+- [x] Split `SharedFormSchema` into neutral form helpers and owner donation-QR helpers.
+- [x] Reshape the last Shared contracts into owner Api values with neutral types.
+- [x] Add root-domain, root-model and stale-root-namespace architecture gates with fixtures.
+- [x] Prove contract parity (738 routes, 96 morphs, 99 admin + 4 member resources, identical MCP metadata/manifests, identical OpenAPI) against a pristine `09c00750` checkout.
+- [x] Refresh `tasks/feature-refactor-exception-ledger.csv` and `tasks/platform-shared-classification.csv`.
+- [x] Write `tasks/feature-refactor-r6-report.md` with gates, evidence and remaining work.
+
+Review: final commit `554805ec` is CI-green with 26/26 Quality jobs. Architecture, ownership types, PHPStan level 6, Pint and Rector are clean. `api-leak` and `platform-direction` exception categories are empty; 151 cross-feature Filament form-composition exceptions, 84 package-owned writes and 69 read adapters remain documented with reasons and expiries in the R6 report.

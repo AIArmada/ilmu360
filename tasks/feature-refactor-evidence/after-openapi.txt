@@ -1,0 +1,6 @@
+# OpenAPI parity (final HEAD 554805ec)
+paths: 152
+schemas: 49
+normalized_sha256: 171a93dd2654f9849ffba53e87bf090ee8c1242feea9b9f198c10441aa0373a8
+baseline_normalized_sha256: 171a93dd2654f9849ffba53e87bf090ee8c1242feea9b9f198c10441aa0373a8
+identical_to_baseline: yes
