@@ -17,6 +17,8 @@ use InvalidArgumentException;
  */
 final readonly class ReferenceQueryService implements ReferenceQueries
 {
+    public function __construct(private ReferenceSearchService $search) {}
+
     public function applyPublicVisibility(mixed $query, ?string $table = null): mixed
     {
         if (! $query instanceof Builder && ! $query instanceof QueryBuilder) {
@@ -61,5 +63,10 @@ final readonly class ReferenceQueryService implements ReferenceQueries
     public function referenceModelClass(): string
     {
         return Reference::class;
+    }
+
+    public function publicSearchIds(string $search): array
+    {
+        return $this->search->publicSearchIds($search);
     }
 }

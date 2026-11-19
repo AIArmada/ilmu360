@@ -891,70 +891,6 @@
     },
     {
       "rule": "feature-private",
-      "file": "app/Features/Discovery/Services/EventSearchService.php",
-      "target": "App\\Features\\Institutions\\Services\\InstitutionSearchService",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
-      "file": "app/Features/Discovery/Services/EventSearchService.php",
-      "target": "App\\Features\\Persons\\Services\\PersonSearchService",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
-      "file": "app/Features/Discovery/Services/EventSearchService.php",
-      "target": "App\\Features\\References\\Services\\ReferenceSearchService",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "References",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
-      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
-      "target": "App\\Features\\Events\\Queries\\PrimaryLocationSql",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
-      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
-      "target": "App\\Features\\Events\\Queries\\PrimaryOccurrenceSql",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "Events",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
-      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
-      "target": "App\\Features\\Institutions\\Services\\InstitutionSearchService",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "Institutions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
-      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
-      "target": "App\\Features\\Persons\\Services\\PersonSearchService",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "Persons",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
-      "file": "app/Features/Discovery/Services/PostgresEventDiscovery.php",
-      "target": "App\\Features\\References\\Services\\ReferenceSearchService",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "References",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
       "file": "app/Features/Discovery/Services/PublicScheduleDiscoveryService.php",
       "target": "App\\Features\\Events\\Policies\\PublicSchedulePolicy",
       "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
@@ -2576,22 +2512,10 @@
       "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
       "expires": "2027-03-31"
     },
-    "app/Features/Discovery/Services/PostgresEventDiscovery.php": {
-      "owner": "Discovery",
-      "reason": "Temporary read-only ORM adapter reading Event, Institution, Venue; no owner writes occur here.",
-      "removal_task": "Replace direct Event, Institution, Venue Eloquent reads with the owning feature Api in this owner slice.",
-      "expires": "2027-03-31"
-    },
     "app/Features/Discovery/Services/PublicScheduleDiscoveryService.php": {
       "owner": "Discovery",
       "reason": "Temporary read-only ORM adapter reading Venue; no owner writes occur here.",
       "removal_task": "Replace direct Venue Eloquent reads with the owning feature Api in this owner slice.",
-      "expires": "2027-03-31"
-    },
-    "app/Features/Discovery/Services/TypesenseEventDiscovery.php": {
-      "owner": "Discovery",
-      "reason": "Temporary read-only ORM adapter reading Event; no owner writes occur here.",
-      "removal_task": "Replace direct Event Eloquent reads with the owning feature Api in this owner slice.",
       "expires": "2027-03-31"
     },
     "app/Features/Engagement/EntryPoints/Http/EventGoingController.php": {

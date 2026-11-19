@@ -7,6 +7,7 @@ namespace App\Features\Institutions\Queries;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSummary;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\DirectoryOption;
@@ -17,7 +18,10 @@ use BackedEnum;
 
 final readonly class EloquentInstitutionLookup implements InstitutionLookup
 {
-    public function __construct(private SlugOrUuidResolver $resolver) {}
+    public function __construct(
+        private SlugOrUuidResolver $resolver,
+        private InstitutionSearchService $search,
+    ) {}
 
     public function resolveIdentifier(string $identifier): ?string
     {
@@ -162,5 +166,15 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             adminUrl: AdminResourceUrl::edit('institutions', (string) $entity->getRouteKey()),
             imageUrl: null,
         );
+    }
+
+    public function publicSearchIds(string $search): array
+    {
+        return $this->search->publicSearchIds($search);
+    }
+
+    public function institutionMorphType(): string
+    {
+        return (new Institution)->getMorphClass();
     }
 }

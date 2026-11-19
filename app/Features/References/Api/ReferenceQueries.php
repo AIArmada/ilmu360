@@ -38,4 +38,7 @@ interface ReferenceQueries
      * @return class-string
      */
     public function referenceModelClass(): string;
+
+    /** @return list<string> */
+    public function publicSearchIds(string $search): array;
 }

@@ -15,4 +15,7 @@ interface PersonLookup
     public function findReportSubject(string $id): ?ReportSubject;
 
     public function resolveReportSubject(string $identifier): ?ReportSubject;
+
+    /** @return list<string> */
+    public function publicSearchIds(string $search): array;
 }

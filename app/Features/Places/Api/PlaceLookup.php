@@ -9,4 +9,8 @@ interface PlaceLookup
     public function resolveVenueIdentifier(string $identifier): ?string;
 
     public function resolveSpaceIdentifier(string $identifier): ?string;
+
+    public function venueTable(): string;
+
+    public function venueMorphType(): string;
 }

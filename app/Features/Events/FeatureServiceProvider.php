@@ -45,6 +45,7 @@ use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventOccurrenceDeletionPreflight;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventReportSubjectProvider;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Api\EventSearchCache;
 use App\Features\Events\Api\EventShareCardCache;
 use App\Features\Events\Api\EventSubmissionCompletion;
@@ -84,6 +85,8 @@ use App\Features\Events\Persistence\EventShareCardCacheStore;
 use App\Features\Events\Persistence\EventSubmissionOptionsCacheStore;
 use App\Features\Events\Persistence\ProductSignalsDashboardCacheStore;
 use App\Features\Events\Queries\EventContributionProjection;
+use App\Features\Events\Queries\EventDiscoveryReaderFactory;
+use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Events\Services\AdminEventWriterService;
 use App\Features\Events\Services\EventAccountOwnershipService;
 use App\Features\Events\Services\EventAuthoringService;
@@ -108,6 +111,8 @@ use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
+use App\Platform\Search\EventDiscoveryReader;
+use App\Platform\Search\EventDiscoveryReaders;
 use App\Shared\Auth\GuestEventSubmissionClaims;
 use App\Shared\Events\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Shared\Events\EventCategoryPolicyResolver;
@@ -180,6 +185,10 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(EventDiscoveryReaders::class, EventDiscoveryReaderFactory::class);
+        $this->app->bind(EventDiscoveryReader::class, PostgresEventDiscovery::class);
+        $this->app->bind(EventScheduleQuery::class, PostgresEventDiscovery::class);
+
         $this->app->bind(AdminEventModeration::class, AdminEventModerationService::class);
 
         $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new EventAdminHooks);

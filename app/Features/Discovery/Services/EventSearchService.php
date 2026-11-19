@@ -6,12 +6,8 @@ use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\EventSearchCache;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Services\InstitutionSearchService;
-use App\Features\Persons\Services\PersonSearchService;
-use App\Features\References\Api\ReferenceQueries;
-use App\Features\References\Services\ReferenceSearchService;
+use App\Platform\Search\EventDiscoveryReaders;
 use App\Platform\Search\TypesenseHealthCheckService;
-use App\Shared\Events\EventCategoryCatalog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\Log;
@@ -21,16 +17,10 @@ class EventSearchService
 {
     public function __construct(
         private readonly TypesenseHealthCheckService $healthCheck,
-        private readonly PersonSearchService $personSearch,
-        private readonly InstitutionSearchService $institutionSearch,
-        private readonly ReferenceSearchService $referenceSearch,
-        private readonly EventCategoryCatalog $categoryCatalog,
         private readonly EventSearchRelationProvider $relationProvider,
-        private readonly ReferenceQueries $referenceQueries,
         private readonly EventSearchCache $eventSearchCache,
-        private readonly FuzzyEventMatcher $fuzzyMatcher = new FuzzyEventMatcher,
+        private readonly EventDiscoveryReaders $readers,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
-        private readonly EventDiscoveryFilterSet $filterSet = new EventDiscoveryFilterSet,
     ) {}
 
     /**
@@ -58,12 +48,12 @@ class EventSearchService
     protected function performSearch(EventDiscoveryCriteria $criteria): LengthAwarePaginator
     {
         if ($criteria->requiresDatabaseFiltering) {
-            return $this->postgresDiscovery()->search($criteria);
+            return $this->readers->database()->search($criteria);
         }
 
         if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                return $this->typesenseDiscovery()->search($criteria);
+                return $this->readers->typesense()->search($criteria);
             } catch (\Exception $e) {
                 Log::warning('Typesense search failed, falling back to database', [
                     'error' => $e->getMessage(),
@@ -71,31 +61,7 @@ class EventSearchService
             }
         }
 
-        return $this->postgresDiscovery()->search($criteria);
-    }
-
-    private function postgresDiscovery(): PostgresEventDiscovery
-    {
-        return new PostgresEventDiscovery(
-            fuzzyMatcher: $this->fuzzyMatcher,
-            filterSet: $this->filterSet,
-            personSearch: $this->personSearch,
-            institutionSearch: $this->institutionSearch,
-            referenceSearch: $this->referenceSearch,
-            categoryCatalog: $this->categoryCatalog,
-            relationProvider: $this->relationProvider,
-            referenceQueries: $this->referenceQueries,
-        );
-    }
-
-    private function typesenseDiscovery(): TypesenseEventDiscovery
-    {
-        return new TypesenseEventDiscovery(
-            filterSet: $this->filterSet,
-            categoryCatalog: $this->categoryCatalog,
-            relationProvider: $this->relationProvider,
-            referenceQueries: $this->referenceQueries,
-        );
+        return $this->readers->database()->search($criteria);
     }
 
     private function usesDefaultSearchCache(EventDiscoveryCriteria $criteria): bool
@@ -190,18 +156,18 @@ class EventSearchService
         $criteria = $this->criteriaFactory->fromSearch(null, $filters, $perPage, 'distance', $lat, $lng, $radiusKm);
 
         if ($criteria->requiresDatabaseFiltering) {
-            return $this->postgresDiscovery()->nearby($criteria);
+            return $this->readers->database()->nearby($criteria);
         }
 
         if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                return $this->typesenseDiscovery()->nearby($criteria);
+                return $this->readers->typesense()->nearby($criteria);
             } catch (\Exception $e) {
                 Log::warning('Typesense geo search failed', ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->postgresDiscovery()->nearby($criteria);
+        return $this->readers->database()->nearby($criteria);
     }
 
     /**
@@ -226,18 +192,18 @@ class EventSearchService
         }
 
         if ($criteria->requiresDatabaseFiltering) {
-            return $this->postgresDiscovery()->nearbyWithQuery($criteria);
+            return $this->readers->database()->nearbyWithQuery($criteria);
         }
 
         if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                return $this->typesenseDiscovery()->nearbyWithQuery($criteria);
+                return $this->readers->typesense()->nearbyWithQuery($criteria);
             } catch (\Exception $e) {
                 Log::warning('Typesense geo query search failed', ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->postgresDiscovery()->nearbyWithQuery($criteria);
+        return $this->readers->database()->nearbyWithQuery($criteria);
     }
 
     private function normalizeSearchQuery(?string $query): ?string

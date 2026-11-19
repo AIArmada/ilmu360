@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Discovery\Services;
+namespace App\Features\Events\Queries;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Features\Events\Models\Event;

@@ -7,6 +7,7 @@ namespace App\Features\Persons\Queries;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonSummary;
 use App\Features\Persons\Models\Person;
+use App\Features\Persons\Services\PersonSearchService;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Reports\ReportSubject;
@@ -15,7 +16,10 @@ use BackedEnum;
 
 final readonly class EloquentPersonLookup implements PersonLookup
 {
-    public function __construct(private SlugOrUuidResolver $resolver) {}
+    public function __construct(
+        private SlugOrUuidResolver $resolver,
+        private PersonSearchService $search,
+    ) {}
 
     public function resolveIdentifier(string $identifier): ?string
     {
@@ -89,5 +93,10 @@ final readonly class EloquentPersonLookup implements PersonLookup
             adminUrl: AdminResourceUrl::edit('persons', (string) $entity->getRouteKey()),
             imageUrl: $entity->getAttribute('public_main_url'),
         );
+    }
+
+    public function publicSearchIds(string $search): array
+    {
+        return $this->search->publicSearchIds($search);
     }
 }

@@ -2,8 +2,8 @@
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
-use App\Features\Discovery\Services\EventDiscoveryFilterSet;
-use App\Features\Discovery\Services\TypesenseEventDiscovery;
+use App\Features\Events\Queries\EventDiscoveryFilterSet;
+use App\Features\Events\Queries\TypesenseEventDiscovery;
 use App\Features\References\Api\ReferenceQueries;
 use App\Shared\Events\EventCategoryCatalog;
 use Illuminate\Support\Str;

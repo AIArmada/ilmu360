@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Discovery\Services;
+namespace App\Features\Events\Queries;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
@@ -10,16 +10,13 @@ use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Queries\PrimaryLocationSql;
-use App\Features\Events\Queries\PrimaryOccurrenceSql;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Institutions\Services\InstitutionSearchService;
-use App\Features\Persons\Services\PersonSearchService;
-use App\Features\Places\Models\Venue;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\References\Api\ReferenceQueries;
-use App\Features\References\Services\ReferenceSearchService;
 use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Events\Enums\EventKeyPersonRole;
@@ -37,14 +34,15 @@ use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Str;
 use Throwable;
 
-final readonly class PostgresEventDiscovery implements EventDiscoveryReader
+final readonly class PostgresEventDiscovery implements EventDiscoveryReader, EventScheduleQuery
 {
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
         private EventDiscoveryFilterSet $filterSet,
-        private PersonSearchService $personSearch,
-        private InstitutionSearchService $institutionSearch,
-        private ReferenceSearchService $referenceSearch,
+        private PersonLookup $personLookup,
+        private InstitutionLookup $institutionLookup,
+        private PlaceLookup $placeLookup,
+
         private EventCategoryCatalog $categoryCatalog,
         private EventSearchRelationProvider $relationProvider,
         private ReferenceQueries $referenceQueries,
@@ -525,9 +523,9 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader
             static fn (string $token): bool => $token !== ''
         ));
 
-        $personIds = $includePersons ? $this->personSearch->publicSearchIds($normalizedSearch) : [];
-        $institutionIds = $includeInstitutions ? $this->institutionSearch->publicSearchIds($normalizedSearch) : [];
-        $referenceIds = $includeReferences ? $this->referenceSearch->publicSearchIds($normalizedSearch) : [];
+        $personIds = $includePersons ? $this->personLookup->publicSearchIds($normalizedSearch) : [];
+        $institutionIds = $includeInstitutions ? $this->institutionLookup->publicSearchIds($normalizedSearch) : [];
+        $referenceIds = $includeReferences ? $this->referenceQueries->publicSearchIds($normalizedSearch) : [];
 
         $queryBuilder->where(function (Builder $nestedQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens, $personIds, $institutionIds, $referenceIds, $includePersons): void {
             $nestedQuery->where(function (Builder $titleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
@@ -775,13 +773,13 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader
 
         $primaryPackageVenue = PrimaryLocationSql::venueId($eventsTable);
         $effectiveVenue = "coalesce({$eventsTable}.default_venue_id, {$primaryPackageVenue})";
-        $venueTable = (new Venue)->getTable();
+        $venueTable = $this->placeLookup->venueTable();
         $venueExists = "exists (select 1 from {$venueTable} where {$venueTable}.id = ({$effectiveVenue}))";
         $latitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.latitude when {$venueExists} then venue_addresses.latitude end";
         $longitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.longitude when {$venueExists} then venue_addresses.longitude end";
         $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
-        $venueMorphType = (new Venue)->getMorphClass();
-        $institutionMorphType = (new Institution)->getMorphClass();
+        $venueMorphType = $this->placeLookup->venueMorphType();
+        $institutionMorphType = $this->institutionLookup->institutionMorphType();
 
         return $queryBuilder
             ->leftJoin("{$addressablesTable} as venue_addressables", function ($join) use ($venueMorphType, $effectiveVenue) {
@@ -849,9 +847,9 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader
         $addressesTable = AddressingTableResolver::resolve('addresses');
         $addressablesTable = AddressingTableResolver::resolve('addressables');
         $assignmentsTable = AddressingTableResolver::resolve('address_area_assignments');
-        $venueTable = (new Venue)->getTable();
-        $venueMorphType = (new Venue)->getMorphClass();
-        $institutionMorphType = (new Institution)->getMorphClass();
+        $venueTable = $this->placeLookup->venueTable();
+        $venueMorphType = $this->placeLookup->venueMorphType();
+        $institutionMorphType = $this->institutionLookup->institutionMorphType();
 
         $matchesOwnerAddress = static function (Builder $ownerQuery, string $ownerColumn, string $morphType) use ($addressesTable, $addressablesTable, $assignmentsTable, $criteria, $assignments): void {
             $ownerQuery->whereExists(function ($addressQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $ownerColumn, $morphType, $criteria, $assignments): void {
@@ -1032,7 +1030,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader
             $hasAuthorFilter = true;
             $referenceIds = array_values(array_unique([
                 ...$referenceIds,
-                ...$this->referenceSearch->publicSearchIds($authorSearch),
+                ...$this->referenceQueries->publicSearchIds($authorSearch),
             ]));
         }
 

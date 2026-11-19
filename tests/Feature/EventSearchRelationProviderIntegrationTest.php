@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
-use App\Features\Discovery\Services\EventDiscoveryFilterSet;
-use App\Features\Discovery\Services\FuzzyEventMatcher;
-use App\Features\Discovery\Services\PostgresEventDiscovery;
-use App\Features\Discovery\Services\TypesenseEventDiscovery;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Services\InstitutionSearchService;
-use App\Features\Persons\Services\PersonSearchService;
+use App\Features\Events\Queries\EventDiscoveryFilterSet;
+use App\Features\Events\Queries\FuzzyEventMatcher;
+use App\Features\Events\Queries\PostgresEventDiscovery;
+use App\Features\Events\Queries\TypesenseEventDiscovery;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\References\Api\ReferenceQueries;
-use App\Features\References\Services\ReferenceSearchService;
 use App\Shared\Events\EventCategoryCatalog;
 use Tests\Support\RecordingEventSearchRelationProvider;
 
@@ -30,9 +30,9 @@ it('makes PostgreSQL discovery consume the injected relation provider', function
     $discovery = new PostgresEventDiscovery(
         fuzzyMatcher: new FuzzyEventMatcher,
         filterSet: new EventDiscoveryFilterSet,
-        personSearch: app(PersonSearchService::class),
-        institutionSearch: app(InstitutionSearchService::class),
-        referenceSearch: app(ReferenceSearchService::class),
+        personLookup: app(PersonLookup::class),
+        institutionLookup: app(InstitutionLookup::class),
+        placeLookup: app(PlaceLookup::class),
         categoryCatalog: app(EventCategoryCatalog::class),
         relationProvider: $provider,
         referenceQueries: app(ReferenceQueries::class),

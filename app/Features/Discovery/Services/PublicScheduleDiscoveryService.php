@@ -10,6 +10,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
@@ -36,7 +37,7 @@ use Illuminate\Support\Collection;
 final readonly class PublicScheduleDiscoveryService
 {
     public function __construct(
-        private PostgresEventDiscovery $eventDiscovery,
+        private EventScheduleQuery $eventDiscovery,
         private EventSearchRelationProvider $relationProvider,
         private ReferenceQueries $referenceQueries,
         private EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
@@ -96,10 +97,9 @@ final readonly class PublicScheduleDiscoveryService
                     ->with($this->searchRelations())
                     ->get();
             } else {
-                $directEvents = $this->eventDiscovery
-                    ->publicEventQuery($criteria->text, $eventFilters)
-                    ->with($this->searchRelations())
-                    ->get();
+                /** @var EventBuilder $query */
+                $query = $this->eventDiscovery->publicEventQuery($criteria->text, $eventFilters);
+                $directEvents = $query->with($this->searchRelations())->get();
 
                 if ($directEvents->isNotEmpty()) {
                     /** @var EloquentCollection<int, Event> $events */
@@ -194,7 +194,10 @@ final readonly class PublicScheduleDiscoveryService
     {
         $occurrenceTable = (new EventOccurrence)->getTable();
 
-        return $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
+        /** @var EventBuilder $query */
+        $query = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all']);
+
+        return $query
             ->where('events.status', 'approved')
             ->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds, $occurrenceTable): void {
                 $query->whereHas(
@@ -216,8 +219,9 @@ final readonly class PublicScheduleDiscoveryService
      */
     private function homepageFollowedEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
     {
-        $query = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all'])
-            ->whereIn('events.status', Event::PUBLIC_STATUSES);
+        /** @var EventBuilder $baseQuery */
+        $baseQuery = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all']);
+        $query = $baseQuery->whereIn('events.status', Event::PUBLIC_STATUSES);
 
         $query->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds): void {
             $this->applyHomepageFollowConditions($query, $personIds, $institutionIds, $referenceIds);
