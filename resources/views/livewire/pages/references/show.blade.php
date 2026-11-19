@@ -34,7 +34,7 @@
         'fallbackTitle' => $referenceTitle,
         'payloadEndpoint' => route('share.payload'),
     ];
-    $referenceRouteSegment = \App\Features\Contributions\Support\ContributionSubjectType::Reference->publicRouteSegment();
+    $referenceRouteSegment = \App\Features\Contributions\Api\Enums\ContributionSubjectType::Reference->publicRouteSegment();
     $authorNames = $reference->effectiveAuthorNamesList();
     $metadataItems = array_filter([
         $reference->publisherValue(),

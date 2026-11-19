@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\EntryPoints\Http\ContributionController;
 use App\Features\Contributions\EntryPoints\Http\ContributionRequestReviewController as AdminContributionRequestReviewController;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Discovery\EntryPoints\Http\EventSearchController;
 use App\Features\Discovery\EntryPoints\Http\SearchController;
 use App\Features\Engagement\EntryPoints\Http\EventGoingController;

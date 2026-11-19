@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Support;
 
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
@@ -25,7 +26,7 @@ final class ContributionEntityMetadata
     public static function for(Model $entity): array
     {
         foreach (ContributionSubjectType::cases() as $subjectType) {
-            if (is_a($entity, $subjectType->modelClass())) {
+            if (is_a($entity, ContributionSubjectModels::modelClass($subjectType))) {
                 return [
                     'subject_type' => $subjectType,
                     'entity_type' => $entity->getMorphClass(),

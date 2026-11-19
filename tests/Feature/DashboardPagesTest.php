@@ -3,7 +3,7 @@
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;

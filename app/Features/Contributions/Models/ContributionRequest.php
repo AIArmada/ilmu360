@@ -2,9 +2,9 @@
 
 namespace App\Features\Contributions\Models;
 
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\ContributionRequestFactory;

@@ -2,10 +2,10 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support;
 
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;

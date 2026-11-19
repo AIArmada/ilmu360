@@ -3,12 +3,12 @@
 use AIArmada\Authz\Models\Role;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
 use App\Features\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;

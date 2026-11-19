@@ -2,12 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Contributions\Support;
-
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
+namespace App\Features\Contributions\Api\Enums;
 
 enum ContributionSubjectType: string
 {
@@ -46,18 +41,5 @@ enum ContributionSubjectType: string
             static fn (self $subjectType): string => $subjectType->publicRouteSegment(),
             self::cases(),
         );
-    }
-
-    /**
-     * @return class-string<Event|Institution|Person|Reference>
-     */
-    public function modelClass(): string
-    {
-        return match ($this) {
-            self::Event => Event::class,
-            self::Institution => Institution::class,
-            self::Person => Person::class,
-            self::Reference => Reference::class,
-        };
     }
 }

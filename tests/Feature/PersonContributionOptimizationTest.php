@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Persons\Models\Title;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SuggestUpdate;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;

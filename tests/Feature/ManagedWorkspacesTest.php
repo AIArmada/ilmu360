@@ -9,7 +9,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;

@@ -88,7 +88,7 @@
     $canEditInstitution = $selectedInstitution !== null && (auth()->user()?->can('update', $selectedInstitution) ?? false);
     $institutionEditUrl = $canEditInstitution
         ? route('contributions.suggest-update', [
-            'subjectType' => \App\Features\Contributions\Support\ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectType' => \App\Features\Contributions\Api\Enums\ContributionSubjectType::Institution->publicRouteSegment(),
             'subjectId' => $selectedInstitution->slug,
         ])
         : null;

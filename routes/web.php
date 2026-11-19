@@ -1,11 +1,11 @@
 <?php
 
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\Index as ContributionsIndex;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitInstitution;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitPerson;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitReference;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SuggestUpdate as SuggestContributionUpdate;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\EntryPoints\Http\ShareCardController;
 use App\Features\Events\EntryPoints\Livewire\Pages\Dashboard\Events\CreateAdvanced;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;

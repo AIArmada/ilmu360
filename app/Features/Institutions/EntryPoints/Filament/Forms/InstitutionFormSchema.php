@@ -4,7 +4,7 @@ namespace App\Features\Institutions\EntryPoints\Filament\Forms;
 
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
-use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionWorkflow;

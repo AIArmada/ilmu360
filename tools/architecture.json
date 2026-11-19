@@ -562,30 +562,6 @@
       "expires": "2027-06-30"
     },
     {
-      "rule": "api-leak",
-      "file": "app/Features/Contributions/Api/ContributionRequestLifecycle.php",
-      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
-      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
-      "owner": "Contributions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "api-leak",
-      "file": "app/Features/Contributions/Api/ContributionSubmissionPreparation.php",
-      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
-      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
-      "owner": "Contributions",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "api-leak",
-      "file": "app/Features/Contributions/Api/StagedContributionCreates.php",
-      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
-      "reason": "The published boundary value carries the canonical persisted identity used by the existing external JSON contract; changing it would alter public API shapes.",
-      "owner": "Contributions",
-      "expires": "2027-12-31"
-    },
-    {
       "rule": "feature-private",
       "file": "app/Features/Contributions/EntryPoints/Filament/Forms/EventContributionFormSchema.php",
       "target": "App\\Features\\Events\\Services\\EventContributionUpdateStateMapper",
@@ -1359,14 +1335,6 @@
       "target": "App\\Features\\Places\\Actions\\PruneOrphanedVenuesAction",
       "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
       "owner": "Places",
-      "expires": "2027-12-31"
-    },
-    {
-      "rule": "feature-private",
-      "file": "app/Features/Institutions/EntryPoints/Filament/Forms/InstitutionFormSchema.php",
-      "target": "App\\Features\\Contributions\\Support\\ContributionSubjectType",
-      "reason": "Cross-capability adapter composes the owning feature concrete type because the owner publishes no equivalent contract yet; the external behaviour and ownership remain with that feature.",
-      "owner": "Contributions",
       "expires": "2027-12-31"
     },
     {

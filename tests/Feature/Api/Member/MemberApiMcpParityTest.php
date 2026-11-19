@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberApproveContributionRequestTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberCancelContributionRequestTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberListContributionRequestsTool;
@@ -11,7 +12,6 @@ use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberRejectContributionReq
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\EntryPoints\Mcp\Tools\MemberCancelMembershipApplicationTool;

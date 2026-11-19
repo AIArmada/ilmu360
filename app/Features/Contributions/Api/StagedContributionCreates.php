@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Api;
 
-use App\Features\Contributions\Support\ContributionSubjectType;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 
 /**
  * Creates a pending subject through its owning feature, then submits the

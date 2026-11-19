@@ -8,6 +8,7 @@ use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionUpdateContextReader;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -18,7 +19,6 @@ use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionForm
 use App\Features\Contributions\EntryPoints\Filament\Forms\ReferenceContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\EventContributionUpdateStateMapper;

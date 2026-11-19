@@ -3,9 +3,9 @@
 namespace App\Features\Contributions\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\EntryPoints\Filament\Forms\ReferenceContributionFormSchema;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use Filament\Actions\Concerns\InteractsWithActions;

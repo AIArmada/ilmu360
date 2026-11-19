@@ -6,8 +6,8 @@ namespace App\Features\Contributions\Actions;
 
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Api\StagedContributionCreates;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\References\Api\ReferenceWorkflow;

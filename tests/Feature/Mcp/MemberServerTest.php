@@ -6,6 +6,7 @@ use AIArmada\Persons\Enums\TitleUsagePosition;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberApproveContributionRequestTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberCancelContributionRequestTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberListContributionRequestsTool;
@@ -13,7 +14,6 @@ use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberRejectContributionReq
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\EventChangeSeverity;
 use App\Features\Events\EntryPoints\Mcp\Tools\MemberSearchEventsTool;

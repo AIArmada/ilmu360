@@ -1,8 +1,8 @@
 <?php
 
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Contributions\Support\ContributionSubjectType;
 use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Models\Event;
