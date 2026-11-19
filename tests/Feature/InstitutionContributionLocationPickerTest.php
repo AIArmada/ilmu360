@@ -21,7 +21,8 @@ use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
+use App\Platform\Ui\Forms\DonationQrFields;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Testing\File;
 use Illuminate\Support\Facades\Cache;
@@ -595,7 +596,7 @@ it('keeps the area assignment keys present when a place resolves no areas', func
         ->test(SubmitInstitution::class)
         ->set('data.address.country_id', (string) $country->getKey())
         ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_no_areas'])
-        ->assertSet('data.address.area_assignments', array_fill_keys(SharedFormSchema::entryAreaRoles(), null));
+        ->assertSet('data.address.area_assignments', array_fill_keys(AddressFields::entryAreaRoles(), null));
 });
 
 it('persists the resolved city id when the city field is hidden', function () {
@@ -791,7 +792,7 @@ it('handles donation QR uploads stored under Filament file keys', function () {
         'qr_upload' => ['fileKey123' => $tuf],
     ]];
 
-    expect(SharedFormSchema::collectDonationQrUploads($keyedRows))->toHaveCount(1);
+    expect(DonationQrFields::collectDonationQrUploads($keyedRows))->toHaveCount(1);
 
     app(DonationQrMedia::class)->assertDonationQrUploadsFresh($keyedRows);
 
@@ -1464,11 +1465,11 @@ it('maps dehydrated donation row indices back to raw repeater keys', function ()
         1 => ['recipient' => 'Tabung B'],
     ];
 
-    expect(array_keys(SharedFormSchema::rekeyDonationRowsByRawKeys($dehydrated, [
+    expect(array_keys(DonationQrFields::rekeyDonationRowsByRawKeys($dehydrated, [
         'uuid-row-1' => ['recipient' => 'Tabung A'],
         'uuid-row-2' => ['recipient' => 'Tabung B'],
     ])))->toBe(['uuid-row-1', 'uuid-row-2'])
-        ->and(array_keys(SharedFormSchema::rekeyDonationRowsByRawKeys($dehydrated, [
+        ->and(array_keys(DonationQrFields::rekeyDonationRowsByRawKeys($dehydrated, [
             ['recipient' => 'Tabung A'],
             ['recipient' => 'Tabung B'],
         ])))->toBe([0, 1]);

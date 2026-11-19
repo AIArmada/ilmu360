@@ -2,21 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Institutions\Api\Documentation\Schemas;
 
+use App\Features\Events\Api\Documentation\Schemas\EventSummary;
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type InstitutionArray from Institution
  * @phpstan-import-type EventSummaryArray from EventSummary
  *
  * @phpstan-type InstitutionDetailPageArray array{institution: InstitutionArray, upcoming_events: list<EventSummaryArray>, upcoming_total: int, past_events: list<EventSummaryArray>, past_total: int}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('InstitutionDetailPage')]
-final readonly class InstitutionDetailPage implements Arrayable
+final readonly class InstitutionDetailPage
 {
     /**
      * @param  list<EventSummary>  $upcoming_events

@@ -11,7 +11,8 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Actions\SyncPersonRelationsAction;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Addressing\AddressFormState;
+use App\Platform\Ui\Forms\AddressFields;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
@@ -188,7 +189,7 @@ it('rejects areas from another country naming the offending role', function () {
     $singaporeDistrict = createTestAddressArea('West Region', 2, country: $singapore, type: 'district');
 
     try {
-        SharedFormSchema::prepareAddressPersistenceData([
+        AddressFields::prepareAddressPersistenceData([
             'country_id' => (string) $geo['country']->getKey(),
             'area_assignments' => [
                 'administrative_district' => (string) $singaporeDistrict->getKey(),
@@ -204,7 +205,7 @@ it('rejects areas from another country naming the offending role', function () {
 it('keeps typed city text when areas are also selected', function () {
     $geo = createTestPackageGeography();
 
-    $payload = SharedFormSchema::prepareAddressPersistenceData([
+    $payload = AddressFields::prepareAddressPersistenceData([
         'country_id' => (string) $geo['country']->getKey(),
         'state_id' => (string) $geo['state']->getKey(),
         'city' => 'Typed Town',
@@ -220,15 +221,15 @@ it('uses only UUID country ids as country selections', function () {
     $country = ensureTestMalaysiaCountry();
     $countryId = (string) $country->getKey();
 
-    expect(SharedFormSchema::countrySelectionProvided(['country_code' => 'MY']))->toBeFalse()
-        ->and(SharedFormSchema::countrySelectionProvided(['country_key' => 'MY']))->toBeFalse()
-        ->and(SharedFormSchema::countrySelectionProvided(['country_id' => 123]))->toBeTrue()
-        ->and(SharedFormSchema::countrySelectionProvided(['country_id' => '  ']))->toBeFalse()
-        ->and(SharedFormSchema::normalizeCountrySelection(['country_code' => 'MY']))->toBeNull()
-        ->and(SharedFormSchema::normalizeCountrySelection(['country_key' => 'MY']))->toBeNull()
-        ->and(SharedFormSchema::normalizeCountrySelection(['country_id' => $countryId]))->toBe($countryId)
-        ->and(SharedFormSchema::normalizeLocationId(123))->toBeNull()
-        ->and(SharedFormSchema::normalizeLocationId('123'))->toBeNull();
+    expect(AddressFields::countrySelectionProvided(['country_code' => 'MY']))->toBeFalse()
+        ->and(AddressFields::countrySelectionProvided(['country_key' => 'MY']))->toBeFalse()
+        ->and(AddressFields::countrySelectionProvided(['country_id' => 123]))->toBeTrue()
+        ->and(AddressFields::countrySelectionProvided(['country_id' => '  ']))->toBeFalse()
+        ->and(AddressFields::normalizeCountrySelection(['country_code' => 'MY']))->toBeNull()
+        ->and(AddressFields::normalizeCountrySelection(['country_key' => 'MY']))->toBeNull()
+        ->and(AddressFields::normalizeCountrySelection(['country_id' => $countryId]))->toBe($countryId)
+        ->and(AddressFormState::normalizeLocationId(123))->toBeNull()
+        ->and(AddressFormState::normalizeLocationId('123'))->toBeNull();
 });
 
 it('rejects a non-uuid country selection on a sparse address update', function () {

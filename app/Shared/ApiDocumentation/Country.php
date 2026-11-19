@@ -2,18 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Shared\ApiDocumentation;
 
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-type CountryArray array{id: string, name: string, iso2: string, key: ?string}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('Country')]
-final readonly class Country implements Arrayable
+final readonly class Country
 {
     public function __construct(
         public string $id,

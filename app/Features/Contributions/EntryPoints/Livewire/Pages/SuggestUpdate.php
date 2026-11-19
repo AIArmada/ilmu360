@@ -27,6 +27,7 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
+use App\Platform\Addressing\AddressFormState;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
@@ -34,7 +35,9 @@ use App\Platform\Location\GooglePlaceIdentity;
 use App\Platform\Location\GooglePlacesConfiguration;
 use App\Platform\Location\Ui\Concerns\InteractsWithLocationPickerSelection;
 use App\Platform\Models\MorphModelResolver;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
+use App\Platform\Ui\Forms\ContactFields;
+use App\Platform\Ui\Forms\DonationQrFields;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Signals\SignalRecorder;
 use Closure;
@@ -371,12 +374,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             app(DonationQrMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
 
             $formState = $this->contributionForm()->getState();
-            $donationQrUploads = SharedFormSchema::rekeyDonationRowsByRawKeys(
-                SharedFormSchema::collectDonationQrUploads($formState['donation_channels'] ?? null),
+            $donationQrUploads = DonationQrFields::rekeyDonationRowsByRawKeys(
+                DonationQrFields::collectDonationQrUploads($formState['donation_channels'] ?? null),
                 $rawDonationRows,
             );
-            $rawState = SharedFormSchema::withoutDonationQrUploads($formState);
-            $submittedDonationRows = SharedFormSchema::rekeyDonationRowsByRawKeys(
+            $rawState = DonationQrFields::withoutDonationQrUploads($formState);
+            $submittedDonationRows = DonationQrFields::rekeyDonationRowsByRawKeys(
                 is_array($rawState['donation_channels'] ?? null) ? $rawState['donation_channels'] : [],
                 $rawDonationRows,
             );
@@ -592,8 +595,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             ? $initialState['address']
             : [];
 
-        $initialState['address'] = SharedFormSchema::expandStoredAreasForForm([
-            'country_id' => SharedFormSchema::normalizeLocationId($personAddress['country_id'] ?? null),
+        $initialState['address'] = AddressFields::expandStoredAreasForForm([
+            'country_id' => AddressFormState::normalizeLocationId($personAddress['country_id'] ?? null),
             'area_assignments' => (array) ($personAddress['area_assignments'] ?? []),
         ]);
 
@@ -613,7 +616,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     return $contact;
                 }
 
-                return SharedFormSchema::normalizeContactRowsForComparison($contact);
+                return ContactFields::normalizeContactRowsForComparison($contact);
             },
             is_array($initialState['contactMethods'] ?? null) ? $initialState['contactMethods'] : [],
         );
@@ -1261,7 +1264,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             'navigation_links',
         ]));
 
-        $persistedAddress = SharedFormSchema::prepareAddressPersistenceData($formState['address']);
+        $persistedAddress = AddressFields::prepareAddressPersistenceData($formState['address']);
         $cid = GooglePlaceIdentity::canonicalCid($persistedAddress['google_cid'] ?? null)
             ?? GooglePlaceIdentity::cidFromFeatureId($persistedAddress['google_feature_id'] ?? null);
         $canonicalPlaceId = is_string($persistedAddress['google_place_id'] ?? null)

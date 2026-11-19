@@ -2,20 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\References\Api\Documentation\Schemas;
 
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type ReferenceListItemArray from ReferenceListItem
  *
  * @phpstan-type ReferenceDirectoryResponseArray array{data: list<ReferenceListItemArray>, meta: array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}}}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('ReferenceDirectoryResponse')]
-final readonly class ReferenceDirectoryResponse implements Arrayable
+final readonly class ReferenceDirectoryResponse
 {
     /**
      * @param  list<ReferenceListItem>  $data

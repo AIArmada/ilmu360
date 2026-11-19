@@ -14,7 +14,7 @@ use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Platform\Api\Admin\Contracts\AdminMutationHooks;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -117,8 +117,8 @@ final readonly class PersonMutationHooks implements AdminMutationHooks
             return $validated;
         }
 
-        $countryProvided = SharedFormSchema::countrySelectionProvided($validated['address']);
-        $validated['address'] = SharedFormSchema::prepareAddressPersistenceData($validated['address']);
+        $countryProvided = AddressFields::countrySelectionProvided($validated['address']);
+        $validated['address'] = AddressFields::prepareAddressPersistenceData($validated['address']);
 
         if (! $countryProvided) {
             throw ValidationException::withMessages([

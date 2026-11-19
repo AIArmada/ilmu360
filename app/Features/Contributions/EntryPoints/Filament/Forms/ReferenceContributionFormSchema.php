@@ -3,7 +3,7 @@
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
 use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\SocialFields;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Component;
@@ -28,7 +28,7 @@ class ReferenceContributionFormSchema
                 ->columns(2),
             Section::make(__('Links'))
                 ->schema([
-                    SharedFormSchema::socialMediaRepeater('Add additional links for this reference (e.g. YouTube video, Blog article, etc.)'),
+                    SocialFields::socialMediaRepeater('Add additional links for this reference (e.g. YouTube video, Blog article, etc.)'),
                 ]),
         ];
 

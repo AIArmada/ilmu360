@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Persons\Api\Documentation\Schemas;
 
+use App\Shared\ApiDocumentation\AddressSelection;
+use App\Shared\ApiDocumentation\Country;
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type AddressSelectionArray from AddressSelection
@@ -13,11 +14,9 @@ use Illuminate\Contracts\Support\Arrayable;
  *
  * @phpstan-type PersonMediaArray array{avatar_url: string, cover_url: ?string, share_image_url: ?string}
  * @phpstan-type PersonArray array{id: string, slug: string, name: string, middle_name: string|null, family_name: string|null, gender: string|null, formatted_name: string, bio: ?string, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: PersonMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('Person')]
-final readonly class Person implements Arrayable
+final readonly class Person
 {
     /**
      * @param  array{avatar_url: string, cover_url: ?string, share_image_url: ?string}  $media

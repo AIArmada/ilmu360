@@ -2,20 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Persons\Api\Documentation\Schemas;
 
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type PersonListItemArray from PersonListItem
  *
  * @phpstan-type PersonDirectoryResponseArray array{data: list<PersonListItemArray>, meta: array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}, cache: array{version: string}, request_id: string}}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('PersonDirectoryResponse')]
-final readonly class PersonDirectoryResponse implements Arrayable
+final readonly class PersonDirectoryResponse
 {
     /**
      * @param  list<PersonListItem>  $data

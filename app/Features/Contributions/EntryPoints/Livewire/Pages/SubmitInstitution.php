@@ -16,7 +16,7 @@ use App\Models\User;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
 use App\Platform\Location\Ui\Concerns\InteractsWithLocationPickerSelection;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\DonationQrFields;
 use App\Shared\Signals\SignalRecorder;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -253,12 +253,12 @@ class SubmitInstitution extends Component implements HasActions, HasForms
             app(DonationQrMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
 
             $state = $this->contributionForm()->getState();
-            $donationQrUploads = SharedFormSchema::rekeyDonationRowsByRawKeys(
-                SharedFormSchema::collectDonationQrUploads($state['donation_channels'] ?? null),
+            $donationQrUploads = DonationQrFields::rekeyDonationRowsByRawKeys(
+                DonationQrFields::collectDonationQrUploads($state['donation_channels'] ?? null),
                 $rawDonationRows,
             );
-            $state = SharedFormSchema::withoutDonationQrUploads($state);
-            $submittedDonationRows = SharedFormSchema::rekeyDonationRowsByRawKeys(
+            $state = DonationQrFields::withoutDonationQrUploads($state);
+            $submittedDonationRows = DonationQrFields::rekeyDonationRowsByRawKeys(
                 is_array($state['donation_channels'] ?? null) ? $state['donation_channels'] : [],
                 $rawDonationRows,
             );

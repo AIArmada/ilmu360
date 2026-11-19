@@ -2,21 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Institutions\Api\Documentation\Schemas;
 
+use App\Shared\ApiDocumentation\Country;
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type CountryArray from Country
  *
  * @phpstan-type InstitutionNameArray array{name_type: string, full_name: string, language_code: string, is_primary: bool}
  * @phpstan-type InstitutionListItemArray array{id: string, slug: string, name: string, type: string|null, names: list<InstitutionNameArray>, display_name: string, events_count: int, public_image_url: string, logo_url: string, cover_url: ?string, country: CountryArray|null, location: ?string, distance_km: ?float, is_following: bool, verified_by: ?string}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('InstitutionListItem')]
-final readonly class InstitutionListItem implements Arrayable
+final readonly class InstitutionListItem
 {
     /**
      * @param  list<InstitutionNameArray>  $names

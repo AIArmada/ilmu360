@@ -5,7 +5,9 @@ namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Platform\Location\GooglePlacesConfiguration;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
+use App\Platform\Ui\Forms\ContactFields;
+use App\Platform\Ui\Forms\SocialFields;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -143,7 +145,7 @@ class InstitutionContributionFormSchema
                         ]
                         : []),
                     ...($addressStatePath === null
-                        ? SharedFormSchema::addressFields(
+                        ? AddressFields::addressFields(
                             requireGoogleMaps: $requireGoogleMaps && ! $mapsSelectionRequired,
                             showGoogleMapsUrlField: ! $mapsSelectionRequired && ! $hideGoogleMapsUrlField,
                             enableGoogleMapsNormalization: true,
@@ -153,7 +155,7 @@ class InstitutionContributionFormSchema
                             requireCountryField: true,
                             includeWazeUrlField: $includeWazeUrlField,
                         )
-                        : [SharedFormSchema::addressGroup(
+                        : [AddressFields::addressGroup(
                             requireGoogleMaps: $requireGoogleMaps && ! $mapsSelectionRequired,
                             statePath: $addressStatePath,
                             showGoogleMapsUrlField: ! $mapsSelectionRequired && ! $hideGoogleMapsUrlField,
@@ -168,11 +170,11 @@ class InstitutionContributionFormSchema
                 ->columns($addressStatePath === null ? 2 : 1),
             Section::make(__('Contact'))
                 ->schema([
-                    SharedFormSchema::contactsRepeater(),
+                    ContactFields::contactsRepeater(),
                 ]),
             Section::make(__('Social Media'))
                 ->schema([
-                    SharedFormSchema::socialMediaRepeater(__('Add social media links for this institution')),
+                    SocialFields::socialMediaRepeater(__('Add social media links for this institution')),
                 ]),
             Section::make(__('Donation Channels'))
                 ->description(__('Share official donation accounts for this institution.'))

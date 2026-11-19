@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Persons\Api\Documentation\Schemas;
 
+use App\Features\Events\Api\Documentation\Schemas\EventParticipation;
+use App\Features\Events\Api\Documentation\Schemas\EventSummary;
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type PersonArray from Person
@@ -13,11 +14,9 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-import-type EventParticipationArray from EventParticipation
  *
  * @phpstan-type PersonDetailPageArray array{person: PersonArray, upcoming_events: list<EventSummaryArray>, upcoming_total: int, past_events: list<EventSummaryArray>, past_total: int, other_role_upcoming_participations: list<EventParticipationArray>, other_role_upcoming_total: int, other_role_past_participations: list<EventParticipationArray>, other_role_past_total: int}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('PersonDetailPage')]
-final readonly class PersonDetailPage implements Arrayable
+final readonly class PersonDetailPage
 {
     /**
      * @param  list<EventSummary>  $upcoming_events

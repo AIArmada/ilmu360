@@ -2,20 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Institutions\Api\Documentation\Schemas;
 
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type InstitutionDetailPageArray from InstitutionDetailPage
  *
  * @phpstan-type InstitutionDetailResponseArray array{data: InstitutionDetailPageArray, meta: array{request_id: string}}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('InstitutionDetailResponse')]
-final readonly class InstitutionDetailResponse implements Arrayable
+final readonly class InstitutionDetailResponse
 {
     /**
      * @param  array{request_id: string}  $meta

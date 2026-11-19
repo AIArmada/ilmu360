@@ -9,7 +9,8 @@ use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Instit
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Models\User;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Addressing\AddressFormState;
+use App\Platform\Ui\Forms\AddressFields;
 use App\Shared\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -145,9 +146,9 @@ class EditInstitution extends EditRecord
      */
     private function addressFormState(?Address $address): array
     {
-        $countryId = SharedFormSchema::normalizeLocationId($address?->country_id);
+        $countryId = AddressFormState::normalizeLocationId($address?->country_id);
 
-        return SharedFormSchema::hydrateAddressFormState([
+        return AddressFields::hydrateAddressFormState([
             'country_id' => $countryId,
             'state_id' => $address?->state_id,
             'city_id' => $address?->city_id,

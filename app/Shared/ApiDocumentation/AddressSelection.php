@@ -2,20 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Shared\ApiDocumentation;
 
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * Product address selection using country-profile-defined address assignments.
  *
  * @phpstan-type AddressSelectionArray array{country_id: ?string, state_id: ?string, city_id: ?string, area_assignments: array<string, string>}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('AddressSelection')]
-final readonly class AddressSelection implements Arrayable
+final readonly class AddressSelection
 {
     public function __construct(
         public ?string $country_id,

@@ -16,7 +16,7 @@ use App\Features\Institutions\Support\InstitutionFacilities;
 use App\Models\User;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Platform\Api\Admin\Contracts\AdminMutationHooks;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
@@ -128,8 +128,8 @@ final readonly class InstitutionMutationHooks implements AdminMutationHooks
             return $validated;
         }
 
-        $countryProvided = SharedFormSchema::countrySelectionProvided($validated['address']);
-        $validated['address'] = SharedFormSchema::prepareAddressPersistenceData($validated['address']);
+        $countryProvided = AddressFields::countrySelectionProvided($validated['address']);
+        $validated['address'] = AddressFields::prepareAddressPersistenceData($validated['address']);
 
         if (! $countryProvided && $record instanceof Institution && is_string($record->primaryAddress()?->country_id)) {
             $validated['address']['country_id'] = $record->primaryAddress()->country_id;

@@ -2,20 +2,18 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Persons\Api\Documentation\Schemas;
 
+use App\Shared\ApiDocumentation\Country;
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type CountryArray from Country
  *
  * @phpstan-type PersonListItemArray array{id: string, slug: string, name: string, middle_name: string|null, family_name: string|null, gender: string|null, formatted_name: string, status: string, verified_by: ?string, events_count: int, avatar_url: string, country: CountryArray|null, is_following: bool}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('PersonListItem')]
-final readonly class PersonListItem implements Arrayable
+final readonly class PersonListItem
 {
     public function __construct(
         public string $id,

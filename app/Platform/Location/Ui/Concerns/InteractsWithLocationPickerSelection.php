@@ -7,7 +7,7 @@ namespace App\Platform\Location\Ui\Concerns;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
 use App\Platform\Location\GooglePlaceIdentity;
 use App\Platform\Location\ResolveGooglePlaceSelectionAction;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
@@ -64,12 +64,12 @@ trait InteractsWithLocationPickerSelection
         ]));
 
         $resolvedAddress['area_assignments'] = array_merge(
-            array_fill_keys(SharedFormSchema::entryAreaRoles(), null),
+            array_fill_keys(AddressFields::entryAreaRoles(), null),
             $resolvedAddress['area_assignments'] ?? [],
         );
 
         data_set($this, $statePath, array_merge($currentAddress, $resolvedAddress, [
-            'cascade_reset_guard' => SharedFormSchema::publicLocationPickerCascadeResetGuard(),
+            'cascade_reset_guard' => AddressFields::publicLocationPickerCascadeResetGuard(),
         ]));
 
         return $resolvedAddress;

@@ -10,36 +10,23 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use AIArmada\Addressing\Support\CountryAddressProfileResolver;
-use AIArmada\Contacting\Enums\ContactMethodType;
-use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Contacting\Enums\SocialPlatform;
-use AIArmada\Contacting\Support\SocialProfileConfig;
 use App\Platform\Addressing\AddressAreaRoles;
 use App\Platform\Addressing\AddressFormState;
-use App\Platform\Contributions\ContributionPayload;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\LocationLevelLabels;
 use App\Platform\Location\LocationSlugResolver;
 use App\Shared\Cache\SelectionCatalogCache;
-use App\Shared\Contributions\Support\DonationQrUploads;
 use Closure;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
-use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
-class SharedFormSchema
+class AddressFields
 {
     private static ?string $cacheScope = null;
 
@@ -283,395 +270,6 @@ class SharedFormSchema
     }
 
     /**
-     * Social media repeater schema.
-     */
-    public static function socialMediaRepeater(string $helperText = 'Add social media links'): Repeater
-    {
-        return Repeater::make('social_media')
-            ->label(__('Social Media'))
-            ->schema([
-                Grid::make(2)->schema([
-                    Select::make('platform')
-                        ->label(__('Platform'))
-                        ->required()
-                        ->options(self::translatedOptions(SocialPlatform::options()))
-                        ->searchable()
-                        ->live(),
-                    TextInput::make('label')
-                        ->label(__('Label'))
-                        ->maxLength(255)
-                        ->helperText(__('Optional name shown alongside this link.'))
-                        ->placeholder(__('Main page, Official channel')),
-                ]),
-                TextInput::make('handle')
-                    ->label(__('Handle'))
-                    ->required()
-                    ->maxLength(255)
-                    ->helperText(__('Enter the username or full profile link.'))
-                    ->placeholder(__('username / https://...'))
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
-                        if ($state === null || $state === '' || ! str_contains($state, '://')) {
-                            return;
-                        }
-
-                        $platform = $get('platform');
-                        if ($platform === null || $platform === '') {
-                            return;
-                        }
-
-                        $platformValue = $platform instanceof SocialPlatform ? $platform->value : $platform;
-                        $extracted = app(SocialProfileConfig::class)->extractHandle($platformValue, $state);
-
-                        if ($extracted !== null) {
-                            $set('handle', $extracted);
-                        }
-                    })
-                    ->visible(fn (Get $get): bool => self::socialHandleVisible($get)),
-                Placeholder::make('profile_url')
-                    ->label(__('Profile URL'))
-                    ->content(function (Get $get): ?string {
-                        $platform = $get('platform');
-                        $handle = $get('handle');
-
-                        if (! is_string($handle) || $handle === '') {
-                            return null;
-                        }
-
-                        $platformValue = $platform instanceof SocialPlatform ? $platform->value : (string) $platform;
-
-                        return app(SocialProfileConfig::class)->buildUrl($platformValue, $handle);
-                    })
-                    ->columnSpanFull()
-                    ->visible(fn (Get $get): bool => self::socialHandleVisible($get)),
-                TextInput::make('url')
-                    ->label(__('URL'))
-                    ->required()
-                    ->url()
-                    ->maxLength(255)
-                    ->placeholder(__('https://...'))
-                    ->columnSpanFull()
-                    ->visible(fn (Get $get): bool => self::socialUrlVisible($get)),
-                Grid::make(2)->schema([
-                    Toggle::make('is_primary')
-                        ->label(__('Primary'))
-                        ->fixIndistinctState(),
-                    Toggle::make('is_public')
-                        ->label(__('Public'))
-                        ->default(true),
-                ])->columnSpanFull(),
-            ])
-            ->collapsible()
-            ->defaultItems(0)
-            ->addActionLabel(__('Add Social Media'))
-            ->helperText(__($helperText));
-    }
-
-    private static function socialHandleVisible(Get $get): bool
-    {
-        $platform = $get('platform');
-        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
-
-        return is_string($value)
-            && $value !== SocialPlatform::Website->value
-            && $value !== SocialPlatform::Other->value;
-    }
-
-    private static function socialUrlVisible(Get $get): bool
-    {
-        $platform = $get('platform');
-        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
-
-        return $value === SocialPlatform::Website->value || $value === SocialPlatform::Other->value;
-    }
-
-    public static function contactsRepeater(?string $helperText = null): Repeater
-    {
-        $repeater = Repeater::make('contactMethods')
-            ->label(__('Contact Details'))
-            ->default([])
-            ->schema([
-                Select::make('type')
-                    ->label(__('Type'))
-                    ->options(self::translatedOptions(ContactMethodType::options()))
-                    ->required()
-                    ->live(),
-                ...self::contactValueFields(),
-                Select::make('purpose')
-                    ->label(__('Purpose'))
-                    ->options(self::translatedOptions(ContactPurpose::options()))
-                    ->default(ContactPurpose::General->value)
-                    ->required(),
-                Grid::make(2)->schema([
-                    Toggle::make('is_primary')
-                        ->label(__('Primary'))
-                        ->fixIndistinctState(),
-                    Toggle::make('is_public')
-                        ->label(__('Public'))
-                        ->default(true),
-                ])->columnSpanFull(),
-            ])
-            ->columns(4)
-            ->addActionLabel(__('Add contact details'))
-            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => self::normalizeContactRowsForFill($data))
-            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => self::normalizeContactRowsForSave($data))
-            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => self::normalizeContactRowsForSave($data));
-
-        if ($helperText !== null) {
-            $repeater->helperText(__($helperText));
-        }
-
-        return $repeater;
-    }
-
-    /**
-     * @return array<int, TextInput|PhoneInput>
-     */
-    public static function contactValueFields(): array
-    {
-        $phoneTypes = [ContactMethodType::Phone, ContactMethodType::Phone->value, ContactMethodType::Whatsapp, ContactMethodType::Whatsapp->value, ContactMethodType::Mobile, ContactMethodType::Mobile->value];
-        $emailTypes = [ContactMethodType::Email, ContactMethodType::Email->value];
-
-        return [
-            PhoneInput::make('phone_value')
-                ->label(fn (Get $get): string => match ($get('type')) {
-                    ContactMethodType::Phone, ContactMethodType::Phone->value => __('Phone Number'),
-                    ContactMethodType::Whatsapp, ContactMethodType::Whatsapp->value => __('WhatsApp Number'),
-                    ContactMethodType::Mobile, ContactMethodType::Mobile->value => __('Mobile Number'),
-                    default => __('Value'),
-                })
-                ->required()
-                ->visible(fn (Get $get): bool => in_array($get('type'), $phoneTypes, true))
-                ->dehydrated(fn (Get $get): bool => in_array($get('type'), $phoneTypes, true))
-                ->afterStateHydrated(function (PhoneInput $component, mixed $state, Get $get, Set $set): void {
-                    if (! self::isPhoneContactType($get('type'))) {
-                        return;
-                    }
-
-                    $value = self::normalizedContactValue($state) ?? self::normalizedContactValue($get('value'));
-
-                    if ($value === null) {
-                        return;
-                    }
-
-                    $component->state($value);
-                    $set('value', $value);
-                })
-                ->afterStateUpdated(function (Set $set, mixed $state): void {
-                    $set('value', self::normalizedContactValue($state));
-                })
-                ->initialCountry('MY')
-                ->displayNumberFormat(PhoneInputNumberType::INTERNATIONAL)
-                ->inputNumberFormat(PhoneInputNumberType::E164),
-            TextInput::make('value')
-                ->label(fn (Get $get): string => match ($get('type')) {
-                    ContactMethodType::Email, ContactMethodType::Email->value => __('Email Address'),
-                    default => __('Value'),
-                })
-                ->required()
-                ->maxLength(255)
-                ->visible(fn (Get $get): bool => ! in_array($get('type'), $phoneTypes, true))
-                ->dehydrated(fn (Get $get): bool => ! in_array($get('type'), $phoneTypes, true))
-                ->email(fn (Get $get): bool => in_array($get('type'), $emailTypes, true)),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>|list<array<string, mixed>>  $data
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public static function normalizeContactRowsForFill(array $data): array
-    {
-        if (array_is_list($data)) {
-            return array_map(self::normalizeContactRowForFill(...), $data);
-        }
-
-        return self::normalizeContactRowForFill($data);
-    }
-
-    /**
-     * @param  array<string, mixed>|list<array<string, mixed>>  $data
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public static function normalizeContactRowsForSave(array $data): array
-    {
-        if (array_is_list($data)) {
-            return array_map(self::normalizeContactRowForSave(...), $data);
-        }
-
-        return self::normalizeContactRowForSave($data);
-    }
-
-    /**
-     * @param  array<string, mixed>|list<array<string, mixed>>  $data
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public static function normalizeContactRowsForComparison(array $data): array
-    {
-        return ContributionPayload::normalizeContactRowsForComparison($data);
-    }
-
-    /**
-     * Project submitted donation rows onto the canonical persisted shape so
-     * unchanged channel lists compare equal against the stored state.
-     *
-     * @param  list<array<string, mixed>>  $rows
-     * @return list<array<string, mixed>>
-     */
-    public static function normalizeDonationChannelRowsForComparison(array $rows): array
-    {
-        return ContributionPayload::normalizeDonationChannelRowsForComparison($rows);
-    }
-
-    /**
-     * Collect donation QR uploads from submitted form state. The field uses
-     * `storeFiles(false)`, so submitted values are temporary upload objects
-     * — only those are accepted, and string paths are never trusted. Filament
-     * stores single uploads under a generated file key
-     * (`['<fileKey>' => TemporaryUploadedFile]`), so the first entry wins
-     * regardless of numeric or string keys.
-     *
-     * @return array<int|string, TemporaryUploadedFile>
-     */
-    public static function collectDonationQrUploads(mixed $donationRows): array
-    {
-        return DonationQrUploads::collect($donationRows);
-    }
-
-    /**
-     * Strip QR upload values from dehydrated state so comparisons and stored
-     * payloads only see channel data — files travel separately.
-     *
-     * @param  array<string, mixed>  $state
-     * @return array<string, mixed>
-     */
-    public static function withoutDonationQrUploads(array $state): array
-    {
-        if (! is_array($state['donation_channels'] ?? null)) {
-            return $state;
-        }
-
-        foreach ($state['donation_channels'] as $index => $row) {
-            if (is_array($row)) {
-                unset($state['donation_channels'][$index]['qr_upload']);
-            }
-        }
-
-        return $state;
-    }
-
-    /**
-     * Re-key a dehydrated donation array by the raw repeater keys. Filament
-     * dehydrates repeater items with `array_values()`, so dehydrated rows are
-     * numerically indexed while the rendered fields keep their raw (usually
-     * UUID) keys. Mapping back lets error keys point at the rendered field.
-     *
-     * @param  array<int|string, mixed>  $dehydrated
-     * @return array<int|string, mixed>
-     */
-    public static function rekeyDonationRowsByRawKeys(array $dehydrated, mixed $rawRows): array
-    {
-        $rawKeys = is_array($rawRows) ? array_keys($rawRows) : [];
-        $rekeyed = [];
-
-        foreach (array_values($dehydrated) as $index => $value) {
-            $rekeyed[$rawKeys[$index] ?? $index] = $value;
-        }
-
-        return $rekeyed;
-    }
-
-    /**
-     * @param  array<string, mixed>  $contact
-     * @return array<string, mixed>
-     */
-    private static function normalizeContactRowForFill(array $contact): array
-    {
-        $contact['type'] ??= $contact['category'] ?? null;
-        $contact['purpose'] ??= ContactPurpose::General->value;
-
-        unset($contact['category']);
-
-        if (self::isPhoneContactType($contact['type'] ?? null)) {
-            $contact['phone_value'] = $contact['value'] ?? null;
-        }
-
-        return $contact;
-    }
-
-    /**
-     * @param  array<string, mixed>  $contact
-     * @return array<string, mixed>
-     */
-    private static function normalizeContactRowForSave(array $contact): array
-    {
-        $contact['type'] ??= $contact['category'] ?? null;
-        $contact['purpose'] ??= ContactPurpose::General->value;
-        $type = $contact['type'] ?? null;
-
-        unset($contact['category']);
-
-        if (self::isPhoneContactType($type)) {
-            $value = self::normalizedContactValue($contact['phone_value'] ?? $contact['value'] ?? null);
-
-            if ($value !== null) {
-                $contact['value'] = $value;
-            }
-
-            unset($contact['phone_value']);
-
-            return $contact;
-        }
-
-        $value = self::normalizedContactValue($contact['value'] ?? null);
-
-        if ($value !== null) {
-            $contact['value'] = $value;
-        }
-
-        unset($contact['phone_value']);
-
-        return $contact;
-    }
-
-    public static function isPhoneContactType(mixed $type): bool
-    {
-        return ContributionPayload::isPhoneContactType($type);
-    }
-
-    public static function normalizedContactValue(mixed $value): ?string
-    {
-        return ContributionPayload::normalizedContactValue($value);
-    }
-
-    public static function normalizedComparablePhoneValue(mixed $value): ?string
-    {
-        return ContributionPayload::normalizedComparablePhoneValue($value);
-    }
-
-    /**
-     * @param  array<string, mixed>  $state
-     */
-    public static function contactItemLabel(array $state): string
-    {
-        $type = $state['type'] ?? $state['category'] ?? null;
-
-        if ($type instanceof ContactMethodType) {
-            $typeLabel = $type->label();
-        } elseif (is_string($type)) {
-            $typeLabel = ContactMethodType::tryFrom($type)?->label() ?? $type;
-        } else {
-            $typeLabel = __('Contact');
-        }
-
-        $value = self::isPhoneContactType($type)
-            ? self::normalizedContactValue($state['phone_value'] ?? ($state['value'] ?? null))
-            : self::normalizedContactValue($state['value'] ?? null);
-
-        return $typeLabel.': '.($value ?? '');
-    }
-
-    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -832,7 +430,7 @@ class SharedFormSchema
     public static function stateOptionsForCountry(int|string|null $countryId): array
     {
         self::ensureCacheScope();
-        $countryId = self::normalizeLocationId($countryId);
+        $countryId = AddressFormState::normalizeLocationId($countryId);
 
         if ($countryId === null) {
             return [];
@@ -854,8 +452,8 @@ class SharedFormSchema
     public static function cityOptionsForState(int|string|null $stateId, int|string|null $countryId = null): array
     {
         self::ensureCacheScope();
-        $stateId = self::normalizeLocationId($stateId);
-        $countryId = self::normalizeLocationId($countryId);
+        $stateId = AddressFormState::normalizeLocationId($stateId);
+        $countryId = AddressFormState::normalizeLocationId($countryId);
 
         if ($stateId === null && $countryId === null) {
             return [];
@@ -887,8 +485,8 @@ class SharedFormSchema
     /** @return array<int|string, string> */
     public static function districtOptionsForState(int|string|null $stateId, int|string|null $countryId = null): array
     {
-        $stateId = self::normalizeLocationId($stateId);
-        $countryId = self::normalizeLocationId($countryId);
+        $stateId = AddressFormState::normalizeLocationId($stateId);
+        $countryId = AddressFormState::normalizeLocationId($countryId);
 
         if ($stateId !== null) {
             $countryId ??= self::countryIdForState($stateId);
@@ -907,9 +505,9 @@ class SharedFormSchema
         int|string|null $districtId,
         int|string|null $countryId = null,
     ): array {
-        $districtId = self::normalizeLocationId($districtId);
-        $stateId = self::normalizeLocationId($stateId);
-        $countryId = self::normalizeLocationId($countryId) ?? self::countryIdForState($stateId);
+        $districtId = AddressFormState::normalizeLocationId($districtId);
+        $stateId = AddressFormState::normalizeLocationId($stateId);
+        $countryId = AddressFormState::normalizeLocationId($countryId) ?? self::countryIdForState($stateId);
 
         if ($countryId === null) {
             return [];
@@ -940,7 +538,7 @@ class SharedFormSchema
         int|string|null $parentId = null,
     ): array {
         self::ensureCacheScope();
-        $countryId = self::normalizeLocationId($countryId);
+        $countryId = AddressFormState::normalizeLocationId($countryId);
 
         if ($countryId === null && $parentId !== null) {
             $countryId = self::resolveCountryIdForParent($parentId);
@@ -950,7 +548,7 @@ class SharedFormSchema
             return [];
         }
 
-        $parentId = self::normalizeLocationId($parentId);
+        $parentId = AddressFormState::normalizeLocationId($parentId);
         $cacheKey = "{$countryId}:{$role}:".($parentId ?? 'root');
 
         if (array_key_exists($cacheKey, self::$areaOptions)) {
@@ -983,7 +581,7 @@ class SharedFormSchema
         int|string|null $parentId = null,
     ): array {
         self::ensureCacheScope();
-        $countryId = self::normalizeLocationId($countryId);
+        $countryId = AddressFormState::normalizeLocationId($countryId);
 
         if ($countryId === null && $parentId !== null) {
             $countryId = self::resolveCountryIdForParent($parentId);
@@ -993,7 +591,7 @@ class SharedFormSchema
             return [];
         }
 
-        $parentId = self::normalizeLocationId($parentId);
+        $parentId = AddressFormState::normalizeLocationId($parentId);
         $cacheKey = "{$countryId}:{$role}:".($parentId ?? 'root');
 
         if (array_key_exists($cacheKey, self::$areaSlugs)) {
@@ -1081,7 +679,7 @@ class SharedFormSchema
 
     private static function resolveCountryIdForParent(int|string $parentId): ?string
     {
-        $parentKey = self::normalizeLocationId($parentId);
+        $parentKey = AddressFormState::normalizeLocationId($parentId);
 
         if ($parentKey === null) {
             return null;
@@ -1112,7 +710,7 @@ class SharedFormSchema
     public static function stateIdFromStoredAreas(array $assignments): ?string
     {
         foreach (AddressAssignments::normalize($assignments) as $areaId) {
-            $areaId = self::normalizeLocationId($areaId);
+            $areaId = AddressFormState::normalizeLocationId($areaId);
 
             if ($areaId === null) {
                 continue;
@@ -1137,11 +735,11 @@ class SharedFormSchema
     public static function expandStoredAreasForForm(array $data): array
     {
         $assignments = AddressAssignments::normalize((array) ($data['area_assignments'] ?? []));
-        $stateId = self::normalizeLocationId($data['state_id'] ?? null)
+        $stateId = AddressFormState::normalizeLocationId($data['state_id'] ?? null)
             ?? self::stateIdFromStoredAreas($assignments);
-        $cityId = self::normalizeLocationId($data['city_id'] ?? null);
+        $cityId = AddressFormState::normalizeLocationId($data['city_id'] ?? null);
 
-        $countryId = self::normalizeLocationId($data['country_id'] ?? null);
+        $countryId = AddressFormState::normalizeLocationId($data['country_id'] ?? null);
 
         if ($stateId === null && is_string($data['state'] ?? null) && trim($data['state']) !== '') {
             $stateQuery = State::query()->whereLike('name', trim($data['state']));
@@ -1150,7 +748,7 @@ class SharedFormSchema
                 $stateQuery->where('country_id', $countryId);
             }
 
-            $stateId = self::normalizeLocationId($stateQuery->value('id'));
+            $stateId = AddressFormState::normalizeLocationId($stateQuery->value('id'));
         }
 
         if ($cityId === null && is_string($data['city'] ?? null) && trim($data['city']) !== '') {
@@ -1164,7 +762,7 @@ class SharedFormSchema
                 $cityQuery->where('country_id', $countryId);
             }
 
-            $cityId = self::normalizeLocationId($cityQuery->value('id'));
+            $cityId = AddressFormState::normalizeLocationId($cityQuery->value('id'));
         }
 
         if ($cityId !== null && ! City::query()->whereKey($cityId)->exists()) {
@@ -1250,7 +848,7 @@ class SharedFormSchema
                 ->searchable()
                 ->preload()
                 ->live()
-                ->disabled(fn (Get $get): bool => $includeCountryField && self::normalizeLocationId($get('country_id')) === null)
+                ->disabled(fn (Get $get): bool => $includeCountryField && AddressFormState::normalizeLocationId($get('country_id')) === null)
                 ->visible(fn (Get $get): bool => self::stateSelectOptions(
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
                 ) !== [])
@@ -1375,7 +973,7 @@ class SharedFormSchema
      */
     private static function stateSelectOptions(mixed $countryId): array
     {
-        return app(LocationSlugResolver::class)->stateOptionsForCountry(self::normalizeLocationId($countryId));
+        return app(LocationSlugResolver::class)->stateOptionsForCountry(AddressFormState::normalizeLocationId($countryId));
     }
 
     /**
@@ -1385,7 +983,7 @@ class SharedFormSchema
      */
     private static function childAreaRoles(mixed $countryId, string $role): array
     {
-        $countryId = self::normalizeLocationId($countryId);
+        $countryId = AddressFormState::normalizeLocationId($countryId);
 
         if ($countryId === null) {
             return [];
@@ -1424,17 +1022,17 @@ class SharedFormSchema
                 return false;
             }
 
-            $countryId = self::normalizeLocationId($includeCountryField ? $get('country_id') : $defaultCountryId)
-                ?? self::countryIdForState(self::normalizeLocationId($stateId));
+            $countryId = AddressFormState::normalizeLocationId($includeCountryField ? $get('country_id') : $defaultCountryId)
+                ?? self::countryIdForState(AddressFormState::normalizeLocationId($stateId));
 
-            if (self::isFederalTerritory(self::normalizeLocationId($stateId), $countryId)) {
+            if (self::isFederalTerritory(AddressFormState::normalizeLocationId($stateId), $countryId)) {
                 return false;
             }
 
             // City is redundant when the country's first cascade slot applies.
             $slot0 = $countryId === null ? null : app(LocationSlugResolver::class)->districtRoleForCountry($countryId);
 
-            if ($slot0 !== null && self::areaOptionsForRole($countryId, $slot0, self::normalizeLocationId($stateId)) !== []) {
+            if ($slot0 !== null && self::areaOptionsForRole($countryId, $slot0, AddressFormState::normalizeLocationId($stateId)) !== []) {
                 return false;
             }
 
@@ -1446,8 +1044,8 @@ class SharedFormSchema
 
     private static function areaVisible(Get $get, mixed $countryId, string $role): bool
     {
-        $countryId = self::normalizeLocationId($countryId) ?? self::countryIdForState(self::normalizeLocationId($get('state_id')));
-        $stateId = self::normalizeLocationId($get('state_id'));
+        $countryId = AddressFormState::normalizeLocationId($countryId) ?? self::countryIdForState(AddressFormState::normalizeLocationId($get('state_id')));
+        $stateId = AddressFormState::normalizeLocationId($get('state_id'));
         $gate = $countryId === null
             ? null
             : app(LocationSlugResolver::class)->areaEffectiveParentRoleForCountry($countryId, $role, $stateId);
@@ -1469,7 +1067,7 @@ class SharedFormSchema
 
     private static function areaParentIdForRole(Get $get, mixed $countryId, string $role): mixed
     {
-        $countryId = self::normalizeLocationId($countryId);
+        $countryId = AddressFormState::normalizeLocationId($countryId);
 
         if ($countryId === null) {
             return null;
@@ -1480,7 +1078,7 @@ class SharedFormSchema
         return app(CountryAddressProfileResolver::class)->parentAreaIdForRole(
             $countryId,
             $role,
-            self::normalizeLocationId($get('state_id')),
+            AddressFormState::normalizeLocationId($get('state_id')),
             $areaIds,
             static fn (string $probeRole, string $probeParentId): bool => self::areaOptionsForRole($countryId, $probeRole, $probeParentId) !== [],
         );
@@ -1491,7 +1089,7 @@ class SharedFormSchema
      */
     private static function formAreaIds(Get $get, mixed $countryId): array
     {
-        $countryId = self::normalizeLocationId($countryId);
+        $countryId = AddressFormState::normalizeLocationId($countryId);
 
         if ($countryId === null) {
             return [];
@@ -1500,7 +1098,7 @@ class SharedFormSchema
         $areaIds = [];
 
         foreach (app(CountryAddressProfileResolver::class)->assignmentRoles($countryId) as $areaRole) {
-            $areaIds[$areaRole] = self::normalizeLocationId($get("area_assignments.{$areaRole}"));
+            $areaIds[$areaRole] = AddressFormState::normalizeLocationId($get("area_assignments.{$areaRole}"));
         }
 
         return $areaIds;
@@ -1517,27 +1115,12 @@ class SharedFormSchema
         array $areaIds = [],
     ): string {
         return LocationLevelLabels::label(
-            self::normalizeLocationId($countryId),
+            AddressFormState::normalizeLocationId($countryId),
             $role,
             $fallback,
-            self::normalizeLocationId($stateId),
+            AddressFormState::normalizeLocationId($stateId),
             $areaIds,
         );
-    }
-
-    /**
-     * @param  array<int|string, string>  $options
-     * @return array<string, string>
-     */
-    private static function translatedOptions(array $options): array
-    {
-        $translated = [];
-
-        foreach ($options as $value => $label) {
-            $translated[(string) $value] = __($label);
-        }
-
-        return $translated;
     }
 
     private static function countryCascadeResetScript(): string
@@ -1561,10 +1144,5 @@ class SharedFormSchema
         return <<<'JS'
             // City is independent of district/subdistrict; no child reset.
             JS;
-    }
-
-    public static function normalizeLocationId(mixed $value): ?string
-    {
-        return AddressFormState::normalizeLocationId($value);
     }
 }

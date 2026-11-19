@@ -12,7 +12,7 @@ use App\Platform\Mcp\Servers\AdminServer;
 use App\Platform\Mcp\Servers\MemberServer;
 use App\Platform\Mcp\Tools\Admin\AdminUpdateRecordTool;
 use App\Platform\Mcp\Tools\Member\MemberUpdateRecordTool;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -23,7 +23,7 @@ beforeEach(function (): void {
 it('preserves omitted address fields in the shared address payload', function (): void {
     $country = ensureTestMalaysiaCountry();
 
-    $payload = SharedFormSchema::prepareAddressPersistenceData([
+    $payload = AddressFields::prepareAddressPersistenceData([
         'country_id' => (string) $country->getKey(),
         'line1' => 'Jalan Duta',
     ]);

@@ -2,18 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\References\Api\Documentation\Schemas;
 
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-type ReferenceListItemArray array{id: string, slug: string, title: string, display_title: string, authors: list<array{id: string, name: string, slug: string}>, author_ids: list<string>, type: ?string, parent_id: ?string, record_kind: string, edition_number: ?int, edition_label: ?string, isbn: ?string, language: ?string, language_label: ?string, url: ?string, part_type: ?string, part_number: ?string, part_label: ?string, is_part: bool, publisher: ?string, publication_year: ?string, status: string, verified_by: ?string, events_count: int, front_cover_url: ?string, is_following: bool}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('ReferenceListItem')]
-final readonly class ReferenceListItem implements Arrayable
+final readonly class ReferenceListItem
 {
     /**
      * @param  list<array{id: string, name: string, slug: string}>  $authors

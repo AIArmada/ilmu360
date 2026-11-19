@@ -6,7 +6,7 @@ namespace App\Platform\Location;
 
 use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Support\CountryAddressProfileResolver;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Support\Str;
 
@@ -61,7 +61,7 @@ final class LocationSlugResolver
 
         return $this->mapsFor(
             "states:{$countryId}",
-            static fn (): array => SharedFormSchema::stateOptionsForCountry($countryId),
+            static fn (): array => AddressFields::stateOptionsForCountry($countryId),
         );
     }
 
@@ -84,7 +84,7 @@ final class LocationSlugResolver
             return [];
         }
 
-        return SharedFormSchema::stateOptionsForCountry($countryId);
+        return AddressFields::stateOptionsForCountry($countryId);
     }
 
     /**
@@ -94,7 +94,7 @@ final class LocationSlugResolver
     {
         return $this->mapsFor(
             'cities:'.($stateId ?? 'any').':'.($countryId ?? 'any'),
-            static fn (): array => SharedFormSchema::cityOptionsForState($stateId, $countryId),
+            static fn (): array => AddressFields::cityOptionsForState($stateId, $countryId),
         );
     }
 
@@ -130,8 +130,8 @@ final class LocationSlugResolver
 
         return $this->mapsFor(
             "districts:{$countryId}:{$stateId}",
-            static fn (): array => SharedFormSchema::areaOptionsForRole($countryId, $role, $stateId),
-            static fn (): array => SharedFormSchema::areaSlugsForRole($countryId, $role, $stateId),
+            static fn (): array => AddressFields::areaOptionsForRole($countryId, $role, $stateId),
+            static fn (): array => AddressFields::areaSlugsForRole($countryId, $role, $stateId),
         );
     }
 
@@ -148,8 +148,8 @@ final class LocationSlugResolver
 
         return $this->mapsFor(
             "subdivisions:{$countryId}:{$stateId}:{$districtId}",
-            static fn (): array => SharedFormSchema::areaOptionsForRole($countryId, $role, $districtId ?? $stateId),
-            static fn (): array => SharedFormSchema::areaSlugsForRole($countryId, $role, $districtId ?? $stateId),
+            static fn (): array => AddressFields::areaOptionsForRole($countryId, $role, $districtId ?? $stateId),
+            static fn (): array => AddressFields::areaSlugsForRole($countryId, $role, $districtId ?? $stateId),
         );
     }
 
@@ -183,8 +183,8 @@ final class LocationSlugResolver
 
         return $this->mapsFor(
             "areas:{$countryId}:{$role}:".($parentId ?? 'root'),
-            static fn (): array => SharedFormSchema::areaOptionsForRole($countryId, $role, $parentId),
-            static fn (): array => SharedFormSchema::areaSlugsForRole($countryId, $role, $parentId),
+            static fn (): array => AddressFields::areaOptionsForRole($countryId, $role, $parentId),
+            static fn (): array => AddressFields::areaSlugsForRole($countryId, $role, $parentId),
         );
     }
 
@@ -500,7 +500,7 @@ final class LocationSlugResolver
     }
 
     /**
-     * Reset the per-request memo. Modelled on SharedFormSchema::ensureCacheScope()
+     * Reset the per-request memo. Modelled on AddressFields::ensureCacheScope()
      * so Octane workers do not leak one request's maps into the next.
      */
     private function ensureCacheScope(): void

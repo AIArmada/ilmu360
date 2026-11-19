@@ -7,7 +7,8 @@ use App\Features\Places\Api\Enums\VenueType;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\Models\Venue;
 use App\Platform\Location\GooglePlacesConfiguration;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
+use App\Platform\Ui\Forms\SocialFields;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
@@ -78,7 +79,7 @@ class VenueFormSchema
 
             ...self::addressSchema(includeLocationPicker: $includeLocationPicker),
 
-            SharedFormSchema::socialMediaRepeater('Add social media links for this venue'),
+            SocialFields::socialMediaRepeater('Add social media links for this venue'),
         ];
     }
 
@@ -109,7 +110,7 @@ class VenueFormSchema
         $defaultCountryId = app(AddressCountryResolver::class)->resolveId('MY');
 
         if (! $includeLocationPicker) {
-            return SharedFormSchema::addressFields(
+            return AddressFields::addressFields(
                 requireGoogleMaps: true,
                 includeCountryField: true,
                 showCountryField: true,
@@ -134,7 +135,7 @@ class VenueFormSchema
                             ]),
                     ]
                     : []),
-                ...SharedFormSchema::addressFields(
+                ...AddressFields::addressFields(
                     requireGoogleMaps: true,
                     showGoogleMapsUrlField: ! $shouldRenderLocationPicker,
                     enableGoogleMapsNormalization: true,

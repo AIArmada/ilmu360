@@ -43,7 +43,7 @@ final class VisitorCountryResolver implements VisitorCountryResolving
     ) {}
 
     /**
-     * Reset the per-request memo. Modelled on SharedFormSchema::ensureCacheScope()
+     * Reset the per-request memo. Modelled on AddressFields::ensureCacheScope()
      * so Octane workers do not leak one visitor's country into the next request.
      */
     private function ensureCacheScope(): void

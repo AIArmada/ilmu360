@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Institutions\Api\Documentation\Schemas;
 
+use App\Shared\ApiDocumentation\AddressSelection;
+use App\Shared\ApiDocumentation\Country;
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type AddressSelectionArray from AddressSelection
@@ -14,11 +15,9 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-type InstitutionNameArray array{name_type: string, full_name: string, language_code: string, is_primary: bool}
  * @phpstan-type InstitutionMediaArray array{public_image_url: string, logo_url: string, cover_url: ?string}
  * @phpstan-type InstitutionArray array{id: string, slug: string, name: string, names: list<InstitutionNameArray>, display_name: string, description: ?string, status: string, verified_by: ?string, type: string|null, type_label: ?string, address_line: ?string, address: AddressSelectionArray|null, country: CountryArray|null, map_url: ?string, followers_count: int, person_count: int, is_following: bool, media: InstitutionMediaArray, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>, waze_url: ?string, donation_channels: list<array<string, mixed>>}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('Institution')]
-final readonly class Institution implements Arrayable
+final readonly class Institution
 {
     /**
      * @param  array{public_image_url: string, logo_url: string, cover_url: ?string}  $media

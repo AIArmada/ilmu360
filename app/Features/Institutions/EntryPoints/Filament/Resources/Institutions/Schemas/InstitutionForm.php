@@ -13,7 +13,8 @@ use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Support\InstitutionFacilities;
 use App\Models\User;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
+use App\Platform\Ui\Forms\ContactFields;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -113,7 +114,7 @@ class InstitutionForm
                                     ->options(ContactMethodType::options())
                                     ->required()
                                     ->live(),
-                                ...SharedFormSchema::contactValueFields(),
+                                ...ContactFields::contactValueFields(),
                                 Select::make('purpose')
                                     ->options(ContactPurpose::options())
                                     ->default(ContactPurpose::General->value)
@@ -124,14 +125,14 @@ class InstitutionForm
                             ])
                             ->columns(4)
                             ->orderColumn('sort_order')
-                            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForFill($data))
-                            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForSave($data))
-                            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForSave($data))
-                            ->itemLabel(fn (array $state): string => SharedFormSchema::contactItemLabel($state)),
+                            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => ContactFields::normalizeContactRowsForFill($data))
+                            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => ContactFields::normalizeContactRowsForSave($data))
+                            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => ContactFields::normalizeContactRowsForSave($data))
+                            ->itemLabel(fn (array $state): string => ContactFields::contactItemLabel($state)),
                     ]),
                 Section::make('Location')
                     ->statePath('address')
-                    ->components(SharedFormSchema::addressFields(
+                    ->components(AddressFields::addressFields(
                         includeCountryField: true,
                         showCountryField: false,
                         requireCountryField: true,

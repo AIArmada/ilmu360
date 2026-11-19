@@ -2,14 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Institutions\Api\Documentation\Schemas;
 
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
-/** @implements Arrayable<string, mixed> */
 #[SchemaName('InstitutionDirectoryResponse')]
-final readonly class InstitutionDirectoryResponse implements Arrayable
+final readonly class InstitutionDirectoryResponse
 {
     /**
      * @param  list<InstitutionListItem>  $data

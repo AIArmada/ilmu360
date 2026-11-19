@@ -2,20 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\Schemas;
+namespace App\Features\Persons\Api\Documentation\Schemas;
 
 use Dedoc\Scramble\Attributes\SchemaName;
-use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * @phpstan-import-type PersonDetailPageArray from PersonDetailPage
  *
  * @phpstan-type PersonDetailResponseArray array{data: PersonDetailPageArray, meta: array{request_id: string}}
- *
- * @implements Arrayable<string, mixed>
  */
 #[SchemaName('PersonDetailResponse')]
-final readonly class PersonDetailResponse implements Arrayable
+final readonly class PersonDetailResponse
 {
     /**
      * @param  array{request_id: string}  $meta

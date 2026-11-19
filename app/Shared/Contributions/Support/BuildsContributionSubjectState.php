@@ -8,7 +8,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use App\Platform\Location\AddressAssignments;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use BackedEnum;
 use Illuminate\Support\Collection;
 
@@ -18,7 +18,7 @@ trait BuildsContributionSubjectState
     private function addressState(?Address $address): array
     {
         if (! $address instanceof Address) {
-            return SharedFormSchema::hydrateAddressFormState([
+            return AddressFields::hydrateAddressFormState([
                 'country_id' => null,
                 'area_assignments' => [],
                 'line1' => null,
@@ -35,7 +35,7 @@ trait BuildsContributionSubjectState
             ]);
         }
 
-        return SharedFormSchema::hydrateAddressFormState([
+        return AddressFields::hydrateAddressFormState([
             'country_id' => $address->country_id,
             'state_id' => $address->state_id,
             'city_id' => $address->city_id,

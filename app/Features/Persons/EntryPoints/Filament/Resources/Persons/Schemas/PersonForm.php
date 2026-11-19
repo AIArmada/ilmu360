@@ -12,7 +12,8 @@ use App\Features\Events\Services\PublicSubmissionLockService;
 use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
+use App\Platform\Ui\Forms\ContactFields;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -164,7 +165,7 @@ class PersonForm
                             ->schema([
                                 Section::make(__('Location / Base'))
                                     ->statePath('address')
-                                    ->components(SharedFormSchema::regionAddressFields(
+                                    ->components(AddressFields::regionAddressFields(
                                         includeCountryField: true,
                                         showCountryField: true,
                                         requireCountryField: true,
@@ -200,7 +201,7 @@ class PersonForm
                                                         ->label(__('Primary'))
                                                         ->fixIndistinctState(),
                                                 ]),
-                                                ...SharedFormSchema::contactValueFields(),
+                                                ...ContactFields::contactValueFields(),
                                                 Grid::make(2)->schema([
                                                     Toggle::make('is_public')
                                                         ->label(__('Public'))
@@ -208,10 +209,10 @@ class PersonForm
                                                 ]),
                                             ])
                                             ->orderColumn('sort_order')
-                                            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForFill($data))
-                                            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForSave($data))
-                                            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForSave($data))
-                                            ->itemLabel(fn (array $state): string => SharedFormSchema::contactItemLabel($state))
+                                            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => ContactFields::normalizeContactRowsForFill($data))
+                                            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => ContactFields::normalizeContactRowsForSave($data))
+                                            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => ContactFields::normalizeContactRowsForSave($data))
+                                            ->itemLabel(fn (array $state): string => ContactFields::contactItemLabel($state))
                                             ->saveRelationshipsUsing(null)
                                             ->dehydrated(),
                                     ]),

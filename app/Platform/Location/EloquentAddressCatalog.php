@@ -9,7 +9,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use App\Platform\Location\Api\AddressCatalog;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use Illuminate\Support\Str;
 
 final readonly class EloquentAddressCatalog implements AddressCatalog
@@ -155,7 +155,7 @@ final readonly class EloquentAddressCatalog implements AddressCatalog
     /** @return list<array{id: string, label: string, type: string, level: int|null}> */
     private function roleAreaOptions(?string $countryId, string $role, ?string $parentId = null): array
     {
-        $options = SharedFormSchema::areaOptionsForRole($countryId, $role, $parentId);
+        $options = AddressFields::areaOptionsForRole($countryId, $role, $parentId);
 
         if ($options === []) {
             return [];

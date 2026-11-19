@@ -16,7 +16,7 @@ use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -340,7 +340,7 @@ it('keeps picker area assignment keys present for nested event locations', funct
             ],
         ])
         ->assertHasNoErrors()
-        ->assertSet('data.address.area_assignments', array_fill_keys(SharedFormSchema::entryAreaRoles(), null));
+        ->assertSet('data.address.area_assignments', array_fill_keys(AddressFields::entryAreaRoles(), null));
 });
 
 it('clears a stale end time when the prayer selection moves past it', function (): void {

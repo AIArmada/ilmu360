@@ -9,8 +9,10 @@ use AIArmada\Persons\Enums\PersonNameType;
 use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Language\MalaysiaLanguageCatalog;
+use App\Platform\Ui\Forms\AddressFields;
+use App\Platform\Ui\Forms\ContactFields;
 use App\Platform\Ui\Forms\Select as SelectWithCloseOnSelect;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\SocialFields;
 use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -178,13 +180,13 @@ class PersonContributionFormSchema
                 ->schema([
                     ...($regionOnlyAddress
                         ? ($addressStatePath === null
-                            ? SharedFormSchema::regionAddressFields(
+                            ? AddressFields::regionAddressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
                                 defaultCountryId: $defaultCountryId,
                                 requireCountryField: $requireCountryField,
                             )
-                            : [SharedFormSchema::regionAddressGroup(
+                            : [AddressFields::regionAddressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
@@ -192,14 +194,14 @@ class PersonContributionFormSchema
                                 requireCountryField: $requireCountryField,
                             )])
                         : ($addressStatePath === null
-                            ? SharedFormSchema::addressFields(
+                            ? AddressFields::addressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
                                 defaultCountryId: $defaultCountryId,
                                 requireCountryField: $requireCountryField,
                                 includeWazeUrlField: $includeWazeUrlField,
                             )
-                            : [SharedFormSchema::addressGroup(
+                            : [AddressFields::addressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
@@ -211,11 +213,11 @@ class PersonContributionFormSchema
                 ->columns($addressStatePath === null ? 2 : 1),
             Section::make(__('Contact'))
                 ->schema([
-                    SharedFormSchema::contactsRepeater(__('Add a phone number, WhatsApp number, or email that people may use to contact the speaker.')),
+                    ContactFields::contactsRepeater(__('Add a phone number, WhatsApp number, or email that people may use to contact the speaker.')),
                 ]),
             Section::make(__('Social Media'))
                 ->schema([
-                    SharedFormSchema::socialMediaRepeater(__('Add social media links for this speaker')),
+                    SocialFields::socialMediaRepeater(__('Add social media links for this speaker')),
                 ]),
         ];
 

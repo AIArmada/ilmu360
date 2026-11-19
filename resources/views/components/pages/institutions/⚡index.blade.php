@@ -4,7 +4,7 @@ use App\Features\Engagement\Api\EngagementSubjectType;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Location\LocationLevelLabels;
@@ -150,8 +150,8 @@ class extends Component
         // offered as a parallel filter. Malaysia uses the role-specific path;
         // other provider countries resolve through their own area slots.
         if (
-            SharedFormSchema::shouldShowDistrictField($ids['state_id'], $ids['country_id'])
-            || SharedFormSchema::shouldShowSubdistrictField($ids['state_id'], null, $ids['country_id'])
+            AddressFields::shouldShowDistrictField($ids['state_id'], $ids['country_id'])
+            || AddressFields::shouldShowSubdistrictField($ids['state_id'], null, $ids['country_id'])
             || $this->districts() !== []
         ) {
             return [];
@@ -326,8 +326,8 @@ class extends Component
     {
         $ids = $this->locationIds();
 
-        return SharedFormSchema::shouldShowSubdistrictField($ids['state_id'], null, $ids['country_id'])
-            && ! SharedFormSchema::shouldShowDistrictField($ids['state_id'], $ids['country_id']);
+        return AddressFields::shouldShowSubdistrictField($ids['state_id'], null, $ids['country_id'])
+            && ! AddressFields::shouldShowDistrictField($ids['state_id'], $ids['country_id']);
     }
 
     public function isDistrictFilterDisabled(): bool

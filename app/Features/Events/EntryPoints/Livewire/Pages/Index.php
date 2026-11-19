@@ -29,13 +29,14 @@ use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Models\Reference;
 use App\Models\User;
+use App\Platform\Addressing\AddressFormState;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Language\Models\Language;
 use App\Platform\Location\LocationLevelLabels;
 use App\Platform\Location\LocationSlugResolver;
 use App\Platform\Location\PublicGeolocationPermission;
 use App\Platform\Time\UserDateTimeFormatter;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Location\VisitorCountryResolving;
 use Carbon\CarbonInterface;
@@ -640,7 +641,7 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any Division'))
                             ->searchable()
                             ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                            ->visible(fn (): bool => SharedFormSchema::areaOptionsForRole($this->country_id, 'administrative_division', $this->state_id) !== [])
+                            ->visible(fn (): bool => AddressFields::areaOptionsForRole($this->country_id, 'administrative_division', $this->state_id) !== [])
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
                                 role: 'administrative_division',
                                 countryId: $this->normalizeNullableString($get('country_id')),
@@ -656,7 +657,7 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any Locality'))
                             ->searchable()
                             ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                            ->visible(fn (): bool => SharedFormSchema::areaOptionsForRole($this->country_id, 'postal_locality', $this->state_id) !== [])
+                            ->visible(fn (): bool => AddressFields::areaOptionsForRole($this->country_id, 'postal_locality', $this->state_id) !== [])
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
                                 role: 'postal_locality',
                                 countryId: $this->normalizeNullableString($get('country_id')),
@@ -1211,7 +1212,7 @@ class Index extends Component implements HasForms
                 ->placeholder(fn (): string => __('All :level', ['level' => $this->districtLabel()]))
                 ->searchable()
                 ->disabled(fn (): bool => ! filled($this->country_id) && ! filled($this->state_id))
-                ->visible(fn (): bool => SharedFormSchema::areaOptionsForRole($this->country_id, $slot0, $this->state_id) !== [])
+                ->visible(fn (): bool => AddressFields::areaOptionsForRole($this->country_id, $slot0, $this->state_id) !== [])
                 ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchAreaOptions(
                     role: $slot0,
                     countryId: $this->normalizeNullableString($get('country_id')),
@@ -1285,7 +1286,7 @@ class Index extends Component implements HasForms
         // stay directly searchable without selecting every parent first.
         $parentId = $slot1 !== null && $role === $slot1 ? ($districtId ?? $stateId) : $stateId;
 
-        $options = SharedFormSchema::areaOptionsForRole($countryId, $role, $parentId);
+        $options = AddressFields::areaOptionsForRole($countryId, $role, $parentId);
 
         return $this->filterAreaOptions($options, $search);
     }
@@ -1296,7 +1297,7 @@ class Index extends Component implements HasForms
             return null;
         }
 
-        $id = SharedFormSchema::normalizeLocationId($value);
+        $id = AddressFormState::normalizeLocationId($value);
 
         if ($id === null) {
             return null;
@@ -1481,7 +1482,7 @@ class Index extends Component implements HasForms
 
     public function institutionOptionLabel(?string $value): ?string
     {
-        $id = $value === null ? null : SharedFormSchema::normalizeLocationId($value);
+        $id = $value === null ? null : AddressFormState::normalizeLocationId($value);
 
         if ($id === null) {
             return null;
@@ -1584,7 +1585,7 @@ class Index extends Component implements HasForms
         ?string $stateId,
         array $areaAssignments,
     ): bool {
-        $institutionId = SharedFormSchema::normalizeLocationId($institutionId);
+        $institutionId = AddressFormState::normalizeLocationId($institutionId);
 
         if ($institutionId === null) {
             return true;
@@ -2261,7 +2262,7 @@ class Index extends Component implements HasForms
             }
 
             $role = trim($role);
-            $areaId = SharedFormSchema::normalizeLocationId($areaId);
+            $areaId = AddressFormState::normalizeLocationId($areaId);
 
             if ($role !== '' && $areaId !== null) {
                 $assignments[$role] = $areaId;

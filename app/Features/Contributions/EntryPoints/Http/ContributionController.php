@@ -34,7 +34,7 @@ use App\Platform\Location\GooglePlaceIdentity;
 use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Models\MorphModelResolver;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
 use App\Platform\Validation\Rules\ValidAreaAssignmentRoles;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -796,8 +796,8 @@ class ContributionController extends FrontendController
         }
 
         $address = $payload['address'];
-        $countryProvided = SharedFormSchema::countrySelectionProvided($address);
-        $payload['address'] = SharedFormSchema::prepareAddressPersistenceData($address);
+        $countryProvided = AddressFields::countrySelectionProvided($address);
+        $payload['address'] = AddressFields::prepareAddressPersistenceData($address);
 
         if (! $countryProvided) {
             throw ValidationException::withMessages([

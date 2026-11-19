@@ -12,7 +12,9 @@ use App\Features\Institutions\Models\Institution;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Location\GooglePlacesConfiguration;
-use App\Platform\Ui\Forms\SharedFormSchema;
+use App\Platform\Ui\Forms\AddressFields;
+use App\Platform\Ui\Forms\ContactFields;
+use App\Platform\Ui\Forms\SocialFields;
 use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -139,14 +141,14 @@ class InstitutionFormSchema
                 ->maxFiles(10)
                 ->helperText(__('Up to 10 photos of the institution')),
 
-            SharedFormSchema::contactsRepeater(__('Add contact details for this institution')),
+            ContactFields::contactsRepeater(__('Add contact details for this institution')),
 
             ...self::addressSchema(
                 includeLocationPicker: $includeLocationPicker,
                 requireVerifiedMapsSelection: $requireVerifiedMapsSelection,
             ),
 
-            SharedFormSchema::socialMediaRepeater('Add social media links for this institution'),
+            SocialFields::socialMediaRepeater('Add social media links for this institution'),
         ];
     }
 
@@ -248,7 +250,7 @@ class InstitutionFormSchema
         $defaultCountryId = self::malaysiaCountryId();
 
         if (! $includeLocationPicker) {
-            return SharedFormSchema::addressFields(
+            return AddressFields::addressFields(
                 requireGoogleMaps: true,
                 includeCountryField: true,
                 showCountryField: true,
@@ -272,7 +274,7 @@ class InstitutionFormSchema
                         Hidden::make('maps_selection_token'),
                     ]
                     : []),
-                ...SharedFormSchema::addressFields(
+                ...AddressFields::addressFields(
                     requireGoogleMaps: ! $requireVerifiedMapsSelection,
                     showGoogleMapsUrlField: ! $shouldRenderLocationPicker && ! $requireVerifiedMapsSelection,
                     enableGoogleMapsNormalization: ! $requireVerifiedMapsSelection,
