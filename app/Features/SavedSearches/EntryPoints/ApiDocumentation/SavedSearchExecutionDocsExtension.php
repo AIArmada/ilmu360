@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation;
+namespace App\Features\SavedSearches\EntryPoints\ApiDocumentation;
 
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Support\Generator\Operation;

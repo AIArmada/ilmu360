@@ -14,8 +14,8 @@ use App\Features\Registration\Models\Registration;
 use App\Features\Rewards\Queries\ActivityRewardSourceFactReader;
 use App\Features\Rewards\Queries\ReferralRewardSourceFactReader;
 use App\Features\Rewards\Queries\ShareAttributionRewardSourceFactReader;
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 

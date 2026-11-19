@@ -6,9 +6,9 @@ namespace App\Features\ShareTracking\Persistence;
 
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\EffectReceiptSnapshot;
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Shared\ShareTracking\ShareEffectStatus;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;

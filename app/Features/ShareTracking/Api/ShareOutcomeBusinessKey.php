@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\ShareTracking;
+namespace App\Features\ShareTracking\Api;
 
-use App\Features\ShareTracking\Api\ShareOutcomeType;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
@@ -19,7 +17,7 @@ use InvalidArgumentException;
  * Client input never supplies the identity, and no affiliate/link/type
  * fallback derives it.
  */
-final class ShareOutcomeBusinessKey
+final readonly class ShareOutcomeBusinessKey
 {
     public const string NAMESPACE = 'share-outcome';
 
@@ -156,7 +154,7 @@ final class ShareOutcomeBusinessKey
 
         $sourceId = substr($sourceTransitionId, strlen($prefix));
 
-        if ($sourceId === '' || ! Str::isUuid($sourceId)) {
+        if ($sourceId === '' || ! preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iD', $sourceId)) {
             throw new InvalidArgumentException('Share outcome source transition ID must carry the authoritative source record UUID.');
         }
     }

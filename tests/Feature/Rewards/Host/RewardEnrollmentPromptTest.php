@@ -12,10 +12,10 @@ use AIArmada\Rewards\Models\RewardProgramVersion;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard\UserDashboard;
 use App\Features\Registration\Models\EventCheckin;
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Livewire\Livewire;
 use Tests\Feature\Rewards\Host\Support\RewardLedgerFixtures;
 

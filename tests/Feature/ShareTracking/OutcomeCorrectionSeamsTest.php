@@ -9,6 +9,7 @@ use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
 use App\Features\Referrals\EntryPoints\Jobs\ReverseReferralRewardsForShareOutcomeJob;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
@@ -19,7 +20,6 @@ use App\Features\ShareTracking\Support\ShareTrackingModel;
 use App\Models\User;
 use App\Platform\FeatureCatalog;
 use App\Shared\ShareTracking\ShareEffectStatus;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 

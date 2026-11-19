@@ -5,10 +5,10 @@ declare(strict_types=1);
 // Rw2a seam: the lazy, ordered source-receipt key reader that the Rewards
 // preclaim evaluation consumes instead of importing the receipt model.
 
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 

@@ -7,8 +7,8 @@ namespace App\Features\ShareTracking\Actions\Reversals;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\Registration\Api\ParticipationSourceIds;
 use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 
 /**
  * Cancel participation effects without deleting the historical source facts.

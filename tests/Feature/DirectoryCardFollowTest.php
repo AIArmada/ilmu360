@@ -13,12 +13,12 @@ use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
 use App\Features\References\Models\Reference;
 use App\Features\References\Services\ReferenceSearchService;
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Livewire\Livewire;
 use Tests\TestCase;
 

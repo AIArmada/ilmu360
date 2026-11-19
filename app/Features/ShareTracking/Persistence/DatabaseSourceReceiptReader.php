@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Persistence;
 
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use DateTimeImmutable;
 use Generator;
 

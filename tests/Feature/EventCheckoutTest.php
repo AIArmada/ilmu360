@@ -12,8 +12,8 @@ use AIArmada\Seating\Enums\SeatingMode;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Checkout;
 use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Support\ParticipantIdentity;
 use App\Models\User;
-use App\Shared\Events\ParticipantIdentity;
 use Illuminate\Support\Facades\Crypt;
 use Livewire\Livewire;
 

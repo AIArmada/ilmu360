@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Platform\FeatureCatalog;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;

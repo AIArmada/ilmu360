@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Persistence;
 
+use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceAttributionReceiptSnapshot;
 use App\Features\ShareTracking\Support\ShareTrackingModel;
-use App\Shared\ShareTracking\ShareOutcomeBusinessKey;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
