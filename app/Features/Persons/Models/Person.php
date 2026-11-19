@@ -30,7 +30,6 @@ use App\Platform\Models\Concerns\HasLanguages;
 use App\Platform\Models\Support\RelatedModels;
 use App\Shared\Auditing\RecordsCustomAuditDifferences;
 use App\Shared\Auditing\RecordsCustomAuditEvents;
-use App\Shared\Directory\SyncsLanguages;
 use App\Shared\Events\Enums\EventKeyPersonRole;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -71,7 +70,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property Carbon|null $updated_at
  * @property SpeakerStatus $speaker_status
  */
-class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, Followable, HasMedia, MembershipMutationGuard, RecordsCustomAuditDifferences, RecordsCustomAuditEvents, SyncsLanguages
+class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, Followable, HasMedia, MembershipMutationGuard, RecordsCustomAuditDifferences, RecordsCustomAuditEvents
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
 
