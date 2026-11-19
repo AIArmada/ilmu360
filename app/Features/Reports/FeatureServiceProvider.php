@@ -13,6 +13,8 @@ use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
+use App\Features\Reports\EntryPoints\Mcp\Tools\AdminGetReportTriageSchemaTool;
+use App\Features\Reports\EntryPoints\Mcp\Tools\AdminTriageReportTool;
 use App\Features\Reports\Models\Report;
 use App\Features\Reports\Persistence\ReportLifecycle as ReportLifecycleImplementation;
 use App\Features\Reports\Policies\ReportPolicy;
@@ -23,6 +25,7 @@ use App\Features\Reports\Services\ReportCommands;
 use App\Features\Reports\Services\ReportTriage;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 
@@ -48,5 +51,10 @@ class FeatureServiceProvider extends FeatureModule
 
         Gate::policy(Report::class, ReportPolicy::class);
         Relation::morphMap(['report' => Report::class]);
+
+        $surfaces = $this->app->make(McpSurfaceRegistry::class);
+
+        $surfaces->registerAdminTool(AdminGetReportTriageSchemaTool::class);
+        $surfaces->registerAdminTool(AdminTriageReportTool::class);
     }
 }

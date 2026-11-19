@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\EntryPoints\Mcp\Prompts;
+namespace App\Features\Mcp\EntryPoints\Mcp\Prompts;
 
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Mcp\Services\MemberVerifiedDocumentationCatalog;

@@ -4,31 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Mcp\Servers;
 
-use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminGetContributionRequestReviewSchemaTool;
-use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminReviewContributionRequestTool;
-use App\Features\Events\EntryPoints\Mcp\Prompts\AdminEventCoverImagePrompt;
-use App\Features\Events\EntryPoints\Mcp\Prompts\AdminEventPosterImagePrompt;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminBatchCreateEventsTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminBatchUpdateEventsTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminCreateEventTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminGetEventModerationSchemaTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminModerateEventTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminSearchEventsTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminUpdateEventTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminUploadEventCoverImageTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\AdminUploadEventPosterImageTool;
-use App\Features\GitHubIssues\EntryPoints\Mcp\Tools\AdminCreateGitHubIssueTool;
-use App\Features\Membership\EntryPoints\Mcp\Tools\AdminGetMembershipApplicationReviewSchemaTool;
-use App\Features\Membership\EntryPoints\Mcp\Tools\AdminReviewMembershipApplicationTool;
-use App\Features\Reports\EntryPoints\Mcp\Tools\AdminGetReportTriageSchemaTool;
-use App\Features\Reports\EntryPoints\Mcp\Tools\AdminTriageReportTool;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Prompts\DocumentationToolRoutingPrompt;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Resources\McpGuideResource;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\AdminDocumentationFetchTool;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\AdminDocumentationSearchTool;
 use App\Platform\Diagnostics\EntryPoints\Mcp\Tools\AdminReadDebugLogTool;
-use App\Platform\Mcp\Methods\CallToolWithDocumentationPreflight;
-use App\Platform\Mcp\Methods\ReadResourceWithDocumentationPreflight;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Mcp\Tools\Admin\AdminBatchCreateRecordsTool;
 use App\Platform\Mcp\Tools\Admin\AdminBatchUpdateRecordsTool;
 use App\Platform\Mcp\Tools\Admin\AdminCreateRecordTool;
@@ -44,6 +21,8 @@ use App\Platform\Mcp\Tools\Admin\AdminUpdateRecordTool;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
+use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Tool;
 
 #[Name('ilmu360-admin')]
 #[Version('1.0.0')]
@@ -53,58 +32,50 @@ class AdminServer extends Ilmu360Server
     #[\Override]
     public int $defaultPaginationLength = 50;
 
+    public function __construct(Transport $transport, private readonly McpSurfaceRegistry $surfaces)
+    {
+        parent::__construct($transport);
+    }
+
     #[\Override]
     protected function boot(): void
     {
         $this->addCapability(self::CAPABILITY_COMPLETIONS);
-        $this->addMethod('tools/call', CallToolWithDocumentationPreflight::class);
-        $this->addMethod('resources/read', ReadResourceWithDocumentationPreflight::class);
+
+        foreach ($this->surfaces->adminMethods() as $method => $handler) {
+            $this->addMethod($method, $handler);
+        }
+
+        // Platform-owned generic tools stay with the server; feature owners
+        // contribute their tooling through the surface registry in boot order.
+        $this->tools = [
+            ...$this->surfaces->adminTools(),
+            ...$this->platformTools(),
+        ];
+
+        $this->prompts = $this->surfaces->adminPrompts();
+        $this->resources = $this->surfaces->adminResources();
     }
 
-    #[\Override]
-    protected array $resources = [
-        McpGuideResource::class,
-    ];
-
-    #[\Override]
-    protected array $prompts = [
-        DocumentationToolRoutingPrompt::class,
-        AdminEventCoverImagePrompt::class,
-        AdminEventPosterImagePrompt::class,
-    ];
-
-    #[\Override]
-    protected array $tools = [
-        AdminDocumentationSearchTool::class,
-        AdminDocumentationFetchTool::class,
-        AdminReadDebugLogTool::class,
-        AdminUploadEventCoverImageTool::class,
-        AdminUploadEventPosterImageTool::class,
-        AdminListResourcesTool::class,
-        AdminGetResourceMetaTool::class,
-        AdminSearchEventsTool::class,
-        AdminListRecordsTool::class,
-        AdminListRelatedRecordsTool::class,
-        AdminGetRecordTool::class,
-        AdminGetRecordMediaTool::class,
-        AdminGetRecordActionsTool::class,
-        AdminGetWriteSchemaTool::class,
-        AdminGetEventModerationSchemaTool::class,
-        AdminGetReportTriageSchemaTool::class,
-        AdminGetContributionRequestReviewSchemaTool::class,
-        AdminGetMembershipApplicationReviewSchemaTool::class,
-        AdminCreateEventTool::class,
-        AdminBatchCreateEventsTool::class,
-        AdminUpdateEventTool::class,
-        AdminBatchUpdateEventsTool::class,
-        AdminCreateRecordTool::class,
-        AdminBatchCreateRecordsTool::class,
-        AdminCreateGitHubIssueTool::class,
-        AdminModerateEventTool::class,
-        AdminTriageReportTool::class,
-        AdminReviewContributionRequestTool::class,
-        AdminReviewMembershipApplicationTool::class,
-        AdminUpdateRecordTool::class,
-        AdminBatchUpdateRecordsTool::class,
-    ];
+    /**
+     * @return list<class-string<Tool>>
+     */
+    private function platformTools(): array
+    {
+        return [
+            AdminReadDebugLogTool::class,
+            AdminListResourcesTool::class,
+            AdminGetResourceMetaTool::class,
+            AdminListRecordsTool::class,
+            AdminListRelatedRecordsTool::class,
+            AdminGetRecordTool::class,
+            AdminGetRecordMediaTool::class,
+            AdminGetRecordActionsTool::class,
+            AdminGetWriteSchemaTool::class,
+            AdminCreateRecordTool::class,
+            AdminBatchCreateRecordsTool::class,
+            AdminUpdateRecordTool::class,
+            AdminBatchUpdateRecordsTool::class,
+        ];
+    }
 }

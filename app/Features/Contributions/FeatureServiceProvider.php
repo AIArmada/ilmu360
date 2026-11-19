@@ -21,6 +21,12 @@ use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContributor;
 use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
+use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminGetContributionRequestReviewSchemaTool;
+use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminReviewContributionRequestTool;
+use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberApproveContributionRequestTool;
+use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberCancelContributionRequestTool;
+use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberListContributionRequestsTool;
+use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberRejectContributionRequestTool;
 use App\Features\Contributions\Persistence\CacheVerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
 use App\Features\Contributions\Queries\ResolveContributionUpdateContextAction;
@@ -30,6 +36,7 @@ use App\Features\Contributions\Services\ContributionSubmissionPreparationService
 use App\Features\Contributions\Services\EloquentSubmissionCatalog;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Contributions\ContributionRequestGuard;
 use App\Shared\Contributions\InstitutionClaimGuard;
@@ -86,5 +93,20 @@ class FeatureServiceProvider extends FeatureModule
         ], AccountLifecycleContributor::TAG);
 
         $this->app->make(FilamentResourceRegistry::class)->register(ContributionRequestResource::class);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        $surfaces = $this->app->make(McpSurfaceRegistry::class);
+
+        $surfaces->registerAdminTool(AdminGetContributionRequestReviewSchemaTool::class);
+        $surfaces->registerAdminTool(AdminReviewContributionRequestTool::class);
+
+        $surfaces->registerMemberTool(MemberApproveContributionRequestTool::class);
+        $surfaces->registerMemberTool(MemberCancelContributionRequestTool::class);
+        $surfaces->registerMemberTool(MemberListContributionRequestsTool::class);
+        $surfaces->registerMemberTool(MemberRejectContributionRequestTool::class);
     }
 }

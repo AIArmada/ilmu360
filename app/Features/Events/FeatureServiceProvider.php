@@ -79,6 +79,22 @@ use App\Features\Events\EntryPoints\Filament\Widgets\EventInventoryOverview;
 use App\Features\Events\EntryPoints\Filament\Widgets\PendingApprovalEventsWidget;
 use App\Features\Events\EntryPoints\Jobs\DispatchEventReminderNotifications;
 use App\Features\Events\EntryPoints\Jobs\EscalatePendingEvents;
+use App\Features\Events\EntryPoints\Mcp\Prompts\AdminEventCoverImagePrompt;
+use App\Features\Events\EntryPoints\Mcp\Prompts\AdminEventPosterImagePrompt;
+use App\Features\Events\EntryPoints\Mcp\Prompts\MemberEventCoverImagePrompt;
+use App\Features\Events\EntryPoints\Mcp\Prompts\MemberEventPosterImagePrompt;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminBatchCreateEventsTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminBatchUpdateEventsTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminCreateEventTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminGetEventModerationSchemaTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminModerateEventTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminSearchEventsTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminUpdateEventTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminUploadEventCoverImageTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\AdminUploadEventPosterImageTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\MemberSearchEventsTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventCoverImageTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventPosterImageTool;
 use App\Features\Events\EntryPoints\Sitemap\EventSitemapUrls;
 use App\Features\Events\Persistence\EventHomepageStatsCacheStore;
 use App\Features\Events\Persistence\EventInstitutionQuickAddMapsProofCacheStore;
@@ -112,6 +128,7 @@ use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\EventDiscoveryReader;
@@ -287,6 +304,8 @@ class FeatureServiceProvider extends FeatureModule
 
         $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(EventMutationHooks::class));
 
+        $this->registerMcpSurfaces();
+
         if ($this->app->runningInConsole()) {
             Schedule::job(new EscalatePendingEvents)
                 ->hourly()
@@ -311,5 +330,28 @@ class FeatureServiceProvider extends FeatureModule
             searchColumns: ['title', 'slug'],
             labelAttribute: 'title',
         ));
+    }
+
+    private function registerMcpSurfaces(): void
+    {
+        $surfaces = $this->app->make(McpSurfaceRegistry::class);
+
+        $surfaces->registerAdminPrompt(AdminEventCoverImagePrompt::class);
+        $surfaces->registerAdminPrompt(AdminEventPosterImagePrompt::class);
+        $surfaces->registerAdminTool(AdminBatchCreateEventsTool::class);
+        $surfaces->registerAdminTool(AdminBatchUpdateEventsTool::class);
+        $surfaces->registerAdminTool(AdminCreateEventTool::class);
+        $surfaces->registerAdminTool(AdminGetEventModerationSchemaTool::class);
+        $surfaces->registerAdminTool(AdminModerateEventTool::class);
+        $surfaces->registerAdminTool(AdminSearchEventsTool::class);
+        $surfaces->registerAdminTool(AdminUpdateEventTool::class);
+        $surfaces->registerAdminTool(AdminUploadEventCoverImageTool::class);
+        $surfaces->registerAdminTool(AdminUploadEventPosterImageTool::class);
+
+        $surfaces->registerMemberPrompt(MemberEventCoverImagePrompt::class);
+        $surfaces->registerMemberPrompt(MemberEventPosterImagePrompt::class);
+        $surfaces->registerMemberTool(MemberSearchEventsTool::class);
+        $surfaces->registerMemberTool(MemberUploadEventCoverImageTool::class);
+        $surfaces->registerMemberTool(MemberUploadEventPosterImageTool::class);
     }
 }

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use AIArmada\Authz\Models\Role;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Mcp\EntryPoints\Mcp\Tools\AdminDocumentationFetchTool;
+use App\Features\Mcp\EntryPoints\Mcp\Tools\AdminDocumentationSearchTool;
+use App\Features\Mcp\EntryPoints\Mcp\Tools\MemberDocumentationFetchTool;
+use App\Features\Mcp\EntryPoints\Mcp\Tools\MemberDocumentationSearchTool;
 use App\Models\User;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\AdminDocumentationFetchTool;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\AdminDocumentationSearchTool;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\MemberDocumentationFetchTool;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\MemberDocumentationSearchTool;
 use App\Platform\Documentation\DocumentationLibrary;
 use App\Platform\Mcp\Servers\AdminServer;
 use App\Platform\Mcp\Servers\MemberServer;

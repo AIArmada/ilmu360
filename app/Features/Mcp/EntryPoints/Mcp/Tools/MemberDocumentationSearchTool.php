@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools;
+namespace App\Features\Mcp\EntryPoints\Mcp\Tools;
 
-use App\Features\Mcp\Services\VerifiedDocumentationCatalog;
-use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
+use App\Features\Mcp\Services\MemberVerifiedDocumentationCatalog;
+use App\Platform\Mcp\Tools\Member\AbstractMemberTool;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
 #[IsIdempotent]
-class AdminDocumentationSearchTool extends AbstractAdminTool
+class MemberDocumentationSearchTool extends AbstractMemberTool
 {
     #[\Override]
     protected string $name = 'search';
@@ -25,10 +25,10 @@ class AdminDocumentationSearchTool extends AbstractAdminTool
     protected string $title = 'Search Verified Documentation';
 
     #[\Override]
-    protected string $description = 'Use this when you need to search the verified ilmu360 admin MCP documentation exposed by this server. Do not use this for runtime event, person, institution, reference, or venue record searches.';
+    protected string $description = 'Use this when you need to search the verified ilmu360 member MCP documentation exposed by this server. Do not use this for Ahli resource, institution, person, reference, or event record searches.';
 
     public function __construct(
-        private readonly VerifiedDocumentationCatalog $documentationCatalog,
+        private readonly MemberVerifiedDocumentationCatalog $documentationCatalog,
     ) {
         $this->setMeta([
             'openai/toolInvocation/invoking' => 'Searching verified docs…',
@@ -39,7 +39,7 @@ class AdminDocumentationSearchTool extends AbstractAdminTool
     public function handle(Request $request): ResponseFactory|Response
     {
         return $this->structuredResponse(function () use ($request): array {
-            $this->authorizeAdmin($request);
+            $this->authorizeMember($request);
 
             $validated = $this->validateArguments($request, [
                 'query' => ['required', 'string', 'min:1'],

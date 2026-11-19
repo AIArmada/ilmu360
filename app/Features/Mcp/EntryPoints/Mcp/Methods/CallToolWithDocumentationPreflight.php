@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Mcp\Methods;
+namespace App\Features\Mcp\EntryPoints\Mcp\Methods;
 
 use App\Features\Mcp\Services\McpDocumentationPreflight;
 use App\Features\Mcp\Services\VerifiedDocumentationCatalog;

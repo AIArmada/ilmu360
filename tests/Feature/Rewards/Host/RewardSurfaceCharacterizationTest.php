@@ -236,9 +236,8 @@ it('denies generic admin API mutation for every reward Filament resource', funct
         expect($mutations->supports($resource))->toBeFalse();
     }
 
-    $server = new ReflectionClass(AdminServer::class);
-    $tools = $server->getDefaultProperties()['tools'];
-    $instructions = $server->getAttributes(Laravel\Mcp\Server\Attributes\Instructions::class)[0]->getArguments()[0];
+    $tools = app(App\Platform\Mcp\McpSurfaceRegistry::class)->adminTools();
+    $instructions = new ReflectionClass(AdminServer::class)->getAttributes(Laravel\Mcp\Server\Attributes\Instructions::class)[0]->getArguments()[0];
 
     expect(array_values(array_filter($tools, static fn (string $tool): bool => str_contains($tool, 'Reward'))))->toBeEmpty()
         ->and($instructions)->toContain('Reward resources are read-only through the generic admin API and MCP')

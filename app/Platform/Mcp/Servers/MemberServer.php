@@ -4,25 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Mcp\Servers;
 
-use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberApproveContributionRequestTool;
-use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberCancelContributionRequestTool;
-use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberListContributionRequestsTool;
-use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberRejectContributionRequestTool;
-use App\Features\Events\EntryPoints\Mcp\Prompts\MemberEventCoverImagePrompt;
-use App\Features\Events\EntryPoints\Mcp\Prompts\MemberEventPosterImagePrompt;
-use App\Features\Events\EntryPoints\Mcp\Tools\MemberSearchEventsTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventCoverImageTool;
-use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventPosterImageTool;
-use App\Features\GitHubIssues\EntryPoints\Mcp\Tools\MemberCreateGitHubIssueTool;
-use App\Features\Membership\EntryPoints\Mcp\Tools\MemberCancelMembershipApplicationTool;
-use App\Features\Membership\EntryPoints\Mcp\Tools\MemberListMembershipApplicationsTool;
-use App\Features\Membership\EntryPoints\Mcp\Tools\MemberSubmitMembershipApplicationTool;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Prompts\MemberDocumentationToolRoutingPrompt;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Resources\MemberMcpGuideResource;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\MemberDocumentationFetchTool;
-use App\Platform\ApiDocumentation\EntryPoints\Mcp\Tools\MemberDocumentationSearchTool;
-use App\Platform\Mcp\Methods\MemberCallToolWithDocumentationPreflight;
-use App\Platform\Mcp\Methods\MemberReadResourceWithDocumentationPreflight;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Mcp\Tools\Member\MemberGetRecordActionsTool;
 use App\Platform\Mcp\Tools\Member\MemberGetRecordTool;
 use App\Platform\Mcp\Tools\Member\MemberGetResourceMetaTool;
@@ -34,6 +16,8 @@ use App\Platform\Mcp\Tools\Member\MemberUpdateRecordTool;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
+use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Tool;
 
 #[Name('ilmu360-member')]
 #[Version('1.0.0')]
@@ -43,48 +27,45 @@ class MemberServer extends Ilmu360Server
     #[\Override]
     public int $defaultPaginationLength = 50;
 
+    public function __construct(Transport $transport, private readonly McpSurfaceRegistry $surfaces)
+    {
+        parent::__construct($transport);
+    }
+
     #[\Override]
     protected function boot(): void
     {
         $this->addCapability(self::CAPABILITY_COMPLETIONS);
-        $this->addMethod('tools/call', MemberCallToolWithDocumentationPreflight::class);
-        $this->addMethod('resources/read', MemberReadResourceWithDocumentationPreflight::class);
+
+        foreach ($this->surfaces->memberMethods() as $method => $handler) {
+            $this->addMethod($method, $handler);
+        }
+
+        // Platform-owned generic tools stay with the server; feature owners
+        // contribute their tooling through the surface registry in boot order.
+        $this->tools = [
+            ...$this->surfaces->memberTools(),
+            ...$this->platformTools(),
+        ];
+
+        $this->prompts = $this->surfaces->memberPrompts();
+        $this->resources = $this->surfaces->memberResources();
     }
 
-    #[\Override]
-    protected array $resources = [
-        MemberMcpGuideResource::class,
-    ];
-
-    #[\Override]
-    protected array $prompts = [
-        MemberDocumentationToolRoutingPrompt::class,
-        MemberEventCoverImagePrompt::class,
-        MemberEventPosterImagePrompt::class,
-    ];
-
-    #[\Override]
-    protected array $tools = [
-        MemberDocumentationSearchTool::class,
-        MemberDocumentationFetchTool::class,
-        MemberUploadEventCoverImageTool::class,
-        MemberUploadEventPosterImageTool::class,
-        MemberListResourcesTool::class,
-        MemberGetResourceMetaTool::class,
-        MemberSearchEventsTool::class,
-        MemberListRecordsTool::class,
-        MemberListRelatedRecordsTool::class,
-        MemberGetRecordTool::class,
-        MemberGetRecordActionsTool::class,
-        MemberGetWriteSchemaTool::class,
-        MemberUpdateRecordTool::class,
-        MemberListContributionRequestsTool::class,
-        MemberApproveContributionRequestTool::class,
-        MemberRejectContributionRequestTool::class,
-        MemberCancelContributionRequestTool::class,
-        MemberListMembershipApplicationsTool::class,
-        MemberSubmitMembershipApplicationTool::class,
-        MemberCancelMembershipApplicationTool::class,
-        MemberCreateGitHubIssueTool::class,
-    ];
+    /**
+     * @return list<class-string<Tool>>
+     */
+    private function platformTools(): array
+    {
+        return [
+            MemberListResourcesTool::class,
+            MemberGetResourceMetaTool::class,
+            MemberListRecordsTool::class,
+            MemberListRelatedRecordsTool::class,
+            MemberGetRecordTool::class,
+            MemberGetRecordActionsTool::class,
+            MemberGetWriteSchemaTool::class,
+            MemberUpdateRecordTool::class,
+        ];
+    }
 }

@@ -190,6 +190,7 @@ use App\Platform\Location\Api\AddressCatalog;
 use App\Platform\Location\EloquentAddressCatalog;
 use App\Platform\Location\VisitorCountryResolver;
 use App\Platform\Mcp\EntryPoints\Http\OAuthRegisterController;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Media\EloquentMediaCollectionSync;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
@@ -326,6 +327,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(EventEngagement::class, EloquentEngagementReader::class);
         $this->app->bind(SubjectFollows::class, EloquentEngagementReader::class);
         $this->app->singleton(ContributionProjectionRegistry::class);
+        $this->app->singleton(McpSurfaceRegistry::class);
         $this->app->bind(ContributionEntityState::class, ContributionEntityStateService::class);
         $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
         $this->app->tag([

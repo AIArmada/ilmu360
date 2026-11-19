@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\ApiDocumentation\EntryPoints\Mcp\Resources;
+namespace App\Features\Mcp\EntryPoints\Mcp\Resources;
 
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Server\Annotations\Audience;

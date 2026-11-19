@@ -16,6 +16,11 @@ use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index;
+use App\Features\Membership\EntryPoints\Mcp\Tools\AdminGetMembershipApplicationReviewSchemaTool;
+use App\Features\Membership\EntryPoints\Mcp\Tools\AdminReviewMembershipApplicationTool;
+use App\Features\Membership\EntryPoints\Mcp\Tools\MemberCancelMembershipApplicationTool;
+use App\Features\Membership\EntryPoints\Mcp\Tools\MemberListMembershipApplicationsTool;
+use App\Features\Membership\EntryPoints\Mcp\Tools\MemberSubmitMembershipApplicationTool;
 use App\Features\Membership\Services\EloquentMembershipSubjectCatalog;
 use App\Features\Membership\Services\EloquentMembershipSubjectOptionsCatalog;
 use App\Features\Membership\Services\MembershipApplicationsService;
@@ -25,6 +30,7 @@ use App\Features\Membership\Services\MembershipDirectoryService;
 use App\Features\Membership\Services\MembershipInvitationsService;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Livewire\Livewire;
 
@@ -83,5 +89,14 @@ final class FeatureServiceProvider extends FeatureModule
 
         Livewire::component('pages.membership-applications.create', Create::class);
         Livewire::component('pages.membership-applications.index', Index::class);
+
+        $surfaces = $this->app->make(McpSurfaceRegistry::class);
+
+        $surfaces->registerAdminTool(AdminGetMembershipApplicationReviewSchemaTool::class);
+        $surfaces->registerAdminTool(AdminReviewMembershipApplicationTool::class);
+
+        $surfaces->registerMemberTool(MemberCancelMembershipApplicationTool::class);
+        $surfaces->registerMemberTool(MemberListMembershipApplicationsTool::class);
+        $surfaces->registerMemberTool(MemberSubmitMembershipApplicationTool::class);
     }
 }
