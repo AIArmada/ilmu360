@@ -16,7 +16,7 @@ use RuntimeException;
  */
 final class ResourceDefinitionRegistry
 {
-    /** @var array<string, array{0: class-string<Resource>, 1: class-string<Resource>}> */
+    /** @var array<string, array{0: class-string<resource>, 1: class-string<resource>}> */
     private array $intentionalCollisions = [];
 
     /** @var array<string, ResourceDefinition> First definition per surface key. */
@@ -38,8 +38,8 @@ final class ResourceDefinitionRegistry
      * The application composition root declares exact, intentional duplicate
      * resource keys before feature providers register their definitions.
      *
-     * @param  class-string<Resource>  $firstResource
-     * @param  class-string<Resource>  $secondResource
+     * @param  class-string<resource>  $firstResource
+     * @param  class-string<resource>  $secondResource
      */
     public function allowCollision(
         ResourceSurface $surface,

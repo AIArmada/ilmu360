@@ -18,17 +18,17 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 final class DeniedAdminPersonReadPolicy
 {
-    public function viewAny(User $user): bool
+    public function viewAny(): bool
     {
         return true;
     }
 
-    public function view(User $user, Person $person): bool
+    public function view(): bool
     {
         return false;
     }
 
-    public function update(User $user, Person $person): bool
+    public function update(): bool
     {
         return true;
     }

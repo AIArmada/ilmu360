@@ -59,9 +59,9 @@ function assertPublishedDataKeys(array $payload, array $response): void
  * Check actual nested response values against the frozen contract's primitive
  * types, including nullable pagination fields. Generic payloads remain generic.
  *
- * @param array<string, mixed> $payload
- * @param array<string, mixed> $response
- * @param list<string> $path
+ * @param  array<string, mixed>  $payload
+ * @param  array<string, mixed>  $response
+ * @param  list<string>  $path
  */
 function assertPublishedSchemaValueType(array $payload, array $response, array $path): void
 {
@@ -95,8 +95,8 @@ function assertPublishedSchemaValueType(array $payload, array $response, array $
 }
 
 /**
- * @param array<string, mixed> $payload
- * @param array<string, mixed> $response
+ * @param  array<string, mixed>  $payload
+ * @param  array<string, mixed>  $response
  */
 function assertPublishedDetailTypes(array $payload, array $response, string $subject): void
 {
@@ -106,8 +106,8 @@ function assertPublishedDetailTypes(array $payload, array $response, string $sub
 }
 
 /**
- * @param array<string, mixed> $payload
- * @param array<string, mixed> $response
+ * @param  array<string, mixed>  $payload
+ * @param  array<string, mixed>  $response
  */
 function assertPublishedPaginationTypes(array $payload, array $response): void
 {
