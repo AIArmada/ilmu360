@@ -24,7 +24,6 @@ use App\Features\Events\Models\EventKeyPersonPivot;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Services\PersonSearchService;
-use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
@@ -550,7 +549,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(ReportModelClass::resolve(), 'entity');
+        return $this->morphMany(MorphModelResolver::resolve('report'), 'entity');
     }
 
     /**

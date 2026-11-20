@@ -7,11 +7,11 @@ use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
+use App\Features\Discovery\Api\EventListPayloads;
 use App\Features\Discovery\Api\SearchSignal;
-use App\Features\Discovery\EntryPoints\Http\Data\EventListData;
+use App\Features\Engagement\Api\Data\EventGoingStateData;
+use App\Features\Engagement\Api\Data\EventSaveStateData;
 use App\Features\Engagement\Api\EventEngagement;
-use App\Features\Engagement\EntryPoints\Http\Data\EventGoingStateData;
-use App\Features\Engagement\EntryPoints\Http\Data\EventSaveStateData;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
@@ -27,9 +27,9 @@ use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceState;
-use App\Features\Registration\EntryPoints\Http\Data\EventCheckInStateData;
-use App\Features\Registration\EntryPoints\Http\Data\EventRegistrationData;
-use App\Features\Registration\EntryPoints\Http\Data\EventRegistrationStatusData;
+use App\Features\Registration\Api\Data\EventCheckInStateData;
+use App\Features\Registration\Api\Data\EventRegistrationData;
+use App\Features\Registration\Api\Data\EventRegistrationStatusData;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Http\Controllers\Controller;
@@ -57,6 +57,7 @@ class EventController extends Controller
     public function __construct(
         private readonly SignalRecorder $signals,
         private readonly ReferenceQueries $referenceQueries,
+        private readonly EventListPayloads $eventListPayloads,
     ) {}
 
     /**
@@ -619,7 +620,16 @@ class EventController extends Controller
             ->first();
 
         $registrationData = $registration instanceof Registration
-            ? EventRegistrationData::fromModel($registration)
+            ? new EventRegistrationData(
+                id: (string) $registration->id,
+                event_id: (string) $registration->event_id,
+                user_id: $registration->registrant instanceof User ? (string) $registration->registrant->getKey() : null,
+                name: $registration->resolvedName() ?? '',
+                email: $registration->resolvedEmail(),
+                phone: $registration->resolvedPhone(),
+                status: $registration->statusValue(),
+                created_at: $registration->created_at?->format(DATE_ATOM),
+            )
             : null;
 
         $checkInState = $attendanceState->forUser(
@@ -653,10 +663,16 @@ class EventController extends Controller
 
         return response()->json([
             'data' => EventMeData::fromState(
-                saved: EventSaveStateData::fromState($isSaved, $savesCount),
-                going: EventGoingStateData::fromState($isGoing, $goingCount),
-                registration: EventRegistrationStatusData::fromNullableRegistration($registrationData),
-                checkIn: EventCheckInStateData::fromState($isCheckedIn, $checkInState),
+                saved: new EventSaveStateData($isSaved, $savesCount),
+                going: new EventGoingStateData($isGoing, $goingCount),
+                registration: new EventRegistrationStatusData($registrationData instanceof EventRegistrationData, $registrationData),
+                checkIn: new EventCheckInStateData(
+                    is_checked_in: $isCheckedIn,
+                    available: (bool) $checkInState['available'],
+                    reason: is_string($checkInState['reason']) ? $checkInState['reason'] : null,
+                    method: (string) $checkInState['method'],
+                    registration_id: is_string($checkInState['registration_id']) ? $checkInState['registration_id'] : null,
+                ),
             )->toArray(),
             'meta' => [
                 'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),
@@ -677,7 +693,7 @@ class EventController extends Controller
      */
     private function serializeEventListPayload(Event $event): array
     {
-        return EventListData::fromModel($event)->toArray();
+        return $this->eventListPayloads->forEvent($event)->toArray();
     }
 
     private function abortUnlessShowVisibleEvent(Event $event): void

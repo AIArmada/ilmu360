@@ -4,6 +4,7 @@ namespace App\Features\Discovery\Services;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Events\Api\EventSearchCache;
 use App\Features\Events\Models\Event;
 use App\Platform\Search\EventDiscoveryReaders;
@@ -13,7 +14,7 @@ use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class EventSearchService
+class EventSearchService implements EventSearchReader
 {
     public function __construct(
         private readonly TypesenseHealthCheckService $healthCheck,

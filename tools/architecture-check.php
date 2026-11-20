@@ -350,7 +350,30 @@ try {
             }
         }
 
-        $checkDependency = static function (string $target, int $line) use ($sourceFeature, $platform, $shared, $public, $compositionRoot, $relative, $featureOf, $report, $features, $owners, $modelTables): void {
+        // Model seams: a feature model may reuse another owner's relation trait
+        // (a trait that only adds Eloquent relations). This is the sanctioned
+        // cross-owner relationship seam; it is structural, not a waiver.
+        $traitCache = [];
+        $isForeignModelConcern = static function (string $target) use (&$traitCache, $paths): bool {
+            if (array_key_exists($target, $traitCache)) {
+                return $traitCache[$target];
+            }
+
+            $relative = 'app/'.str_replace('\\', '/', substr($target, strlen('App\\'))).'.php';
+            $file = $paths[$relative] ?? null;
+
+            if ($file === null || ! is_file($file)) {
+                return $traitCache[$target] = false;
+            }
+
+            $source = file_get_contents($file);
+            $short = substr($target, (int) strrpos($target, '\\') + 1);
+
+            return $traitCache[$target] = is_string($source)
+                && preg_match('/\btrait\s+'.preg_quote($short, '/').'\b/', $source) === 1;
+        };
+
+        $checkDependency = static function (string $target, int $line) use ($sourceFeature, $platform, $shared, $public, $compositionRoot, $relative, $featureOf, $report, $features, $owners, $modelTables, $isForeignModelConcern): void {
             $target = ltrim($target, '\\');
             $targetFeature = $featureOf($target);
             if ($targetFeature && ! isset($features[$targetFeature])) {
@@ -358,7 +381,10 @@ try {
             }
             if (($platform || $shared) && $targetFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
                 $report('platform-direction', $relative, $line, $target, 'Platform/Shared must not depend on concrete features; use a generic contract.');
-            } elseif (! $compositionRoot && ! ($sourceFeature && str_contains($target, '\\Models\\')) && $targetFeature && ($target !== "App\\Features\\{$targetFeature}\\FeatureServiceProvider" || ! in_array($relative, ['bootstrap/providers.php', 'config/app.php'], true)) && $targetFeature !== $sourceFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
+            } elseif (! $compositionRoot
+                && ! ($sourceFeature && str_contains($target, '\\Models\\'))
+                && ! ($sourceFeature && str_contains($relative, '/Models/') && $isForeignModelConcern($target))
+                && $targetFeature && ($target !== "App\\Features\\{$targetFeature}\\FeatureServiceProvider" || ! in_array($relative, ['bootstrap/providers.php', 'config/app.php'], true)) && $targetFeature !== $sourceFeature && ! str_starts_with($target, "App\\Features\\{$targetFeature}\\Api\\")) {
                 $report('feature-private', $relative, $line, $target, "Call {$targetFeature} through App\\Features\\{$targetFeature}\\Api; private types cannot cross its boundary.");
             }
             $authBridge = in_array($target, ['App\\Models\\User', 'App\\Models\\PassportUser'], true);

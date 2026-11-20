@@ -8,7 +8,7 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
 use AIArmada\FilamentPersons\Resources\PersonResource\Schemas\PersonForm as PackagePersonForm;
 use AIArmada\Persons\Enums\Gender;
-use App\Features\Events\Services\PublicSubmissionLockService;
+use App\Features\Events\Api\PublicSubmissionLockSweeper;
 use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
@@ -378,7 +378,7 @@ class PersonForm
             return true;
         }
 
-        return app(PublicSubmissionLockService::class)->personEligibility($record)->eligible;
+        return app(PublicSubmissionLockSweeper::class)->personEligibility((string) $record->getKey())->eligible;
     }
 
     private static function hasPublicSubmissionToggleAccess(): bool
@@ -406,7 +406,7 @@ class PersonForm
             return __('Enabled means anyone can submit. Disabled means only members can submit.');
         }
 
-        $eligibility = app(PublicSubmissionLockService::class)->personEligibility($record);
+        $eligibility = app(PublicSubmissionLockSweeper::class)->personEligibility((string) $record->getKey());
 
         if ($eligibility->eligible) {
             return __('Turn this off to shift submission responsibility entirely to members.');

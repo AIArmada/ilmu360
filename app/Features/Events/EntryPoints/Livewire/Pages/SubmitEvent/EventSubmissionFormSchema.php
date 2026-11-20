@@ -6,7 +6,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Features\Contributions\Services\EntitySubmissionAccess;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
@@ -21,15 +21,15 @@ use App\Features\Events\Services\SubmitEventOptionsProvider;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Events\Support\SubmitEventFormContext;
 use App\Features\Events\Support\SubmitterContactRules;
-use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;
+use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
+use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Models\Person;
+use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\SpaceEligibility;
-use App\Features\Places\EntryPoints\Filament\Forms\VenueFormSchema;
 use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Features\References\Api\ReferenceQueries;
-use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Platform\Ui\Forms\Select;
 use App\Shared\Cache\SelectionCatalogCache;
 use Carbon\CarbonInterface;
@@ -799,10 +799,10 @@ final readonly class EventSubmissionFormSchema
                         ->searchable()
                         ->native(false)
                         ->relationship('references', 'title', fn (Builder $query) => app(ReferenceQueries::class)->applyPublicVisibility($query)->with('parentReference.parentReference'))
-                        ->getSearchResultsUsing(fn (string $search): array => ReferenceFormSchema::searchOptions($search))
-                        ->getOptionLabelsUsing(fn (array $values): array => ReferenceFormSchema::selectedLabels($values))
-                        ->createOptionForm(ReferenceFormSchema::quickCreateComponents())
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => ReferenceFormSchema::createPending($data, $schema)),
+                        ->getSearchResultsUsing(fn (string $search): array => app(ReferenceQuickCreate::class)->searchReferenceOptions($search))
+                        ->getOptionLabelsUsing(fn (array $values): array => app(ReferenceQuickCreate::class)->selectedReferenceLabels($values))
+                        ->createOptionForm(app(ReferenceQuickCreate::class)->quickCreateSections())
+                        ->createOptionUsing(fn (array $data, Schema $schema): string => app(ReferenceQuickCreate::class)->createPendingReference($data, $schema)),
                 ]),
         ];
     }
@@ -1023,8 +1023,8 @@ final readonly class EventSubmissionFormSchema
                                                     }
                                                     JS)
                         ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->createOptionForm(PersonFormSchema::createOptionForm())
-                        ->createOptionUsing(fn (array $data, Schema $schema, Set $set, Get $get): string => PersonFormSchema::createOptionUsing($data, $schema)),
+                        ->createOptionForm(app(PersonQuickAdd::class)->formComponents())
+                        ->createOptionUsing(fn (array $data, Schema $schema, Set $set, Get $get): string => app(PersonQuickAdd::class)->createOption($data, $schema)),
                 ]),
 
             Section::make(__('Lokasi'))
@@ -1111,8 +1111,8 @@ final readonly class EventSubmissionFormSchema
                         ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
                         ->required(fn (Get $get): bool => ! in_array($get('event_format'), [EventFormat::Online, EventFormat::Online->value], true) && (self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'venue')
                         ->afterStateUpdatedJs($this->progressUpdateJs())
-                        ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => VenueFormSchema::createOptionUsing($data, $schema)),
+                        ->createOptionForm(app(VenueQuickAdd::class)->formComponents(includeLocationPicker: true))
+                        ->createOptionUsing(fn (array $data, Schema $schema): string => app(VenueQuickAdd::class)->createOption($data, $schema)),
 
                     Select::make('space_ids')
                         ->native(false)
@@ -1177,13 +1177,13 @@ final readonly class EventSubmissionFormSchema
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.'))
                         ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->getOptionLabelUsing(fn (mixed $value): ?string => $this->personLabel($value))
-                        ->getOptionLabelsUsing(fn (array $values): array => app(EntitySubmissionAccess::class)->personQueryForSubmitter($this->context->submitter)
+                        ->getOptionLabelsUsing(fn (array $values): array => app(SubmissionEntityAccess::class)->personQueryForSubmitter($this->context->submitter)
                             ->whereIn('persons.id', array_filter($values, is_string(...)))
                             ->get()
                             ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
                             ->toArray())
-                        ->createOptionForm(PersonFormSchema::createOptionForm())
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => PersonFormSchema::createOptionUsing($data, $schema)),
+                        ->createOptionForm(app(PersonQuickAdd::class)->formComponents())
+                        ->createOptionUsing(fn (array $data, Schema $schema): string => app(PersonQuickAdd::class)->createOption($data, $schema)),
 
                     Repeater::make('other_key_people')
                         ->label(__('Peranan Lain'))
@@ -1209,8 +1209,8 @@ final readonly class EventSubmissionFormSchema
                                                     $set('involveable_type', $state ? 'person' : null)
                                                     JS)
                                 ->getOptionLabelUsing(fn (mixed $value): ?string => $this->personLabel($value))
-                                ->createOptionForm(PersonFormSchema::createOptionForm())
-                                ->createOptionUsing(fn (array $data, Schema $schema): string => PersonFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(app(PersonQuickAdd::class)->formComponents())
+                                ->createOptionUsing(fn (array $data, Schema $schema): string => app(PersonQuickAdd::class)->createOption($data, $schema)),
                             Hidden::make('involveable_type'),
                             TextInput::make('display_name')
                                 ->label(__('Nama Paparan'))
@@ -1443,7 +1443,7 @@ final readonly class EventSubmissionFormSchema
             return null;
         }
 
-        return app(EntitySubmissionAccess::class)
+        return app(SubmissionEntityAccess::class)
             ->personQueryForSubmitter($this->context->submitter)
             ->find($value)?->formatted_name;
     }
@@ -1478,7 +1478,7 @@ final readonly class EventSubmissionFormSchema
             return;
         }
 
-        $access = app(EntitySubmissionAccess::class);
+        $access = app(SubmissionEntityAccess::class);
 
         if (! $this->context->scopedInstitution instanceof Institution) {
             $organizerInstitutionId = $this->normalizeNullableUuid($get('primary_organizer_institution_id'));
@@ -1979,7 +1979,7 @@ final readonly class EventSubmissionFormSchema
     private function withVerifiedInstitutionQuickAdd(Select $select): Select
     {
         return $select
-            ->createOptionForm(fn (Select $component): array => InstitutionFormSchema::createOptionForm(
+            ->createOptionForm(fn (Select $component): array => app(InstitutionQuickAdd::class)->formComponents(
                 includeLocationPicker: true,
                 requireVerifiedMapsSelection: true,
                 mapsSelectionOwnerPath: $component->getStatePath(),
@@ -2018,7 +2018,7 @@ final readonly class EventSubmissionFormSchema
                     $ownerStatePath,
                     $data,
                 );
-                $institutionId = InstitutionFormSchema::createOptionUsing(
+                $institutionId = app(InstitutionQuickAdd::class)->createOption(
                     $data,
                     $schema,
                     requireVerifiedMapsSelection: true,

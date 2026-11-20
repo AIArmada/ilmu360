@@ -11,7 +11,7 @@ use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventCategoryCatalog;
-use App\Features\Membership\Services\OrganizationEventAccess;
+use App\Features\Membership\Api\OrganizationEventAccessContract;
 use App\Features\Organizations\Api\OrganizationEventCreator;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -38,7 +38,7 @@ final class CreateEvent extends Component
     {
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
-        app(OrganizationEventAccess::class)->authorizeCreate($user, $organization);
+        app(OrganizationEventAccessContract::class)->authorizeCreate((string) $user->getKey(), (string) $organization->getKey());
 
         $this->organizationId = (string) $organization->getKey();
         $this->eventCategoryOptions = $categoryCatalog->options();
@@ -289,7 +289,7 @@ final class CreateEvent extends Component
             ->whereHas('members', fn ($query) => $query->whereKey($user->getKey()))
             ->firstOrFail();
 
-        app(OrganizationEventAccess::class)->authorizeCreate($user, $organization);
+        app(OrganizationEventAccessContract::class)->authorizeCreate((string) $user->getKey(), (string) $organization->getKey());
 
         return $organization;
     }

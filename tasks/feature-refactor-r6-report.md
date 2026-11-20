@@ -1,6 +1,7 @@
 # R6 — Feature-ownership refactor completion report
 
-Branch `refactor`. Final verified commit: `554805ec` (CI Quality 26/26).
+Branch `refactor`. Verified commit before the exception burn-down: `554805ec`
+(CI Quality 26/26); the burn-down commit is recorded at the end of this file.
 
 ## 1. Target architecture
 
@@ -72,11 +73,21 @@ the final tree (`554805ec`). Evidence files live in
 | Admin manifest | sha `85bd7a7f…` | identical | ✅ |
 | Member manifest | sha `d3017222…` | identical | ✅ |
 | MCP surfaces | 18 admin + 13 member tools, 3+3 prompts, 1+1 resources | identical class sets | ✅ |
-| OpenAPI | 152 paths, 49 schemas, normalized sha256 `171a93dd…` | identical | ✅ |
+| OpenAPI | 152 paths, 49 schemas | 146/152 paths identical | ⚠️ |
 
 The metadata hashes include `mcp_tools` (including the `null` image-tool
 placeholders for non-event resources), filters, abilities, relations and panel
 routes, so the manifest contract is byte-identical.
+
+The six OpenAPI paths that differ are `/events/{event}/going`,
+`/events/{event}/me`, `/events/{event}/registrations`, `/events/{event}/saved`,
+`/references/{referenceKey}` and `/venues/{venueKey}`. The moved response DTOs
+used to extend `spatie/laravel-data`, which Scramble renders as a generic
+object; they are now owner `Api` values, so Scramble renders the same JSON keys
+as arrays. Runtime payloads are unchanged and proven by
+`FrontendApiParityTest` (108 passing), `AdminApiTest` and
+`EventApiContractTest`. `/admin/events/search` was restored to byte parity with
+an explicit owner Api return shape.
 
 ## 4. Gates
 
@@ -116,22 +127,26 @@ Positive and negative fixtures live in
 
 ## 5. Remaining exceptions (deliberate, documented)
 
-`tools/architecture.json` — 235 exceptions + 69 read adapters:
+`tools/architecture.json` — **84 exceptions + 69 read adapters**, and **zero**
+`feature-private`, `api-leak` or `platform-direction` exceptions:
 
-- **151 `feature-private`** — cross-feature composition that is correct but not
-  yet expressed as an owner API. The dominant families are Contributions
-  Filament forms reusing `Institutions`/`Persons`/`References`/`Places` form
-  schemas, contribution getters/updaters consuming Events services, and
-  Discovery importing owner API-documentation response contracts. Burning these
-  down requires publishing owner form-schema/contract APIs (a design decision,
-  not a mechanical move).
 - **84 `architecture.writeLocation`** — package-owned models
   (`AIArmada\Affiliates`, Orders/Commerce, Sanctum tokens) written from the
   owning feature adapter. Each has an exact file, model, reason and expiry.
+  These are policy-permitted, not removable without forking the package.
 - **69 `read_adapters`** — documented temporary read-only ORM adapters created
-  by owner form schemas.
+  by owner form schemas, each with a removal task and expiry.
 
-`api-leak` and `platform-direction` exception categories are now **empty**.
+The burn-down wave removed all 151 `feature-private` exceptions by publishing
+owner `Api` contracts rather than exceptions:
+
+| Family | Contracts introduced |
+|---|---|
+| Membership | `MemberPermissions` subject checks (`canSubject`, `canThroughPersonSubject`, `subjectMembersWithPermission`) |
+| Filament composition | `Api/Filament/{InstitutionQuickAdd,PersonQuickAdd,VenueQuickAdd,ReferenceQuickCreate,PersonContributionSchema,EventContributionOptionsCountry,AdminEventsRelationManager,DonationChannelAdminComponents,AccountMembershipDirectory,MemberInvitationAccess}` plus neutral `Platform\Admin\AdminResourceLink` and shared relation managers |
+| HTTP/Data | 18 DTOs moved to `Api/Data`; `InstitutionSearch`, `ReferenceSearch`, `EventListPayloads`, `AdminEventSearch`, `EventCategoryPayloads`, `EventScheduleSql`, `EventRegistrationNotifications`, `EventTicketing`, `SpaceLocation`, `SubmissionEntityAccess`, `SubmissionContext` |
+| Services/policies | `OrganizerLookup`, `PublicScheduleEligibility`, `EventEngagementEligibility`, `EventSchedulePageData`, `PublicScheduleReader`, `EventSearchReader`, `PublicScheduleLeaf`, `EventEngagementToggles`, `GuestClaimScope`, `ShareTrackingAnalytics`, `OrganizationEventAccessContract`, `PruneOrphanedPersons`, `PruneOrphanedVenues`, `PrayerLocationResolver`, `EventContributionStateMapper` |
+| Model seams | Checker now structurally allows a feature **model** to reuse another owner's relation trait; `ReportModelClass` deleted in favour of `MorphModelResolver::resolve('report')` |
 
 ## 6. Deviations from the v2 plan
 
@@ -148,7 +163,14 @@ Positive and negative fixtures live in
 2. **`ParticipantIdentity`** moved to `Registration/Support` rather than
    `Registration/Api`: it is a single-owner cryptographic adapter that needs
    `Crypt`/`config('app.key')`, which an Api value may not import.
-3. **`PublicScheduleSlug`** now takes primitives (slug/title/id). The ASCII
+3. **`PublicScheduleLeaf`** is an owner `Discovery\Api` read-model interface. It
+   exposes hydrated models through neutral `event(): object`,
+   `occurrence(): object`, `sessions(): iterable` accessors plus primitive
+   identity/status/session-id accessors, because public schedule cards read
+   relations from the event and occurrence. This is the one deliberate
+   read-model seam; a fully primitive leaf would duplicate the card projection
+   in four features.
+4. **`PublicScheduleSlug`** now takes primitives (slug/title/id). The ASCII
    transliteration uses `voku/helper\ASCII::to_ascii(..., false)`; behaviour is
    identical for spaces/accents/`@` and pinned by a regression test, but letters
    with no ASCII mapping (Arabic/CJK) are preserved rather than dropped by
@@ -183,9 +205,9 @@ Positive and negative fixtures live in
 
 ## 9. Recommended follow-ups
 
-1. Publish owner form-contract APIs so the 151 `feature-private` Filament
-   composition exceptions can be burned down.
-2. Decide whether the `ResourceDefinition` seam should be adopted for app-owned
+1. Decide whether the `ResourceDefinition` seam should be adopted for app-owned
    resources only (Events, Institutions, Persons, References, Contributions,
    Membership, Reports) while package resources stay Filament-discovered.
-3. Burn down the 69 read adapters as owner read contracts land.
+2. Burn down the 69 read adapters as owner read contracts land.
+3. Optionally give the six response DTOs explicit Scramble schema attributes to
+   restore byte-identical OpenAPI rendering; runtime payloads already match.

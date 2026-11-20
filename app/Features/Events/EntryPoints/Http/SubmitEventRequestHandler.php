@@ -4,8 +4,8 @@ namespace App\Features\Events\EntryPoints\Http;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Contributions\Services\EntitySubmissionAccess;
-use App\Features\Contributions\Services\SubmissionContextResolver;
+use App\Features\Contributions\Api\SubmissionContext;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
@@ -45,14 +45,14 @@ use Throwable;
 final readonly class SubmitEventRequestHandler
 {
     public function __construct(
-        private EntitySubmissionAccess $entitySubmissionAccess,
+        private SubmissionEntityAccess $entitySubmissionAccess,
         private CaptchaVerifier $turnstileVerifier,
         private EventAuthoring $authoring,
         private EventSubmissions $submissions,
         private EventSubmissionCompletion $submissionCompletion,
         private ShareTrackingContract $shareTracking,
         private SubmissionTimingPolicy $timing,
-        private SubmissionContextResolver $context,
+        private SubmissionContext $context,
     ) {}
 
     /**
@@ -69,8 +69,11 @@ final readonly class SubmitEventRequestHandler
         ?callable $persistRelationships = null,
         string $validationKeyPrefix = '',
     ): array {
-        $scopedInstitution = $this->context->authorizedScopedInstitution($scopedInstitution, $submitter, $validationKeyPrefix, $state);
-        $eventContainer = $this->context->authorizedEventContainer($eventContainer, $submitter, $scopedInstitution, $validationKeyPrefix);
+        $resolvedScopedInstitution = $this->context->authorizedScopedInstitutionFor($scopedInstitution, $submitter, $validationKeyPrefix, $state);
+        $scopedInstitution = $resolvedScopedInstitution instanceof Institution ? $resolvedScopedInstitution : null;
+
+        $resolvedEventContainer = $this->context->authorizedEventContainerFor($eventContainer, $submitter, $scopedInstitution, $validationKeyPrefix);
+        $eventContainer = $resolvedEventContainer instanceof Event ? $resolvedEventContainer : null;
 
         // Structural boundary: reject malformed shapes, invalid explicit enums,
         // non-UUID IDs, and bad booleans before any scoped coercion, captcha
@@ -79,7 +82,7 @@ final readonly class SubmitEventRequestHandler
         $validated = $this->submissions->validate($state, $validationKeyPrefix);
 
         $validated = $this->submissions->normalizeCategories($validated, $validationKeyPrefix);
-        $validated = $this->context->normalizeScopedInstitutionState($validated, $scopedInstitution, $validationKeyPrefix);
+        $validated = $this->context->normalizeScopedInstitutionStateFor($validated, $scopedInstitution, $validationKeyPrefix);
         $validated = $this->context->normalizeSpaceSelection($validated);
 
         $submissionCountryId = $this->context->resolveSubmissionCountryId($validated, $validationKeyPrefix);
@@ -106,7 +109,7 @@ final readonly class SubmitEventRequestHandler
         $this->entitySubmissionAccess->assertSubmissionEntitiesAreAccessible($validated, $submitter, $organizerKind, $validationKeyPrefix);
         $this->submissions->assertCatalogSelectionsAreAvailable($validated, $validationKeyPrefix);
         SubmitterContactRules::assertSubmitterContactsAreValid($validated, $submitter, $validationKeyPrefix);
-        $this->entitySubmissionAccess->assertSubmissionEntitiesMatchCountry($validated, $organizerKind, $submissionCountryId, $scopedInstitution, $validationKeyPrefix);
+        $this->entitySubmissionAccess->assertSubmissionEntitiesMatchCountryFor($validated, $organizerKind, $submissionCountryId, $scopedInstitution, $validationKeyPrefix);
 
         $this->submissions->assertCommunityPhysicalFormat($validated, $validationKeyPrefix);
 
@@ -122,7 +125,7 @@ final readonly class SubmitEventRequestHandler
 
         $organizerKind = $primaryOrganizer instanceof Institution ? 'institution' : 'person';
 
-        [$targetInstitutionId, $targetVenueId] = $this->context->resolveTargetLocation($validated, $primaryOrganizer);
+        [$targetInstitutionId, $targetVenueId] = $this->context->resolveTargetLocationFor($validated, $primaryOrganizer);
         $this->context->assertSpaceSelectionIsEligible($validated, $targetInstitutionId, $targetVenueId, $validationKeyPrefix);
 
         // Tarawih has no prayer anchor; it is stored as a label-only expression.
@@ -156,7 +159,7 @@ final readonly class SubmitEventRequestHandler
         $this->timing->validateEndsAtAfterStartsAt($validated['end_time'] ?? null, $startsAt, $timezone, $validationKeyPrefix);
         $this->timing->validateStartsAtIsFuture($startsAt, $timezone, $prayerTime, $validationKeyPrefix);
 
-        $occurrenceId = $this->context->resolveSelectedOccurrenceId($validated, $eventContainer, $validationKeyPrefix);
+        $occurrenceId = $this->context->resolveSelectedOccurrenceIdFor($validated, $eventContainer, $validationKeyPrefix);
 
         // Captcha runs after every cheap local check so a field error never
         // burns the single-use token (or the verification HTTP call).

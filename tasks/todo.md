@@ -837,3 +837,15 @@ Verification: the focused serial Pest selection passed 17/17 (178 assertions); t
 - [x] Write `tasks/feature-refactor-r6-report.md` with gates, evidence and remaining work.
 
 Review: final commit `554805ec` is CI-green with 26/26 Quality jobs. Architecture, ownership types, PHPStan level 6, Pint and Rector are clean. `api-leak` and `platform-direction` exception categories are empty; 151 cross-feature Filament form-composition exceptions, 84 package-owned writes and 69 read adapters remain documented with reasons and expiries in the R6 report.
+
+# Exception burn-down (2026-11-20)
+
+- [x] Remove all 151 `feature-private` exceptions by publishing owner Api contracts instead of waivers.
+- [x] Add subject-scoped `MemberPermissions` operations and migrate 8 Membership consumers.
+- [x] Make the architecture checker recognise the cross-owner model-concern seam structurally (positive and negative fixtures).
+- [x] Move 18 HTTP response DTOs to owner `Api/Data`; publish 30+ owner read/policy/form/Filament contracts and register every binding.
+- [x] Delete `ReportModelClass` in favour of `MorphModelResolver::resolve('report')`.
+- [x] Verify runtime parity: FrontendApiParity 108/108, AdminApi 121/121, homepage/event/entity page suites green.
+- [x] Refresh the exception ledger (254 historical rows retired) and the R6 evidence/report.
+
+Review: `tools/architecture.json` now holds only 84 package-owned write exceptions and 69 time-boxed read adapters, with zero `feature-private`, `api-leak` or `platform-direction` entries. Architecture, ownership types, PHPStan L6, Pint and Rector are clean. Six OpenAPI response containers render as arrays rather than Spatie Data objects; runtime JSON is unchanged and proven by the API parity suites.

@@ -13,20 +13,20 @@ use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventTaxonomyCode;
+use App\Features\Events\Api\Filament\EventContributionOptionsCountry;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
-use App\Features\Events\Services\EventContributionUpdateStateMapper;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
-use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;
+use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
+use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Models\Person;
+use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\SpaceEligibility;
-use App\Features\Places\EntryPoints\Filament\Forms\VenueFormSchema;
 use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\RamadanGate;
-use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
+use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Platform\Ui\Forms\Select;
 use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\DatePicker;
@@ -116,7 +116,7 @@ class EventContributionFormSchema
                         ->options(fn (Get $get): array => self::eventPrayerTimeOptions(
                             $get('event_date'),
                             $get('timezone'),
-                            EventContributionUpdateStateMapper::effectiveOptionsCountry([
+                            app(EventContributionOptionsCountry::class)->forFormState([
                                 'event_format' => $get('event_format'),
                                 'primary_organizer_id' => $get('primary_organizer_id'),
                                 'location_same_as_institution' => $get('location_same_as_institution'),
@@ -274,10 +274,10 @@ class EventContributionFormSchema
                         ->placeholder(__('Cari atau pilih rujukan…'))
                         ->multiple()
                         ->searchable()
-                        ->getSearchResultsUsing(fn (string $search): array => ReferenceFormSchema::searchOptions($search))
-                        ->getOptionLabelsUsing(fn (array $values): array => ReferenceFormSchema::selectedLabels($values))
-                        ->createOptionForm(ReferenceFormSchema::quickCreateComponents())
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => ReferenceFormSchema::createPending($data, $schema))
+                        ->getSearchResultsUsing(fn (string $search): array => app(ReferenceQuickCreate::class)->searchReferenceOptions($search))
+                        ->getOptionLabelsUsing(fn (array $values): array => app(ReferenceQuickCreate::class)->selectedReferenceLabels($values))
+                        ->createOptionForm(app(ReferenceQuickCreate::class)->quickCreateSections())
+                        ->createOptionUsing(fn (array $data, Schema $schema): string => app(ReferenceQuickCreate::class)->createPendingReference($data, $schema))
                         ->columnSpanFull(),
                 ])
                 ->columns(['default' => 1, 'sm' => 2]),
@@ -341,8 +341,8 @@ class EventContributionFormSchema
                                     $set('location_institution_id', $state);
                                     $set('location_venue_id', null);
                                 })
-                                ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(app(InstitutionQuickAdd::class)->formComponents(includeLocationPicker: true))
+                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => app(InstitutionQuickAdd::class)->createOption($data, $schema)),
                             Select::make('primary_organizer_person_id')
                                 ->label(__('Penceramah'))
                                 ->options(fn (): array => self::personOptions())
@@ -371,8 +371,8 @@ class EventContributionFormSchema
                                         $set('person_ids', $currentPersons);
                                     }
                                 })
-                                ->createOptionForm(PersonFormSchema::createOptionForm())
-                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(app(PersonQuickAdd::class)->formComponents())
+                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => app(PersonQuickAdd::class)->createOption($data, $schema)),
                             Select::make('series_ids')
                                 ->label(__('Siri'))
                                 ->placeholder(__('Pilih siri'))
@@ -457,8 +457,8 @@ class EventContributionFormSchema
                                     $get('location_type'),
                                 ) === 'institution' : false)
                                 ->live()
-                                ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(app(InstitutionQuickAdd::class)->formComponents(includeLocationPicker: true))
+                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => app(InstitutionQuickAdd::class)->createOption($data, $schema)),
                             Select::make('location_venue_id')
                                 ->label(__('Lokasi'))
                                 ->options(fn (): array => self::venueOptions())
@@ -480,8 +480,8 @@ class EventContributionFormSchema
                                     $get('location_same_as_institution'),
                                     $get('location_type'),
                                 ) === 'venue' : false)
-                                ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
-                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => VenueFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(app(VenueQuickAdd::class)->formComponents(includeLocationPicker: true))
+                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => app(VenueQuickAdd::class)->createOption($data, $schema)),
                             Select::make('space_ids')
                                 ->label(__('Ruang'))
                                 ->helperText(__('Pilih satu atau lebih ruang (cth: Dewan Utama, Ruang Solat).'))
@@ -541,8 +541,8 @@ class EventContributionFormSchema
                         ->closeOnSelect()
                         ->searchable()
                         ->preload()
-                        ->createOptionForm(PersonFormSchema::createOptionForm())
-                        ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema))
+                        ->createOptionForm(app(PersonQuickAdd::class)->formComponents())
+                        ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => app(PersonQuickAdd::class)->createOption($data, $schema))
                         ->helperText(fn (Get $get): string => self::requiresPersonsForCategories($get('event_category_ids'))
                             ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.')),
@@ -565,8 +565,8 @@ class EventContributionFormSchema
                                     $set('display_name', null);
                                     $set('involveable_type', filled($state) ? 'person' : null);
                                 })
-                                ->createOptionForm(PersonFormSchema::createOptionForm())
-                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(app(PersonQuickAdd::class)->formComponents())
+                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => app(PersonQuickAdd::class)->createOption($data, $schema)),
                             Hidden::make('involveable_type'),
                             TextInput::make('display_name')
                                 ->label(__('Nama Paparan'))

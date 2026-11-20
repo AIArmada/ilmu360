@@ -4,36 +4,29 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
-use AIArmada\Organizations\Models\Organization;
+use App\Features\Membership\Api\OrganizationEventAccessContract;
 use App\Features\Organizations\Api\OrganizationAccess;
-use App\Models\User;
 
 /**
  * Package-model adapter for organization event creation access.
  *
  * Organization access behaviour lives behind the Organizations feature's
- * scalar OrganizationAccess API; package-aware callers keep this model
- * signature until their own slice moves them onto the feature boundary.
+ * scalar OrganizationAccess API; this boundary translates account and
+ * organization ids for workspace entrypoints.
  */
-final readonly class OrganizationEventAccess
+final readonly class OrganizationEventAccess implements OrganizationEventAccessContract
 {
     public function __construct(
         private OrganizationAccess $organizations,
     ) {}
 
-    public function canCreate(User $user, Organization $organization): bool
+    public function canCreate(string $accountId, string $organizationId): bool
     {
-        return $this->organizations->canCreateEvent(
-            (string) $user->getKey(),
-            (string) $organization->getKey(),
-        );
+        return $this->organizations->canCreateEvent($accountId, $organizationId);
     }
 
-    public function authorizeCreate(User $user, Organization $organization): void
+    public function authorizeCreate(string $accountId, string $organizationId): void
     {
-        $this->organizations->authorizeCreateEvent(
-            (string) $user->getKey(),
-            (string) $organization->getKey(),
-        );
+        $this->organizations->authorizeCreateEvent($accountId, $organizationId);
     }
 }

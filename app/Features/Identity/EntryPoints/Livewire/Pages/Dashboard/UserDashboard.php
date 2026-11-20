@@ -23,8 +23,8 @@ use App\Features\Rewards\Api\PublishedProgramVersions;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
+use App\Features\ShareTracking\Api\ShareTrackingAnalytics;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
@@ -88,7 +88,7 @@ class UserDashboard extends Component
     #[Computed]
     public function dakwahSummary(): array
     {
-        return app(ShareTrackingAnalyticsService::class)->summaryForUser($this->user());
+        return app(ShareTrackingAnalytics::class)->summaryForUser($this->user());
     }
 
     #[Computed]
@@ -1044,7 +1044,7 @@ class UserDashboard extends Component
      */
     private function hasBankedRewardOutcome(User $user, array $outcomes): bool
     {
-        $summary = app(ShareTrackingAnalyticsService::class)->summaryForUser($user);
+        $summary = app(ShareTrackingAnalytics::class)->summaryForUser($user);
 
         if (in_array('signup', $outcomes, true) && $summary['signups'] > 0) {
             return true;

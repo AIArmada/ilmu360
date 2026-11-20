@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces\RelationManagers;
 
-use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Places\Api\InstitutionSpaceLinks;
+use App\Platform\Admin\AdminResourceLink;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
@@ -22,7 +22,10 @@ class InstitutionsRelationManager extends RelationManager
     protected static string $relationship = 'institutions';
 
     #[\Override]
-    protected static ?string $relatedResource = InstitutionResource::class;
+    public static function getRelatedResource(): ?string
+    {
+        return AdminResourceLink::forMorphAlias('institution');
+    }
 
     public function table(Table $table): Table
     {
@@ -33,7 +36,7 @@ class InstitutionsRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->url(fn ($record): ?string => $record?->id
-                        ? InstitutionResource::getUrl('edit', ['record' => $record->id])
+                        ? AdminResourceLink::to('institution', 'edit', (string) $record->id)
                         : null),
                 TextColumn::make('status')
                     ->badge()

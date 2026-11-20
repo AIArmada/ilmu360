@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\SavedSearches\Services;
 
+use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\SearchFilterKeys;
 use App\Features\Discovery\Api\SearchSignal;
-use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Models\Event;
 use App\Features\SavedSearches\Api\SavedSearchExecutionResult;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
@@ -20,7 +20,7 @@ use Illuminate\Support\Arr;
 final readonly class EventSavedSearchExecutor implements SavedSearchExecutor
 {
     public function __construct(
-        private EventSearchService $searchService,
+        private EventSearchReader $searchService,
         private SignalRecorder $signals,
         private Request $request,
     ) {}

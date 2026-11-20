@@ -6,6 +6,7 @@ use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
 use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
+use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Models\User;
@@ -28,8 +29,49 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
-class ReferenceFormSchema
+class ReferenceFormSchema implements ReferenceQuickCreate
 {
+    /**
+     * @return array<int, Component>
+     */
+    public function referenceFields(string $yearField = 'year', bool $publicOnly = true): array
+    {
+        return self::fields($yearField, $publicOnly);
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    public function quickCreateSections(): array
+    {
+        return self::quickCreateComponents();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createPendingReference(array $data, ?Schema $schema = null): string
+    {
+        return self::createPending($data, $schema);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function searchReferenceOptions(string $search): array
+    {
+        return self::searchOptions($search);
+    }
+
+    /**
+     * @param  array<int, mixed>  $values
+     * @return array<string, string>
+     */
+    public function selectedReferenceLabels(array $values): array
+    {
+        return self::selectedLabels($values);
+    }
+
     /** @return array<int, Component> */
     public static function fields(string $yearField = 'year', bool $publicOnly = true): array
     {

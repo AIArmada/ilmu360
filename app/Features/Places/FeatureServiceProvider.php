@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places;
 
+use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\PlaceLookup;
@@ -11,6 +12,7 @@ use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\EntryPoints\Admin\Resources\PlaceMutationHooks;
+use App\Features\Places\EntryPoints\Filament\Forms\VenueFormSchema;
 use App\Features\Places\EntryPoints\Filament\Resources\Spaces\SpaceResource;
 use App\Features\Places\EntryPoints\Filament\Resources\Venues\VenueResource;
 use App\Features\Places\EntryPoints\Filament\Stats\PendingVenuesStat;
@@ -34,6 +36,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(VenueQuickAdd::class, VenueFormSchema::class);
         $this->app->bind(PlaceCatalog::class, EloquentPlaceCatalog::class);
         $this->app->tag([PendingVenuesStat::class], 'admin.stats');
 

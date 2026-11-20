@@ -7,12 +7,13 @@ namespace App\Features\ShareTracking\Services;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
+use App\Features\ShareTracking\Api\ShareTrackingAnalytics;
 use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
-final readonly class ShareTrackingAnalyticsService
+final readonly class ShareTrackingAnalyticsService implements ShareTrackingAnalytics
 {
     public function __construct(
         private AffiliatesShareTrackingAnalyticsService $affiliates,

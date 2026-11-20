@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces;
 
 use AIArmada\FilamentEvents\Resources\VenueSpaceResource;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\RelationManagers\EventsRelationManager;
+use App\Features\Events\Api\Filament\AdminEventsRelationManager;
 use App\Features\Places\EntryPoints\Filament\Resources\Spaces\Pages\CreateSpace;
 use App\Features\Places\EntryPoints\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Features\Places\EntryPoints\Filament\Resources\Spaces\Pages\ListSpaces;
@@ -66,7 +66,7 @@ class SpaceResource extends VenueSpaceResource
     {
         return [
             InstitutionsRelationManager::class,
-            EventsRelationManager::class,
+            app(AdminEventsRelationManager::class)->relationManager(),
             AuditsRelationManager::class,
         ];
     }

@@ -1,13 +1,12 @@
-# Final gate evidence — HEAD 554805ec (2026-11-19T22:15:26Z)
+# Final gate evidence — HEAD before burn-down commit (2026-11-20T07:22:10Z)
 
 php tools/architecture-check.php
 0 architecture violation(s); 27 feature(s) checked.
 exit=0
 
 ## Exception categories
-exceptions 235 {'architecture.writeLocation': 84, 'feature-private': 151}
+exceptions 84 {'architecture.writeLocation': 84}
 read_adapters 69
-root_models ['app/Models/User.php', 'app/Models/PassportUser.php']
 
 ## Platform PHP files over 400 lines
 1148 app/Platform/Ui/Forms/AddressFields.php

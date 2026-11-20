@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions;
 
+use App\Features\Places\Api\PruneOrphanedVenues;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\Models\Venue;
 use Illuminate\Support\Carbon;
 
-final readonly class PruneOrphanedVenuesAction
+final readonly class PruneOrphanedVenuesAction implements PruneOrphanedVenues
 {
     public function __construct(private VenueWorkflow $venueWorkflow) {}
 

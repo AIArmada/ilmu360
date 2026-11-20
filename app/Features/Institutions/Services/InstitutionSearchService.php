@@ -13,7 +13,7 @@ use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 
-class InstitutionSearchService implements PublicDiscoveryAdapter
+class InstitutionSearchService implements \App\Features\Institutions\Api\InstitutionSearch, PublicDiscoveryAdapter
 {
     public function __construct(private readonly InstitutionSearchCache $cache) {}
 

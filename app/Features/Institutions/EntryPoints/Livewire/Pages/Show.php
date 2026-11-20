@@ -6,11 +6,11 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Discovery\Api\PublicScheduleLeaf;
+use App\Features\Engagement\Api\EventEngagement;
+use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventGoing;
-use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventSave;
-use App\Features\Events\EntryPoints\Livewire\Concerns\LoadsEventPageData;
+use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventReferencePivot;
@@ -18,8 +18,12 @@ use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
+use App\Models\User;
 use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
+use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\IntendedRedirect;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -27,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -34,9 +39,6 @@ use Livewire\Component;
 class Show extends Component
 {
     use JoinsHierarchyAreaName;
-    use LoadsEventPageData;
-    use TogglesEventGoing;
-    use TogglesEventSave;
 
     public Institution $institution;
 
@@ -45,6 +47,19 @@ class Show extends Component
     public int $pastPerPage = 6;
 
     public bool $isFollowing = false;
+
+    public string $upcomingDateFilter = 'all';
+
+    public string $customStartDate = '';
+
+    public string $customEndDate = '';
+
+    public bool $showCustomDateRange = false;
+
+    /**
+     * @var array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}|null
+     */
+    private ?array $schedulePageData = null;
 
     public function boot(): void
     {
@@ -105,14 +120,107 @@ class Show extends Component
         $this->isFollowing = true;
     }
 
+    public function toggleGoing(string $eventId): void
+    {
+        $loginUrl = app(EventEngagementToggles::class)->toggleGoing($eventId, $this->eventGoingReturnUrl());
+
+        if ($loginUrl !== null) {
+            $this->redirect($loginUrl, navigate: true);
+        }
+    }
+
+    public function toggleSave(string $eventId): void
+    {
+        $loginUrl = app(EventEngagementToggles::class)->toggleSave($eventId, $this->eventSaveReturnUrl());
+
+        if ($loginUrl !== null) {
+            $this->redirect($loginUrl, navigate: true);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    #[Computed]
+    public function goingEventIds(): array
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        return app(EventEngagement::class)->goingEventIds((string) $user->getKey());
+    }
+
+    /**
+     * @return list<string>
+     */
+    #[Computed]
+    public function savedEventIds(): array
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        return app(EventEngagement::class)->savedEventIds((string) $user->getKey());
+    }
+
+    public function filterUpcomingEvents(): void
+    {
+        $this->schedulePageData = null;
+    }
+
+    public function updatedUpcomingDateFilter(): void
+    {
+        if ($this->upcomingDateFilter === 'custom') {
+            $this->resetValidation('customDateRange');
+
+            return;
+        }
+
+        $this->filterUpcomingEvents();
+    }
+
+    public function applyCustomDateRange(): void
+    {
+        $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
+        $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate);
+
+        if (! $from instanceof CarbonInterface || ! $to instanceof CarbonInterface || $from->greaterThan($to)) {
+            $this->addError('customDateRange', __('Sila pilih julat tarikh yang sah.'));
+
+            return;
+        }
+
+        $this->resetValidation('customDateRange');
+        $this->upcomingDateFilter = 'custom';
+        $this->showCustomDateRange = false;
+        $this->filterUpcomingEvents();
+    }
+
+    public function clearUpcomingDateFilter(): void
+    {
+        $this->upcomingDateFilter = 'all';
+        $this->customStartDate = '';
+        $this->customEndDate = '';
+        $this->showCustomDateRange = false;
+        $this->resetValidation('customDateRange');
+        $this->filterUpcomingEvents();
+    }
+
     public function loadMoreUpcoming(): void
     {
         $this->upcomingPerPage += 6;
+        $this->schedulePageData = null;
     }
 
     public function loadMorePast(): void
     {
         $this->pastPerPage += 6;
+        $this->schedulePageData = null;
     }
 
     /**
@@ -139,6 +247,16 @@ class Show extends Component
     public function getPastTotalProperty(): int
     {
         return $this->schedulePageData()['past_total'];
+    }
+
+    public function getUpcomingOverallTotalProperty(): int
+    {
+        return $this->schedulePageData()['upcoming_overall_total'];
+    }
+
+    public function getPastOverallTotalProperty(): int
+    {
+        return $this->schedulePageData()['past_overall_total'];
     }
 
     public function getHasAdminOrOwnerMemberProperty(): bool
@@ -190,36 +308,89 @@ class Show extends Component
         return $this->eventQuery();
     }
 
-    /** @return array<string|int, string|array<string, mixed>|\Closure> */
-    protected function eventPageEagerLoads(): array
+    /**
+     * @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     */
+    private function schedulePageData(): array
     {
+        if ($this->schedulePageData !== null) {
+            return $this->schedulePageData;
+        }
+
+        $range = $this->upcomingDateRange();
+
+        /** @var array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
+        $data = app(EventSchedulePageData::class)->forQuery(
+            $this->eventPageBaseQuery(),
+            $this->upcomingPerPage,
+            $this->pastPerPage,
+            $range['from'] ?? null,
+            $range['to'] ?? null,
+        );
+
+        return $this->schedulePageData = $data;
+    }
+
+    /**
+     * @return array{from: CarbonInterface, to: CarbonInterface}|null
+     */
+    private function upcomingDateRange(): ?array
+    {
+        if ($this->upcomingDateFilter === 'custom') {
+            $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
+            $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate)?->addDay();
+
+            if (! $from instanceof CarbonInterface || $to === null || $from->greaterThanOrEqualTo($to)) {
+                return null;
+            }
+
+            return [
+                'from' => $from,
+                'to' => $to,
+            ];
+        }
+
+        $today = UserDateTimeFormatter::userNow()->startOfDay();
+
+        [$from, $to] = match ($this->upcomingDateFilter) {
+            'today' => [$today, $today->copy()->addDay()],
+            'tomorrow' => [$today->copy()->addDay(), $today->copy()->addDays(2)],
+            'this_week' => [$today, $today->copy()->startOfWeek()->addWeek()],
+            'this_weekend' => $this->weekendDateRange($today),
+            'this_month' => [$today->copy()->startOfMonth(), $today->copy()->startOfMonth()->addMonth()],
+            'next_week' => [
+                $today->copy()->startOfWeek()->addWeek(),
+                $today->copy()->startOfWeek()->addWeeks(2),
+            ],
+            'next_month' => [
+                $today->copy()->startOfMonth()->addMonth(),
+                $today->copy()->startOfMonth()->addMonths(2),
+            ],
+            default => [null, null],
+        };
+
+        if ($from === null || $to === null) {
+            return null;
+        }
+
         return [
-            'venue.media',
-            'venue.addresses' => $this->joinAddressStateName(...),
-            'venue.addresses.city',
-            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
-            'persons.media',
-            'persons.titleAssignments.title.category',
-            'keyPeople.person',
-            'references' => fn ($query) => $query->active(),
-            'media',
-            'institution.media',
-            'classifications.term',
-            'primaryOccurrence',
-            'displayOccurrence.media',
-            'timeExpressions',
-            'links',
+            'from' => $from->utc(),
+            'to' => $to->utc(),
         ];
     }
 
-    protected function eventPageUpcomingLimit(): int
+    /**
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
+     */
+    private function weekendDateRange(CarbonInterface $today): array
     {
-        return $this->upcomingPerPage;
-    }
+        // On Sunday the weekend began yesterday: anchor on Saturday so the
+        // window stays Sat + Sun instead of drifting into Monday.
+        $weekendStart = $today->isSunday()
+            ? $today->copy()->subDay()
+            : ($today->isSaturday() ? $today->copy() : $today->copy()->next(Carbon::SATURDAY));
 
-    protected function eventPagePastLimit(): int
-    {
-        return $this->pastPerPage;
+        return [$weekendStart, $weekendStart->copy()->addDays(2)->startOfDay()];
     }
 
     public function render(): View

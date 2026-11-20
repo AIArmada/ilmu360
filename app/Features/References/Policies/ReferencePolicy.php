@@ -2,7 +2,8 @@
 
 namespace App\Features\References\Policies;
 
-use App\Features\Membership\Services\MemberPermissionGate;
+use App\Features\Membership\Api\MemberPermissions;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 
@@ -27,7 +28,7 @@ class ReferencePolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canReference($user, 'reference.view', $reference);
+        return app(MemberPermissions::class)->canSubject($user, 'reference.view', MemberSubjectType::Reference, (string) $reference->getKey());
     }
 
     public function create(User $user): bool
@@ -41,7 +42,7 @@ class ReferencePolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canReference($user, 'reference.update', $reference);
+        return app(MemberPermissions::class)->canSubject($user, 'reference.update', MemberSubjectType::Reference, (string) $reference->getKey());
     }
 
     public function delete(User $user, Reference $reference): bool
@@ -50,7 +51,7 @@ class ReferencePolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canReference($user, 'reference.delete', $reference);
+        return app(MemberPermissions::class)->canSubject($user, 'reference.delete', MemberSubjectType::Reference, (string) $reference->getKey());
     }
 
     public function deleteAny(User $user): bool
@@ -64,7 +65,7 @@ class ReferencePolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canReference($user, 'reference.manage-members', $reference);
+        return app(MemberPermissions::class)->canSubject($user, 'reference.manage-members', MemberSubjectType::Reference, (string) $reference->getKey());
     }
 
     public function approve(User $user, Reference $reference): bool
@@ -73,6 +74,6 @@ class ReferencePolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canReference($user, 'reference.approve', $reference);
+        return app(MemberPermissions::class)->canSubject($user, 'reference.approve', MemberSubjectType::Reference, (string) $reference->getKey());
     }
 }

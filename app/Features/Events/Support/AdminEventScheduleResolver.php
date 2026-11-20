@@ -7,9 +7,9 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
-use App\Features\Prayer\Support\PrayerLocation;
 use BackedEnum;
 use Carbon\Carbon;
 use Illuminate\Support\Carbon as IlluminateCarbon;
@@ -23,6 +23,7 @@ final readonly class AdminEventScheduleResolver
     public function __construct(
         private ResolvePrayerStartClockAction $resolveStartClock,
         private SubmissionTimingPolicy $timing,
+        private PrayerLocationResolver $prayerLocation,
     ) {}
 
     /**
@@ -60,7 +61,7 @@ final readonly class AdminEventScheduleResolver
         // country feeds both resolution and fallback persistence.
         // Explicit country input is a deliberate override; an unchanged
         // inherited id is provenance, not an instruction.
-        $prayerAddress = PrayerLocation::forTargets($prayerVenueId, $prayerInstitutionId);
+        $prayerAddress = $this->prayerLocation->forTargets($prayerVenueId, $prayerInstitutionId);
         $recordCountryId = $creating ? null : $this->normalizeOptionalString($recordState['submission_country_id'] ?? null);
         $stateCountryId = $this->normalizeOptionalString($state['submission_country_id'] ?? null);
         $explicitCountry = $creating
@@ -232,7 +233,7 @@ final readonly class AdminEventScheduleResolver
             return null;
         }
 
-        $location = PrayerLocation::fromAddress($address);
+        $location = $this->prayerLocation->fromAddress($address);
 
         return $this->resolveStartClock->handle(
             countryCode: $countryIso,
@@ -280,7 +281,7 @@ final readonly class AdminEventScheduleResolver
      */
     private function prayerCountryIso(?Address $address, ?string $explicitCountryIso, bool $targetsChanged, ?string $pinnedCountryIso): string
     {
-        $addressCountry = PrayerLocation::fromAddress($address)['countryCode'] ?? null;
+        $addressCountry = $this->prayerLocation->fromAddress($address)['countryCode'] ?? null;
         $addressCountry = is_string($addressCountry) && trim($addressCountry) !== '' ? $addressCountry : null;
 
         if ($explicitCountryIso !== null) {

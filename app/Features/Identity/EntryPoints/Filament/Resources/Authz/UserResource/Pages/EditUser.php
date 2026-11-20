@@ -10,9 +10,9 @@ use App\Features\Events\Models\Event;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\Filament\AccountMembershipDirectory;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Membership\Queries\MemberDirectorySummary;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
@@ -199,14 +199,14 @@ class EditUser extends EditRecord
     private function membershipsFor(MemberSubjectType $subjectType): array
     {
         $user = $this->userRecord();
-        $summary = app(MemberDirectorySummary::class);
+        $summary = app(AccountMembershipDirectory::class);
 
         return match ($subjectType) {
-            MemberSubjectType::Institution => $summary->institutions($user)->map(fn (Institution $institution): string => $institution->name)->values()->all(),
-            MemberSubjectType::Person => $summary->persons($user)->map(fn (Person $person): string => $person->name)->values()->all(),
-            MemberSubjectType::Event => $summary->events($user, 'title', 'asc')->map(fn (Event $event): string => $event->title)->values()->all(),
-            MemberSubjectType::Reference => $summary->references($user)->map(fn (Reference $reference): string => $reference->displayTitle())->values()->all(),
-            MemberSubjectType::Organization => $summary->organizations($user)->map(fn (Organization $organization): string => $organization->name)->values()->all(),
+            MemberSubjectType::Institution => collect($summary->institutions($user))->map(fn (Institution $institution): string => $institution->name)->values()->all(),
+            MemberSubjectType::Person => collect($summary->persons($user))->map(fn (Person $person): string => $person->name)->values()->all(),
+            MemberSubjectType::Event => collect($summary->events($user, 'title', 'asc'))->map(fn (Event $event): string => $event->title)->values()->all(),
+            MemberSubjectType::Reference => collect($summary->references($user))->map(fn (Reference $reference): string => $reference->displayTitle())->values()->all(),
+            MemberSubjectType::Organization => collect($summary->organizations($user))->map(fn (Organization $organization): string => $organization->name)->values()->all(),
         };
     }
 
@@ -238,7 +238,7 @@ class EditUser extends EditRecord
     private function pivotRoleSlug(User $user, MemberSubjectType $subjectType): ?string
     {
         $subjectType = MemberSubjectType::from($subjectType->value);
-        $records = app(MemberDirectorySummary::class)->memberships($user, $subjectType);
+        $records = app(AccountMembershipDirectory::class)->memberships($user, $subjectType);
         $record = $records[0] ?? null;
         $role = $record?->role;
 
@@ -247,14 +247,14 @@ class EditUser extends EditRecord
 
     private function firstResolvedSubject(MemberSubjectType $subjectType, User $user): Institution|Person|Event|Reference|Organization|null
     {
-        $summary = app(MemberDirectorySummary::class);
+        $summary = app(AccountMembershipDirectory::class);
 
         return match ($subjectType) {
-            MemberSubjectType::Institution => $summary->institutions($user)->first(),
-            MemberSubjectType::Person => $summary->persons($user)->first(),
-            MemberSubjectType::Event => $summary->events($user, 'title', 'asc')->first(),
-            MemberSubjectType::Reference => $summary->references($user)->first(),
-            MemberSubjectType::Organization => $summary->organizations($user)->first(),
+            MemberSubjectType::Institution => collect($summary->institutions($user))->first(),
+            MemberSubjectType::Person => collect($summary->persons($user))->first(),
+            MemberSubjectType::Event => collect($summary->events($user, 'title', 'asc'))->first(),
+            MemberSubjectType::Reference => collect($summary->references($user))->first(),
+            MemberSubjectType::Organization => collect($summary->organizations($user))->first(),
         };
     }
 }

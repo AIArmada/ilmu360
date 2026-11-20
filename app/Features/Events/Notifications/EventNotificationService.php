@@ -11,18 +11,20 @@ use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
-use App\Features\Discovery\Services\EventSearchService;
+use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventChangeSeverity;
+use App\Features\Events\Api\EventRegistrationNotifications;
 use App\Features\Events\Contracts\EventReminderNotificationDispatch;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Membership\Services\MemberPermissionGate;
+use App\Features\Membership\Api\MemberPermissions;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Features\Registration\Models\EventCheckin;
@@ -35,12 +37,12 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
-class EventNotificationService implements EventReminderNotificationDispatch
+class EventNotificationService implements EventRegistrationNotifications, EventReminderNotificationDispatch
 {
     public function __construct(
         protected NotificationDispatch $notificationDispatch,
-        protected EventSearchService $eventSearchService,
-        protected MemberPermissionGate $memberPermissionGate,
+        protected EventSearchReader $eventSearchService,
+        protected MemberPermissions $memberPermissionGate,
         protected NotificationMessageRendering $messageRenderer,
         protected SavedSearchReader $savedSearchReader,
     ) {}
@@ -366,6 +368,15 @@ class EventNotificationService implements EventReminderNotificationDispatch
         }
     }
 
+    public function registrationConfirmed(object $registration): void
+    {
+        if (! $registration instanceof Registration) {
+            return;
+        }
+
+        $this->notifyRegistrationConfirmed($registration);
+    }
+
     public function notifyRegistrationConfirmed(Registration $registration): void
     {
         $user = $registration->registrant;
@@ -388,6 +399,15 @@ class EventNotificationService implements EventReminderNotificationDispatch
             priority: NotificationPriority::Medium,
             fingerprint: 'registration-confirmed:'.$registration->id,
         ));
+    }
+
+    public function checkInConfirmed(string $checkinId): void
+    {
+        $checkin = EventCheckin::query()->find($checkinId);
+
+        if ($checkin instanceof EventCheckin) {
+            $this->notifyCheckinConfirmed($checkin);
+        }
     }
 
     public function notifyCheckinConfirmed(EventCheckin $checkin): void
@@ -440,8 +460,11 @@ class EventNotificationService implements EventReminderNotificationDispatch
         }
 
         if ($event->institution) {
-            $institutionAdmins = $this->memberPermissionGate
-                ->institutionMembersWithPermission($event->institution, 'event.update');
+            $institutionAdmins = $this->usersWithSubjectPermission(
+                MemberSubjectType::Institution,
+                (string) $event->institution->getKey(),
+                'event.update',
+            );
             $recipients = $recipients->merge($institutionAdmins);
         }
 
@@ -461,30 +484,46 @@ class EventNotificationService implements EventReminderNotificationDispatch
         $recipients = collect()
             ->merge($this->trackedUsers($event))
             ->merge($this->submissionRecipients($event))
-            ->merge($this->memberPermissionGate->eventMembersWithPermission($event, 'event.update'))
+            ->merge($this->usersWithSubjectPermission(MemberSubjectType::Event, (string) $event->getKey(), 'event.update'))
             ->merge(User::role(['moderator', 'super_admin'])->get());
 
         if ($event->institution instanceof Institution) {
             $recipients = $recipients->merge(
-                $this->memberPermissionGate->institutionMembersWithPermission($event->institution, 'event.update')
+                $this->usersWithSubjectPermission(
+                    MemberSubjectType::Institution,
+                    (string) $event->institution->getKey(),
+                    'event.update',
+                )
             );
         }
 
         if ($event->organizer instanceof Institution) {
             $recipients = $recipients->merge(
-                $this->memberPermissionGate->institutionMembersWithPermission($event->organizer, 'event.update')
+                $this->usersWithSubjectPermission(
+                    MemberSubjectType::Institution,
+                    (string) $event->organizer->getKey(),
+                    'event.update',
+                )
             );
         }
 
         if ($event->organizer instanceof Person) {
             $recipients = $recipients->merge(
-                $this->memberPermissionGate->personMembersWithPermission($event->organizer, 'event.update')
+                $this->usersWithSubjectPermission(
+                    MemberSubjectType::Person,
+                    (string) $event->organizer->getKey(),
+                    'event.update',
+                )
             );
         }
 
         foreach ($event->persons as $person) {
             $recipients = $recipients->merge(
-                $this->memberPermissionGate->personMembersWithPermission($person, 'event.update')
+                $this->usersWithSubjectPermission(
+                    MemberSubjectType::Person,
+                    (string) $person->getKey(),
+                    'event.update',
+                )
             );
         }
 
@@ -1043,5 +1082,25 @@ class EventNotificationService implements EventReminderNotificationDispatch
     {
         return $event->starts_at !== null
             && $event->starts_at->isBetween(now(), now()->addHours($hours));
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function usersWithSubjectPermission(MemberSubjectType $subjectType, string $subjectId, string $permission): Collection
+    {
+        $accountIds = $this->memberPermissionGate->subjectMembersWithPermission($subjectType, $subjectId, $permission);
+
+        if ($accountIds === []) {
+            return collect();
+        }
+
+        $order = array_flip($accountIds);
+
+        return User::query()
+            ->whereKey($accountIds)
+            ->get()
+            ->sortBy(static fn (User $user): int => $order[(string) $user->getKey()] ?? PHP_INT_MAX)
+            ->values();
     }
 }

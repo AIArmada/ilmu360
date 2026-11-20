@@ -5,56 +5,61 @@ namespace App\Features\Discovery\EntryPoints\Http;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Addressing\Support\AddressLocationScope;
-use App\Features\Discovery\EntryPoints\Http\Data\EventListData;
+use App\Features\Discovery\Api\EventListPayloads;
 use App\Features\Discovery\EntryPoints\Http\Data\SeriesDetailData;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\Series;
-use App\Features\Events\Queries\PrimaryOccurrenceSql;
+use App\Features\Institutions\Api\Data\InstitutionDetailData;
+use App\Features\Institutions\Api\Data\InstitutionDonationChannelData;
+use App\Features\Institutions\Api\Data\InstitutionListData;
 use App\Features\Institutions\Api\Documentation\Schemas\InstitutionDetailResponse;
 use App\Features\Institutions\Api\Documentation\Schemas\InstitutionDirectoryResponse;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
-use App\Features\Institutions\EntryPoints\Http\Data\InstitutionDetailData;
-use App\Features\Institutions\EntryPoints\Http\Data\InstitutionDonationChannelData;
-use App\Features\Institutions\EntryPoints\Http\Data\InstitutionListData;
+use App\Features\Institutions\Api\InstitutionSearch;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Institutions\Services\InstitutionSearchService;
+use App\Features\Institutions\Models\InstitutionName;
+use App\Features\Persons\Api\Data\PersonDetailData;
+use App\Features\Persons\Api\Data\PersonDetailMediaData;
+use App\Features\Persons\Api\Data\PersonGalleryItemData;
+use App\Features\Persons\Api\Data\PersonInstitutionData;
+use App\Features\Persons\Api\Data\PersonListData;
 use App\Features\Persons\Api\Documentation\Schemas\PersonDetailResponse;
 use App\Features\Persons\Api\Documentation\Schemas\PersonDirectoryResponse;
 use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Features\Persons\EntryPoints\Http\Data\PersonDetailData;
-use App\Features\Persons\EntryPoints\Http\Data\PersonDetailMediaData;
-use App\Features\Persons\EntryPoints\Http\Data\PersonGalleryItemData;
-use App\Features\Persons\EntryPoints\Http\Data\PersonInstitutionData;
-use App\Features\Persons\EntryPoints\Http\Data\PersonListData;
+use App\Features\Persons\Api\PersonSearch;
 use App\Features\Persons\Models\Person;
-use App\Features\Persons\Services\PersonSearchService;
-use App\Features\Places\EntryPoints\Http\Data\VenueDetailData;
+use App\Features\Places\Api\Data\VenueDetailData;
 use App\Features\Places\Models\Venue;
+use App\Features\References\Api\Data\ReferenceDetailData;
+use App\Features\References\Api\Data\ReferenceListData;
 use App\Features\References\Api\Documentation\Schemas\ReferenceDirectoryResponse;
 use App\Features\References\Api\ReferenceQueries;
-use App\Features\References\EntryPoints\Http\Data\ReferenceDetailData;
-use App\Features\References\EntryPoints\Http\Data\ReferenceListData;
+use App\Features\References\Api\ReferenceSearch;
 use App\Features\References\Models\Reference;
-use App\Features\References\Services\ReferenceSearchService;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
+use App\Platform\Api\Frontend\Data\CountryData;
 use App\Platform\Api\Search\SearchRequestNormalizer;
 use App\Platform\Http\FrontendController;
+use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Platform\Search\PublicDiscovery;
+use App\Shared\Cache\SelectionCatalogCache;
 use Carbon\CarbonInterface;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
 use Dedoc\Scramble\Attributes\Response;
+use Filament\Support\Contracts\HasLabel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -136,9 +141,9 @@ class SearchController extends FrontendController
 
     public function __construct(
         private readonly EventSearchService $eventSearchService,
-        private readonly InstitutionSearchService $institutionSearchService,
-        private readonly ReferenceSearchService $referenceSearchService,
-        private readonly PersonSearchService $personSearchService,
+        private readonly InstitutionSearch $institutionSearchService,
+        private readonly ReferenceSearch $referenceSearchService,
+        private readonly PersonSearch $personSearchService,
         private readonly InstitutionListingCacheVersion $institutionListingCacheVersion,
         private readonly PersonListingCacheVersion $personListingCacheVersion,
         private readonly SearchRequestNormalizer $searchRequestNormalizer,
@@ -147,6 +152,8 @@ class SearchController extends FrontendController
         private readonly AddressLocationScope $addressLocationScope,
         private readonly PublicDiscovery $publicDiscovery,
         private readonly ReferenceQueries $referenceQueries,
+        private readonly EventListPayloads $eventListPayloads,
+        private readonly EventScheduleSql $eventScheduleSql,
     ) {}
 
     #[Group('Search', 'Public aggregate search endpoints across events, persons, and institutions.')]
@@ -485,7 +492,7 @@ class SearchController extends FrontendController
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $this->institutionEventsQuery($record)
                 ->active()
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution.media',
                     'venue.addresses.country',
@@ -505,7 +512,7 @@ class SearchController extends FrontendController
         $pastEvents = $this->limitedEventPayloadWithTotal(
             $this->institutionEventsQuery($record)
                 ->active()
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution.media',
                     'venue.addresses.country',
@@ -579,7 +586,7 @@ class SearchController extends FrontendController
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution',
                     'institution.media',
@@ -600,7 +607,7 @@ class SearchController extends FrontendController
         $pastEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution',
                     'institution.media',
@@ -665,7 +672,7 @@ class SearchController extends FrontendController
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution.media',
                     'institution.addresses.country',
@@ -685,7 +692,7 @@ class SearchController extends FrontendController
         $pastEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution.media',
                     'institution.addresses.country',
@@ -809,7 +816,7 @@ class SearchController extends FrontendController
                     $this->referenceQueries->applyPublicVisibility($referenceQuery)
                         ->whereIn('references.id', $referenceEventIds);
                 })
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution',
                     'institution.media',
@@ -834,7 +841,7 @@ class SearchController extends FrontendController
                     $this->referenceQueries->applyPublicVisibility($referenceQuery)
                         ->whereIn('references.id', $referenceEventIds);
                 })
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution',
                     'institution.media',
@@ -886,7 +893,7 @@ class SearchController extends FrontendController
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' >= ?', [$now])
                 ->with([
                     'institution',
                     'institution.addresses.country',
@@ -906,7 +913,7 @@ class SearchController extends FrontendController
         $pastEvents = $this->limitedEventPayloadWithTotal(
             $record->events()
                 ->active()
-                ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now])
+                ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' < ?', [$now])
                 ->with([
                     'institution',
                     'institution.addresses.country',
@@ -950,9 +957,9 @@ class SearchController extends FrontendController
                     ->whereHas('occurrences');
 
                 if ($direction === 'upcoming') {
-                    $query->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [$now]);
+                    $query->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' >= ?', [$now]);
                 } else {
-                    $query->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' < ?', [$now]);
+                    $query->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' < ?', [$now]);
                 }
             });
 
@@ -1356,10 +1363,20 @@ class SearchController extends FrontendController
      */
     private function venueDetailData(Venue $venue): array
     {
-        return VenueDetailData::fromModel(
-            venue: $venue,
+        return new VenueDetailData(
+            id: (string) $venue->id,
+            slug: (string) $venue->slug,
+            name: (string) $venue->name,
+            description: $venue->description,
+            status: (string) $venue->status,
+            verified_by: $venue->getAttribute('verified_by'),
+            visibility: (string) ($venue->visibility ?? 'public'),
+            media: [
+                'main_url' => $venue->getFirstMediaUrl('main', 'banner') ?: $venue->getFirstMediaUrl('main'),
+                'cover_url' => $venue->getFirstMediaUrl('cover', 'banner') ?: $venue->getFirstMediaUrl('cover'),
+            ],
             contacts: $this->searchPayloadTransformer->contactData($venue->contactMethods),
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($venue->socialProfiles),
+            social_media: $this->searchPayloadTransformer->socialMediaData($venue->socialProfiles),
         )->toArray();
     }
 
@@ -1368,10 +1385,39 @@ class SearchController extends FrontendController
      */
     private function referenceDetailData(Reference $reference, ?User $user): array
     {
-        return ReferenceDetailData::fromModel(
-            reference: $reference,
-            user: $user,
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($reference->socialProfiles),
+        $authors = $reference->effectiveAuthorsStructured();
+
+        return new ReferenceDetailData(
+            id: (string) $reference->id,
+            slug: (string) $reference->slug,
+            title: (string) $reference->titleValue(),
+            display_title: $reference->displayTitle(),
+            authors: $authors,
+            author_ids: array_column($authors, 'id'),
+            type: $reference->typeValue(),
+            parent_id: $reference->parent_id,
+            record_kind: (string) $reference->record_kind,
+            edition_number: $reference->edition_number,
+            edition_label: $reference->edition_label,
+            isbn: $reference->isbn,
+            language: $reference->language,
+            language_label: app(SelectionCatalogCache::class)->languageLabel($reference->language),
+            url: $reference->url,
+            part_type: $reference->partTypeValue(),
+            part_number: $reference->partNumberValue(),
+            part_label: $reference->partLabelValue(),
+            is_part: $reference->isPart(),
+            publisher: $reference->publisherValue(),
+            publication_year: filled($reference->year) ? (string) $reference->year : null,
+            description: $reference->descriptionValue(),
+            status: (string) $reference->status,
+            verified_by: $reference->getAttribute('verified_by'),
+            is_following: $user?->isFollowing($reference) ?? false,
+            media: [
+                'front_cover_url' => $reference->getFirstMediaUrl('front_cover', 'thumb') ?: $reference->getFirstMediaUrl('front_cover'),
+                'back_cover_url' => $reference->getFirstMediaUrl('back_cover', 'thumb') ?: $reference->getFirstMediaUrl('back_cover'),
+            ],
+            social_media: $this->searchPayloadTransformer->socialMediaData($reference->socialProfiles),
         )->toArray();
     }
 
@@ -1380,7 +1426,40 @@ class SearchController extends FrontendController
      */
     private function referenceListData(Reference $reference, ?User $user = null): array
     {
-        return ReferenceListData::fromModel($reference, $user)->toArray();
+        $attributes = $reference->getAttributes();
+        $isFollowing = array_key_exists('is_following', $attributes)
+            ? (bool) $attributes['is_following']
+            : ($user?->isFollowing($reference) ?? false);
+        $authors = $reference->effectiveAuthorsStructured();
+
+        return new ReferenceListData(
+            id: (string) $reference->id,
+            slug: (string) $reference->slug,
+            title: (string) $reference->titleValue(),
+            display_title: $reference->displayTitle(),
+            authors: $authors,
+            author_ids: array_column($authors, 'id'),
+            type: $reference->typeValue(),
+            parent_id: $reference->parent_id,
+            record_kind: (string) $reference->record_kind,
+            edition_number: $reference->edition_number,
+            edition_label: $reference->edition_label,
+            isbn: $reference->isbn,
+            language: $reference->language,
+            language_label: app(SelectionCatalogCache::class)->languageLabel($reference->language),
+            url: $reference->url,
+            part_type: $reference->partTypeValue(),
+            part_number: $reference->partNumberValue(),
+            part_label: $reference->partLabelValue(),
+            is_part: $reference->isPart(),
+            publisher: $reference->publisherValue(),
+            publication_year: filled($reference->year) ? (string) $reference->year : null,
+            status: (string) $reference->status,
+            verified_by: $reference->getAttribute('verified_by'),
+            events_count: (int) ($reference->events_count ?? 0),
+            front_cover_url: $reference->getFirstMediaUrl('front_cover', 'thumb') ?: ($reference->getFirstMediaUrl('front_cover') ?: null),
+            is_following: $isFollowing,
+        )->toArray();
     }
 
     /**
@@ -1485,18 +1564,42 @@ class SearchController extends FrontendController
     {
         $addressModel = $institution->primaryAddress();
         $institutionMedia = $this->institutionCardMediaData($institution);
+        $type = $institution->type;
+        $institutionType = $type instanceof InstitutionType
+            ? $type->value
+            : (is_string($type) ? $type : null);
 
-        return InstitutionDetailData::fromModel(
-            institution: $institution,
-            user: $user,
+        return new InstitutionDetailData(
+            id: (string) $institution->id,
+            slug: (string) $institution->slug,
+            name: (string) $institution->name,
+            primary_nickname: $institution->primaryNickname,
+            names: $institution->names->map(fn (InstitutionName $name): array => [
+                'name_type' => $name->name_type->value,
+                'full_name' => $name->full_name,
+                'language_code' => $name->language_code,
+                'is_primary' => $name->is_primary,
+            ])->values()->all(),
+            display_name: (string) $institution->display_name,
+            description: $institution->description,
+            status: $institution->status->value,
+            verified_by: $institution->getAttribute('verified_by'),
+            type: $institutionType,
+            type_label: $institution->type instanceof HasLabel ? $institution->type->getLabel() : null,
+            address_line: $this->searchPayloadTransformer->addressLocation($addressModel),
             address: $this->searchPayloadTransformer->addressFilterData($addressModel),
             country: $this->searchPayloadTransformer->countryData($addressModel),
-            addressLine: $this->searchPayloadTransformer->addressLocation($addressModel),
+            map_url: $addressModel?->google_maps_url,
+            map_lat: $addressModel?->latitude,
+            map_lng: $addressModel?->longitude,
+            followers_count: $institution->followersCount(),
+            person_count: $this->institutionPersonCount($institution),
+            is_following: $user?->isFollowing($institution) ?? false,
             media: $institutionMedia,
-            personCount: $this->institutionPersonCount($institution),
             contacts: $this->searchPayloadTransformer->contactData($institution->contactMethods),
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($institution->socialProfiles),
-            donationChannels: $institution->donationChannels
+            social_media: $this->searchPayloadTransformer->socialMediaData($institution->socialProfiles),
+            waze_url: $addressModel?->waze_url,
+            donation_channels: $institution->donationChannels
                 ->where('status', DonationChannelStatus::Verified)
                 ->sortByDesc('is_default')
                 ->map(fn (DonationChannel $channel): array => $this->institutionDonationChannelData($channel))
@@ -1512,19 +1615,36 @@ class SearchController extends FrontendController
     {
         $coverUrl = $person->getFirstMediaUrl('cover', 'banner') ?: $person->getFirstMediaUrl('cover');
 
-        return PersonDetailData::fromModel(
-            person: $person,
-            user: $user,
+        return new PersonDetailData(
+            id: (string) $person->id,
+            slug: (string) $person->slug,
+            name: (string) $person->name,
+            middle_name: $person->middle_name,
+            family_name: $person->family_name,
+            gender: $person->gender instanceof \BackedEnum ? $person->gender->value : null,
+            formatted_name: (string) $person->formatted_name,
+            bio: $person->bio,
             address: $this->searchPayloadTransformer->addressFilterData($person->primaryAddress()),
             country: $this->searchPayloadTransformer->countryData($person->primaryAddress()),
             location: $this->searchPayloadTransformer->addressLocation($person->primaryAddress()),
-            media: PersonDetailMediaData::fromModel($person, $coverUrl)->toArray(),
+            status: (string) $person->status,
+            verified_by: $person->getAttribute('verified_by'),
+            is_following: $user?->isFollowing($person) ?? false,
+            followers_count: $person->followersCount(),
+            media: new PersonDetailMediaData(
+                avatar_url: (string) $person->public_avatar_url,
+                main_url: (string) $person->public_main_url,
+                cover_url: $coverUrl,
+                share_image_url: $person->hasMedia('avatar')
+                    ? (string) $person->public_avatar_url
+                    : ($coverUrl !== '' ? $coverUrl : (string) $person->default_avatar_url),
+            )->toArray(),
             gallery: $this->personGalleryData($person),
             institutions: $person->institutions
                 ->map(fn (Institution $institution): array => $this->personInstitutionData($institution))
                 ->all(),
             contacts: $this->searchPayloadTransformer->contactData($person->contactMethods),
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($person->socialProfiles),
+            social_media: $this->searchPayloadTransformer->socialMediaData($person->socialProfiles),
         )->toArray();
     }
 
@@ -1533,7 +1653,7 @@ class SearchController extends FrontendController
      */
     private function eventListData(Event $event): array
     {
-        return EventListData::fromModel($event)->toArray();
+        return $this->eventListPayloads->forEvent($event)->toArray();
     }
 
     /**
@@ -1555,7 +1675,48 @@ class SearchController extends FrontendController
      */
     private function institutionListData(Institution $institution, ?User $user = null): array
     {
-        return InstitutionListData::fromModel($institution, $user)->toArray();
+        $attributes = $institution->getAttributes();
+        $type = $institution->type;
+        $institutionType = $type instanceof InstitutionType
+            ? $type->value
+            : (is_string($type) ? $type : null);
+        $isFollowing = array_key_exists('is_following', $attributes)
+            ? (bool) $attributes['is_following']
+            : ($user?->isFollowing($institution) ?? false);
+        $eventsCount = (int) ($institution->events_count ?? 0);
+        $publicImageUrl = (string) $institution->public_image_url;
+        $logoUrl = (string) $institution->public_logo_url;
+        $coverUrl = (string) $institution->public_cover_url;
+        $logoFallbackUrl = $institution->getFallbackMediaUrl('logo', 'thumb');
+        $resolvedLogoUrl = $logoUrl !== ''
+            ? $logoUrl
+            : ($logoFallbackUrl !== '' ? $logoFallbackUrl : $publicImageUrl);
+        $location = AddressHierarchyFormatter::format($institution->primaryAddress());
+        $distanceKm = $this->distanceKm($attributes['distance_km'] ?? null);
+
+        return new InstitutionListData(
+            id: (string) $institution->id,
+            slug: (string) $institution->slug,
+            name: (string) $institution->name,
+            type: $institutionType,
+            primary_nickname: $institution->primaryNickname,
+            names: $institution->names->map(fn (InstitutionName $name): array => [
+                'name_type' => $name->name_type->value,
+                'full_name' => $name->full_name,
+                'language_code' => $name->language_code,
+                'is_primary' => $name->is_primary,
+            ])->values()->all(),
+            display_name: (string) $institution->display_name,
+            events_count: $eventsCount,
+            public_image_url: $publicImageUrl,
+            logo_url: $resolvedLogoUrl,
+            cover_url: $coverUrl !== '' ? $coverUrl : null,
+            country: CountryData::fromAddress($institution->primaryAddress())?->toArray(),
+            location: $location !== '' ? $location : null,
+            distance_km: $distanceKm,
+            is_following: $isFollowing,
+            verified_by: $institution->getAttribute('verified_by'),
+        )->toArray();
     }
 
     /** @return array{public_image_url: string, logo_url: string, cover_url: ?string} */
@@ -1581,7 +1742,26 @@ class SearchController extends FrontendController
      */
     private function personListData(Person $person, ?User $user = null): array
     {
-        return PersonListData::fromModel($person, $user)->toArray();
+        $attributes = $person->getAttributes();
+        $isFollowing = array_key_exists('is_following', $attributes)
+            ? (bool) $attributes['is_following']
+            : ($user?->isFollowing($person) ?? false);
+
+        return new PersonListData(
+            id: (string) $person->id,
+            slug: (string) $person->slug,
+            name: (string) $person->name,
+            middle_name: $person->middle_name,
+            family_name: $person->family_name,
+            gender: $person->gender instanceof \BackedEnum ? $person->gender->value : null,
+            formatted_name: (string) $person->formatted_name,
+            status: (string) $person->status,
+            verified_by: $person->getAttribute('verified_by'),
+            events_count: (int) ($person->events_count ?? 0),
+            avatar_url: (string) $person->public_avatar_url,
+            country: CountryData::fromAddress($person->primaryAddress())?->toArray(),
+            is_following: $isFollowing,
+        )->toArray();
     }
 
     /**
@@ -1590,7 +1770,22 @@ class SearchController extends FrontendController
     /** @return array{id: string, name: string, display_name: string, slug: string, position: ?string, is_primary: bool, public_image_url: string, logo_url: string, cover_url: ?string} */
     private function personInstitutionData(Institution $institution): array
     {
-        return PersonInstitutionData::fromModel($institution, $this->institutionCardMediaData($institution))->toArray();
+        $media = $this->institutionCardMediaData($institution);
+        $position = data_get($institution, 'pivot.position');
+        $isPrimary = data_get($institution, 'pivot.is_primary');
+        $publicImageUrl = (string) $media['public_image_url'];
+
+        return new PersonInstitutionData(
+            id: (string) $institution->id,
+            name: (string) $institution->name,
+            display_name: (string) $institution->display_name,
+            slug: (string) $institution->slug,
+            position: is_string($position) && $position !== '' ? $position : null,
+            is_primary: (bool) $isPrimary,
+            public_image_url: $publicImageUrl,
+            logo_url: (string) $media['logo_url'],
+            cover_url: $media['cover_url'],
+        )->toArray();
     }
 
     /**
@@ -1599,7 +1794,12 @@ class SearchController extends FrontendController
     private function personGalleryData(Person $person): array
     {
         return $person->getMedia('gallery')
-            ->map(fn (Media $media): array => PersonGalleryItemData::fromModel($media)->toArray())
+            ->map(fn (Media $media): array => new PersonGalleryItemData(
+                id: (string) $media->getKey(),
+                name: $media->name,
+                url: $media->getUrl(),
+                thumb_url: $media->getAvailableUrl(['gallery_thumb']) ?: $media->getUrl(),
+            )->toArray())
             ->all();
     }
 
@@ -1608,7 +1808,33 @@ class SearchController extends FrontendController
      */
     private function institutionDonationChannelData(DonationChannel $channel): array
     {
-        return InstitutionDonationChannelData::fromModel($channel)->toArray();
+        return new InstitutionDonationChannelData(
+            id: (string) $channel->id,
+            label: (string) $channel->label,
+            method: (string) $channel->method,
+            method_display: (string) $channel->method_display,
+            recipient: (string) $channel->recipient,
+            payment_details: (string) $channel->payment_details,
+            bank_name: $channel->bank_name,
+            bank_code: $channel->bank_code,
+            account_number: $channel->account_number,
+            duitnow_type: $channel->duitnow_type,
+            duitnow_value: $channel->duitnow_value,
+            ewallet_provider: $channel->ewallet_provider,
+            ewallet_handle: $channel->ewallet_handle,
+            is_default: (bool) $channel->is_default,
+            qr_url: $channel->getFirstMediaUrl('qr', 'thumb') ?: $channel->getFirstMediaUrl('qr') ?: null,
+            qr_full_url: $channel->getFirstMediaUrl('qr') ?: null,
+        )->toArray();
+    }
+
+    private function distanceKm(mixed $distance): ?float
+    {
+        if (! is_numeric($distance)) {
+            return null;
+        }
+
+        return round((float) $distance, 2);
     }
 
     private function followsTable(): string
@@ -1621,7 +1847,7 @@ class SearchController extends FrontendController
         $eventIds = Event::query()
             ->where('institution_id', $institution->id)
             ->whereIn('status', Event::PUBLIC_STATUSES)
-            ->whereRaw(PrimaryOccurrenceSql::endInstant((new Event)->getTable()).' >= ?', [now()])
+            ->whereRaw($this->eventScheduleSql->endInstantSql((new Event)->getTable()).' >= ?', [now()])
             ->select('id');
 
         return (int) DB::table('event_involvements')

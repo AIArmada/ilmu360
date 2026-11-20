@@ -16,7 +16,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Seating\Models\SeatMap;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Events\Models\Event;
-use App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\References\Models\Reference as CatalogReference;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
@@ -641,7 +641,7 @@ final readonly class EventDetailPresenter
             return $label;
         }
 
-        return SpaceLocationPresenter::name($location)
+        return app(SpaceLocation::class)->name($location)
             ?? ($location->relationLoaded('venue') ? $location->venue?->name : null);
     }
 

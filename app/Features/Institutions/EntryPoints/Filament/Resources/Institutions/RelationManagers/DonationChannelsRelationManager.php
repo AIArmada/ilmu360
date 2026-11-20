@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\RelationManagers;
 
-use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Schemas\DonationChannelForm;
-use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Tables\DonationChannelsTable;
+use App\Features\DonationChannels\Api\Filament\DonationChannelAdminComponents;
 use Filament\Actions\CreateAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -22,12 +21,12 @@ class DonationChannelsRelationManager extends RelationManager
     #[\Override]
     public function form(Schema $schema): Schema
     {
-        return DonationChannelForm::configure($schema, withOwnerSection: false);
+        return app(DonationChannelAdminComponents::class)->configureForm($schema, withOwnerSection: false);
     }
 
     public function table(Table $table): Table
     {
-        return DonationChannelsTable::configure($table, showOwnerColumn: false)
+        return app(DonationChannelAdminComponents::class)->configureTable($table, showOwnerColumn: false)
             ->headerActions([
                 CreateAction::make(),
             ]);

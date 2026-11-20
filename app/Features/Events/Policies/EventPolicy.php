@@ -5,7 +5,8 @@ namespace App\Features\Events\Policies;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Events\States\EventStatus\Draft;
-use App\Features\Membership\Services\MemberPermissionGate;
+use App\Features\Membership\Api\MemberPermissions;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 
@@ -218,10 +219,10 @@ class EventPolicy
         }
 
         $event->loadMissing('persons');
-        $memberPermissionGate = app(MemberPermissionGate::class);
+        $memberPermissionGate = app(MemberPermissions::class);
 
         return $event->persons->contains(
-            fn (Person $person): bool => $memberPermissionGate->canPerson($user, 'event.update', $person)
+            fn (Person $person): bool => $memberPermissionGate->canSubject($user, 'event.update', MemberSubjectType::Person, (string) $person->getKey())
         );
     }
 

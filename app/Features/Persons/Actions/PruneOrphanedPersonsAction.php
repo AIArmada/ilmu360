@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions;
 
 use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\Api\PruneOrphanedPersons;
 use App\Features\Persons\Models\Person;
 use Illuminate\Support\Carbon;
 
-final readonly class PruneOrphanedPersonsAction
+final readonly class PruneOrphanedPersonsAction implements PruneOrphanedPersons
 {
     public function __construct(private PersonWorkflow $personWorkflow) {}
 

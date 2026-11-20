@@ -10,9 +10,9 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\Identity\Api\AccountLifecycle;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\ShareTracking\Api\ShareTrackingFinance;
 use App\Features\ShareTracking\Api\ShareTrackingProfile;
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -52,7 +52,7 @@ trait HasUserRestoration
                 // deliberately never snapshotted here: a later restore
                 // reactivates no claim, restores no secret, and replays no
                 // historical award or notification.
-                app(AffiliatesShareTrackingService::class)->deleteUserTracking($user);
+                app(ShareTrackingContract::class)->deleteUserTracking($user);
             });
         });
     }

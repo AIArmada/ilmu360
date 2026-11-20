@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
 /**
  * One public majlis: an occurrence with its meaningful sessions attached.
  */
-final readonly class PublicScheduleLeaf
+final readonly class PublicScheduleLeaf implements \App\Features\Discovery\Api\PublicScheduleLeaf
 {
     /**
      * @param  Collection<int, EventSession>  $sessions
@@ -35,6 +35,61 @@ final readonly class PublicScheduleLeaf
     public function id(): string
     {
         return (string) $this->occurrence->getKey();
+    }
+
+    public function eventId(): string
+    {
+        return (string) $this->event->getKey();
+    }
+
+    public function eventStatus(): string
+    {
+        return (string) $this->event->status;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function sessionIds(): array
+    {
+        return $this->sessions
+            ->map(fn (EventSession $session): string => (string) $session->getKey())
+            ->values()
+            ->all();
+    }
+
+    public function event(): object
+    {
+        return $this->event;
+    }
+
+    public function occurrence(): object
+    {
+        return $this->occurrence;
+    }
+
+    /**
+     * @return iterable<int, EventSession>
+     */
+    public function sessions(): iterable
+    {
+        return $this->sessions;
+    }
+
+    /**
+     * @param  list<string>  $sessionIds
+     */
+    public function withSessions(array $sessionIds): \App\Features\Discovery\Api\PublicScheduleLeaf
+    {
+        $wanted = array_flip($sessionIds);
+
+        return new self(
+            $this->event,
+            $this->occurrence,
+            $this->sessions
+                ->filter(static fn (EventSession $session): bool => isset($wanted[(string) $session->getKey()]))
+                ->values(),
+        );
     }
 
     public function title(): string

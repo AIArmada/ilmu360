@@ -9,24 +9,21 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountToken;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
-use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Membership\Queries\MemberDirectorySummary;
-use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
+use App\Features\Membership\Api\Filament\AccountMembershipDirectory;
 use App\Features\Persons\Models\Person;
-use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\Models\Reference;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\User;
+use App\Platform\Admin\AdminResourceLink;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\Time\UserDateTimeFormatter;
 use BackedEnum;
@@ -182,7 +179,7 @@ class ViewUser extends ViewRecord
     #[Computed]
     public function memberInstitutions(): Collection
     {
-        return app(MemberDirectorySummary::class)->institutions($this->userRecord());
+        return new Collection(app(AccountMembershipDirectory::class)->institutions($this->userRecord()));
     }
 
     /**
@@ -191,7 +188,7 @@ class ViewUser extends ViewRecord
     #[Computed]
     public function memberPersons(): Collection
     {
-        return app(MemberDirectorySummary::class)->persons($this->userRecord());
+        return new Collection(app(AccountMembershipDirectory::class)->persons($this->userRecord()));
     }
 
     /**
@@ -200,7 +197,7 @@ class ViewUser extends ViewRecord
     #[Computed]
     public function memberEvents(): Collection
     {
-        return app(MemberDirectorySummary::class)->events($this->userRecord());
+        return new Collection(app(AccountMembershipDirectory::class)->events($this->userRecord()));
     }
 
     /**
@@ -209,7 +206,7 @@ class ViewUser extends ViewRecord
     #[Computed]
     public function memberReferences(): Collection
     {
-        return app(MemberDirectorySummary::class)->references($this->userRecord());
+        return new Collection(app(AccountMembershipDirectory::class)->references($this->userRecord()));
     }
 
     /**
@@ -327,22 +324,22 @@ class ViewUser extends ViewRecord
 
     public function eventUrl(?Event $event): ?string
     {
-        return $event instanceof Event ? EventResource::getUrl('view', ['record' => $event]) : null;
+        return $event instanceof Event ? AdminResourceLink::to('event', 'view', (string) $event->getKey()) : null;
     }
 
     public function institutionUrl(?Institution $institution): ?string
     {
-        return $institution instanceof Institution ? InstitutionResource::getUrl('view', ['record' => $institution]) : null;
+        return $institution instanceof Institution ? AdminResourceLink::to('institution', 'view', (string) $institution->getKey()) : null;
     }
 
     public function personUrl(?Person $person): ?string
     {
-        return $person instanceof Person ? PersonResource::getUrl('view', ['record' => $person]) : null;
+        return $person instanceof Person ? AdminResourceLink::to('person', 'view', (string) $person->getKey()) : null;
     }
 
     public function referenceUrl(?Reference $reference): ?string
     {
-        return $reference instanceof Reference ? ReferenceResource::getUrl('edit', ['record' => $reference]) : null;
+        return $reference instanceof Reference ? AdminResourceLink::to('reference', 'edit', (string) $reference->getKey()) : null;
     }
 
     /**

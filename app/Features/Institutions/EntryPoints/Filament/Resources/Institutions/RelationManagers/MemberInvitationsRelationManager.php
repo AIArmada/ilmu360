@@ -5,9 +5,9 @@ namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Membership\EntryPoints\Filament\RelationManagers\MemberInvitationsRelationManager as BaseMemberInvitationsRelationManager;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
+use App\Platform\Admin\Filament\RelationManagers\MemberInvitationsRelationManager as BaseMemberInvitationsRelationManager;
 
 class MemberInvitationsRelationManager extends BaseMemberInvitationsRelationManager
 {

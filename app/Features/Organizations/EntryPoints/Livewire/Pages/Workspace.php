@@ -7,7 +7,6 @@ namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
@@ -16,6 +15,7 @@ use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Models\User;
+use App\Platform\Admin\AdminResourceLink;
 use App\Platform\Ui\InteractsWithToasts;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -322,11 +322,17 @@ final class Workspace extends Component
 
         foreach ($events as $event) {
             if ($this->currentUser()->can('update', $event)) {
-                $eventEditUrls[(string) $event->getKey()] = EventResource::getUrl(
+                $eventEditUrl = AdminResourceLink::to(
+                    'event',
                     'edit',
-                    ['record' => $event],
+                    (string) $event->getKey(),
                     panel: 'ahli',
                 );
+
+                if ($eventEditUrl !== null) {
+                    $eventEditUrls[(string) $event->getKey()] = $eventEditUrl;
+                }
+
                 $eventScheduleUrls[(string) $event->getKey()] = route(
                     'dashboard.events.schedule',
                     ['event' => $event->getKey()],

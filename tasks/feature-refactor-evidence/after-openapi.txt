@@ -1,6 +1,8 @@
-# OpenAPI parity (final HEAD 554805ec)
+# OpenAPI parity (final HEAD, exception burn-down complete)
 paths: 152
 schemas: 49
-normalized_sha256: 171a93dd2654f9849ffba53e87bf090ee8c1242feea9b9f198c10441aa0373a8
-baseline_normalized_sha256: 171a93dd2654f9849ffba53e87bf090ee8c1242feea9b9f198c10441aa0373a8
-identical_to_baseline: yes
+identical_paths: 146/152
+identical_paths_list_excluded: /events/{event}/going, /events/{event}/me, /events/{event}/registrations, /events/{event}/saved, /references/{referenceKey}, /venues/{venueKey}
+reason: response DTOs moved from spatie/laravel-data classes to owner Api values, so Scramble renders those response containers as arrays instead of generic objects.
+runtime_payload_proof: tests/Feature/Api/Frontend/FrontendApiParityTest.php (108 passing) + tests/Feature/Api/Admin/AdminApiTest.php + EventApiContractTest
+full_document_identical: no

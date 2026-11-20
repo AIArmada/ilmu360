@@ -10,9 +10,9 @@ use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
-use App\Features\References\Services\ReferenceSearchService;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
@@ -29,7 +29,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         protected PersonListingCacheVersion $personCacheVersion,
         protected PublicListingsCacheInvalidator $publicListingsCache,
         protected PersonSearchService $personSearchService,
-        protected ReferenceSearchService $referenceSearchService,
+        protected ReferenceSearchCache $referenceSearchCache,
     ) {}
 
     public function saved(Person $person): void
@@ -94,7 +94,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
             return;
         }
 
-        $this->referenceSearchService->bustPublicSearchCache();
+        $this->referenceSearchCache->bumpPublicSearchVersion();
 
         $rootIds = [];
 

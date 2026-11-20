@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References;
 
+use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Features\References\Api\ReferenceCatalog;
 use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\References\Api\ReferenceLookup;
@@ -14,6 +15,7 @@ use App\Features\References\EntryPoints\Admin\Member\ReferenceMemberResourceHook
 use App\Features\References\EntryPoints\Admin\Resources\ReferenceAdminHooks;
 use App\Features\References\EntryPoints\Admin\Resources\ReferenceMutationHooks;
 use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
+use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\EntryPoints\Filament\Stats\PendingReferencesStat;
 use App\Features\References\Models\Reference;
@@ -40,6 +42,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ReferenceQuickCreate::class, ReferenceFormSchema::class);
         $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new ReferenceAdminHooks);
 
         $this->app->bind(ReferenceCatalog::class, EloquentReferenceCatalog::class);

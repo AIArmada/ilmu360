@@ -12,8 +12,8 @@ use AIArmada\Events\Enums\EventRegistrationQuestionType;
 use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Ticketing\Models\TicketType;
+use App\Features\Events\Api\EventTicketing;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Policies\EventTicketingPolicy;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Support\EventCommerceModes;
@@ -64,7 +64,7 @@ final class Checkout extends Component
         OwnerContext::setForRequest(null);
     }
 
-    public function mount(Event $event, EventTicketingPolicy $ticketingPolicy, ?string $ticket = null): void
+    public function mount(Event $event, EventTicketing $ticketing, ?string $ticket = null): void
     {
         $this->event = $event;
         $this->eventId = (string) $event->getKey();
@@ -99,7 +99,7 @@ final class Checkout extends Component
             }
 
             $this->ticketType = $ticketType;
-        } elseif ($ticketingPolicy->requiresTicketSelection($event) || ! $event->effectivePricingMode()->isFreeOnly()) {
+        } elseif ($ticketing->eventRequiresTicketSelection((string) $event->getKey()) || ! $event->effectivePricingMode()->isFreeOnly()) {
             // A mixed or paid event must identify the actual ticket scope. This
             // avoids silently turning a paid event into an open RSVP form.
             abort(404);
@@ -171,7 +171,7 @@ final class Checkout extends Component
         AdmissionRegistration $admissions,
         AdmissionCheckout $checkout,
         CheckoutServiceInterface $checkoutService,
-        EventTicketingPolicy $ticketingPolicy,
+        EventTicketing $ticketing,
     ): void {
         if ($this->processing) {
             return;
@@ -190,7 +190,7 @@ final class Checkout extends Component
             $this->processing = true;
 
             $event = Event::query()->findOrFail($this->eventId);
-            $ticket = $this->resolveTicketForSubmit($event, $ticketingPolicy);
+            $ticket = $this->resolveTicketForSubmit($event, $ticketing);
             $agreement = $this->agreementPayload($user);
             $participants = $this->normalizeParticipants($user, $agreement);
 
@@ -379,10 +379,10 @@ final class Checkout extends Component
         $this->participants = $participants;
     }
 
-    private function resolveTicketForSubmit(Event $event, EventTicketingPolicy $ticketingPolicy): ?TicketType
+    private function resolveTicketForSubmit(Event $event, EventTicketing $ticketing): ?TicketType
     {
         if ($this->ticketId === null) {
-            if ($ticketingPolicy->requiresTicketSelection($event) || ! $event->effectivePricingMode()->isFreeOnly()) {
+            if ($ticketing->eventRequiresTicketSelection((string) $event->getKey()) || ! $event->effectivePricingMode()->isFreeOnly()) {
                 throw new \InvalidArgumentException('Choose a ticket before continuing.');
             }
 

@@ -6,15 +6,15 @@ namespace App\Features\Persons\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
+use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
+use App\Platform\Admin\AdminResourceLink;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
 use BackedEnum;
@@ -68,7 +68,7 @@ final class PersonDashboard extends Component
     {
         $user = $this->currentUser();
 
-        abort_unless(app(MemberPermissionGate::class)->canPerson($user, 'person.view', $person), 403);
+        abort_unless(app(MemberPermissions::class)->canSubject($user, 'person.view', MemberSubjectType::Person, (string) $person->getKey()), 403);
 
         $this->personId = (string) $person->getKey();
         $this->eventStatus = $this->normalizeEventStatus($this->eventStatus);
@@ -246,7 +246,7 @@ final class PersonDashboard extends Component
         $person = $this->selectedPerson();
         $user = $this->currentUser();
 
-        abort_unless(app(MemberPermissionGate::class)->canPerson($user, 'person.transfer-ownership', $person), 403);
+        abort_unless(app(MemberPermissions::class)->canSubject($user, 'person.transfer-ownership', MemberSubjectType::Person, (string) $person->getKey()), 403);
 
         $member = $this->memberOrFail($person, $memberId);
 
@@ -289,20 +289,12 @@ final class PersonDashboard extends Component
 
     public function canManageMembers(): bool
     {
-        return app(MemberPermissionGate::class)->canPerson(
-            $this->currentUser(),
-            'person.manage-members',
-            $this->selectedPerson(),
-        );
+        return app(MemberPermissions::class)->canSubject($this->currentUser(), 'person.manage-members', MemberSubjectType::Person, (string) $this->selectedPerson()->getKey());
     }
 
     public function canTransferOwnership(): bool
     {
-        return app(MemberPermissionGate::class)->canPerson(
-            $this->currentUser(),
-            'person.transfer-ownership',
-            $this->selectedPerson(),
-        );
+        return app(MemberPermissions::class)->canSubject($this->currentUser(), 'person.transfer-ownership', MemberSubjectType::Person, (string) $this->selectedPerson()->getKey());
     }
 
     public function canEditPerson(): bool
@@ -381,20 +373,12 @@ final class PersonDashboard extends Component
 
     public function canManageEvents(): bool
     {
-        return app(MemberPermissionGate::class)->canPerson(
-            $this->currentUser(),
-            'event.update',
-            $this->selectedPerson(),
-        );
+        return app(MemberPermissions::class)->canSubject($this->currentUser(), 'event.update', MemberSubjectType::Person, (string) $this->selectedPerson()->getKey());
     }
 
     public function canCreateEvents(): bool
     {
-        return app(MemberPermissionGate::class)->canPerson(
-            $this->currentUser(),
-            'event.create',
-            $this->selectedPerson(),
-        );
+        return app(MemberPermissions::class)->canSubject($this->currentUser(), 'event.create', MemberSubjectType::Person, (string) $this->selectedPerson()->getKey());
     }
 
     public function canEditEvent(Event $event): bool
@@ -449,11 +433,16 @@ final class PersonDashboard extends Component
                 continue;
             }
 
-            $eventEditUrls[(string) $event->getKey()] = EventResource::getUrl(
+            $eventEditUrl = AdminResourceLink::to(
+                'event',
                 'edit',
-                ['record' => $event],
+                (string) $event->getKey(),
                 panel: 'ahli',
             );
+
+            if ($eventEditUrl !== null) {
+                $eventEditUrls[(string) $event->getKey()] = $eventEditUrl;
+            }
         }
 
         return view('livewire.pages.dashboard.person-dashboard', [
@@ -484,14 +473,14 @@ final class PersonDashboard extends Component
         /** @var Person $person */
         $person = Person::query()->whereKey($this->personId)->firstOrFail();
 
-        abort_unless(app(MemberPermissionGate::class)->canPerson($this->currentUser(), 'person.view', $person), 403);
+        abort_unless(app(MemberPermissions::class)->canSubject($this->currentUser(), 'person.view', MemberSubjectType::Person, (string) $person->getKey()), 403);
 
         return $person;
     }
 
     private function authorizeManageMembers(Person $person): void
     {
-        abort_unless(app(MemberPermissionGate::class)->canPerson($this->currentUser(), 'person.manage-members', $person), 403);
+        abort_unless(app(MemberPermissions::class)->canSubject($this->currentUser(), 'person.manage-members', MemberSubjectType::Person, (string) $person->getKey()), 403);
     }
 
     private function currentUser(): User

@@ -6,7 +6,7 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
-use App\Features\Events\Services\PublicSubmissionLockService;
+use App\Features\Events\Api\PublicSubmissionLockSweeper;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\Enums\InstitutionType;
@@ -379,7 +379,7 @@ class InstitutionForm
             return true;
         }
 
-        return app(PublicSubmissionLockService::class)->institutionEligibility($record)->eligible;
+        return app(PublicSubmissionLockSweeper::class)->institutionEligibility((string) $record->getKey())->eligible;
     }
 
     private static function hasPublicSubmissionToggleAccess(): bool
@@ -407,7 +407,7 @@ class InstitutionForm
             return 'Enabled means anyone can submit. Disabled means only institution members can submit.';
         }
 
-        $eligibility = app(PublicSubmissionLockService::class)->institutionEligibility($record);
+        $eligibility = app(PublicSubmissionLockSweeper::class)->institutionEligibility((string) $record->getKey());
 
         if ($eligibility->eligible) {
             return 'Turn this off to shift submission responsibility entirely to institution members.';

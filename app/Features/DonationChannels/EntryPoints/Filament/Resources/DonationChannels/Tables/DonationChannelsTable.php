@@ -4,10 +4,9 @@ namespace App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationC
 
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
-use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\Models\Person;
+use App\Platform\Admin\AdminResourceLink;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -43,8 +42,8 @@ class DonationChannelsTable
                     }
 
                     return match ($record->donatable::class) {
-                        Institution::class => InstitutionResource::getUrl('edit', ['record' => $record->donatable->id]),
-                        Person::class => PersonResource::getUrl('edit', ['record' => $record->donatable->id]),
+                        Institution::class => AdminResourceLink::to('institution', 'edit', (string) $record->donatable->id),
+                        Person::class => AdminResourceLink::to('person', 'edit', (string) $record->donatable->id),
                         default => null,
                     };
                 });

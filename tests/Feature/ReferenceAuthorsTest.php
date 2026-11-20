@@ -12,7 +12,6 @@ use App\Features\References\EntryPoints\Filament\Forms\ReferenceAuthorFormSchema
 use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Features\References\EntryPoints\Filament\Resources\References\Pages\CreateReference;
 use App\Features\References\EntryPoints\Filament\Resources\References\Pages\EditReference;
-use App\Features\References\EntryPoints\Http\Data\ReferenceListData;
 use App\Features\References\Models\Reference;
 use App\Features\References\Services\ReferenceSearchService;
 use App\Models\User;
@@ -260,11 +259,13 @@ it('serializes structured authors and friendly language labels in reference payl
         'status' => 'verified',
     ]);
 
-    $item = ReferenceListData::fromModel($reference->fresh())->toArray();
+    $item = collect($this->getJson(route('api.client.references.index', ['per_page' => 50]))->assertOk()->json('data'))
+        ->firstWhere('id', (string) $reference->getKey());
 
-    expect($item['authors'])->toBe([
-        ['id' => (string) $author->getKey(), 'name' => 'Payload Author', 'slug' => (string) $author->slug],
-    ])
+    expect($item)->not->toBeNull()
+        ->and($item['authors'])->toBe([
+            ['id' => (string) $author->getKey(), 'name' => 'Payload Author', 'slug' => (string) $author->slug],
+        ])
         ->and($item['author_ids'])->toBe([(string) $author->getKey()])
         ->and($item['language'])->toBe('ar')
         ->and($item['language_label'])->toBe('Arabic (العربية)');

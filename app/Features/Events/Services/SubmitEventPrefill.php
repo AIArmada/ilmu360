@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\Contributions\Services\EntitySubmissionAccess;
+use App\Features\Contributions\Api\EntitySubmissionAccessContract;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -340,7 +340,7 @@ final class SubmitEventPrefill
      */
     private static function personState(Event $duplicateEvent, ?User $actor, bool $includePrivate): array
     {
-        $access = app(EntitySubmissionAccess::class);
+        $access = app(EntitySubmissionAccessContract::class);
         $submitter = $actor;
         $publicSpeakerIds = $includePrivate ? [] : array_fill_keys($duplicateEvent->keyPeople
             ->where('role_code', EventKeyPersonRole::Speaker->value)
@@ -364,7 +364,7 @@ final class SubmitEventPrefill
      */
     private static function otherKeyPeopleState(Event $duplicateEvent, ?User $actor, bool $includePrivate): array
     {
-        $access = app(EntitySubmissionAccess::class);
+        $access = app(EntitySubmissionAccessContract::class);
         $submitter = $actor;
 
         return $duplicateEvent->keyPeople
@@ -397,7 +397,7 @@ final class SubmitEventPrefill
      */
     private static function organizerLocationDefaults(Event $duplicateEvent, ?User $actor): array
     {
-        $access = app(EntitySubmissionAccess::class);
+        $access = app(EntitySubmissionAccessContract::class);
         $submitter = $actor;
         $defaults = [];
         $eventFormat = $duplicateEvent->delivery_mode instanceof EventFormat

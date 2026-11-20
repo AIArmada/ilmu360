@@ -10,7 +10,8 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Discovery\Api\PublicScheduleLeaf;
+use App\Features\Discovery\Api\PublicScheduleReader;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\Api\EventSaveCommands;
@@ -33,7 +34,7 @@ use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Models\EventCheckin;
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Models\User;
 use App\Platform\Language\Models\Language;
 use App\Platform\Time\UserDateTimeFormatter;
@@ -736,8 +737,10 @@ class Show extends Component
             $venue->loadMissing('addresses.areaAssignments.area');
         }
 
+        $reader = app(PublicScheduleReader::class);
+
         return $occurrences
-            ->map(fn (EventOccurrence $occurrence): PublicScheduleLeaf => new PublicScheduleLeaf(
+            ->map(fn (EventOccurrence $occurrence): PublicScheduleLeaf => $reader->leafFor(
                 $this->event,
                 $occurrence,
                 $occurrence->sessions
@@ -762,7 +765,7 @@ class Show extends Component
         }
 
         return $this->scheduleLeaves
-            ->reject(fn (PublicScheduleLeaf $leaf): bool => $leaf->occurrence->is($selected))
+            ->reject(fn (PublicScheduleLeaf $leaf): bool => $leaf->id() === (string) $selected->getKey())
             ->take(6)
             ->values();
     }
@@ -787,7 +790,7 @@ class Show extends Component
     public function shareLinks(): array
     {
         /** @var array<string, string> $platformLinks */
-        $platformLinks = app(AffiliatesShareTrackingService::class)->redirectLinks(
+        $platformLinks = app(ShareTrackingContract::class)->redirectLinks(
             route('events.show', $this->event),
             trim($this->event->title.' - '.config('app.name')),
             $this->event->title,

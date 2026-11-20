@@ -6,14 +6,11 @@ use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\Models\Person;
-use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\Models\Reference;
+use App\Platform\Admin\AdminResourceLink;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
@@ -73,10 +70,10 @@ class ContributionRequestPresenter
         $entity = $request->entity;
 
         return match (true) {
-            $entity instanceof Institution => InstitutionResource::getUrl('view', ['record' => $entity]),
-            $entity instanceof Person => PersonResource::getUrl('view', ['record' => $entity]),
-            $entity instanceof Event => EventResource::getUrl('view', ['record' => $entity]),
-            $entity instanceof Reference => ReferenceResource::getUrl('edit', ['record' => $entity]),
+            $entity instanceof Institution => AdminResourceLink::to('institution', 'view', (string) $entity->getKey()),
+            $entity instanceof Person => AdminResourceLink::to('person', 'view', (string) $entity->getKey()),
+            $entity instanceof Event => AdminResourceLink::to('event', 'view', (string) $entity->getKey()),
+            $entity instanceof Reference => AdminResourceLink::to('reference', 'edit', (string) $entity->getKey()),
             default => null,
         };
     }

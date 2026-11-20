@@ -8,18 +8,17 @@ use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpace;
 use App\Features\Events\Api\Enums\EventChangeType;
+use App\Features\Events\Api\EventCategoryPayloads;
 use App\Features\Events\Api\EventChangeSeverity;
-use App\Features\Events\EntryPoints\Ui\EventCategoryPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Services\ShareCards\ShareCardService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\References\Api\ReferenceQueries;
-use App\Features\References\EntryPoints\Http\Data\ReferenceDetailMediaData;
 use App\Features\References\Models\Reference;
 use App\Platform\Language\Models\Language;
 use App\Platform\Location\AddressHierarchyFormatter;
@@ -116,7 +115,7 @@ class EventPayloadData extends Data
             'prayer_reference' => $occurrencePrayerExpression->anchor_code ?? self::enumValue($event->prayer_reference),
             'prayer_offset' => self::signedPrayerOffset($occurrencePrayerExpression, $event->prayer_offset),
             'prayer_display_text' => $occurrencePrayerExpression->display_label ?? $event->prayer_display_text,
-            'event_categories' => app(EventCategoryPresenter::class)->forEvent($event),
+            'event_categories' => app(EventCategoryPayloads::class)->forEventPayload($event),
             'gender' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
                 ? $occurrenceAudiences->firstWhere('audience_type', 'gender')?->value
                 : self::enumValue($event->gender),
@@ -193,8 +192,8 @@ class EventPayloadData extends Data
             if ($space instanceof VenueSpace) {
                 $payload['institution_space'] = [
                     'id' => (string) $space->getKey(),
-                    'name' => SpaceLocationPresenter::name($location),
-                    'capacity' => SpaceLocationPresenter::effectiveCapacity($location, (string) $event->institution_id),
+                    'name' => app(SpaceLocation::class)->name($location),
+                    'capacity' => app(SpaceLocation::class)->effectiveCapacity($location, (string) $event->institution_id),
                 ];
             } else {
                 $payload['institution_space'] = null;
@@ -214,8 +213,8 @@ class EventPayloadData extends Data
             $space = $event->primaryLocation->venueSpace;
             $payload['venue_space'] = [
                 'id' => (string) $space->getKey(),
-                'name' => SpaceLocationPresenter::name($event->primaryLocation),
-                'capacity' => SpaceLocationPresenter::effectiveCapacity($event->primaryLocation),
+                'name' => app(SpaceLocation::class)->name($event->primaryLocation),
+                'capacity' => app(SpaceLocation::class)->effectiveCapacity($event->primaryLocation),
             ];
         } else {
             $payload['venue_space'] = null;
@@ -483,8 +482,10 @@ class EventPayloadData extends Data
      */
     private static function serializeReferencePayload(Reference $reference, array $payload): array
     {
-        /** @var array{front_cover_url: string, back_cover_url: string} $media */
-        $media = ReferenceDetailMediaData::fromModel($reference)->toArray();
+        $media = [
+            'front_cover_url' => $reference->getFirstMediaUrl('front_cover', 'thumb') ?: $reference->getFirstMediaUrl('front_cover'),
+            'back_cover_url' => $reference->getFirstMediaUrl('back_cover', 'thumb') ?: $reference->getFirstMediaUrl('back_cover'),
+        ];
         $frontCoverUrl = $media['front_cover_url'] !== '' ? $media['front_cover_url'] : null;
         $backCoverUrl = $media['back_cover_url'] !== '' ? $media['back_cover_url'] : null;
         $authors = $reference->effectiveAuthorsStructured();

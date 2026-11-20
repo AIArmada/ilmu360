@@ -4,6 +4,7 @@ namespace App\Features\Places\EntryPoints\Filament\Forms;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Features\Places\Api\Enums\VenueType;
+use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\Models\Venue;
 use App\Platform\Location\GooglePlacesConfiguration;
@@ -18,8 +19,24 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
 
-class VenueFormSchema
+class VenueFormSchema implements VenueQuickAdd
 {
+    /**
+     * @return array<int, Component>
+     */
+    public function formComponents(bool $includeLocationPicker = false): array
+    {
+        return self::createOptionForm($includeLocationPicker);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createOption(array $data, ?Schema $schema = null): string
+    {
+        return self::createOptionUsing($data, $schema);
+    }
+
     /**
      * Shared createOptionForm for Venue selects.
      *

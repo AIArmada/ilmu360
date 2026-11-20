@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Features\Contributions\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Contributions\Api\SubmissionContext;
 use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\OrganizerLookup;
 use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\PrayerTargetSelector;
@@ -17,6 +18,7 @@ use App\Models\User;
 use App\Shared\Submission\SpaceSelectionEligibility;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 /**
  * Fail-closed context resolution for the event-submission pipeline.
@@ -25,7 +27,7 @@ use Illuminate\Validation\ValidationException;
  * normalization, and model/country/target/occurrence resolution. The
  * orchestrator calls these in phase order; this class never writes.
  */
-final readonly class SubmissionContextResolver
+final readonly class SubmissionContextResolver implements SubmissionContext
 {
     public function __construct(
         private SubmissionTimingContract $timing,
@@ -132,7 +134,7 @@ final readonly class SubmissionContextResolver
 
         if (
             $scopedInstitution instanceof Institution
-            && ! OrganizerResolver::involvementMatchesInstitution(
+            && ! app(OrganizerLookup::class)->involvementMatchesInstitution(
                 $persisted->primaryOrganizerInvolvement?->involveable_type,
                 $persisted->primaryOrganizerInvolvement?->involveable_id,
                 (string) $scopedInstitution->getKey(),
@@ -456,6 +458,67 @@ final readonly class SubmissionContextResolver
         }
 
         return (string) $eligible->first()->getKey();
+    }
+
+    public function authorizedScopedInstitutionFor(
+        ?object $scopedInstitution,
+        ?User $submitter,
+        string $validationKeyPrefix,
+        array $state = [],
+    ): ?object {
+        return $this->authorizedScopedInstitution(
+            $scopedInstitution instanceof Institution ? $scopedInstitution : null,
+            $submitter,
+            $validationKeyPrefix,
+            $state,
+        );
+    }
+
+    public function authorizedEventContainerFor(
+        ?object $eventContainer,
+        ?User $submitter,
+        ?object $scopedInstitution,
+        string $validationKeyPrefix,
+    ): ?object {
+        return $this->authorizedEventContainer(
+            $eventContainer instanceof Event ? $eventContainer : null,
+            $submitter,
+            $scopedInstitution instanceof Institution ? $scopedInstitution : null,
+            $validationKeyPrefix,
+        );
+    }
+
+    public function normalizeScopedInstitutionStateFor(
+        array $validated,
+        ?object $scopedInstitution,
+        string $validationKeyPrefix,
+    ): array {
+        return $this->normalizeScopedInstitutionState(
+            $validated,
+            $scopedInstitution instanceof Institution ? $scopedInstitution : null,
+            $validationKeyPrefix,
+        );
+    }
+
+    public function resolveTargetLocationFor(array $validated, object $primaryOrganizer): array
+    {
+        if (! $primaryOrganizer instanceof Institution && ! $primaryOrganizer instanceof Person) {
+            throw new InvalidArgumentException('The primary organizer must be an institution or a person.');
+        }
+
+        return $this->resolveTargetLocation($validated, $primaryOrganizer);
+    }
+
+    public function resolveSelectedOccurrenceIdFor(
+        array $validated,
+        ?object $eventContainer,
+        string $validationKeyPrefix,
+    ): ?string {
+        return $this->resolveSelectedOccurrenceId(
+            $validated,
+            $eventContainer instanceof Event ? $eventContainer : null,
+            $validationKeyPrefix,
+        );
     }
 
     private function isTerminalOccurrence(EventOccurrence $occurrence): bool

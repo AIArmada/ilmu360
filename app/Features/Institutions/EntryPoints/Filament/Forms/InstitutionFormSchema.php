@@ -7,6 +7,7 @@ use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionType;
+use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Concurrency\MapsIdentityLock;
@@ -32,8 +33,41 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class InstitutionFormSchema
+class InstitutionFormSchema implements InstitutionQuickAdd
 {
+    /**
+     * @return array<int, Component>
+     */
+    public function formComponents(
+        bool $includeLocationPicker = false,
+        bool $requireVerifiedMapsSelection = false,
+        ?string $mapsSelectionOwnerPath = null,
+    ): array {
+        return self::createOptionForm(
+            $includeLocationPicker,
+            $requireVerifiedMapsSelection,
+            $mapsSelectionOwnerPath,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>|null  $verifiedMapsSelection
+     */
+    public function createOption(
+        array $data,
+        ?Schema $schema = null,
+        bool $requireVerifiedMapsSelection = false,
+        ?array $verifiedMapsSelection = null,
+    ): string {
+        return self::createOptionUsing(
+            $data,
+            $schema,
+            $requireVerifiedMapsSelection,
+            $verifiedMapsSelection,
+        );
+    }
+
     /**
      * Shared createOptionForm for Institution selects.
      *

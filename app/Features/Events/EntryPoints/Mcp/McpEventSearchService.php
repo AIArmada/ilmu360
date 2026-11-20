@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Mcp;
 
+use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\SearchFilterKeys;
-use App\Features\Discovery\EntryPoints\Http\Data\EventListData;
-use App\Features\Discovery\Services\EventSearchService;
+use App\Features\Events\Api\AdminEventSearch;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -16,31 +17,8 @@ use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Arr;
 
-class McpEventSearchService
+class McpEventSearchService implements AdminEventSearch
 {
-    /**
-     * @var list<string>
-     */
-    private const array ARRAY_FILTER_KEYS = [
-        'language_codes',
-        'event_category_ids',
-        'age_group',
-        'event_format',
-        'person_ids',
-        'key_person_roles',
-        'person_in_charge_ids',
-        'moderator_ids',
-        'imam_ids',
-        'khatib_ids',
-        'bilal_ids',
-        'discipline_tag_ids',
-        'domain_tag_ids',
-        'source_tag_ids',
-        'issue_tag_ids',
-        'reference_ids',
-        'reference_author_search',
-    ];
-
     /**
      * MCP-only scope toggles that are not part of the shared discovery vocabulary.
      *
@@ -69,7 +47,8 @@ class McpEventSearchService
     }
 
     public function __construct(
-        private readonly EventSearchService $eventSearchService,
+        private readonly EventSearchReader $eventSearchService,
+        private readonly EventListPayloads $eventListPayloads,
     ) {}
 
     /**
@@ -124,7 +103,7 @@ class McpEventSearchService
         return [
             'data' => $eventItems
                 ->map(function ($event): array {
-                    $item = EventListData::fromModel($event)->toArray();
+                    $item = $this->eventListPayloads->forEvent($event)->toArray();
                     $distanceKm = $event->getAttributes()['distance_km'] ?? null;
 
                     if (is_numeric($distanceKm)) {

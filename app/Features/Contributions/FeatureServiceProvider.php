@@ -15,6 +15,7 @@ use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\ContributionUpdateContextReader;
+use App\Features\Contributions\Api\Filament\PersonContributionSchema;
 use App\Features\Contributions\Api\Frontend\SubmitInstitutionFormContractContributor;
 use App\Features\Contributions\Api\Frontend\SubmitPersonFormContractContributor;
 use App\Features\Contributions\Api\StagedContributionCreates;
@@ -26,6 +27,7 @@ use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContrib
 use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
 use App\Features\Contributions\EntryPoints\Admin\Member\ContributionRequestMemberWorkflowToolContributor;
 use App\Features\Contributions\EntryPoints\Admin\RecordActions\ContributionRequestRecordActionContributor;
+use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminGetContributionRequestReviewSchemaTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminReviewContributionRequestTool;
@@ -83,6 +85,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(PersonContributionSchema::class, PersonContributionFormSchema::class);
         $this->app->bind(AdminContributionRequestReview::class, AdminContributionRequestReviewService::class);
 
         $this->app->bind(SubmissionCatalog::class, EloquentSubmissionCatalog::class);

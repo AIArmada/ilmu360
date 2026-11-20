@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * @implements ReferenceScopedSearch<Reference>
  */
-class ReferenceSearchService implements PublicDiscoveryAdapter, ReferenceScopedSearch
+class ReferenceSearchService implements \App\Features\References\Api\ReferenceSearch, PublicDiscoveryAdapter, ReferenceScopedSearch
 {
     private const string PUBLIC_TYPESENSE_FILTER = 'status:=[verified,pending] && published_at:>0';
 

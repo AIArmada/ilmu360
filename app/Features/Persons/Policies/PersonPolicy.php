@@ -2,7 +2,8 @@
 
 namespace App\Features\Persons\Policies;
 
-use App\Features\Membership\Services\MemberPermissionGate;
+use App\Features\Membership\Api\MemberPermissions;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 
@@ -35,7 +36,7 @@ class PersonPolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canPerson($user, 'person.view', $person);
+        return app(MemberPermissions::class)->canSubject($user, 'person.view', MemberSubjectType::Person, (string) $person->getKey());
     }
 
     /**
@@ -62,7 +63,7 @@ class PersonPolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canPerson($user, 'person.update', $person);
+        return app(MemberPermissions::class)->canSubject($user, 'person.update', MemberSubjectType::Person, (string) $person->getKey());
     }
 
     /**
@@ -75,7 +76,7 @@ class PersonPolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canPerson($user, 'person.delete', $person);
+        return app(MemberPermissions::class)->canSubject($user, 'person.delete', MemberSubjectType::Person, (string) $person->getKey());
     }
 
     public function deleteAny(User $user): bool
@@ -92,7 +93,7 @@ class PersonPolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canPerson($user, 'person.manage-members', $person);
+        return app(MemberPermissions::class)->canSubject($user, 'person.manage-members', MemberSubjectType::Person, (string) $person->getKey());
     }
 
     /**
@@ -100,6 +101,6 @@ class PersonPolicy
      */
     public function transferOwnership(User $user, Person $person): bool
     {
-        return app(MemberPermissionGate::class)->canPerson($user, 'person.transfer-ownership', $person);
+        return app(MemberPermissions::class)->canSubject($user, 'person.transfer-ownership', MemberSubjectType::Person, (string) $person->getKey());
     }
 }

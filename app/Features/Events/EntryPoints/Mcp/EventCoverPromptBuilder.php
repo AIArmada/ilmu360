@@ -12,15 +12,15 @@ use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventCategoryPayloads;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\EntryPoints\Ui\EventCategoryPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\MediaLink;
 use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\Places\Models\Venue;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
@@ -543,7 +543,7 @@ class EventCoverPromptBuilder
                 'space' => $event->primaryLocation?->venueSpace instanceof Model
                     ? array_replace(
                         $this->modelPayload($event->primaryLocation->venueSpace),
-                        ['name' => SpaceLocationPresenter::name($event->primaryLocation)],
+                        ['name' => app(SpaceLocation::class)->name($event->primaryLocation)],
                     )
                     : null,
                 'organizer' => $event->organizer instanceof Model ? $this->modelPayload($event->organizer) : null,
@@ -866,7 +866,7 @@ class EventCoverPromptBuilder
         }
 
         if ($event->primaryLocation?->venueSpace !== null) {
-            $parts[] = (string) SpaceLocationPresenter::name($event->primaryLocation);
+            $parts[] = (string) app(SpaceLocation::class)->name($event->primaryLocation);
         }
 
         $address = null;
@@ -955,7 +955,7 @@ class EventCoverPromptBuilder
     {
         return array_values(array_filter(array_map(
             static fn (array $category): string => (string) ($category['path'] ?? $category['name'] ?? ''),
-            app(EventCategoryPresenter::class)->forEvent($event),
+            app(EventCategoryPayloads::class)->forEventPayload($event),
         )));
     }
 

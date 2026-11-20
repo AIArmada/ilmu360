@@ -3219,3 +3219,61 @@ PHP);
         ->and(array_column($findings, 'rule'))->toContain('root-model')
         ->and(array_column($findings, 'target'))->toContain('app/Models/Ticket.php');
 });
+
+it('allows a model to reuse another owner relation concern trait', function (): void {
+    $this->project->feature('DonationChannels');
+    $this->project->feature('Events');
+    $this->project->write('app/Features/DonationChannels/Concerns/HasDonationChannels.php', <<<'PHP'
+<?php
+namespace App\Features\DonationChannels\Concerns;
+trait HasDonationChannels
+{
+    public function donationChannels(): mixed
+    {
+        return null;
+    }
+}
+PHP);
+    $this->project->write('app/Features/Events/Models/Event.php', <<<'PHP'
+<?php
+namespace App\Features\Events\Models;
+use App\Features\DonationChannels\Concerns\HasDonationChannels;
+class Event extends \Illuminate\Database\Eloquent\Model
+{
+    use HasDonationChannels;
+
+    protected $table = 'events';
+}
+PHP);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'] ?? [];
+
+    expect($result['stderr'])->toBeEmpty()
+        ->and(array_column($findings, 'rule'))->not->toContain('feature-private');
+});
+
+it('does not let a non-model class reuse another owner concern trait', function (): void {
+    $this->project->feature('DonationChannels');
+    $this->project->feature('Events');
+    $this->project->write('app/Features/DonationChannels/Concerns/HasDonationChannels.php', <<<'PHP'
+<?php
+namespace App\Features\DonationChannels\Concerns;
+trait HasDonationChannels {}
+PHP);
+    $this->project->write('app/Features/Events/Services/Reports.php', <<<'PHP'
+<?php
+namespace App\Features\Events\Services;
+use App\Features\DonationChannels\Concerns\HasDonationChannels;
+class Reports
+{
+    use HasDonationChannels;
+}
+PHP);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'] ?? [];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('feature-private');
+});

@@ -2,11 +2,11 @@
 
 namespace App\Features\Registration\EntryPoints\Http;
 
+use App\Features\Events\Api\EventRegistrationNotifications;
+use App\Features\Events\Api\EventTicketing;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Notifications\EventNotificationService;
-use App\Features\Events\Policies\EventTicketingPolicy;
 use App\Features\Registration\Api\AdmissionRegistration;
-use App\Features\Registration\EntryPoints\Http\Data\EventRegistrationData;
+use App\Features\Registration\Api\Data\EventRegistrationData;
 use App\Features\Registration\EntryPoints\Http\Requests\RegisterEventRequest;
 use App\Features\Registration\Models\Registration;
 use App\Http\Controllers\Controller;
@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
 class EventRegistrationController extends Controller
 {
     public function __construct(
-        private readonly EventNotificationService $eventNotificationService,
+        private readonly EventRegistrationNotifications $eventNotificationService,
     ) {}
 
     #[Endpoint(
@@ -31,10 +31,10 @@ class EventRegistrationController extends Controller
         RegisterEventRequest $request,
         Event $event,
         AdmissionRegistration $admissions,
-        EventTicketingPolicy $ticketingPolicy,
+        EventTicketing $ticketingPolicy,
     ): JsonResponse {
         abort_unless($event->isRegistrationAvailable(), 404);
-        abort_if($ticketingPolicy->requiresTicketSelection($event), 404);
+        abort_if($ticketingPolicy->eventRequiresTicketSelection((string) $event->getKey()), 404);
 
         $validated = $request->validated();
 
@@ -59,11 +59,20 @@ class EventRegistrationController extends Controller
         );
 
         if ($user instanceof User) {
-            $this->eventNotificationService->notifyRegistrationConfirmed($registration);
+            $this->eventNotificationService->registrationConfirmed($registration);
         }
 
         return response()->json([
-            'data' => EventRegistrationData::fromModel($registration)->toArray(),
+            'data' => new EventRegistrationData(
+                id: (string) $registration->id,
+                event_id: (string) $registration->event_id,
+                user_id: $registration->registrant instanceof User ? (string) $registration->registrant->getKey() : null,
+                name: $registration->resolvedName() ?? '',
+                email: $registration->resolvedEmail(),
+                phone: $registration->resolvedPhone(),
+                status: $registration->statusValue(),
+                created_at: $registration->created_at?->format(DATE_ATOM),
+            )->toArray(),
             'meta' => [
                 'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),
             ],

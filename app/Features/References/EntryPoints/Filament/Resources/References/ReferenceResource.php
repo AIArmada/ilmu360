@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\EntryPoints\Filament\Resources\References;
 
-use App\Features\Events\EntryPoints\Filament\Resources\Events\RelationManagers\EventsRelationManager;
+use App\Features\Events\Api\Filament\AdminEventsRelationManager;
 use App\Features\References\EntryPoints\Filament\Resources\References\Pages\CreateReference;
 use App\Features\References\EntryPoints\Filament\Resources\References\Pages\EditReference;
 use App\Features\References\EntryPoints\Filament\Resources\References\Pages\ListReferences;
@@ -67,7 +67,7 @@ class ReferenceResource extends Resource
     public static function getRelations(): array
     {
         return [
-            EventsRelationManager::class,
+            app(AdminEventsRelationManager::class)->relationManager(),
             MembersRelationManager::class,
             MemberInvitationsRelationManager::class,
             AuditsRelationManager::class,

@@ -18,7 +18,6 @@ use App\Features\Persons\Models\Person;
 use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\MorphModelResolver;
@@ -988,7 +987,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(ReportModelClass::resolve(), 'entity');
+        return $this->morphMany(MorphModelResolver::resolve('report'), 'entity');
     }
 
     /**

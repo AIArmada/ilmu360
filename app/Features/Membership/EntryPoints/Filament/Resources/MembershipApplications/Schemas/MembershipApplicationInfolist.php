@@ -2,9 +2,9 @@
 
 namespace App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Schemas;
 
-use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Support\MembershipApplicationAdminPresenter;
 use App\Features\Membership\Models\MembershipApplication;
+use App\Platform\Admin\AdminResourceLink;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -60,7 +60,7 @@ class MembershipApplicationInfolist
                                                     ->label('Applicant')
                                                     ->placeholder('-')
                                                     ->url(fn (MembershipApplication $record): ?string => $record->applicant
-                                                        ? UserResource::getUrl('view', ['record' => $record->applicant])
+                                                        ? AdminResourceLink::toSlug('authz/users', 'view', (string) $record->applicant->getKey())
                                                         : null)
                                                     ->openUrlInNewTab(),
                                                 TextEntry::make('applicant.email')

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons;
 
 use App\Features\Persons\Actions\PersonSubmissionAccessAction;
+use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Api\PersonCatalog;
 use App\Features\Persons\Api\PersonHomepageStats;
 use App\Features\Persons\Api\PersonListingCacheVersion;
@@ -17,6 +18,7 @@ use App\Features\Persons\EntryPoints\Admin\Member\PersonMemberResourceHooks;
 use App\Features\Persons\EntryPoints\Admin\Resources\PersonAdminHooks;
 use App\Features\Persons\EntryPoints\Admin\Resources\PersonMutationHooks;
 use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
+use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\EntryPoints\Filament\Stats\PendingPersonsStat;
 use App\Features\Persons\EntryPoints\Sitemap\PersonSitemapUrls;
@@ -42,6 +44,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(PersonQuickAdd::class, PersonFormSchema::class);
         $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new PersonAdminHooks);
 
         $this->app->bind(PersonCatalog::class, EloquentPersonCatalog::class);

@@ -20,8 +20,8 @@ use App\Features\Contributions\EntryPoints\Filament\Forms\ReferenceContributionF
 use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\DonationChannels\Api\DonationQrMedia;
+use App\Features\Events\Api\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Services\EventContributionUpdateStateMapper;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
@@ -404,7 +404,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $state = $this->normalizeSubmissionState($submissionState['state']);
                 $changes = $submissionPreparation->changedPayload(
                     $state,
-                    $this->originalData + EventContributionUpdateStateMapper::provenanceOriginals($this->entity),
+                    $this->originalData + app(EventContributionStateMapper::class)->provenanceOriginals($this->entity),
                 );
                 $hasDirectEditMediaChange = $this->hasDirectEditMediaChange();
                 $hasNewMedia = $this->hasNewMedia();
@@ -1181,7 +1181,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $state['end_date'] = $this->originalData['end_date'] ?? null;
         }
 
-        return EventContributionUpdateStateMapper::toPersistenceState($state, $this->entity);
+        return app(EventContributionStateMapper::class)->toPersistenceState($state, $this->entity);
     }
 
     /**
@@ -1190,7 +1190,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function eventComparableState(array $state): array
     {
-        return EventContributionUpdateStateMapper::toHelperState($state);
+        return app(EventContributionStateMapper::class)->toHelperState($state);
     }
 
     /**

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers;
 
 use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
+use App\Platform\Admin\AdminResourceLink;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -54,7 +54,7 @@ class InstitutionsRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->url(fn ($record): ?string => $record?->id
-                        ? InstitutionResource::getUrl('edit', ['record' => $record->id])
+                        ? AdminResourceLink::to('institution', 'edit', (string) $record->id)
                         : null),
                 TextColumn::make('position')
                     ->label('Position')

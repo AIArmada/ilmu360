@@ -9,14 +9,16 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Discovery\Api\PublicScheduleLeaf;
+use App\Features\Discovery\Api\PublicScheduleReader;
+use App\Features\Discovery\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\PublicScheduleEligibility;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
@@ -33,8 +35,10 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
+use RuntimeException;
 
-final readonly class PublicScheduleDiscoveryService
+final readonly class PublicScheduleDiscoveryService implements PublicScheduleReader
 {
     public function __construct(
         private EventScheduleQuery $eventDiscovery,
@@ -171,15 +175,15 @@ final readonly class PublicScheduleDiscoveryService
 
         $featured = $leaves
             ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->matchesFilters($leaf, $featuredFilters))
-            ->filter(fn (PublicScheduleLeaf $leaf): bool => (bool) $leaf->occurrence->is_featured)
+            ->filter(fn (PublicScheduleLeaf $leaf): bool => (bool) $this->occurrenceOf($leaf)->is_featured)
             ->sort(fn (PublicScheduleLeaf $left, PublicScheduleLeaf $right): int => $this->compareByTime($left, $right))
             ->take(9);
 
         return $featured->concat(
             $leaves
                 ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->matchesFilters($leaf, $filters))
-                ->reject(fn (PublicScheduleLeaf $leaf): bool => (bool) $leaf->occurrence->is_featured)
-                ->filter(fn (PublicScheduleLeaf $leaf): bool => $followedEventIds->has($leaf->event->id))
+                ->reject(fn (PublicScheduleLeaf $leaf): bool => (bool) $this->occurrenceOf($leaf)->is_featured)
+                ->filter(fn (PublicScheduleLeaf $leaf): bool => $followedEventIds->has($this->eventOf($leaf)->id))
                 ->shuffle()
                 ->take(9 - $featured->count()),
         )->values();
@@ -253,23 +257,49 @@ final readonly class PublicScheduleDiscoveryService
         }
     }
 
+    public function leafFor(object $event, object $occurrence, iterable $sessions = []): PublicScheduleLeaf
+    {
+        if (! $event instanceof Event || ! $occurrence instanceof EventOccurrence) {
+            throw new InvalidArgumentException('A public schedule leaf requires an event and an occurrence model.');
+        }
+
+        $sessionModels = [];
+
+        foreach ($sessions as $session) {
+            if ($session instanceof EventSession) {
+                $sessionModels[] = $session;
+            }
+        }
+
+        return new PublicScheduleLeafValue($event, $occurrence, new Collection($sessionModels));
+    }
+
     /**
-     * @param  EloquentCollection<int, Event>  $events
+     * @param  iterable<int, Event>  $events
      * @return Collection<int, PublicScheduleLeaf>
      */
-    public function leavesForEvents(EloquentCollection $events): Collection
+    public function leavesForEvents(iterable $events): Collection
     {
-        $events->load([...$this->searchRelations(), 'occurrences.references']);
-        $this->hydrateApplicationVenues($events);
+        /** @var EloquentCollection<int, Event> $eventCollection */
+        $eventCollection = $events instanceof EloquentCollection
+            ? $events
+            : EloquentCollection::make($events);
 
-        return $this->flatten($events)
+        $eventCollection->load([...$this->searchRelations(), 'occurrences.references']);
+        $this->hydrateApplicationVenues($eventCollection);
+
+        return $this->flatten($eventCollection)
             ->filter(fn (PublicScheduleLeaf $leaf): bool => $leaf->startsAt() instanceof CarbonInterface)
             ->sort(fn (PublicScheduleLeaf $left, PublicScheduleLeaf $right): int => $this->compareByTime($left, $right))
             ->values();
     }
 
-    public function findOccurrence(Event $event, string $slug): ?EventOccurrence
+    public function findOccurrence(object $event, string $slug): ?EventOccurrence
     {
+        if (! $event instanceof Event) {
+            return null;
+        }
+
         // Load the public schedule set up front so detail mounts can reuse it
         // via loadMissing() instead of querying occurrences twice.
         $event->loadMissing(['occurrences' => function (Relation $query): void {
@@ -402,18 +432,19 @@ final readonly class PublicScheduleDiscoveryService
     private function flatten(EloquentCollection $events): Collection
     {
         $leaves = collect();
+        $eligibility = app(PublicScheduleEligibility::class);
 
         foreach ($events as $event) {
             foreach ($event->occurrences as $occurrence) {
-                if (! PublicSchedulePolicy::isPublicOccurrence($occurrence)) {
+                if (! $eligibility->isPublicOccurrence($occurrence)) {
                     continue;
                 }
 
                 $sessions = $occurrence->sessions
-                    ->filter(fn (EventSession $session): bool => PublicSchedulePolicy::isMeaningfulSession($session))
+                    ->filter(fn (EventSession $session): bool => $eligibility->isMeaningfulSession($session))
                     ->values();
 
-                $leaves->push(new PublicScheduleLeaf($event, $occurrence, $sessions));
+                $leaves->push(new PublicScheduleLeafValue($event, $occurrence, $sessions));
             }
         }
 
@@ -529,8 +560,12 @@ final readonly class PublicScheduleDiscoveryService
      * occurrencePageRelations(), which omits the nested package venue loads
      * because the base package Venue is not morph-mapped.
      */
-    public function hydrateOccurrencePageVenues(Event $event): void
+    public function hydrateOccurrencePageVenues(object $event): void
     {
+        if (! $event instanceof Event) {
+            return;
+        }
+
         $this->hydrateApplicationVenues(new EloquentCollection([$event]));
     }
 
@@ -750,11 +785,13 @@ final readonly class PublicScheduleDiscoveryService
     /** @return Collection<int, mixed> */
     private function timeExpressions(PublicScheduleLeaf $leaf): Collection
     {
-        if ($leaf->occurrence->timeExpressions->isNotEmpty()) {
-            return $leaf->occurrence->timeExpressions;
+        $occurrence = $this->occurrenceOf($leaf);
+
+        if ($occurrence->timeExpressions->isNotEmpty()) {
+            return $occurrence->timeExpressions;
         }
 
-        return $leaf->event->timeExpressions;
+        return $this->eventOf($leaf)->timeExpressions;
     }
 
     private function normalizeTime(mixed $value): ?string
@@ -774,8 +811,8 @@ final readonly class PublicScheduleDiscoveryService
 
     private function compareByDistance(PublicScheduleLeaf $left, PublicScheduleLeaf $right): int
     {
-        $leftDistance = $left->event->getAttribute('distance_km');
-        $rightDistance = $right->event->getAttribute('distance_km');
+        $leftDistance = $this->eventOf($left)->getAttribute('distance_km');
+        $rightDistance = $this->eventOf($right)->getAttribute('distance_km');
         $distanceResult = ((float) (is_numeric($leftDistance) ? $leftDistance : PHP_FLOAT_MAX))
             <=> ((float) (is_numeric($rightDistance) ? $rightDistance : PHP_FLOAT_MAX));
 
@@ -817,5 +854,27 @@ final readonly class PublicScheduleDiscoveryService
                 'query' => request()->query(),
             ],
         );
+    }
+
+    private function occurrenceOf(PublicScheduleLeaf $leaf): EventOccurrence
+    {
+        $occurrence = $leaf->occurrence();
+
+        if (! $occurrence instanceof EventOccurrence) {
+            throw new RuntimeException('Public schedule leaf is missing its occurrence model.');
+        }
+
+        return $occurrence;
+    }
+
+    private function eventOf(PublicScheduleLeaf $leaf): Event
+    {
+        $event = $leaf->event();
+
+        if (! $event instanceof Event) {
+            throw new RuntimeException('Public schedule leaf is missing its event model.');
+        }
+
+        return $event;
     }
 }

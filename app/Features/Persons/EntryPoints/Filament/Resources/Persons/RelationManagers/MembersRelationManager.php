@@ -3,11 +3,11 @@
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
+use App\Platform\Admin\AdminResourceLink;
 use App\Shared\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -31,8 +31,8 @@ class MembersRelationManager extends RelationManager
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable()
-                    ->url(fn (User $record): ?string => AuthzUserResource::canEdit($record)
-                        ? AuthzUserResource::getUrl('edit', ['record' => $record], panel: 'admin')
+                    ->url(fn (User $record): ?string => (auth()->user()?->can('update', $record) ?? false)
+                        ? AdminResourceLink::toSlug('authz/users', 'edit', (string) $record->getKey())
                         : null),
                 TextColumn::make('email')
                     ->searchable()

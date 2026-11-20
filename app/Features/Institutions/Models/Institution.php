@@ -22,7 +22,6 @@ use App\Features\Membership\Models\MemberInvitation;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
-use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
@@ -593,7 +592,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(ReportModelClass::resolve(), 'entity');
+        return $this->morphMany(MorphModelResolver::resolve('report'), 'entity');
     }
 
     /**

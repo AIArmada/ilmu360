@@ -115,7 +115,7 @@
         ],
     ];
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
-        fn (\App\Features\Discovery\Support\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
+        fn (\App\Features\Discovery\Api\PublicScheduleLeaf $leaf): bool => $leaf->eventStatus() === 'cancelled'
     );
     $personRouteSegment = \App\Features\Contributions\Api\Enums\ContributionSubjectType::Person->publicRouteSegment();
 
@@ -439,7 +439,7 @@
                                     <x-events.schedule-card
                                         :schedule-leaf="$scheduleLeaf"
                                         :saved-event-ids="$savedEventIds"
-                                        :is-going="in_array((string) $scheduleLeaf->event->getKey(), $goingEventIds, true)"
+                                        :is-going="in_array($scheduleLeaf->eventId(), $goingEventIds, true)"
                                         signal-component="person_detail_upcoming_events"
                                         testid-prefix="person-detail-card"
                                         :wire-key="'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"

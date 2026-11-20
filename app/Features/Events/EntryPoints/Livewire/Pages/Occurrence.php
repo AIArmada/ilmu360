@@ -6,12 +6,12 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
+use App\Features\Discovery\Api\PublicScheduleReader;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\References\Api\ReferenceQueries;
-use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -35,7 +35,7 @@ class Occurrence extends Show
 
     public function mount(Event $event, string $occurrenceSlug = ''): void
     {
-        $discovery = app(PublicScheduleDiscoveryService::class);
+        $discovery = app(PublicScheduleReader::class);
 
         // Load the public schedule set first with counts attached, so the
         // slug resolver below reuses the loaded relation instead of issuing
@@ -121,7 +121,7 @@ class Occurrence extends Show
     {
         $title = trim((string) ($this->occurrence->title ?: $this->event->title));
 
-        return app(AffiliatesShareTrackingService::class)->redirectLinks(
+        return app(ShareTrackingContract::class)->redirectLinks(
             $this->event->occurrences->count() === 1 ? route('events.show', $this->event) : $this->occurrenceUrl(),
             trim($title.' - '.config('app.name')),
             $title,

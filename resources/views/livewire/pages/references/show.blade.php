@@ -49,7 +49,7 @@
     $upcomingOverallTotal = $this->upcomingOverallTotal;
     $pastOverallTotal = $this->pastOverallTotal;
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
-        fn (\App\Features\Discovery\Support\PublicScheduleLeaf $leaf): bool => (string) $leaf->event->status === 'cancelled'
+        fn (\App\Features\Discovery\Api\PublicScheduleLeaf $leaf): bool => $leaf->eventStatus() === 'cancelled'
     );
 
 @endphp
@@ -334,7 +334,7 @@
                                     <x-events.schedule-card
                                         :schedule-leaf="$scheduleLeaf"
                                         :saved-event-ids="$savedEventIds"
-                                        :is-going="in_array((string) $scheduleLeaf->event->getKey(), $goingEventIds, true)"
+                                        :is-going="in_array($scheduleLeaf->eventId(), $goingEventIds, true)"
                                         :hide-reference="true"
                                         signal-component="reference_detail_upcoming_events"
                                         testid-prefix="reference-detail-card"

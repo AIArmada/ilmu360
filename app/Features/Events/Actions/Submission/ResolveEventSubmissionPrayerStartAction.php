@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Submission;
 
 use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
-use App\Features\Prayer\Support\PrayerLocation;
 
 /** Resolve a public submission's prayer clock from its selected location. */
 final readonly class ResolveEventSubmissionPrayerStartAction
 {
-    public function __construct(private ResolvePrayerStartClockAction $resolveStartClock) {}
+    public function __construct(
+        private ResolvePrayerStartClockAction $resolveStartClock,
+        private PrayerLocationResolver $prayerLocation,
+    ) {}
 
     /**
      * @return array{clock: string, date: string, starts_at: string, source: string, fetched_at: string, zone: string|null, lat: float|null, lng: float|null, country: string}|null
@@ -24,8 +27,8 @@ final readonly class ResolveEventSubmissionPrayerStartAction
         string $prayerTime,
         string $eventDate,
     ): ?array {
-        $address = PrayerLocation::forTargets($targetVenueId, $targetInstitutionId);
-        $location = PrayerLocation::fromAddress($address, $submissionCountryIso2);
+        $address = $this->prayerLocation->forTargets($targetVenueId, $targetInstitutionId);
+        $location = $this->prayerLocation->fromAddress($address, $submissionCountryIso2);
 
         return $this->resolveStartClock->handle(
             countryCode: $location['countryCode'] ?? 'MY',

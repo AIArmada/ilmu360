@@ -53,6 +53,8 @@ use App\Features\Events\Api\EventShareCardCache;
 use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Events\Api\EventSubmissionOptionsCache;
 use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Filament\AdminEventsRelationManager;
+use App\Features\Events\Api\Filament\EventContributionOptionsCountry;
 use App\Features\Events\Api\Frontend\AdvancedEventFormContractContributor;
 use App\Features\Events\Api\Frontend\SubmitEventFormContractContributor;
 use App\Features\Events\Api\GuestEventSubmissionClaims;
@@ -74,8 +76,10 @@ use App\Features\Events\EntryPoints\Admin\Resources\EventAdminHooks;
 use App\Features\Events\EntryPoints\Admin\Resources\EventMutationHooks;
 use App\Features\Events\EntryPoints\ApiDocumentation\EventsRequestExampleContributor;
 use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
+use App\Features\Events\EntryPoints\Filament\Forms\EventContributionOptionsCountryAdapter;
 use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
 use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\AdminEventsRelationManagerProvider;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Filament\Resources\Series\SeriesResource;
 use App\Features\Events\EntryPoints\Filament\Stats\PendingEventsStat;
@@ -213,6 +217,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(EventContributionOptionsCountry::class, EventContributionOptionsCountryAdapter::class);
+        $this->app->bind(AdminEventsRelationManager::class, AdminEventsRelationManagerProvider::class);
         $this->app->bind(EventDiscoveryReaders::class, EventDiscoveryReaderFactory::class);
         $this->app->bind(EventDiscoveryReader::class, PostgresEventDiscovery::class);
         $this->app->bind(EventScheduleQuery::class, PostgresEventDiscovery::class);

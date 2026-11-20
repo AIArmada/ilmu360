@@ -17,18 +17,18 @@ final readonly class PublicSubmissionLockService implements PublicSubmissionLock
         private PersonSubmissionAccess $persons,
     ) {}
 
-    public function institutionEligibility(Institution $institution): SubmissionLockEligibilityResult
+    public function institutionEligibility(string $institutionId): SubmissionLockEligibilityResult
     {
-        $eligibility = $this->institutions->eligibility((string) $institution->getKey());
+        $eligibility = $this->institutions->eligibility($institutionId);
 
         return $eligibility->eligible
             ? SubmissionLockEligibilityResult::eligible()
             : SubmissionLockEligibilityResult::ineligible($eligibility->reasons);
     }
 
-    public function personEligibility(Person $person): SubmissionLockEligibilityResult
+    public function personEligibility(string $personId): SubmissionLockEligibilityResult
     {
-        $eligibility = $this->persons->eligibility((string) $person->getKey());
+        $eligibility = $this->persons->eligibility($personId);
 
         return $eligibility->eligible
             ? SubmissionLockEligibilityResult::eligible()
@@ -55,14 +55,14 @@ final readonly class PublicSubmissionLockService implements PublicSubmissionLock
         $this->persons->unlock((string) $person->getKey(), (string) $actor->getKey());
     }
 
-    public function ensureInstitutionUnlockedIfIneligible(Institution $institution): bool
+    public function ensureInstitutionUnlockedIfIneligible(string $institutionId): void
     {
-        return $this->institutions->reopenIfIneligible((string) $institution->getKey());
+        $this->institutions->reopenIfIneligible($institutionId);
     }
 
-    public function ensurePersonUnlockedIfIneligible(Person $person): bool
+    public function ensurePersonUnlockedIfIneligible(string $personId): void
     {
-        return $this->persons->reopenIfIneligible((string) $person->getKey());
+        $this->persons->reopenIfIneligible($personId);
     }
 
     /**

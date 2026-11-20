@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Membership;
 
+use App\Features\Membership\Api\Filament\AccountMembershipDirectory;
+use App\Features\Membership\Api\Filament\MemberInvitationAccess;
 use App\Features\Membership\Api\Frontend\MembershipApplicationFormContractContributor;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipApplications;
@@ -18,6 +20,8 @@ use App\Features\Membership\EntryPoints\Admin\Member\MembershipApplicationMember
 use App\Features\Membership\EntryPoints\Admin\RecordActions\MembershipApplicationRecordActionContributor;
 use App\Features\Membership\EntryPoints\ApiDocumentation\MembershipRequestExampleContributor;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
+use App\Features\Membership\EntryPoints\Filament\Support\AccountMembershipDirectoryAdapter;
+use App\Features\Membership\EntryPoints\Filament\Support\MemberInvitationAccessAdapter;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index;
 use App\Features\Membership\EntryPoints\Mcp\Tools\AdminGetMembershipApplicationReviewSchemaTool;
@@ -75,6 +79,8 @@ final class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(AccountMembershipDirectory::class, AccountMembershipDirectoryAdapter::class);
+        $this->app->bind(MemberInvitationAccess::class, MemberInvitationAccessAdapter::class);
         $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);
         $this->app->bind(MemberPermissions::class, Services\MemberPermissionGate::class);
         $this->app->bind(MembershipSubjectOptionsCatalog::class, EloquentMembershipSubjectOptionsCatalog::class);

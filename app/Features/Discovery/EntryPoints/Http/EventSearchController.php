@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Discovery\EntryPoints\Http;
 
 use App\Features\Discovery\EntryPoints\Http\Requests\SearchAdminEventsRequest;
-use App\Features\Events\EntryPoints\Mcp\McpEventSearchService;
+use App\Features\Events\Api\AdminEventSearch;
 use App\Http\Controllers\Controller;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -18,7 +18,7 @@ use Illuminate\Http\JsonResponse;
 class EventSearchController extends Controller
 {
     public function __construct(
-        private readonly McpEventSearchService $eventSearchService,
+        private readonly AdminEventSearch $eventSearchService,
     ) {}
 
     #[Endpoint(

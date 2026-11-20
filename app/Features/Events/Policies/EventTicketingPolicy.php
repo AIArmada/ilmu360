@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Policies;
 
+use App\Features\Events\Api\EventTicketing;
 use App\Features\Events\Models\Event;
 
 /**
@@ -13,8 +14,13 @@ use App\Features\Events\Models\Event;
  * public registration paths must use the same answer so a ticketless request
  * cannot bypass a scoped ticket catalog or an explicit ticket-required policy.
  */
-final readonly class EventTicketingPolicy
+final readonly class EventTicketingPolicy implements EventTicketing
 {
+    public function eventRequiresTicketSelection(string $eventId): bool
+    {
+        return $this->requiresTicketSelection(Event::query()->findOrFail($eventId));
+    }
+
     public function requiresTicketSelection(Event $event): bool
     {
         if ($event->accessPolicy?->ticket_required === true) {

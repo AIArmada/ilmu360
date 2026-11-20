@@ -4,15 +4,15 @@ namespace App\Features\Institutions\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Contributions\Services\EntitySubmissionAccess;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Membership\Services\MemberPermissionGate;
-use App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter;
+use App\Features\Places\Api\SpaceLocation;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
@@ -669,7 +669,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                         ->implode(', ') ?: null),
                 TextColumn::make('primaryLocation.venueSpace.name')
                     ->label(__('Location'))
-                    ->state(fn (Event $record): ?string => SpaceLocationPresenter::name($record->primaryLocation))
+                    ->state(fn (Event $record): ?string => app(SpaceLocation::class)->name($record->primaryLocation))
                     ->placeholder('-')
                     ->wrap(),
                 TextColumn::make('dashboard_registrations_count')
@@ -796,7 +796,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return false;
         }
 
-        return app(EntitySubmissionAccess::class)->canUseMemberInstitution($user, $institution->getKey());
+        return app(SubmissionEntityAccess::class)->canUseMemberInstitution($user, (string) $institution->getKey());
     }
 
     protected function normalizeInstitutionId(?string $institutionId): ?string
@@ -1052,11 +1052,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
     protected function userHasInstitutionManagementRole(User $user, Institution $institution): bool
     {
-        return app(MemberPermissionGate::class)->canInstitution(
-            $user,
-            'institution.manage-members',
-            $institution,
-        );
+        return app(MemberPermissions::class)->canSubject($user, 'institution.manage-members', MemberSubjectType::Institution, (string) $institution->getKey());
     }
 
     protected function memberIsOwner(Institution $institution, User $user): bool

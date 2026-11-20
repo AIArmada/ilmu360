@@ -104,6 +104,41 @@ final readonly class MemberPermissionGate implements MemberPermissions, Membersh
         return $this->memberCan(MemberSubjectType::Reference, (string) $reference->getKey(), $user, $permission);
     }
 
+    public function canSubject(
+        AccountActor $user,
+        string $permission,
+        MemberSubjectType $subjectType,
+        string $subjectId,
+    ): bool {
+        return $this->memberCan(
+            $subjectType,
+            $subjectId,
+            $user,
+            $permission,
+            $subjectType === MemberSubjectType::Person
+                ? $this->eligiblePersonScopeRoles($permission)
+                : null,
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function subjectMembersWithPermission(
+        MemberSubjectType $subjectType,
+        string $subjectId,
+        string $permission,
+    ): array {
+        $members = $subjectType === MemberSubjectType::Person
+            ? $this->membersWithPermission($subjectType, $subjectId, $permission, $this->eligiblePersonScopeRoles($permission))
+            : $this->membersWithPermission($subjectType, $subjectId, $permission);
+
+        return $members
+            ->map(static fn (User $member): string => (string) $member->getKey())
+            ->values()
+            ->all();
+    }
+
     public function canOnSubject(
         string $accountId,
         string $permission,

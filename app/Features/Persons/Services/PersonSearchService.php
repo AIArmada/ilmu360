@@ -3,6 +3,7 @@
 namespace App\Features\Persons\Services;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
+use App\Features\Persons\Api\PersonSearch;
 use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Api\PersonSearchMaintenance;
 use App\Features\Persons\Api\PersonWorkflow;
@@ -10,13 +11,12 @@ use App\Features\Persons\Models\Person;
 use App\Features\Persons\Support\PersonSearchText;
 use App\Platform\Search\FuzzySearchPolicy;
 use App\Platform\Search\TypesenseHealthCheckService;
-use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
-class PersonSearchService implements PersonSearchMaintenance, PublicDiscoveryAdapter
+class PersonSearchService implements PersonSearch, PersonSearchMaintenance
 {
     public function __construct(
         private readonly PersonWorkflow $personWorkflow,

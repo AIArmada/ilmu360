@@ -4,7 +4,7 @@ namespace App\Features\Membership\Integrations;
 
 use AIArmada\Membership\Contracts\MembershipHook;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Events\Services\PublicSubmissionLockService;
+use App\Features\Events\Api\PublicSubmissionLockSweeper;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use Illuminate\Database\Eloquent\Collection;
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 readonly class AppMembershipHook implements MembershipHook
 {
     public function __construct(
-        private PublicSubmissionLockService $publicSubmissionLockService,
+        private PublicSubmissionLockSweeper $publicSubmissionLockService,
     ) {}
 
     public function onMemberAdded(Model $subject, Model $user, MemberRole $role): void
@@ -73,8 +73,8 @@ readonly class AppMembershipHook implements MembershipHook
         }
 
         match ($subject::class) {
-            Institution::class => $this->publicSubmissionLockService->ensureInstitutionUnlockedIfIneligible($subject->fresh()),
-            Person::class => $this->publicSubmissionLockService->ensurePersonUnlockedIfIneligible($subject->fresh()),
+            Institution::class => $this->publicSubmissionLockService->ensureInstitutionUnlockedIfIneligible((string) $subject->getKey()),
+            Person::class => $this->publicSubmissionLockService->ensurePersonUnlockedIfIneligible((string) $subject->getKey()),
             default => null,
         };
     }

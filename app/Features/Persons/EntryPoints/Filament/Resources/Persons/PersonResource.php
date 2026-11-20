@@ -7,7 +7,7 @@ namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons;
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\NamesRelationManager as PackageNamesRelationManager;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\RelationManagers\EventsRelationManager;
+use App\Features\Events\Api\Filament\AdminEventsRelationManager;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\EditPerson;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\ListPersons;
@@ -79,7 +79,7 @@ class PersonResource extends PackagePersonResource
             MemberInvitationsRelationManager::class,
             FollowersRelationManager::class,
             RelationManagers\AffiliationsRelationManager::class,
-            EventsRelationManager::class,
+            app(AdminEventsRelationManager::class)->relationManager(),
             AuditsRelationManager::class,
         ];
     }

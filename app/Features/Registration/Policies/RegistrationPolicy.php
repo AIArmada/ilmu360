@@ -3,7 +3,8 @@
 namespace App\Features\Registration\Policies;
 
 use App\Features\Events\Models\Event;
-use App\Features\Membership\Services\MemberPermissionGate;
+use App\Features\Membership\Api\MemberPermissions;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Support\EventCommercePolicy;
 use App\Models\User;
@@ -20,7 +21,7 @@ class RegistrationPolicy
             return true;
         }
 
-        $memberPermissions = app(MemberPermissionGate::class);
+        $memberPermissions = app(MemberPermissions::class);
 
         return $memberPermissions->hasAnyInstitutionPermission($user, 'event.view-registrations')
             || $memberPermissions->hasAnyEventPermission($user, 'event.view-registrations');
@@ -41,16 +42,16 @@ class RegistrationPolicy
             return true;
         }
 
-        $memberPermissions = app(MemberPermissionGate::class);
+        $memberPermissions = app(MemberPermissions::class);
 
         $event = $registration->event;
-        if ($event instanceof Event && $memberPermissions->canEvent($user, 'event.view-registrations', $event)) {
+        if ($event instanceof Event && $memberPermissions->canSubject($user, 'event.view-registrations', MemberSubjectType::Event, (string) $event->getKey())) {
             return true;
         }
 
         // Institution members can view registrations for their events
         if ($event instanceof Event && $event->institution) {
-            return $memberPermissions->canInstitution($user, 'event.view-registrations', $event->institution);
+            return $memberPermissions->canSubject($user, 'event.view-registrations', MemberSubjectType::Institution, (string) $event->institution->getKey());
         }
 
         return false;
@@ -71,16 +72,16 @@ class RegistrationPolicy
             return true;
         }
 
-        $memberPermissions = app(MemberPermissionGate::class);
+        $memberPermissions = app(MemberPermissions::class);
 
         $event = $registration->event;
-        if ($event instanceof Event && $memberPermissions->canEvent($user, 'event.export-registrations', $event)) {
+        if ($event instanceof Event && $memberPermissions->canSubject($user, 'event.export-registrations', MemberSubjectType::Event, (string) $event->getKey())) {
             return true;
         }
 
         // Institution admins can update registrations
         if ($event instanceof Event && $event->institution) {
-            return $memberPermissions->canInstitution($user, 'event.export-registrations', $event->institution);
+            return $memberPermissions->canSubject($user, 'event.export-registrations', MemberSubjectType::Institution, (string) $event->institution->getKey());
         }
 
         return false;
@@ -113,7 +114,7 @@ class RegistrationPolicy
             return true;
         }
 
-        $memberPermissions = app(MemberPermissionGate::class);
+        $memberPermissions = app(MemberPermissions::class);
 
         return $memberPermissions->hasAnyInstitutionPermission($user, 'event.export-registrations')
             || $memberPermissions->hasAnyEventPermission($user, 'event.export-registrations');

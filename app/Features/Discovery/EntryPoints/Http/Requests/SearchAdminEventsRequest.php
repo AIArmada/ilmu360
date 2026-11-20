@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\EntryPoints\Http\Requests;
 
-use App\Features\Events\EntryPoints\Mcp\McpEventSearchService;
+use App\Features\Events\Api\AdminEventSearch;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SearchAdminEventsRequest extends FormRequest
@@ -22,7 +22,7 @@ class SearchAdminEventsRequest extends FormRequest
      *
      * @return array<string, mixed>
      */
-    public function rules(McpEventSearchService $eventSearchService): array
+    public function rules(AdminEventSearch $eventSearchService): array
     {
         return $eventSearchService->validationRules();
     }
@@ -32,7 +32,7 @@ class SearchAdminEventsRequest extends FormRequest
     {
         $normalized = [];
 
-        foreach (McpEventSearchService::arrayFilterKeys() as $key) {
+        foreach (AdminEventSearch::ARRAY_FILTER_KEYS as $key) {
             $normalized[$key] = $this->normalizeArrayLike($this->query($key));
         }
 

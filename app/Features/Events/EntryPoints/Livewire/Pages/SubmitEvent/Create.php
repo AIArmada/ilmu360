@@ -5,7 +5,7 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Contributions\Services\EntitySubmissionAccess;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
@@ -284,7 +284,7 @@ class Create extends Component implements HasActions, HasForms
 
         abort_unless($user instanceof User, 403);
 
-        $institution = app(EntitySubmissionAccess::class)
+        $institution = app(SubmissionEntityAccess::class)
             ->memberInstitutionQueryForSubmitter($user)
             ->whereKey($institutionId)
             ->first();
@@ -326,7 +326,7 @@ class Create extends Component implements HasActions, HasForms
             return $this->resolvedScopedInstitution;
         }
 
-        $institution = app(EntitySubmissionAccess::class)
+        $institution = app(SubmissionEntityAccess::class)
             ->memberInstitutionQueryForSubmitter($user)
             ->whereKey($institutionId)
             ->first();
@@ -1185,7 +1185,7 @@ class Create extends Component implements HasActions, HasForms
             return null;
         }
 
-        return app(EntitySubmissionAccess::class)->canUsePerson(
+        return app(SubmissionEntityAccess::class)->canUsePerson(
             $this->submitterUser(),
             $personId,
         ) ? $personId : null;

@@ -10,9 +10,9 @@ use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\EventPrayerTime;
+use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
-use App\Features\Prayer\Support\PrayerLocation;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -130,7 +130,7 @@ class EventContributionUpdateStateMapper
         $currentMeta = self::currentPrayerMeta($event);
 
         [$countryIso, $targetInstitutionId, $targetVenueId] = self::effectivePrayerTargets($state, $event);
-        $address = PrayerLocation::forTargets($targetVenueId, $targetInstitutionId);
+        $address = app(PrayerLocationResolver::class)->forTargets($targetVenueId, $targetInstitutionId);
 
         self::assertContributionCalendarEligibility($state, $timezone, $countryIso);
 
@@ -159,7 +159,7 @@ class EventContributionUpdateStateMapper
 
         $prayerTime = EventPrayerTime::tryFrom((string) ($state['prayer_time'] ?? ''));
         $eventDate = app(EventAuthoring::class)->normalizeEventDateString($state['event_date'] ?? null, $timezone);
-        $location = PrayerLocation::fromAddress($address, $countryIso);
+        $location = app(PrayerLocationResolver::class)->fromAddress($address, $countryIso);
 
         $resolved = $prayerTime instanceof EventPrayerTime && $eventDate !== null
             ? app(ResolvePrayerStartClockAction::class)->handle(
@@ -213,9 +213,9 @@ class EventContributionUpdateStateMapper
             self::normalizeOptionalString($state['venue_id'] ?? null),
         );
 
-        $address = PrayerLocation::forTargets($targetVenueId, $targetInstitutionId);
+        $address = app(PrayerLocationResolver::class)->forTargets($targetVenueId, $targetInstitutionId);
         $pinned = $event instanceof Event ? self::currentPrayerMeta($event)['country'] ?? null : null;
-        $countryIso = PrayerLocation::fromAddress($address)['countryCode']
+        $countryIso = app(PrayerLocationResolver::class)->fromAddress($address)['countryCode']
             ?? (is_string($pinned) && $pinned !== '' ? $pinned : null)
             ?? 'MY';
 

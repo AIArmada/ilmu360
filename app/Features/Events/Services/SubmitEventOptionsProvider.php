@@ -8,7 +8,7 @@ use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Features\Contributions\Services\EntitySubmissionAccess;
+use App\Features\Contributions\Api\EntitySubmissionAccessContract;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventSubmissionOptionsCache;
@@ -61,7 +61,7 @@ final class SubmitEventOptionsProvider
             return $this->optionMemo[$memoKey];
         }
 
-        $access = app(EntitySubmissionAccess::class);
+        $access = app(EntitySubmissionAccessContract::class);
 
         $load = fn (): array => $access->institutionQueryForSubmitter($submitter, $countryId)
             ->orderBy('name')
@@ -88,7 +88,7 @@ final class SubmitEventOptionsProvider
             return $this->optionMemo[$memoKey];
         }
 
-        $access = app(EntitySubmissionAccess::class);
+        $access = app(EntitySubmissionAccessContract::class);
 
         $load = fn (): array => $access->personQueryForSubmitter($submitter)
             ->orderBy('name')
@@ -109,7 +109,7 @@ final class SubmitEventOptionsProvider
     {
         return $this->submissionOptionsCache->rememberVenueOptions(
             $countryId,
-            fn (): array => app(EntitySubmissionAccess::class)->venueQuery($countryId)
+            fn (): array => app(EntitySubmissionAccessContract::class)->venueQuery($countryId)
                 ->orderBy('name')
                 ->pluck('name', 'id')
                 ->all(),

@@ -3,7 +3,7 @@
 namespace App\Features\Engagement\EntryPoints\Http\Data;
 
 use AIArmada\Engagement\Models\Response;
-use App\Features\Events\EntryPoints\Ui\EventCategoryPresenter;
+use App\Features\Events\Api\EventCategoryPayloads;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
@@ -46,7 +46,7 @@ class EventEngagementListItemData extends Data
                 'venue_id' => $event->default_venue_id,
                 'event_url' => $event->event_url,
                 'live_url' => $event->live_url,
-                'event_categories' => app(EventCategoryPresenter::class)->forEvent($event),
+                'event_categories' => app(EventCategoryPayloads::class)->forEventPayload($event),
                 'event_format' => self::enumValue($event->delivery_mode),
                 'language' => $event->language,
             ],

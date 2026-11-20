@@ -4,6 +4,7 @@ namespace App\Features\Contributions\Services;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
@@ -14,7 +15,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
-final class EntitySubmissionAccess
+final class EntitySubmissionAccess implements SubmissionEntityAccess
 {
     /**
      * @var list<string>
@@ -272,6 +273,22 @@ final class EntitySubmissionAccess
                 SubmissionValues::prefixedKey('location_venue_id', $validationKeyPrefix) => __('Lokasi tempat tidak berada di negara yang dipilih.'),
             ]);
         }
+    }
+
+    public function assertSubmissionEntitiesMatchCountryFor(
+        array $validated,
+        ?string $organizerKind,
+        string $submissionCountryId,
+        ?object $scopedInstitution,
+        string $validationKeyPrefix = '',
+    ): void {
+        $this->assertSubmissionEntitiesMatchCountry(
+            $validated,
+            $organizerKind,
+            $submissionCountryId,
+            $scopedInstitution instanceof Institution ? $scopedInstitution : null,
+            $validationKeyPrefix,
+        );
     }
 
     public function institutionBelongsToCountry(string $institutionId, string $countryId): bool

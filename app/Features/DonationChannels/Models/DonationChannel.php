@@ -4,9 +4,9 @@ namespace App\Features\DonationChannels\Models;
 
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
-use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Models\MorphModelResolver;
 use Carbon\CarbonImmutable;
 use Database\Factories\DonationChannelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -205,7 +205,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(ReportModelClass::resolve(), 'entity');
+        return $this->morphMany(MorphModelResolver::resolve('report'), 'entity');
     }
 
     /**

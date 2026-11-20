@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
-use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
+use App\Platform\Admin\AdminResourceLink;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -43,7 +43,7 @@ class AffiliationsRelationManager extends PackageAffiliationsRelationManager
                     ->label('Institution')
                     ->formatStateUsing(fn (?string $state): string => static::getInstitutionLabel($state ?? '') ?? $state ?? '-')
                     ->url(fn ($record): ?string => $record?->institution_id
-                        ? InstitutionResource::getUrl('edit', ['record' => $record->institution_id])
+                        ? AdminResourceLink::to('institution', 'edit', (string) $record->institution_id)
                         : null),
                 Tables\Columns\TextColumn::make('position')
                     ->placeholder('-'),

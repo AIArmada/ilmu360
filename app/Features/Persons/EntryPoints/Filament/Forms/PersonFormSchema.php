@@ -3,7 +3,8 @@
 namespace App\Features\Persons\EntryPoints\Filament\Forms;
 
 use AIArmada\Persons\Enums\Gender;
-use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
+use App\Features\Contributions\Api\Filament\PersonContributionSchema;
+use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use Filament\Schemas\Components\Component;
@@ -12,8 +13,24 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
-class PersonFormSchema
+class PersonFormSchema implements PersonQuickAdd
 {
+    /**
+     * @return array<int, Component>
+     */
+    public function formComponents(): array
+    {
+        return self::createOptionForm();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createOption(array $data, ?Schema $schema = null): string
+    {
+        return self::createOptionUsing($data, $schema);
+    }
+
     /**
      * Shared createOptionForm for Person selects.
      *
@@ -21,7 +38,7 @@ class PersonFormSchema
      */
     public static function createOptionForm(): array
     {
-        return PersonContributionFormSchema::components(
+        return app(PersonContributionSchema::class)->contributionComponents(
             includeMedia: true,
             regionOnlyAddress: true,
             showCountryField: false,

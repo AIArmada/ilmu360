@@ -7,7 +7,7 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
+use App\Features\Discovery\Api\PublicScheduleReader;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Institutions\Models\Institution;
@@ -30,7 +30,7 @@ class Session extends Occurrence
     {
         parent::mount($event, $occurrenceSlug);
 
-        $session = app(PublicScheduleDiscoveryService::class)->findSession($this->occurrence, $sessionSlug);
+        $session = app(PublicScheduleReader::class)->findSession($this->occurrence, $sessionSlug);
 
         if (! $session instanceof EventSession || ! PublicSchedulePolicy::isMeaningfulSession($session)) {
             abort(404);
@@ -66,7 +66,7 @@ class Session extends Occurrence
             // The selected session's own locations load after the first
             // hydration pass, so their venues need the same application-side
             // hydration as the rest of the schedule graph.
-            app(PublicScheduleDiscoveryService::class)->hydrateOccurrencePageVenues($this->event);
+            app(PublicScheduleReader::class)->hydrateOccurrencePageVenues($this->event);
         });
 
         $this->session = $session;

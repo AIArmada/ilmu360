@@ -12,8 +12,8 @@ use App\Features\Reports\Api\ReportSnapshot;
 use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Api\SaveReportInput;
 use App\Features\Reports\Models\Report;
-use App\Features\Reports\Support\ReportModelClass;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
+use App\Platform\Models\MorphModelResolver;
 use Illuminate\Validation\Rule;
 
 final readonly class ReportAdmin implements ReportAdminContract
@@ -29,7 +29,7 @@ final readonly class ReportAdmin implements ReportAdminContract
 
     public function modelClass(): string
     {
-        return ReportModelClass::resolve();
+        return MorphModelResolver::resolve('report');
     }
 
     public function fields(): array

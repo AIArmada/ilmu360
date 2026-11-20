@@ -50,9 +50,9 @@ use App\Features\Events\Queries\PrimaryLocationSql;
 use App\Features\Events\States\EventStatus\EventStatus;
 use App\Features\Events\States\EventStatus\Pending;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Models\MemberInvitation;
-use App\Features\Membership\Services\MemberPermissionGate;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
@@ -62,7 +62,6 @@ use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
-use App\Features\Reports\Support\ReportModelClass;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Language\Models\Language;
@@ -2130,7 +2129,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function reports(): MorphMany
     {
-        return $this->morphMany(ReportModelClass::resolve(), 'entity');
+        return $this->morphMany(MorphModelResolver::resolve('report'), 'entity');
     }
 
     /**
@@ -2607,32 +2606,32 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
 
     public function userHasScopedEventPermission(AccountActor $user, string $permission, bool $includeEventScope = true): bool
     {
-        $memberPermissions = app(MemberPermissionGate::class);
+        $memberPermissions = app(MemberPermissions::class);
 
-        if ($includeEventScope && $memberPermissions->canEvent($user, $permission, $this)) {
+        if ($includeEventScope && $memberPermissions->canSubject($user, $permission, MemberSubjectType::Event, (string) $this->getKey())) {
             return true;
         }
 
-        if ($memberPermissions->canEventThroughPerson($user, $permission, $this)) {
+        if ($memberPermissions->canThroughPersonSubject($user->actorId(), $permission, (string) $this->getKey())) {
             return true;
         }
 
-        if ($this->organizer instanceof Institution && $memberPermissions->canInstitution($user, $permission, $this->organizer)) {
+        if ($this->organizer instanceof Institution && $memberPermissions->canSubject($user, $permission, MemberSubjectType::Institution, (string) $this->organizer->getKey())) {
             return true;
         }
 
-        if ($this->organizer instanceof Person && $memberPermissions->canPerson($user, $permission, $this->organizer)) {
+        if ($this->organizer instanceof Person && $memberPermissions->canSubject($user, $permission, MemberSubjectType::Person, (string) $this->organizer->getKey())) {
             return true;
         }
 
         if ($this->owner_type === (new Organization)->getMorphClass() && filled($this->owner_id)) {
             $organization = Organization::query()->find($this->owner_id);
 
-            if ($organization instanceof Organization && $memberPermissions->canOrganization($user, $permission, $organization)) {
+            if ($organization instanceof Organization && $memberPermissions->canSubject($user, $permission, MemberSubjectType::Organization, (string) $organization->getKey())) {
                 return true;
             }
         }
 
-        return $this->institution instanceof Institution && $memberPermissions->canInstitution($user, $permission, $this->institution);
+        return $this->institution instanceof Institution && $memberPermissions->canSubject($user, $permission, MemberSubjectType::Institution, (string) $this->institution->getKey());
     }
 }

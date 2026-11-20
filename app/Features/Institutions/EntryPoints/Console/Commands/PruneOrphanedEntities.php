@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Institutions\EntryPoints\Console\Commands;
 
 use App\Features\Institutions\Actions\PruneOrphanedInstitutionsAction;
-use App\Features\Persons\Actions\PruneOrphanedPersonsAction;
-use App\Features\Places\Actions\PruneOrphanedVenuesAction;
+use App\Features\Persons\Api\PruneOrphanedPersons;
+use App\Features\Places\Api\PruneOrphanedVenues;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -19,8 +19,8 @@ class PruneOrphanedEntities extends Command
 {
     public function handle(
         PruneOrphanedInstitutionsAction $pruneInstitutions,
-        PruneOrphanedPersonsAction $prunePersons,
-        PruneOrphanedVenuesAction $pruneVenues,
+        PruneOrphanedPersons $prunePersons,
+        PruneOrphanedVenues $pruneVenues,
     ): int {
         $hours = (int) $this->option('hours');
         $dryRun = (bool) $this->option('dry-run');

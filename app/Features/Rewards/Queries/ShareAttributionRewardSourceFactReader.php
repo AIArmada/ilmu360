@@ -22,10 +22,10 @@ use App\Features\Events\Models\EventSubmission;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
+use App\Features\ShareTracking\Api\GuestClaimScope;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Features\ShareTracking\Services\ShareProfileScope;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -364,7 +364,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             return null;
         }
 
-        $claim = ShareProfileScope::guestClaims()
+        $claim = app(GuestClaimScope::class)->guestClaims()
             ->where('affiliate_id', $affiliateId)
             ->where('status', 'active')
             ->whereNull('revoked_at')

@@ -2,9 +2,9 @@
 
 namespace App\Features\Engagement\EntryPoints\Http;
 
+use App\Features\Engagement\Api\Data\EventGoingStateData;
 use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\EntryPoints\Http\Data\EventEngagementListItemData;
-use App\Features\Engagement\EntryPoints\Http\Data\EventGoingStateData;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Http\Controllers\Controller;
@@ -90,9 +90,11 @@ class EventGoingController extends Controller
         $goingState = $eventGoingCommands->mark((string) $event->getKey(), (string) $this->currentUser($request)->getKey());
         $created = $goingState['status'] === 'created';
 
+        $stateData = new EventGoingStateData(true, $goingState['going_count']);
+
         return response()->json([
             'message' => $created ? 'Going recorded successfully.' : 'Event already marked as going.',
-            'data' => EventGoingStateData::fromState(true, $goingState['going_count'])->toArray(),
+            'data' => (object) $stateData->toArray(),
             'meta' => [
                 'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),
             ],
@@ -107,9 +109,11 @@ class EventGoingController extends Controller
     {
         $result = $eventGoingCommands->remove((string) $event->getKey(), (string) $this->currentUser($request)->getKey());
 
+        $stateData = new EventGoingStateData(false, $result['going_count']);
+
         return response()->json([
             'message' => $result['deleted'] ? 'Going removed successfully.' : 'Event was not marked as going.',
-            'data' => EventGoingStateData::fromState(false, $result['going_count'])->toArray(),
+            'data' => (object) $stateData->toArray(),
             'meta' => [
                 'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),
             ],

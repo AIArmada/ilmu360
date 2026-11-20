@@ -2,7 +2,7 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
-use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
+use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Platform\Ui\Forms\SocialFields;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
@@ -19,7 +19,7 @@ class ReferenceContributionFormSchema
         $components = [
             Section::make(__('Reference Details'))
                 ->schema([
-                    ...ReferenceFormSchema::fields('publication_year'),
+                    ...app(ReferenceQuickCreate::class)->referenceFields('publication_year'),
                     Textarea::make('description')
                         ->label(__('Description'))
                         ->rows(5)

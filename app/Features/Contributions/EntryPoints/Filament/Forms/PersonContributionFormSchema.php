@@ -6,7 +6,8 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
-use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;
+use App\Features\Contributions\Api\Filament\PersonContributionSchema;
+use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\AddressFields;
@@ -26,8 +27,37 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
-class PersonContributionFormSchema
+class PersonContributionFormSchema implements PersonContributionSchema
 {
+    /**
+     * @return array<int, Component>
+     */
+    public function contributionComponents(
+        bool $includeMedia = true,
+        ?string $addressStatePath = null,
+        bool $regionOnlyAddress = true,
+        ?bool $showCountryField = null,
+        bool $includeAlternativeNames = true,
+        bool $useTitleMultiSelect = false,
+        bool $splitProfileSections = false,
+        ?string $defaultCountryId = null,
+        bool $requireCountryField = false,
+        bool $includeWazeUrlField = true,
+    ): array {
+        return self::components(
+            $includeMedia,
+            $addressStatePath,
+            $regionOnlyAddress,
+            $showCountryField,
+            $includeAlternativeNames,
+            $useTitleMultiSelect,
+            $splitProfileSections,
+            $defaultCountryId,
+            $requireCountryField,
+            $includeWazeUrlField,
+        );
+    }
+
     /**
      * @return array<int, Component>
      */
@@ -301,8 +331,8 @@ class PersonContributionFormSchema
                         ->getSearchResultsUsing(fn (string $search): array => self::institutionSearchOptions($search))
                         ->getOptionLabelUsing(fn (string $value): ?string => self::institutionLabels([$value])[$value] ?? null)
                         ->getOptionLabelsUsing(fn (array $values): array => self::institutionLabels($values))
-                        ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
-                        ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema))
+                        ->createOptionForm(fn (): array => app(InstitutionQuickAdd::class)->formComponents(includeLocationPicker: true))
+                        ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => app(InstitutionQuickAdd::class)->createOption($data, $schema))
                         ->required()
                         ->native(false),
                     TextInput::make('position')

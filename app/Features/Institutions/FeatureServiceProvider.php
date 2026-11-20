@@ -6,6 +6,7 @@ namespace App\Features\Institutions;
 
 use App\Features\Institutions\Actions\InstitutionSubmissionAccessAction;
 use App\Features\Institutions\Actions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Api\Frontend\InstitutionWorkspaceFormContractContributor;
 use App\Features\Institutions\Api\InstitutionCatalog;
 use App\Features\Institutions\Api\InstitutionHomepageStats;
@@ -23,6 +24,7 @@ use App\Features\Institutions\EntryPoints\ApiDocumentation\InstitutionWorkspaceR
 use App\Features\Institutions\EntryPoints\Console\Commands\PruneOrphanedEntities;
 use App\Features\Institutions\EntryPoints\Console\FlagStaleInactiveInstitutions;
 use App\Features\Institutions\EntryPoints\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
+use App\Features\Institutions\EntryPoints\Filament\Forms\InstitutionFormSchema;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\EntryPoints\Filament\Stats\PendingInstitutionsStat;
 use App\Features\Institutions\EntryPoints\Sitemap\InstitutionSitemapUrls;
@@ -51,6 +53,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(InstitutionQuickAdd::class, InstitutionFormSchema::class);
         $this->app->bind(InstitutionCatalog::class, EloquentInstitutionCatalog::class);
         $this->app->tag([PendingInstitutionsStat::class], 'admin.stats');
 

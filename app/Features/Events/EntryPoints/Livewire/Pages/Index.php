@@ -11,12 +11,12 @@ use AIArmada\Addressing\Support\AddressLocationScope;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Features\Discovery\Services\EventSearchService;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
-use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Discovery\Api\EventSearchReader;
+use App\Features\Discovery\Api\PublicScheduleLeaf;
+use App\Features\Discovery\Api\PublicScheduleReader;
 use App\Features\Engagement\Api\EventEngagement;
+use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\EventSaveCommands;
-use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventGoing;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
@@ -74,7 +74,6 @@ use Livewire\WithPagination;
 class Index extends Component implements HasForms
 {
     use InteractsWithForms;
-    use TogglesEventGoing;
     use WithPagination;
 
     /**
@@ -984,6 +983,30 @@ class Index extends Component implements HasForms
         return route('events.index');
     }
 
+    public function toggleGoing(string $eventId): void
+    {
+        $result = app(EventEngagementToggles::class)->toggleGoing($eventId, $this->eventGoingReturnUrl());
+
+        if ($result !== null) {
+            $this->redirect($result, navigate: true);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    #[Computed]
+    public function goingEventIds(): array
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        return app(EventEngagement::class)->goingEventIds((string) $user->getKey());
+    }
+
     public function toggleSave(string $eventId): void
     {
         $user = auth()->user();
@@ -1031,7 +1054,7 @@ class Index extends Component implements HasForms
 
         foreach ($this->scheduleItems()->items() as $scheduleLeaf) {
             if ($scheduleLeaf instanceof PublicScheduleLeaf) {
-                $eventIds[] = (string) $scheduleLeaf->event->getKey();
+                $eventIds[] = $scheduleLeaf->eventId();
             }
         }
 
@@ -1620,7 +1643,7 @@ class Index extends Component implements HasForms
 
         $filters = $this->normalizedUrlState();
         $searchFilters = $this->buildSearchFilters($filters);
-        $searchService = app(EventSearchService::class);
+        $searchService = app(EventSearchReader::class);
 
         if ($filters['lat'] !== null && $filters['lng'] !== null) {
             return $this->eventsForRequest = $searchService->searchNearby(
@@ -1657,8 +1680,7 @@ class Index extends Component implements HasForms
         $filters = $this->normalizedUrlState();
         $searchFilters = $this->buildSearchFilters($filters);
 
-        /** @var PublicScheduleDiscoveryService $discovery */
-        $discovery = app(PublicScheduleDiscoveryService::class);
+        $discovery = app(PublicScheduleReader::class);
 
         return $this->scheduleItemsForRequest = $discovery->search(
             query: $filters['search'],

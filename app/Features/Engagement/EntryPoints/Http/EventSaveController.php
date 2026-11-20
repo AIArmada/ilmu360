@@ -3,10 +3,10 @@
 namespace App\Features\Engagement\EntryPoints\Http;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
+use App\Features\Engagement\Api\Data\EventSaveStateData;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventSaveCommands;
 use App\Features\Engagement\EntryPoints\Http\Data\EventEngagementListItemData;
-use App\Features\Engagement\EntryPoints\Http\Data\EventSaveStateData;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Http\Controllers\Controller;
@@ -91,7 +91,7 @@ class EventSaveController extends Controller
 
         return response()->json([
             'message' => $created ? 'Event saved successfully.' : 'Event already saved.',
-            'data' => EventSaveStateData::fromState(true, $savesCount)->toArray(),
+            'data' => new EventSaveStateData(true, $savesCount)->toArray(),
             'meta' => [
                 'request_id' => request()->header('X-Request-ID', (string) Str::uuid()),
             ],
@@ -117,7 +117,7 @@ class EventSaveController extends Controller
 
         return response()->json([
             'message' => $removed ? 'Event save removed successfully.' : 'Event was not saved.',
-            'data' => EventSaveStateData::fromState(false, $savesCount)->toArray(),
+            'data' => new EventSaveStateData(false, $savesCount)->toArray(),
             'meta' => [
                 'request_id' => request()->header('X-Request-ID', (string) Str::uuid()),
             ],
