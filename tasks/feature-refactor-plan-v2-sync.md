@@ -119,7 +119,7 @@ sections below.
 
 | Finding | Status |
 |---|---|
-| F1 owner APIs expose mutable ORM data | ✅ zero model/Builder imports; 38 explicit `Api/Orm` ports |
+| F1 owner APIs expose mutable ORM data | ✅ zero model/Builder imports; 40 explicit `Api/Orm` ports |
 | F2 checker/fixtures do not prove the seam | ✅ model/opaque-object/port/container/mutation rules + fixtures; production root_models |
 | F3 registry silent collisions | ✅ explicit reward-awards allowlist; unexpected collisions throw |
 | F4 ledgers incomplete | ✅ 378 migration commits; 62 PROVEN writes; RA-11 REMOVED |

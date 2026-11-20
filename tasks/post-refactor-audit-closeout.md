@@ -11,7 +11,7 @@ This file records how each finding was closed, with the code/gate evidence.
   framework `?object $request` integration parameter is the only allowed form).
 - Every model/builder-shaped surface moved under
   `app/Features/<Owner>/Api/Orm/` with an `@internal` marker and a
-  `Consumers:` list (38 ports). The checker enforces both.
+  `Consumers:` list (40 ports). The checker enforces both.
 - Named findings specifically:
   - `EventScheduleQuery` split into `EventScheduleReads` (scalar/card/count)
     and `Api/Orm/EventOrmPort` (models/builders); all consumers migrated.

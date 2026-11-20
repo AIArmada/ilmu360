@@ -283,7 +283,7 @@ The external audit at `a653732d` found seven issues. The acceptance blockers
 are closed in `tasks/post-refactor-audit-closeout.md`:
 
 - **F1/F2 — owner API isolation:** ordinary `Features/*/Api` contracts now carry
-  no model/Builder/Collection types or opaque `object` signatures. All 38
+  no model/Builder/Collection types or opaque `object` signatures. All 40
   model/builder surfaces live in explicit `Api/Orm` ports with `@internal` and
   `Consumers:` docs. The checker enforces model leaks, opaque objects, port
   contracts, container resolution and foreign instance mutations, with
