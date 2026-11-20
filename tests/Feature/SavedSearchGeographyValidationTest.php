@@ -26,7 +26,13 @@ dataset('saved search geography filters', [
  */
 function configureSavedSearchCanonicalGeographyTables(): array
 {
-    $country = AddressCountry::factory()->create();
+    // The suite seeds Malaysia (iso2=MY) for every feature test, so pin a
+    // user-assigned ISO code instead of the factory's random countryCode(),
+    // which otherwise collides with the seeded row on PostgreSQL.
+    $country = AddressCountry::factory()->create([
+        'iso2' => 'XA',
+        'iso3' => 'XAA',
+    ]);
     $state = State::factory()->create(['country_id' => $country->id]);
     $city = City::factory()->create([
         'country_id' => $country->id,
