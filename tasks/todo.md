@@ -867,4 +867,5 @@ Review: `tools/architecture.json` now holds only 84 package-owned write exceptio
 
 Review: targeted API/entity/docs/search suites green (108 + 211 + 37 + 265 +
 166), route inventory 738 with unchanged external keys, architecture 0,
-PHPStan L6 0, ownership types 0, Pint and Rector clean. CI is the full gate.
+PHPStan L6 0, ownership types 0, Pint and Rector clean. CI Quality 26/26 at
+`264047c1` (run 44785097302).

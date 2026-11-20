@@ -1,9 +1,10 @@
 # R6 — Feature-ownership refactor completion report
 
-Branch `refactor`. Final verified commit: **`12701a88`** (CI Quality 26/26,
-run 44764013556). The plan-v2 completion itself landed in `3a6d4e6c`; two
-follow-up test fixes (`fdf5b262`, `12701a88`) closed CI regressions without
-touching application code.
+Branch `refactor`. Final verified commit: **`264047c1`** (CI Quality 26/26,
+run 44785097302). The plan-v2 resource/projection/search wave landed in
+`3a6d4e6c`; `9d71d62f` / `264047c1` closed the final shared-controller adapter
+and OpenAPI parity; `fdf5b262` / `12701a88` closed CI regression and flake
+follow-ups without changing application behavior.
 The exception burn-down landed in `471a6af6`; `ef48b930` moved the last two
 Volt pages (venue, series) onto the `EventPageSchedule` Api and is the
 CI-green head.
@@ -250,7 +251,11 @@ CI hardening after the completion commit:
   (`iso2=MY`) for every feature test, while the package country factory draws
   a random `countryCode()`; the single country-factory call now pins the
   user-assigned `XA/XAA` codes.
-- `12701a88` is the CI-green head: Quality run 44764013556, **26/26 jobs
+- `12701a88` removed the last shard flake (seeded `iso2=MY` vs the random
+  country factory).
+- `9d71d62f` split the shared directory controller into owner entrypoints;
+  `264047c1` froze the published OpenAPI shapes back to canonical parity.
+- `264047c1` is the CI-green head: Quality run 44785097302, **26/26 jobs
   success**, all 20 Pest shards included. Final gates re-run at that commit:
   architecture 0, PHPStan level 6 0, ownership types 0, Pint clean,
   Rector 0 changes.
