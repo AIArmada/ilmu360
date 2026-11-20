@@ -2,15 +2,16 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
-use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
-use AIArmada\Addressing\Support\AddressLocationScope;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\PublicScheduleLeaf;
 use App\Features\Discovery\Api\PublicScheduleReader;
@@ -23,11 +24,10 @@ use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Api\Enums\InstitutionStatus;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\References\Models\Reference;
+use App\Features\References\Api\ReferenceLookup;
 use App\Models\User;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Language\MalaysiaLanguageCatalog;
@@ -1118,13 +1118,12 @@ class Index extends Component implements HasForms
         array $areaAssignments,
         string $search = '',
     ): array {
-        $query = Institution::query()
-            ->whereIn('status', InstitutionStatus::publiclyVisibleValues());
-
-        $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId);
-        $query->searchNameOrNickname($search);
-
-        return $this->institutionOptionsFromQuery($query->orderBy('name'), 50);
+        return app(InstitutionLookup::class)->locationOptions(
+            countryId: $countryId,
+            stateId: $stateId,
+            areaAssignments: $areaAssignments,
+            search: $search,
+        );
     }
 
     /**
@@ -1350,18 +1349,7 @@ class Index extends Component implements HasForms
      */
     private function searchPersonOptions(string $search = ''): array
     {
-        /** @var Collection<int, Person> $persons */
-        $persons = Person::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
-            ->orderBy('name')
-            ->with('titleAssignments.title.category')
-            ->limit(50)
-            ->get(['id', 'name', 'middle_name', 'family_name']);
-
-        return $persons
-            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-            ->all();
+        return app(PersonLookup::class)->directoryOptions($search);
     }
 
     /**
@@ -1376,16 +1364,7 @@ class Index extends Component implements HasForms
             return [];
         }
 
-        /** @var Collection<int, Person> $persons */
-        $persons = Person::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->whereIn('id', $values)
-            ->with('titleAssignments.title.category')
-            ->get(['id', 'name', 'middle_name', 'family_name']);
-
-        return $persons
-            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-            ->all();
+        return app(PersonLookup::class)->directoryLabels($values);
     }
 
     /**
@@ -1441,12 +1420,7 @@ class Index extends Component implements HasForms
      */
     private function searchReferenceOptions(string $search): array
     {
-        $query = Reference::query()
-            ->active()
-            ->tap(fn (Builder $query): Builder => $this->applyReferenceSearchConstraint($query, $search))
-            ->orderBy('title');
-
-        return $this->referenceOptionsFromQuery($query, 50);
+        return app(ReferenceLookup::class)->searchOptions($search);
     }
 
     /**
@@ -1459,48 +1433,7 @@ class Index extends Component implements HasForms
             return [];
         }
 
-        return $this->referenceOptionsFromQuery(
-            Reference::query()
-                ->active()
-                ->whereIn('id', $values)
-                ->orderBy('title'),
-            count($values),
-        );
-    }
-
-    /**
-     * @param  Builder<Reference>  $query
-     * @return array<string, string>
-     */
-    private function referenceOptionsFromQuery(Builder $query, int $limit): array
-    {
-        /** @var Collection<int, Reference> $references */
-        $references = $query
-            ->limit($limit)
-            ->get(['id', 'title', 'parent_id', 'metadata']);
-
-        return $references
-            ->mapWithKeys(fn (Reference $reference): array => [(string) $reference->id => $reference->displayTitle()])
-            ->all();
-    }
-
-    /**
-     * @param  Builder<Reference>  $query
-     * @return Builder<Reference>
-     */
-    private function applyReferenceSearchConstraint(Builder $query, string $search): Builder
-    {
-        $normalizedSearch = trim($search);
-
-        if ($normalizedSearch === '') {
-            return $query;
-        }
-
-        return $query->where(function (Builder $referenceQuery) use ($normalizedSearch): void {
-            $referenceQuery
-                ->whereLike('title', "%{$normalizedSearch}%")
-                ->orWherePartTextLike("%{$normalizedSearch}%");
-        });
+        return app(ReferenceLookup::class)->optionLabels($values);
     }
 
     public function institutionOptionLabel(?string $value): ?string
@@ -1511,11 +1444,7 @@ class Index extends Component implements HasForms
             return null;
         }
 
-        return Institution::query()
-            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
-            ->whereKey($id)
-            ->with('names')->first(['id', 'name'])
-            ?->display_name;
+        return app(InstitutionLookup::class)->visibleDisplayName($id);
     }
 
     /**
@@ -1534,23 +1463,6 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @param  Builder<Institution>  $query
-     * @return array<string, string>
-     */
-    private function institutionOptionsFromQuery(Builder $query, int $limit): array
-    {
-        /** @var Collection<int, Institution> $institutions */
-        $institutions = $query
-            ->with('names')
-            ->limit($limit)
-            ->get(['id', 'name']);
-
-        return $institutions
-            ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
-            ->all();
-    }
-
-    /**
      * @template TModel of Model
      *
      * @param  Builder<TModel>  $query
@@ -1565,25 +1477,6 @@ class Index extends Component implements HasForms
         }
 
         return $query->whereLike($column, "%{$normalizedSearch}%");
-    }
-
-    /**
-     * @template TModel of Model
-     *
-     * @param  Builder<TModel>  $query
-     * @param  array<string, string>  $areaAssignments
-     */
-    private function applyAddressLocationFilters(
-        Builder $query,
-        ?string $countryId,
-        array $areaAssignments,
-        ?string $stateId = null,
-    ): void {
-        app(AddressLocationScope::class)->apply($query, new AddressLocationData(
-            countryId: filled($countryId) ? $countryId : null,
-            stateId: filled($stateId) ? $stateId : null,
-            areaAssignments: $areaAssignments,
-        ));
     }
 
     private function isLocationFilterKey(?string $key): bool
@@ -1618,13 +1511,12 @@ class Index extends Component implements HasForms
             return true;
         }
 
-        $query = Institution::query()
-            ->whereKey($institutionId)
-            ->whereIn('status', InstitutionStatus::publiclyVisibleValues());
-
-        $this->applyAddressLocationFilters($query, $countryId, $areaAssignments, $stateId);
-
-        return $query->exists();
+        return app(InstitutionLookup::class)->locationContains(
+            institutionId: $institutionId,
+            countryId: $countryId,
+            stateId: $stateId,
+            areaAssignments: $areaAssignments,
+        );
     }
 
     /**
@@ -1645,21 +1537,66 @@ class Index extends Component implements HasForms
         $searchFilters = $this->buildSearchFilters($filters);
         $searchService = app(EventSearchReader::class);
 
-        if ($filters['lat'] !== null && $filters['lng'] !== null) {
-            return $this->eventsForRequest = $searchService->searchNearby(
+        $page = $filters['lat'] !== null && $filters['lng'] !== null
+            ? $searchService->searchNearby(
                 lat: (float) $filters['lat'],
                 lng: (float) $filters['lng'],
-                radiusKm: $filters['radius_km'],
+                radiusKm: (int) $filters['radius_km'],
                 filters: $searchFilters,
                 perPage: 12,
+            )
+            : $searchService->search(
+                query: $filters['search'],
+                filters: $searchFilters,
+                perPage: 12,
+                sort: $filters['sort'],
             );
-        }
 
-        return $this->eventsForRequest = $searchService->search(
-            query: $filters['search'],
-            filters: $searchFilters,
-            perPage: 12,
-            sort: $filters['sort'],
+        return $this->eventsForRequest = $this->eventPaginatorFromSearchPage($page);
+    }
+
+    /**
+     * Rehydrate the page ids into this feature's own models for the Blade card
+     * component, preserving page metadata and id order.
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    private function eventPaginatorFromSearchPage(EventSearchPage $page): LengthAwarePaginator
+    {
+        /** @var list<string> $eventIds */
+        $eventIds = array_map(
+            static fn (EventListData $item): string => $item->id,
+            $page->items,
+        );
+
+        $events = $eventIds === []
+            ? collect()
+            : Event::query()
+                ->with(app(EventSearchRelationProvider::class)->relations())
+                ->whereHas('occurrences')
+                ->whereKey($eventIds)
+                ->get()
+                ->keyBy('id');
+
+        $orderedEvents = collect($eventIds)
+            ->map(static fn (string $eventId): ?Event => $events->get($eventId))
+            ->filter()
+            ->values();
+
+        $orderedEvents->each(function (Event $event) use ($page): void {
+            $distanceKm = $page->distances[$event->id] ?? null;
+
+            if ($distanceKm !== null) {
+                $event->setAttribute('distance_km', $distanceKm);
+            }
+        });
+
+        return new Paginator(
+            items: $orderedEvents,
+            total: $page->total,
+            perPage: $page->perPage,
+            currentPage: $page->currentPage,
+            options: ['path' => request()->url(), 'query' => request()->query()],
         );
     }
 
@@ -1689,7 +1626,7 @@ class Index extends Component implements HasForms
             sort: $filters['sort'],
             latitude: $filters['lat'] !== null ? (float) $filters['lat'] : null,
             longitude: $filters['lng'] !== null ? (float) $filters['lng'] : null,
-            radiusKm: (float) $filters['radius_km'],
+            radiusKm: (int) $filters['radius_km'],
         );
     }
 

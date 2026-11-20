@@ -7,8 +7,8 @@ namespace App\Features\Prayer\Support;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Places\Models\Venue;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Places\Api\PlaceLookup;
 
 /**
  * Extracts prayer-resolution inputs from a package address.
@@ -55,29 +55,26 @@ final class PrayerLocation
     private static function forTargetsQuery(?string $venueId, ?string $institutionId): ?Address
     {
         if ($institutionId !== null && $institutionId !== '') {
-            $address = Institution::query()->find($institutionId)?->primaryAddress();
+            $addressId = app(InstitutionLookup::class)->primaryAddressId($institutionId);
 
-            if ($address instanceof Address) {
-                return $address;
+            if ($addressId !== null) {
+                $address = Address::query()->find($addressId);
+
+                if ($address instanceof Address) {
+                    return $address;
+                }
             }
         }
 
         if ($venueId !== null && $venueId !== '') {
-            $venue = Venue::query()->find($venueId);
-            $address = $venue?->primaryAddress();
+            $addressId = app(PlaceLookup::class)->resolvedPrimaryAddressId($venueId);
 
-            if ($address instanceof Address) {
-                return $address;
-            }
+            if ($addressId !== null) {
+                $address = Address::query()->find($addressId);
 
-            if ($venue instanceof Venue) {
-                $owner = $venue->institutions()
-                    ->reorder()
-                    ->orderByDesc('institution_venue.is_primary')
-                    ->oldest('institutions.id')
-                    ->first();
-
-                return $owner?->primaryAddress();
+                if ($address instanceof Address) {
+                    return $address;
+                }
             }
         }
 

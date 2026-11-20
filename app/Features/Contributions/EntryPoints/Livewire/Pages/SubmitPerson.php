@@ -7,6 +7,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Platform\Location\Ui\Concerns\InteractsWithLocationPickerSelection;
@@ -66,7 +67,7 @@ class SubmitPerson extends Component implements HasActions, HasForms
         );
 
         return $schema
-            ->model(new Person)
+            ->model(Person::class)
             ->statePath('data')
             ->components([
                 Tabs::make('PersonContributionTabs')
@@ -106,11 +107,13 @@ class SubmitPerson extends Component implements HasActions, HasForms
                 ContributionSubjectType::Person,
                 $this->contributionForm()->getState(),
                 (string) $user->getKey(),
-                function (string $personId): void {
-                    $person = Person::query()->findOrFail($personId);
-                    $this->contributionForm()->model($person)->saveRelationships();
-                    session()->flash('contribution_submission_name', $person->formatted_name);
-                },
+                fn (string $personId) => app(PersonWorkflow::class)->withContributionModel(
+                    $personId,
+                    function (Person $person): void {
+                        $this->contributionForm()->model($person)->saveRelationships();
+                        session()->flash('contribution_submission_name', $person->formatted_name);
+                    },
+                ),
                 'data',
             );
 

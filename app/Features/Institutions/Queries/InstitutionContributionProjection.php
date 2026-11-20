@@ -9,6 +9,7 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\Institutions\Api\ContributionProjection;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;
@@ -20,15 +21,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 
-final readonly class InstitutionContributionProjection implements \App\Shared\Contributions\ContributionProjection
+final readonly class InstitutionContributionProjection implements ContributionProjection
 {
     use \App\Shared\Contributions\Support\BuildsContributionDescriptors;
     use \App\Shared\Contributions\Support\BuildsContributionSubjectState;
-
-    public function supports(string $entityType): bool
-    {
-        return $entityType === 'institution';
-    }
 
     /** @return array<string, mixed> */
     public function contractFor(string $subjectId): array

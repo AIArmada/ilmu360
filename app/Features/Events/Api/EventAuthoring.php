@@ -52,6 +52,33 @@ namespace App\Features\Events\Api;
  */
 interface EventAuthoring
 {
+    public function eventTable(): string;
+
+    public function eventKeyPersonTable(): string;
+
+    public function eventMorphType(): string;
+
+    public function seriesMorphType(): string;
+
+    public function eventExists(string $eventId): bool;
+
+    /**
+     * @return list<string>
+     */
+    public function eventPersonIds(string $eventId): array;
+
+    /**
+     * Event facts required to re-resolve a prayer anchor.
+     *
+     * @return array{
+     *     timezone: string,
+     *     venue_id: string|null,
+     *     institution_id: string|null,
+     *     persisted_address_id: string|null
+     * }|null
+     */
+    public function eventPrayerScope(string $eventId): ?array;
+
     /**
      * @param  array<string, mixed>  $data
      */

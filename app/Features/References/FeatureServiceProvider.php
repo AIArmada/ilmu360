@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References;
 
+use App\Features\References\Api\ContributionProjection;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Features\References\Api\ReferenceCatalog;
 use App\Features\References\Api\ReferenceHomepageStats;
@@ -14,6 +15,8 @@ use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\EntryPoints\Admin\Member\ReferenceMemberResourceHooks;
 use App\Features\References\EntryPoints\Admin\Resources\ReferenceAdminHooks;
 use App\Features\References\EntryPoints\Admin\Resources\ReferenceMutationHooks;
+use App\Features\References\EntryPoints\Api\Admin\ReferenceResourceDefinition;
+use App\Features\References\EntryPoints\Api\Member\ReferenceResourceDefinition as ReferenceMemberResourceDefinition;
 use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
 use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
@@ -31,7 +34,7 @@ use App\Features\References\Support\Telemetry\ReferencesSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
-use App\Platform\Contributions\ContributionProjectionRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -42,6 +45,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ContributionProjection::class, ReferenceContributionProjection::class);
         $this->app->bind(ReferenceQuickCreate::class, ReferenceFormSchema::class);
         $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new ReferenceAdminHooks);
 
@@ -66,8 +70,12 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
-        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(ReferenceContributionProjection::class));
+        $memberRegistry = $this->app->make(ResourceDefinitionRegistry::class);
+        $memberDefinition = $this->app->make(ReferenceMemberResourceDefinition::class);
+        $memberRegistry->register($memberDefinition);
+        $memberRegistry->registerWriter($memberDefinition);
 
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(ReferenceResourceDefinition::class));
         $this->app->make(SignalSchemaRegistry::class)->register(new ReferencesSignalSchemaContributor);
 
         parent::boot();

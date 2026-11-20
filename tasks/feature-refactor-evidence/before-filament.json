@@ -1,0 +1,1618 @@
+{
+    "resources": {
+        "admin": {
+            "affiliate-commission-templates": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateCommissionTemplate",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Commission Templates",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "affiliate-conversions": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateConversion",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Affiliate Conversions",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "affiliate-creatives": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateProgramCreative",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Marketing Materials",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "affiliate-fraud-signals": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateFraudSignal",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Fraud Signals",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "affiliate-links": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateLink",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Affiliate Links",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "affiliate-payouts": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliatePayout",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Affiliate Payouts",
+                "pages": [
+                    "create",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "ConversionsRelationManager",
+                    "PayoutEventsRelationManager"
+                ]
+            },
+            "affiliate-programs": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateProgram",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Affiliate Program",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "CommissionPromotionsRelationManager",
+                    "CommissionRulesRelationManager",
+                    "CreativesRelationManager",
+                    "MembershipsRelationManager",
+                    "TiersRelationManager"
+                ]
+            },
+            "affiliate-support-tickets": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateSupportTicket",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Support Tickets",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "MessagesRelationManager"
+                ]
+            },
+            "affiliate-tax-documents": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateTaxDocument",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Tax Documents",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "affiliate-touchpoints": {
+                "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Touchpoints",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "affiliates": {
+                "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+                "navigation_group": "E-commerce",
+                "navigation_label": "Affiliates",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "ConversionsRelationManager",
+                    "DownlinesRelationManager",
+                    "PayoutHoldsRelationManager",
+                    "PayoutMethodsRelationManager",
+                    "PayoutsRelationManager",
+                    "ProgramsRelationManager",
+                    "VouchersRelationManager"
+                ]
+            },
+            "ai-model-pricings": {
+                "model": "App\\Features\\Ai\\Models\\AiModelPricing",
+                "navigation_group": "System",
+                "navigation_label": "Ai Model Pricing",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": [
+                    "AuditsRelationManager"
+                ]
+            },
+            "ai-usage-logs": {
+                "model": "App\\Features\\Ai\\Models\\AiUsageLog",
+                "navigation_group": "System",
+                "navigation_label": "Ai Usage Log",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "app-feedback": {
+                "model": "App\\Features\\Feedback\\Models\\AppFeedback",
+                "navigation_group": "System",
+                "navigation_label": "Maklum balas aplikasi",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "areas": {
+                "model": "AIArmada\\Addressing\\Models\\AddressArea",
+                "navigation_group": "Addressing",
+                "navigation_label": "Areas",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AreaAliasesRelationManager",
+                    "AreaPostalCodesRelationManager",
+                    "AreaRolesRelationManager",
+                    "AreaStateLinksRelationManager"
+                ]
+            },
+            "audits": {
+                "model": "App\\Platform\\Auditing\\Models\\Audit",
+                "navigation_group": "System",
+                "navigation_label": "Audits",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "authz/roles": {
+                "model": "AIArmada\\Authz\\Models\\Role",
+                "navigation_group": "Authz",
+                "navigation_label": "Peranan",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "authz/users": {
+                "model": "App\\Models\\User",
+                "navigation_group": "Authz",
+                "navigation_label": "User",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AuditsRelationManager"
+                ]
+            },
+            "bookmark-collections": {
+                "model": "AIArmada\\Engagement\\Models\\BookmarkCollection",
+                "navigation_group": "Engagement",
+                "navigation_label": "Bookmark Collection",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "bookmarks": {
+                "model": "AIArmada\\Engagement\\Models\\Bookmark",
+                "navigation_group": "Engagement",
+                "navigation_label": "Bookmark",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "cities": {
+                "model": "AIArmada\\Addressing\\Models\\City",
+                "navigation_group": "Addressing",
+                "navigation_label": "City",
+                "pages": [
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "communication-batches": {
+                "model": "AIArmada\\Communications\\Models\\CommunicationBatch",
+                "navigation_group": "Communications",
+                "navigation_label": "Communication Batch",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "communication-deliveries": {
+                "model": "AIArmada\\Communications\\Models\\CommunicationDelivery",
+                "navigation_group": "Communications",
+                "navigation_label": "Communication Delivery",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "communication-preferences": {
+                "model": "AIArmada\\Communications\\Models\\CommunicationPreference",
+                "navigation_group": "Communications",
+                "navigation_label": "Communication Preference",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "communication-suppressions": {
+                "model": "AIArmada\\Communications\\Models\\CommunicationSuppression",
+                "navigation_group": "Communications",
+                "navigation_label": "Communication Suppression",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "communication-templates": {
+                "model": "AIArmada\\Communications\\Models\\CommunicationTemplate",
+                "navigation_group": "Communications",
+                "navigation_label": "Communication Template",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "communication-threads": {
+                "model": "AIArmada\\Communications\\Models\\CommunicationThread",
+                "navigation_group": "Communications",
+                "navigation_label": "Communication Thread",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "CommunicationsRelationManager"
+                ]
+            },
+            "communications": {
+                "model": "AIArmada\\Communications\\Models\\Communication",
+                "navigation_group": "Communications",
+                "navigation_label": "Communication",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "CommunicationTimelineRelationManager",
+                    "DeliveriesRelationManager"
+                ]
+            },
+            "community-releases": {
+                "model": "App\\Features\\Community\\Models\\CommunityRelease",
+                "navigation_group": "Insights",
+                "navigation_label": "Community Release",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "contribution-requests": {
+                "model": "App\\Features\\Contributions\\Models\\ContributionRequest",
+                "navigation_group": "Moderation",
+                "navigation_label": "Contribution Request",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AuditsRelationManager"
+                ]
+            },
+            "countries": {
+                "model": "AIArmada\\Addressing\\Models\\AddressCountry",
+                "navigation_group": "Addressing",
+                "navigation_label": "Countries",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "StatesRelationManager"
+                ]
+            },
+            "credential-definitions": {
+                "model": "AIArmada\\Persons\\Models\\CredentialDefinition",
+                "navigation_group": "Directory",
+                "navigation_label": "Credential Definition",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "currencies": {
+                "model": "AIArmada\\CommerceSupport\\Models\\Currency",
+                "navigation_group": "Commerce",
+                "navigation_label": "Currencies",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "donation-channels": {
+                "model": "App\\Features\\DonationChannels\\Models\\DonationChannel",
+                "navigation_group": null,
+                "navigation_label": "Donation Channel",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": [
+                    "AuditsRelationManager"
+                ]
+            },
+            "event-attendances": {
+                "model": "App\\Features\\Registration\\Models\\EventCheckin",
+                "navigation_group": "Events",
+                "navigation_label": "Event Checkin",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-change-logs": {
+                "model": "AIArmada\\Events\\Models\\EventChangeLog",
+                "navigation_group": "Events",
+                "navigation_label": "Event Change Log",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-occurrences": {
+                "model": "AIArmada\\Events\\Models\\EventOccurrence",
+                "navigation_group": "Events",
+                "navigation_label": "Event Occurrence",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "OccurrenceAttendancesRelationManager",
+                    "OccurrenceInvolvementsRelationManager",
+                    "OccurrenceLocationsRelationManager",
+                    "OccurrenceRegistrationsRelationManager",
+                    "OccurrenceSessionsRelationManager",
+                    "SeatMapsRelationManager",
+                    "TicketTypesRelationManager"
+                ]
+            },
+            "event-registration-participants": {
+                "model": "AIArmada\\Events\\Models\\EventRegistrationParticipant",
+                "navigation_group": "Events",
+                "navigation_label": "Participants",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-registrations": {
+                "model": "App\\Features\\Registration\\Models\\Registration",
+                "navigation_group": "Events",
+                "navigation_label": "Registration",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-sessions": {
+                "model": "AIArmada\\Events\\Models\\EventSession",
+                "navigation_group": "Events",
+                "navigation_label": "Event Session",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "SeatMapsRelationManager",
+                    "SessionAttendancesRelationManager",
+                    "SessionInvolvementsRelationManager",
+                    "SessionLocationsRelationManager",
+                    "SessionMaterialsRelationManager",
+                    "SessionRegistrationsRelationManager",
+                    "TicketTypesRelationManager"
+                ]
+            },
+            "event-taxonomies": {
+                "model": "AIArmada\\Events\\Models\\EventTaxonomy",
+                "navigation_group": "Events",
+                "navigation_label": "Event Taxonomy",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "TermsRelationManager"
+                ]
+            },
+            "event-templates": {
+                "model": "AIArmada\\Events\\Models\\EventTemplate",
+                "navigation_group": "Events",
+                "navigation_label": "Event Template",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-terms": {
+                "model": "AIArmada\\Events\\Models\\EventTerm",
+                "navigation_group": "Events",
+                "navigation_label": "Event Term",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "events": {
+                "model": "App\\Features\\Events\\Models\\Event",
+                "navigation_group": "Events",
+                "navigation_label": "Event",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AttendancesRelationManager",
+                    "ClassificationsRelationManager",
+                    "InvolvementsRelationManager",
+                    "LocationsRelationManager",
+                    "OccurrencesRelationManager",
+                    "RegistrationsRelationManager",
+                    "SeatMapsRelationManager",
+                    "SessionsRelationManager",
+                    "TicketTypesRelationManager"
+                ]
+            },
+            "follows": {
+                "model": "AIArmada\\Engagement\\Models\\Follow",
+                "navigation_group": "Engagement",
+                "navigation_label": "Follow",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "inspirations": {
+                "model": "App\\Features\\Inspirations\\Models\\Inspiration",
+                "navigation_group": "Content",
+                "navigation_label": "Inspiration",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": [
+                    "AuditsRelationManager"
+                ]
+            },
+            "institutions": {
+                "model": "App\\Features\\Institutions\\Models\\Institution",
+                "navigation_group": "Directory",
+                "navigation_label": "Institution",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AuditsRelationManager",
+                    "DonationChannelsRelationManager",
+                    "EventsRelationManager",
+                    "MemberInvitationsRelationManager",
+                    "MembersRelationManager"
+                ]
+            },
+            "inventory-allocations": {
+                "model": "AIArmada\\Inventory\\Models\\InventoryAllocation",
+                "navigation_group": "Inventory",
+                "navigation_label": "Allocations",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "inventory-batches": {
+                "model": "AIArmada\\Inventory\\Models\\InventoryBatch",
+                "navigation_group": "Inventory",
+                "navigation_label": "Batches",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "inventory-levels": {
+                "model": "AIArmada\\Inventory\\Models\\InventoryLevel",
+                "navigation_group": "Inventory",
+                "navigation_label": "Stock Levels",
+                "pages": [
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "inventory-locations": {
+                "model": "AIArmada\\Inventory\\Models\\InventoryLocation",
+                "navigation_group": "Inventory",
+                "navigation_label": "Locations",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "inventory-movements": {
+                "model": "AIArmada\\Inventory\\Models\\InventoryMovement",
+                "navigation_group": "Inventory",
+                "navigation_label": "Movements",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "inventory-serials": {
+                "model": "AIArmada\\Inventory\\Models\\InventorySerial",
+                "navigation_group": "Inventory",
+                "navigation_label": "Serial Numbers",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "languages": {
+                "model": "AIArmada\\CommerceSupport\\Models\\Language",
+                "navigation_group": "Commerce",
+                "navigation_label": "Languages",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "links": {
+                "model": "AIArmada\\Links\\Models\\Link",
+                "navigation_group": "Links",
+                "navigation_label": "Link",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": [
+                    "ClicksRelationManager"
+                ]
+            },
+            "membership-applications": {
+                "model": "App\\Features\\Membership\\Models\\MembershipApplication",
+                "navigation_group": "Moderation",
+                "navigation_label": "Membership Application",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AuditsRelationManager"
+                ]
+            },
+            "organizations": {
+                "model": "AIArmada\\Organizations\\Models\\Organization",
+                "navigation_group": "Organizations",
+                "navigation_label": "Organization",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "InvitationsRelationManager",
+                    "MembersRelationManager"
+                ]
+            },
+            "pass-holders": {
+                "model": "AIArmada\\Ticketing\\Models\\PassHolder",
+                "navigation_group": "Ticketing",
+                "navigation_label": "Pass Holder",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "pass-transfers": {
+                "model": "AIArmada\\Ticketing\\Models\\PassTransfer",
+                "navigation_group": "Ticketing",
+                "navigation_label": "Pass Transfer",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "passes": {
+                "model": "AIArmada\\Ticketing\\Models\\Pass",
+                "navigation_group": "Ticketing",
+                "navigation_label": "Pass",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "permissions": {
+                "model": "AIArmada\\Authz\\Models\\Permission",
+                "navigation_group": "Authz",
+                "navigation_label": "Permission",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "persons": {
+                "model": "App\\Features\\Persons\\Models\\Person",
+                "navigation_group": "Directory",
+                "navigation_label": "Persons",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AffiliationsRelationManager",
+                    "AuditsRelationManager",
+                    "CredentialAssignmentsRelationManager",
+                    "EventsRelationManager",
+                    "FollowersRelationManager",
+                    "MemberInvitationsRelationManager",
+                    "MembersRelationManager",
+                    "NamesRelationManager",
+                    "TitleAssignmentsRelationManager"
+                ]
+            },
+            "postal-codes": {
+                "model": "AIArmada\\Addressing\\Models\\PostalCode",
+                "navigation_group": "Addressing",
+                "navigation_label": "Postcodes",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "reactions": {
+                "model": "AIArmada\\Engagement\\Models\\Reaction",
+                "navigation_group": "Engagement",
+                "navigation_label": "Reaction",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "references": {
+                "model": "App\\Features\\References\\Models\\Reference",
+                "navigation_group": "Directory",
+                "navigation_label": "Reference",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": [
+                    "AuditsRelationManager",
+                    "EventsRelationManager",
+                    "MemberInvitationsRelationManager",
+                    "MembersRelationManager"
+                ]
+            },
+            "referral-invite-resource/referral-invites": {
+                "model": "AIArmada\\Referrals\\Models\\ReferralInvite",
+                "navigation_group": "Referrals",
+                "navigation_label": "Referral Invite",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "RewardsRelationManager"
+                ]
+            },
+            "referral-program-resource/referral-programs": {
+                "model": "AIArmada\\Referrals\\Models\\ReferralProgram",
+                "navigation_group": "Referrals",
+                "navigation_label": "Referral Program",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "InvitesRelationManager"
+                ]
+            },
+            "referral-reward-resource/referral-rewards": {
+                "model": "AIArmada\\Referrals\\Models\\ReferralReward",
+                "navigation_group": "Referrals",
+                "navigation_label": "Referral Reward",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "reminders": {
+                "model": "AIArmada\\Engagement\\Models\\Reminder",
+                "navigation_group": "Engagement",
+                "navigation_label": "Reminder",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "reports": {
+                "model": "App\\Features\\Reports\\Models\\Report",
+                "navigation_group": "Moderation",
+                "navigation_label": "Report",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": [
+                    "AuditsRelationManager"
+                ]
+            },
+            "resolution-gaps": {
+                "model": "AIArmada\\Addressing\\Models\\ResolutionGap",
+                "navigation_group": "Addressing",
+                "navigation_label": "Resolution Gap",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "responses": {
+                "model": "AIArmada\\Engagement\\Models\\Response",
+                "navigation_group": "Engagement",
+                "navigation_label": "Response",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "reward-appeal-resource/reward-appeals": {
+                "model": "AIArmada\\Rewards\\Models\\RewardAppeal",
+                "navigation_group": "Rewards",
+                "navigation_label": "Reward Appeal",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "reward-award-resource/reward-awards": {
+                "model": "AIArmada\\Rewards\\Models\\RewardAward",
+                "navigation_group": "Rewards",
+                "navigation_label": "Reward Award",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "reward-benefit-grant-resource/reward-benefit-grants": {
+                "model": "AIArmada\\Rewards\\Models\\RewardBenefitGrant",
+                "navigation_group": "Rewards",
+                "navigation_label": "Benefit grants",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "reward-benefit-item-resource/reward-benefit-items": {
+                "model": "AIArmada\\Rewards\\Models\\RewardBenefitItem",
+                "navigation_group": "Rewards",
+                "navigation_label": "Benefit catalog",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "reward-fraud-stewardship": {
+                "model": "AIArmada\\Rewards\\Models\\RewardAward",
+                "navigation_group": "Rewards",
+                "navigation_label": "Fraud stewardship",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "reward-funding-resource/reward-fundings": {
+                "model": "AIArmada\\Rewards\\Models\\RewardFundingEntry",
+                "navigation_group": "Rewards",
+                "navigation_label": "Funding",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "reward-payee-resource/reward-payees": {
+                "model": "AIArmada\\Rewards\\Models\\RewardPayee",
+                "navigation_group": "Rewards",
+                "navigation_label": "Payees",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "reward-payout-resource/reward-payouts": {
+                "model": "AIArmada\\Rewards\\Models\\RewardPayoutRequest",
+                "navigation_group": "Rewards",
+                "navigation_label": "Payouts",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "reward-program-resource/reward-programs": {
+                "model": "AIArmada\\Rewards\\Models\\RewardProgram",
+                "navigation_group": "Rewards",
+                "navigation_label": "Reward Program",
+                "pages": [
+                    "create",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "reward-recovery-resource/reward-recoveries": {
+                "model": "AIArmada\\Rewards\\Models\\RewardRecovery",
+                "navigation_group": "Rewards",
+                "navigation_label": "Recoveries",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "saved-signal-reports": {
+                "model": "AIArmada\\Signals\\Models\\SavedSignalReport",
+                "navigation_group": "Insights",
+                "navigation_label": "Saved Signal Report",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "seat-maps": {
+                "model": "AIArmada\\Seating\\Models\\SeatMap",
+                "navigation_group": "Venue",
+                "navigation_label": "Seat Map",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "series": {
+                "model": "App\\Features\\Events\\Models\\Series",
+                "navigation_group": "Content",
+                "navigation_label": "Series",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": [
+                    "AuditsRelationManager",
+                    "EventsRelationManager"
+                ]
+            },
+            "signal-alert-logs": {
+                "model": "AIArmada\\Signals\\Models\\SignalAlertLog",
+                "navigation_group": "Insights",
+                "navigation_label": "Signal Alert Log",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "signal-alert-rules": {
+                "model": "AIArmada\\Signals\\Models\\SignalAlertRule",
+                "navigation_group": "Insights",
+                "navigation_label": "Signal Alert Rule",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "signal-goals": {
+                "model": "AIArmada\\Signals\\Models\\SignalGoal",
+                "navigation_group": "Insights",
+                "navigation_label": "Goals",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "signal-interaction-rules": {
+                "model": "AIArmada\\Signals\\Models\\SignalInteractionRule",
+                "navigation_group": "Insights",
+                "navigation_label": "Interaction Rules",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "signal-segments": {
+                "model": "AIArmada\\Signals\\Models\\SignalSegment",
+                "navigation_group": "Insights",
+                "navigation_label": "Audience Segments",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "slug-redirects": {
+                "model": "App\\Features\\SlugRedirects\\Models\\SlugRedirect",
+                "navigation_group": "System",
+                "navigation_label": "Slug Redirects",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "spaces": {
+                "model": "App\\Features\\Places\\Models\\Space",
+                "navigation_group": "Directory",
+                "navigation_label": "Space",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AuditsRelationManager",
+                    "EventsRelationManager",
+                    "InstitutionsRelationManager"
+                ]
+            },
+            "state": {
+                "model": "AIArmada\\Addressing\\Models\\State",
+                "navigation_group": "Addressing",
+                "navigation_label": "State",
+                "pages": [
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "subscriptions": {
+                "model": "AIArmada\\Engagement\\Models\\Subscription",
+                "navigation_group": "Engagement",
+                "navigation_label": "Subscription",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "ticket-types": {
+                "model": "AIArmada\\Ticketing\\Models\\TicketType",
+                "navigation_group": "Ticketing",
+                "navigation_label": "Ticket Type",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "TicketTypeComponentsRelationManager",
+                    "TicketTypeProductsRelationManager"
+                ]
+            },
+            "timezones": {
+                "model": "AIArmada\\CommerceSupport\\Models\\Timezone",
+                "navigation_group": "Commerce",
+                "navigation_label": "Timezones",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "title-issuers": {
+                "model": "AIArmada\\Persons\\Models\\TitleIssuer",
+                "navigation_group": "Directory",
+                "navigation_label": "Title Issuer",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "titles": {
+                "model": "AIArmada\\Persons\\Models\\Title",
+                "navigation_group": "Directory",
+                "navigation_label": "Title",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "tracked-properties": {
+                "model": "AIArmada\\Signals\\Models\\TrackedProperty",
+                "navigation_group": "Insights",
+                "navigation_label": "Tracked Property",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "venues": {
+                "model": "App\\Features\\Places\\Models\\Venue",
+                "navigation_group": "Directory",
+                "navigation_label": "Venue",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "SpacesRelationManager"
+                ]
+            }
+        },
+        "ahli": {
+            "bookmark-collections": {
+                "model": "AIArmada\\Engagement\\Models\\BookmarkCollection",
+                "navigation_group": "Engagement",
+                "navigation_label": "Bookmark Collection",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index"
+                ],
+                "relations": []
+            },
+            "bookmarks": {
+                "model": "AIArmada\\Engagement\\Models\\Bookmark",
+                "navigation_group": "Engagement",
+                "navigation_label": "Bookmark",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "credential-definitions": {
+                "model": "AIArmada\\Persons\\Models\\CredentialDefinition",
+                "navigation_group": "Directory",
+                "navigation_label": "Credential Definition",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-attendances": {
+                "model": "App\\Features\\Registration\\Models\\EventCheckin",
+                "navigation_group": "Events",
+                "navigation_label": "Event Checkin",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-change-logs": {
+                "model": "AIArmada\\Events\\Models\\EventChangeLog",
+                "navigation_group": "Events",
+                "navigation_label": "Event Change Log",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-occurrences": {
+                "model": "AIArmada\\Events\\Models\\EventOccurrence",
+                "navigation_group": "Events",
+                "navigation_label": "Event Occurrence",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "OccurrenceAttendancesRelationManager",
+                    "OccurrenceInvolvementsRelationManager",
+                    "OccurrenceLocationsRelationManager",
+                    "OccurrenceRegistrationsRelationManager",
+                    "OccurrenceSessionsRelationManager",
+                    "SeatMapsRelationManager",
+                    "TicketTypesRelationManager"
+                ]
+            },
+            "event-registration-participants": {
+                "model": "AIArmada\\Events\\Models\\EventRegistrationParticipant",
+                "navigation_group": "Events",
+                "navigation_label": "Participants",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-registrations": {
+                "model": "App\\Features\\Registration\\Models\\Registration",
+                "navigation_group": "Events",
+                "navigation_label": "Registration",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-sessions": {
+                "model": "AIArmada\\Events\\Models\\EventSession",
+                "navigation_group": "Events",
+                "navigation_label": "Event Session",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "SeatMapsRelationManager",
+                    "SessionAttendancesRelationManager",
+                    "SessionInvolvementsRelationManager",
+                    "SessionLocationsRelationManager",
+                    "SessionMaterialsRelationManager",
+                    "SessionRegistrationsRelationManager",
+                    "TicketTypesRelationManager"
+                ]
+            },
+            "event-taxonomies": {
+                "model": "AIArmada\\Events\\Models\\EventTaxonomy",
+                "navigation_group": "Events",
+                "navigation_label": "Event Taxonomy",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "TermsRelationManager"
+                ]
+            },
+            "event-templates": {
+                "model": "AIArmada\\Events\\Models\\EventTemplate",
+                "navigation_group": "Events",
+                "navigation_label": "Event Template",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "event-terms": {
+                "model": "AIArmada\\Events\\Models\\EventTerm",
+                "navigation_group": "Events",
+                "navigation_label": "Event Term",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "events": {
+                "model": "App\\Features\\Events\\Models\\Event",
+                "navigation_group": "Events",
+                "navigation_label": "Event",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AttendancesRelationManager",
+                    "ClassificationsRelationManager",
+                    "InvolvementsRelationManager",
+                    "LocationsRelationManager",
+                    "OccurrencesRelationManager",
+                    "RegistrationsRelationManager",
+                    "SeatMapsRelationManager",
+                    "SessionsRelationManager",
+                    "TicketTypesRelationManager"
+                ]
+            },
+            "follows": {
+                "model": "AIArmada\\Engagement\\Models\\Follow",
+                "navigation_group": "Engagement",
+                "navigation_label": "Follow",
+                "pages": [
+                    "index"
+                ],
+                "relations": []
+            },
+            "institutions": {
+                "model": "App\\Features\\Institutions\\Models\\Institution",
+                "navigation_group": null,
+                "navigation_label": "Institutions",
+                "pages": [
+                    "edit"
+                ],
+                "relations": [
+                    "AuditsRelationManager",
+                    "DonationChannelsRelationManager",
+                    "MemberInvitationsRelationManager"
+                ]
+            },
+            "organizations": {
+                "model": "AIArmada\\Organizations\\Models\\Organization",
+                "navigation_group": "Organizations",
+                "navigation_label": "Organization",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "InvitationsRelationManager",
+                    "MembersRelationManager"
+                ]
+            },
+            "persons": {
+                "model": "App\\Features\\Persons\\Models\\Person",
+                "navigation_group": "Directory",
+                "navigation_label": "Persons",
+                "pages": [
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": [
+                    "AuditsRelationManager",
+                    "MemberInvitationsRelationManager"
+                ]
+            },
+            "reactions": {
+                "model": "AIArmada\\Engagement\\Models\\Reaction",
+                "navigation_group": "Engagement",
+                "navigation_label": "Reaction",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "references": {
+                "model": "App\\Features\\References\\Models\\Reference",
+                "navigation_group": "Directory",
+                "navigation_label": "Reference",
+                "pages": [
+                    "edit",
+                    "index"
+                ],
+                "relations": [
+                    "AuditsRelationManager",
+                    "MemberInvitationsRelationManager"
+                ]
+            },
+            "reminders": {
+                "model": "AIArmada\\Engagement\\Models\\Reminder",
+                "navigation_group": "Engagement",
+                "navigation_label": "Reminder",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "responses": {
+                "model": "AIArmada\\Engagement\\Models\\Response",
+                "navigation_group": "Engagement",
+                "navigation_label": "Response",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "subscriptions": {
+                "model": "AIArmada\\Engagement\\Models\\Subscription",
+                "navigation_group": "Engagement",
+                "navigation_label": "Subscription",
+                "pages": [
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "title-issuers": {
+                "model": "AIArmada\\Persons\\Models\\TitleIssuer",
+                "navigation_group": "Directory",
+                "navigation_label": "Title Issuer",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            },
+            "titles": {
+                "model": "AIArmada\\Persons\\Models\\Title",
+                "navigation_group": "Directory",
+                "navigation_label": "Title",
+                "pages": [
+                    "create",
+                    "edit",
+                    "index",
+                    "view"
+                ],
+                "relations": []
+            }
+        }
+    },
+    "widgets": {
+        "admin": [
+            "AbcAnalysisChart",
+            "AffiliateStatsWidget",
+            "BackordersWidget",
+            "DeliveryStatusOverviewWidget",
+            "EngagementOverviewWidget",
+            "EventInventoryOverview",
+            "EventStatsWidget",
+            "ExpiringBatchesWidget",
+            "FraudAlertWidget",
+            "InventoryKpiWidget",
+            "InventoryStatsWidget",
+            "InventoryValuationWidget",
+            "LowInventoryAlertsWidget",
+            "MovementTrendsChart",
+            "PayoutQueueWidget",
+            "PerformanceOverviewWidget",
+            "RealTimeActivityWidget",
+            "ReferralStatsWidget",
+            "ReorderSuggestionsWidget",
+            "SeatMapOverview",
+            "StatsOverview"
+        ],
+        "ahli": [
+            "EngagementOverviewWidget",
+            "EventStatsWidget",
+            "PendingApprovalEventsWidget"
+        ]
+    },
+    "morph_map": {
+        "report": "App\\Features\\Reports\\Models\\Report",
+        "inspiration": "App\\Features\\Inspirations\\Models\\Inspiration",
+        "app_feedback": "App\\Features\\Feedback\\Models\\AppFeedback",
+        "address": "AIArmada\\Addressing\\Models\\Address",
+        "contact": "AIArmada\\Contacting\\Models\\ContactMethod",
+        "customer": "AIArmada\\Customers\\Models\\Customer",
+        "user": "App\\Models\\User",
+        "event": "App\\Features\\Events\\Models\\Event",
+        "package_event": "AIArmada\\Events\\Models\\Event",
+        "event_access_policy": "AIArmada\\Events\\Models\\EventAccessPolicy",
+        "event_key_person": "App\\Features\\Events\\Models\\EventKeyPerson",
+        "event_location": "AIArmada\\Events\\Models\\EventLocation",
+        "event_occurrence": "AIArmada\\Events\\Models\\EventOccurrence",
+        "event_submission": "App\\Features\\Events\\Models\\EventSubmission",
+        "event_session": "AIArmada\\Events\\Models\\EventSession",
+        "checkin": "App\\Features\\Registration\\Models\\EventCheckin",
+        "checkout_session": "AIArmada\\Checkout\\Models\\CheckoutSession",
+        "order": "AIArmada\\Orders\\Models\\Order",
+        "order_item": "AIArmada\\Orders\\Models\\OrderItem",
+        "order_note": "AIArmada\\Orders\\Models\\OrderNote",
+        "order_payment": "AIArmada\\Orders\\Models\\OrderPayment",
+        "order_refund": "AIArmada\\Orders\\Models\\OrderRefund",
+        "contribution_request": "App\\Features\\Contributions\\Models\\ContributionRequest",
+        "event_registration_participant": "AIArmada\\Events\\Models\\EventRegistrationParticipant",
+        "membership_application": "App\\Features\\Membership\\Models\\MembershipApplication",
+        "moderation_review": "App\\Platform\\Moderation\\Models\\ModerationReview",
+        "media_link": "App\\Features\\Events\\Models\\MediaLink",
+        "institution": "App\\Features\\Institutions\\Models\\Institution",
+        "institution_name": "App\\Features\\Institutions\\Models\\InstitutionName",
+        "institution_import_exclusion": "App\\Features\\Institutions\\Models\\InstitutionImportExclusion",
+        "donation_channel": "App\\Features\\DonationChannels\\Models\\DonationChannel",
+        "member_invitation": "App\\Features\\Membership\\Models\\MemberInvitation",
+        "registration": "App\\Features\\Registration\\Models\\Registration",
+        "person": "App\\Features\\Persons\\Models\\Person",
+        "person_name": "App\\Features\\Persons\\Models\\PersonName",
+        "affiliation": "App\\Features\\Persons\\Models\\Affiliation",
+        "series": "App\\Features\\Events\\Models\\Series",
+        "social_media": "AIArmada\\Contacting\\Models\\SocialProfile",
+        "space": "App\\Features\\Places\\Models\\Space",
+        "venue": "App\\Features\\Places\\Models\\Venue",
+        "language": "App\\Platform\\Language\\Models\\Language",
+        "reference": "App\\Features\\References\\Models\\Reference",
+        "share_browser_selection": "App\\Features\\ShareTracking\\Models\\ShareBrowserSelection",
+        "share_cohort_projection": "App\\Features\\ShareTracking\\Models\\ShareCohortProjection",
+        "share_effect_receipt": "App\\Features\\ShareTracking\\Models\\ShareEffectReceipt",
+        "share_outcome_correction": "App\\Features\\ShareTracking\\Models\\ShareOutcomeCorrection",
+        "share_signal_reader_cursor": "App\\Features\\ShareTracking\\Models\\ShareSignalReaderCursor",
+        "share_signal_reader_skip": "App\\Features\\ShareTracking\\Models\\ShareSignalReaderSkip",
+        "share_source_attribution_receipt": "App\\Features\\ShareTracking\\Models\\ShareSourceAttributionReceipt",
+        "reward_digest_slot": "App\\Features\\Rewards\\Models\\RewardDigestSlot",
+        "organization": "AIArmada\\Organizations\\Models\\Organization",
+        "inventory_location": "AIArmada\\Inventory\\Models\\InventoryLocation",
+        "inventory_level": "AIArmada\\Inventory\\Models\\InventoryLevel",
+        "inventory_allocation": "AIArmada\\Inventory\\Models\\InventoryAllocation",
+        "inventory_movement": "AIArmada\\Inventory\\Models\\InventoryMovement",
+        "ticket_type": "AIArmada\\Ticketing\\Models\\TicketType",
+        "ai_model_pricing": "App\\Features\\Ai\\Models\\AiModelPricing",
+        "tracked_property": "AIArmada\\Signals\\Models\\TrackedProperty",
+        "signal_session": "AIArmada\\Signals\\Models\\SignalSession",
+        "signal_event": "AIArmada\\Signals\\Models\\SignalEvent",
+        "signal_identity": "AIArmada\\Signals\\Models\\SignalIdentity",
+        "signal_goal": "AIArmada\\Signals\\Models\\SignalGoal",
+        "signal_daily_metric": "AIArmada\\Signals\\Models\\SignalDailyMetric",
+        "signal_interaction_rule": "AIArmada\\Signals\\Models\\SignalInteractionRule",
+        "signal_alert_rule": "AIArmada\\Signals\\Models\\SignalAlertRule",
+        "signal_alert_log": "AIArmada\\Signals\\Models\\SignalAlertLog",
+        "signal_alert_delivery": "AIArmada\\Signals\\Models\\SignalAlertDelivery",
+        "signal_segment": "AIArmada\\Signals\\Models\\SignalSegment",
+        "saved_signal_report": "AIArmada\\Signals\\Models\\SavedSignalReport",
+        "affiliate": "AIArmada\\Affiliates\\Models\\Affiliate",
+        "affiliate_attribution": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+        "affiliate_balance": "AIArmada\\Affiliates\\Models\\AffiliateBalance",
+        "affiliate_commission_promotion": "AIArmada\\Affiliates\\Models\\AffiliateCommissionPromotion",
+        "affiliate_commission_rule": "AIArmada\\Affiliates\\Models\\AffiliateCommissionRule",
+        "affiliate_commission_template": "AIArmada\\Affiliates\\Models\\AffiliateCommissionTemplate",
+        "affiliate_conversion": "AIArmada\\Affiliates\\Models\\AffiliateConversion",
+        "affiliate_daily_stat": "AIArmada\\Affiliates\\Models\\AffiliateDailyStat",
+        "affiliate_fraud_signal": "AIArmada\\Affiliates\\Models\\AffiliateFraudSignal",
+        "affiliate_link": "AIArmada\\Affiliates\\Models\\AffiliateLink",
+        "affiliate_upline": "AIArmada\\Affiliates\\Models\\AffiliateUpline",
+        "affiliate_payout": "AIArmada\\Affiliates\\Models\\AffiliatePayout",
+        "affiliate_payout_event": "AIArmada\\Affiliates\\Models\\AffiliatePayoutEvent",
+        "affiliate_payout_hold": "AIArmada\\Affiliates\\Models\\AffiliatePayoutHold",
+        "affiliate_payout_method": "AIArmada\\Affiliates\\Models\\AffiliatePayoutMethod",
+        "affiliate_program": "AIArmada\\Affiliates\\Models\\AffiliateProgram",
+        "affiliate_program_creative": "AIArmada\\Affiliates\\Models\\AffiliateProgramCreative",
+        "affiliate_program_membership": "AIArmada\\Affiliates\\Models\\AffiliateProgramMembership",
+        "affiliate_program_tier": "AIArmada\\Affiliates\\Models\\AffiliateProgramTier",
+        "affiliate_rank": "AIArmada\\Affiliates\\Models\\AffiliateRank",
+        "affiliate_rank_history": "AIArmada\\Affiliates\\Models\\AffiliateRankHistory",
+        "affiliate_support_message": "AIArmada\\Affiliates\\Models\\AffiliateSupportMessage",
+        "affiliate_support_ticket": "AIArmada\\Affiliates\\Models\\AffiliateSupportTicket",
+        "affiliate_tax_document": "AIArmada\\Affiliates\\Models\\AffiliateTaxDocument",
+        "affiliate_touchpoint": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+        "affiliate_volume_tier": "AIArmada\\Affiliates\\Models\\AffiliateVolumeTier",
+        "event_registration": "AIArmada\\Events\\Models\\EventRegistration"
+    }
+}

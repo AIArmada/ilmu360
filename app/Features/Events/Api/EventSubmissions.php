@@ -110,4 +110,52 @@ interface EventSubmissions
         bool $parentCreated,
         bool $autoApproved,
     ): ?string;
+
+    /**
+     * Documented transport: paginated submissions for an account, excluding
+     * events owned by an institution the account does not belong to, with the
+     * contribution presentation relations eager loaded.
+     *
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, \App\Features\Events\Models\EventSubmission>
+     */
+    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): object;
+
+    /**
+     * Documented transport: submissions for an account with the event loaded,
+     * newest first.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Events\Models\EventSubmission>
+     */
+    public function submissionsForAccount(string $accountId): object;
+
+    /**
+     * Documented transport: planner submissions for an account with the event
+     * and planner relations loaded, newest first.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Events\Models\EventSubmission>
+     */
+    public function plannerSubmissionsForAccount(string $accountId): object;
+
+    public function existsForSubmitter(string $eventId, string $accountId): bool;
+
+    /**
+     * Moderation status for a submission id, or null when it no longer exists.
+     */
+    public function moderationStatus(string $submissionId): ?string;
+
+    /**
+     * Documented transport: a hydrated submission model for framework read
+     * adapters that need its recorded attributes.
+     */
+    public function findSubmission(string $submissionId): ?object;
+
+    /**
+     * Whether an earlier submission exists for the actor.
+     */
+    public function hasEarlierSubmissionActivity(
+        string $actorId,
+        string $actorType,
+        \DateTimeInterface $before,
+        string $exceptId,
+    ): bool;
 }

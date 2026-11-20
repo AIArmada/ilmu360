@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
 
 final class OrganizerResolver
 {
@@ -15,11 +15,11 @@ final class OrganizerResolver
             return null;
         }
 
-        if (Institution::query()->whereKey($id)->exists()) {
+        if (app(InstitutionLookup::class)->exists($id)) {
             return 'institution';
         }
 
-        return Person::query()->whereKey($id)->exists() ? 'person' : null;
+        return app(PersonLookup::class)->exists($id) ? 'person' : null;
     }
 
     public static function involvementMatchesInstitution(
@@ -28,6 +28,6 @@ final class OrganizerResolver
         string $institutionId,
     ): bool {
         return $involveableId === $institutionId
-            && $involveableType === (new Institution)->getMorphClass();
+            && $involveableType === app(InstitutionLookup::class)->institutionMorphType();
     }
 }

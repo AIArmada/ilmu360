@@ -2,11 +2,11 @@
 
 namespace App\Features\Events\States\EventStatus\Transitions;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Persistence\EventStatusWriter;
 use App\Features\Events\States\EventStatus\Draft;
+use App\Features\Moderation\Api\RecordModerationAction;
 use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
 use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
@@ -26,7 +26,7 @@ class RevertToDraft extends Transition implements HasColor, HasIcon, HasLabel
     public function handle(): Event
     {
         return DB::transaction(function () {
-            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+            app(RecordModerationAction::class)->record([
                 'actionable_type' => $this->event->getMorphClass(),
                 'actionable_id' => $this->event->id,
                 'actioned_by_type' => (new User)->getMorphClass(),
@@ -34,12 +34,12 @@ class RevertToDraft extends Transition implements HasColor, HasIcon, HasLabel
                 'type' => 'reverted_to_draft',
                 'reason' => 'reverted_to_draft',
                 'notes' => $this->note ?? 'Event reverted to draft.',
-            ]));
+            ]);
 
-            $this->event->status = Draft::class;
-            $this->event->published_at = null;
-            $this->event->last_state_change_at = now();
-            $this->event->save();
+            app(EventStatusWriter::class)->apply($this->event, Draft::class, [
+                'published_at' => null,
+                'last_state_change_at' => now(),
+            ]);
 
             // Remove from search
             $this->event->unsearchable();

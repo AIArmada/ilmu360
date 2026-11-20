@@ -7,10 +7,9 @@ namespace App\Features\Events\Queries;
 use App\Features\Events\Api\AccountEventFacts;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
+use App\Features\Moderation\Api\ModerationActionHistory;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
 
 /**
  * Root account-scoped Events fact reader used by account and reward projections.
@@ -21,6 +20,11 @@ use App\Platform\Moderation\Models\ModerationReview;
  */
 final readonly class EloquentAccountEventFacts implements AccountEventFacts
 {
+    public function __construct(
+        private ModerationActionHistory $moderationActions,
+        private RegistrationLookup $registrations,
+    ) {}
+
     public function ownedEventIds(string $accountId): array
     {
         return Event::query()
@@ -58,42 +62,21 @@ final readonly class EloquentAccountEventFacts implements AccountEventFacts
 
     public function registrationIds(string $accountId): array
     {
-        return Registration::query()
-            ->where('registrant_type', (new User)->getMorphClass())
-            ->where('registrant_id', $accountId)
-            ->pluck('id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
+        return $this->registrations->registrationIdsForAccount($accountId);
     }
 
     public function checkinIds(string $accountId): array
     {
-        return EventCheckin::query()
-            ->where('attendee_id', $accountId)
-            ->pluck('id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
+        return $this->registrations->checkInIdsForAccount($accountId);
     }
 
     public function verifiedCheckinIds(string $accountId): array
     {
-        return EventCheckin::query()
-            ->where('verified_by_user_id', $accountId)
-            ->pluck('id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
+        return $this->registrations->verifiedCheckInIdsForAccount($accountId);
     }
 
     public function moderationReviewIds(string $accountId): array
     {
-        return ModerationReview::query()
-            ->where('actioned_by_id', $accountId)
-            ->pluck('id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
+        return $this->moderationActions->idsForAccount($accountId);
     }
 }

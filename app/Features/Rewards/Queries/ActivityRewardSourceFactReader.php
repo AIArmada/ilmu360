@@ -12,7 +12,8 @@ use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Features\Engagement\Api\EngagementActivity;
 use App\Features\Engagement\Api\EngagementActivityReader;
-use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Api\EventSubmissions;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -279,14 +280,15 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
 
     private function resolveSourceRecord(string $sourceTransitionId): ?Model
     {
+        /** @var array<string, callable(string): mixed> $sources */
         $sources = [
-            'user:' => User::class,
-            'registration:' => Registration::class,
-            'checkin:' => EventCheckin::class,
-            'submission:' => EventSubmission::class,
+            'user:' => static fn (string $id): mixed => User::query()->find($id),
+            'registration:' => static fn (string $id): mixed => app(RegistrationLookup::class)->findRegistration($id),
+            'checkin:' => static fn (string $id): mixed => app(RegistrationLookup::class)->findCheckIn($id),
+            'submission:' => static fn (string $id): mixed => app(EventSubmissions::class)->findSubmission($id),
         ];
 
-        foreach ($sources as $prefix => $modelClass) {
+        foreach ($sources as $prefix => $resolve) {
             if (! str_starts_with($sourceTransitionId, $prefix)) {
                 continue;
             }
@@ -297,7 +299,9 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
                 return null;
             }
 
-            return $modelClass::query()->whereKey($sourceId)->first();
+            $source = $resolve($sourceId);
+
+            return $source instanceof Model ? $source : null;
         }
 
         return null;
@@ -491,28 +495,29 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             );
         }
 
-        [$modelClass, $actorColumns, $occurredColumn] = match ($outcome) {
-            ShareOutcomeType::EventRegistration => [Registration::class, ['registrant_type', 'registrant_id'], 'registered_at'],
-            ShareOutcomeType::EventCheckin => [EventCheckin::class, ['attendee_type', 'attendee_id'], 'checked_in_at'],
-            ShareOutcomeType::EventSubmission => [EventSubmission::class, ['submitter_type', 'submitter_id'], 'submitted_at'],
+        $before = $occurredAt->setTimezone(config('app.timezone', 'UTC'));
+
+        return match ($outcome) {
+            ShareOutcomeType::EventRegistration => ! app(RegistrationLookup::class)->hasEarlierRegistrationActivity(
+                (string) $actor->getKey(),
+                $actor->getMorphClass(),
+                $before,
+                $sourceId,
+            ),
+            ShareOutcomeType::EventCheckin => ! app(RegistrationLookup::class)->hasEarlierCheckInActivity(
+                (string) $actor->getKey(),
+                $actor->getMorphClass(),
+                $before,
+                $sourceId,
+            ),
+            ShareOutcomeType::EventSubmission => ! app(EventSubmissions::class)->hasEarlierSubmissionActivity(
+                (string) $actor->getKey(),
+                $actor->getMorphClass(),
+                $before,
+                $sourceId,
+            ),
             default => throw new LogicException('Engagement outcomes are resolved through the engagement reader.'),
         };
-
-        $query = $modelClass::query()
-            ->where(function ($query) use ($actor, $actorColumns, $outcome): void {
-                $query->where(function ($query) use ($actor, $actorColumns): void {
-                    $query->where($actorColumns[0], $actor->getMorphClass())
-                        ->where($actorColumns[1], (string) $actor->getKey());
-                });
-
-                if ($outcome === ShareOutcomeType::EventCheckin) {
-                    $query->orWhere('verified_by_user_id', (string) $actor->getKey());
-                }
-            })
-            ->where($occurredColumn, '<', $occurredAt->setTimezone(config('app.timezone', 'UTC')))
-            ->whereKeyNot($sourceId);
-
-        return ! $query->exists();
     }
 
     /**

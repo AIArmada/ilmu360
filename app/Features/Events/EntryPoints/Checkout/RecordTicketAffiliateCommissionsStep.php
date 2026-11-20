@@ -9,7 +9,7 @@ use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
-use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Api\RegistrationLookup;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -18,6 +18,7 @@ final class RecordTicketAffiliateCommissionsStep extends AbstractCheckoutStep
     public function __construct(
         private readonly TicketAffiliateCommissions $recordCommissions,
         private readonly TicketAffiliateReversals $reverseCommissions,
+        private readonly RegistrationLookup $registrationLookup,
     ) {}
 
     public function getIdentifier(): string
@@ -69,14 +70,12 @@ final class RecordTicketAffiliateCommissionsStep extends AbstractCheckoutStep
         $reversed = 0;
 
         foreach ($registrationIds as $registrationId) {
-            $registration = Registration::query()->whereKey($registrationId)->first();
-
-            if (! $registration instanceof Registration) {
+            if (! $this->registrationLookup->exists($registrationId)) {
                 continue;
             }
 
             try {
-                if ($this->reverseCommissions->reverse((string) $registration->getKey(), 'checkout_compensated') !== null) {
+                if ($this->reverseCommissions->reverse($registrationId, 'checkout_compensated') !== null) {
                     $reversed++;
                 }
             } catch (Throwable $exception) {

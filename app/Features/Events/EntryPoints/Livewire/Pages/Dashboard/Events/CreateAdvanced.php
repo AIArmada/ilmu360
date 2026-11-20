@@ -22,12 +22,12 @@ use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Events\Enums\Terms\DomainTermCode;
 use App\Features\Events\Support\SubmissionTimingPolicy;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\Places\Api\SpaceEligibility;
-use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use App\Features\Prayer\Api\RamadanGate;
-use App\Features\References\Models\Reference;
+use App\Features\References\Api\ReferenceLookup;
 use App\Models\User;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\Select;
@@ -1347,12 +1347,7 @@ class CreateAdvanced extends Component implements HasForms
     /** @return array<string, string> */
     protected function referenceOptions(): array
     {
-        return Reference::query()
-            ->active()
-            ->orderBy('title')
-            ->pluck('title', 'id')
-            ->mapWithKeys(fn (mixed $label, mixed $id): array => [(string) $id => (string) $label])
-            ->all();
+        return app(ReferenceLookup::class)->activeTitles();
     }
 
     /** @return array<string, string> */
@@ -1373,11 +1368,7 @@ class CreateAdvanced extends Component implements HasForms
     /** @return array<string, string> */
     protected function venueOptions(): array
     {
-        return Venue::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return app(PlaceLookup::class)->venueOptionsForStatuses(['verified', 'pending']);
     }
 
     /** @return array<string, string> */

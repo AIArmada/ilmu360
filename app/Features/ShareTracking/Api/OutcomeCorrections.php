@@ -15,6 +15,22 @@ namespace App\Features\ShareTracking\Api;
 interface OutcomeCorrections
 {
     /**
+     * Unlocked read of the recorded correction for exactly one business key.
+     *
+     * Reward source-fact readers need the durable reversal evidence without
+     * opening a transaction or acquiring a lock.
+     */
+    public function findByBusinessKey(string $businessKey): ?OutcomeCorrectionSnapshot;
+
+    /**
+     * Oldest recorded corrections up to the requested limit, ordered by
+     * occurrence time then id — the order reward correction sweeps consume.
+     *
+     * @return list<OutcomeCorrectionSnapshot>
+     */
+    public function oldest(int $limit): array;
+
+    /**
      * Must be invoked inside the receipt-processing transaction. Acquire a
      * lock on any existing correction before deciding whether to project.
      */

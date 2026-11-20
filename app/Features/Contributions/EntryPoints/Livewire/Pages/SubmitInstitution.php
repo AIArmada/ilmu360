@@ -11,6 +11,7 @@ use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\EntryPoints\Filament\Forms\InstitutionContributionFormSchema;
 use App\Features\DonationChannels\Api\DonationQrMedia;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
+use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Location\FetchGooglePlaceDetailsAction;
@@ -84,7 +85,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
     public function form(Schema $schema): Schema
     {
         return $schema
-            ->model(new Institution)
+            ->model(Institution::class)
             ->statePath('data')
             ->components(InstitutionContributionFormSchema::components(
                 includeMedia: true,
@@ -290,18 +291,20 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                     ContributionSubjectType::Institution,
                     $state,
                     (string) $user->getKey(),
-                    function (string $institutionId) use ($submittedDonationRows, $donationQrUploads): void {
-                        $institution = Institution::query()->findOrFail($institutionId);
-                        $this->contributionForm()->model($institution)->saveRelationships();
+                    fn (string $institutionId) => app(InstitutionWorkflow::class)->withContributionModel(
+                        $institutionId,
+                        function (Institution $institution) use ($submittedDonationRows, $donationQrUploads): void {
+                            $this->contributionForm()->model($institution)->saveRelationships();
 
-                        if ($donationQrUploads !== []) {
-                            app(DonationQrMedia::class)->attachDonationQrUploads(
-                                $institution,
-                                $submittedDonationRows,
-                                $donationQrUploads,
-                            );
-                        }
-                    },
+                            if ($donationQrUploads !== []) {
+                                app(DonationQrMedia::class)->attachDonationQrUploads(
+                                    $institution,
+                                    $submittedDonationRows,
+                                    $donationQrUploads,
+                                );
+                            }
+                        },
+                    ),
                     'data',
                 );
             } catch (LockTimeoutException) {

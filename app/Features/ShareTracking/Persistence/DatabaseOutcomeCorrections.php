@@ -22,6 +22,30 @@ use Illuminate\Support\Facades\DB;
  */
 final class DatabaseOutcomeCorrections implements OutcomeCorrections
 {
+    public function findByBusinessKey(string $businessKey): ?OutcomeCorrectionSnapshot
+    {
+        $correction = ShareTrackingModel::query('share_outcome_correction')
+            ->where('business_key', $businessKey)
+            ->first();
+
+        return $correction instanceof Model ? $this->snapshot($correction) : null;
+    }
+
+    /**
+     * @return list<OutcomeCorrectionSnapshot>
+     */
+    public function oldest(int $limit): array
+    {
+        return ShareTrackingModel::query('share_outcome_correction')
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (Model $correction): OutcomeCorrectionSnapshot => $this->snapshot($correction))
+            ->values()
+            ->all();
+    }
+
     public function hasForBusinessKeyUnderLock(string $businessKey): bool
     {
         return ShareTrackingModel::query('share_outcome_correction')

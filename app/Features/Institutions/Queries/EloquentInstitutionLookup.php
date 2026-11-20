@@ -4,17 +4,26 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Queries;
 
+use AIArmada\Addressing\Data\AddressLocationData;
+use AIArmada\Addressing\Support\AddressLocationScope;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
+use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSummary;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Reports\Api\ReportSubject;
 use App\Features\Reports\Api\ReportSubjectType;
+use App\Models\User;
 use App\Platform\Admin\AdminResourceUrl;
+use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\DirectoryOption;
+use App\Shared\Directory\FollowableSubject;
 use BackedEnum;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final readonly class EloquentInstitutionLookup implements InstitutionLookup
 {
@@ -23,11 +32,318 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         private InstitutionSearchService $search,
     ) {}
 
+    public function findInstitutionBySlug(string $slug): ?object
+    {
+        return Institution::query()->where('slug', $slug)->first();
+    }
+
+    public function findInstitutionByKey(string $institutionId): ?object
+    {
+        return Institution::query()->find($institutionId);
+    }
+
+    public function findMemberInstitution(string $institutionId, string $accountId): ?object
+    {
+        return Institution::query()
+            ->whereKey($institutionId)
+            ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($accountId))
+            ->first();
+    }
+
+    public function institutionsByIds(array $institutionIds): object
+    {
+        return Institution::query()
+            ->whereKey($institutionIds)
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function findDetailRecord(string $identifier): ?object
+    {
+        return Institution::query()
+            ->with([
+                'names',
+                'media',
+                'addresses.country',
+                'contactMethods',
+                'socialProfiles',
+                'donationChannels.media',
+                'persons' => fn ($query) => $query->where('status', 'verified')->orderByPivot('is_primary', 'desc')->limit(12),
+                'persons.media',
+                'spaces' => fn ($query) => $query->where('status', 'active'),
+                'languages',
+            ])
+            ->tap(fn (Builder $query): Builder => $this->resolver->apply($query, 'institutions.slug', $identifier))
+            ->first();
+    }
+
+    public function aggregateSearchItemsQuery(array $institutionIds = []): object
+    {
+        $query = Institution::query()
+            ->select('institutions.*')
+            ->active()
+            ->selectSub(app(EventScheduleQuery::class)->institutionPublicEventCountSubquery(upcomingOnly: true), 'events_count')
+            ->with(['addresses', 'media', 'names']);
+
+        if ($institutionIds !== []) {
+            $query->whereIn('institutions.id', $institutionIds);
+        }
+
+        return $query;
+    }
+
+    public function baseDirectoryQuery(
+        ?string $type = null,
+        ?string $countryId = null,
+        ?string $stateId = null,
+        ?string $cityId = null,
+        ?string $adminArea1Id = null,
+        ?string $adminArea2Id = null,
+        ?string $accountId = null,
+    ): object {
+        $query = Institution::query()
+            ->select('institutions.*');
+
+        if ($accountId !== null) {
+            $followsTable = $query->getQuery()->getGrammar()->wrapTable($this->followsTable());
+
+            $query->selectRaw(
+                "exists(select 1 from {$followsTable} where {$followsTable}.follower_id = ? and {$followsTable}.followable_id = institutions.id and {$followsTable}.followable_type = ? and {$followsTable}.follower_type = ? and {$followsTable}.status = ?) as is_following",
+                [$accountId, $this->institutionMorphType(), (new User)->getMorphClass(), 'active'],
+            );
+        }
+
+        $query
+            ->active()
+            ->selectSub(app(EventScheduleQuery::class)->institutionPublicEventCountSubquery(), 'events_count')
+            ->with(['addresses', 'media', 'names']);
+
+        if ($type !== null && InstitutionType::tryFrom($type) instanceof InstitutionType) {
+            $query->where('institutions.type', $type);
+        }
+
+        app(AddressLocationScope::class)->apply($query, new AddressLocationData(
+            countryId: $countryId,
+            stateId: $stateId,
+            cityId: $cityId,
+            areaAssignments: array_filter([
+                'administrative_district' => $adminArea1Id,
+                'administrative_subdivision' => $adminArea2Id,
+            ]),
+        ));
+
+        return $query;
+    }
+
+    private function followsTable(): string
+    {
+        return (string) config('engagement.database.tables.follows', 'engagement_follows');
+    }
+
+    public function institutionsForMember(string $accountId): object
+    {
+        return Institution::query()
+            ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($accountId))
+            ->withCount('members')
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function visibleDisplayNameOptions(): array
+    {
+        return Institution::query()
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
+            ->orderBy('name')
+            ->with('names')
+            ->get(['id', 'name'])
+            ->mapWithKeys(static fn (Institution $institution): array => [
+                (string) $institution->id => (string) $institution->display_name,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function searchDisplayNameOptions(string $search, int $limit = 50): array
+    {
+        $search = trim($search);
+        $searchPattern = "%{$search}%";
+
+        return Institution::query()
+            ->whereIn('status', ['verified', 'pending'])
+            ->where(function (Builder $query) use ($searchPattern): void {
+                $query->whereLike('name', $searchPattern)
+                    ->orWhereHas('names', fn (Builder $names): Builder => $names->whereLike('full_name', $searchPattern));
+            })
+            ->with('names:id,institution_id,full_name,is_primary')
+            ->orderBy('name')
+            ->limit($limit)
+            ->get(['id', 'name'])
+            ->mapWithKeys(static fn (Institution $institution): array => [
+                (string) $institution->getKey() => (string) $institution->display_name,
+            ])
+            ->all();
+    }
+
+    public function newInstitutionQuery(): object
+    {
+        return Institution::query();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function membershipApplicationOptions(string $search = ''): array
+    {
+        $query = Institution::query()
+            ->where('status', InstitutionStatus::Verified->value)
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues());
+
+        if (filled($search)) {
+            $query->searchNameOrNickname($search);
+        }
+
+        return $query
+            ->orderBy('name')
+            ->limit(50)
+            ->with(['addresses', 'names'])
+            ->get(['id', 'slug', 'name'])
+            ->mapWithKeys(fn (Institution $institution): array => [
+                (string) $institution->getKey() => $this->membershipApplicationLabelFor($institution),
+            ])
+            ->all();
+    }
+
+    public function membershipApplicationLabel(string $institutionId): ?string
+    {
+        $institution = Institution::query()
+            ->where('status', InstitutionStatus::Verified->value)
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
+            ->whereKey($institutionId)
+            ->with(['addresses', 'names'])
+            ->first(['id', 'name']);
+
+        return $institution instanceof Institution
+            ? $this->membershipApplicationLabelFor($institution)
+            : null;
+    }
+
+    public function followedInstitutions(array $institutionIds): object
+    {
+        return Institution::query()
+            ->whereKey($institutionIds)
+            ->with(['media'])
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function membershipApplicationLabelFor(Institution $institution): string
+    {
+        $location = AddressHierarchyFormatter::format($institution->primaryAddress());
+
+        if ($location === '') {
+            return (string) $institution->display_name;
+        }
+
+        return "{$institution->display_name} - {$location}";
+    }
+
+    /**
+     * @param  list<string>  $institutionIds
+     * @return array<string, string>
+     */
+    public function displayNamesByIds(array $institutionIds): array
+    {
+        return Institution::query()
+            ->whereKey($institutionIds)
+            ->with('names:id,institution_id,full_name,is_primary')
+            ->get(['id', 'name'])
+            ->mapWithKeys(static fn (Institution $institution): array => [
+                (string) $institution->getKey() => (string) $institution->display_name,
+            ])
+            ->all();
+    }
+
     public function resolveIdentifier(string $identifier): ?string
     {
         $entity = $this->entity($identifier);
 
         return $entity instanceof Institution ? (string) $entity->getKey() : null;
+    }
+
+    public function findFollowableSubject(string $identifier): ?FollowableSubject
+    {
+        $institution = $this->entity($identifier);
+
+        if (! $institution instanceof Institution) {
+            return null;
+        }
+
+        return new FollowableSubject(
+            id: (string) $institution->getKey(),
+            slug: (string) $institution->slug,
+            type: 'institution',
+            morphType: $institution->getMorphClass(),
+            isPubliclyVisible: in_array($institution->status, InstitutionStatus::publiclyVisible(), true),
+        );
+    }
+
+    public function findDirectoryFollowableSubject(string $identifier): ?FollowableSubject
+    {
+        $institution = $this->entity($identifier);
+
+        if (! $institution instanceof Institution
+            || ! in_array($institution->status, InstitutionStatus::publiclyVisible(), true)) {
+            return null;
+        }
+
+        return new FollowableSubject(
+            id: (string) $institution->getKey(),
+            slug: (string) $institution->slug,
+            type: 'institution',
+            morphType: $institution->getMorphClass(),
+            isPubliclyVisible: true,
+        );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function allNameOptions(): array
+    {
+        return Institution::query()
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->mapWithKeys(static fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
+            ->all();
+    }
+
+    public function primaryAddressId(string $institutionId): ?string
+    {
+        $address = Institution::query()->find($institutionId)?->primaryAddress();
+
+        return $address !== null ? (string) $address->getKey() : null;
+    }
+
+    /**
+     * @return array{found: bool, capacity: int|null}
+     */
+    public function institutionSpaceCapacity(string $institutionId, string $venueSpaceId): array
+    {
+        $space = Institution::query()
+            ->find($institutionId)
+            ?->spaces()
+            ->whereKey($venueSpaceId)
+            ->first();
+
+        return [
+            'found' => $space !== null,
+            'capacity' => $space?->effectiveCapacity(),
+        ];
     }
 
     public function find(string $identifier): ?InstitutionSummary
@@ -176,5 +492,128 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
     public function institutionMorphType(): string
     {
         return (new Institution)->getMorphClass();
+    }
+
+    public function exists(string $institutionId): bool
+    {
+        return Institution::query()->whereKey($institutionId)->exists();
+    }
+
+    public function assertExists(string $institutionId): void
+    {
+        if (! $this->exists($institutionId)) {
+            throw (new ModelNotFoundException)->setModel(Institution::class, [$institutionId]);
+        }
+    }
+
+    public function visibleDisplayName(string $institutionId): ?string
+    {
+        return Institution::query()
+            ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
+            ->whereKey($institutionId)
+            ->with('names')
+            ->first(['id', 'name'])
+            ?->display_name;
+    }
+
+    public function displayName(string $institutionId): ?string
+    {
+        return Institution::query()
+            ->whereKey($institutionId)
+            ->with('names')
+            ->first(['id', 'name'])
+            ?->display_name;
+    }
+
+    /**
+     * @param  array<string, string>  $areaAssignments
+     * @return array<string, string>
+     */
+    public function locationOptions(
+        ?string $countryId,
+        ?string $stateId,
+        array $areaAssignments,
+        string $search = '',
+        int $limit = 50,
+    ): array {
+        $query = Institution::query()
+            ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues());
+
+        app(AddressLocationScope::class)->apply($query, new AddressLocationData(
+            countryId: filled($countryId) ? $countryId : null,
+            stateId: filled($stateId) ? $stateId : null,
+            areaAssignments: $areaAssignments,
+        ));
+
+        $query->searchNameOrNickname($search);
+
+        return $query
+            ->orderBy('name')
+            ->with('names')
+            ->limit(max(1, $limit))
+            ->get(['id', 'name'])
+            ->mapWithKeys(static fn (Institution $institution): array => [
+                (string) $institution->id => $institution->display_name,
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  array<string, string>  $areaAssignments
+     */
+    public function locationContains(
+        string $institutionId,
+        ?string $countryId,
+        ?string $stateId,
+        array $areaAssignments,
+    ): bool {
+        $query = Institution::query()
+            ->whereKey($institutionId)
+            ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues());
+
+        app(AddressLocationScope::class)->apply($query, new AddressLocationData(
+            countryId: filled($countryId) ? $countryId : null,
+            stateId: filled($stateId) ? $stateId : null,
+            areaAssignments: $areaAssignments,
+        ));
+
+        return $query->exists();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function nameOptions(string $search = '', int $limit = 50): array
+    {
+        $query = Institution::query();
+        $normalizedSearch = trim($search);
+
+        if ($normalizedSearch !== '') {
+            $query->where('name', 'like', '%'.$normalizedSearch.'%');
+        }
+
+        return $query
+            ->orderBy('name')
+            ->limit(max(1, $limit))
+            ->pluck('name', 'id')
+            ->mapWithKeys(static fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $institutionIds
+     * @return array<string, string>
+     */
+    public function namesByIds(array $institutionIds): array
+    {
+        if ($institutionIds === []) {
+            return [];
+        }
+
+        return Institution::query()
+            ->whereKey($institutionIds)
+            ->pluck('name', 'id')
+            ->mapWithKeys(static fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
+            ->all();
     }
 }

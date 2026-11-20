@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Policies;
 
-use App\Features\Events\Models\Event;
-use App\Features\Events\Models\Series;
-use App\Features\Institutions\Api\Enums\InstitutionStatus;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\SpeakerStatus;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
+use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\SeriesAuthoring;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Services\ShareTrackingUrlService;
 use InvalidArgumentException;
@@ -62,9 +60,7 @@ final readonly class ShareDestinationPolicy
             return false;
         }
 
-        $event = Event::query()->whereKey($subjectId)->first();
-
-        return $event instanceof Event && $event->isPubliclyReachable();
+        return app(EventScheduleQuery::class)->isPubliclyReachable($subjectId);
     }
 
     private function isInstitutionReachable(?string $subjectId): bool
@@ -73,10 +69,7 @@ final readonly class ShareDestinationPolicy
             return false;
         }
 
-        $institution = Institution::query()->whereKey($subjectId)->first();
-
-        return $institution instanceof Institution
-            && in_array($institution->status, InstitutionStatus::publiclyVisible(), true);
+        return app(InstitutionLookup::class)->findDirectoryFollowableSubject($subjectId) !== null;
     }
 
     private function isPersonReachable(?string $subjectId): bool
@@ -85,11 +78,7 @@ final readonly class ShareDestinationPolicy
             return false;
         }
 
-        $person = Person::query()->whereKey($subjectId)->first();
-
-        return $person instanceof Person
-            && in_array((string) $person->status, ['verified', 'pending'], true)
-            && $person->speaker_status === SpeakerStatus::Active;
+        return app(PersonLookup::class)->findDirectoryFollowableSubject($subjectId) !== null;
     }
 
     private function isSeriesReachable(?string $subjectId): bool
@@ -98,9 +87,7 @@ final readonly class ShareDestinationPolicy
             return false;
         }
 
-        $series = Series::query()->whereKey($subjectId)->first();
-
-        return $series instanceof Series && (string) $series->status === 'active';
+        return app(SeriesAuthoring::class)->isPubliclyReachable($subjectId);
     }
 
     private function isReferenceReachable(?string $subjectId): bool
@@ -109,8 +96,6 @@ final readonly class ShareDestinationPolicy
             return false;
         }
 
-        $reference = Reference::query()->whereKey($subjectId)->first();
-
-        return $reference instanceof Reference && $reference->isPubliclyVisible();
+        return app(ReferenceLookup::class)->findDirectoryFollowableSubject($subjectId) !== null;
     }
 }

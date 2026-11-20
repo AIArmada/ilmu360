@@ -11,9 +11,9 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Events\Api\EventSchedulePageData;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Models\EventReferencePivot;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
 use App\Models\User;
@@ -24,7 +24,6 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Collection;
@@ -267,47 +266,11 @@ class Show extends Component
         ];
 
         $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
-        /** @var EventBuilder $query */
-        $query = Event::query()->where(function (Builder $referenceFilter) use ($referenceIds): void {
-            $referenceFilter
-                ->whereHas('references', fn (Builder $references): Builder => $references
-                    ->whereIn('references.id', $referenceIds))
-                ->orWhereHas('occurrences', function (Builder $occurrences) use ($referenceIds): void {
-                    $occurrence = new EventOccurrence;
-                    $occurrences
-                        ->whereIn($occurrence->qualifyColumn('status'), Event::PUBLIC_SCHEDULE_STATUSES)
-                        ->whereIn($occurrence->qualifyColumn('visibility'), Event::PUBLIC_SCHEDULE_VISIBILITIES)
-                        ->whereHas('references', function (Builder $referenceRows) use ($referenceIds): void {
-                            $referenceRows
-                                ->where('visibility', 'public')
-                                ->whereHasMorph('referenceable', [app(ReferenceQueries::class)->referenceModelClass()], function (Builder $references) use ($referenceIds): void {
-                                    app(ReferenceQueries::class)->applyPublicVisibility($references)
-                                        ->whereIn('references.id', $referenceIds);
-                                });
-                        });
-                });
-        });
 
-        return $query
-            ->active()
-            ->reorder()
-            ->with([
-                ...$addressRelations,
-                'persons.media',
-                'persons.titleAssignments.title.category',
-                'keyPeople.person',
-                'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
-                    app(ReferenceQueries::class)->applyPublicVisibility($references->getQuery());
-                },
-                'media',
-                'institution.media',
-                'classifications.term',
-                'primaryOccurrence',
-                'displayOccurrence.media',
-                'timeExpressions',
-                'links',
-                'occurrences.references',
-            ]);
+        /** @var EventBuilder $query */
+        $query = app(EventScheduleQuery::class)->referenceEventsQuery($referenceIds, $addressRelations);
+
+        return $query;
     }
 
     /**

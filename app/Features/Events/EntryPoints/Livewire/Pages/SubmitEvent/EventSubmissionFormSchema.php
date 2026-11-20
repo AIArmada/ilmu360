@@ -17,6 +17,7 @@ use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Enums\Terms\DomainTermCode;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Services\SubmitEventOptionsProvider;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Events\Support\SubmitEventFormContext;
@@ -1947,15 +1948,7 @@ final readonly class EventSubmissionFormSchema
             return null;
         }
 
-        if (Institution::query()->whereKey($organizerId)->exists()) {
-            return 'institution';
-        }
-
-        if (Person::query()->whereKey($organizerId)->exists()) {
-            return 'person';
-        }
-
-        return null;
+        return OrganizerResolver::kindForId($organizerId);
     }
 
     private function resolveSubmissionCountryId(mixed $countryId = null): ?string

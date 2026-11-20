@@ -18,6 +18,7 @@ use App\Features\Membership\Api\MembershipSubjectOptionsCatalog;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
 use App\Features\Membership\EntryPoints\Admin\Member\MembershipApplicationMemberWorkflowToolContributor;
 use App\Features\Membership\EntryPoints\Admin\RecordActions\MembershipApplicationRecordActionContributor;
+use App\Features\Membership\EntryPoints\Api\Admin\MembershipApplicationResourceDefinition;
 use App\Features\Membership\EntryPoints\ApiDocumentation\MembershipRequestExampleContributor;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Features\Membership\EntryPoints\Filament\Support\AccountMembershipDirectoryAdapter;
@@ -40,6 +41,7 @@ use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberWorkflowToolRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
@@ -99,6 +101,7 @@ final class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(MembershipApplicationResourceDefinition::class));
         parent::boot();
 
         $this->app->make(RequestExampleRegistry::class)->register(new MembershipRequestExampleContributor);

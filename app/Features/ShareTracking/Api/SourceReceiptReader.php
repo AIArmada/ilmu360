@@ -20,4 +20,17 @@ interface SourceReceiptReader
      * @return iterable<string> ordered business keys inside the inclusive window
      */
     public function keysBetween(DateTimeImmutable $from, DateTimeImmutable $to): iterable;
+
+    /**
+     * Frozen attribution decision for exactly one canonical business key.
+     */
+    public function findByBusinessKey(string $businessKey): ?SourceAttributionReceiptSnapshot;
+
+    /**
+     * Whether any committed receipt exists for the supplied source
+     * transitions and outcome type.
+     *
+     * @param  list<string>  $sourceTransitionIds
+     */
+    public function hasForSourceTransitions(string $outcomeType, array $sourceTransitionIds): bool;
 }

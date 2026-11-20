@@ -4,7 +4,7 @@ namespace App\Features\Engagement\EntryPoints\Livewire\Concerns;
 
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventSaveCommands;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventEngagementEligibility;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
 use Livewire\Attributes\Computed;
@@ -26,22 +26,17 @@ trait TogglesEventSave
             return;
         }
 
-        $event = Event::query()
-            ->active()
-            ->whereKey($eventId)
-            ->first();
-
-        if (! $event instanceof Event || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true)) {
+        if (! app(EventEngagementEligibility::class)->isSaveEligible($eventId)) {
             return;
         }
 
-        if (app(EventEngagement::class)->hasSavedEvent((string) $user->getKey(), (string) $event->getKey())) {
-            app(EventSaveCommands::class)->unsave((string) $event->getKey(), (string) $user->getKey());
+        if (app(EventEngagement::class)->hasSavedEvent((string) $user->getKey(), $eventId)) {
+            app(EventSaveCommands::class)->unsave($eventId, (string) $user->getKey());
 
             return;
         }
 
-        app(EventSaveCommands::class)->save((string) $event->getKey(), (string) $user->getKey());
+        app(EventSaveCommands::class)->save($eventId, (string) $user->getKey());
     }
 
     /**

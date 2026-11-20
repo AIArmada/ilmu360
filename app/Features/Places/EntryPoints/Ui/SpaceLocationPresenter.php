@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Places\EntryPoints\Ui;
 
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
 
 final class SpaceLocationPresenter
 {
@@ -27,14 +27,11 @@ final class SpaceLocationPresenter
         }
 
         if ($institutionId !== null) {
-            $space = Institution::query()
-                ->find($institutionId)
-                ?->spaces()
-                ->whereKey($location->venue_space_id)
-                ->first();
+            $space = app(InstitutionLookup::class)
+                ->institutionSpaceCapacity($institutionId, (string) $location->venue_space_id);
 
-            if ($space !== null) {
-                return $space->effectiveCapacity();
+            if ($space['found']) {
+                return $space['capacity'];
             }
         }
 

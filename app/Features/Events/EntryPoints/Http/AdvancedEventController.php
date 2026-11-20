@@ -10,10 +10,10 @@ use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
-use App\Features\Persons\Models\Person;
+use App\Features\Persons\Api\PersonLookup;
 use App\Platform\Http\FrontendController;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -61,8 +61,8 @@ class AdvancedEventController extends FrontendController
 
         $preparedSubmission = $advancedProgramPreparation->prepare((string) $user->getKey(), $validated);
         match ($preparedSubmission['primary_organizer_type']) {
-            'institution' => Institution::query()->findOrFail($preparedSubmission['primary_organizer_id']),
-            'person' => Person::query()->findOrFail($preparedSubmission['primary_organizer_id']),
+            'institution' => app(InstitutionLookup::class)->assertExists($preparedSubmission['primary_organizer_id']),
+            'person' => app(PersonLookup::class)->assertExists($preparedSubmission['primary_organizer_id']),
         };
         $organization = null;
 

@@ -4,7 +4,7 @@ namespace App\Features\References\Services;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\References\Enums\ReferenceContributorRole;
-use App\Features\Persons\Models\Person;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Models\Reference;
 use App\Features\References\Support\ReferenceScopedSearch;
@@ -335,7 +335,7 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
             ->join('persons as reference_author_person', 'reference_author_person.id', '=', 'reference_author_link.contributor_id')
             ->whereIn('reference_author_link.reference_id', $ownerIds)
             ->where('reference_author_link.role', ReferenceContributorRole::Author->value)
-            ->where('reference_author_link.contributor_type', (new Person)->getMorphClass())
+            ->where('reference_author_link.contributor_type', app(PersonLookup::class)->personMorphType())
             ->orderBy('reference_author_link.contributor_id')
             ->get([
                 'reference_author_link.reference_id',

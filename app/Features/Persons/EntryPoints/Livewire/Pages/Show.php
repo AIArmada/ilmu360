@@ -16,6 +16,7 @@ use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\EventKeyPersonPivot;
@@ -330,7 +331,7 @@ class Show extends Component
         $past = $past->take($this->pastPerPage);
 
         $occurrencesTable = (new EventOccurrence)->getTable();
-        $involvementsTable = (new EventKeyPerson)->getTable();
+        $involvementsTable = app(EventAuthoring::class)->eventKeyPersonTable();
         $primaryOccurrence = EventOccurrence::query()
             ->select("{$occurrencesTable}.starts_at")
             ->whereColumn("{$occurrencesTable}.event_id", "{$involvementsTable}.event_id")
@@ -555,7 +556,7 @@ class Show extends Component
      */
     private function personEventQuery(): BelongsToMany
     {
-        $eventsTable = (new Event)->getTable();
+        $eventsTable = app(EventAuthoring::class)->eventTable();
 
         return $this->person->personEvents()
             ->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)

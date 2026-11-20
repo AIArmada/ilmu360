@@ -2,10 +2,14 @@
 
 namespace App\Features\Engagement\EntryPoints\Http;
 
+use AIArmada\Engagement\Models\Response;
 use App\Features\Engagement\Api\Data\EventGoingStateData;
+use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\EntryPoints\Http\Data\EventEngagementListItemData;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Event;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -19,6 +23,11 @@ use Illuminate\Support\Str;
 #[Group('Event Going', 'Authenticated event-going endpoints for listing and idempotent event going state management.')]
 class EventGoingController extends Controller
 {
+    public function __construct(
+        private readonly EventScheduleQuery $events,
+        private readonly EventAuthoring $eventAuthoring,
+    ) {}
+
     #[Endpoint(
         title: 'List going events',
         description: 'Returns the authenticated user\'s current going-event list from the `/me/events/going` collection.',
@@ -26,32 +35,37 @@ class EventGoingController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser($request);
-        $goingEvents = Event::query()
-            ->whereHas('goingBy', fn ($query) => $query
-                ->where('responder_type', $user->getMorphClass())
-                ->where('responder_id', $user->getKey())
-                ->where('status', 'active'))
-            ->with([
-                'institution:id,name,slug',
-                'venue:id,name',
-                'persons:id,name,slug',
-                'goingBy' => fn ($query) => $query
-                    ->where('responder_type', $user->getMorphClass())
-                    ->where('responder_id', $user->getKey())
-                    ->where('status', 'active'),
-            ])
-            ->active()
-            ->orderBy('starts_at')
-            ->simplePaginate(ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100));
+        $goingEventIds = app(EventEngagement::class)->goingEventIds((string) $user->getKey());
+        $page = $this->events->activeEventsForIds(
+            $goingEventIds,
+            max(1, $request->integer('page', 1)),
+            ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100),
+        );
+
+        $goingResponses = Response::query()
+            ->where('responder_type', $user->getMorphClass())
+            ->where('responder_id', $user->getKey())
+            ->where('respondable_type', $this->eventAuthoring->eventMorphType())
+            ->whereIn('respondable_id', array_column($page['items'], 'id'))
+            ->where('response_type', 'going')
+            ->where('status', 'active')
+            ->get()
+            ->keyBy(static fn (Response $response): string => (string) $response->respondable_id);
 
         return response()->json([
-            'data' => collect($goingEvents->items())
-                ->map(fn (Event $event): array => EventEngagementListItemData::fromModel($event, $event->goingBy->first())->payload())
+            'data' => collect($page['items'])
+                ->map(fn (array $event): array => EventEngagementListItemData::fromPayload(
+                    $event,
+                    $goingResponses->get((string) $event['id']),
+                )->payload())
                 ->all(),
             'meta' => [
                 'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),
                 'pagination' => [
-                    ...ApiPagination::simplePaginationMeta($goingEvents),
+                    'page' => $page['page'],
+                    'per_page' => $page['per_page'],
+                    'has_more' => $page['has_more'],
+                    'next_page' => $page['next_page'],
                 ],
             ],
         ]);

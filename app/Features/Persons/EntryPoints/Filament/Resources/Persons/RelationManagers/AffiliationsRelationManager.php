@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use App\Platform\Admin\AdminResourceLink;
@@ -28,7 +28,7 @@ class AffiliationsRelationManager extends PackageAffiliationsRelationManager
     #[\Override]
     public static function getInstitutionOptions(): array
     {
-        return Institution::orderBy('name')->pluck('name', 'id')->toArray();
+        return app(InstitutionLookup::class)->allNameOptions();
     }
 
     #[\Override]

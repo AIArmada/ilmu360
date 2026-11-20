@@ -18,6 +18,7 @@ use App\Features\Identity\Contributors\IdentityAccountLifecycleContributor;
 use App\Features\Identity\Contributors\ReportsAccountLifecycleContributor;
 use App\Features\Identity\Contributors\SavedSearchesAccountLifecycleContributor;
 use App\Features\Identity\Contributors\VerificationAttributionContributor;
+use App\Features\Identity\EntryPoints\Api\Admin\UserResourceDefinition;
 use App\Features\Identity\EntryPoints\ApiDocumentation\IdentityRequestExampleContributor;
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
@@ -32,6 +33,7 @@ use App\Features\Identity\Support\Telemetry\IdentitySignalSchemaContributor;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Telemetry\SignalSchemaRegistry;
@@ -67,6 +69,7 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(UserResourceDefinition::class));
         parent::boot();
 
         $this->app->make(SignalSchemaRegistry::class)->register(new IdentitySignalSchemaContributor);

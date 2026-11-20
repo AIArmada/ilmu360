@@ -110,12 +110,6 @@ class Registration extends PackageEventRegistration implements AuditableContract
     }
 
     #[\Override]
-    public function delete(): ?bool
-    {
-        return DB::transaction(fn (): ?bool => parent::delete());
-    }
-
-    #[\Override]
     protected static function newFactory(): RegistrationFactory
     {
         return RegistrationFactory::new();

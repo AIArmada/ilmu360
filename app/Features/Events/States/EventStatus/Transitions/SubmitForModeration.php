@@ -5,6 +5,7 @@ namespace App\Features\Events\States\EventStatus\Transitions;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;
 use App\Features\Events\Notifications\EventSubmittedNotification;
+use App\Features\Events\Persistence\EventStatusWriter;
 use App\Features\Events\States\EventStatus\Pending;
 use App\Models\User;
 use Filament\Support\Colors\Color;
@@ -26,9 +27,9 @@ class SubmitForModeration extends Transition implements HasColor, HasIcon, HasLa
 
     public function handle(): Event
     {
-        $this->event->status = Pending::class;
-        $this->event->last_state_change_at = now();
-        $this->event->save();
+        app(EventStatusWriter::class)->apply($this->event, Pending::class, [
+            'last_state_change_at' => now(),
+        ]);
 
         $event = $this->event;
 

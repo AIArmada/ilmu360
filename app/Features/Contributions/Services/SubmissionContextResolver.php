@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Features\Contributions\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Contributions\Api\SubmissionContext;
 use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Api\OrganizerLookup;
 use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Models\User;
 use App\Shared\Submission\SpaceSelectionEligibility;
@@ -118,7 +121,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
             ]);
         }
 
-        $persisted = Event::query()->find($containerId);
+        $persisted = app(EventScheduleQuery::class)->findEvent($containerId);
 
         if (! $persisted instanceof Event) {
             throw ValidationException::withMessages([
@@ -240,7 +243,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
         return $resolvedCountryId;
     }
 
-    public function resolvePrimaryOrganizer(mixed $primaryOrganizerId): Institution|Person|null
+    public function resolvePrimaryOrganizer(mixed $primaryOrganizerId): ?ContributionOrganizer
     {
         $organizerId = is_string($primaryOrganizerId) ? trim($primaryOrganizerId) : '';
 
@@ -248,8 +251,15 @@ final readonly class SubmissionContextResolver implements SubmissionContext
             return null;
         }
 
-        return Institution::query()->find($organizerId)
-            ?? Person::query()->find($organizerId);
+        if (app(InstitutionLookup::class)->exists($organizerId)) {
+            return new ContributionOrganizer('institution', $organizerId);
+        }
+
+        if (app(PersonLookup::class)->exists($organizerId)) {
+            return new ContributionOrganizer('person', $organizerId);
+        }
+
+        return null;
     }
 
     /**
@@ -348,12 +358,10 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      */
     public function resolveTargetLocation(
         array $validated,
-        Institution|Person $primaryOrganizer,
+        ContributionOrganizer $primaryOrganizer,
     ): array {
         if (SubmissionValues::enumValue($validated['event_format'] ?? null) === EventFormat::Online->value) {
-            $organizerKind = $primaryOrganizer instanceof Institution ? 'institution' : 'person';
-
-            return PrayerTargetSelector::forOnline($organizerKind, (string) $primaryOrganizer->getKey());
+            return PrayerTargetSelector::forOnline($primaryOrganizer->kind, $primaryOrganizer->id);
         }
 
         $targetInstitutionId = null;
@@ -368,9 +376,9 @@ final readonly class SubmissionContextResolver implements SubmissionContext
             $locationInstitutionId = null;
         }
 
-        if ($primaryOrganizer instanceof Institution) {
+        if ($primaryOrganizer->kind === 'institution') {
             if (($validated['location_same_as_institution'] ?? true) == true) {
-                $targetInstitutionId = (string) $primaryOrganizer->getKey();
+                $targetInstitutionId = $primaryOrganizer->id;
             } elseif (($validated['location_type'] ?? null) === 'institution') {
                 $targetInstitutionId = $locationInstitutionId;
             } else {
@@ -502,7 +510,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
 
     public function resolveTargetLocationFor(array $validated, object $primaryOrganizer): array
     {
-        if (! $primaryOrganizer instanceof Institution && ! $primaryOrganizer instanceof Person) {
+        if (! $primaryOrganizer instanceof ContributionOrganizer) {
             throw new InvalidArgumentException('The primary organizer must be an institution or a person.');
         }
 

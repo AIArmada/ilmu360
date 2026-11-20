@@ -7,6 +7,7 @@ namespace App\Features\References\Queries;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\References\Enums\ReferenceRecordKind;
 use AIArmada\References\Rules\Isbn;
+use App\Features\References\Api\ContributionProjection;
 use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
@@ -14,15 +15,10 @@ use App\Platform\Models\MorphModelResolver;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 
-final readonly class ReferenceContributionProjection implements \App\Shared\Contributions\ContributionProjection
+final readonly class ReferenceContributionProjection implements ContributionProjection
 {
     use \App\Shared\Contributions\Support\BuildsContributionDescriptors;
     use \App\Shared\Contributions\Support\BuildsContributionSubjectState;
-
-    public function supports(string $entityType): bool
-    {
-        return $entityType === 'reference';
-    }
 
     /** @return array<string, mixed> */
     public function contractFor(string $subjectId): array

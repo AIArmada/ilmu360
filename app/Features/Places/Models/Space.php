@@ -50,24 +50,9 @@ class Space extends VenueSpace implements AuditableContract
         });
 
         parent::booted();
-    }
 
-    /**
-     * Delete the row atomically with its institution links: ordinary
-     * Model::delete() opens no transaction of its own, and the pivot has no
-     * database-level cascade.
-     */
-    #[\Override]
-    public function delete(): ?bool
-    {
-        return $this->getConnection()->transaction(function (): ?bool {
-            $deleted = parent::delete();
-
-            if ($deleted) {
-                app(InstitutionSpaceLinks::class)->deleteForSpace((string) $this->getKey());
-            }
-
-            return $deleted;
+        static::deleted(function (self $space): void {
+            app(InstitutionSpaceLinks::class)->deleteForSpace((string) $space->getKey());
         });
     }
 

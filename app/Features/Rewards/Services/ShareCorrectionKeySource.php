@@ -12,7 +12,7 @@ use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Enums\RewardAwardStatus;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Api\OutcomeCorrections;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,25 +23,24 @@ use Illuminate\Support\Facades\DB;
  */
 final readonly class ShareCorrectionKeySource implements RewardCorrectionKeySource
 {
-    public function __construct(private RewardSourceFactReader $sourceFactReader) {}
+    public function __construct(
+        private RewardSourceFactReader $sourceFactReader,
+        private OutcomeCorrections $outcomeCorrections,
+    ) {}
 
     public function taintedKeys(int $limit): array
     {
         $tainted = [];
 
-        $corrections = ShareOutcomeCorrection::query()
-            ->orderBy('occurred_at')
-            ->orderBy('id')
-            ->limit($limit)
-            ->get();
+        $corrections = $this->outcomeCorrections->oldest($limit);
 
         foreach ($corrections as $correction) {
-            $key = (string) $correction->business_key;
+            $key = $correction->businessKey;
 
             $tainted[$key] ??= [
                 'reason' => 'source-correction:'.$correction->reason,
                 'evidence' => [
-                    'correction_id' => (string) $correction->getKey(),
+                    'correction_id' => $correction->id,
                     'business_key' => $key,
                 ],
             ];
@@ -185,15 +184,13 @@ final readonly class ShareCorrectionKeySource implements RewardCorrectionKeySour
 
     public function causeFor(string $businessKey): ?array
     {
-        $correction = ShareOutcomeCorrection::query()
-            ->where('business_key', $businessKey)
-            ->first();
+        $correction = $this->outcomeCorrections->findByBusinessKey($businessKey);
 
-        if ($correction instanceof ShareOutcomeCorrection) {
+        if ($correction instanceof \App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot) {
             return [
                 'reason' => 'source-correction:'.$correction->reason,
                 'evidence' => [
-                    'correction_id' => (string) $correction->getKey(),
+                    'correction_id' => $correction->id,
                     'business_key' => $businessKey,
                 ],
             ];

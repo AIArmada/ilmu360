@@ -14,7 +14,8 @@ use Spatie\Permission\PermissionRegistrar;
  *
  * Only team-scoped rows are handled here. Global (team-null) role and
  * permission rows remain in the conventional restoration path in
- * HasUserRestoration. Authz tables are never claimed by a feature.
+ * HasUserRestoration. Membership claims these scoped authz pivot writes in
+ * its feature manifest; global authz rows stay unclaimed.
  */
 final readonly class EloquentScopedMembershipRoleStore implements ScopedMembershipRoleStore
 {

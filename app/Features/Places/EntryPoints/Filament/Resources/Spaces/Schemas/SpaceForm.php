@@ -3,7 +3,7 @@
 namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces\Schemas;
 
 use AIArmada\Events\Models\VenueSpaceType;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -99,10 +99,7 @@ class SpaceForm
                         ->label(__('Institution capacity overrides'))
                         ->schema([
                             Select::make('institution_id')
-                                ->options(fn (): array => Institution::query()
-                                    ->orderBy('name')
-                                    ->pluck('name', 'id')
-                                    ->all())
+                                ->options(fn (): array => app(InstitutionLookup::class)->allNameOptions())
                                 ->searchable()
                                 ->required(),
                             TextInput::make('capacity')

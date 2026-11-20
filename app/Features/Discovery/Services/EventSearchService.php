@@ -1,16 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Discovery\Services;
 
-use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Discovery\Api\Data\EventSearchPage;
+use App\Features\Discovery\Api\EventListPayloads;
 use App\Features\Discovery\Api\EventSearchReader;
+use App\Features\Events\Api\EventCards;
 use App\Features\Events\Api\EventSearchCache;
 use App\Features\Events\Models\Event;
 use App\Platform\Search\EventDiscoveryReaders;
 use App\Platform\Search\TypesenseHealthCheckService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -18,9 +23,10 @@ class EventSearchService implements EventSearchReader
 {
     public function __construct(
         private readonly TypesenseHealthCheckService $healthCheck,
-        private readonly EventSearchRelationProvider $relationProvider,
         private readonly EventSearchCache $eventSearchCache,
         private readonly EventDiscoveryReaders $readers,
+        private readonly EventCards $eventCards,
+        private readonly EventListPayloads $eventListPayloads,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
     ) {}
 
@@ -28,21 +34,20 @@ class EventSearchService implements EventSearchReader
      * Search events using Typesense if available, otherwise fallback to database.
      *
      * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, Event>
      */
     public function search(
         ?string $query = null,
         array $filters = [],
         int $perPage = 20,
         string $sort = 'time'
-    ): LengthAwarePaginator {
+    ): EventSearchPage {
         $criteria = $this->criteriaFactory->fromSearch($query, $filters, $perPage, $sort);
 
         if ($this->usesDefaultSearchCache($criteria)) {
             return $this->cachedDefaultSearch($perPage);
         }
 
-        return $this->performSearch($criteria);
+        return $this->toPage($this->performSearch($criteria));
     }
 
     /** @return LengthAwarePaginator<int, Event> */
@@ -74,10 +79,7 @@ class EventSearchService implements EventSearchReader
             && $criteria->page === 1;
     }
 
-    /**
-     * @return LengthAwarePaginator<int, Event>
-     */
-    private function cachedDefaultSearch(int $perPage): LengthAwarePaginator
+    private function cachedDefaultSearch(int $perPage): EventSearchPage
     {
         $criteria = $this->criteriaFactory->fromSearch(null, [], $perPage, 'time');
 
@@ -95,49 +97,73 @@ class EventSearchService implements EventSearchReader
                 'error' => $exception->getMessage(),
             ]);
 
-            return $this->performSearch($criteria);
+            return $this->toPage($this->performSearch($criteria));
         }
 
-        if ($payload->ids === []) {
-            return new Paginator(
-                items: collect(),
-                total: $payload->total,
-                perPage: $perPage,
-                currentPage: 1,
-                options: [
-                    'path' => Paginator::resolveCurrentPath(),
-                    'pageName' => 'page',
-                    'query' => request()->query(),
-                ],
-            );
-        }
+        return $this->cachedPage($payload->ids, $payload->total, $perPage);
+    }
 
-        $events = Event::query()
-            ->with($this->relationProvider->relations())
-            ->whereHas('occurrences')
-            ->whereKey($payload->ids)
-            ->get()
-            ->keyBy('id');
+    /**
+     * @param  list<string>  $eventIds
+     */
+    private function cachedPage(array $eventIds, int $total, int $perPage): EventSearchPage
+    {
+        $items = array_values(array_map(
+            EventListData::fromArray(...),
+            $this->eventCards->forIds($eventIds),
+        ));
+        $lastPage = max(1, (int) ceil($total / max($perPage, 1)));
+        $hasItems = $items !== [];
 
-        $orderedEvents = collect($payload->ids)
-            ->map(static function (string $eventId) use ($events): ?Event {
-                $event = $events->get($eventId);
-
-                return $event instanceof Event ? $event : null;
-            })
-            ->filter()
-            ->values();
-
-        return new Paginator(
-            items: $orderedEvents,
-            total: $payload->total,
+        return new EventSearchPage(
+            items: $items,
+            distances: [],
+            total: $total,
             perPage: $perPage,
             currentPage: 1,
-            options: [
-                'path' => Paginator::resolveCurrentPath(),
-                'pageName' => 'page',
-                'query' => request()->query(),
-            ],
+            lastPage: $lastPage,
+            from: $hasItems ? 1 : null,
+            to: $hasItems ? count($items) : null,
+            hasMorePages: $lastPage > 1,
+        );
+    }
+
+    /**
+     * @param  LengthAwarePaginator<int, Event>  $paginator
+     */
+    private function toPage(LengthAwarePaginator $paginator): EventSearchPage
+    {
+        $events = array_values(array_filter(
+            $paginator->items(),
+            static fn (mixed $event): bool => $event instanceof Event,
+        ));
+
+        new EloquentCollection($events)->loadMissing('displayOccurrence.media');
+
+        $items = [];
+        $distances = [];
+
+        foreach ($events as $event) {
+            $item = $this->eventListPayloads->forEvent($event);
+            $items[] = $item;
+
+            $distanceKm = $event->getAttributes()['distance_km'] ?? null;
+
+            if (is_numeric($distanceKm)) {
+                $distances[$item->id] = round((float) $distanceKm, 3);
+            }
+        }
+
+        return new EventSearchPage(
+            items: $items,
+            distances: $distances,
+            total: $paginator->total(),
+            perPage: $paginator->perPage(),
+            currentPage: $paginator->currentPage(),
+            lastPage: $paginator->lastPage(),
+            from: $paginator->firstItem(),
+            to: $paginator->lastItem(),
+            hasMorePages: $paginator->hasMorePages(),
         );
     }
 
@@ -145,7 +171,6 @@ class EventSearchService implements EventSearchReader
      * Geo search for "near me" functionality.
      *
      * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, Event>
      */
     public function searchNearby(
         float $lat,
@@ -153,29 +178,28 @@ class EventSearchService implements EventSearchReader
         int $radiusKm = 50,
         array $filters = [],
         int $perPage = 20
-    ): LengthAwarePaginator {
+    ): EventSearchPage {
         $criteria = $this->criteriaFactory->fromSearch(null, $filters, $perPage, 'distance', $lat, $lng, $radiusKm);
 
         if ($criteria->requiresDatabaseFiltering) {
-            return $this->readers->database()->nearby($criteria);
+            return $this->toPage($this->readers->database()->nearby($criteria));
         }
 
         if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                return $this->readers->typesense()->nearby($criteria);
+                return $this->toPage($this->readers->typesense()->nearby($criteria));
             } catch (\Exception $e) {
                 Log::warning('Typesense geo search failed', ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->readers->database()->nearby($criteria);
+        return $this->toPage($this->readers->database()->nearby($criteria));
     }
 
     /**
      * Geo search constrained by a text query.
      *
      * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, Event>
      */
     public function searchNearbyWithQuery(
         ?string $query,
@@ -184,27 +208,27 @@ class EventSearchService implements EventSearchReader
         int $radiusKm = 50,
         array $filters = [],
         int $perPage = 20
-    ): LengthAwarePaginator {
+    ): EventSearchPage {
         $criteria = $this->criteriaFactory->fromSearch($query, $filters, $perPage, 'distance', $lat, $lng, $radiusKm);
         $normalizedQuery = $this->normalizeSearchQuery($criteria->text);
 
         if ($normalizedQuery === null) {
-            return $this->searchNearby($criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
+            return $this->searchNearby($criteria->latitude ?? $lat, $criteria->longitude ?? $lng, (int) ($criteria->radiusKm ?? $radiusKm), $criteria->filters, $criteria->perPage);
         }
 
         if ($criteria->requiresDatabaseFiltering) {
-            return $this->readers->database()->nearbyWithQuery($criteria);
+            return $this->toPage($this->readers->database()->nearbyWithQuery($criteria));
         }
 
         if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                return $this->readers->typesense()->nearbyWithQuery($criteria);
+                return $this->toPage($this->readers->typesense()->nearbyWithQuery($criteria));
             } catch (\Exception $e) {
                 Log::warning('Typesense geo query search failed', ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->readers->database()->nearbyWithQuery($criteria);
+        return $this->toPage($this->readers->database()->nearbyWithQuery($criteria));
     }
 
     private function normalizeSearchQuery(?string $query): ?string

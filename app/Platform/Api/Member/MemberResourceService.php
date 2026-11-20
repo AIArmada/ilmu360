@@ -5,20 +5,15 @@ declare(strict_types=1);
 namespace App\Platform\Api\Member;
 
 use App\Models\User;
-use App\Platform\Api\ApiPagination;
+use App\Platform\Api\Resources\ResourceActor;
+use App\Platform\Api\Resources\ResourceActorResolver;
+use App\Platform\Api\Resources\ResourceQuery;
 use App\Platform\Api\Resources\ResourceReadSupport;
+use App\Platform\Api\Resources\ResourceSurface;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
-use App\Platform\Search\ResourceSearchDispatcher;
-use App\Platform\Time\UserDateTimeFormatter;
-use Carbon\CarbonInterface;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class MemberResourceService
@@ -27,8 +22,8 @@ class MemberResourceService
         private readonly MemberResourceRegistry $registry,
         private readonly MemberResourceMutationService $mutationService,
         private readonly ApiDocumentationUrlResolver $urlResolver,
-        private readonly ResourceSearchDispatcher $resourceSearchDispatcher,
         private readonly MemberWorkflowToolRegistry $workflowTools,
+        private readonly ResourceActorResolver $actors,
     ) {}
 
     /**
@@ -80,11 +75,11 @@ class MemberResourceService
      */
     public function resourceMeta(string $resourceKey): array
     {
-        $resourceClass = $this->resolveAccessibleResource($resourceKey);
+        $definition = $this->resolveAccessibleDefinition($resourceKey);
 
         return [
             'data' => [
-                'resource' => $this->registry->metadata($resourceClass),
+                'resource' => $definition->metadata($this->actor()),
             ],
         ];
     }
@@ -101,36 +96,17 @@ class MemberResourceService
         ?string $startsBefore = null,
         ?string $startsOnLocalDate = null,
     ): array {
-        $resourceClass = $this->resolveAccessibleResource($resourceKey);
-        $query = $this->registry->queryFor($resourceClass);
-        $normalizedSearch = trim($search);
-
-        if ($normalizedSearch !== '') {
-            $this->applySearch($query, $resourceClass, $normalizedSearch);
-        }
-
-        $this->applyDateFilters(
-            $query,
-            $resourceClass,
-            $startsAfter,
-            $startsBefore,
-            $startsOnLocalDate,
+        return $this->resolveAccessibleDefinition($resourceKey)->list(
+            $this->actor(),
+            new ResourceQuery(
+                search: $search,
+                page: $page,
+                perPage: $perPage,
+                startsAfter: $startsAfter,
+                startsBefore: $startsBefore,
+                startsOnLocalDate: $startsOnLocalDate,
+            ),
         );
-
-        $this->applyDefaultOrdering($query, $resourceClass);
-
-        $records = $query->paginate(
-            perPage: ApiPagination::normalizePerPage($perPage, default: 15, max: 100),
-            page: max($page, 1),
-        );
-
-        return [
-            'data' => array_values(array_map(
-                fn (Model $record): array => $this->registry->serializeRecord($resourceClass, $record),
-                $records->items(),
-            )),
-            'meta' => $this->recordsMeta($resourceClass, $records, $normalizedSearch),
-        ];
     }
 
     /**
@@ -138,64 +114,12 @@ class MemberResourceService
      */
     public function listRelatedRecords(string $resourceKey, string $recordKey, string $relation, string $search = '', int $page = 1, int $perPage = 15): array
     {
-        $resourceClass = $this->resolveAccessibleResource($resourceKey);
-        $record = $this->registry->resolveRecord($resourceClass, $recordKey);
-        $resourceMeta = $this->registry->metadata($resourceClass);
-        $relationName = Str::snake(trim($relation));
-
-        abort_unless(in_array($relationName, $resourceMeta['relations'], true), 404);
-
-        $relationMethod = Str::camel($relationName);
-
-        if (! method_exists($record, $relationMethod)) {
-            throw new NotFoundHttpException;
-        }
-
-        /** @var Relation<Model, Model, mixed> $relationQuery */
-        $relationQuery = $record->{$relationMethod}();
-        $query = $relationQuery->getQuery();
-        $relatedModel = $relationQuery->getRelated();
-        $relatedResourceClass = $this->registry->resolveForModel($relatedModel::class);
-        $query->select($relatedModel->qualifyColumn('*'));
-        $normalizedSearch = trim($search);
-
-        if ($normalizedSearch !== '') {
-            if ($relatedResourceClass !== null) {
-                $this->applySearch($query, $relatedResourceClass, $normalizedSearch);
-            } else {
-                $this->applyGenericSearch($query, $relatedModel, $normalizedSearch);
-            }
-        }
-
-        if ($relatedResourceClass !== null) {
-            $this->applyDefaultOrdering($query, $relatedResourceClass);
-        } else {
-            $this->applyDefaultOrderingForModel($query, $relatedModel);
-        }
-
-        $records = $query->paginate(
-            perPage: ApiPagination::normalizePerPage($perPage, default: 15, max: 100),
-            page: max($page, 1),
+        return $this->resolveAccessibleDefinition($resourceKey)->related(
+            $this->actor(),
+            $recordKey,
+            $relation,
+            new ResourceQuery(search: $search, page: $page, perPage: $perPage),
         );
-
-        return [
-            'data' => array_values(array_map(
-                fn (Model $relatedRecord): array => $this->serializeRelatedRecord($relatedResourceClass, $relatedRecord),
-                $records->items(),
-            )),
-            'meta' => [
-                'resource' => $resourceMeta,
-                'parent_record' => $this->registry->serializeRecordDetail($resourceClass, $record),
-                'relation' => [
-                    'name' => $relationName,
-                    'method' => $relationMethod,
-                    'related_model_class' => $relatedModel::class,
-                    'related_resource' => $relatedResourceClass !== null ? $this->registry->metadata($relatedResourceClass) : null,
-                ],
-                'search' => $normalizedSearch !== '' ? $normalizedSearch : null,
-                'pagination' => ApiPagination::paginationMeta($records),
-            ],
-        ];
     }
 
     /**
@@ -203,15 +127,7 @@ class MemberResourceService
      */
     public function showRecord(string $resourceKey, string $recordKey): array
     {
-        $resourceClass = $this->resolveAccessibleResource($resourceKey);
-        $record = $this->registry->resolveRecord($resourceClass, $recordKey);
-
-        return [
-            'data' => [
-                'resource' => $this->registry->metadata($resourceClass),
-                'record' => $this->registry->serializeRecordDetail($resourceClass, $record),
-            ],
-        ];
+        return $this->resolveAccessibleDefinition($resourceKey)->show($this->actor(), $recordKey);
     }
 
     /**
@@ -219,17 +135,15 @@ class MemberResourceService
      */
     public function writeSchema(string $resourceKey, string $recordKey, ?User $actor = null): array
     {
-        $resourceClass = $this->resolveWritableResource($resourceKey, $actor);
+        $definition = $this->resolveWritableDefinition($resourceKey, $actor);
+        $resourceActor = $this->actorFor($actor);
 
-        abort_unless($actor instanceof User, 403);
-
-        $record = $this->registry->resolveRecord($resourceClass, trim($recordKey));
-        abort_unless($this->mutationService->canWriteRecord($resourceClass, $actor, $record), 403);
+        $schema = $definition->schema($resourceActor, 'update', trim($recordKey));
 
         return [
             'data' => [
-                'resource' => $this->registry->metadata($resourceClass),
-                'schema' => $this->mutationService->schema($resourceClass, $resourceKey, $record),
+                'resource' => $definition->metadata($this->actor()),
+                'schema' => $schema,
             ],
         ];
     }
@@ -240,57 +154,24 @@ class MemberResourceService
      */
     public function updateRecord(string $resourceKey, string $recordKey, array $payload, ?User $actor = null, bool $validateOnly = false): array
     {
-        $resourceClass = $this->resolveWritableResource($resourceKey, $actor);
-
-        abort_unless($actor instanceof User, 403);
-
-        $record = $this->registry->resolveRecord($resourceClass, $recordKey);
-        abort_unless($this->mutationService->canWriteRecord($resourceClass, $actor, $record), 403);
-
-        $validated = Validator::make(
-            $payload,
-            $this->mutationService->rules($resourceClass),
-        )->validate();
-
-        if (is_array($payload['address'] ?? null) && ! array_key_exists('address', $validated)) {
-            $validated['address'] = $payload['address'];
-        }
-
-        $validated = $this->mutationService->normalizeValidatedPayload($resourceClass, $validated, $record);
+        $definition = $this->resolveWritableDefinition($resourceKey, $actor);
+        $resourceActor = $this->actorFor($actor);
 
         if ($validateOnly) {
-            return $this->previewWriteRecord($resourceClass, $validated, $record);
+            return [
+                'data' => [
+                    'resource' => $definition->metadata($this->actor()),
+                    'preview' => $definition->validateAndPreview($resourceActor, 'update', $recordKey, $payload),
+                ],
+            ];
         }
 
-        $record = $this->mutationService->update($resourceClass, $record, $validated, $actor);
+        $result = $definition->write($resourceActor, 'update', $recordKey, $payload);
 
         return [
             'data' => [
-                'resource' => $this->registry->metadata($resourceClass),
-                'record' => $this->registry->serializeRecordDetail($resourceClass, $record),
-            ],
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $validated
-     * @return array{data: array{resource: array<string, mixed>, preview: array<string, mixed>}}
-     */
-    private function previewWriteRecord(string $resourceClass, array $validated, Model $record): array
-    {
-        $preview = $this->mutationService->previewNormalizedPayload($validated);
-
-        return [
-            'data' => [
-                'resource' => $this->registry->metadata($resourceClass),
-                'preview' => array_merge(
-                    [
-                        'validate_only' => true,
-                        'operation' => 'update',
-                        'current_record' => $this->registry->serializeRecordDetail($resourceClass, $record),
-                    ],
-                    $preview,
-                ),
+                'resource' => $definition->metadata($this->actor()),
+                'record' => $result['record'],
             ],
         ];
     }
@@ -301,7 +182,7 @@ class MemberResourceService
             return false;
         }
 
-        return array_any($this->registry->resources(), fn ($resourceClass) => $this->mutationService->supports($resourceClass) && $this->mutationService->canWriteResource($resourceClass, $user));
+        return array_any($this->registry->resources(), fn (string $resourceClass): bool => $this->mutationService->supports($resourceClass) && $this->mutationService->canWriteResource($resourceClass, $user));
     }
 
     /**
@@ -311,157 +192,6 @@ class MemberResourceService
     public function applyDefaultOrdering(Builder $query, string $resourceClass): void
     {
         ResourceReadSupport::applyDefaultOrdering($query, $resourceClass);
-    }
-
-    /**
-     * @return array{
-     *   id: string,
-     *   route_key: string,
-     *   title: string|null,
-     *   attributes: array<string, mixed>,
-     *   abilities?: array<string, bool>,
-     *   panel_routes?: array<string, string|null>
-     * }
-     */
-    private function serializeRelatedRecord(?string $resourceClass, Model $record): array
-    {
-        if ($resourceClass !== null) {
-            return $this->registry->serializeRecord($resourceClass, $record);
-        }
-
-        return ResourceReadSupport::serializeRelatedRecord(
-            $record,
-            $this->serializeGenericAttributes($record),
-        );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializeGenericAttributes(Model $record): array
-    {
-        $attributes = $record->toArray();
-
-        if ($record instanceof User) {
-            return Arr::except($attributes, [
-                'email',
-                'email_verified_at',
-                'phone',
-                'phone_verified_at',
-                'daily_prayer_institutions',
-                'friday_prayer_institutions',
-            ]);
-        }
-
-        return $attributes;
-    }
-
-    /**
-     * @param  Builder<Model>  $query
-     */
-    private function applyDefaultOrderingForModel(Builder $query, Model $model): void
-    {
-        ResourceReadSupport::applyDefaultOrderingForModel($query, $model);
-    }
-
-    /**
-     * @param  Builder<Model>  $query
-     */
-    private function applyGenericSearch(Builder $query, Model $model, string $search): void
-    {
-        ResourceReadSupport::applyGenericSearch($query, $model, $search, [
-            'title',
-            'name',
-            'middle_name',
-            'family_name',
-            'label',
-            'slug',
-            'email',
-            'description',
-            $model->getRouteKeyName(),
-        ]);
-    }
-
-    /**
-     * @param  Builder<Model>  $query
-     * @param  class-string<resource>  $resourceClass
-     */
-    protected function applySearch(Builder $query, string $resourceClass, string $search): void
-    {
-        if ($this->resourceSearchDispatcher->apply($query, $search)) {
-            return;
-        }
-
-        $columns = $this->registry->searchableColumns($resourceClass);
-
-        if ($columns === []) {
-            return;
-        }
-
-        $model = $query->getModel();
-
-        $query->where(function (Builder $builder) use ($columns, $search, $model): void {
-            foreach ($columns as $index => $column) {
-                $method = $index === 0 ? 'where' : 'orWhere';
-                $builder->{$method}($model->qualifyColumn($column), 'like', "%{$search}%");
-            }
-        });
-    }
-
-    /**
-     * @param  Builder<Model>  $query
-     * @param  class-string<resource>  $resourceClass
-     */
-    protected function applyDateFilters(
-        Builder $query,
-        string $resourceClass,
-        ?string $startsAfter,
-        ?string $startsBefore,
-        ?string $startsOnLocalDate,
-    ): void {
-        $resource = $this->registry->metadata($resourceClass);
-
-        if (! is_array($resource['date_semantics'] ?? null)) {
-            return;
-        }
-
-        $model = $query->getModel();
-        $startsAtColumn = $model->qualifyColumn('starts_at');
-
-        if (is_string($startsAfter) && trim($startsAfter) !== '') {
-            $parsedStartsAfter = UserDateTimeFormatter::parseUserDateToUtc($startsAfter, false);
-
-            if ($parsedStartsAfter instanceof CarbonInterface) {
-                $query->where($startsAtColumn, '>=', $parsedStartsAfter);
-            }
-        }
-
-        if (is_string($startsBefore) && trim($startsBefore) !== '') {
-            $parsedStartsBefore = UserDateTimeFormatter::parseUserDateToUtc($startsBefore, true);
-
-            if ($parsedStartsBefore instanceof CarbonInterface) {
-                $query->where($startsAtColumn, '<=', $parsedStartsBefore);
-            }
-        }
-
-        if (is_string($startsOnLocalDate) && trim($startsOnLocalDate) !== '') {
-            $startsOnLocalDateStart = UserDateTimeFormatter::parseUserDateToUtc($startsOnLocalDate, false);
-            $startsOnLocalDateEnd = UserDateTimeFormatter::parseUserDateToUtc($startsOnLocalDate, true);
-
-            if ($startsOnLocalDateStart instanceof CarbonInterface && $startsOnLocalDateEnd instanceof CarbonInterface) {
-                $query->whereBetween($startsAtColumn, [$startsOnLocalDateStart, $startsOnLocalDateEnd]);
-            }
-        }
-    }
-
-    /**
-     * @param  class-string<resource>  $resourceClass
-     * @param  LengthAwarePaginator<int, Model>  $records
-     * @return array<string, mixed>
-     */
-    protected function recordsMeta(string $resourceClass, LengthAwarePaginator $records, string $search): array
-    {
-        return ResourceReadSupport::recordsMeta($this->registry->metadata($resourceClass), $records, $search);
     }
 
     /**
@@ -489,35 +219,41 @@ class MemberResourceService
         ];
     }
 
-    /**
-     * @return class-string<resource>
-     */
-    protected function resolveAccessibleResource(string $resourceKey): string
+    private function resolveAccessibleDefinition(string $resourceKey): AbstractMemberResourceDefinition
     {
-        $resourceClass = $this->registry->resolve($resourceKey);
+        $definition = $this->registry->definitionForKey($resourceKey);
 
-        if (! is_string($resourceClass)) {
+        if (! $definition instanceof AbstractMemberResourceDefinition) {
             throw new NotFoundHttpException;
         }
 
-        abort_unless($this->registry->canAccessResource($resourceClass), 403);
+        abort_unless($definition->canAccess($this->actor()), 403);
 
-        return $resourceClass;
+        return $definition;
     }
 
-    /**
-     * @return class-string<resource>
-     */
-    protected function resolveWritableResource(string $resourceKey, ?User $actor = null): string
+    private function resolveWritableDefinition(string $resourceKey, ?User $actor = null): AbstractMemberResourceDefinition
     {
-        $resourceClass = $this->resolveAccessibleResource($resourceKey);
+        $definition = $this->resolveAccessibleDefinition($resourceKey);
 
-        if (! $this->mutationService->supports($resourceClass)) {
+        if (! $this->mutationService->supports($definition->resourceClass())) {
             throw new NotFoundHttpException;
         }
 
-        abort_unless($actor instanceof User && $this->mutationService->canWriteResource($resourceClass, $actor), 403);
+        abort_unless($actor instanceof User && $this->mutationService->canWriteResource($definition->resourceClass(), $actor), 403);
 
-        return $resourceClass;
+        return $definition;
+    }
+
+    private function actor(): ResourceActor
+    {
+        return $this->actors->current(ResourceSurface::Member);
+    }
+
+    private function actorFor(?User $actor): ResourceActor
+    {
+        return $actor instanceof User
+            ? $this->actors->fromUser($actor, ResourceSurface::Member)
+            : new ResourceActor('', ResourceSurface::Member);
     }
 }

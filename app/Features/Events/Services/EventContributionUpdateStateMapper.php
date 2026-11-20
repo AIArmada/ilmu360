@@ -7,8 +7,6 @@ namespace App\Features\Events\Services;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\SubmissionTimingPolicy;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Api\PrayerTargetSelector;
@@ -421,19 +419,7 @@ class EventContributionUpdateStateMapper
 
     private static function resolvedPrimaryOrganizerType(?string $primaryOrganizerId): ?string
     {
-        if ($primaryOrganizerId === null) {
-            return null;
-        }
-
-        if (Institution::query()->whereKey($primaryOrganizerId)->exists()) {
-            return 'institution';
-        }
-
-        if (Person::query()->whereKey($primaryOrganizerId)->exists()) {
-            return 'person';
-        }
-
-        return null;
+        return OrganizerResolver::kindForId($primaryOrganizerId);
     }
 
     private static function normalizeOptionalString(mixed $value): ?string

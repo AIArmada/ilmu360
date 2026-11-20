@@ -9,7 +9,8 @@ use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
@@ -76,7 +77,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
         $failClosed = 0;
 
         foreach ($registrationIds as $registrationId) {
-            $registration = Registration::query()->whereKey($registrationId)->first();
+            $registration = app(RegistrationLookup::class)->findRegistration($registrationId);
 
             if (! $registration instanceof Registration) {
                 continue;
@@ -88,7 +89,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
             }
 
             $actor = $this->participantUser($registration);
-            $subject = Event::query()->whereKey($registration->event_id)->first();
+            $subject = app(EventScheduleQuery::class)->findEvent((string) $registration->event_id);
             $effectiveAttributionId = $attributionId;
             $effectiveOccurredAt = $occurredAt ?? $this->fallbackOccurredAt($session, $registration);
 
@@ -208,9 +209,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
 
     private function isScopeCancelled(Registration $registration): bool
     {
-        $event = Event::query()->whereKey($registration->event_id)->first();
-
-        if ($event instanceof Event && (string) $event->status === 'cancelled') {
+        if (app(EventScheduleQuery::class)->eventStatus((string) $registration->event_id) === 'cancelled') {
             return true;
         }
 

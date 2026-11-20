@@ -2,19 +2,18 @@
 
 namespace App\Features\Institutions\Queries;
 
-use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 
 final readonly class InstitutionDirectoryQuery
 {
-    public function __construct(private InstitutionSearchService $searchService) {}
+    public function __construct(
+        private InstitutionSearchService $searchService,
+        private EventScheduleQuery $eventReader,
+    ) {}
 
     /**
      * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
@@ -162,8 +161,6 @@ final readonly class InstitutionDirectoryQuery
 
         return $query
             ->select('institutions.*')
-            ->selectSub($this->upcomingOccurrenceCountSubquery(), 'events_count')
-            ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
             ->with([
                 'addresses.state',
                 'addresses.city',
@@ -250,54 +247,8 @@ final readonly class InstitutionDirectoryQuery
     }
 
     /**
-     * Count upcoming majlis as occurrences: sessions live inside an
-     * occurrence and must not inflate the directory card. This matches the
-     * institution page hero and card list.
-     */
-    private function upcomingOccurrenceCountSubquery(): QueryBuilder
-    {
-        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-
-        return DB::table("{$occurrencesTable} as public_occurrences")
-            ->join('events', 'events.id', '=', 'public_occurrences.event_id')
-            ->whereColumn('events.institution_id', 'institutions.id')
-            ->whereNotNull('events.published_at')
-            ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public->value)
-            ->whereIn('public_occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
-            ->whereIn('public_occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
-            ->whereNotNull('public_occurrences.starts_at')
-            ->where('public_occurrences.starts_at', '>=', now())
-            ->selectRaw('count(*)');
-    }
-
-    /**
-     * @return Builder<Event>
-     */
-    private function nextPublicEventQuery(): Builder
-    {
-        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-
-        return Event::query()
-            ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
-            ->whereColumn('events.institution_id', 'institutions.id')
-            ->where('next_event_occurrences.starts_at', '>=', now())
-            ->whereNotNull('events.published_at')
-            ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public->value)
-            ->orderBy('next_event_occurrences.starts_at')
-            ->orderBy('events.id')
-            ->limit(1);
-    }
-
-    /**
-     * Hydrate the next-event card fields for one page of institutions in a
-     * single batched query. The listing only needs these three columns for
-     * the visible page, so repeating the same correlated LIMIT 1 subquery
-     * three times per row only triples that work — and each repetition
-     * evaluates its own "now", which can mix columns from different events
-     * at the boundary. Selecting the winning id per row and resolving its
-     * columns once keeps every card internally consistent.
+     * Hydrate the next-event card fields and upcoming occurrence count for one
+     * page of institutions through the Events owner's batched read.
      *
      * @param  array<int, Institution>  $institutions
      */
@@ -307,50 +258,22 @@ final readonly class InstitutionDirectoryQuery
             return;
         }
 
-        $nextEventIds = collect($institutions)
-            ->map(static fn (Institution $institution): mixed => $institution->getAttribute('next_event_id'))
-            ->filter()
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->unique()
+        $institutionIds = collect($institutions)
+            ->map(static fn (Institution $institution): string => (string) $institution->getKey())
             ->values()
             ->all();
 
-        /** @var EloquentCollection<string, Event> $details */
-        $details = $nextEventIds === []
-            ? new EloquentCollection
-            : $this->nextPublicEventDetails($nextEventIds)->keyBy(static fn (Event $event): string => (string) $event->getKey());
+        $facts = $this->eventReader->institutionDirectoryFacts($institutionIds);
 
         foreach ($institutions as $institution) {
-            $detail = $details->get((string) $institution->getAttribute('next_event_id'));
+            $fact = $facts[(string) $institution->getKey()] ?? null;
+            $nextEvent = is_array($fact) ? ($fact['next_event'] ?? null) : null;
 
-            $institution->setAttribute('next_event_slug', $detail?->getAttribute('slug'));
-            $institution->setAttribute('next_event_title', $detail?->getAttribute('title'));
-            $institution->setAttribute('next_event_starts_at', $detail?->getAttribute('next_event_starts_at'));
-            $institution->offsetUnset('next_event_id');
+            $institution->setAttribute('events_count', is_array($fact) ? ($fact['events_count'] ?? 0) : 0);
+            $institution->setAttribute('next_event_slug', is_array($nextEvent) ? ($nextEvent['slug'] ?? null) : null);
+            $institution->setAttribute('next_event_title', is_array($nextEvent) ? ($nextEvent['title'] ?? null) : null);
+            $institution->setAttribute('next_event_starts_at', is_array($nextEvent) ? ($nextEvent['starts_at'] ?? null) : null);
         }
-    }
-
-    /**
-     * Resolve the card columns for already-selected next events. The id
-     * already identifies the earliest future (event, occurrence) pair per
-     * institution, so the event's minimum future occurrence start is exactly
-     * that pair's start — no tie-break needed for the timestamp itself.
-     *
-     * @param  list<string>  $eventIds
-     * @return EloquentCollection<int, Event>
-     */
-    private function nextPublicEventDetails(array $eventIds): EloquentCollection
-    {
-        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-
-        return Event::query()
-            ->select('events.id', 'events.slug', 'events.title')
-            ->selectRaw('min("'.$occurrencesTable.'"."starts_at") as next_event_starts_at')
-            ->join("{$occurrencesTable}", "{$occurrencesTable}.event_id", '=', 'events.id')
-            ->whereIn('events.id', $eventIds)
-            ->where("{$occurrencesTable}.starts_at", '>=', now())
-            ->groupBy('events.id', 'events.slug', 'events.title')
-            ->get();
     }
 
     /**

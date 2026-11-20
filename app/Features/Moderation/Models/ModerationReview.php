@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Platform\Moderation\Models;
+namespace App\Features\Moderation\Models;
 
 use AIArmada\Moderation\Models\ModerationAction;
 use App\Models\User;
@@ -19,6 +19,9 @@ use OwenIt\Auditing\Contracts\Auditable;
 class ModerationReview extends ModerationAction implements Auditable
 {
     use AuditsModelChanges;
+
+    #[\Override]
+    protected $table = 'moderation_actions';
 
     /**
      * @var list<string>

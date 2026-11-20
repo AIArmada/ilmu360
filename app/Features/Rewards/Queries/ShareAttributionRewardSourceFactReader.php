@@ -18,14 +18,17 @@ use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;
 use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
-use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Api\EventSubmissions;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\ShareTracking\Api\GuestClaimScope;
+use App\Features\ShareTracking\Api\OutcomeCorrections;
+use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
-use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
-use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Api\SourceAttributionReceiptSnapshot;
+use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -73,11 +76,9 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
 
         [$outcome, $transitionId] = $parsed;
 
-        $receipt = ShareSourceAttributionReceipt::query()
-            ->where('business_key', $sourceBusinessKey)
-            ->first();
+        $receipt = app(SourceReceiptReader::class)->findByBusinessKey($sourceBusinessKey);
 
-        if (! $receipt instanceof ShareSourceAttributionReceipt) {
+        if (! $receipt instanceof SourceAttributionReceiptSnapshot) {
             return null;
         }
 
@@ -97,13 +98,11 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         $correctionStatus = RewardSourceCorrectionStatus::Current;
         $correctionId = null;
 
-        $correction = ShareOutcomeCorrection::query()
-            ->where('business_key', $sourceBusinessKey)
-            ->first();
+        $correction = app(OutcomeCorrections::class)->findByBusinessKey($sourceBusinessKey);
 
-        if ($correction instanceof ShareOutcomeCorrection) {
+        if ($correction instanceof OutcomeCorrectionSnapshot) {
             $correctionStatus = RewardSourceCorrectionStatus::Withdrawn;
-            $correctionId = (string) $correction->getKey();
+            $correctionId = $correction->id;
             $isValid = false;
         }
 
@@ -113,6 +112,15 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             $exists = app(SavedSearchReader::class)->exists(substr($transitionId, strlen('saved_search:')));
             $verification = $exists ? RewardVerificationLevel::Accepted : RewardVerificationLevel::Unverified;
             $sourceInvalidates = ['cancelled' => ! $exists, 'invalid' => ! $exists];
+        } elseif ($outcome === 'event_submission') {
+            $moderationStatus = app(EventSubmissions::class)->moderationStatus(substr($transitionId, strlen('submission:')));
+            $verification = $moderationStatus === 'approved'
+                ? RewardVerificationLevel::ModeratedApproved
+                : RewardVerificationLevel::Unverified;
+            $sourceInvalidates = [
+                'cancelled' => $moderationStatus === 'rejected',
+                'invalid' => $moderationStatus === 'rejected',
+            ];
         } else {
             $source = $this->resolveSourceRecord($transitionId);
             $verification = $this->verificationFor($outcome, $source);
@@ -140,9 +148,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             }
         }
 
-        $occurredAt = $receipt->getAttribute('occurred_at') instanceof CarbonImmutable
-            ? $receipt->getAttribute('occurred_at')->setTimezone('UTC')
-            : CarbonImmutable::parse((string) $receipt->getAttribute('occurred_at'))->setTimezone('UTC');
+        $occurredAt = CarbonImmutable::parse($receipt->occurredAt)->setTimezone('UTC');
 
         $metadata = $conversion->getAttribute('metadata');
 
@@ -204,17 +210,17 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
 
     private function resolveSourceRecord(string $transitionId): ?Model
     {
+        /** @var array<string, callable(string): mixed> $map */
         $map = [
-            'user:' => User::class,
-            'registration:' => Registration::class,
-            'checkin:' => EventCheckin::class,
-            'submission:' => EventSubmission::class,
-            'bookmark:' => Bookmark::class,
-            'response:' => Response::class,
-            'follow:' => Follow::class,
+            'user:' => static fn (string $id): mixed => User::query()->find($id),
+            'registration:' => static fn (string $id): mixed => app(RegistrationLookup::class)->findRegistration($id),
+            'checkin:' => static fn (string $id): mixed => app(RegistrationLookup::class)->findCheckIn($id),
+            'bookmark:' => static fn (string $id): mixed => Bookmark::query()->find($id),
+            'response:' => static fn (string $id): mixed => Response::query()->find($id),
+            'follow:' => static fn (string $id): mixed => Follow::query()->find($id),
         ];
 
-        foreach ($map as $prefix => $model) {
+        foreach ($map as $prefix => $resolve) {
             if (! str_starts_with($transitionId, $prefix)) {
                 continue;
             }
@@ -225,8 +231,9 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
                 return null;
             }
 
-            /** @var class-string<Model> $model */
-            return $model::query()->whereKey($id)->first();
+            $source = $resolve($id);
+
+            return $source instanceof Model ? $source : null;
         }
 
         return null;
@@ -245,14 +252,6 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         if ($outcome === 'event_registration') {
             if ($source instanceof Registration && in_array($source->statusValue(), ['confirmed', 'checked_in', 'completed'], true)) {
                 return RewardVerificationLevel::Accepted;
-            }
-
-            return RewardVerificationLevel::Unverified;
-        }
-
-        if ($outcome === 'event_submission') {
-            if ($source instanceof EventSubmission && $this->moderationValue($source) === 'approved') {
-                return RewardVerificationLevel::ModeratedApproved;
             }
 
             return RewardVerificationLevel::Unverified;
@@ -290,10 +289,6 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         }
 
         if ($source instanceof Registration && in_array($source->statusValue(), ['cancelled', 'rejected', 'expired', 'refunded'], true)) {
-            return ['cancelled' => true, 'invalid' => true];
-        }
-
-        if ($source instanceof EventSubmission && $this->moderationValue($source) === 'rejected') {
             return ['cancelled' => true, 'invalid' => true];
         }
 
@@ -395,21 +390,6 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         $subjectType = $this->nullableString($conversion->getAttribute('subject_type'));
 
         return $subjectType === null ? null : mb_substr($subjectType, 0, 120);
-    }
-
-    private function moderationValue(EventSubmission $source): string
-    {
-        $status = $source->getAttribute('status');
-
-        if (is_string($status)) {
-            return $status;
-        }
-
-        if (is_object($status) && method_exists($status, 'getValue')) {
-            return (string) $status->getValue();
-        }
-
-        return (string) $status;
     }
 
     private function nullableString(mixed $value): ?string

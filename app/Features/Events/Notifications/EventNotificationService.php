@@ -11,6 +11,8 @@ use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
+use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
@@ -27,6 +29,7 @@ use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -45,6 +48,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
         protected MemberPermissions $memberPermissionGate,
         protected NotificationMessageRendering $messageRenderer,
         protected SavedSearchReader $savedSearchReader,
+        protected RegistrationLookup $registrationLookup,
     ) {}
 
     public function notifySubmissionReceived(Event $event): void
@@ -403,11 +407,20 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
 
     public function checkInConfirmed(string $checkinId): void
     {
-        $checkin = EventCheckin::query()->find($checkinId);
+        $facts = $this->registrationLookup->checkInFacts($checkinId);
 
-        if ($checkin instanceof EventCheckin) {
-            $this->notifyCheckinConfirmed($checkin);
+        if (! $facts instanceof \App\Features\Registration\Api\Data\EventCheckInFacts) {
+            return;
         }
+
+        $user = User::query()->find($facts->userId);
+        $event = Event::query()->find($facts->eventId);
+
+        if (! $user instanceof User || ! $event instanceof Event) {
+            return;
+        }
+
+        $this->dispatchCheckInConfirmed($user, $event, $facts->id);
     }
 
     public function notifyCheckinConfirmed(EventCheckin $checkin): void
@@ -419,6 +432,11 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
             return;
         }
 
+        $this->dispatchCheckInConfirmed($user, $event, (string) $checkin->getKey());
+    }
+
+    private function dispatchCheckInConfirmed(User $user, Event $event, string $checkinId): void
+    {
         $this->dispatchForUsers([$user], fn (User $recipient): NotificationDispatchData => $this->buildDispatchData(
             user: $recipient,
             trigger: NotificationTrigger::CheckinConfirmed,
@@ -429,7 +447,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
             entityType: Event::class,
             entityId: $event->id,
             priority: NotificationPriority::Medium,
-            fingerprint: 'checkin-confirmed:'.$checkin->id,
+            fingerprint: 'checkin-confirmed:'.$checkinId,
         ));
     }
 
@@ -538,12 +556,10 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
      */
     protected function trackedUsers(Event $event): Collection
     {
-        $registrations = Registration::query()
-            ->where('event_id', $event->id)
-            ->active()
-            ->with('registrant')
-            ->get()
-            ->pluck('registrant');
+        $registrationUserIds = $this->registrationLookup->activeRegistrantUserIds((string) $event->id);
+        $registrations = $registrationUserIds === []
+            ? collect()
+            : User::query()->whereKey($registrationUserIds)->get();
 
         return collect()
             ->merge($event->savedBy()->with('bookmarker')->get()->pluck('bookmarker'))
@@ -559,12 +575,15 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
      */
     protected function registeredUsers(Event $event): Collection
     {
-        return Registration::query()
-            ->where('event_id', $event->id)
-            ->active()
-            ->with('registrant')
+        $registrationUserIds = $this->registrationLookup->activeRegistrantUserIds((string) $event->id);
+
+        if ($registrationUserIds === []) {
+            return collect();
+        }
+
+        return User::query()
+            ->whereKey($registrationUserIds)
             ->get()
-            ->pluck('registrant')
             ->filter(fn (mixed $user): bool => $user instanceof User)
             ->unique('id')
             ->values();
@@ -779,7 +798,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
                 perPage: 50,
             );
 
-            return collect($results->items())->contains(fn (Event $candidate): bool => $candidate->id === $event->id);
+            return $this->pageContainsEvent($results, $event);
         }
 
         $results = $this->eventSearchService->search(
@@ -788,7 +807,14 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
             perPage: 50,
         );
 
-        return collect($results->items())->contains(fn (Event $candidate): bool => $candidate->id === $event->id);
+        return $this->pageContainsEvent($results, $event);
+    }
+
+    private function pageContainsEvent(EventSearchPage $page, Event $event): bool
+    {
+        return collect($page->items)->contains(
+            static fn (EventListData $candidate): bool => $candidate->id === (string) $event->getKey(),
+        );
     }
 
     /**

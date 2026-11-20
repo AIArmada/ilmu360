@@ -54,7 +54,7 @@ interface SubmissionContext
     public function resolveSubmissionCountryId(array $validated, string $validationKeyPrefix): string;
 
     /**
-     * @return mixed Owner organizer model (institution or person), or null.
+     * @return ContributionOrganizer|null Opaque organizer identity (kind + id), or null.
      */
     public function resolvePrimaryOrganizer(mixed $primaryOrganizerId): mixed;
 

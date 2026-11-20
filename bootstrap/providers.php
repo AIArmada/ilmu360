@@ -19,6 +19,7 @@ use App\Features\Inspirations\FeatureServiceProvider as InspirationsServiceProvi
 use App\Features\Institutions\FeatureServiceProvider as InstitutionsServiceProvider;
 use App\Features\Mcp\FeatureServiceProvider as McpFeatureServiceProvider;
 use App\Features\Membership\FeatureServiceProvider as MembershipServiceProvider;
+use App\Features\Moderation\FeatureServiceProvider as ModerationServiceProvider;
 use App\Features\Organizations\FeatureServiceProvider as OrganizationsServiceProvider;
 use App\Features\Persons\FeatureServiceProvider as PersonsServiceProvider;
 use App\Features\Places\FeatureServiceProvider as PlacesServiceProvider;
@@ -69,6 +70,7 @@ return [
     IdentityServiceProvider::class,
     InspirationsServiceProvider::class,
     MembershipServiceProvider::class,
+    ModerationServiceProvider::class,
     McpFeatureServiceProvider::class,
     OrganizationsServiceProvider::class,
     FeatureServiceProvider::class,

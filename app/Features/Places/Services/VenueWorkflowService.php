@@ -63,6 +63,24 @@ final readonly class VenueWorkflowService implements VenueWorkflow
         $this->changeVenueStatus->handle($venueId, $status);
     }
 
+    /**
+     * @param  list<string>  $venueIds
+     */
+    public function verifyPending(array $venueIds): void
+    {
+        if ($venueIds === []) {
+            return;
+        }
+
+        Venue::query()
+            ->whereKey($venueIds)
+            ->where('status', 'pending')
+            ->get()
+            ->each(function (Venue $venue): void {
+                $this->changeVenueStatus->handle((string) $venue->getKey(), 'verified');
+            });
+    }
+
     public function syncSlug(string $venueId): bool
     {
         return $this->generateVenueSlug->syncVenueSlug($this->venue($venueId));

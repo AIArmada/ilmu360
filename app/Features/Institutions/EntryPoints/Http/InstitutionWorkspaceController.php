@@ -4,7 +4,7 @@ namespace App\Features\Institutions\EntryPoints\Http;
 
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipDirectory;
@@ -26,6 +26,7 @@ class InstitutionWorkspaceController extends FrontendController
 {
     public function __construct(
         private readonly MembershipDirectory $memberships,
+        private readonly EventScheduleQuery $eventReader,
     ) {}
 
     #[Endpoint(
@@ -41,12 +42,20 @@ class InstitutionWorkspaceController extends FrontendController
                 'institutions.id',
                 'institutions.name',
             ])
-            ->selectSub($this->institutionEventCountSubquery(), 'events_count')
-            ->selectSub($this->institutionEventCountSubquery(publicOnly: true), 'public_events_count')
             ->orderBy('name')
             ->get();
 
         abort_unless($availableInstitutions->isNotEmpty(), 403);
+
+        $eventCounts = $this->eventReader->institutionEventCounts(
+            $availableInstitutions->map(static fn (Institution $institution): string => (string) $institution->getKey())->all(),
+        );
+
+        foreach ($availableInstitutions as $availableInstitution) {
+            $counts = $eventCounts[(string) $availableInstitution->getKey()] ?? ['total' => 0, 'public' => 0];
+            $availableInstitution->setAttribute('events_count', $counts['total']);
+            $availableInstitution->setAttribute('public_events_count', $counts['public']);
+        }
 
         $institutionId = $this->normalizeInstitutionId($request->query('institution_id'));
 
@@ -101,16 +110,7 @@ class InstitutionWorkspaceController extends FrontendController
                         0,
                     ),
                 ],
-                'events' => $events->getCollection()->map(fn (Event $event): array => [
-                    'id' => $event->getKey(),
-                    'title' => $event->title,
-                    'slug' => $event->slug,
-                    'status' => (string) $event->status,
-                    'visibility' => $this->enumValue($event->visibility),
-                    'starts_at' => $this->optionalDateTimeString($event->starts_at),
-                    'registrations_count' => (int) ($event->workspace_registrations_count ?? 0),
-                    'venue' => $event->venue?->only(['id', 'name']),
-                ])->all(),
+                'events' => $events['items'],
                 'event_filters' => [
                     'search' => $eventSearch,
                     'status' => $eventStatus,
@@ -131,7 +131,12 @@ class InstitutionWorkspaceController extends FrontendController
                 'institution_role_options' => $this->institutionRoleOptions(),
             ],
             'meta' => [
-                'events_pagination' => $this->paginatorData($events),
+                'events_pagination' => [
+                    'page' => $events['page'],
+                    'per_page' => $events['per_page'],
+                    'total' => $events['total'],
+                    'last_page' => $events['last_page'],
+                ],
                 'members_pagination' => $this->paginatorData($members),
                 'request_id' => $this->requestId($request),
             ],
@@ -371,82 +376,31 @@ class InstitutionWorkspaceController extends FrontendController
     }
 
     /**
-     * @return LengthAwarePaginator<int, Event>
+     * @return array{
+     *     items: list<array<string, mixed>>,
+     *     page: int,
+     *     per_page: int,
+     *     total: int,
+     *     last_page: int
+     * }
      */
     private function institutionEvents(
-        ?Institution $institution,
+        Institution $institution,
         string $eventSearch,
         string $eventStatus,
         string $eventVisibility,
         string $eventSort,
         int $eventPerPage,
-    ): LengthAwarePaginator {
-        if (! $institution instanceof Institution) {
-            /** @var LengthAwarePaginator<int, Event> $paginator */
-            $paginator = Event::query()->whereRaw('1 = 0')->paginate(perPage: $eventPerPage);
-
-            return $paginator;
-        }
-
-        $query = Event::query()
-            ->where('institution_id', $institution->getKey())
-            ->with(['venue:id,name'])
-            ->withCount(['registrations as workspace_registrations_count']);
-
-        if ($eventSearch !== '') {
-            $search = '%'.trim($eventSearch).'%';
-
-            $query->where(function (Builder $builder) use ($search): void {
-                $builder
-                    ->whereLike('title', $search)
-                    ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereLike('name', $search));
-            });
-        }
-
-        if ($eventStatus !== 'all') {
-            $query->where('status', $eventStatus);
-        }
-
-        if ($eventVisibility !== 'all') {
-            $query->where('visibility', $eventVisibility);
-        }
-
-        match ($eventSort) {
-            'starts_asc' => $query->orderBy('starts_at')->orderBy('title'),
-            'title_asc' => $query->orderBy('title')->orderBy('starts_at', 'desc'),
-            'title_desc' => $query->orderByDesc('title')->orderBy('starts_at', 'desc'),
-            'registrations_desc' => $query->orderByDesc('workspace_registrations_count')->orderBy('starts_at', 'desc'),
-            'pending_first' => $query
-                ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
-                ->orderBy('starts_at')
-                ->orderBy('title'),
-            default => $query->orderByDesc('starts_at')->orderBy('title'),
-        };
-
-        /** @var LengthAwarePaginator<int, Event> $paginator */
-        $paginator = $query->paginate($eventPerPage);
-
-        return $paginator;
-    }
-
-    /**
-     * @return Builder<Event>
-     */
-    private function institutionEventCountSubquery(bool $publicOnly = false): Builder
-    {
-        $query = Event::query()
-            ->selectRaw('count(*)')
-            ->whereColumn('events.institution_id', 'institutions.id');
-
-        if (! $publicOnly) {
-            return $query;
-        }
-
-        return $query
-            ->whereNotNull('events.published_at')
-            ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public)
-            ->whereHas('occurrences');
+    ): array {
+        return $this->eventReader->institutionEventsPage(
+            (string) $institution->getKey(),
+            $eventSearch,
+            $eventStatus,
+            $eventVisibility,
+            $eventSort,
+            $eventPerPage,
+            max(1, (int) request()->query('page', 1)),
+        );
     }
 
     /**

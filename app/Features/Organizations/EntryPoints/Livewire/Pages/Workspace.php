@@ -7,6 +7,7 @@ namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Event;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
@@ -270,12 +271,14 @@ final class Workspace extends Component
     {
         $organization = $this->selectedOrganization();
 
-        return OwnerContext::withOwner($organization, fn (): Collection => Event::query()
-            ->where('owner_type', $organization->getMorphClass())
-            ->where('owner_id', $organization->getKey())
-            ->latest('created_at')
-            ->limit(20)
-            ->get());
+        /** @var Collection<int, Event> $events */
+        $events = OwnerContext::withOwner($organization, fn (): object => app(EventScheduleQuery::class)->eventsForOwner(
+            $organization->getMorphClass(),
+            (string) $organization->getKey(),
+            20,
+        ));
+
+        return $events;
     }
 
     /** @return array<string, string> */

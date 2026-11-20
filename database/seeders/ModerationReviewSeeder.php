@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
+use App\Features\Moderation\Models\ModerationReview;
 use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

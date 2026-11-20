@@ -2,16 +2,18 @@
 
 namespace App\Features\Engagement\EntryPoints\Http;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollowCommands;
+use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Engagement\EntryPoints\Http\Data\FollowStateData;
-use App\Features\Events\Models\Series;
-use App\Features\Institutions\Api\Enums\InstitutionStatus;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
+use App\Features\Events\Api\SeriesAuthoring;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
-use App\Platform\Models\SlugOrUuidResolver;
+use App\Shared\Directory\FollowableSubject;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
@@ -23,7 +25,10 @@ class FollowController extends FrontendController
 {
     public function __construct(
         private readonly SubjectFollowCommands $subjectFollowCommands,
-        private readonly SlugOrUuidResolver $slugOrUuidResolver,
+        private readonly InstitutionLookup $institutions,
+        private readonly PersonLookup $persons,
+        private readonly ReferenceLookup $references,
+        private readonly SeriesAuthoring $series,
     ) {}
 
     #[PathParameter('type', 'Followable public resource type. Use singular values only: `institution`, `person`, `reference`, or `series`; plural list paths such as `/follows/persons` are not valid.', example: 'institution')]
@@ -56,12 +61,12 @@ class FollowController extends FrontendController
         $user = $this->requireUser($request);
         $record = $this->resolveFollowable($type, $subject, $user);
 
-        if (! $user->isFollowing($record)) {
+        if (! $this->isFollowing($record, $user)) {
             $this->subjectFollowCommands->follow(
-                $record->getMorphClass(),
-                (string) $record->getKey(),
+                $record->morphType,
+                $record->id,
                 (string) $user->getKey(),
-                ['subject_id' => $record->getKey(), 'subject_type' => $record->getMorphClass()],
+                ['subject_id' => $record->id, 'subject_type' => $record->morphType],
             );
         }
 
@@ -84,7 +89,7 @@ class FollowController extends FrontendController
         $user = $this->requireUser($request);
         $record = $this->resolveFollowable($type, $subject, $user);
 
-        $this->subjectFollowCommands->unfollow($record->getMorphClass(), (string) $record->getKey(), (string) $user->getKey());
+        $this->subjectFollowCommands->unfollow($record->morphType, $record->id, (string) $user->getKey());
 
         return response()->json([
             'data' => $this->followData($record, $user),
@@ -94,87 +99,49 @@ class FollowController extends FrontendController
         ]);
     }
 
-    private function resolveFollowable(string $type, string $subject, User $user): Institution|Person|Reference|Series
+    private function resolveFollowable(string $type, string $subject, User $user): FollowableSubject
     {
-        return match ($type) {
-            'institution' => $this->resolveInstitution($subject, $user),
-            'person' => $this->resolvePerson($subject, $user),
-            'reference' => $this->resolveReference($subject),
-            'series' => $this->resolveSeries($subject, $user),
+        $record = match ($type) {
+            'institution' => $this->institutions->findFollowableSubject($subject),
+            'person' => $this->persons->findFollowableSubject($subject),
+            'reference' => $this->references->findFollowableSubject($subject),
+            'series' => $this->series->findFollowableSeries($subject),
             default => abort(404),
         };
-    }
 
-    private function resolveInstitution(string $subject, User $user): Institution
-    {
-        /** @var Institution $record */
-        $record = $this->slugOrUuidResolver->firstOrFail(
-            Institution::query(),
-            'institutions.slug',
-            $subject,
-        );
+        if (! $record instanceof FollowableSubject) {
+            abort(404);
+        }
 
-        if (! in_array($record->status, InstitutionStatus::publiclyVisible(), true) && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($type === 'reference') {
+            abort_unless($record->isPubliclyVisible, 404);
+
+            return $record;
+        }
+
+        if (! $record->isPubliclyVisible && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
             abort(404);
         }
 
         return $record;
     }
 
-    private function resolvePerson(string $subject, User $user): Person
+    private function isFollowing(FollowableSubject $subject, User $user): bool
     {
-        /** @var Person $record */
-        $record = $this->slugOrUuidResolver->firstOrFail(
-            Person::query(),
-            'persons.slug',
-            $subject,
-        );
-
-        if (! in_array((string) $record->status, ['verified', 'pending'], true) && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
-            abort(404);
-        }
-
-        return $record;
-    }
-
-    private function resolveReference(string $subject): Reference
-    {
-        /** @var Reference $record */
-        $record = $this->slugOrUuidResolver->firstOrFail(
-            Reference::query(),
-            'references.slug',
-            $subject,
-        );
-
-        abort_unless(
-            $record->isPubliclyVisible(),
-            404,
-        );
-
-        return $record;
-    }
-
-    private function resolveSeries(string $subject, User $user): Series
-    {
-        /** @var Series $record */
-        $record = $this->slugOrUuidResolver->firstOrFail(
-            Series::query(),
-            (new Series)->getTable().'.slug',
-            $subject,
-        );
-
-        if ($record->visibility !== 'public' && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
-            abort(404);
-        }
-
-        return $record;
+        return OwnerContext::withOwner(null, fn (): bool => app(SubjectFollows::class)
+            ->followStateFor(
+                (string) $user->getKey(),
+                EngagementSubjectType::from($subject->type),
+                $subject->id,
+            )
+            ->isFollowing);
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function followData(Institution|Person|Reference|Series $record, User $user): array
+    private function followData(FollowableSubject $record, User $user): array
     {
-        return FollowStateData::fromModel($record, $user)->toArray();
+        return FollowStateData::fromSubject($record, $this->isFollowing($record, $user))->toArray();
     }
 }

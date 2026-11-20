@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
+use App\Shared\Directory\FollowableSubject;
+
 /**
  * Admin series authoring and deletion boundary.
  *
@@ -21,7 +23,29 @@ interface SeriesAuthoring
     public function delete(string $seriesId): bool;
 
     /**
+     * Resolve a followable series and publish its visibility fact.
+     */
+    public function findFollowableSeries(string $identifier): ?FollowableSubject;
+
+    /**
      * @param  list<string>  $seriesIds
      */
     public function deleteMany(array $seriesIds): int;
+
+    /** @return array<string, string> */
+    public function titleOptions(): array;
+
+    /**
+     * Documented transport: a hydrated Series model for route/slug/title
+     * presentation contracts.
+     */
+    public function findSeriesBySlug(string $slug): ?object;
+
+    public function isPubliclyReachable(string $seriesId): bool;
+
+    /**
+     * Documented transport: series detail record with media, resolved by slug
+     * or uuid.
+     */
+    public function findSeriesDetail(string $identifier): ?object;
 }

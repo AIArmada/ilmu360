@@ -8,6 +8,7 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventSaveCommands;
 use App\Features\Engagement\EntryPoints\Http\Data\EventEngagementListItemData;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Event;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -21,6 +22,10 @@ use Illuminate\Support\Str;
 #[Group('Event Save', 'Authenticated saved-event endpoints for listing and idempotent event save state management.')]
 class EventSaveController extends Controller
 {
+    public function __construct(
+        private readonly EventScheduleQuery $events,
+    ) {}
+
     /**
      * List all saved events for the authenticated user.
      */
@@ -32,22 +37,23 @@ class EventSaveController extends Controller
     {
         $user = $this->currentUser($request);
         $savedEventIds = app(EventEngagement::class)->savedEventIds((string) $user->getKey());
-
-        $savedEvents = Event::query()
-            ->whereKey($savedEventIds)
-            ->with(['institution:id,name,slug', 'venue:id,name', 'persons:id,name,slug'])
-            ->active()
-            ->orderBy('starts_at')
-            ->simplePaginate(ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100));
+        $page = $this->events->activeEventsForIds(
+            $savedEventIds,
+            max(1, $request->integer('page', 1)),
+            ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100),
+        );
 
         return response()->json([
-            'data' => collect($savedEvents->items())
-                ->map(fn (Event $event): array => EventEngagementListItemData::fromModel($event)->payload())
+            'data' => collect($page['items'])
+                ->map(fn (array $event): array => EventEngagementListItemData::fromPayload($event)->payload())
                 ->all(),
             'meta' => [
                 'request_id' => request()->header('X-Request-ID', (string) Str::uuid()),
                 'pagination' => [
-                    ...ApiPagination::simplePaginationMeta($savedEvents),
+                    'page' => $page['page'],
+                    'per_page' => $page['per_page'],
+                    'has_more' => $page['has_more'],
+                    'next_page' => $page['next_page'],
                 ],
             ],
         ]);

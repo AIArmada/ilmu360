@@ -6,6 +6,7 @@ namespace App\Features\Institutions;
 
 use App\Features\Institutions\Actions\InstitutionSubmissionAccessAction;
 use App\Features\Institutions\Actions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Institutions\Api\ContributionProjection;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Api\Frontend\InstitutionWorkspaceFormContractContributor;
 use App\Features\Institutions\Api\InstitutionCatalog;
@@ -20,6 +21,8 @@ use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\EntryPoints\Admin\Member\InstitutionMemberResourceHooks;
 use App\Features\Institutions\EntryPoints\Admin\Resources\InstitutionMutationHooks;
+use App\Features\Institutions\EntryPoints\Api\Admin\InstitutionResourceDefinition;
+use App\Features\Institutions\EntryPoints\Api\Member\InstitutionResourceDefinition as InstitutionMemberResourceDefinition;
 use App\Features\Institutions\EntryPoints\ApiDocumentation\InstitutionWorkspaceRequestExampleContributor;
 use App\Features\Institutions\EntryPoints\Console\Commands\PruneOrphanedEntities;
 use App\Features\Institutions\EntryPoints\Console\FlagStaleInactiveInstitutions;
@@ -43,8 +46,8 @@ use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
-use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 use App\Platform\Telemetry\SignalSchemaRegistry;
@@ -53,6 +56,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ContributionProjection::class, InstitutionContributionProjection::class);
         $this->app->bind(InstitutionQuickAdd::class, InstitutionFormSchema::class);
         $this->app->bind(InstitutionCatalog::class, EloquentInstitutionCatalog::class);
         $this->app->tag([PendingInstitutionsStat::class], 'admin.stats');
@@ -81,8 +85,12 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
-        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(InstitutionContributionProjection::class));
+        $memberRegistry = $this->app->make(ResourceDefinitionRegistry::class);
+        $memberDefinition = $this->app->make(InstitutionMemberResourceDefinition::class);
+        $memberRegistry->register($memberDefinition);
+        $memberRegistry->registerWriter($memberDefinition);
 
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(InstitutionResourceDefinition::class));
         $this->app->make(SignalSchemaRegistry::class)->register(new InstitutionsSignalSchemaContributor);
         $this->app->make(RequestExampleRegistry::class)->register(new InstitutionWorkspaceRequestExampleContributor);
 

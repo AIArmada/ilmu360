@@ -98,4 +98,11 @@ interface ReferenceWorkflow
 
     /** @param list<string> $referenceIds */
     public function restoreVerifier(string $accountId, array $referenceIds): void;
+
+    /**
+     * Documented transport: run the caller's Filament relationship work with
+     * the freshly created reference model, resolved without owner scoping,
+     * inside the same transaction.
+     */
+    public function withUnscopedContributionModel(string $referenceId, callable $callback): void;
 }

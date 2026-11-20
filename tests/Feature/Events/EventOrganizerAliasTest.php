@@ -5,8 +5,8 @@ declare(strict_types=1);
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Moderation\Models\ModerationReview;
 use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
 
 it('writes organizer involvements and moderation actors using configured morph aliases', function (): void {
     $event = Event::factory()->create();

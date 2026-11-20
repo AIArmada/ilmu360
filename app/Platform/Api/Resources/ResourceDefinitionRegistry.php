@@ -6,23 +6,74 @@ namespace App\Platform\Api\Resources;
 
 use RuntimeException;
 
+/**
+ * Deterministic keyed registry for resource definitions.
+ *
+ * Filament permits several resource classes for the same model; those share a
+ * public resource key and resolve to the first registered definition, exactly
+ * like the legacy ordered discovery. Registering the same definition class for
+ * the same surface key twice is still a duplicate-registration error.
+ */
 final class ResourceDefinitionRegistry
 {
-    /** @var array<string, ResourceDefinition> */
+    /** @var array<string, ResourceDefinition> First definition per surface key. */
     private array $definitions = [];
+
+    /** @var list<ResourceDefinition> Every registered definition in discovery order. */
+    private array $ordered = [];
+
+    /** @var array<string, true> */
+    private array $registered = [];
 
     /** @var array<string, ResourceWriter> */
     private array $writers = [];
 
+    /** @var list<class-string> Resource classes in discovery order. */
+    private array $order = [];
+
+    /**
+     * Set the public discovery order for Filament-backed resources. Definitions
+     * registered by feature providers are sorted by this list; unknown classes
+     * keep their registration order after the known ones.
+     *
+     * @param  list<class-string>  $resourceClasses
+     */
+    public function orderBy(array $resourceClasses): void
+    {
+        $this->order = array_values($resourceClasses);
+    }
+
     public function register(ResourceDefinition $definition): void
     {
         $key = $this->key($definition->surface(), $definition->key());
+        $identity = $key.'|'.($definition instanceof FilamentBackedResourceDefinition
+            ? $definition->resourceClass()
+            : $definition::class);
 
-        if (isset($this->definitions[$key])) {
+        if (isset($this->registered[$identity])) {
             throw new RuntimeException("Duplicate resource definition: {$key}");
         }
 
-        $this->definitions[$key] = $definition;
+        $this->registered[$identity] = true;
+        $this->ordered[] = $definition;
+        $this->definitions[$key] ??= $definition;
+
+        if ($definition instanceof FilamentResourceDefinition
+            && $definition->writer() instanceof ResourceWriter) {
+            $writerKey = $this->key($definition->writer()->surface(), $definition->writer()->key());
+
+            $this->writers[$writerKey] ??= $definition->writer();
+        }
+    }
+
+    /**
+     * @param  class-string  $resourceClass
+     */
+    public function hasForClass(ResourceSurface $surface, string $resourceClass): bool
+    {
+        return array_any($this->ordered, fn ($definition) => $definition->surface() === $surface
+            && $definition instanceof FilamentBackedResourceDefinition
+            && $definition->resourceClass() === $resourceClass);
     }
 
     public function registerWriter(ResourceWriter $writer): void
@@ -58,12 +109,27 @@ final class ResourceDefinitionRegistry
      */
     public function all(ResourceSurface $surface): array
     {
-        $definitions = array_filter(
-            $this->definitions,
+        $definitions = array_values(array_filter(
+            $this->ordered,
             static fn (ResourceDefinition $definition): bool => $definition->surface() === $surface,
-        );
+        ));
 
-        return array_values($definitions);
+        if ($this->order === []) {
+            return $definitions;
+        }
+
+        $positions = array_flip($this->order);
+        $position = static function (ResourceDefinition $definition) use ($positions): int {
+            if (! $definition instanceof FilamentBackedResourceDefinition) {
+                return PHP_INT_MAX;
+            }
+
+            return $positions[$definition->resourceClass()] ?? PHP_INT_MAX;
+        };
+
+        usort($definitions, static fn (ResourceDefinition $left, ResourceDefinition $right): int => $position($left) <=> $position($right));
+
+        return $definitions;
     }
 
     /**

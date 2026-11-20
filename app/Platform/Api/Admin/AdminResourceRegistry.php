@@ -2,24 +2,27 @@
 
 namespace App\Platform\Api\Admin;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Signals\Models\TrackedProperty;
-use App\Models\User;
 use App\Platform\Admin\ExcludedFromAdminApi;
-use App\Platform\Api\Admin\Contracts\AdminResourceHooks;
+use App\Platform\Api\Resources\AbstractAdminResourceWriter;
+use App\Platform\Api\Resources\EloquentResourceQuery;
+use App\Platform\Api\Resources\EloquentResourceSerializer;
+use App\Platform\Api\Resources\ResourceActorResolver;
+use App\Platform\Api\Resources\ResourceDefinition;
+use App\Platform\Api\Resources\ResourceDefinitionDirectory;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
+use App\Platform\Api\Resources\ResourceIntrospection;
+use App\Platform\Api\Resources\ResourceSurface;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
-use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
-use UnitEnum;
+use RuntimeException;
 
 /**
+ * Ordered admin resource discovery plus thin delegation to the registered
+ * owner definitions.
+ *
  * @phpstan-type AdminResourceMeta array{
  *   key: string,
  *   resource_class: class-string<Resource>,
@@ -42,83 +45,23 @@ use UnitEnum;
  */
 class AdminResourceRegistry
 {
-    private const array COMMUNICATIONS_PRIVATE_ATTRIBUTES = [
-        'action_url',
-        'address',
-        'attachable_id',
-        'attachable_type',
-        'body',
-        'checksum',
-        'communication_id',
-        'content_html',
-        'content_text',
-        'content_id',
-        'data',
-        'destination_ciphertext',
-        'destination_hash',
-        'destination_hint',
-        'device_label',
-        'display_name',
-        'entity_id',
-        'entity_type',
-        'external_id',
-        'external_key',
-        'external_thread_id',
-        'failure_code',
-        'failure_message',
-        'filename',
-        'idempotency_key',
-        'metadata',
-        'owner_id',
-        'owner_type',
-        'payload',
-        'provider_account_key',
-        'provider_message_id',
-        'recipient_id',
-        'recipient_type',
-        'reason',
-        'request_payload',
-        'response_payload',
-        'sender_id',
-        'sender_type',
-        'snapshot',
-        'storage_disk',
-        'storage_path',
-        'subject',
-        'subject_id',
-        'subject_type',
-        'template_id',
-        'template_version_id',
-        'target_url_ciphertext',
-        'thread_id',
-        'title',
-        'token_hash',
-        'variables_schema',
-    ];
-
     /** @var list<class-string<resource>>|null */
     private ?array $resourcesCache = null;
 
     /** @var list<class-string<resource>>|null */
     private ?array $accessibleResourcesCache = null;
 
-    /** @var array<class-string<resource>, array<string, mixed>> */
-    private array $metadataCache = [];
-
-    /** @var array<class-string<resource>, list<string>> */
-    private array $searchableColumnsCache = [];
-
-    /** @var array<class-string<resource>, list<array{key: string, label: string, type: string, options?: array<string, string>}>> */
-    private array $filtersCache = [];
-
     public function __construct(
-        private readonly AdminResourceMutationService $mutationService,
+        private readonly ResourceDefinitionRegistry $definitions,
+        private readonly ResourceActorResolver $actors,
+        private readonly EloquentResourceQuery $queries,
+        private readonly EloquentResourceSerializer $serializer,
+        private readonly ResourceIntrospection $introspection,
         private readonly AdminResourceHookRegistry $hooks,
+        private readonly ResourceDefinitionDirectory $directory,
     ) {}
 
-    /**
-     * @return list<class-string<resource>>
-     */
+    /** @return list<class-string<resource>> */
     public function resources(): array
     {
         if (is_array($this->resourcesCache)) {
@@ -134,9 +77,7 @@ class AdminResourceRegistry
         ));
     }
 
-    /**
-     * @return list<class-string<resource>>
-     */
+    /** @return list<class-string<resource>> */
     public function accessibleResources(): array
     {
         if (is_array($this->accessibleResourcesCache)) {
@@ -160,9 +101,7 @@ class AdminResourceRegistry
         return null;
     }
 
-    /**
-     * @param  class-string<Model>  $modelClass
-     */
+    /** @param class-string<Model> $modelClass */
     public function resolveForModel(string $modelClass): ?string
     {
         foreach ($this->resources() as $resourceClass) {
@@ -177,176 +116,53 @@ class AdminResourceRegistry
 
     public function canAccessResource(string $resourceClass): bool
     {
-        return $this->canViewAny($resourceClass)
-            || $this->canCreate($resourceClass)
-            || $resourceClass::canDeleteAny()
-            || $resourceClass::canForceDeleteAny()
-            || $resourceClass::canRestoreAny()
-            || $resourceClass::canReorder();
+        return $this->definition($resourceClass)->canAccess($this->actors->current());
     }
 
-    /**
-     * @return AdminResourceMeta
-     */
+    /** @return AdminResourceMeta */
     public function metadata(string $resourceClass): array
     {
-        if (array_key_exists($resourceClass, $this->metadataCache)) {
-            return $this->metadataCache[$resourceClass];
-        }
-
-        $key = $this->keyFor($resourceClass);
-        $pages = $resourceClass::getPages();
-        $supportsMutation = $this->mutationService->supports($resourceClass);
-        $filters = $this->filterMetadata($resourceClass);
-        $dateSemantics = $this->hooksFor($resourceClass)?->dateSemantics($resourceClass);
-
-        return $this->metadataCache[$resourceClass] = [
-            'key' => $key,
-            'resource_class' => $resourceClass,
-            'model_class' => $resourceClass::getModel(),
-            'model_label' => $resourceClass::getModelLabel(),
-            'plural_model_label' => $resourceClass::getPluralModelLabel(),
-            'navigation_group' => $this->stringOrNull($resourceClass::getNavigationGroup()),
-            'record_title_attribute' => $resourceClass::getRecordTitleAttribute(),
-            'pages' => [
-                'index' => array_key_exists('index', $pages),
-                'create' => array_key_exists('create', $pages),
-                'view' => array_key_exists('view', $pages),
-                'edit' => array_key_exists('edit', $pages),
-            ],
-            'relations' => $this->relationNames($resourceClass),
-            'abilities' => [
-                'view_any' => $this->canViewAny($resourceClass),
-                'create' => $this->canCreate($resourceClass),
-                'delete_any' => $resourceClass::canDeleteAny(),
-                'force_delete_any' => $resourceClass::canForceDeleteAny(),
-                'restore_any' => $resourceClass::canRestoreAny(),
-                'reorder' => $resourceClass::canReorder(),
-            ],
-            'filters' => $filters,
-            'write_support' => [
-                'schema' => $supportsMutation,
-                'store' => $supportsMutation,
-                'update' => $supportsMutation,
-            ],
-            'api_routes' => [
-                'collection' => route('api.admin.resources.index', ['resourceKey' => $key], false),
-                'meta' => route('api.admin.resources.meta', ['resourceKey' => $key], false),
-                'schema' => $supportsMutation
-                    ? route('api.admin.resources.schema', ['resourceKey' => $key], false)
-                    : null,
-                'store' => $supportsMutation && array_key_exists('create', $pages)
-                    ? route('api.admin.resources.store', ['resourceKey' => $key], false)
-                    : null,
-                'related_collection' => route('api.admin.resources.related', ['resourceKey' => $key, 'recordKey' => 'record', 'relation' => 'relation'], false),
-                'item_template' => route('api.admin.resources.show', ['resourceKey' => $key, 'recordKey' => 'record'], false),
-                'update_template' => $supportsMutation && array_key_exists('edit', $pages)
-                    ? route('api.admin.resources.update', ['resourceKey' => $key, 'recordKey' => 'record'], false)
-                    : null,
-            ],
-            'mcp_tools' => $this->mcpTools($resourceClass, $key, $supportsMutation, $pages, $dateSemantics, $filters),
-            'panel_routes' => [
-                'index' => $this->safePanelUrl($resourceClass, 'index'),
-                'create' => $this->safePanelUrl($resourceClass, 'create'),
-                'view_template' => $this->safePanelUrl($resourceClass, 'view', ['record' => 'record']),
-                'edit_template' => $this->safePanelUrl($resourceClass, 'edit', ['record' => 'record']),
-            ],
-            'timezone_sensitive' => $dateSemantics !== null,
-            'date_semantics' => $dateSemantics,
-        ];
+        return $this->definition($resourceClass)->metadata($this->actors->current());
     }
 
-    /**
-     * @param  class-string<resource>  $resourceClass
-     * @param  array<string, mixed>  $parameters
-     */
-    private function safePanelUrl(string $resourceClass, string $page, array $parameters = []): ?string
-    {
-        if (! array_key_exists($page, $resourceClass::getPages())) {
-            return null;
-        }
-
-        try {
-            return $resourceClass::getUrl($page, $parameters, panel: 'admin');
-        } catch (RouteNotFoundException) {
-            return null;
-        }
-    }
-
-    /**
-     * @return Builder<Model>
-     */
+    /** @return Builder<Model> */
     public function queryFor(string $resourceClass): Builder
     {
-        /** @var Builder<Model> $query */
-        $query = $resourceClass::getEloquentQuery();
-
-        $this->applyDefaultApiEagerLoads($query);
-
-        return $query;
+        return $this->queries->forResource($resourceClass);
     }
 
     public function resolveRecord(string $resourceClass, string $recordKey): Model
     {
-        $model = $this->queryFor($resourceClass)->getModel();
-
-        $routeBoundRecord = $model
-            ->resolveRouteBindingQuery($this->queryFor($resourceClass), $recordKey)
-            ->first();
-
-        if ($routeBoundRecord instanceof Model) {
-            return $routeBoundRecord;
-        }
-
-        abort(404);
+        return $this->queries->resolveRecord($resourceClass, $recordKey);
     }
 
-    /**
-     * @return array<string, bool>
-     */
+    /** @return array<string, bool> */
     public function recordAbilities(string $resourceClass, Model $record): array
     {
-        return [
-            'view' => $this->canActOnRecord('view', $resourceClass, $record),
-            'edit' => $this->canActOnRecord('update', $resourceClass, $record),
-            'delete' => $this->canActOnRecord('delete', $resourceClass, $record),
-            'force_delete' => $resourceClass::canForceDelete($record),
-            'restore' => $resourceClass::canRestore($record),
-            'replicate' => $resourceClass::canReplicate($record),
-        ];
+        return $this->serializer->recordAbilities(
+            $resourceClass,
+            $record,
+            $this->actors->user($this->actors->current()),
+        );
     }
 
     public function keyFor(string $resourceClass): string
     {
-        /** @var class-string<Model> $modelClass */
-        $modelClass = $resourceClass::getModel();
-
-        return Str::kebab(Str::pluralStudly(class_basename($modelClass)));
+        return $this->introspection->keyFor($resourceClass);
     }
 
-    /**
-     * @param  class-string  $resourceClass
-     */
-    public function hooksFor(string $resourceClass): ?AdminResourceHooks
+    public function hooksFor(string $resourceClass): ?Contracts\AdminResourceHooks
     {
         return $this->hooks->for($resourceClass);
     }
 
-    /**
-     * @return list<array{key: string, label: string, type: string, options?: array<string, string>}>
-     */
+    /** @return list<array{key: string, label: string, type: string, options?: array<string, string>}> */
     public function filters(string $resourceClass): array
     {
-        if (array_key_exists($resourceClass, $this->filtersCache)) {
-            return $this->filtersCache[$resourceClass];
-        }
-
-        return $this->filtersCache[$resourceClass] = $this->hooksFor($resourceClass)?->filters($resourceClass) ?? [];
+        return $this->definition($resourceClass)->filters($this->actors->current());
     }
 
-    /**
-     * @return list<array{key: string, label: string, type: string, options?: array<string, string>}>
-     */
+    /** @return list<array{key: string, label: string, type: string, options?: array<string, string>}> */
     public function filterMetadata(string $resourceClass): array
     {
         return array_map(
@@ -355,537 +171,61 @@ class AdminResourceRegistry
         );
     }
 
-    /**
-     * @param  class-string  $resourceClass
-     * @param  array<string, mixed>  $pages
-     * @param  array<string, mixed>|null  $dateSemantics
-     * @param  list<array{key: string, label: string, type: string, options?: array<string, string>}>  $filters
-     * @return array<string, mixed>
-     */
-    private function mcpTools(string $resourceClass, string $key, bool $supportsMutation, array $pages, ?array $dateSemantics, array $filters): array
-    {
-        $listRecordsArguments = [
-            'resource_key' => $key,
-            'search' => null,
-            'page' => 1,
-            'per_page' => 15,
-        ];
-
-        if ($filters !== []) {
-            $listRecordsArguments['filters'] = 'object';
-        }
-
-        if ($dateSemantics !== null) {
-            $listRecordsArguments['starts_after'] = null;
-            $listRecordsArguments['starts_before'] = null;
-            $listRecordsArguments['starts_on_local_date'] = null;
-        }
-
-        $hook = $this->hooksFor($resourceClass);
-        $ownerImageUploadTools = $hook?->imageUploadMcpTools($resourceClass, $key) ?? [];
-        $imageUploadTools = [];
-
-        foreach ($this->hooks->all() as $availableHook) {
-            foreach ($availableHook->imageUploadMcpToolKeys() as $slot) {
-                $imageUploadTools[$slot] = $ownerImageUploadTools[$slot] ?? null;
-            }
-        }
-
-        return [
-            'list_resources' => [
-                'tool' => 'admin-list-resources',
-                'arguments' => [
-                    'verbose' => true,
-                    'writable_only' => false,
-                ],
-            ],
-            'get_meta' => [
-                'tool' => 'admin-get-resource-meta',
-                'arguments' => [
-                    'resource_key' => $key,
-                ],
-            ],
-            'list_records' => [
-                'tool' => 'admin-list-records',
-                'arguments' => $listRecordsArguments,
-            ],
-            'list_related_records' => [
-                'tool' => 'admin-list-related-records',
-                'arguments' => [
-                    'resource_key' => $key,
-                    'record_key' => 'record',
-                    'relation' => 'relation',
-                    'search' => null,
-                    'page' => 1,
-                    'per_page' => 15,
-                ],
-            ],
-            'get_record' => [
-                'tool' => 'admin-get-record',
-                'arguments' => [
-                    'resource_key' => $key,
-                    'record_key' => 'record',
-                ],
-            ],
-            'get_record_actions' => [
-                'tool' => 'admin-get-record-actions',
-                'arguments' => [
-                    'resource_key' => $key,
-                    'record_key' => 'record',
-                ],
-            ],
-            ...$imageUploadTools,
-            'get_create_schema' => $supportsMutation
-                ? [
-                    'tool' => 'admin-get-write-schema',
-                    'arguments' => [
-                        'resource_key' => $key,
-                        'operation' => 'create',
-                    ],
-                ]
-                : null,
-            'get_update_schema' => $supportsMutation
-                ? [
-                    'tool' => 'admin-get-write-schema',
-                    'arguments' => [
-                        'resource_key' => $key,
-                        'operation' => 'update',
-                        'record_key' => 'record',
-                    ],
-                ]
-                : null,
-            'create' => $supportsMutation && array_key_exists('create', $pages)
-                ? [
-                    'tool' => 'admin-create-record',
-                    'arguments' => [
-                        'resource_key' => $key,
-                        'payload' => 'object',
-                        'validate_only' => false,
-                        'apply_defaults' => false,
-                    ],
-                ]
-                : null,
-            'update' => $supportsMutation && array_key_exists('edit', $pages)
-                ? [
-                    'tool' => 'admin-update-record',
-                    'arguments' => [
-                        'resource_key' => $key,
-                        'record_key' => 'record',
-                        'payload' => 'object',
-                        'validate_only' => false,
-                        'apply_defaults' => false,
-                    ],
-                ]
-                : null,
-        ];
-    }
-
-    /**
-     * @return array{
-     *   id: string,
-     *   route_key: string,
-     *   title: string|null,
-     *   attributes: array<string, mixed>,
-     *   abilities: array<string, bool>,
-     *   panel_routes: array<string, string|null>
-     * }
-     */
+    /** @return array<string, mixed> */
     public function serializeRecord(string $resourceClass, Model $record): array
     {
-        $pages = $resourceClass::getPages();
-
-        $this->loadMissingApiRelations($record);
-
-        return [
-            'id' => (string) $record->getKey(),
-            'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->communicationsRecordTitle($record)
-                ?? $this->hooksFor($resourceClass)?->recordTitle($record)
-                ?? $this->htmlableToString($resourceClass::getRecordTitle($record)),
-            'attributes' => $this->hooksFor($resourceClass)?->recordAttributes($record)
-                ?? $this->serializeAttributes($record),
-            'abilities' => $this->recordAbilities($resourceClass, $record),
-            'panel_routes' => [
-                'view' => array_key_exists('view', $pages) ? $this->resourcePanelUrl($resourceClass, 'view', $record) : null,
-                'edit' => array_key_exists('edit', $pages) ? $this->resourcePanelUrl($resourceClass, 'edit', $record) : null,
-            ],
-        ];
+        return $this->serializer->serializeRecord(
+            $resourceClass,
+            $record,
+            $this->actors->user($this->actors->current()),
+        );
     }
 
-    /**
-     * @return array{
-     *   route_key: string,
-     *   title: string|null,
-     *   attributes: array<string, mixed>,
-     *   abilities: array<string, bool>,
-     *   panel_routes: array<string, string|null>
-     * }
-     */
+    /** @return array<string, mixed> */
     public function serializeRecordDetail(string $resourceClass, Model $record): array
     {
-        $pages = $resourceClass::getPages();
-
-        $this->loadMissingApiRelations($record);
-
-        $attributes = $this->hooksFor($resourceClass)?->recordAttributes($record)
-            ?? $this->serializeAttributes($record);
-
-        return [
-            'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->communicationsRecordTitle($record)
-                ?? $this->hooksFor($resourceClass)?->recordTitle($record)
-                ?? $this->htmlableToString($resourceClass::getRecordTitle($record)),
-            'attributes' => $this->stripResponsiveImages($attributes),
-            'abilities' => $this->recordAbilities($resourceClass, $record),
-            'panel_routes' => [
-                'view' => array_key_exists('view', $pages) ? $this->resourcePanelUrl($resourceClass, 'view', $record) : null,
-                'edit' => array_key_exists('edit', $pages) ? $this->resourcePanelUrl($resourceClass, 'edit', $record) : null,
-            ],
-        ];
+        return $this->serializer->serializeRecordDetail(
+            $resourceClass,
+            $record,
+            $this->actors->user($this->actors->current()),
+        );
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function serializeGenericAttributes(Model $record): array
     {
-        return $this->sanitizeCommunicationsAttributes($record, $this->baseAttributes($record));
+        return $this->serializer->serializeGenericAttributes($record);
     }
 
     public function communicationsRecordTitle(Model $record): ?string
     {
-        return $this->isCommunicationsModel($record)
-            ? Str::headline(class_basename($record))
-            : null;
+        return $this->serializer->communicationsRecordTitle($record);
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function searchableColumns(string $resourceClass): array
     {
-        if (array_key_exists($resourceClass, $this->searchableColumnsCache)) {
-            return $this->searchableColumnsCache[$resourceClass];
-        }
-
-        $modelClass = $resourceClass::getModel();
-        $model = new $modelClass;
-        $table = $model->getTable();
-        $candidates = [
-            $resourceClass::getRecordTitleAttribute(),
-            $model->getRouteKeyName(),
-            'name',
-            'middle_name',
-            'family_name',
-            'title',
-            'slug',
-            'email',
-        ];
-
-        $normalizedCandidates = [];
-
-        foreach ($candidates as $candidate) {
-            if (! is_string($candidate) || $candidate === '') {
-                continue;
-            }
-
-            $normalizedCandidates[] = $candidate;
-        }
-
-        $normalizedCandidates = array_values(array_unique($normalizedCandidates));
-
-        return $this->searchableColumnsCache[$resourceClass] = array_values(array_filter(
-            $normalizedCandidates,
-            static fn (string $column): bool => Schema::hasColumn($table, $column),
-        ));
+        return $this->introspection->searchableColumns($resourceClass);
     }
 
-    /**
-     * @return list<string>
-     */
-    private function relationNames(string $resourceClass): array
+    public function definition(string $resourceClass): ResourceDefinition
     {
-        $relationNames = [];
+        $definition = $this->directory->definitionForClass($resourceClass);
 
-        foreach ($resourceClass::getRelations() as $relation) {
-            $name = $this->relationName($relation);
-
-            if (! filled($name)) {
-                continue;
-            }
-
-            $relationNames[] = $name;
+        if (! $definition instanceof ResourceDefinition) {
+            throw new RuntimeException(sprintf(
+                'No admin resource definition is registered for [%s].',
+                $resourceClass,
+            ));
         }
 
-        return array_values(array_unique($relationNames));
+        return $definition;
     }
 
-    private function relationName(mixed $relation): ?string
+    public function writer(string $resourceClass): ?AbstractAdminResourceWriter
     {
-        $relationClass = is_object($relation) ? $relation::class : (is_string($relation) ? $relation : null);
+        $writer = $this->definitions->writer(ResourceSurface::Admin, $this->keyFor($resourceClass));
 
-        if (! is_string($relationClass) || $relationClass === '') {
-            return null;
-        }
-
-        $reflection = new \ReflectionClass($relationClass);
-
-        if ($reflection->hasProperty('relationship')) {
-            $property = $reflection->getProperty('relationship');
-
-            if ($property->isStatic()) {
-                $value = $property->getValue();
-
-                if (is_string($value) && $value !== '') {
-                    return Str::snake($value);
-                }
-            }
-        }
-
-        return Str::snake(class_basename($relationClass));
-    }
-
-    /**
-     * @param  class-string<resource>  $resourceClass
-     */
-    private function canCreate(string $resourceClass): bool
-    {
-        $user = auth()->user();
-        $modelClass = $resourceClass::getModel();
-
-        return $user instanceof User
-            ? $user->can('create', $modelClass)
-            : $resourceClass::canCreate();
-    }
-
-    /**
-     * @param  class-string<resource>  $resourceClass
-     */
-    private function canViewAny(string $resourceClass): bool
-    {
-        $user = auth()->user();
-        $modelClass = $resourceClass::getModel();
-
-        return $user instanceof User
-            ? $user->can('viewAny', $modelClass)
-            : $resourceClass::canViewAny();
-    }
-
-    /**
-     * @param  Builder<Model>  $query
-     */
-    private function applyDefaultApiEagerLoads(Builder $query): void
-    {
-        $relations = $this->apiRelations($query->getModel());
-
-        if ($relations !== []) {
-            $query->with($relations);
-        }
-    }
-
-    private function loadMissingApiRelations(Model $record): void
-    {
-        $relations = $this->apiRelations($record);
-
-        if ($relations !== []) {
-            $record->loadMissing($relations);
-        }
-    }
-
-    /**
-     * Recursively strip the `responsive_images` key from any nested array in the serialized payload.
-     * This prevents base64 SVG placeholders and large responsive-image URL lists from bloating MCP responses.
-     *
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
-     */
-    private function stripResponsiveImages(array $data): array
-    {
-        unset($data['responsive_images']);
-
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                $data[$key] = $this->stripResponsiveImages($value);
-            }
-        }
-
-        return $data;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function serializeAttributes(Model $record): array
-    {
-        $attributes = $this->baseAttributes($record);
-
-        if ($record instanceof TrackedProperty) {
-            $attributes['write_key'] = filled($record->write_key) ? 'present' : null;
-        }
-
-        if (method_exists($record, 'primaryAddress')) {
-            $address = $record->primaryAddress();
-
-            $attributes['address'] = $address instanceof Address
-                ? $address->toArray()
-                : [];
-
-        }
-
-        // Product API keys (not package relation names).
-        if (method_exists($record, 'contactMethods')) {
-            $contacts = $record->relationLoaded('contactMethods')
-                ? $record->getRelation('contactMethods')
-                : $record->contactMethods()->get();
-            $attributes['contacts'] = $contacts->map(static fn ($contact): array => $contact->toArray())->values()->all();
-            unset($attributes['contactMethods']);
-        }
-
-        if (method_exists($record, 'socialProfiles')) {
-            $profiles = $record->relationLoaded('socialProfiles')
-                ? $record->getRelation('socialProfiles')
-                : $record->socialProfiles()->get();
-            $attributes['social_media'] = $profiles->map(static fn ($profile): array => $profile->toArray())->values()->all();
-            unset($attributes['socialProfiles']);
-        }
-
-        unset($attributes['addresses']);
-
-        foreach ($this->hooks->all() as $hooks) {
-            $attributes = $hooks->augmentAttributes($record, $attributes);
-        }
-
-        return $this->sanitizeCommunicationsAttributes($record, $attributes);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function baseAttributes(Model $record): array
-    {
-        $attributes = OwnerContext::withOwner(null, fn (): array => $record->toArray());
-
-        if ($record instanceof User) {
-            return Arr::except($attributes, [
-                'email',
-                'email_verified_at',
-                'phone',
-                'phone_verified_at',
-                'daily_prayer_institutions',
-                'friday_prayer_institutions',
-            ]);
-        }
-
-        return $attributes;
-    }
-
-    /**
-     * @param  array<string, mixed>  $attributes
-     * @return array<string, mixed>
-     */
-    private function sanitizeCommunicationsAttributes(Model $record, array $attributes): array
-    {
-        return $this->isCommunicationsModel($record)
-            ? $this->removeCommunicationsPrivateAttributes($attributes)
-            : $attributes;
-    }
-
-    private function isCommunicationsModel(Model $record): bool
-    {
-        return str_starts_with($record::class, 'AIArmada\\Communications\\Models\\');
-    }
-
-    /**
-     * @param  array<int|string, mixed>  $attributes
-     * @return array<int|string, mixed>
-     */
-    private function removeCommunicationsPrivateAttributes(array $attributes): array
-    {
-        foreach ($attributes as $key => $value) {
-            if (is_string($key) && in_array($key, self::COMMUNICATIONS_PRIVATE_ATTRIBUTES, true)) {
-                unset($attributes[$key]);
-
-                continue;
-            }
-
-            if (is_array($value)) {
-                $attributes[$key] = $this->removeCommunicationsPrivateAttributes($value);
-            }
-        }
-
-        return $attributes;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function apiRelations(Model $model): array
-    {
-        $relations = [];
-
-        if (method_exists($model, 'addresses')) {
-            $relations[] = 'addresses';
-        }
-
-        if (method_exists($model, 'contactMethods')) {
-            $relations[] = 'contactMethods';
-        }
-
-        if (method_exists($model, 'socialProfiles')) {
-            $relations[] = 'socialProfiles';
-        }
-
-        if (method_exists($model, 'names')) {
-            $relations[] = 'names';
-        }
-
-        return $relations;
-    }
-
-    /**
-     * @param  class-string<resource>  $resourceClass
-     */
-    private function canActOnRecord(string $ability, string $resourceClass, Model $record): bool
-    {
-        $user = auth()->user();
-
-        return $user instanceof User
-            ? $user->can($ability, $record)
-            : match ($ability) {
-                'view' => $resourceClass::canView($record),
-                'update' => $resourceClass::canEdit($record),
-                'delete' => $resourceClass::canDelete($record),
-                default => false,
-            };
-    }
-
-    private function stringOrNull(string|UnitEnum|null $value): ?string
-    {
-        if ($value instanceof UnitEnum) {
-            return $value instanceof \BackedEnum ? (string) $value->value : $value->name;
-        }
-
-        return filled($value) ? $value : null;
-    }
-
-    private function htmlableToString(Htmlable|string|null $value): ?string
-    {
-        if ($value instanceof Htmlable) {
-            return $value->toHtml();
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param  class-string<resource>  $resourceClass
-     */
-    private function resourcePanelUrl(string $resourceClass, string $page, Model $record): ?string
-    {
-        try {
-            return $resourceClass::getUrl($page, ['record' => $record], panel: 'admin');
-        } catch (RouteNotFoundException) {
-            return null;
-        }
+        return $writer instanceof AbstractAdminResourceWriter ? $writer : null;
     }
 }

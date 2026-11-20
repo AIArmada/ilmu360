@@ -6,6 +6,8 @@ namespace App\Features\Registration\Actions;
 
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use App\Features\Registration\Api\EventRegistrationDeletion;
+use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Persistence\RegistrationWriter;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -15,10 +17,15 @@ use LogicException;
  * Deletes event registrations followed by remaining event check-ins.
  *
  * Per-model deletion preserves the Registration and EventCheckin model hooks
- * that remove participant-owned and attendance-owned child records.
+ * that remove participant-owned and attendance-owned child records. The
+ * Registration writer keeps each registration delete transactional.
  */
 final readonly class DeleteEventRegistrationsAction implements EventRegistrationDeletion
 {
+    public function __construct(
+        private RegistrationWriter $registrationWriter,
+    ) {}
+
     public function assertEventRegistrationsCanBeDeleted(string $eventId): void
     {
         $registrationClass = MorphModelResolver::resolve('registration');
@@ -47,7 +54,8 @@ final readonly class DeleteEventRegistrationsAction implements EventRegistration
                     ->whereKey($descendantRegistrationId)
                     ->first();
 
-                if ($descendantRegistration instanceof Model && $descendantRegistration->delete() !== true) {
+                if ($descendantRegistration instanceof Registration
+                    && $this->registrationWriter->delete($descendantRegistration) !== true) {
                     throw new LogicException('A descendant registration could not be deleted through the app model.');
                 }
             }
@@ -79,7 +87,7 @@ final readonly class DeleteEventRegistrationsAction implements EventRegistration
                     ->whereKey($registrationId)
                     ->first();
 
-                if ($registration instanceof Model && $registration->delete() !== true) {
+                if ($registration instanceof Registration && $this->registrationWriter->delete($registration) !== true) {
                     throw new LogicException('A registration could not be deleted through the app model.');
                 }
             }

@@ -12,13 +12,14 @@ use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\EntryPoints\Admin\Resources\PlaceMutationHooks;
+use App\Features\Places\EntryPoints\Api\Admin\SpaceResourceDefinition;
+use App\Features\Places\EntryPoints\Api\Admin\VenueResourceDefinition;
 use App\Features\Places\EntryPoints\Filament\Forms\VenueFormSchema;
 use App\Features\Places\EntryPoints\Filament\Resources\Spaces\SpaceResource;
 use App\Features\Places\EntryPoints\Filament\Resources\Venues\VenueResource;
 use App\Features\Places\EntryPoints\Filament\Stats\PendingVenuesStat;
 use App\Features\Places\Models\Venue;
 use App\Features\Places\Queries\EloquentPlaceLookup;
-use App\Features\Places\Queries\VenueContributionProjection;
 use App\Features\Places\Services\EloquentPlaceCatalog;
 use App\Features\Places\Services\InstitutionSpaceLinkService;
 use App\Features\Places\Services\SpaceEligibilityService;
@@ -26,7 +27,7 @@ use App\Features\Places\Services\SpaceWorkflowService;
 use App\Features\Places\Services\VenueWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
-use App\Platform\Contributions\ContributionProjectionRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
@@ -54,8 +55,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
-        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(VenueContributionProjection::class));
-
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(SpaceResourceDefinition::class));
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(VenueResourceDefinition::class));
         parent::boot();
 
         $this->app->make(AdminMutationHookRegistry::class)->register($this->app->make(PlaceMutationHooks::class));

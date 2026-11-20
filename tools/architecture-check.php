@@ -327,7 +327,9 @@ try {
         $sourceFeature = preg_match('~^app/Features/([^/]+)/~', $relative, $match) ? $match[1] : null;
         $platform = str_starts_with($relative, 'app/Platform/');
         $shared = str_starts_with($relative, 'app/Shared/');
-        $public = $sourceFeature && str_contains($relative, '/Api/');
+        // A feature's published contract is Features/X/Api/**. Transport
+        // folders such as EntryPoints/Api/Admin are adapters, not public API.
+        $public = $sourceFeature && preg_match('~^app/Features/[^/]+/Api/~', $relative) === 1;
         $models = $sourceFeature && str_contains($relative, '/Models/');
         // Framework composition roots bind concrete owners; they are not
         // reusable business modules and may name any canonical feature class.

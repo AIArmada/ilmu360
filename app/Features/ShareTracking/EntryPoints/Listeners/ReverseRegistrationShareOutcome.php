@@ -8,7 +8,7 @@ use AIArmada\Events\Events\EventRegistrationCancelled;
 use AIArmada\Events\Events\EventRegistrationRefunded;
 use AIArmada\Events\Events\EventRegistrationRejected;
 use App\Features\Events\Api\TicketAffiliateReversals;
-use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\User;
@@ -29,6 +29,7 @@ final readonly class ReverseRegistrationShareOutcome
     public function __construct(
         private ShareOutcomeReversals $reverseShareOutcome,
         private TicketAffiliateReversals $reverseTicketAffiliateCommission,
+        private RegistrationLookup $registrationLookup,
     ) {}
 
     public function handle(EventRegistrationCancelled|EventRegistrationRejected|EventRegistrationRefunded $event): void
@@ -48,14 +49,12 @@ final readonly class ReverseRegistrationShareOutcome
             $actor instanceof User ? (string) $actor->getKey() : null,
         );
 
-        EventCheckin::query()
-            ->where('event_registration_id', $event->registration->getKey())
-            ->lockForUpdate()
-            ->pluck('id')
-            ->each(fn (mixed $checkinId): mixed => $this->reverseShareOutcome->reverse(
-                ShareOutcomeBusinessKey::eventCheckin((string) $checkinId),
+        foreach ($this->registrationLookup->lockedCheckInIdsForRegistration((string) $event->registration->getKey()) as $checkinId) {
+            $this->reverseShareOutcome->reverse(
+                ShareOutcomeBusinessKey::eventCheckin($checkinId),
                 $reason,
                 $actor instanceof User ? (string) $actor->getKey() : null,
-            ));
+            );
+        }
     }
 }

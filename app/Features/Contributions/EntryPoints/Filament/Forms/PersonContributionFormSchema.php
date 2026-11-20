@@ -8,7 +8,7 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
 use App\Features\Contributions\Api\Filament\PersonContributionSchema;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Platform\Ui\Forms\ContactFields;
@@ -412,21 +412,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
     /** @return array<string, string> */
     private static function institutionSearchOptions(string $search): array
     {
-        $search = trim($search);
-        $searchPattern = "%{$search}%";
-
-        return Institution::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->where(function ($query) use ($searchPattern): void {
-                $query->whereLike('name', $searchPattern)
-                    ->orWhereHas('names', fn ($query) => $query->whereLike('full_name', $searchPattern));
-            })
-            ->with('names:id,institution_id,full_name,is_primary')
-            ->orderBy('name')
-            ->limit(50)
-            ->get(['id', 'name'])
-            ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->getKey() => $institution->display_name])
-            ->all();
+        return app(InstitutionLookup::class)->searchDisplayNameOptions($search);
     }
 
     /**
@@ -435,11 +421,8 @@ class PersonContributionFormSchema implements PersonContributionSchema
      */
     private static function institutionLabels(array $values): array
     {
-        return Institution::query()
-            ->whereKey(array_map(static fn (mixed $value): string => (string) $value, $values))
-            ->with('names:id,institution_id,full_name,is_primary')
-            ->get(['id', 'name'])
-            ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->getKey() => $institution->display_name])
-            ->all();
+        return app(InstitutionLookup::class)->displayNamesByIds(
+            array_map(static fn (mixed $value): string => (string) $value, $values),
+        );
     }
 }

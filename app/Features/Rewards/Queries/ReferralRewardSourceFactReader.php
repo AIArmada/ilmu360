@@ -16,9 +16,10 @@ use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Features\ShareTracking\Api\ActivityRewardBusinessKey;
+use App\Features\ShareTracking\Api\OutcomeCorrections;
+use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
-use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
@@ -62,7 +63,7 @@ final readonly class ReferralRewardSourceFactReader implements RewardSourceFactR
         }
 
         $source = $this->readQualifyingSource($qualificationKey);
-        $correction = ShareOutcomeCorrection::query()->where('business_key', $qualificationKey)->first();
+        $correction = app(OutcomeCorrections::class)->findByBusinessKey($qualificationKey);
         $beneficiaryId = $side === ReferralRewardSide::Referrer
             ? $this->userId($invite->referrer_type, $invite->referrer_id)
             : $this->userId($invite->accepted_by_type, $invite->accepted_by_id);
@@ -102,7 +103,7 @@ final readonly class ReferralRewardSourceFactReader implements RewardSourceFactR
             && $sourceMeetsQualification
             && $correction === null;
         $isCancelled = ! $isValid || $sourceIsCancelled;
-        $correctionStatus = $correction instanceof ShareOutcomeCorrection || ! $isValid
+        $correctionStatus = $correction instanceof OutcomeCorrectionSnapshot || ! $isValid
             ? RewardSourceCorrectionStatus::Withdrawn
             : $sourceCorrectionStatus;
         $referrerId = $this->userId($invite->referrer_type, $invite->referrer_id);
@@ -125,7 +126,7 @@ final readonly class ReferralRewardSourceFactReader implements RewardSourceFactR
             isValid: $isValid,
             fraudStatus: $sourceFraudStatus,
             correctionStatus: $correctionStatus,
-            correctionId: $correction instanceof ShareOutcomeCorrection ? (string) $correction->getKey() : $sourceCorrectionId,
+            correctionId: $correction instanceof OutcomeCorrectionSnapshot ? $correction->id : $sourceCorrectionId,
         );
     }
 

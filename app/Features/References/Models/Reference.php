@@ -14,6 +14,7 @@ use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventReferencePivot;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
@@ -316,7 +317,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
                     $table.'.parent_id',
                 )
                 ->where('reference_author_link.role', ReferenceContributorRole::Author->value)
-                ->where('reference_author_link.contributor_type', (new Person)->getMorphClass())
+                ->where('reference_author_link.contributor_type', app(PersonLookup::class)->personMorphType())
                 ->where(function (QueryBuilder $owner) use ($table): void {
                     $owner->whereColumn('reference_author_link.reference_id', $table.'.id')
                         ->orWhereColumn('reference_author_link.reference_id', $table.'.parent_id')

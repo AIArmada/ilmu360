@@ -2,13 +2,13 @@
 
 namespace App\Features\Events\States\EventStatus\Transitions;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;
 use App\Features\Events\Notifications\EventSubmittedNotification;
+use App\Features\Events\Persistence\EventStatusWriter;
 use App\Features\Events\States\EventStatus\Pending;
+use App\Features\Moderation\Api\RecordModerationAction;
 use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
 use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
@@ -31,7 +31,7 @@ class RemoderateEvent extends Transition implements HasColor, HasIcon, HasLabel
     public function handle(): Event
     {
         return DB::transaction(function () {
-            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+            app(RecordModerationAction::class)->record([
                 'actionable_type' => $this->event->getMorphClass(),
                 'actionable_id' => $this->event->id,
                 'actioned_by_type' => (new User)->getMorphClass(),
@@ -39,11 +39,11 @@ class RemoderateEvent extends Transition implements HasColor, HasIcon, HasLabel
                 'type' => 'remoderated',
                 'reason' => filled($this->reasonCode) ? $this->reasonCode : 'remoderated',
                 'notes' => $this->note ?? 'Approved event sent back for re-moderation.',
-            ]));
+            ]);
 
-            $this->event->status = Pending::class;
-            $this->event->last_state_change_at = now();
-            $this->event->save();
+            app(EventStatusWriter::class)->apply($this->event, Pending::class, [
+                'last_state_change_at' => now(),
+            ]);
 
             app(EventNotificationService::class)->notifySubmissionRemoderated($this->event, $this->note);
 

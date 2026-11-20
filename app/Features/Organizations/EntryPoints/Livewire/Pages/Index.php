@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 
 use AIArmada\Organizations\Models\Organization;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -41,11 +43,10 @@ final class Index extends Component
     {
         $user = $this->currentUser();
 
-        return Institution::query()
-            ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($user->getKey()))
-            ->withCount('members')
-            ->orderBy('name')
-            ->get();
+        /** @var Collection<int, Institution> $institutions */
+        $institutions = app(InstitutionLookup::class)->institutionsForMember((string) $user->getKey());
+
+        return $institutions;
     }
 
     /** @return Collection<int, Person> */
@@ -53,11 +54,10 @@ final class Index extends Component
     {
         $user = $this->currentUser();
 
-        return Person::query()
-            ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($user->getKey()))
-            ->withCount('members')
-            ->orderBy('name')
-            ->get();
+        /** @var Collection<int, Person> $persons */
+        $persons = app(PersonLookup::class)->personsForMember((string) $user->getKey());
+
+        return $persons;
     }
 
     public function render(): View

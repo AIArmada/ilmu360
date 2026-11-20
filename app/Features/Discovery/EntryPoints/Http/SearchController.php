@@ -5,6 +5,7 @@ namespace App\Features\Discovery\EntryPoints\Http;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Addressing\Support\AddressLocationScope;
+use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\EventListPayloads;
 use App\Features\Discovery\EntryPoints\Http\Data\SeriesDetailData;
 use App\Features\Discovery\Services\EventSearchService;
@@ -172,7 +173,7 @@ class SearchController extends FrontendController
         $radius = $this->searchRequestNormalizer->normalizedRadiusKm($request);
         $hasLocation = $lat !== null && $lng !== null;
 
-        $eventPaginator = $hasLocation
+        $eventPage = $hasLocation
             ? $this->eventSearchService->searchNearbyWithQuery(
                 query: $search,
                 lat: $lat ?? 0.0,
@@ -185,9 +186,6 @@ class SearchController extends FrontendController
                 perPage: 6,
                 sort: $search !== null ? 'relevance' : 'time',
             );
-
-        $eventItems = new Collection($eventPaginator->items());
-        $eventItems->loadMissing('displayOccurrence.media');
 
         $personIds = $search !== null ? $this->personSearchService->resolvedPublicSearchIds($search) : [];
         $personQuery = $search !== null
@@ -209,8 +207,11 @@ class SearchController extends FrontendController
         return response()->json([
             'data' => [
                 'events' => [
-                    'items' => $eventItems->map(fn (Event $event): array => $this->eventListData($event))->all(),
-                    'total' => $eventPaginator->total(),
+                    'items' => array_map(
+                        static fn (EventListData $event): array => $event->toArray(),
+                        $eventPage->items,
+                    ),
+                    'total' => $eventPage->total,
                 ],
                 'persons' => [
                     'items' => $personQuery->orderBy('name')->limit(4)->get()->map(fn (Person $person): array => $this->personListData($person, $user))->all(),

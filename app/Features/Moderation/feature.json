@@ -1,0 +1,12 @@
+{
+  "schema": 2,
+  "name": "Moderation",
+  "owns": {
+    "table:moderation_actions": [
+      "App\\Features\\Moderation\\Persistence\\ModerationActionStore"
+    ]
+  },
+  "aliases": {
+    "moderation_review": "table:moderation_actions"
+  }
+}

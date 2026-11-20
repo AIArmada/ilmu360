@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Mcp;
 
-use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\SearchFilterKeys;
 use App\Features\Events\Api\AdminEventSearch;
 use App\Features\Events\Api\Enums\TimingMode;
-use App\Features\Events\Models\Event;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Arr;
@@ -48,7 +46,6 @@ class McpEventSearchService implements AdminEventSearch
 
     public function __construct(
         private readonly EventSearchReader $eventSearchService,
-        private readonly EventListPayloads $eventListPayloads,
     ) {}
 
     /**
@@ -77,8 +74,7 @@ class McpEventSearchService implements AdminEventSearch
 
         $filters = $this->normalizeFilters($arguments);
 
-        /** @var LengthAwarePaginator<int, Event> $results */
-        $results = $this->withCurrentPage($page, function () use ($lat, $lng, $radiusKm, $filters, $perPage, $query, $sort): LengthAwarePaginator {
+        $results = $this->withCurrentPage($page, function () use ($lat, $lng, $radiusKm, $filters, $perPage, $query, $sort): EventSearchPage {
             if ($lat !== null && $lng !== null) {
                 return $this->eventSearchService->searchNearby(
                     lat: $lat,
@@ -97,23 +93,17 @@ class McpEventSearchService implements AdminEventSearch
             );
         });
 
-        $eventItems = new Collection($results->items());
-        $eventItems->loadMissing('displayOccurrence.media');
-
         return [
-            'data' => $eventItems
-                ->map(function ($event): array {
-                    $item = $this->eventListPayloads->forEvent($event)->toArray();
-                    $distanceKm = $event->getAttributes()['distance_km'] ?? null;
+            'data' => array_map(function (EventListData $event) use ($results): array {
+                $item = $event->toArray();
+                $distanceKm = $results->distances[$event->id] ?? null;
 
-                    if (is_numeric($distanceKm)) {
-                        $item['distance_km'] = round((float) $distanceKm, 3);
-                    }
+                if ($distanceKm !== null) {
+                    $item['distance_km'] = round($distanceKm, 3);
+                }
 
-                    return $item;
-                })
-                ->values()
-                ->all(),
+                return $item;
+            }, $results->items),
             'meta' => [
                 'search' => [
                     'query' => $query,
@@ -127,13 +117,13 @@ class McpEventSearchService implements AdminEventSearch
                     'filters' => $filters,
                 ],
                 'pagination' => [
-                    'page' => $results->currentPage(),
-                    'per_page' => $results->perPage(),
-                    'total' => $results->total(),
-                    'last_page' => $results->lastPage(),
-                    'from' => $results->firstItem(),
-                    'to' => $results->lastItem(),
-                    'has_more_pages' => $results->hasMorePages(),
+                    'page' => $results->currentPage,
+                    'per_page' => $results->perPage,
+                    'total' => $results->total,
+                    'last_page' => $results->lastPage,
+                    'from' => $results->from,
+                    'to' => $results->to,
+                    'has_more_pages' => $results->hasMorePages,
                 ],
             ],
         ];
@@ -482,10 +472,9 @@ class McpEventSearchService implements AdminEventSearch
     }
 
     /**
-     * @param  callable(): LengthAwarePaginator<int, Event>  $callback
-     * @return LengthAwarePaginator<int, Event>
+     * @param  callable(): EventSearchPage  $callback
      */
-    private function withCurrentPage(int $page, callable $callback): LengthAwarePaginator
+    private function withCurrentPage(int $page, callable $callback): EventSearchPage
     {
         $requestPageResolver = static fn (string $pageName = 'page'): int => max(1, (int) request()->input($pageName, 1));
 

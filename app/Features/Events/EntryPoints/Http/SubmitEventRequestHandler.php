@@ -4,6 +4,7 @@ namespace App\Features\Events\EntryPoints\Http;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Contributions\Api\SubmissionContext;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;
@@ -20,7 +21,6 @@ use App\Features\Events\Notifications\EventOccurrenceSubmittedNotification;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Events\Support\SubmitterContactRules;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
@@ -89,11 +89,7 @@ final readonly class SubmitEventRequestHandler
         $submissionCountryIso2 = $this->timing->countryIso2ForId($submissionCountryId);
         $timezone = $this->timing->resolveSubmissionTimezone($submissionCountryId, $validated['submission_timezone'] ?? null, $validationKeyPrefix);
         $primaryOrganizer = $this->context->resolvePrimaryOrganizer($validated['primary_organizer_id'] ?? null);
-        $organizerKind = match (true) {
-            $primaryOrganizer instanceof Institution => 'institution',
-            $primaryOrganizer instanceof Person => 'person',
-            default => null,
-        };
+        $organizerKind = $primaryOrganizer instanceof ContributionOrganizer ? $primaryOrganizer->kind : null;
 
         $this->context->assertConditionalRequirements($validated, $organizerKind, $validationKeyPrefix);
 
@@ -117,13 +113,13 @@ final readonly class SubmitEventRequestHandler
         $eventDate = $this->timing->parseEventDate($validated['event_date'] ?? null, $timezone, $validationKeyPrefix);
         $this->timing->assertPrayerDateIsAllowed($prayerTime, $eventDate, $timezone, $validationKeyPrefix, $submissionCountryIso2);
 
-        if (! $primaryOrganizer instanceof Institution && ! $primaryOrganizer instanceof Person) {
+        if (! $primaryOrganizer instanceof ContributionOrganizer) {
             throw ValidationException::withMessages([
                 SubmissionValues::prefixedKey('primary_organizer_id', $validationKeyPrefix) => __('Sila pilih penganjur utama.'),
             ]);
         }
 
-        $organizerKind = $primaryOrganizer instanceof Institution ? 'institution' : 'person';
+        $organizerKind = $primaryOrganizer->kind;
 
         [$targetInstitutionId, $targetVenueId] = $this->context->resolveTargetLocationFor($validated, $primaryOrganizer);
         $this->context->assertSpaceSelectionIsEligible($validated, $targetInstitutionId, $targetVenueId, $validationKeyPrefix);
@@ -169,7 +165,7 @@ final readonly class SubmitEventRequestHandler
         $personSlugSegments = $this->authoring->personSlugSegmentsForState(
             is_array($validated['persons'] ?? null) ? $validated['persons'] : [],
             $organizerKind,
-            (string) $primaryOrganizer->getKey(),
+            $primaryOrganizer->id,
         );
 
         $endsAt = $this->timing->resolveEndsAt($validated['end_time'] ?? null, $startsAt, $timezone, $validationKeyPrefix);
@@ -180,7 +176,7 @@ final readonly class SubmitEventRequestHandler
             endsAt: $endsAt?->toIso8601String(),
             timezone: $timezone,
             primaryOrganizerKind: EventSubmissionOrganizerKind::from($organizerKind),
-            primaryOrganizerId: (string) $primaryOrganizer->getKey(),
+            primaryOrganizerId: $primaryOrganizer->id,
             targetInstitutionId: $targetInstitutionId,
             targetVenueId: $targetVenueId,
             prayerTime: $prayerTime->value,

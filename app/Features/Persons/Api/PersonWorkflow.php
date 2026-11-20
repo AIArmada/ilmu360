@@ -147,4 +147,17 @@ interface PersonWorkflow
      * @param  list<string>  $personIds
      */
     public function delete(array $personIds): int;
+
+    /**
+     * Documented transport: run the caller's Filament relationship work with
+     * the freshly created person model inside the same transaction.
+     */
+    public function withContributionModel(string $personId, callable $callback): void;
+
+    /**
+     * Documented transport: attach the contribution media uploads to the
+     * freshly created person inside the same transaction.
+     */
+    /** @param array<int|string, mixed> $gallery */
+    public function syncContributionMedia(string $personId, mixed $avatar, mixed $cover, ?array $gallery): void;
 }

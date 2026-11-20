@@ -10,6 +10,7 @@ use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Features\SlugRedirects\Api\SlugRedirectAdministration;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Features\SlugRedirects\Api\SlugRedirectLookup;
+use App\Features\SlugRedirects\EntryPoints\Api\Admin\SlugRedirectResourceDefinition;
 use App\Features\SlugRedirects\EntryPoints\Filament\Resources\SlugRedirects\SlugRedirectResource;
 use App\Features\SlugRedirects\Integration\CanonicalSlugRedirectRecorder;
 use App\Features\SlugRedirects\Models\SlugRedirect;
@@ -18,6 +19,7 @@ use App\Features\SlugRedirects\Queries\DatabaseSlugRedirectLookup;
 use App\Features\SlugRedirects\Services\SlugRedirectAdministrationService;
 use App\Features\SlugRedirects\Services\SlugRedirectCommandsService;
 use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
 use Illuminate\Support\Facades\Gate;
 
@@ -35,6 +37,7 @@ final class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(SlugRedirectResourceDefinition::class));
         parent::boot();
 
         Gate::policy(SlugRedirect::class, SlugRedirectPolicy::class);

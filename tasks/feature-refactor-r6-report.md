@@ -1,6 +1,7 @@
 # R6 — Feature-ownership refactor completion report
 
-Branch `refactor`. Final verified commit: `ef48b930` (CI Quality 26/26).
+Branch `refactor`. Final verified commit: **the plan-v2 completion commit**
+(CI Quality 26/26 at the SHA recorded in the final handoff).
 The exception burn-down landed in `471a6af6`; `ef48b930` moved the last two
 Volt pages (venue, series) onto the `EventPageSchedule` Api and is the
 CI-green head.
@@ -9,15 +10,14 @@ CI-green head.
 
 | Boundary | Contents | Count |
 |---|---|---:|
-| `app/Features/<Owner>/` | domain models, actions, entry points, owner Api contracts | 27 features, 1,657 PHP files |
-| `app/Platform/` | generic infrastructure, registries, transport, media, location, docs engine | 271 PHP files |
+| `app/Features/<Owner>/` | domain models, actions, entry points, owner Api contracts | 28 features |
+| `app/Platform/` | generic infrastructure, registries, transport, media, location, docs engine | generic only; no feature-private imports |
 | `app/Shared/` | genuinely cross-boundary values and contracts only | 33 PHP files |
 | root domain folders | `Services`, `Support`, `Data`, `Forms`, `Checkout`, `Listeners`, `Observers`, `Policies`, `States`, `Contracts`, `Enums`, `Filament`, `Mcp`, `Livewire` | **0 files** |
 | `app/Models` | `User`, `PassportUser` only | **2 files** |
 
 No compatibility aliases, forwarding wrappers, duplicate implementations, legacy
-namespaces or empty legacy directories remain. `tools/architecture-check.php`
-reports `0 architecture violation(s); 27 feature(s) checked`.
+namespaces or empty legacy directories remain. `tools/architecture-check.php` reports `0 architecture violation(s); 28 feature(s) checked`.
 
 ## 2. What was delivered
 
@@ -213,3 +213,38 @@ owner `Api` contracts rather than exceptions:
 2. Burn down the 69 read adapters as owner read contracts land.
 3. Optionally give the six response DTOs explicit Scramble schema attributes to
    restore byte-identical OpenAPI rendering; runtime payloads already match.
+
+
+## 10. Plan-v2 completion wave (2026-11-20)
+
+The second program closed the gaps identified against the v2 handoff:
+
+- **`06 §B1` resource engine:** one `ResourceDefinitionRegistry` with feature-owned
+  `EntryPoints/Api/Admin` and `EntryPoints/Api/Member` adapters. The old engines
+  are thin dispatchers (admin 231/647/92 lines, member 184/259/137). No static
+  resource list: owner providers register adapters and a single
+  `Filament::getPanel('admin')->getResources()` pass supplies ordering and
+  generic package definitions. Admin metadata hashes and both manifests are
+  identical to the baseline.
+- **`06 §B3` event search:** `Discovery\Api\EventSearchReader` now returns the
+  immutable `Discovery\Api\Data\EventSearchPage` (cards + distances +
+  pagination). Cached search rehydrates through `Events\Api\EventCards`.
+  `Events\Api\EventSearchPage` and `CachedEventSearchPage` are deleted.
+- **`06 §B4` contribution projections:** per-owner interfaces and a
+  Contributions-owned resolver; the shared interface and Platform registry are
+  deleted.
+- **`06 §C` exception gate:** 84 → 62 write exceptions, all package/framework
+  owned; 69 → 1 read adapters. The remaining adapter is
+  `Discovery\EntryPoints\Http\SearchController`, the complete multi-owner
+  directory/detail surface.
+- **Validation:** `npm run build` exit 0; Filament admin 100 / ahli 24 resources
+  with identical widgets, slugs, navigation, pages and relations; admin/member
+  manifests, routes (738), schedule and MCP class sets identical.
+
+Remaining, deliberate:
+1. `Discovery\SearchController` read adapter (needs per-owner directory payload
+   readers).
+2. OpenAPI response-schema inference drift on 17 paths. Runtime payloads are
+   proven unchanged by the API parity suites; the differences come from typed
+   array docblocks/plain DTOs rendering richer schemas than the previous
+   generic ones.

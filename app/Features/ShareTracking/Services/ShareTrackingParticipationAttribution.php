@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
+use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Registration\Api\Data\CheckInSourceFacts;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\ParticipationAttribution;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Support\ShareSubjectFactory;
 use App\Models\User;
-use App\Platform\Models\MorphModelResolver;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 /**
  * Root adapter for Registration's share-attribution boundary.
@@ -30,6 +35,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
     public function __construct(
         private AffiliatesShareTrackingService $shareTracking,
         private ShareOutcomeReversals $reverseShareOutcome,
+        private RegistrationLookup $registrationLookup,
     ) {}
 
     /**
@@ -44,7 +50,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         array $businessMetadata = [],
     ): void {
         $subject = $this->findEvent($eventId);
-        $registration = MorphModelResolver::resolve('registration')::query()->find($registrationId);
+        $registration = $this->registrationLookup->findRegistration($registrationId);
         $actor = $this->findActor($actorId);
 
         $metadata = [
@@ -58,7 +64,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             }
         }
 
-        $createdAt = $registration?->getAttribute('created_at');
+        $createdAt = $registration instanceof Registration ? $registration->getAttribute('created_at') : null;
 
         $this->shareTracking->recordOutcome(
             type: ShareOutcomeType::EventRegistration,
@@ -86,7 +92,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             actor: $this->findActor($actorId),
             request: ShareRequestContext::fromRequest($request instanceof Request ? $request : request()),
             metadata: $this->checkinMetadata($checkin),
-            occurredAt: $checkin->created_at ?? now(),
+            occurredAt: $this->occurredAt($checkin),
         );
     }
 
@@ -105,7 +111,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             subject: ShareSubjectFactory::fromModel($this->findEvent($eventId)),
             actor: $this->findActor($actorId),
             metadata: $this->checkinMetadata($checkin),
-            occurredAt: $checkin->created_at ?? now(),
+            occurredAt: $this->occurredAt($checkin),
         );
     }
 
@@ -127,7 +133,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
                 'staff_assisted' => true,
                 'verified_by_user_id' => $staffId,
             ],
-            occurredAt: $checkin->created_at ?? now(),
+            occurredAt: $this->occurredAt($checkin),
         );
     }
 
@@ -147,7 +153,9 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
 
     private function findEvent(string $eventId): ?Model
     {
-        return MorphModelResolver::resolve('event')::query()->find($eventId);
+        $event = app(EventScheduleQuery::class)->findEvent($eventId);
+
+        return $event instanceof Model ? $event : null;
     }
 
     private function findActor(?string $actorId): ?User
@@ -155,20 +163,28 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         return $actorId !== null ? User::query()->find($actorId) : null;
     }
 
-    private function findCheckin(string $checkinId): EventCheckin
+    private function findCheckin(string $checkinId): CheckInSourceFacts
     {
-        return EventCheckin::query()->findOrFail($checkinId);
+        return $this->registrationLookup->checkInSourceFacts($checkinId)
+            ?? throw (new ModelNotFoundException)->setModel(EventCheckin::class, [$checkinId]);
+    }
+
+    private function occurredAt(CheckInSourceFacts $checkin): CarbonInterface
+    {
+        return $checkin->createdAt !== null
+            ? Carbon::parse($checkin->createdAt)
+            : now();
     }
 
     /**
      * @return array{checkin_id: string, event_registration_id: string|null, check_in_source: string|null}
      */
-    private function checkinMetadata(EventCheckin $checkin): array
+    private function checkinMetadata(CheckInSourceFacts $checkin): array
     {
         return [
-            'checkin_id' => $checkin->getKey(),
-            'event_registration_id' => $checkin->event_registration_id,
-            'check_in_source' => $checkin->check_in_source,
+            'checkin_id' => $checkin->id,
+            'event_registration_id' => $checkin->eventRegistrationId,
+            'check_in_source' => $checkin->checkInSource,
         ];
     }
 }

@@ -2,12 +2,12 @@
 
 namespace App\Features\Events\States\EventStatus\Transitions;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;
+use App\Features\Events\Persistence\EventStatusWriter;
 use App\Features\Events\States\EventStatus\NeedsChanges;
+use App\Features\Moderation\Api\RecordModerationAction;
 use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
 use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
@@ -42,7 +42,7 @@ class RequestChanges extends Transition implements HasColor, HasIcon, HasLabel
         }
 
         return DB::transaction(function () use ($moderator, $reasonCode) {
-            $review = OwnerContext::withOwner(null, fn () => ModerationReview::create([
+            $review = app(RecordModerationAction::class)->record([
                 'actionable_type' => $this->event->getMorphClass(),
                 'actionable_id' => $this->event->id,
                 'actioned_by_type' => (new User)->getMorphClass(),
@@ -50,12 +50,12 @@ class RequestChanges extends Transition implements HasColor, HasIcon, HasLabel
                 'type' => 'changes_requested',
                 'reason' => $reasonCode,
                 'notes' => $this->note,
-            ]));
+            ]);
 
             // Update status
-            $this->event->status = NeedsChanges::class;
-            $this->event->last_state_change_at = now();
-            $this->event->save();
+            app(EventStatusWriter::class)->apply($this->event, NeedsChanges::class, [
+                'last_state_change_at' => now(),
+            ]);
             $this->event->resolveEscalations();
 
             // Notify submitter and institution admins

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Actions\Authoring\ApplyChangeAnnouncementMutationsAction;
@@ -25,6 +26,8 @@ use App\Features\Events\Api\AdminEventSaveResult;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventScheduleInput;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\Models\Series;
 use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Events\Support\EventModel;
@@ -62,6 +65,81 @@ final readonly class EventAuthoringService implements EventAuthoring
         private ConfigureEventAdmissionAction $configureEventAdmission,
         private SubmissionRelationSync $submissionRelations,
     ) {}
+
+    public function eventTable(): string
+    {
+        return (new Event)->getTable();
+    }
+
+    public function eventKeyPersonTable(): string
+    {
+        return (new EventKeyPerson)->getTable();
+    }
+
+    public function eventMorphType(): string
+    {
+        return (new Event)->getMorphClass();
+    }
+
+    public function seriesMorphType(): string
+    {
+        return (new Series)->getMorphClass();
+    }
+
+    public function eventExists(string $eventId): bool
+    {
+        return Event::query()->whereKey($eventId)->exists();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function eventPersonIds(string $eventId): array
+    {
+        $event = Event::query()->find($eventId);
+
+        if (! $event instanceof Event) {
+            return [];
+        }
+
+        $persons = $event->persons();
+
+        return $persons
+            ->pluck($persons->getRelated()->getQualifiedKeyName())
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{
+     *     timezone: string,
+     *     venue_id: string|null,
+     *     institution_id: string|null,
+     *     persisted_address_id: string|null
+     * }|null
+     */
+    public function eventPrayerScope(string $eventId): ?array
+    {
+        return OwnerContext::withOwner(null, function () use ($eventId): ?array {
+            $event = Event::query()->find($eventId);
+
+            if (! $event instanceof Event) {
+                return null;
+            }
+
+            $venueId = $event->getAttribute('default_venue_id');
+            $institutionId = $event->getAttribute('institution_id');
+            $address = $event->resolvedLocationAddress();
+
+            return [
+                'timezone' => is_string($event->timezone) ? $event->timezone : '',
+                'venue_id' => is_string($venueId) && $venueId !== '' ? $venueId : null,
+                'institution_id' => is_string($institutionId) && $institutionId !== '' ? $institutionId : null,
+                'persisted_address_id' => $address instanceof \AIArmada\Addressing\Models\Address ? (string) $address->getKey() : null,
+            ];
+        });
+    }
 
     public function saveAdminEvent(array $data, ?string $eventId = null): AdminEventSaveResult
     {

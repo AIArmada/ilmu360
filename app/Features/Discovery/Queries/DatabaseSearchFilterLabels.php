@@ -10,14 +10,21 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTerm;
 use App\Features\Discovery\Api\SearchFilterLabels;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\Places\Models\Venue;
-use App\Features\References\Models\Reference;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Places\Api\PlaceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use Illuminate\Support\Str;
 
 final class DatabaseSearchFilterLabels implements SearchFilterLabels
 {
+    public function __construct(
+        private readonly InstitutionLookup $institutions,
+        private readonly PersonLookup $persons,
+        private readonly PlaceLookup $places,
+        private readonly ReferenceLookup $references,
+    ) {}
+
     /**
      * @var array<string, string|null>
      */
@@ -138,10 +145,7 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         }
 
         if (! array_key_exists($id, $this->institutionNames)) {
-            $this->institutionNames[$id] = Institution::query()
-                ->whereKey($id)
-                ->with('names')->first(['id', 'name'])
-                ?->display_name;
+            $this->institutionNames[$id] = $this->institutions->displayName($id);
         }
 
         return $this->institutionNames[$id];
@@ -154,7 +158,7 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         }
 
         if (! array_key_exists($id, $this->venueNames)) {
-            $this->venueNames[$id] = Venue::query()->whereKey($id)->value('name');
+            $this->venueNames[$id] = $this->places->venueName($id);
         }
 
         return $this->venueNames[$id];
@@ -167,7 +171,7 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         }
 
         if (! array_key_exists($id, $this->personNames)) {
-            $this->personNames[$id] = Person::query()->whereKey($id)->value('name');
+            $this->personNames[$id] = $this->persons->namesByIds([$id])[$id] ?? null;
         }
 
         return $this->personNames[$id];
@@ -187,7 +191,7 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
     private function referenceTitle(string $id): ?string
     {
         if (! array_key_exists($id, $this->referenceTitles)) {
-            $this->referenceTitles[$id] = Reference::query()->whereKey($id)->value('title');
+            $this->referenceTitles[$id] = $this->references->title($id);
         }
 
         return $this->referenceTitles[$id];

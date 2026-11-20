@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
+use App\Features\Events\Api\ContributionProjection;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
@@ -21,7 +22,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 
-final readonly class EventContributionProjection implements \App\Shared\Contributions\ContributionProjection
+final readonly class EventContributionProjection implements ContributionProjection
 {
     use \App\Shared\Contributions\Support\BuildsContributionDescriptors;
     use \App\Shared\Contributions\Support\BuildsContributionSubjectState;
@@ -29,11 +30,6 @@ final readonly class EventContributionProjection implements \App\Shared\Contribu
     public function __construct(
         private EventAuthoring $authoring,
     ) {}
-
-    public function supports(string $entityType): bool
-    {
-        return $entityType === 'event';
-    }
 
     /** @return array<string, mixed> */
     public function contractFor(string $subjectId): array

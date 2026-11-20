@@ -5,6 +5,15 @@ declare(strict_types=1);
 namespace App\Features\Events;
 
 use AIArmada\Checkout\Contracts\StepContributor;
+use AIArmada\FilamentEvents\Resources\EventAttendanceResource;
+use AIArmada\FilamentEvents\Resources\EventChangeLogResource;
+use AIArmada\FilamentEvents\Resources\EventOccurrenceResource;
+use AIArmada\FilamentEvents\Resources\EventRegistrationParticipantResource;
+use AIArmada\FilamentEvents\Resources\EventRegistrationResource;
+use AIArmada\FilamentEvents\Resources\EventSessionResource;
+use AIArmada\FilamentEvents\Resources\EventTaxonomyResource;
+use AIArmada\FilamentEvents\Resources\EventTemplateResource;
+use AIArmada\FilamentEvents\Resources\EventTermResource;
 use App\Features\Events\Actions\Authoring\CreateEventWithInitialOccurrenceAction;
 use App\Features\Events\Actions\Authoring\CreateEventWithRegistrationAction;
 use App\Features\Events\Actions\Authoring\PrepareAdvancedParentProgramSubmissionAction;
@@ -29,8 +38,10 @@ use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\AdvancedProgramPreparation;
+use App\Features\Events\Api\ContributionProjection;
 use App\Features\Events\Api\EventAccountOwnership;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventCards;
 use App\Features\Events\Api\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventChangePublisher;
@@ -74,6 +85,10 @@ use App\Features\Events\EntryPoints\Admin\Member\EventMemberResourceHooks;
 use App\Features\Events\EntryPoints\Admin\RecordActions\EventRecordActionContributor;
 use App\Features\Events\EntryPoints\Admin\Resources\EventAdminHooks;
 use App\Features\Events\EntryPoints\Admin\Resources\EventMutationHooks;
+use App\Features\Events\EntryPoints\Api\Admin\EventResourceDefinition;
+use App\Features\Events\EntryPoints\Api\Admin\EventsPackageResourceDefinition;
+use App\Features\Events\EntryPoints\Api\Admin\SeriesResourceDefinition;
+use App\Features\Events\EntryPoints\Api\Member\EventResourceDefinition as EventMemberResourceDefinition;
 use App\Features\Events\EntryPoints\ApiDocumentation\EventsRequestExampleContributor;
 use App\Features\Events\EntryPoints\Checkout\TicketCheckoutStepContributor;
 use App\Features\Events\EntryPoints\Filament\Forms\EventContributionOptionsCountryAdapter;
@@ -112,6 +127,7 @@ use App\Features\Events\Persistence\EventSearchCacheStore;
 use App\Features\Events\Persistence\EventShareCardCacheStore;
 use App\Features\Events\Persistence\EventSubmissionOptionsCacheStore;
 use App\Features\Events\Persistence\ProductSignalsDashboardCacheStore;
+use App\Features\Events\Queries\EventCardsQuery;
 use App\Features\Events\Queries\EventContributionProjection;
 use App\Features\Events\Queries\EventDiscoveryReaderFactory;
 use App\Features\Events\Queries\PostgresEventDiscovery;
@@ -139,8 +155,9 @@ use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionContext;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
-use App\Platform\Contributions\ContributionProjectionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Routing\PublicSlugRegistry;
@@ -217,6 +234,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(EventCards::class, EventCardsQuery::class);
+        $this->app->bind(ContributionProjection::class, EventContributionProjection::class);
         $this->app->bind(EventContributionOptionsCountry::class, EventContributionOptionsCountryAdapter::class);
         $this->app->bind(AdminEventsRelationManager::class, AdminEventsRelationManagerProvider::class);
         $this->app->bind(EventDiscoveryReaders::class, EventDiscoveryReaderFactory::class);
@@ -315,7 +334,30 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
-        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(EventContributionProjection::class));
+        $registry = $this->app->make(ResourceDefinitionRegistry::class);
+        $memberDefinition = $this->app->make(EventMemberResourceDefinition::class);
+        $registry->register($memberDefinition);
+        $registry->registerWriter($memberDefinition);
+
+        $registry = $this->app->make(ResourceDefinitionRegistry::class);
+        $registry->register($this->app->make(EventResourceDefinition::class));
+        $registry->register($this->app->make(SeriesResourceDefinition::class));
+
+        $resourceContext = $this->app->make(ResourceDefinitionContext::class);
+
+        foreach ([
+            EventOccurrenceResource::class,
+            EventSessionResource::class,
+            EventRegistrationResource::class,
+            EventRegistrationParticipantResource::class,
+            EventAttendanceResource::class,
+            EventChangeLogResource::class,
+            EventTemplateResource::class,
+            EventTaxonomyResource::class,
+            EventTermResource::class,
+        ] as $resourceClass) {
+            $registry->register(new EventsPackageResourceDefinition($resourceContext, $resourceClass));
+        }
 
         $this->registerFrontendFormContracts();
 

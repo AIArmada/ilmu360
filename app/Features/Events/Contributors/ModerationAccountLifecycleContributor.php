@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Contributors;
 
-use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
+use App\Features\Moderation\Api\ModerationActionHistory;
 use App\Shared\Auth\AccountLifecycleContributor;
 
 /**
@@ -13,11 +12,15 @@ use App\Shared\Auth\AccountLifecycleContributor;
  * restoration.
  *
  * Review records are retained; only the acting account link is detached and
- * restored while still unassigned. The actor type is rewritten as the morph
- * alias so stored moderation rows never retain fully qualified class names.
+ * restored while still unassigned. The Moderation feature owns the persisted
+ * rows and rewrites the actor type as the morph alias.
  */
 final readonly class ModerationAccountLifecycleContributor implements AccountLifecycleContributor
 {
+    public function __construct(
+        private ModerationActionHistory $moderationActions,
+    ) {}
+
     public function key(): string
     {
         return 'moderation';
@@ -31,40 +34,18 @@ final readonly class ModerationAccountLifecycleContributor implements AccountLif
     public function snapshot(string $accountId): array
     {
         return [
-            'moderation_review_ids' => ModerationReview::query()
-                ->where('actioned_by_id', $accountId)
-                ->pluck('id')
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->values()
-                ->all(),
+            'moderation_review_ids' => $this->moderationActions->idsForAccount($accountId),
         ];
     }
 
     public function detach(string $accountId): void
     {
-        ModerationReview::query()
-            ->where('actioned_by_id', $accountId)
-            ->update([
-                'actioned_by_type' => null,
-                'actioned_by_id' => null,
-            ]);
+        $this->moderationActions->detachAccount($accountId);
     }
 
     public function restore(string $accountId, array $snapshot): void
     {
-        $ids = $this->stringIds($snapshot['moderation_review_ids'] ?? []);
-
-        if ($ids === []) {
-            return;
-        }
-
-        ModerationReview::query()
-            ->whereKey($ids)
-            ->whereNull('actioned_by_id')
-            ->update([
-                'actioned_by_type' => (new User)->getMorphClass(),
-                'actioned_by_id' => $accountId,
-            ]);
+        $this->moderationActions->restoreAccount($accountId, $this->stringIds($snapshot['moderation_review_ids'] ?? []));
     }
 
     public function afterRestore(string $accountId): void {}

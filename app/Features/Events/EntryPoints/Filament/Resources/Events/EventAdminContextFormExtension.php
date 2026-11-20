@@ -10,11 +10,11 @@ use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventCategoryCatalog;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\Places\Models\Venue;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\References\Models\Reference;
+use App\Features\References\Api\ReferenceLookup;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -23,8 +23,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 
 final class EventAdminContextFormExtension implements EventFormExtension
 {
@@ -46,23 +44,23 @@ final class EventAdminContextFormExtension implements EventFormExtension
                     Select::make('institution_id')
                         ->label('Institution')
                         ->searchable()
-                        ->getSearchResultsUsing(fn (string $search): array => $this->nameOptions(Institution::class, $search))
-                        ->getOptionLabelUsing(fn (mixed $value): ?string => is_string($value) ? $this->nameLabel(Institution::class, $value) : null)
+                        ->getSearchResultsUsing(fn (string $search): array => $this->institutionNameOptions($search))
+                        ->getOptionLabelUsing(fn (mixed $value): ?string => is_string($value) ? $this->institutionName($value) : null)
                         ->nullable()
                         ->helperText('Use this for an institution-hosted event without a venue record.'),
                     Select::make('venue_id')
                         ->label('Venue')
                         ->searchable()
-                        ->getSearchResultsUsing(fn (string $search): array => $this->nameOptions(Venue::class, $search))
-                        ->getOptionLabelUsing(fn (mixed $value): ?string => is_string($value) ? $this->nameLabel(Venue::class, $value) : null)
+                        ->getSearchResultsUsing(fn (string $search): array => $this->venueNameOptions($search))
+                        ->getOptionLabelUsing(fn (mixed $value): ?string => is_string($value) ? $this->venueName($value) : null)
                         ->nullable()
                         ->helperText('Use the venue when the event takes place at a named location.'),
                     Select::make('persons')
                         ->label('Speakers')
                         ->multiple()
                         ->searchable()
-                        ->getSearchResultsUsing(fn (string $search): array => $this->nameOptions(Person::class, $search))
-                        ->getOptionLabelsUsing(fn (array $values): array => $this->nameLabels(Person::class, $values))
+                        ->getSearchResultsUsing(fn (string $search): array => $this->personNameOptions($search))
+                        ->getOptionLabelsUsing(fn (array $values): array => $this->personNameLabels($values))
                         ->helperText('Speaker identities are stored as event involvements.'),
                     Select::make('references')
                         ->label('References')
@@ -154,58 +152,46 @@ final class EventAdminContextFormExtension implements EventFormExtension
     }
 
     /**
-     * @param  class-string<Model>  $modelClass
      * @return array<string, string>
      */
-    private function nameOptions(string $modelClass, string $search, string $prefix = ''): array
+    private function institutionNameOptions(string $search, string $prefix = ''): array
     {
-        /** @var Builder<Model> $query */
-        $query = $modelClass::query();
-
-        return $query
-            ->when(trim($search) !== '', fn (Builder $query): Builder => $query->where('name', 'like', '%'.trim($search).'%'))
-            ->orderBy('name')
-            ->limit(50)
-            ->pluck('name', 'id')
-            ->mapWithKeys(fn (mixed $name, mixed $id): array => [
-                (string) $id => $prefix === '' ? (string) $name : "{$prefix} — {$name}",
-            ])
-            ->all();
+        return $this->withPrefix(app(InstitutionLookup::class)->nameOptions($search), $prefix);
     }
 
     /**
-     * @param  class-string<Model>  $modelClass
+     * @return array<string, string>
      */
-    private function nameLabel(string $modelClass, string $id): ?string
+    private function personNameOptions(string $search, string $prefix = ''): array
     {
-        /** @var Builder<Model> $query */
-        $query = $modelClass::query();
-        $name = $query->whereKey($id)->value('name');
-
-        return is_string($name) ? $name : null;
+        return $this->withPrefix(app(PersonLookup::class)->nameOptions($search), $prefix);
     }
 
     /**
-     * @param  class-string<Model>  $modelClass
      * @param  array<int, mixed>  $ids
      * @return array<string, string>
      */
-    private function nameLabels(string $modelClass, array $ids): array
+    private function personNameLabels(array $ids): array
     {
-        $selectedIds = array_values(array_filter($ids, is_string(...)));
+        return app(PersonLookup::class)->namesByIds($this->stringIds($ids));
+    }
 
-        if ($selectedIds === []) {
-            return [];
-        }
+    private function institutionName(string $id): ?string
+    {
+        return app(InstitutionLookup::class)->namesByIds([$id])[$id] ?? null;
+    }
 
-        /** @var Builder<Model> $query */
-        $query = $modelClass::query();
+    private function venueName(string $id): ?string
+    {
+        return app(PlaceLookup::class)->venueNamesByIds([$id])[$id] ?? null;
+    }
 
-        return $query
-            ->whereKey($selectedIds)
-            ->pluck('name', 'id')
-            ->mapWithKeys(fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
-            ->all();
+    /**
+     * @return array<string, string>
+     */
+    private function venueNameOptions(string $search): array
+    {
+        return app(PlaceLookup::class)->venueNameOptions($search);
     }
 
     /**
@@ -214,20 +200,20 @@ final class EventAdminContextFormExtension implements EventFormExtension
     private function organizerOptions(string $search): array
     {
         return [
-            ...$this->nameOptions(Institution::class, $search, 'Institution'),
-            ...$this->nameOptions(Person::class, $search, 'Person'),
+            ...$this->institutionNameOptions($search, 'Institution'),
+            ...$this->personNameOptions($search, 'Person'),
         ];
     }
 
     private function organizerLabel(string $id): ?string
     {
-        $institution = $this->nameLabel(Institution::class, $id);
+        $institution = $this->institutionName($id);
 
         if ($institution !== null) {
             return "Institution — {$institution}";
         }
 
-        $person = $this->nameLabel(Person::class, $id);
+        $person = app(PersonLookup::class)->namesByIds([$id])[$id] ?? null;
 
         return $person === null ? null : "Person — {$person}";
     }
@@ -237,18 +223,7 @@ final class EventAdminContextFormExtension implements EventFormExtension
      */
     private function referenceOptions(string $search): array
     {
-        $query = Reference::query()->with('parentReference.parentReference');
-
-        if (trim($search) !== '') {
-            $query->where('title', 'like', '%'.trim($search).'%');
-        }
-
-        return $query
-            ->orderBy('title')
-            ->limit(50)
-            ->get()
-            ->mapWithKeys(fn (Reference $reference): array => [(string) $reference->getKey() => $reference->displayTitle()])
-            ->all();
+        return app(ReferenceLookup::class)->adminOptions($search);
     }
 
     /**
@@ -257,11 +232,28 @@ final class EventAdminContextFormExtension implements EventFormExtension
      */
     private function referenceLabels(array $ids): array
     {
-        return Reference::query()
-            ->with('parentReference.parentReference')
-            ->whereKey(array_values(array_filter($ids, is_string(...))))
-            ->get()
-            ->mapWithKeys(fn (Reference $reference): array => [(string) $reference->getKey() => $reference->displayTitle()])
-            ->all();
+        return app(ReferenceLookup::class)->adminLabels($this->stringIds($ids));
+    }
+
+    /**
+     * @param  array<string, string>  $options
+     * @return array<string, string>
+     */
+    private function withPrefix(array $options, string $prefix): array
+    {
+        if ($prefix === '') {
+            return $options;
+        }
+
+        return array_map(static fn (string $name): string => "{$prefix} — {$name}", $options);
+    }
+
+    /**
+     * @param  array<int, mixed>  $ids
+     * @return list<string>
+     */
+    private function stringIds(array $ids): array
+    {
+        return array_values(array_filter($ids, is_string(...)));
     }
 }

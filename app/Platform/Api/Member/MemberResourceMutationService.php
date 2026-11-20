@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Member;
 
-use App\Features\Membership\Api\MemberPermissions;
 use App\Models\User;
 use App\Platform\Api\Admin\AdminResourceMutationService;
-use App\Platform\Mcp\McpWriteSchemaFormatter;
+use App\Platform\Api\Resources\ResourceActor;
+use App\Platform\Api\Resources\ResourceActorResolver;
+use App\Platform\Api\Resources\ResourceSurface;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -15,10 +16,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class MemberResourceMutationService
 {
     public function __construct(
+        private readonly MemberResourceDirectory $directory,
+        private readonly ResourceActorResolver $actors,
         private readonly AdminResourceMutationService $adminMutationService,
-        private readonly MemberPermissions $memberPermissions,
-        private readonly MemberResourceHookRegistry $hooks,
-        private readonly McpWriteSchemaFormatter $schemaFormatter,
+        private readonly MemberResourceWriter $writer,
     ) {}
 
     /**
@@ -26,7 +27,7 @@ class MemberResourceMutationService
      */
     public function supports(string $resourceClass): bool
     {
-        return array_any($this->hooks->all(), fn ($hooks) => $hooks->adminResourceClass($resourceClass) !== null);
+        return $this->directory->definition($resourceClass)?->adminResourceClass() !== null;
     }
 
     /**
@@ -34,19 +35,12 @@ class MemberResourceMutationService
      */
     public function canWriteResource(string $resourceClass, ?User $user = null): bool
     {
-        if (! $user instanceof User || ! $this->supports($resourceClass)) {
+        if (! $user instanceof User) {
             return false;
         }
 
-        foreach ($this->hooks->all() as $hooks) {
-            $allowed = $hooks->canWriteResource($resourceClass, $user, $this->memberPermissions);
-
-            if ($allowed !== null) {
-                return $allowed;
-            }
-        }
-
-        return false;
+        return $this->directory->definition($resourceClass)
+            ?->canWrite($this->actorFor($user)) ?? false;
     }
 
     /**
@@ -54,19 +48,8 @@ class MemberResourceMutationService
      */
     public function canWriteRecord(string $resourceClass, User $user, Model $record): bool
     {
-        if (! $this->supports($resourceClass)) {
-            return false;
-        }
-
-        foreach ($this->hooks->all() as $hooks) {
-            $allowed = $hooks->canWriteRecord($resourceClass, $user, $record);
-
-            if ($allowed !== null) {
-                return $allowed;
-            }
-        }
-
-        return $user->can('update', $record);
+        return $this->directory->definition($resourceClass)
+            ?->canWriteExistingRecord($user, $record) ?? false;
     }
 
     /**
@@ -75,19 +58,11 @@ class MemberResourceMutationService
      */
     public function schema(string $resourceClass, string $resourceKey, Model $record): array
     {
-        $schema = $this->adminMutationService->schema(
-            $this->adminResourceClass($resourceClass),
+        return $this->writer->schemaForRecord(
+            $this->definition($resourceClass),
             $resourceKey,
-            'update',
             $record,
         );
-
-        return $this->schemaFormatter->formatSchema($schema, 'member-update-record', [
-            'resource_key' => $resourceKey,
-            'record_key' => (string) $record->getRouteKey(),
-            'payload' => 'object',
-            'validate_only' => false,
-        ]);
     }
 
     /**
@@ -145,14 +120,18 @@ class MemberResourceMutationService
      */
     private function adminResourceClass(string $resourceClass): string
     {
-        foreach ($this->hooks->all() as $hooks) {
-            $admin = $hooks->adminResourceClass($resourceClass);
+        return $this->definition($resourceClass)->adminResourceClass()
+            ?? throw new NotFoundHttpException;
+    }
 
-            if ($admin !== null) {
-                return $admin;
-            }
-        }
+    private function definition(string $resourceClass): AbstractMemberResourceDefinition
+    {
+        return $this->directory->definition($resourceClass)
+            ?? throw new NotFoundHttpException;
+    }
 
-        throw new NotFoundHttpException;
+    private function actorFor(User $user): ResourceActor
+    {
+        return $this->actors->fromUser($user, ResourceSurface::Member);
     }
 }

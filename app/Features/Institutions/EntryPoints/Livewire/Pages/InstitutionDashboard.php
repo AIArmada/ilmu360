@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberPermissions;
@@ -393,11 +394,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $totalEvents = (int) ($institution->events_count ?? 0);
         $publicEvents = (int) ($institution->public_events_count ?? 0);
-        $registrationsCount = (int) Event::query()
-            ->where('institution_id', $institution->id)
-            ->withCount('registrations')
-            ->get()
-            ->sum(fn (Event $event): int => (int) ($event->registrations_count ?? 0));
+        $registrationsCount = app(EventScheduleQuery::class)->institutionRegistrationCount((string) $institution->id);
 
         return [
             'events_count' => $totalEvents,
@@ -580,17 +577,10 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                 $institution = $this->selectedInstitution();
 
                 if (! $institution instanceof Institution) {
-                    return Event::query()->whereRaw('1 = 0');
+                    return app(EventScheduleQuery::class)->emptyEventsQuery();
                 }
 
-                return Event::query()
-                    ->where('institution_id', $institution->id)
-                    ->with([
-                        'primaryLocation.venueSpace:id,name',
-                        'persons:id,name',
-                        'references.parentReference.parentReference',
-                    ])
-                    ->withCount(['registrations as dashboard_registrations_count']);
+                return app(EventScheduleQuery::class)->institutionTableQuery((string) $institution->id);
             })
             ->columns([
                 TextColumn::make('title')
@@ -731,9 +721,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
      */
     protected function institutionEventCountSubquery(?callable $callback = null): Builder
     {
-        $query = Event::query()
-            ->selectRaw('count(*)')
-            ->whereColumn('events.institution_id', 'institutions.id');
+        $query = app(EventScheduleQuery::class)->institutionEventCountSubquery();
 
         if ($callback !== null) {
             $callback($query);
@@ -747,15 +735,10 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
      */
     protected function institutionEventCardQuery(Institution $institution): Builder
     {
-        return Event::query()
-            ->where('institution_id', $institution->id)
-            ->with([
-                'institution.media',
-                'media',
-                'primaryLocation.venueSpace:id,name',
-                'venue:id,name',
-            ])
-            ->withCount(['registrations as dashboard_registrations_count']);
+        /** @var Builder<Event> $query */
+        $query = app(EventScheduleQuery::class)->institutionEventCardsQuery((string) $institution->id);
+
+        return $query;
     }
 
     /**

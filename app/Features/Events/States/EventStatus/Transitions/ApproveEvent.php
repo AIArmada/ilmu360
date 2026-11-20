@@ -2,20 +2,19 @@
 
 namespace App\Features\Events\States\EventStatus\Transitions;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;
+use App\Features\Events\Persistence\EventStatusWriter;
 use App\Features\Events\States\EventStatus\Approved;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Moderation\Api\RecordModerationAction;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\VenueWorkflow;
-use App\Features\Places\Models\Venue;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
 use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
@@ -44,7 +43,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             }
 
             // Create review record
-            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+            app(RecordModerationAction::class)->record([
                 'actionable_type' => $this->event->getMorphClass(),
                 'actionable_id' => $this->event->id,
                 'actioned_by_type' => (new User)->getMorphClass(),
@@ -52,14 +51,13 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
                 'type' => 'approve',
                 'reason' => 'approved',
                 'notes' => $this->note,
-            ]));
+            ]);
 
             // Update event status
-            $this->event->status = Approved::class;
-            // @phpstan-ignore-next-line now() returns CarbonImmutable, property expects Carbon
-            $this->event->published_at = now();
-            $this->event->last_state_change_at = now();
-            $this->event->save();
+            app(EventStatusWriter::class)->apply($this->event, Approved::class, [
+                'published_at' => now(),
+                'last_state_change_at' => now(),
+            ]);
             $this->event->resolveEscalations();
 
             // Entity verification is a moderator authority: by approving the
@@ -151,13 +149,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
         $venueId = $event->default_venue_id;
 
         if ($venueId) {
-            Venue::query()
-                ->whereKey($venueId)
-                ->where('status', 'pending')
-                ->get()
-                ->each(function (Venue $venue): void {
-                    app(VenueWorkflow::class)->changeStatus((string) $venue->getKey(), 'verified');
-                });
+            app(VenueWorkflow::class)->verifyPending([(string) $venueId]);
         }
 
         // Verify references (taxonomy is package EventTerm/Classification — no Spatie tag dual path)

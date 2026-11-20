@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\EntryPoints\Filament\Forms\ReferenceContributionFormSchema;
+use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -43,7 +44,7 @@ class SubmitReference extends Component implements HasActions, HasForms
     public function form(Schema $schema): Schema
     {
         return $schema
-            ->model(new Reference)
+            ->model(Reference::class)
             ->statePath('data')
             ->components(ReferenceContributionFormSchema::components(includeMedia: true));
     }
@@ -59,11 +60,13 @@ class SubmitReference extends Component implements HasActions, HasForms
                 ContributionSubjectType::Reference,
                 $this->contributionForm()->getState(),
                 (string) $user->getKey(),
-                function (string $referenceId): void {
-                    $reference = Reference::query()->withoutOwnerScope()->findOrFail($referenceId);
-                    $this->contributionForm()->model($reference)->saveRelationships();
-                    session()->flash('contribution_submission_name', $reference->displayTitle());
-                },
+                fn (string $referenceId) => app(ReferenceWorkflow::class)->withUnscopedContributionModel(
+                    $referenceId,
+                    function (Reference $reference): void {
+                        $this->contributionForm()->model($reference)->saveRelationships();
+                        session()->flash('contribution_submission_name', $reference->displayTitle());
+                    },
+                ),
                 'data',
             );
 

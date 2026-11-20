@@ -2,13 +2,13 @@
 
 namespace App\Features\Events\States\EventStatus\Transitions;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;
+use App\Features\Events\Persistence\EventStatusWriter;
 use App\Features\Events\States\EventStatus\Cancelled;
+use App\Features\Moderation\Api\RecordModerationAction;
 use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Models\User;
-use App\Platform\Moderation\Models\ModerationReview;
 use Filament\Support\Colors\Color;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
@@ -40,7 +40,7 @@ class CancelEvent extends Transition implements HasColor, HasIcon, HasLabel
         $moderator = $this->moderator;
 
         return DB::transaction(function () use ($moderator): Event {
-            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+            app(RecordModerationAction::class)->record([
                 'actionable_type' => $this->event->getMorphClass(),
                 'actionable_id' => $this->event->id,
                 'actioned_by_type' => (new User)->getMorphClass(),
@@ -48,12 +48,12 @@ class CancelEvent extends Transition implements HasColor, HasIcon, HasLabel
                 'type' => 'cancelled',
                 'reason' => 'cancelled',
                 'notes' => $this->note,
-            ]));
+            ]);
 
-            $this->event->status = Cancelled::class;
-            $this->event->cancelled_at = now();
-            $this->event->last_state_change_at = now();
-            $this->event->save();
+            app(EventStatusWriter::class)->apply($this->event, Cancelled::class, [
+                'cancelled_at' => now(),
+                'last_state_change_at' => now(),
+            ]);
             $this->event->resolveEscalations();
             app(ParticipationOutcomeReversals::class)->reverse('event', (string) $this->event->getKey(), (string) $moderator->getKey(), 'event_cancelled');
 

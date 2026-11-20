@@ -19,6 +19,7 @@ use App\Features\Institutions\Actions\VerifyPendingInstitutionsAction;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
+use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use Illuminate\Database\Eloquent\Model;
@@ -193,6 +194,21 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
         }
 
         return $deleted;
+    }
+
+    public function withContributionModel(string $institutionId, callable $callback): void
+    {
+        $callback(Institution::query()->findOrFail($institutionId));
+    }
+
+    /** @param array<int|string, mixed> $gallery */
+    public function syncContributionMedia(string $institutionId, mixed $cover, ?array $gallery): void
+    {
+        $institution = Institution::query()->findOrFail($institutionId);
+        $sync = app(MediaCollectionSync::class);
+
+        $sync->syncSingle($institution, $cover, 'cover');
+        $sync->syncMultiple($institution, $gallery, 'gallery');
     }
 
     private function institution(string $institutionId): Institution

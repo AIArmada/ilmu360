@@ -18,10 +18,13 @@ use App\Features\Events\Actions\Submission\ValidateEventSubmissionCategoriesActi
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Support\EventModel;
 use App\Features\Prayer\Api\EventPrayerTime;
+use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -236,5 +239,113 @@ final readonly class EventSubmissionsService implements EventSubmissions
         }
 
         return $model;
+    }
+
+    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): object
+    {
+        $institutionIdSelector = 'events.institution_id';
+
+        return EventSubmission::query()
+            ->where('submitter_type', (new User)->getMorphClass())
+            ->where('submitter_id', $submitterId)
+            ->whereHas('event', function (Builder $query) use ($institutionIdSelector, $submitterId): void {
+                $query->where(function (Builder $eventQuery) use ($institutionIdSelector, $submitterId): void {
+                    $eventQuery->whereRaw("{$institutionIdSelector} is null")
+                        ->orWhereRaw(
+                            "not exists (
+                                select 1
+                                from institution_members
+                                where institution_members.institution_id = {$institutionIdSelector}
+                                  and institution_members.user_id = ?
+                            )",
+                            [$submitterId],
+                        );
+                });
+            })
+            ->with([
+                'event.institution',
+                'event.persons',
+                'event.references',
+                'occurrence.involvements.involveable',
+                'occurrence.references.referenceable',
+            ])
+            ->latest('created_at')
+            ->paginate(perPage: $perPage, pageName: $pageName);
+    }
+
+    public function submissionsForAccount(string $accountId): object
+    {
+        return EventSubmission::query()
+            ->where('submitter_type', (new User)->getMorphClass())
+            ->where('submitter_id', $accountId)
+            ->with('event')
+            ->latest()
+            ->get();
+    }
+
+    public function plannerSubmissionsForAccount(string $accountId): object
+    {
+        return EventSubmission::query()
+            ->where('submitter_type', (new User)->getMorphClass())
+            ->where('submitter_id', $accountId)
+            ->with([
+                'event.media',
+                'event.institution',
+                'event.institution.media',
+                'event.venue',
+            ])
+            ->latest()
+            ->get();
+    }
+
+    public function existsForSubmitter(string $eventId, string $accountId): bool
+    {
+        return EventSubmission::query()
+            ->where('event_id', $eventId)
+            ->where('submitter_type', (new User)->getMorphClass())
+            ->where('submitter_id', $accountId)
+            ->exists();
+    }
+
+    public function moderationStatus(string $submissionId): ?string
+    {
+        $submission = EventSubmission::query()->find($submissionId);
+
+        if (! $submission instanceof EventSubmission) {
+            return null;
+        }
+
+        $status = $submission->getAttribute('status');
+
+        if (is_string($status)) {
+            return $status;
+        }
+
+        if (is_object($status) && method_exists($status, 'getValue')) {
+            return (string) $status->getValue();
+        }
+
+        return (string) $status;
+    }
+
+    public function findSubmission(string $submissionId): ?object
+    {
+        return EventSubmission::query()->find($submissionId);
+    }
+
+    public function hasEarlierSubmissionActivity(
+        string $actorId,
+        string $actorType,
+        \DateTimeInterface $before,
+        string $exceptId,
+    ): bool {
+        return EventSubmission::query()
+            ->where(function (Builder $query) use ($actorId, $actorType): void {
+                $query->where('submitter_type', $actorType)
+                    ->where('submitter_id', $actorId);
+            })
+            ->where('submitted_at', '<', $before)
+            ->whereKeyNot($exceptId)
+            ->exists();
     }
 }

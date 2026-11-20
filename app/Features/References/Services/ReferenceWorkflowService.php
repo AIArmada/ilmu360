@@ -175,4 +175,9 @@ final readonly class ReferenceWorkflowService implements ReferenceWorkflow
 
         return $reference;
     }
+
+    public function withUnscopedContributionModel(string $referenceId, callable $callback): void
+    {
+        $callback(Reference::query()->withoutOwnerScope()->findOrFail($referenceId));
+    }
 }

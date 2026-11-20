@@ -69,4 +69,25 @@ final readonly class ReferenceQueryService implements ReferenceQueries
     {
         return $this->search->publicSearchIds($search);
     }
+
+    /**
+     * @param  list<string>  $referenceIds
+     * @return list<string>
+     */
+    public function familyRootIds(array $referenceIds): array
+    {
+        if ($referenceIds === []) {
+            return [];
+        }
+
+        $rootIds = [];
+
+        foreach (Reference::query()->whereKey($referenceIds)->get(['id', 'parent_id', 'record_kind']) as $reference) {
+            $rootIds[] = $reference->isRootReference()
+                ? (string) $reference->getKey()
+                : ($reference->familyRootId() ?? (string) $reference->getKey());
+        }
+
+        return array_values(array_unique($rootIds));
+    }
 }

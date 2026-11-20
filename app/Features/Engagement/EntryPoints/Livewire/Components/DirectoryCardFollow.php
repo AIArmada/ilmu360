@@ -2,7 +2,10 @@
 
 namespace App\Features\Engagement\EntryPoints\Livewire\Components;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollowCommands;
+use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
@@ -43,15 +46,23 @@ class DirectoryCardFollow extends Component
             return;
         }
 
-        if ($user->isFollowing($subject)) {
-            app(SubjectFollowCommands::class)->unfollow($subject->getMorphClass(), (string) $subject->getKey(), (string) $user->getKey());
+        $isFollowing = OwnerContext::withOwner(null, fn (): bool => app(SubjectFollows::class)
+            ->followStateFor(
+                (string) $user->getKey(),
+                EngagementSubjectType::from($this->subjectType),
+                $subject->id,
+            )
+            ->isFollowing);
+
+        if ($isFollowing) {
+            app(SubjectFollowCommands::class)->unfollow($subject->morphType, $subject->id, (string) $user->getKey());
             $this->isFollowing = false;
         } else {
             app(SubjectFollowCommands::class)->follow(
-                $subject->getMorphClass(),
-                (string) $subject->getKey(),
+                $subject->morphType,
+                $subject->id,
                 (string) $user->getKey(),
-                ["{$this->subjectType}_id" => $subject->getKey()],
+                ["{$this->subjectType}_id" => $subject->id],
             );
             $this->isFollowing = true;
         }

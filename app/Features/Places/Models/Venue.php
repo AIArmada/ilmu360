@@ -124,6 +124,10 @@ class Venue extends PackageVenue implements AuditableContract
                 }
             }
         });
+
+        static::deleted(function (self $venue): void {
+            app(InstitutionVenueLinks::class)->deleteForVenue((string) $venue->getKey());
+        });
     }
 
     /**
@@ -176,24 +180,6 @@ class Venue extends PackageVenue implements AuditableContract
     protected function active(Builder $query): void
     {
         $query->whereIn('status', ['verified', 'pending']);
-    }
-
-    /**
-     * Delete the row atomically with its bridge links: ordinary
-     * Model::delete() opens no transaction of its own.
-     */
-    #[\Override]
-    public function delete(): ?bool
-    {
-        return $this->getConnection()->transaction(function (): ?bool {
-            $deleted = parent::delete();
-
-            if ($deleted) {
-                app(InstitutionVenueLinks::class)->deleteForVenue((string) $this->getKey());
-            }
-
-            return $deleted;
-        });
     }
 
     public function getPublicMainUrlAttribute(): string

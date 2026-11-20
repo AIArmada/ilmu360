@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
+use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Models\Reference;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
-use App\Platform\Models\SlugOrUuidResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
@@ -19,10 +23,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class ShareTrackingUrlService
 {
-    public function __construct(
-        private SlugOrUuidResolver $slugOrUuidResolver,
-    ) {}
-
     /**
      * @return list<string>
      */
@@ -184,7 +184,7 @@ final readonly class ShareTrackingUrlService
         }
 
         if (preg_match('#^/events/([^/]+)$#', $path, $matches) === 1 || preg_match('#^/majlis/([^/]+)$#', $path, $matches) === 1) {
-            $event = Event::query()->where('slug', $matches[1])->first();
+            $event = app(EventScheduleQuery::class)->findEventBySlug($matches[1]);
 
             if ($event instanceof Event) {
                 return $this->subjectResult(
@@ -616,7 +616,7 @@ final readonly class ShareTrackingUrlService
      */
     private function eventTarget(string $slug): array
     {
-        $event = Event::query()->where('slug', $slug)->first();
+        $event = app(EventScheduleQuery::class)->findEventBySlug($slug);
 
         if (! $event instanceof Event) {
             return $this->subjectResult(
@@ -654,7 +654,7 @@ final readonly class ShareTrackingUrlService
      */
     private function institutionTarget(string $slug): array
     {
-        $institution = Institution::query()->where('slug', $slug)->first();
+        $institution = app(InstitutionLookup::class)->findInstitutionBySlug($slug);
 
         if (! $institution instanceof Institution) {
             return $this->subjectResult(
@@ -692,7 +692,7 @@ final readonly class ShareTrackingUrlService
      */
     private function personTarget(string $slug): array
     {
-        $person = Person::query()->where('slug', $slug)->first();
+        $person = app(PersonLookup::class)->findPersonBySlug($slug);
 
         if (! $person instanceof Person) {
             return $this->subjectResult(
@@ -730,7 +730,7 @@ final readonly class ShareTrackingUrlService
      */
     private function seriesTarget(string $slug): array
     {
-        $series = Series::query()->where('slug', $slug)->first();
+        $series = app(SeriesAuthoring::class)->findSeriesBySlug($slug);
 
         if (! $series instanceof Series) {
             return $this->subjectResult(
@@ -768,11 +768,7 @@ final readonly class ShareTrackingUrlService
      */
     private function referenceTarget(string $referenceIdentifier): array
     {
-        $reference = $this->slugOrUuidResolver->first(
-            Reference::query()->withoutOwnerScope()->active(),
-            'references.slug',
-            $referenceIdentifier,
-        );
+        $reference = app(ReferenceLookup::class)->findReferenceByIdentifier($referenceIdentifier);
 
         if (! $reference instanceof Reference) {
             return $this->subjectResult(

@@ -14,11 +14,13 @@
       "App\\Features\\Places\\Actions\\Venues\\GenerateVenueSlugAction",
       "App\\Features\\Places\\Actions\\Venues\\DetachVenueVerifierAction",
       "App\\Features\\Places\\Actions\\Venues\\RestoreVenueVerifierAction",
-      "App\\Features\\Places\\Actions\\Venues\\SaveVenueAction"
+      "App\\Features\\Places\\Actions\\Venues\\SaveVenueAction",
+      "App\\Features\\Places\\Persistence\\VenueWriter"
     ],
     "table:venue_spaces": [
       "App\\Features\\Places\\Actions\\Spaces\\DeleteSpaceAction",
-      "App\\Features\\Places\\Actions\\Spaces\\SaveSpaceAction"
+      "App\\Features\\Places\\Actions\\Spaces\\SaveSpaceAction",
+      "App\\Features\\Places\\Persistence\\SpaceWriter"
     ],
     "table:venue_facilities": [
       "App\\Features\\Places\\Actions\\Venues\\SyncVenueFacilitiesAction"

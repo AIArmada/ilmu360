@@ -2,11 +2,7 @@
 
 namespace App\Features\Engagement\EntryPoints\Http\Data;
 
-use App\Features\Events\Models\Series;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
-use App\Models\User;
+use App\Shared\Directory\FollowableSubject;
 use Spatie\LaravelData\Data;
 
 class FollowStateData extends Data
@@ -18,13 +14,13 @@ class FollowStateData extends Data
         public bool $is_following,
     ) {}
 
-    public static function fromModel(Institution|Person|Reference|Series $record, User $user): self
+    public static function fromSubject(FollowableSubject $subject, bool $isFollowing): self
     {
         return new self(
-            type: strtolower(class_basename($record)),
-            id: (string) $record->getKey(),
-            slug: (string) $record->slug,
-            is_following: $user->isFollowing($record),
+            type: $subject->type,
+            id: $subject->id,
+            slug: $subject->slug,
+            is_following: $isFollowing,
         );
     }
 }

@@ -7,11 +7,11 @@ namespace App\Features\Events\Support;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressCountryResolver;
+use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Contributions\Api\SubmissionContext;
 use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\BuildPrayerPreviewAction;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
@@ -414,7 +414,7 @@ final class SubmissionTimingPolicy implements SubmissionTimingContract
             $context = app(SubmissionContext::class);
             $organizer = $context->resolvePrimaryOrganizer($state['primary_organizer_id'] ?? null);
 
-            if (! $organizer instanceof Institution && ! $organizer instanceof Person) {
+            if (! $organizer instanceof ContributionOrganizer) {
                 return null;
             }
 

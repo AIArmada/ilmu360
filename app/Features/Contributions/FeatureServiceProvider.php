@@ -27,6 +27,7 @@ use App\Features\Contributions\Contributors\ContributionsAccountLifecycleContrib
 use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
 use App\Features\Contributions\EntryPoints\Admin\Member\ContributionRequestMemberWorkflowToolContributor;
 use App\Features\Contributions\EntryPoints\Admin\RecordActions\ContributionRequestRecordActionContributor;
+use App\Features\Contributions\EntryPoints\Api\Admin\ContributionRequestResourceDefinition;
 use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\AdminGetContributionRequestReviewSchemaTool;
@@ -47,6 +48,7 @@ use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberWorkflowToolRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Telemetry\SignalSchemaRegistry;
@@ -79,7 +81,7 @@ use App\Shared\Auth\AccountLifecycleContributor;
  * Reads stay conventional: the request reader Api, the Resolve, Find and
  * Ensure query actions, and the notification service. Per-entity form
  * contracts, current state and update rules are published by each owner and
- * composed through the Shared ContributionProjection contract.
+ * composed through each owner's ContributionProjection Api contract.
  */
 class FeatureServiceProvider extends FeatureModule
 {
@@ -109,6 +111,7 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(ContributionRequestResourceDefinition::class));
         parent::boot();
 
         $contracts = $this->app->make(FrontendFormContractRegistry::class);

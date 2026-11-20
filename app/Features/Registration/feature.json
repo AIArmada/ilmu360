@@ -7,7 +7,8 @@
       "App\\Features\\Registration\\Actions\\IssueOfflineAdmissionAction",
       "App\\Features\\Registration\\Actions\\RecordFreeCheckoutMetadataAction",
       "App\\Features\\Registration\\Actions\\DeleteEventRegistrationsAction",
-      "App\\Features\\Registration\\Contributors\\RegistrationAccountLifecycleContributor"
+      "App\\Features\\Registration\\Contributors\\RegistrationAccountLifecycleContributor",
+      "App\\Features\\Registration\\Persistence\\RegistrationWriter"
     ],
     "table:event_registration_participants": [
       "App\\Features\\Registration\\Actions\\RegisterFreeAdmissionAction",

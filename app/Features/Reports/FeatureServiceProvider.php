@@ -14,6 +14,7 @@ use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 use App\Features\Reports\EntryPoints\Admin\RecordActions\ReportRecordActionContributor;
+use App\Features\Reports\EntryPoints\Api\Admin\ReportResourceDefinition;
 use App\Features\Reports\EntryPoints\ApiDocumentation\ReportsRequestExampleContributor;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\ReportResource;
 use App\Features\Reports\EntryPoints\Mcp\Tools\AdminGetReportTriageSchemaTool;
@@ -30,6 +31,7 @@ use App\Features\Reports\Support\Telemetry\ReportsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
@@ -55,6 +57,7 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(ReportResourceDefinition::class));
         parent::boot();
 
         $this->app->make(SignalSchemaRegistry::class)->register(new ReportsSignalSchemaContributor);

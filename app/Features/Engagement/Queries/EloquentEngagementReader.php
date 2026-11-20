@@ -14,11 +14,16 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementState;
 use App\Features\Engagement\Api\FollowState;
 use App\Features\Engagement\Api\SubjectFollows;
+use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\Places\Models\Venue;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use BackedEnum;
@@ -35,6 +40,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class EloquentEngagementReader implements EngagementActivityReader, EventEngagement, SubjectFollows
 {
+    public function __construct(
+        private EventAuthoring $events,
+        private InstitutionLookup $institutions,
+        private PersonLookup $persons,
+        private ReferenceLookup $references,
+        private PlaceLookup $places,
+    ) {}
+
     public function followedSubjectIds(string $accountId, EngagementSubjectType $subjectType): array
     {
         return Follow::query()
@@ -69,7 +82,7 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
         return Bookmark::query()
             ->where('bookmarker_type', (new User)->getMorphClass())
             ->where('bookmarker_id', $accountId)
-            ->where('bookmarkable_type', (new Event)->getMorphClass())
+            ->where('bookmarkable_type', $this->events->eventMorphType())
             ->where('status', 'active')
             ->pluck('bookmarkable_id')
             ->map(static fn (mixed $id): string => (string) $id)
@@ -82,7 +95,7 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
         return Response::query()
             ->where('responder_type', (new User)->getMorphClass())
             ->where('responder_id', $accountId)
-            ->where('respondable_type', (new Event)->getMorphClass())
+            ->where('respondable_type', $this->events->eventMorphType())
             ->where('response_type', 'going')
             ->where('status', 'active')
             ->pluck('respondable_id')
@@ -96,7 +109,7 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
         return Bookmark::query()
             ->where('bookmarker_type', (new User)->getMorphClass())
             ->where('bookmarker_id', $accountId)
-            ->where('bookmarkable_type', (new Event)->getMorphClass())
+            ->where('bookmarkable_type', $this->events->eventMorphType())
             ->where('bookmarkable_id', $eventId)
             ->where('status', 'active')
             ->exists();
@@ -107,7 +120,7 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
         return Response::query()
             ->where('responder_type', (new User)->getMorphClass())
             ->where('responder_id', $accountId)
-            ->where('respondable_type', (new Event)->getMorphClass())
+            ->where('respondable_type', $this->events->eventMorphType())
             ->where('respondable_id', $eventId)
             ->where('response_type', 'going')
             ->where('status', 'active')
@@ -132,7 +145,7 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
             return [];
         }
 
-        $eventMorphClass = (new Event)->getMorphClass();
+        $eventMorphClass = $this->events->eventMorphType();
 
         $savedIds = Bookmark::query()
             ->where('bookmarker_type', (new User)->getMorphClass())
@@ -442,11 +455,11 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
     private function subjectMorphClass(EngagementSubjectType $subjectType): string
     {
         return match ($subjectType) {
-            EngagementSubjectType::Venue => (new Venue)->getMorphClass(),
-            EngagementSubjectType::Person => (new Person)->getMorphClass(),
-            EngagementSubjectType::Institution => (new Institution)->getMorphClass(),
-            EngagementSubjectType::Reference => (new Reference)->getMorphClass(),
-            EngagementSubjectType::Series => (new Series)->getMorphClass(),
+            EngagementSubjectType::Venue => $this->places->venueMorphType(),
+            EngagementSubjectType::Person => $this->persons->personMorphType(),
+            EngagementSubjectType::Institution => $this->institutions->institutionMorphType(),
+            EngagementSubjectType::Reference => $this->references->referenceMorphType(),
+            EngagementSubjectType::Series => $this->events->seriesMorphType(),
         };
     }
 }

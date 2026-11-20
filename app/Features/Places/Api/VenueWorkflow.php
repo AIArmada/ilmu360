@@ -35,6 +35,13 @@ interface VenueWorkflow
 
     public function changeStatus(string $venueId, string $status): void;
 
+    /**
+     * Verify every still-pending venue in the given set.
+     *
+     * @param  list<string>  $venueIds
+     */
+    public function verifyPending(array $venueIds): void;
+
     public function syncSlug(string $venueId): bool;
 
     public function syncSlugsForName(string $name): bool;

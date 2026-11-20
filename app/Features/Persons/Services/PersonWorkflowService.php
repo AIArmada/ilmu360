@@ -20,6 +20,7 @@ use App\Features\Persons\Actions\SyncPersonSearchProjectionAction;
 use App\Features\Persons\Actions\VerifyPendingPersonsAction;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
+use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Auth\AccountDirectory;
 use Illuminate\Database\Eloquent\Model;
@@ -242,6 +243,22 @@ final readonly class PersonWorkflowService implements PersonWorkflow
         }
 
         return $deleted;
+    }
+
+    public function withContributionModel(string $personId, callable $callback): void
+    {
+        $callback(Person::query()->findOrFail($personId));
+    }
+
+    /** @param array<int|string, mixed> $gallery */
+    public function syncContributionMedia(string $personId, mixed $avatar, mixed $cover, ?array $gallery): void
+    {
+        $person = Person::query()->findOrFail($personId);
+        $sync = app(MediaCollectionSync::class);
+
+        $sync->syncSingle($person, $avatar, 'avatar');
+        $sync->syncSingle($person, $cover, 'cover');
+        $sync->syncMultiple($person, $gallery, 'gallery');
     }
 
     private function person(string $personId): Person

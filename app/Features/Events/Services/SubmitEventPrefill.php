@@ -16,8 +16,9 @@ use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\EventSubmissionFo
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Support\SubmissionTimingPolicy;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use BackedEnum;
@@ -409,14 +410,14 @@ final class SubmitEventPrefill
 
         $organizerType = $organizer?->involveable_type;
 
-        if ($organizerType === (new Institution)->getMorphClass() && $organizerId !== null && $access->canUseInstitution($submitter, $organizerId)) {
+        if ($organizerType === app(InstitutionLookup::class)->institutionMorphType() && $organizerId !== null && $access->canUseInstitution($submitter, $organizerId)) {
             $defaults['primary_organizer_kind'] = 'institution';
             $defaults['primary_organizer_id'] = $organizerId;
             $defaults['primary_organizer_institution_id'] = $organizerId;
             $defaults['primary_organizer_person_id'] = null;
         }
 
-        if ($organizerType === (new Person)->getMorphClass() && $organizerId !== null && $access->canUsePerson($submitter, $organizerId)) {
+        if ($organizerType === app(PersonLookup::class)->personMorphType() && $organizerId !== null && $access->canUsePerson($submitter, $organizerId)) {
             $defaults['primary_organizer_kind'] = 'person';
             $defaults['primary_organizer_id'] = $organizerId;
             $defaults['primary_organizer_institution_id'] = null;

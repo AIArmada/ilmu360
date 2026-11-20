@@ -561,15 +561,18 @@ describe('Event Search Filters', function () {
         $postgresResults = app(EventSearchService::class)->search(null, [], 20, 'time');
         $typesenseResults = app(TypesenseEventDiscovery::class)->search($criteria);
 
-        foreach ([$postgresResults, $typesenseResults] as $results) {
-            $hydratedEvent = collect($results->items())->firstWhere('id', $event->id);
+        $payload = collect($postgresResults->items())->firstWhere('id', $event->id);
 
-            expect($hydratedEvent)->toBeInstanceOf(Event::class)
-                ->and($hydratedEvent->relationLoaded('classifications'))->toBeTrue()
-                ->and($hydratedEvent->classifications->first()->relationLoaded('term'))->toBeTrue()
-                ->and($hydratedEvent->relationLoaded('institution'))->toBeTrue()
-                ->and($hydratedEvent->institution->relationLoaded('media'))->toBeTrue();
-        }
+        expect($payload)->not->toBeNull()
+            ->and($payload->institution)->not->toBeNull();
+
+        $hydratedEvent = collect($typesenseResults->items())->firstWhere('id', $event->id);
+
+        expect($hydratedEvent)->toBeInstanceOf(Event::class)
+            ->and($hydratedEvent->relationLoaded('classifications'))->toBeTrue()
+            ->and($hydratedEvent->classifications->first()->relationLoaded('term'))->toBeTrue()
+            ->and($hydratedEvent->relationLoaded('institution'))->toBeTrue()
+            ->and($hydratedEvent->institution->relationLoaded('media'))->toBeTrue();
     });
 
     it('shows search placeholder on events index', function () {
@@ -2792,17 +2795,17 @@ describe('Event Search Filters', function () {
         $event = collect($events->items())->first();
 
         expect($event)->not->toBeNull()
-            ->and($event->relationLoaded('institution'))->toBeTrue()
-            ->and($event->relationLoaded('venue'))->toBeTrue()
-            ->and($event->relationLoaded('persons'))->toBeTrue()
-            ->and($event->relationLoaded('media'))->toBeTrue();
+            ->and($event->institution)->not->toBeNull()
+            ->and($event->venue)->not->toBeNull()
+            ->and($event->persons)->not->toBeEmpty()
+            ->and($event->card_image_url)->not->toBeEmpty();
 
-        if ($event->institution) {
-            expect($event->institution->relationLoaded('media'))->toBeTrue();
+        if ($event->institution !== null) {
+            expect($event->institution)->toHaveKey('name');
         }
 
-        if ($event->persons->isNotEmpty()) {
-            expect($event->persons->first()->relationLoaded('media'))->toBeTrue();
+        if ($event->persons !== []) {
+            expect($event->persons[0])->toHaveKey('name');
         }
     });
 
@@ -2829,12 +2832,9 @@ describe('Event Search Filters', function () {
             sort: 'time',
         );
 
-        /** @var Event|null $resultEvent */
         $resultEvent = collect($results->items())->first();
 
         expect($resultEvent)->not->toBeNull()
-            ->and($resultEvent?->relationLoaded('media'))->toBeTrue()
-            ->and($resultEvent?->media->pluck('collection_name')->contains('cover'))->toBeTrue()
             ->and($resultEvent?->card_image_url)->not->toContain('images/placeholders/event.png')
             ->and($resultEvent?->card_image_url)->toContain('cover');
     });
@@ -3260,7 +3260,7 @@ describe('Event Search Filters', function () {
         $nearest = collect($events->items())->first();
 
         expect($nearest)->not->toBeNull()
-            ->and($nearest->distance_km ?? null)->not->toBeNull();
+            ->and($events->distances[$nearest->id] ?? null)->not->toBeNull();
     });
 
     it('returns institution-based events in nearby search when venue is not set', function () {
@@ -3311,7 +3311,7 @@ describe('Event Search Filters', function () {
         $nearest = collect($events->items())->firstWhere('title', 'Nearby Institution Event');
 
         expect($nearest)->not->toBeNull()
-            ->and($nearest->distance_km ?? null)->not->toBeNull();
+            ->and($events->distances[$nearest->id] ?? null)->not->toBeNull();
     });
 
     it('ignores event-level address records in nearby search', function () {

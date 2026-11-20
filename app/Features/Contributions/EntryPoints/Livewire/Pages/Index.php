@@ -11,20 +11,21 @@ use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\PublicScheduleEligibility;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
-use App\Features\Institutions\Api\Enums\InstitutionStatus;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Features\Reports\Api\ReportPage;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;
 use App\Models\User;
-use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Time\UserTimezoneResolver;
 use App\Platform\Ui\InteractsWithToasts;
@@ -37,8 +38,6 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Livewire\Attributes\Computed;
@@ -131,34 +130,14 @@ class Index extends Component implements HasForms
         /** @var User $user */
         $user = auth()->user();
 
-        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => EventSubmission::query()
-            ->where('submitter_type', $user->getMorphClass())
-            ->where('submitter_id', $user->id)
-            ->whereHas('event', function (Builder $query) use ($user): void {
-                $institutionIdSelector = $this->eventInstitutionIdSelector();
+        /** @var LengthAwarePaginator<int, EventSubmission> $submissions */
+        $submissions = OwnerContext::withOwner(null, fn (): object => app(EventSubmissions::class)->paginateForSubmitter(
+            (string) $user->getKey(),
+            5,
+            'submitted_events_page',
+        ));
 
-                $query->where(function (Builder $eventQuery) use ($institutionIdSelector, $user): void {
-                    $eventQuery->whereRaw("{$institutionIdSelector} is null")
-                        ->orWhereRaw(
-                            "not exists (
-                                select 1
-                                from institution_members
-                                where institution_members.institution_id = {$institutionIdSelector}
-                                  and institution_members.user_id = ?
-                            )",
-                            [$user->getKey()],
-                        );
-                });
-            })
-            ->with([
-                'event' => fn ($query) => $query->with(['institution', 'persons', 'references']),
-                'occurrence' => fn ($query) => $query->with([
-                    'involvements.involveable',
-                    'references.referenceable',
-                ]),
-            ])
-            ->latest('created_at')
-            ->paginate(perPage: 5, pageName: 'submitted_events_page'));
+        return $submissions;
     }
 
     /**
@@ -459,25 +438,8 @@ class Index extends Component implements HasForms
     private function membershipApplicationSearchOptions(?string $subjectType, string $search): array
     {
         return match (MemberSubjectType::tryFrom((string) $subjectType)) {
-            MemberSubjectType::Institution => Institution::query()
-                ->where('status', InstitutionStatus::Verified->value)
-                ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
-                ->tap(fn (Builder $query): Builder => filled($search) ? $query->searchNameOrNickname($search) : $query)
-                ->with(['addresses'])
-                ->orderBy('name')
-                ->limit(50)
-                ->with('names')->get(['id', 'slug', 'name'])
-                ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->getKey() => $this->institutionMembershipApplicationLabel($institution)])
-                ->all(),
-            MemberSubjectType::Person => Person::query()
-                ->where('status', 'verified')
-                ->whereIn('status', ['verified', 'pending'])
-                ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
-                ->orderBy('name')
-                ->limit(50)
-                ->get()
-                ->mapWithKeys(fn (Person $person): array => [(string) $person->slug => $person->formatted_name])
-                ->all(),
+            MemberSubjectType::Institution => app(InstitutionLookup::class)->membershipApplicationOptions($search),
+            MemberSubjectType::Person => app(PersonLookup::class)->membershipApplicationOptions($search),
             default => [],
         };
     }
@@ -489,31 +451,10 @@ class Index extends Component implements HasForms
         }
 
         return match (MemberSubjectType::tryFrom((string) $subjectType)) {
-            MemberSubjectType::Institution => $this->resolveInstitutionMembershipApplicationOptionLabel($subjectSlug),
-            MemberSubjectType::Person => Person::query()
-                ->where('status', 'verified')
-                ->whereIn('status', ['verified', 'pending'])
-                ->where('slug', $subjectSlug)
-                ->first()?->formatted_name,
+            MemberSubjectType::Institution => app(InstitutionLookup::class)->membershipApplicationLabel($subjectSlug),
+            MemberSubjectType::Person => app(PersonLookup::class)->membershipApplicationLabel($subjectSlug),
             default => null,
         };
-    }
-
-    /**
-     * @template TModel of Model
-     *
-     * @param  Builder<TModel>  $query
-     * @return Builder<TModel>
-     */
-    private function applySearchConstraint(Builder $query, string $column, string $search): Builder
-    {
-        $normalizedSearch = trim($search);
-
-        if ($normalizedSearch === '') {
-            return $query;
-        }
-
-        return $query->whereLike($column, "%{$normalizedSearch}%");
     }
 
     private function normalizeNullableString(mixed $value): ?string
@@ -525,38 +466,6 @@ class Index extends Component implements HasForms
         $normalized = trim($value);
 
         return $normalized !== '' ? $normalized : null;
-    }
-
-    private function eventInstitutionIdSelector(): string
-    {
-        return 'events.institution_id';
-    }
-
-    private function institutionMembershipApplicationLabel(Institution $institution): string
-    {
-        $location = AddressHierarchyFormatter::format($institution->primaryAddress());
-
-        if ($location === '') {
-            return $institution->display_name;
-        }
-
-        return "{$institution->display_name} - {$location}";
-    }
-
-    private function resolveInstitutionMembershipApplicationOptionLabel(string $subjectId): ?string
-    {
-        $institution = Institution::query()
-            ->where('status', InstitutionStatus::Verified->value)
-            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
-            ->whereKey($subjectId)
-            ->with(['addresses'])
-            ->with('names')->first(['id', 'name']);
-
-        if (! $institution instanceof Institution) {
-            return null;
-        }
-
-        return $this->institutionMembershipApplicationLabel($institution);
     }
 
     private function normalizeActiveTab(string $value): string

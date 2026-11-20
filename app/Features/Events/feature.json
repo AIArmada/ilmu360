@@ -16,7 +16,8 @@
       "App\\Features\\Events\\Actions\\Authoring\\ApplyEventContributionAction",
       "App\\Features\\Events\\Actions\\Authoring\\ApplyChangeAnnouncementMutationsAction",
       "App\\Features\\Events\\Actions\\Account\\DetachEventAccountOwnershipAction",
-      "App\\Features\\Events\\Actions\\Account\\RestoreEventAccountOwnershipAction"
+      "App\\Features\\Events\\Actions\\Account\\RestoreEventAccountOwnershipAction",
+      "App\\Features\\Events\\Persistence\\EventStatusWriter"
     ],
     "table:event_series_items": [
       "App\\Features\\Events\\Actions\\Series\\DeleteSeriesAction",
@@ -148,7 +149,8 @@
       "App\\Features\\Events\\Actions\\Escalations\\RecordPendingEventEscalationAction"
     ],
     "table:event_updates": [
-      "App\\Features\\Events\\Actions\\Authoring\\CreateEventChangeAnnouncementAction"
+      "App\\Features\\Events\\Actions\\Authoring\\CreateEventChangeAnnouncementAction",
+      "App\\Features\\Events\\Actions\\Delete\\CleanupEventAction"
     ]
   },
   "aliases": {

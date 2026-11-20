@@ -8,8 +8,11 @@ use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\Places\Models\Venue;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,7 +31,8 @@ final class EntitySubmissionAccess implements SubmissionEntityAccess
     public function institutionQueryForSubmitter(?User $user, ?string $countryId = null): Builder
     {
         /** @var Builder<Institution> $query */
-        $query = Institution::query();
+        /** @var Builder<Institution> $query */
+        $query = app(InstitutionLookup::class)->newInstitutionQuery();
 
         return $this->constrainInstitutionQueryForSubmitter($query, $user, $countryId);
     }
@@ -39,7 +43,8 @@ final class EntitySubmissionAccess implements SubmissionEntityAccess
     public function memberInstitutionQueryForSubmitter(User $user): Builder
     {
         /** @var Builder<Institution> $query */
-        $query = Institution::query();
+        /** @var Builder<Institution> $query */
+        $query = app(InstitutionLookup::class)->newInstitutionQuery();
 
         return $query
             ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
@@ -52,7 +57,8 @@ final class EntitySubmissionAccess implements SubmissionEntityAccess
     public function personQueryForSubmitter(?User $user): Builder
     {
         /** @var Builder<Person> $query */
-        $query = Person::query();
+        /** @var Builder<Person> $query */
+        $query = app(PersonLookup::class)->newPersonQuery();
 
         return $this->constrainPersonQueryForSubmitter($query, $user);
     }
@@ -86,8 +92,9 @@ final class EntitySubmissionAccess implements SubmissionEntityAccess
     public function venueQuery(?string $countryId = null): Builder
     {
         /** @var Builder<Venue> $query */
-        $query = Venue::query()
-            ->whereIn('venues.status', self::ALLOWED_ENTITY_STATUSES);
+        /** @var Builder<Venue> $query */
+        $query = app(PlaceLookup::class)->newVenueQuery();
+        $query = $query->whereIn('venues.status', self::ALLOWED_ENTITY_STATUSES);
 
         if (filled($countryId)) {
             app(AddressLocationScope::class)->apply($query, new AddressLocationData(countryId: $countryId));
@@ -293,15 +300,21 @@ final class EntitySubmissionAccess implements SubmissionEntityAccess
 
     public function institutionBelongsToCountry(string $institutionId, string $countryId): bool
     {
+        /** @var Builder<Institution> $institutionQuery */
+        $institutionQuery = app(InstitutionLookup::class)->newInstitutionQuery();
+
         return app(AddressLocationScope::class)
-            ->apply(Institution::query()->whereKey($institutionId), new AddressLocationData(countryId: $countryId))
+            ->apply($institutionQuery->whereKey($institutionId), new AddressLocationData(countryId: $countryId))
             ->exists();
     }
 
     public function venueBelongsToCountry(string $venueId, string $countryId): bool
     {
+        /** @var Builder<Venue> $venueQuery */
+        $venueQuery = app(PlaceLookup::class)->newVenueQuery();
+
         return app(AddressLocationScope::class)
-            ->apply(Venue::query()->whereKey($venueId), new AddressLocationData(countryId: $countryId))
+            ->apply($venueQuery->whereKey($venueId), new AddressLocationData(countryId: $countryId))
             ->exists();
     }
 }

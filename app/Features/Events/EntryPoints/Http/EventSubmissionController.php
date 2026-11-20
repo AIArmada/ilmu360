@@ -10,6 +10,7 @@ use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Support\SubmitterContactRules;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
@@ -199,10 +200,7 @@ class EventSubmissionController extends FrontendController
 
         abort_unless($user instanceof User, 403);
 
-        $institution = Institution::query()
-            ->whereKey($institutionId)
-            ->whereHas('members', fn ($query) => $query->whereKey($user->getKey()))
-            ->first();
+        $institution = app(InstitutionLookup::class)->findMemberInstitution($institutionId, (string) $user->getKey());
 
         abort_unless($institution instanceof Institution, 403);
 

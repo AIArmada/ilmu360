@@ -29,11 +29,12 @@ use App\Features\Events\States\EventStatus\EventStatus;
 use App\Features\Events\States\EventStatus\Pending;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\Places\Models\Venue;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
-use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Models\User;
 use App\Platform\Language\Models\Language;
@@ -282,14 +283,8 @@ class Show extends Component
             $locations = $event->occurrences->flatMap(fn (EventOccurrence $occurrence) => $occurrence->locations
                 ->concat($occurrence->sessions->flatMap(fn ($session) => $session->locations)))
                 ->concat($event->sessions->flatMap(fn ($session) => $session->locations));
-            $venueIds = $locations->pluck('venue_id')->filter()->unique()->values();
-            $venues = $venueIds->isNotEmpty()
-                ? Venue::query()->with(['addresses.country', 'addresses.state', 'addresses.city', 'addresses.areaAssignments.area', 'contactMethods', 'media'])->whereKey($venueIds)->get()->keyBy('id')
-                : collect();
 
-            foreach ($locations as $location) {
-                $location->setRelation('venue', $venues->get($location->venue_id));
-            }
+            app(PlaceLookup::class)->hydrateDetailVenues($locations);
 
             if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
                 if ($involveable instanceof Institution) {
@@ -1014,10 +1009,10 @@ class Show extends Component
             (string) $user->getKey(),
             (string) $this->event->getKey(),
         );
-        $this->isCheckedIn = EventCheckin::query()
-            ->where('event_id', $this->event->id)
-            ->where('attendee_id', $user->id)
-            ->exists();
+        $this->isCheckedIn = app(RegistrationLookup::class)->hasCheckIn(
+            (string) $this->event->getKey(),
+            (string) $user->getKey(),
+        );
         $pass = $this->event->passes()
             ->whereHas('holder', fn ($q) => $q->where('holder_id', $user->id))
             ->first();

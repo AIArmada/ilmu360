@@ -19,6 +19,7 @@ use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 use App\Features\Institutions\Support\InstitutionFacilities;
 use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
@@ -565,7 +566,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     public function persons(): BelongsToMany
     {
         return $this->belongsToMany(Person::class, 'affiliations', 'institution_id', 'affiliatable_id')
-            ->wherePivot('affiliatable_type', (new Person)->getMorphClass())
+            ->wherePivot('affiliatable_type', app(PersonLookup::class)->personMorphType())
             ->withPivot(['position', 'is_primary'])
             ->withTimestamps();
     }

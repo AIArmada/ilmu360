@@ -1,0 +1,5 @@
+# Filament inventory parity (before 09c00750 vs current)
+admin resources: 100 -> 100
+ahli resources: 24 -> 24
+widgets admin/ahli identical: True
+slug/model/nav/pages/relations differences: 0

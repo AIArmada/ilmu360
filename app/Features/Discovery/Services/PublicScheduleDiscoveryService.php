@@ -9,6 +9,8 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
+use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\PublicScheduleLeaf;
 use App\Features\Discovery\Api\PublicScheduleReader;
 use App\Features\Discovery\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
@@ -20,7 +22,7 @@ use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\Models\Venue;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\References\Api\ReferenceQueries;
@@ -80,8 +82,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleRea
         $eventFilters['time_scope'] = 'all';
 
         if ($criteria->latitude !== null && $criteria->longitude !== null) {
-            /** @var LengthAwarePaginator<int, Event> $parentPaginator */
-            $parentPaginator = app(EventSearchService::class)->searchNearbyWithQuery(
+            $parentPage = app(EventSearchService::class)->searchNearbyWithQuery(
                 query: $criteria->text,
                 lat: $criteria->latitude,
                 lng: $criteria->longitude,
@@ -90,9 +91,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleRea
                 perPage: 1000,
             );
 
-            /** @var EloquentCollection<int, Event> $events */
-            $events = new EloquentCollection($parentPaginator->items());
-            $events->load($this->searchRelations());
+            $events = $this->eventsFromSearchPage($parentPage);
         } else {
             if ($criteria->text === null) {
                 /** @var EloquentCollection<int, Event> $events */
@@ -109,17 +108,14 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleRea
                     /** @var EloquentCollection<int, Event> $events */
                     $events = $directEvents;
                 } else {
-                    /** @var LengthAwarePaginator<int, Event> $parentPaginator */
-                    $parentPaginator = app(EventSearchService::class)->search(
+                    $parentPage = app(EventSearchService::class)->search(
                         query: $criteria->text,
                         filters: $eventFilters,
                         perPage: 1000,
                         sort: $sort,
                     );
 
-                    /** @var EloquentCollection<int, Event> $events */
-                    $events = new EloquentCollection($parentPaginator->items());
-                    $events->load($this->searchRelations());
+                    $events = $this->eventsFromSearchPage($parentPage);
                 }
             }
         }
@@ -630,22 +626,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleRea
             return;
         }
 
-        $venues = Venue::query()
-            ->with('addresses.areaAssignments.area')
-            ->whereKey($venueIds->all())
-            ->get()
-            ->keyBy(fn (Venue $venue): string => (string) $venue->getKey());
-
-        foreach ($locations as $location) {
-            $venueId = $location->getAttribute('venue_id');
-
-            // Always set the relation (null included) so readers never lazy-load:
-            // the search path skips the nested venue eager loads this replaces.
-            $location->setRelation(
-                'venue',
-                is_string($venueId) && $venueId !== '' ? $venues->get($venueId) : null,
-            );
-        }
+        app(PlaceLookup::class)->hydrateCardVenues($locations);
     }
 
     /**
@@ -833,6 +814,35 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleRea
         $titleResult = $left->title() <=> $right->title();
 
         return $titleResult !== 0 ? $titleResult : $left->id() <=> $right->id();
+    }
+
+    /**
+     * Rehydrate the page ids into models with the schedule eager loads.
+     *
+     * @return EloquentCollection<int, Event>
+     */
+    private function eventsFromSearchPage(EventSearchPage $page): EloquentCollection
+    {
+        $eventIds = array_map(
+            static fn (EventListData $item): string => $item->id,
+            $page->items,
+        );
+
+        if ($eventIds === []) {
+            return new EloquentCollection;
+        }
+
+        /** @var EloquentCollection<string, Event> $events */
+        $events = app(EventScheduleQuery::class)
+            ->hydrateEventsForIds($eventIds, [...$this->relationProvider->relations(), ...$this->searchRelations()]);
+
+        return new EloquentCollection(
+            collect($eventIds)
+                ->map(static fn (string $eventId): ?Event => $events->get($eventId))
+                ->filter()
+                ->values()
+                ->all(),
+        );
     }
 
     /**

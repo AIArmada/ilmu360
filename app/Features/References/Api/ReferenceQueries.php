@@ -41,4 +41,12 @@ interface ReferenceQueries
 
     /** @return list<string> */
     public function publicSearchIds(string $search): array;
+
+    /**
+     * Family roots for the given references, preserving input order.
+     *
+     * @param  list<string>  $referenceIds
+     * @return list<string>
+     */
+    public function familyRootIds(array $referenceIds): array;
 }

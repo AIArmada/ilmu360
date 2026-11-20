@@ -6,6 +6,8 @@ namespace App\Features\Ai;
 
 use App\Features\Ai\Api\AiBudget;
 use App\Features\Ai\Contributors\AiAccountLifecycleContributor;
+use App\Features\Ai\EntryPoints\Api\Admin\AiModelPricingResourceDefinition;
+use App\Features\Ai\EntryPoints\Api\Admin\AiUsageLogResourceDefinition;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiUsageLogs\AiUsageLogResource;
 use App\Features\Ai\Listeners\RecordAiUsage;
@@ -13,6 +15,7 @@ use App\Features\Ai\Models\AiModelPricing;
 use App\Features\Ai\Policies\AiModelPricingPolicy;
 use App\Features\Ai\Services\AiBudgetPolicy;
 use App\Platform\Admin\FilamentResourceRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -42,6 +45,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(AiModelPricingResourceDefinition::class));
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(AiUsageLogResourceDefinition::class));
         parent::boot();
 
         Gate::policy(AiModelPricing::class, AiModelPricingPolicy::class);

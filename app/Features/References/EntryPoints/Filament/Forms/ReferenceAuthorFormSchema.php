@@ -3,17 +3,15 @@
 namespace App\Features\References\EntryPoints\Filament\Forms;
 
 use AIArmada\Persons\Enums\Gender;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Api\SpeakerStatus;
-use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -93,7 +91,9 @@ class ReferenceAuthorFormSchema
                 'allow_public_event_submission' => false,
             ]);
 
-            $person = Person::query()->findOrFail($personId);
+            $person = app(PersonLookup::class)->find($personId);
+
+            abort_if($person === null, 404);
 
             $signalRequest = request();
             $signalUser = $signalRequest->user();
@@ -103,14 +103,14 @@ class ReferenceAuthorFormSchema
                 eventCategory: 'contribution',
                 actorId: $signalUser instanceof User ? (string) $signalUser->getKey() : null,
                 properties: [
-                    'person_id' => (string) $person->getKey(),
+                    'person_id' => $person->id,
                     'status' => (string) $person->status,
                     'source' => 'reference_author_picker',
                 ],
                 request: $signalRequest,
             );
 
-            return (string) $person->getKey();
+            return $person->id;
         });
     }
 
@@ -121,16 +121,7 @@ class ReferenceAuthorFormSchema
      */
     public static function searchOptions(string $search, int $limit = 50): array
     {
-        $term = '%'.trim($search).'%';
-
-        return self::labels(self::baseQuery()
-            ->where(fn (Builder $query) => $query
-                ->whereLike('name', $term)
-                ->orWhereLike('middle_name', $term)
-                ->orWhereLike('family_name', $term))
-            ->orderBy('name')
-            ->limit(max(1, $limit))
-            ->get());
+        return app(PersonLookup::class)->authorOptions($search, $limit);
     }
 
     /**
@@ -145,44 +136,6 @@ class ReferenceAuthorFormSchema
             return [];
         }
 
-        return self::labels(self::baseQuery()->whereKey($values)->get());
-    }
-
-    /**
-     * @return Builder<Person>
-     */
-    private static function baseQuery(): Builder
-    {
-        return Person::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->with('titleAssignments.title.category');
-    }
-
-    /**
-     * @param  Collection<int, Person>|iterable<Person>  $persons
-     * @return array<string, string>
-     */
-    private static function labels(iterable $persons): array
-    {
-        $rows = [];
-
-        foreach ($persons as $person) {
-            $formatted = trim((string) $person->formatted_name);
-            $rows[(string) $person->getKey()] = [
-                'label' => $formatted !== '' ? $formatted : trim((string) $person->name),
-                'slug' => (string) $person->slug,
-            ];
-        }
-
-        $counts = array_count_values(array_column($rows, 'label'));
-        $labels = [];
-
-        foreach ($rows as $id => $row) {
-            $labels[$id] = ($counts[$row['label']] ?? 0) > 1
-                ? $row['label'].' · '.$row['slug']
-                : $row['label'];
-        }
-
-        return $labels;
+        return app(PersonLookup::class)->authorLabels($values);
     }
 }

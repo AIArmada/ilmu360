@@ -7,9 +7,11 @@ use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Ui\SubmitterContactPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
@@ -106,18 +108,21 @@ class PendingApprovalEventsWidget extends TableWidget
         $institutionIds = $memberships->subjectIdsFor($user->actorId(), MemberSubjectType::Institution);
         $personIds = $memberships->subjectIdsFor($user->actorId(), MemberSubjectType::Person);
 
-        return $query->where(function (Builder $eventQuery) use ($institutionIds, $personIds): void {
-            $eventQuery->orWhere(function (Builder $involvementOrganizerQuery) use ($institutionIds, $personIds): void {
-                $involvementOrganizerQuery->whereHas('involvements', function (Builder $involvementQuery) use ($institutionIds, $personIds): void {
+        $institutionMorphType = app(InstitutionLookup::class)->institutionMorphType();
+        $personMorphType = app(PersonLookup::class)->personMorphType();
+
+        return $query->where(function (Builder $eventQuery) use ($institutionIds, $personIds, $institutionMorphType, $personMorphType): void {
+            $eventQuery->orWhere(function (Builder $involvementOrganizerQuery) use ($institutionIds, $personIds, $institutionMorphType, $personMorphType): void {
+                $involvementOrganizerQuery->whereHas('involvements', function (Builder $involvementQuery) use ($institutionIds, $personIds, $institutionMorphType, $personMorphType): void {
                     $involvementQuery
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true)
-                        ->where(function (Builder $q) use ($institutionIds, $personIds): void {
-                            $q->where(function (Builder $instQuery) use ($institutionIds): void {
-                                $instQuery->where('involveable_type', (new Institution)->getMorphClass())
+                        ->where(function (Builder $q) use ($institutionIds, $personIds, $institutionMorphType, $personMorphType): void {
+                            $q->where(function (Builder $instQuery) use ($institutionIds, $institutionMorphType): void {
+                                $instQuery->where('involveable_type', $institutionMorphType)
                                     ->whereIn('involveable_id', $institutionIds);
-                            })->orWhere(function (Builder $spkQuery) use ($personIds): void {
-                                $spkQuery->where('involveable_type', (new Person)->getMorphClass())
+                            })->orWhere(function (Builder $spkQuery) use ($personIds, $personMorphType): void {
+                                $spkQuery->where('involveable_type', $personMorphType)
                                     ->whereIn('involveable_id', $personIds);
                             });
                         });

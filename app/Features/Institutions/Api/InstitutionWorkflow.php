@@ -87,4 +87,17 @@ interface InstitutionWorkflow
      * @param  list<string>  $institutionIds
      */
     public function delete(array $institutionIds): int;
+
+    /**
+     * Documented transport: run the caller's Filament relationship work with
+     * the freshly created institution model inside the same transaction.
+     */
+    public function withContributionModel(string $institutionId, callable $callback): void;
+
+    /**
+     * Documented transport: attach the contribution media uploads to the
+     * freshly created institution inside the same transaction.
+     */
+    /** @param array<int|string, mixed> $gallery */
+    public function syncContributionMedia(string $institutionId, mixed $cover, ?array $gallery): void;
 }

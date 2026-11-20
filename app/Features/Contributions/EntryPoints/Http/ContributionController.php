@@ -22,8 +22,12 @@ use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Features\Events\Api\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Enums\InstitutionType;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
+use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
@@ -40,6 +44,7 @@ use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -103,7 +108,6 @@ class ContributionController extends FrontendController
     public function storeInstitution(
         Request $request,
         StagedContributionCreates $stagedCreates,
-        MediaCollectionSync $mediaCollectionSync,
         FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
         ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
         DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
@@ -266,17 +270,17 @@ class ContributionController extends FrontendController
             ContributionSubjectType::Institution,
             $validated,
             (string) $user->getKey(),
-            function (string $institutionId) use ($request, $mediaCollectionSync): void {
-                $institution = Institution::query()->findOrFail($institutionId);
-                $mediaCollectionSync->syncSingle($institution, $request->file('cover'), 'cover');
-                $mediaCollectionSync->syncMultiple(
-                    $institution,
-                    is_array($request->file('gallery')) ? $request->file('gallery') : null,
-                    'gallery',
-                );
-            },
+            fn (string $institutionId) => app(InstitutionWorkflow::class)->syncContributionMedia(
+                $institutionId,
+                $request->file('cover'),
+                is_array($request->file('gallery')) ? $request->file('gallery') : null,
+            ),
         );
-        $institution = Institution::query()->findOrFail($institutionId);
+        $institution = app(InstitutionLookup::class)->findInstitutionByKey($institutionId);
+
+        if (! $institution instanceof Institution) {
+            throw (new ModelNotFoundException)->setModel(Institution::class, [$institutionId]);
+        }
 
         return response()->json([
             'message' => __('Thank you. Your institution submission has been received. We will notify you if it is approved or rejected.'),
@@ -305,7 +309,6 @@ class ContributionController extends FrontendController
     public function storePerson(
         Request $request,
         StagedContributionCreates $stagedCreates,
-        MediaCollectionSync $mediaCollectionSync,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
@@ -358,18 +361,18 @@ class ContributionController extends FrontendController
             ContributionSubjectType::Person,
             $validated,
             (string) $user->getKey(),
-            function (string $personId) use ($request, $mediaCollectionSync): void {
-                $person = Person::query()->findOrFail($personId);
-                $mediaCollectionSync->syncSingle($person, $request->file('avatar'), 'avatar');
-                $mediaCollectionSync->syncSingle($person, $request->file('cover'), 'cover');
-                $mediaCollectionSync->syncMultiple(
-                    $person,
-                    is_array($request->file('gallery')) ? $request->file('gallery') : null,
-                    'gallery',
-                );
-            },
+            fn (string $personId) => app(PersonWorkflow::class)->syncContributionMedia(
+                $personId,
+                $request->file('avatar'),
+                $request->file('cover'),
+                is_array($request->file('gallery')) ? $request->file('gallery') : null,
+            ),
         );
-        $person = Person::query()->findOrFail($personId);
+        $person = app(PersonLookup::class)->findPersonByKey($personId);
+
+        if (! $person instanceof Person) {
+            throw (new ModelNotFoundException)->setModel(Person::class, [$personId]);
+        }
 
         return response()->json([
             'message' => __('Thank you. Your person submission has been received. We will notify you if it is approved or rejected.'),

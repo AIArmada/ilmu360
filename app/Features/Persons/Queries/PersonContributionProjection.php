@@ -12,6 +12,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\ContributionProjection;
 use App\Features\Persons\Models\Person;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Validation\Rules\ValidAreaAssignmentRoles;
@@ -20,15 +21,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 
-final readonly class PersonContributionProjection implements \App\Shared\Contributions\ContributionProjection
+final readonly class PersonContributionProjection implements ContributionProjection
 {
     use \App\Shared\Contributions\Support\BuildsContributionDescriptors;
     use \App\Shared\Contributions\Support\BuildsContributionSubjectState;
-
-    public function supports(string $entityType): bool
-    {
-        return $entityType === 'person';
-    }
 
     /** @return array<string, mixed> */
     public function contractFor(string $subjectId): array

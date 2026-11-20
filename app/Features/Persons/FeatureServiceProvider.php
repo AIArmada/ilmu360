@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons;
 
 use App\Features\Persons\Actions\PersonSubmissionAccessAction;
+use App\Features\Persons\Api\ContributionProjection;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Api\PersonCatalog;
 use App\Features\Persons\Api\PersonHomepageStats;
@@ -17,6 +18,8 @@ use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\EntryPoints\Admin\Member\PersonMemberResourceHooks;
 use App\Features\Persons\EntryPoints\Admin\Resources\PersonAdminHooks;
 use App\Features\Persons\EntryPoints\Admin\Resources\PersonMutationHooks;
+use App\Features\Persons\EntryPoints\Api\Admin\PersonResourceDefinition;
+use App\Features\Persons\EntryPoints\Api\Member\PersonResourceDefinition as PersonMemberResourceDefinition;
 use App\Features\Persons\EntryPoints\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Features\Persons\EntryPoints\Filament\Forms\PersonFormSchema;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
@@ -35,7 +38,7 @@ use App\Features\Persons\Support\Telemetry\PersonsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
-use App\Platform\Contributions\ContributionProjectionRegistry;
+use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 use App\Platform\Telemetry\SignalSchemaRegistry;
@@ -44,6 +47,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ContributionProjection::class, PersonContributionProjection::class);
         $this->app->bind(PersonQuickAdd::class, PersonFormSchema::class);
         $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new PersonAdminHooks);
 
@@ -73,8 +77,12 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
-        $this->app->make(ContributionProjectionRegistry::class)->register($this->app->make(PersonContributionProjection::class));
+        $memberRegistry = $this->app->make(ResourceDefinitionRegistry::class);
+        $memberDefinition = $this->app->make(PersonMemberResourceDefinition::class);
+        $memberRegistry->register($memberDefinition);
+        $memberRegistry->registerWriter($memberDefinition);
 
+        $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(PersonResourceDefinition::class));
         $this->app->make(SignalSchemaRegistry::class)->register(new PersonsSignalSchemaContributor);
 
         parent::boot();

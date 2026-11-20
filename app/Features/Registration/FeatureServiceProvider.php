@@ -22,11 +22,13 @@ use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Api\EventRegistrationDeletion;
 use App\Features\Registration\Api\PaidRegistrationFacts;
 use App\Features\Registration\Api\ParticipationSourceIds;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
 use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
 use App\Features\Registration\Queries\DatabasePaidRegistrationFacts;
 use App\Features\Registration\Queries\DatabaseParticipationSourceIds;
+use App\Features\Registration\Queries\DatabaseRegistrationLookup;
 use App\Features\Registration\Queries\ResolveAttendanceState;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
@@ -148,6 +150,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(RegistrationLookup::class, DatabaseRegistrationLookup::class);
         $this->app->bind(AdmissionFacts::class, DatabaseAdmissionFacts::class);
         $this->app->bind(PaidRegistrationFacts::class, DatabasePaidRegistrationFacts::class);
         $this->app->bind(ParticipationSourceIds::class, DatabaseParticipationSourceIds::class);

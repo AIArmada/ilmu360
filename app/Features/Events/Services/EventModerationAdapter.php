@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Models\Event;
 use App\Features\Events\States\EventStatus\Approved;
+use App\Features\Moderation\Api\ModerationActionHistory;
 use App\Models\User;
 
 /**
@@ -23,6 +23,7 @@ final readonly class EventModerationAdapter implements EventModeration
 {
     public function __construct(
         private ModerationService $moderation,
+        private ModerationActionHistory $moderationActions,
     ) {}
 
     public function submitForModeration(string $eventId): void
@@ -106,9 +107,7 @@ final readonly class EventModerationAdapter implements EventModeration
             return;
         }
 
-        $event->moderationReviews()->each(static function ($review): void {
-            OwnerContext::withOwner(null, static fn () => $review->delete());
-        });
+        $this->moderationActions->deleteForActionable($event->getMorphClass(), (string) $event->getKey());
     }
 
     public function availableActions(string $eventId): array

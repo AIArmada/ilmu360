@@ -10,9 +10,9 @@ use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Api\ReferenceWorkflow;
-use App\Features\References\Models\Reference;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
@@ -96,15 +96,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
 
         $this->referenceSearchCache->bumpPublicSearchVersion();
 
-        $rootIds = [];
-
-        foreach (Reference::query()->whereKey($referenceIds)->get(['id', 'parent_id', 'record_kind']) as $reference) {
-            $rootIds[] = $reference->isRootReference()
-                ? (string) $reference->getKey()
-                : ($reference->familyRootId() ?? (string) $reference->getKey());
-        }
-
-        foreach (array_values(array_unique($rootIds)) as $rootId) {
+        foreach (app(ReferenceQueries::class)->familyRootIds($referenceIds) as $rootId) {
             $this->referenceWorkflow->reindexSearchFamily($rootId);
         }
     }

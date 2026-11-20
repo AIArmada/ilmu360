@@ -9,15 +9,21 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
+use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountToken;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\Filament\AccountMembershipDirectory;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Models\Reference;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -220,9 +226,12 @@ class ViewUser extends ViewRecord
         return OwnerContext::withOwner(null, function () use ($user): Collection {
             $ids = app(EventEngagement::class)->savedEventIds((string) $user->getKey());
 
-            return $ids === []
+            /** @var Collection<int, Event> $events */
+            $events = $ids === []
                 ? new Collection
-                : Event::query()->whereKey($ids)->with(['institution:id,name', 'venue:id,name'])->get();
+                : app(EventScheduleQuery::class)->eventsWithAdminRelations($ids);
+
+            return $events;
         });
     }
 
@@ -241,10 +250,10 @@ class ViewUser extends ViewRecord
                 return new Collection;
             }
 
-            return Event::query()
-                ->whereKey($ids)
-                ->with(['institution:id,name', 'venue:id,name'])
-                ->get();
+            /** @var Collection<int, Event> $events */
+            $events = app(EventScheduleQuery::class)->eventsWithAdminRelations($ids);
+
+            return $events;
         });
     }
 
@@ -256,11 +265,12 @@ class ViewUser extends ViewRecord
     {
         $user = $this->userRecord();
 
-        return OwnerContext::withOwner(null, fn (): Collection => EventCheckin::query()
-            ->where('attendee_id', (string) $user->getKey())
-            ->with(['event', 'verifiedBy:id,name'])
-            ->orderByDesc('checked_in_at')
-            ->get());
+        return OwnerContext::withOwner(null, function () use ($user): Collection {
+            /** @var Collection<int, EventCheckin> $checkins */
+            $checkins = app(RegistrationLookup::class)->checkInsForAccount((string) $user->getKey());
+
+            return $checkins;
+        });
     }
 
     /**
@@ -271,12 +281,12 @@ class ViewUser extends ViewRecord
     {
         $user = $this->userRecord();
 
-        return OwnerContext::withOwner(null, fn (): Collection => Registration::query()
-            ->where('registrant_type', $user->getMorphClass())
-            ->where('registrant_id', (string) $user->getKey())
-            ->with('event')
-            ->latest()
-            ->get());
+        return OwnerContext::withOwner(null, function () use ($user): Collection {
+            /** @var Collection<int, Registration> $registrations */
+            $registrations = app(RegistrationLookup::class)->registrationsForAccount((string) $user->getKey());
+
+            return $registrations;
+        });
     }
 
     /**
@@ -287,39 +297,48 @@ class ViewUser extends ViewRecord
     {
         $user = $this->userRecord();
 
-        return OwnerContext::withOwner(null, fn (): Collection => EventSubmission::query()
-            ->where('submitter_type', $user->getMorphClass())
-            ->where('submitter_id', (string) $user->getKey())
-            ->with('event')
-            ->latest()
-            ->get());
+        return OwnerContext::withOwner(null, function () use ($user): Collection {
+            /** @var Collection<int, EventSubmission> $submissions */
+            $submissions = app(EventSubmissions::class)->submissionsForAccount((string) $user->getKey());
+
+            return $submissions;
+        });
     }
 
     /**
-     * @return Collection<int, Institution>
+     * @return Collection<int, \Illuminate\Database\Eloquent\Model>
      */
     #[Computed]
     public function followingInstitutions(): Collection
     {
-        return $this->followedSubjects(EngagementSubjectType::Institution, Institution::class, 'name');
+        return $this->followedSubjects(
+            EngagementSubjectType::Institution,
+            fn (array $ids): object => app(InstitutionLookup::class)->institutionsByIds($ids),
+        );
     }
 
     /**
-     * @return Collection<int, Person>
+     * @return Collection<int, \Illuminate\Database\Eloquent\Model>
      */
     #[Computed]
     public function followingPersons(): Collection
     {
-        return $this->followedSubjects(EngagementSubjectType::Person, Person::class, 'name');
+        return $this->followedSubjects(
+            EngagementSubjectType::Person,
+            fn (array $ids): object => app(PersonLookup::class)->personsByIds($ids),
+        );
     }
 
     /**
-     * @return Collection<int, Reference>
+     * @return Collection<int, \Illuminate\Database\Eloquent\Model>
      */
     #[Computed]
     public function followingReferences(): Collection
     {
-        return $this->followedSubjects(EngagementSubjectType::Reference, Reference::class, 'title');
+        return $this->followedSubjects(
+            EngagementSubjectType::Reference,
+            fn (array $ids): object => app(ReferenceLookup::class)->referencesByIds($ids),
+        );
     }
 
     public function eventUrl(?Event $event): ?string
@@ -427,21 +446,24 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @template TModel of \Illuminate\Database\Eloquent\Model
-     *
-     * @param  class-string<TModel>  $modelClass
-     * @return Collection<int, TModel>
+     * @param  callable(list<string>): object  $fetch
+     * @return Collection<int, \Illuminate\Database\Eloquent\Model>
      */
-    private function followedSubjects(EngagementSubjectType $subjectType, string $modelClass, string $orderColumn): Collection
+    private function followedSubjects(EngagementSubjectType $subjectType, callable $fetch): Collection
     {
         $user = $this->userRecord();
 
-        return OwnerContext::withOwner(null, function () use ($subjectType, $modelClass, $orderColumn, $user): Collection {
+        return OwnerContext::withOwner(null, function () use ($subjectType, $fetch, $user): Collection {
             $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), $subjectType);
 
-            return $ids === []
-                ? new Collection
-                : $modelClass::query()->whereKey($ids)->orderBy($orderColumn)->get();
+            if ($ids === []) {
+                return new Collection;
+            }
+
+            /** @var Collection<int, \Illuminate\Database\Eloquent\Model> $subjects */
+            $subjects = $fetch($ids);
+
+            return $subjects;
         });
     }
 

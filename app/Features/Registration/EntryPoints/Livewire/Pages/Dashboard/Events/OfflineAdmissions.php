@@ -13,6 +13,7 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Ticketing\Models\TicketType;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\Enums\OfflineAdmissionPaymentMethod;
@@ -25,6 +26,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -634,8 +636,11 @@ final class OfflineAdmissions extends Component
 
     private function selectedEvent(): Event
     {
-        /** @var Event $event */
-        $event = Event::query()->whereKey($this->eventId)->firstOrFail();
+        $event = app(EventScheduleQuery::class)->findEvent($this->eventId);
+
+        if (! $event instanceof Event) {
+            throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);
+        }
 
         return $event;
     }

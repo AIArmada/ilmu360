@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Features\SavedSearches\Services;
 
+use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\SearchFilterKeys;
 use App\Features\Discovery\Api\SearchSignal;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventCards;
 use App\Features\SavedSearches\Api\SavedSearchExecutionResult;
 use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\User;
 use App\Shared\Signals\SignalRecorder;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
@@ -21,6 +22,7 @@ final readonly class EventSavedSearchExecutor implements SavedSearchExecutor
 {
     public function __construct(
         private EventSearchReader $searchService,
+        private EventCards $eventCards,
         private SignalRecorder $signals,
         private Request $request,
     ) {}
@@ -53,7 +55,7 @@ final readonly class EventSavedSearchExecutor implements SavedSearchExecutor
                 'radius_km' => $savedSearch->radiusKm,
             ], static fn (mixed $value): bool => $value !== null)),
             surface: 'saved_search.execute',
-            resultCount: $events->total(),
+            resultCount: $events->total,
             savedSearchId: $savedSearch->id,
         );
 
@@ -70,23 +72,39 @@ final readonly class EventSavedSearchExecutor implements SavedSearchExecutor
         return $this->result($events);
     }
 
-    /**
-     * @param  LengthAwarePaginator<int, Event>  $events
-     */
-    private function result(LengthAwarePaginator $events): SavedSearchExecutionResult
+    private function result(EventSearchPage $events): SavedSearchExecutionResult
     {
-        $hasMore = $events->hasMorePages();
+        $items = array_map(
+            function (array $item) use ($events): array {
+                $distanceKm = $events->distances[(string) ($item['id'] ?? '')] ?? null;
+
+                if ($distanceKm !== null) {
+                    $item['distance_km'] = round($distanceKm, 3);
+                }
+
+                return $item;
+            },
+            $this->eventCards->fullArraysForIds($this->eventIds($events)),
+        );
 
         return new SavedSearchExecutionResult(
-            items: array_values(array_map(
-                static fn (Event $event): array => $event->toArray(),
-                $events->items(),
-            )),
-            page: $events->currentPage(),
-            perPage: $events->perPage(),
-            total: $events->total(),
-            hasMore: $hasMore,
-            nextPage: $hasMore ? $events->currentPage() + 1 : null,
+            items: array_values($items),
+            page: $events->currentPage,
+            perPage: $events->perPage,
+            total: $events->total,
+            hasMore: $events->hasMorePages,
+            nextPage: $events->hasMorePages ? $events->currentPage + 1 : null,
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function eventIds(EventSearchPage $page): array
+    {
+        return array_map(
+            static fn (EventListData $item): string => $item->id,
+            $page->items,
         );
     }
 

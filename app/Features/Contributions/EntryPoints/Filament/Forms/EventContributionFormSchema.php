@@ -14,16 +14,15 @@ use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Api\Filament\EventContributionOptionsCountry;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Models\Series;
-use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
-use App\Features\Persons\Models\Person;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\Filament\VenueQuickAdd;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\Places\Api\SpaceEligibility;
-use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\RamadanGate;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
@@ -376,7 +375,7 @@ class EventContributionFormSchema
                             Select::make('series_ids')
                                 ->label(__('Siri'))
                                 ->placeholder(__('Pilih siri'))
-                                ->options(fn (): array => Series::query()->orderBy('title')->pluck('title', 'id')->all())
+                                ->options(fn (): array => app(SeriesAuthoring::class)->titleOptions())
                                 ->multiple()
                                 ->searchable()
                                 ->preload(),
@@ -710,11 +709,7 @@ class EventContributionFormSchema
      */
     private static function venueOptions(): array
     {
-        return Venue::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return app(PlaceLookup::class)->venueOptionsForStatuses(['verified', 'pending']);
     }
 
     private static function requiresPersonsForCategories(mixed $categoryIds): bool
@@ -739,13 +734,7 @@ class EventContributionFormSchema
     {
         self::ensureCacheScope();
 
-        return self::$institutionOptionsCache ??= Institution::query()
-            ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
-            ->orderBy('name')
-            ->with('names')
-            ->get(['id', 'name'])
-            ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
-            ->all();
+        return self::$institutionOptionsCache ??= app(InstitutionLookup::class)->visibleDisplayNameOptions();
     }
 
     /**
@@ -755,13 +744,7 @@ class EventContributionFormSchema
     {
         self::ensureCacheScope();
 
-        return self::$personOptionsCache ??= Person::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->orderBy('name')
-            ->with('titleAssignments.title.category')
-            ->get()
-            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-            ->all();
+        return self::$personOptionsCache ??= app(PersonLookup::class)->submissionNameOptions();
     }
 
     /**
@@ -861,11 +844,11 @@ class EventContributionFormSchema
             return null;
         }
 
-        if (Institution::query()->whereKey($organizerId)->exists()) {
+        if (app(InstitutionLookup::class)->exists($organizerId)) {
             return 'institution';
         }
 
-        if (Person::query()->whereKey($organizerId)->exists()) {
+        if (app(PersonLookup::class)->exists($organizerId)) {
             return 'person';
         }
 

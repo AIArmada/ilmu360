@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Engagement\Services;
 
-use App\Features\Institutions\Api\Enums\InstitutionStatus;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\References\Api\ReferenceLookup;
+use App\Shared\Directory\FollowableSubject;
 use Illuminate\Support\Str;
 
 /**
@@ -17,28 +17,24 @@ use Illuminate\Support\Str;
  * deliberately does not use this resolver because the accepted ruling keeps
  * pending/verified persons followable there without a speaker-status filter.
  */
-final class DirectoryFollowSubjectResolver
+final readonly class DirectoryFollowSubjectResolver
 {
-    public function resolve(string $type, string $id): Institution|Person|Reference|null
+    public function __construct(
+        private InstitutionLookup $institutions,
+        private PersonLookup $persons,
+        private ReferenceLookup $references,
+    ) {}
+
+    public function resolve(string $type, string $id): ?FollowableSubject
     {
         if (! Str::isUuid($id)) {
             return null;
         }
 
         return match ($type) {
-            'institution' => Institution::query()
-                ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
-                ->whereKey($id)
-                ->first(),
-            'person' => Person::query()
-                ->speakers()
-                ->whereIn('persons.status', ['verified', 'pending'])
-                ->whereKey($id)
-                ->first(),
-            'reference' => Reference::query()
-                ->active()
-                ->whereKey($id)
-                ->first(),
+            'institution' => $this->institutions->findDirectoryFollowableSubject($id),
+            'person' => $this->persons->findDirectoryFollowableSubject($id),
+            'reference' => $this->references->findDirectoryFollowableSubject($id),
             default => null,
         };
     }

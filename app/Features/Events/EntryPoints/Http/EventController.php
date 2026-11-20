@@ -22,7 +22,7 @@ use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
 use App\Features\Events\Queries\PrimaryLocationSql;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
-use App\Features\Places\Models\Venue;
+use App\Features\Places\Api\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\ReferenceQueries;
@@ -30,8 +30,7 @@ use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Api\Data\EventCheckInStateData;
 use App\Features\Registration\Api\Data\EventRegistrationData;
 use App\Features\Registration\Api\Data\EventRegistrationStatusData;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
@@ -58,6 +57,8 @@ class EventController extends Controller
         private readonly SignalRecorder $signals,
         private readonly ReferenceQueries $referenceQueries,
         private readonly EventListPayloads $eventListPayloads,
+        private readonly PlaceLookup $placeLookup,
+        private readonly RegistrationLookup $registrationLookup,
     ) {}
 
     /**
@@ -612,35 +613,20 @@ class EventController extends Controller
 
         $user = $this->currentUser($request);
 
-        $registration = Registration::query()
-            ->where('event_id', $event->getKey())
-            ->forUser($user)
-            ->active()
-            ->latest('created_at')
-            ->first();
-
-        $registrationData = $registration instanceof Registration
-            ? new EventRegistrationData(
-                id: (string) $registration->id,
-                event_id: (string) $registration->event_id,
-                user_id: $registration->registrant instanceof User ? (string) $registration->registrant->getKey() : null,
-                name: $registration->resolvedName() ?? '',
-                email: $registration->resolvedEmail(),
-                phone: $registration->resolvedPhone(),
-                status: $registration->statusValue(),
-                created_at: $registration->created_at?->format(DATE_ATOM),
-            )
-            : null;
+        $registrationData = $this->registrationLookup->latestActiveForUser(
+            (string) $event->getKey(),
+            (string) $user->getKey(),
+        );
 
         $checkInState = $attendanceState->forUser(
             (string) $event->getKey(),
             (string) $user->getKey(),
         );
 
-        $isCheckedIn = EventCheckin::query()
-            ->where('event_id', $event->getKey())
-            ->where('attendee_id', $user->getKey())
-            ->exists();
+        $isCheckedIn = $this->registrationLookup->hasCheckIn(
+            (string) $event->getKey(),
+            (string) $user->getKey(),
+        );
 
         $savesCount = Bookmark::forBookmarkable($event)->active()->count();
 
@@ -1191,8 +1177,8 @@ class EventController extends Controller
         $addressesTable = AddressingTableResolver::resolve('addresses');
         $addressablesTable = AddressingTableResolver::resolve('addressables');
         $assignmentsTable = AddressingTableResolver::resolve('address_area_assignments');
-        $venueTable = (new Venue)->getTable();
-        $venueMorphType = (new Venue)->getMorphClass();
+        $venueTable = $this->placeLookup->venueTable();
+        $venueMorphType = $this->placeLookup->venueMorphType();
 
         $venueQuery->whereExists(function ($addressQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $venueTable, $venueMorphType, $criteria, $assignments): void {
             $addressQuery

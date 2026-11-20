@@ -9,7 +9,6 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Api\EventAuthoring;
-use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\PrayerProviderRegistry;
@@ -43,7 +42,7 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
             return null;
         }
 
-        $event = OwnerContext::withOwner(null, fn () => Event::query()->find($expression->event_id));
+        $event = app(EventAuthoring::class)->eventPrayerScope((string) $expression->event_id);
 
         if ($event === null) {
             return null;
@@ -76,9 +75,10 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
     }
 
     /**
+     * @param  array{timezone: string, venue_id: string|null, institution_id: string|null, persisted_address_id: string|null}  $event
      * @param  array<string, mixed>  $provenance
      */
-    private function resolveFromProvenance(EventTimeExpression $expression, Event $event, array $provenance, PrayerReference $prayerReference, int $signedMinutes): ?CarbonImmutable
+    private function resolveFromProvenance(EventTimeExpression $expression, array $event, array $provenance, PrayerReference $prayerReference, int $signedMinutes): ?CarbonImmutable
     {
         $date = app(EventAuthoring::class)->normalizePrayerDateString($provenance['prayer_date'] ?? null);
 
@@ -178,12 +178,13 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
      * Session expressions resolve in the session's own timezone and
      * location; event-level expressions use the parent event.
      *
+     * @param  array{timezone: string, venue_id: string|null, institution_id: string|null, persisted_address_id: string|null}  $event
      * @param  array<string, mixed>  $provenance
      * @return array{timezone: string, address: ?Address}
      */
-    private function resolveScope(EventTimeExpression $expression, Event $event, array $provenance): array
+    private function resolveScope(EventTimeExpression $expression, array $event, array $provenance): array
     {
-        $eventTimezone = is_string($event->timezone) && $event->timezone !== '' ? $event->timezone : 'Asia/Kuala_Lumpur';
+        $eventTimezone = $event['timezone'] !== '' ? $event['timezone'] : 'Asia/Kuala_Lumpur';
 
         $session = $expression->event_session_id === null
             ? null
@@ -228,18 +229,21 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
         ];
     }
 
-    private function eventPersistedAddress(Event $event): ?Address
+    /**
+     * @param  array{timezone: string, venue_id: string|null, institution_id: string|null, persisted_address_id: string|null}  $event
+     */
+    private function eventPersistedAddress(array $event): ?Address
     {
-        $venueId = $event->getAttribute('default_venue_id');
-        $venueId = is_string($venueId) && $venueId !== '' ? $venueId : null;
-        $institutionId = $event->getAttribute('institution_id');
-        $institutionId = is_string($institutionId) && $institutionId !== '' ? $institutionId : null;
-
         // Rows without pinned targets read the persisted location first,
         // then the submission selector so a venue without its own
         // address still borrows its owner's.
-        return $event->resolvedLocationAddress()
-            ?? PrayerLocation::forTargets($venueId, $institutionId);
+        $address = $event['persisted_address_id'] !== null
+            ? Address::query()->find($event['persisted_address_id'])
+            : null;
+
+        return $address instanceof Address
+            ? $address
+            : PrayerLocation::forTargets($event['venue_id'], $event['institution_id']);
     }
 
     private function sessionLocationAddress(EventLocation $location): ?Address

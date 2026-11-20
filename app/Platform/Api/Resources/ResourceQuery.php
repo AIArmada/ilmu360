@@ -13,5 +13,8 @@ final readonly class ResourceQuery
         public int $perPage = 15,
         public array $filters = [],
         public ?string $sort = null,
+        public ?string $startsAfter = null,
+        public ?string $startsBefore = null,
+        public ?string $startsOnLocalDate = null,
     ) {}
 }

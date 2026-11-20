@@ -14,9 +14,13 @@ use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryPayloads;
 use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\Models\Series;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\PlaceLookup;
@@ -26,11 +30,16 @@ use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\ReferenceQueries;
 use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
+use BackedEnum;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -1243,5 +1252,610 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         $normalizedQuery = trim($query);
 
         return $normalizedQuery === '' ? null : $normalizedQuery;
+    }
+
+    public function activeEventsForIds(array $eventIds, int $page, int $perPage): array
+    {
+        $events = Event::query()
+            ->whereKey($eventIds)
+            ->with([
+                'institution:id,name,slug',
+                'venue:id,name',
+                'persons:id,name,slug',
+            ])
+            ->active()
+            ->orderBy('starts_at')
+            ->simplePaginate($perPage, page: max(1, $page));
+
+        $items = [];
+        $categoryPayloads = app(EventCategoryPayloads::class);
+
+        foreach ($events->items() as $event) {
+            $items[] = [
+                'id' => (string) $event->getKey(),
+                'title' => (string) $event->title,
+                'slug' => (string) $event->slug,
+                'status' => $this->enumValue($event->status),
+                'visibility' => $this->enumValue($event->visibility),
+                'starts_at' => $event->starts_at?->toJSON(),
+                'ends_at' => $event->ends_at?->toJSON(),
+                'timezone' => $event->timezone,
+                'published_at' => $event->published_at?->toJSON(),
+                'institution_id' => $event->institution_id,
+                'venue_id' => $event->default_venue_id,
+                'event_url' => $event->event_url,
+                'live_url' => $event->live_url,
+                'event_categories' => $categoryPayloads->forEventPayload($event),
+                'event_format' => $this->enumValue($event->delivery_mode),
+                'language' => $event->language,
+                'institution' => $event->relationLoaded('institution') && $event->institution !== null
+                    ? Arr::only($event->institution->toArray(), ['id', 'name', 'slug'])
+                    : null,
+                'venue' => $event->relationLoaded('venue') && $event->venue !== null
+                    ? Arr::only($event->venue->toArray(), ['id', 'name'])
+                    : null,
+                'persons' => $event->relationLoaded('persons')
+                    ? $event->persons
+                        ->map(static fn ($person): array => Arr::only($person->toArray(), ['id', 'name', 'slug', 'pivot']))
+                        ->values()
+                        ->all()
+                    : [],
+            ];
+        }
+
+        $hasMore = $events->hasMorePages();
+
+        return [
+            'items' => $items,
+            'page' => $events->currentPage(),
+            'per_page' => $events->perPage(),
+            'has_more' => $hasMore,
+            'next_page' => $hasMore ? $events->currentPage() + 1 : null,
+        ];
+    }
+
+    public function institutionEventCounts(array $institutionIds): array
+    {
+        $institutionIds = $this->uniqueIds($institutionIds);
+
+        if ($institutionIds === []) {
+            return [];
+        }
+
+        $totals = $this->countByInstitution(
+            Event::query()->whereIn('institution_id', $institutionIds),
+        );
+
+        $public = $this->countByInstitution(
+            Event::query()
+                ->whereIn('institution_id', $institutionIds)
+                ->whereNotNull('events.published_at')
+                ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
+                ->where('events.visibility', EventVisibility::Public->value)
+                ->whereHas('occurrences'),
+        );
+
+        $facts = [];
+
+        foreach ($institutionIds as $institutionId) {
+            $facts[$institutionId] = [
+                'total' => $totals[$institutionId] ?? 0,
+                'public' => $public[$institutionId] ?? 0,
+            ];
+        }
+
+        return $facts;
+    }
+
+    public function institutionEventsPage(
+        string $institutionId,
+        string $search,
+        string $status,
+        string $visibility,
+        string $sort,
+        int $perPage,
+        int $page,
+    ): array {
+        $query = Event::query()
+            ->where('institution_id', $institutionId)
+            ->with(['venue:id,name'])
+            ->withCount(['registrations as workspace_registrations_count']);
+
+        if ($search !== '') {
+            $term = '%'.trim($search).'%';
+
+            $query->where(function (Builder $builder) use ($term): void {
+                $builder
+                    ->whereLike('title', $term)
+                    ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereLike('name', $term));
+            });
+        }
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($visibility !== 'all') {
+            $query->where('visibility', $visibility);
+        }
+
+        match ($sort) {
+            'starts_asc' => $query->orderBy('starts_at')->orderBy('title'),
+            'title_asc' => $query->orderBy('title')->orderBy('starts_at', 'desc'),
+            'title_desc' => $query->orderByDesc('title')->orderBy('starts_at', 'desc'),
+            'registrations_desc' => $query->orderByDesc('workspace_registrations_count')->orderBy('starts_at', 'desc'),
+            'pending_first' => $query
+                ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+                ->orderBy('starts_at')
+                ->orderBy('title'),
+            default => $query->orderByDesc('starts_at')->orderBy('title'),
+        };
+
+        /** @var Paginator<int, Event> $paginator */
+        $paginator = $query->paginate($perPage, page: max(1, $page));
+
+        return [
+            'items' => $paginator->getCollection()
+                ->map(fn (Event $event): array => [
+                    'id' => $event->getKey(),
+                    'title' => $event->title,
+                    'slug' => $event->slug,
+                    'status' => (string) $event->status,
+                    'visibility' => $this->enumValue($event->visibility),
+                    'starts_at' => $event->starts_at?->toIso8601String(),
+                    'registrations_count' => (int) ($event->workspace_registrations_count ?? 0),
+                    'venue' => $event->venue?->only(['id', 'name']),
+                ])
+                ->values()
+                ->all(),
+            'page' => $paginator->currentPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+            'last_page' => $paginator->lastPage(),
+        ];
+    }
+
+    public function institutionDirectoryFacts(array $institutionIds): array
+    {
+        $institutionIds = $this->uniqueIds($institutionIds);
+
+        if ($institutionIds === []) {
+            return [];
+        }
+
+        $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
+        $now = now();
+
+        $counts = DB::table("{$occurrencesTable} as public_occurrences")
+            ->join('events', 'events.id', '=', 'public_occurrences.event_id')
+            ->whereIn('events.institution_id', $institutionIds)
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->whereIn('public_occurrences.status', $this->stringValues(Event::PUBLIC_SCHEDULE_STATUSES))
+            ->whereIn('public_occurrences.visibility', $this->stringValues(Event::PUBLIC_SCHEDULE_VISIBILITIES))
+            ->whereNotNull('public_occurrences.starts_at')
+            ->where('public_occurrences.starts_at', '>=', $now)
+            ->groupBy('events.institution_id')
+            ->selectRaw('events.institution_id as institution_id, count(*) as aggregate')
+            ->pluck('aggregate', 'institution_id')
+            ->mapWithKeys(static fn (mixed $count, mixed $id): array => [(string) $id => (int) $count])
+            ->all();
+
+        $nextEventIds = $this->nextPublicEventIds($institutionIds, $occurrencesTable, $now->toDateTimeString());
+        $details = $this->nextPublicEventDetails(array_values($nextEventIds), $occurrencesTable);
+
+        $facts = [];
+
+        foreach ($institutionIds as $institutionId) {
+            $eventId = $nextEventIds[$institutionId] ?? null;
+            $detail = $eventId !== null ? ($details[$eventId] ?? null) : null;
+
+            $facts[$institutionId] = [
+                'events_count' => $counts[$institutionId] ?? 0,
+                'next_event' => $detail,
+            ];
+        }
+
+        return $facts;
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     * @return array<string, int>
+     */
+    private function countByInstitution(Builder $query): array
+    {
+        return $query
+            ->groupBy('institution_id')
+            ->selectRaw('institution_id, count(*) as aggregate')
+            ->pluck('aggregate', 'institution_id')
+            ->mapWithKeys(static fn (mixed $count, mixed $id): array => [(string) $id => (int) $count])
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $institutionIds
+     * @return array<string, string>
+     */
+    private function nextPublicEventIds(array $institutionIds, string $occurrencesTable, string $now): array
+    {
+        $rows = DB::table('events')
+            ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
+            ->whereIn('events.institution_id', $institutionIds)
+            ->where('next_event_occurrences.starts_at', '>=', $now)
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->orderBy('next_event_occurrences.starts_at')
+            ->orderBy('events.id')
+            ->get(['events.institution_id', 'events.id']);
+
+        $nextIds = [];
+
+        foreach ($rows as $row) {
+            $institutionId = (string) $row->institution_id;
+
+            if (! array_key_exists($institutionId, $nextIds)) {
+                $nextIds[$institutionId] = (string) $row->id;
+            }
+        }
+
+        return $nextIds;
+    }
+
+    /**
+     * @param  list<string>  $eventIds
+     * @return array<string, array{slug: string, title: string, starts_at: string}>
+     */
+    private function nextPublicEventDetails(array $eventIds, string $occurrencesTable): array
+    {
+        if ($eventIds === []) {
+            return [];
+        }
+
+        return DB::table('events')
+            ->join($occurrencesTable, "{$occurrencesTable}.event_id", '=', 'events.id')
+            ->whereIn('events.id', $eventIds)
+            ->where("{$occurrencesTable}.starts_at", '>=', now())
+            ->groupBy('events.id', 'events.slug', 'events.title')
+            ->selectRaw("events.id, events.slug, events.title, min(\"{$occurrencesTable}\".\"starts_at\") as next_event_starts_at")
+            ->get()
+            ->mapWithKeys(static fn (object $row): array => [
+                (string) $row->id => [
+                    'slug' => (string) $row->slug,
+                    'title' => (string) $row->title,
+                    'starts_at' => (string) $row->next_event_starts_at,
+                ],
+            ])
+            ->all();
+    }
+
+    public function findEvent(string $eventId): ?object
+    {
+        return Event::query()->find($eventId);
+    }
+
+    public function findEventBySlug(string $slug): ?object
+    {
+        return Event::query()->where('slug', $slug)->first();
+    }
+
+    public function hydrateEventsForIds(array $eventIds, array $relations): object
+    {
+        return Event::query()
+            ->with($relations)
+            ->whereKey($eventIds)
+            ->get()
+            ->keyBy('id');
+    }
+
+    public function eventStatus(string $eventId): ?string
+    {
+        $event = Event::query()->find($eventId);
+
+        return $event instanceof Event ? (string) $event->status : null;
+    }
+
+    public function isPubliclyReachable(string $eventId): bool
+    {
+        $event = Event::query()->find($eventId);
+
+        return $event instanceof Event && $event->isPubliclyReachable();
+    }
+
+    public function eventsForOwner(string $ownerType, string $ownerId, int $limit): object
+    {
+        return Event::query()
+            ->where('owner_type', $ownerType)
+            ->where('owner_id', $ownerId)
+            ->latest('created_at')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function plannerEventsForIds(array $eventIds, bool $activeOnly): object
+    {
+        return Event::query()
+            ->whereKey($eventIds)
+            ->when($activeOnly, fn (EventBuilder $query): EventBuilder => $query->active())
+            ->with(['media', 'institution', 'institution.media', 'venue'])
+            ->orderBy('starts_at')
+            ->get();
+    }
+
+    public function recommendedPlannerEvent(array $excludedEventIds, string $fromUtc): ?object
+    {
+        return Event::query()
+            ->active()
+            ->with(['media', 'institution', 'institution.media', 'venue'])
+            ->when($excludedEventIds !== [], fn (EventBuilder $query): EventBuilder => $query->whereNotIn('id', $excludedEventIds))
+            ->where('starts_at', '>=', CarbonImmutable::parse($fromUtc))
+            ->orderBy('starts_at')
+            ->first();
+    }
+
+    public function eventsWithAdminRelations(array $eventIds): object
+    {
+        return Event::query()
+            ->whereKey($eventIds)
+            ->with(['institution:id,name', 'venue:id,name'])
+            ->get();
+    }
+
+    public function eventTable(): string
+    {
+        return (new Event)->getTable();
+    }
+
+    public function keyPersonTable(): string
+    {
+        return (new EventKeyPerson)->getTable();
+    }
+
+    public function seriesTable(): string
+    {
+        return (new Series)->getTable();
+    }
+
+    public function institutionTableQuery(string $institutionId): object
+    {
+        return Event::query()
+            ->where('institution_id', $institutionId)
+            ->with([
+                'primaryLocation.venueSpace:id,name',
+                'persons:id,name',
+                'references.parentReference.parentReference',
+            ])
+            ->withCount(['registrations as dashboard_registrations_count']);
+    }
+
+    public function institutionEventCardsQuery(string $institutionId): object
+    {
+        return Event::query()
+            ->where('institution_id', $institutionId)
+            ->with([
+                'institution.media',
+                'media',
+                'primaryLocation.venueSpace:id,name',
+                'venue:id,name',
+            ])
+            ->withCount(['registrations as dashboard_registrations_count']);
+    }
+
+    public function institutionEventCountSubquery(): object
+    {
+        return Event::query()
+            ->selectRaw('count(*)')
+            ->whereColumn('events.institution_id', 'institutions.id');
+    }
+
+    public function institutionRegistrationCount(string $institutionId): int
+    {
+        return (int) Event::query()
+            ->where('institution_id', $institutionId)
+            ->withCount('registrations')
+            ->get()
+            ->sum(fn (Event $event): int => (int) ($event->registrations_count ?? 0));
+    }
+
+    public function emptyEventsQuery(): object
+    {
+        return Event::query()->whereRaw('1 = 0');
+    }
+
+    public function personDashboardQuery(string $personId): object
+    {
+        return Event::query()->whereHas('persons', function (Builder $personQuery) use ($personId): void {
+            $personQuery->whereKey($personId);
+        });
+    }
+
+    public function referenceEventsQuery(array $referenceIds, array $venueEagerLoads): object
+    {
+        return Event::query()
+            ->where(function (Builder $referenceFilter) use ($referenceIds): void {
+                $referenceFilter
+                    ->whereHas('references', fn (Builder $references): Builder => $references
+                        ->whereIn('references.id', $referenceIds))
+                    ->orWhereHas('occurrences', function (Builder $occurrences) use ($referenceIds): void {
+                        $occurrence = new \AIArmada\Events\Models\EventOccurrence;
+                        $occurrences
+                            ->whereIn($occurrence->qualifyColumn('status'), Event::PUBLIC_SCHEDULE_STATUSES)
+                            ->whereIn($occurrence->qualifyColumn('visibility'), Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                            ->whereHas('references', function (Builder $referenceRows) use ($referenceIds): void {
+                                $referenceRows
+                                    ->where('visibility', 'public')
+                                    ->whereHasMorph('referenceable', [$this->referenceQueries->referenceModelClass()], function (Builder $references) use ($referenceIds): void {
+                                        $this->referenceQueries->applyPublicVisibility($references)
+                                            ->whereIn('references.id', $referenceIds);
+                                    });
+                            });
+                    });
+            })
+            ->active()
+            ->reorder()
+            ->with([
+                ...$venueEagerLoads,
+                'persons.media',
+                'persons.titleAssignments.title.category',
+                'keyPeople.person',
+                'references' => function (BelongsToMany $references): void {
+                    $this->referenceQueries->applyPublicVisibility($references->getQuery());
+                },
+                'media',
+                'institution.media',
+                'classifications.term',
+                'primaryOccurrence',
+                'displayOccurrence.media',
+                'timeExpressions',
+                'links',
+                'occurrences.references',
+            ]);
+    }
+
+    public function institutionEventsQuery(string $institutionId): object
+    {
+        return Event::query()->where('institution_id', $institutionId);
+    }
+
+    public function institutionPublicEventCountSubquery(bool $upcomingOnly = false): object
+    {
+        $query = Event::query()
+            ->selectRaw('count(*)')
+            ->whereColumn('events.institution_id', 'institutions.id')
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereHas('occurrences');
+
+        if ($upcomingOnly) {
+            $query->where('events.starts_at', '>=', now());
+        }
+
+        return $query;
+    }
+
+    public function institutionDetailEventsQuery(string $institutionId, bool $past, \DateTimeInterface $now): object
+    {
+        $endInstant = app(EventScheduleSql::class)->endInstantSql((new Event)->getTable());
+
+        $query = Event::query()
+            ->where('institution_id', $institutionId)
+            ->active()
+            ->with([
+                'institution.media',
+                'venue.addresses.country',
+                'persons.media',
+                'keyPeople.person',
+                'media',
+                'references' => fn ($references) => $references->active(),
+                'primaryOccurrence',
+                'classifications.term',
+                'timeExpressions',
+            ]);
+
+        if ($past) {
+            return $query
+                ->whereRaw($endInstant.' < ?', [$now])
+                ->orderByDesc('starts_at');
+        }
+
+        return $query
+            ->whereRaw($endInstant.' >= ?', [$now])
+            ->orderBy('starts_at');
+    }
+
+    public function referenceDetailEventsQuery(array $referenceIds, bool $past, \DateTimeInterface $now): object
+    {
+        $endInstant = app(EventScheduleSql::class)->endInstantSql((new Event)->getTable());
+
+        $query = Event::query()
+            ->active()
+            ->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
+                $this->referenceQueries->applyPublicVisibility($referenceQuery)
+                    ->whereIn('references.id', $referenceIds);
+            })
+            ->with([
+                'institution',
+                'institution.media',
+                'institution.addresses.country',
+                'venue.addresses.country',
+                'persons.media',
+                'media',
+                'references' => fn ($references) => $references->active(),
+                'primaryOccurrence',
+                'classifications.term',
+                'timeExpressions',
+            ]);
+
+        if ($past) {
+            return $query
+                ->whereRaw($endInstant.' < ?', [$now])
+                ->orderByDesc('starts_at');
+        }
+
+        return $query
+            ->whereRaw($endInstant.' >= ?', [$now])
+            ->orderBy('starts_at', 'asc');
+    }
+
+    public function institutionSpeakerCount(string $institutionId): int
+    {
+        $endInstant = app(EventScheduleSql::class)->endInstantSql((new Event)->getTable());
+
+        $eventIds = Event::query()
+            ->where('institution_id', $institutionId)
+            ->whereIn('status', Event::PUBLIC_STATUSES)
+            ->whereRaw($endInstant.' >= ?', [now()])
+            ->select('id');
+
+        return (int) DB::table('event_involvements')
+            ->where('role_code', EventKeyPersonRole::Speaker->value)
+            ->where('involveable_type', 'person')
+            ->whereNotNull('involveable_id')
+            ->whereIn('event_id', $eventIds)
+            ->distinct('involveable_id')
+            ->count();
+    }
+
+    public function publicReferenceEventCountSubquery(): object
+    {
+        return $this->referenceQueries->constrainEventReferenceSubtree(
+            Event::query()
+                ->whereNotNull('events.published_at')
+                ->whereIn('events.status', Event::PUBLIC_STATUSES)
+                ->where('events.visibility', EventVisibility::Public)
+                ->whereHas('occurrences'),
+        )->selectRaw('count(distinct events.id)');
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return list<string>
+     */
+    private function uniqueIds(array $ids): array
+    {
+        return array_values(array_unique(array_filter(
+            $ids,
+            static fn (string $id): bool => $id !== '',
+        )));
+    }
+
+    /**
+     * @param  list<mixed>  $values
+     * @return list<string>
+     */
+    private function stringValues(array $values): array
+    {
+        return array_values(array_map(
+            static fn (mixed $value): string => $value instanceof BackedEnum ? (string) $value->value : (string) $value,
+            $values,
+        ));
+    }
+
+    private function enumValue(mixed $value): mixed
+    {
+        return $value instanceof BackedEnum ? $value->value : $value;
     }
 }

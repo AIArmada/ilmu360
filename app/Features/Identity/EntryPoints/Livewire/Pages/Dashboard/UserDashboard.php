@@ -3,7 +3,6 @@
 namespace App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Engagement\Models\Response;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
@@ -11,26 +10,30 @@ use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\AccountEventFacts;
+use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Models\Reference;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\Rewards\Api\PublishedProgramVersions;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
-use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareTrackingAnalytics;
-use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -163,10 +166,12 @@ class UserDashboard extends Component
     #[Computed]
     public function savedEvents(): Collection
     {
+        $ids = app(EventEngagement::class)->savedEventIds((string) $this->user()->getKey());
+
         /** @var Collection<int, Event> $events */
-        $events = $this->savedEventsQuery($this->user())
-            ->with($this->plannerEventRelations())
-            ->get();
+        $events = $ids === []
+            ? new Collection
+            : app(EventScheduleQuery::class)->plannerEventsForIds($ids, true);
 
         return $this->sortEventsForPlanner($events);
     }
@@ -177,10 +182,12 @@ class UserDashboard extends Component
     #[Computed]
     public function goingEvents(): Collection
     {
+        $ids = app(EventEngagement::class)->goingEventIds((string) $this->user()->getKey());
+
         /** @var Collection<int, Event> $events */
-        $events = $this->goingEventsQuery($this->user())
-            ->with($this->plannerEventRelations())
-            ->get();
+        $events = $ids === []
+            ? new Collection
+            : app(EventScheduleQuery::class)->plannerEventsForIds($ids, false);
 
         return $this->sortEventsForPlanner($events);
     }
@@ -195,9 +202,10 @@ class UserDashboard extends Component
         $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Institution);
 
         /** @var Collection<int, Institution> $institutions */
+        /** @var Collection<int, Institution> $institutions */
         $institutions = $ids === []
             ? new Collection
-            : Institution::query()->whereKey($ids)->with(['media'])->orderBy('name')->get();
+            : app(InstitutionLookup::class)->followedInstitutions($ids);
 
         return $institutions;
     }
@@ -212,9 +220,10 @@ class UserDashboard extends Component
         $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Reference);
 
         /** @var Collection<int, Reference> $references */
+        /** @var Collection<int, Reference> $references */
         $references = $ids === []
             ? new Collection
-            : Reference::query()->whereKey($ids)->with(['media'])->orderBy('title')->get();
+            : app(ReferenceLookup::class)->followedReferences($ids);
 
         return $references;
     }
@@ -229,9 +238,10 @@ class UserDashboard extends Component
         $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Person);
 
         /** @var Collection<int, Person> $persons */
+        /** @var Collection<int, Person> $persons */
         $persons = $ids === []
             ? new Collection
-            : Person::query()->whereKey($ids)->with(['media'])->orderBy('name')->get();
+            : app(PersonLookup::class)->followedPersons($ids);
 
         return $persons;
     }
@@ -260,13 +270,10 @@ class UserDashboard extends Component
             ->all();
 
         /** @var ?Event $event */
-        $event = Event::query()
-            ->active()
-            ->with($this->plannerEventRelations())
-            ->when($excludedEventIds !== [], fn ($query) => $query->whereNotIn('id', $excludedEventIds))
-            ->where('starts_at', '>=', now('UTC'))
-            ->orderBy('starts_at')
-            ->first();
+        $event = app(EventScheduleQuery::class)->recommendedPlannerEvent(
+            $excludedEventIds,
+            now('UTC')->toIso8601String(),
+        );
 
         return $event;
     }
@@ -325,15 +332,14 @@ class UserDashboard extends Component
     #[Computed]
     public function registeredEvents(): Collection
     {
+        $registrationIds = app(AccountEventFacts::class)->registrationIds((string) $this->user()->getKey());
+
         /** @var Collection<int, Registration> $registrations */
-        $registrations = Registration::query()
-            ->whereKey(app(AccountEventFacts::class)->registrationIds((string) $this->user()->getKey()))
-            ->active()
-            ->with([
-                'event' => fn ($query) => $query->with($this->plannerEventRelations()),
-            ])
-            ->latest()
-            ->get()
+        $registrations = $registrationIds === []
+            ? new Collection
+            : app(RegistrationLookup::class)->plannerRegistrationsForIds($registrationIds);
+
+        $registrations = $registrations
             ->filter(fn (Registration $registration): bool => $registration->event instanceof Event)
             ->values();
 
@@ -349,15 +355,9 @@ class UserDashboard extends Component
         /** @var Collection<int, array<string, mixed>> $entries */
         $entries = collect();
 
-        $submissions = EventSubmission::query()
-            ->where('submitter_type', $this->user()->getMorphClass())
-            ->where('submitter_id', $this->user()->id)
-            ->with([
-                'event' => fn ($query) => $query->with($this->plannerEventRelations()),
-            ])
-            ->latest()
-            ->get()
-            ->values();
+        /** @var Collection<int, EventSubmission> $submissions */
+        $submissions = app(EventSubmissions::class)->plannerSubmissionsForAccount((string) $this->user()->getKey());
+        $submissions = $submissions->values();
 
         foreach ($submissions as $submission) {
             if (! $submission instanceof EventSubmission || ! $submission->event instanceof Event) {
@@ -386,13 +386,7 @@ class UserDashboard extends Component
     public function recentCheckins(): Collection
     {
         /** @var Collection<int, EventCheckin> $checkins */
-        $checkins = EventCheckin::query()
-            ->where('attendee_id', $this->user()->id)
-            ->with([
-                'event' => fn ($query) => $query->with($this->plannerEventRelations()),
-            ])
-            ->orderByDesc('checked_in_at')
-            ->get();
+        $checkins = app(RegistrationLookup::class)->plannerCheckInsForAccount((string) $this->user()->getKey());
 
         return $checkins;
     }
@@ -619,54 +613,8 @@ class UserDashboard extends Component
     {
         $user = $this->user();
 
-        return $event->userCanManage($user) || EventSubmission::where('event_id', $event->id)
-            ->where('submitter_type', $user->getMorphClass())
-            ->where('submitter_id', $user->id)
-            ->exists();
-    }
-
-    /**
-     * @return Builder<Event>
-     */
-    protected function savedEventsQuery(User $user): Builder
-    {
-        $ids = app(EventEngagement::class)->savedEventIds((string) $user->getKey());
-
-        return Event::query()
-            ->whereKey($ids)
-            ->active()
-            ->orderBy('starts_at');
-    }
-
-    /**
-     * @return Builder<Event>
-     */
-    protected function goingEventsQuery(User $user): Builder
-    {
-        $goingIds = Response::query()
-            ->where('responder_type', $user->getMorphClass())
-            ->where('responder_id', $user->getKey())
-            ->where('response_type', 'going')
-            ->where('status', 'active')
-            ->pluck('respondable_id')
-            ->toArray();
-
-        return Event::query()
-            ->whereIn('id', $goingIds)
-            ->orderBy('starts_at');
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    protected function plannerEventRelations(): array
-    {
-        return [
-            'media',
-            'institution',
-            'institution.media',
-            'venue',
-        ];
+        return $event->userCanManage($user)
+            || app(EventSubmissions::class)->existsForSubmitter((string) $event->id, (string) $user->getKey());
     }
 
     protected function user(): User
@@ -1055,19 +1003,11 @@ class UserDashboard extends Component
                 return true;
             }
 
-            $registrationTransitions = Registration::query()
-                ->where('registrant_type', $user->getMorphClass())
-                ->where('registrant_id', $user->getKey())
-                ->where('status', 'confirmed')
-                ->pluck('id')
+            $registrationTransitions = collect(app(RegistrationLookup::class)->confirmedRegistrationIdsForAccount((string) $user->getKey()))
                 ->map(static fn (string $id): string => 'registration:'.$id)
                 ->all();
 
-            if ($registrationTransitions !== [] && ShareSourceAttributionReceipt::query()
-                ->where('namespace', ShareOutcomeBusinessKey::NAMESPACE)
-                ->where('outcome_type', 'event_registration')
-                ->whereIn('source_transition_id', $registrationTransitions)
-                ->exists()) {
+            if ($registrationTransitions !== [] && app(SourceReceiptReader::class)->hasForSourceTransitions('event_registration', $registrationTransitions)) {
                 return true;
             }
         }
@@ -1076,20 +1016,11 @@ class UserDashboard extends Component
             return false;
         }
 
-        $checkinTransitions = EventCheckin::query()
-            ->where('attendee_type', $user->getMorphClass())
-            ->where('attendee_id', $user->getKey())
-            ->where('attendance_type', 'check_in')
-            ->whereNotNull('checked_in_at')
-            ->pluck('id')
+        $checkinTransitions = collect(app(RegistrationLookup::class)->checkInTransitionIdsForAccount((string) $user->getKey()))
             ->map(static fn (string $id): string => 'checkin:'.$id)
             ->all();
 
-        return $checkinTransitions !== [] && ShareSourceAttributionReceipt::query()
-            ->where('namespace', ShareOutcomeBusinessKey::NAMESPACE)
-            ->where('outcome_type', 'event_checkin')
-            ->whereIn('source_transition_id', $checkinTransitions)
-            ->exists();
+        return $checkinTransitions !== [] && app(SourceReceiptReader::class)->hasForSourceTransitions('event_checkin', $checkinTransitions);
     }
 
     protected function translatedEventWorkflowStatusLabel(string $status): string

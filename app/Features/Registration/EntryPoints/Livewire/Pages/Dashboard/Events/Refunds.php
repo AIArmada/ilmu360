@@ -7,6 +7,7 @@ namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 use AIArmada\Orders\Enums\PaymentStatus as OrderPaymentStatus;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderPayment;
+use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Models\Registration;
@@ -15,6 +16,7 @@ use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -213,8 +215,11 @@ final class Refunds extends Component
 
     private function selectedEvent(): Event
     {
-        /** @var Event $event */
-        $event = Event::query()->findOrFail($this->eventId);
+        $event = app(EventScheduleQuery::class)->findEvent($this->eventId);
+
+        if (! $event instanceof Event) {
+            throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);
+        }
 
         return $event;
     }
