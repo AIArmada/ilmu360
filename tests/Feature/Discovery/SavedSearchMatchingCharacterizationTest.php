@@ -5,14 +5,14 @@ declare(strict_types=1);
 use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationTrigger;
+use App\Features\Discovery\Api\Data\EventSearchPage;
+use App\Features\Discovery\Api\EventListPayloads;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 /**
  * D0 characterization: EventNotificationService::savedSearchMatchesEvent()
@@ -41,7 +41,7 @@ final class D0CountingEventSearchService extends EventSearchService
         array $filters = [],
         int $perPage = 20,
         string $sort = 'time'
-    ): LengthAwarePaginator {
+    ): EventSearchPage {
         $this->searchCalls++;
         $this->searchArguments[] = [
             'query' => $query,
@@ -49,7 +49,7 @@ final class D0CountingEventSearchService extends EventSearchService
             'perPage' => $perPage,
         ];
 
-        return new Paginator($this->results, count($this->results), $perPage);
+        return $this->page($perPage);
     }
 
     public function searchNearby(
@@ -58,10 +58,31 @@ final class D0CountingEventSearchService extends EventSearchService
         int $radiusKm = 50,
         array $filters = [],
         int $perPage = 20
-    ): LengthAwarePaginator {
+    ): EventSearchPage {
         $this->nearbyCalls++;
 
-        return new Paginator($this->results, count($this->results), $perPage);
+        return $this->page($perPage);
+    }
+
+    private function page(int $perPage): EventSearchPage
+    {
+        $items = array_map(
+            static fn (Event $event) => app(EventListPayloads::class)->forEvent($event),
+            $this->results,
+        );
+        $total = count($items);
+
+        return new EventSearchPage(
+            items: $items,
+            distances: [],
+            total: $total,
+            perPage: $perPage,
+            currentPage: 1,
+            lastPage: 1,
+            from: $total > 0 ? 1 : null,
+            to: $total > 0 ? $total : null,
+            hasMorePages: false,
+        );
     }
 }
 
