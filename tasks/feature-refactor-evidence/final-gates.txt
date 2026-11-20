@@ -1,7 +1,7 @@
-# Final gate evidence — plan-v2 completion
+# Final gate evidence — post-refactor audit closeout
 
-git HEAD: 264047c1
-CI: Quality run 44785097302 on 264047c1 — 26/26 jobs success
+git HEAD: 47be1a2b
+CI: Quality run 44816243104 on 47be1a2b — 26/26 jobs success
 
 php tools/architecture-check.php
 0 architecture violation(s); 28 feature(s) checked.
@@ -20,7 +20,7 @@ rector --dry-run
 exit=0
 
 openapi canonical parity
-152/152 paths, 49/49 schemas, full document equal to baseline
+152/152 paths, 49/49 schemas; fixture + runtime assertions in PublishedContractSchemaParityTest
 
 exceptions 62 {'architecture.writeLocation': 62}
 read_adapters 0 []

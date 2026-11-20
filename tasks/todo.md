@@ -869,3 +869,17 @@ Review: targeted API/entity/docs/search suites green (108 + 211 + 37 + 265 +
 166), route inventory 738 with unchanged external keys, architecture 0,
 PHPStan L6 0, ownership types 0, Pint and Rector clean. CI Quality 26/26 at
 `264047c1` (run 44785097302).
+
+# Post-refactor audit closeout (2026-11-21)
+
+- [x] Replace ORM-shaped public APIs with scalar reads + 38 explicit `Api/Orm` ports.
+- [x] Enforce model/opaque-object/port/container/mutation rules with fixtures and production root-model defaults.
+- [x] Declare and verify the reward-awards registry collision; reject every unexpected key collision.
+- [x] Backfill 378 migration commits and 62 PROVEN write exceptions; mark RA-11 removed.
+- [x] Couple the frozen OpenAPI document to runtime keys for the normalized endpoints.
+- [x] Remove 13 tracked scratch/backup files and add a repository artifact guard.
+- [x] Record F7/watch-item follow-ups without blocking acceptance.
+
+Review: architecture 0, PHPStan L6 0, ownership types 0, Pint/Rector clean,
+OpenAPI 152/152 canonical-equal, 738 routes, targeted suites 108 + 263 + 186 +
+94 + 37 + 166. CI is the full gate.

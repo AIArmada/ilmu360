@@ -1,7 +1,7 @@
 # R6 — Feature-ownership refactor completion report
 
-Branch `refactor`. Final verified commit: **`264047c1`** (CI Quality 26/26,
-run 44785097302). The plan-v2 resource/projection/search wave landed in
+Branch `refactor`. Final verified commit: **`47be1a2b`** (CI Quality 26/26,
+run 44816243104). The plan-v2 resource/projection/search wave landed in
 `3a6d4e6c`; `9d71d62f` / `264047c1` closed the final shared-controller adapter
 and OpenAPI parity; `fdf5b262` / `12701a88` closed CI regression and flake
 follow-ups without changing application behavior.
@@ -276,3 +276,27 @@ Completion follow-up (2026-11-20, same wave):
 - **Parity evidence:** Frontend API 108, entity directory/detail 211, docs 37,
   search/engagement 265, EventSearch 166; route count 738 with unchanged
   method/URI/name/middleware and nine intentional handler rewrites.
+
+## 11. Post-refactor audit closeout (2026-11-21)
+
+The external audit at `a653732d` found seven issues. The acceptance blockers
+are closed in `tasks/post-refactor-audit-closeout.md`:
+
+- **F1/F2 — owner API isolation:** ordinary `Features/*/Api` contracts now carry
+  no model/Builder/Collection types or opaque `object` signatures. All 38
+  model/builder surfaces live in explicit `Api/Orm` ports with `@internal` and
+  `Consumers:` docs. The checker enforces model leaks, opaque objects, port
+  contracts, container resolution and foreign instance mutations, with
+  positive/negative fixtures and production root-model defaults.
+- **F3 — registry collisions:** the intentional `admin:reward-awards` pair is
+  declared, model-verified and tested; every other collision fails.
+- **F4 — ledgers:** 378/378 migration rows have landed commits; 62/62 write
+  exceptions are `PROVEN`; RA-11 is `REMOVED`; guard tests enforce the state.
+- **F5 — published contract:** a 24-operation fixture plus live key assertions
+  couple the OpenAPI patcher to actual reference/venue/series and account
+  payloads, while the full document stays canonical-equal.
+- **F6 — scratch artifacts:** 13 tracked backup/tmp files removed and an
+  artifact guard added.
+- **F7 — opportunities:** the Shared contribution form helper and the
+  cohesive ~1,900-line Events query composition are recorded as follow-ups,
+  not acceptance failures.

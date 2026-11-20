@@ -12,4 +12,5 @@ contract_freeze: app/Platform/ApiDocumentation/Contributors/PublishedContractSch
   the page parameter, reference/venue/series detail containers). Runtime payloads
   are unchanged and proven by the parity suites below.
 runtime_payload_proof: FrontendApiParityTest (108), entity directory/detail suites
-  (211), docs suites (37), search/engagement suites (265), EventSearchTest (166)
+  (263), docs suites (37), search/engagement suites (166), admin/MCP (186),
+  contributions/checkout/registration (94), PublishedContractSchemaParityTest
