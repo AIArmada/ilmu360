@@ -152,7 +152,7 @@ class FilamentResourceDefinition implements FilamentBackedResourceDefinition
         $record = $this->context->queries->resolveRecord($this->resourceClass, $recordId);
         $abilities = $this->context->serializer->recordAbilities($this->resourceClass, $record, $user);
 
-        abort_unless(collect($abilities)->contains(true), 403);
+        abort_unless($abilities['view'] ?? false, 403);
 
         return [
             'data' => [
@@ -168,7 +168,7 @@ class FilamentResourceDefinition implements FilamentBackedResourceDefinition
         $record = $this->context->queries->resolveRecord($this->resourceClass, $recordId);
         $abilities = $this->context->serializer->recordAbilities($this->resourceClass, $record, $user);
 
-        abort_unless(collect($abilities)->contains(true), 403);
+        abort_unless($abilities['view'] ?? false, 403);
 
         $resourceMeta = $this->metadata($actor);
         $relationName = Str::snake(trim($relation));
@@ -237,7 +237,7 @@ class FilamentResourceDefinition implements FilamentBackedResourceDefinition
         $record = $this->context->queries->resolveRecord($this->resourceClass, $recordId);
         $abilities = $this->context->serializer->recordAbilities($this->resourceClass, $record, $user);
 
-        abort_unless(collect($abilities)->contains(true), 403);
+        abort_unless($abilities['view'] ?? false, 403);
 
         return [
             'data' => $this->recordMediaData($this->key(), $recordId, $record),

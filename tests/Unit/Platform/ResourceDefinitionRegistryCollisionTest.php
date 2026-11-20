@@ -47,6 +47,13 @@ it('rejects an unexpected collision on a shared surface key', function (): void 
 it('resolves the declared reward-awards collision to the first definition', function (): void {
     $context = app(ResourceDefinitionContext::class);
     $registry = new ResourceDefinitionRegistry;
+
+    $registry->allowCollision(
+        ResourceSurface::Admin,
+        'reward-awards',
+        RewardAwardResource::class,
+        RewardFraudResource::class,
+    );
     $awards = new FilamentResourceDefinition($context, RewardAwardResource::class);
     $fraud = new FilamentResourceDefinition($context, RewardFraudResource::class);
 
@@ -65,6 +72,13 @@ it('rejects a declared collision whose classes resolve different models', functi
     $context = app(ResourceDefinitionContext::class);
     $registry = new ResourceDefinitionRegistry;
 
+    $registry->allowCollision(
+        ResourceSurface::Admin,
+        'reward-awards',
+        RewardAwardResource::class,
+        RewardFraudResource::class,
+    );
+
     $registry->register(new FilamentResourceDefinition($context, RewardAwardResource::class));
 
     expect(fn () => $registry->register(
@@ -79,6 +93,13 @@ it('rejects a stale intentional collision when the discovery order changes', fun
     $context = app(ResourceDefinitionContext::class);
     $registry = new ResourceDefinitionRegistry;
 
+    $registry->allowCollision(
+        ResourceSurface::Admin,
+        'reward-awards',
+        RewardAwardResource::class,
+        RewardFraudResource::class,
+    );
+
     $registry->register(new FilamentResourceDefinition($context, RewardFraudResource::class));
 
     expect(fn () => $registry->register(
@@ -87,4 +108,32 @@ it('rejects a stale intentional collision when the discovery order changes', fun
         RuntimeException::class,
         'Stale intentional collision',
     );
+});
+
+it('rejects the reward-awards collision without the application declaration', function (): void {
+    $context = app(ResourceDefinitionContext::class);
+    $registry = new ResourceDefinitionRegistry;
+
+    $registry->register(new FilamentResourceDefinition($context, RewardAwardResource::class));
+
+    expect(fn () => $registry->register(
+        new FilamentResourceDefinition($context, RewardFraudResource::class),
+    ))->toThrow(
+        RuntimeException::class,
+        'Conflicting resource definitions for admin:reward-awards',
+    );
+});
+
+it('requires a collision declaration before registering either resource', function (): void {
+    $context = app(ResourceDefinitionContext::class);
+    $registry = new ResourceDefinitionRegistry;
+
+    $registry->register(new FilamentResourceDefinition($context, RewardAwardResource::class));
+
+    expect(fn () => $registry->allowCollision(
+        ResourceSurface::Admin,
+        'reward-awards',
+        RewardAwardResource::class,
+        RewardFraudResource::class,
+    ))->toThrow(RuntimeException::class, 'Declare resource collisions before registering admin:reward-awards');
 });

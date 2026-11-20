@@ -4,46 +4,20 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Resources;
 
-use AIArmada\FilamentRewards\Resources\RewardAwardResource\RewardAwardResource;
-use AIArmada\FilamentRewards\Resources\RewardFraudResource\RewardFraudResource;
 use Filament\Resources\Resource;
 use RuntimeException;
 
 /**
  * Deterministic keyed registry for resource definitions.
  *
- * Filament permits several resource classes for the same model; those share a
- * public resource key and resolve to the first registered definition, exactly
- * like the legacy ordered discovery. Registering the same definition class for
- * the same surface key twice is still a duplicate-registration error, and any
- * other collision must be declared here explicitly.
+ * Filament may register several resource classes for the same model and
+ * public key. Such collisions must be declared explicitly at application
+ * composition time; unexpected collisions always fail.
  */
 final class ResourceDefinitionRegistry
 {
-    /**
-     * Resource classes that intentionally share a surface key.
-     *
-     * Every entry is [surface, key, first class, second class]. The first class
-     * must be the one Filament discovers first, because the legacy admin API
-     * contract resolves the public key to that definition. The second class is
-     * still discoverable through `all()`/`accessible()` under the same key.
-     *
-     * `RewardFraudResource` is the fraud-stewardship view (gated by the
-     * `reward-fraud-steward` ability) over the `RewardAwardResource` model.
-     * Both classes must keep resolving the same model class;
-     * `FilamentRewardsPlugin` registers `RewardAwardResource` first, so it
-     * remains the public `reward-awards` winner.
-     *
-     * @var list<array{0: ResourceSurface, 1: string, 2: class-string<resource>, 3: class-string<resource>}>
-     */
-    private const array INTENTIONAL_COLLISIONS = [
-        [
-            ResourceSurface::Admin,
-            'reward-awards',
-            RewardAwardResource::class,
-            RewardFraudResource::class,
-        ],
-    ];
+    /** @var array<string, array{0: class-string<Resource>, 1: class-string<Resource>}> */
+    private array $intentionalCollisions = [];
 
     /** @var array<string, ResourceDefinition> First definition per surface key. */
     private array $definitions = [];
@@ -59,6 +33,32 @@ final class ResourceDefinitionRegistry
 
     /** @var list<class-string> Resource classes in discovery order. */
     private array $order = [];
+
+    /**
+     * The application composition root declares exact, intentional duplicate
+     * resource keys before feature providers register their definitions.
+     *
+     * @param  class-string<Resource>  $firstResource
+     * @param  class-string<Resource>  $secondResource
+     */
+    public function allowCollision(
+        ResourceSurface $surface,
+        string $key,
+        string $firstResource,
+        string $secondResource,
+    ): void {
+        $surfaceKey = $this->key($surface, $key);
+
+        if (isset($this->intentionalCollisions[$surfaceKey])) {
+            throw new RuntimeException("Resource collision already declared for {$surfaceKey}.");
+        }
+
+        if (isset($this->definitions[$surfaceKey])) {
+            throw new RuntimeException("Declare resource collisions before registering {$surfaceKey}.");
+        }
+
+        $this->intentionalCollisions[$surfaceKey] = [$firstResource, $secondResource];
+    }
 
     /**
      * Set the public discovery order for Filament-backed resources. Definitions
@@ -206,7 +206,7 @@ final class ResourceDefinitionRegistry
         if ($declared === null) {
             throw new RuntimeException(
                 "Conflicting resource definitions for {$surfaceKey}: {$existingClass} and {$incomingClass}. "
-                .'Declare the collision in ResourceDefinitionRegistry::INTENTIONAL_COLLISIONS when it is intentional.',
+                .'Declare the exact intentional collision in the application composition root.',
             );
         }
 
@@ -241,13 +241,7 @@ final class ResourceDefinitionRegistry
      */
     private function declaredCollision(ResourceSurface $surface, string $key): ?array
     {
-        foreach (self::INTENTIONAL_COLLISIONS as $collision) {
-            if ($collision[0] === $surface && $collision[1] === $key) {
-                return [$collision[2], $collision[3]];
-            }
-        }
-
-        return null;
+        return $this->intentionalCollisions[$this->key($surface, $key)] ?? null;
     }
 
     /**

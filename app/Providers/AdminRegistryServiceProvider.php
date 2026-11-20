@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use AIArmada\FilamentRewards\Resources\RewardAwardResource\RewardAwardResource;
+use AIArmada\FilamentRewards\Resources\RewardFraudResource\RewardFraudResource;
 use App\Features\Identity\EntryPoints\Api\Admin\UserAdminResourceHooks;
 use App\Platform\Admin\ExcludedFromAdminApi;
 use App\Platform\Admin\FilamentPageRegistry;
@@ -54,6 +56,12 @@ class AdminRegistryServiceProvider extends ServiceProvider
         $this->app->singleton(FrontendFormContractRegistry::class);
 
         $this->app->singleton(ResourceDefinitionRegistry::class);
+        $this->app->make(ResourceDefinitionRegistry::class)->allowCollision(
+            ResourceSurface::Admin,
+            'reward-awards',
+            RewardAwardResource::class,
+            RewardFraudResource::class,
+        );
         $this->app->singleton(ResourceIntrospection::class);
         $this->app->singleton(ResourceDefinitionDirectory::class);
         $this->app->singleton(EloquentResourceQuery::class);

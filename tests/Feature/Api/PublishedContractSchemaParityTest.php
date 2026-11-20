@@ -55,6 +55,67 @@ function assertPublishedDataKeys(array $payload, array $response): void
         ->toEqualCanonicalizing(array_keys($schema['properties']['data']['properties'] ?? []));
 }
 
+/**
+ * Check actual nested response values against the frozen contract's primitive
+ * types, including nullable pagination fields. Generic payloads remain generic.
+ *
+ * @param array<string, mixed> $payload
+ * @param array<string, mixed> $response
+ * @param list<string> $path
+ */
+function assertPublishedSchemaValueType(array $payload, array $response, array $path): void
+{
+    $schema = $response['content']['application/json']['schema'];
+    $value = $payload;
+
+    foreach ($path as $part) {
+        expect($value)->toBeArray()->toHaveKey($part);
+        $value = $value[$part];
+
+        $schema = $schema['properties'][$part] ?? null;
+        expect($schema)->toBeArray();
+    }
+
+    $types = (array) ($schema['type'] ?? []);
+
+    expect($types)->not->toBeEmpty();
+
+    $matches = array_any($types, static fn (string $type): bool => match ($type) {
+        'null' => $value === null,
+        'string' => is_string($value),
+        'integer' => is_int($value),
+        'number' => is_int($value) || is_float($value),
+        'boolean' => is_bool($value),
+        'array' => is_array($value) && array_is_list($value),
+        'object' => is_array($value) && ($value === [] || ! array_is_list($value)),
+        default => false,
+    });
+
+    expect($matches)->toBeTrue('Unexpected response type at '.implode('.', $path));
+}
+
+/**
+ * @param array<string, mixed> $payload
+ * @param array<string, mixed> $response
+ */
+function assertPublishedDetailTypes(array $payload, array $response, string $subject): void
+{
+    foreach ([$subject, 'upcoming_events', 'past_events', 'upcoming_total', 'past_total'] as $key) {
+        assertPublishedSchemaValueType($payload, $response, ['data', $key]);
+    }
+}
+
+/**
+ * @param array<string, mixed> $payload
+ * @param array<string, mixed> $response
+ */
+function assertPublishedPaginationTypes(array $payload, array $response): void
+{
+    foreach (['page', 'per_page', 'has_more', 'next_page'] as $key) {
+        assertPublishedSchemaValueType($payload, $response, ['meta', 'pagination', $key]);
+    }
+}
+
 it('publishes the frozen response contracts', function (): void {
     $document = app(ApiDocumentationDocumentResolver::class)->resolve();
 
@@ -83,15 +144,24 @@ it('returns the published keys for public directory and detail payloads', functi
 
     $this->getJson(route('api.client.references.show', ['referenceKey' => $reference->slug]))
         ->assertOk()
-        ->tap(fn ($response) => assertPublishedDataKeys($response->json(), $this->published['GET /references/{referenceKey} 200']));
+        ->tap(function ($response): void {
+            assertPublishedDataKeys($response->json(), $this->published['GET /references/{referenceKey} 200']);
+            assertPublishedDetailTypes($response->json(), $this->published['GET /references/{referenceKey} 200'], 'reference');
+        });
 
     $this->getJson(route('api.client.venues.show', ['venueKey' => $venue->slug]))
         ->assertOk()
-        ->tap(fn ($response) => assertPublishedDataKeys($response->json(), $this->published['GET /venues/{venueKey} 200']));
+        ->tap(function ($response): void {
+            assertPublishedDataKeys($response->json(), $this->published['GET /venues/{venueKey} 200']);
+            assertPublishedDetailTypes($response->json(), $this->published['GET /venues/{venueKey} 200'], 'venue');
+        });
 
     $this->getJson(route('api.client.series.show', ['series' => $series->slug]))
         ->assertOk()
-        ->tap(fn ($response) => assertPublishedDataKeys($response->json(), $this->published['GET /series/{series} 200']));
+        ->tap(function ($response): void {
+            assertPublishedDataKeys($response->json(), $this->published['GET /series/{series} 200']);
+            assertPublishedDetailTypes($response->json(), $this->published['GET /series/{series} 200'], 'series');
+        });
 
 });
 
@@ -110,13 +180,22 @@ it('returns the published keys for account event lists and event state', functio
 
     $this->getJson(route('api.events.going.index'))
         ->assertOk()
-        ->tap(fn ($response) => assertPublishedTopLevelKeys($response->json(), $this->published['GET /me/events/going 200']));
+        ->tap(function ($response): void {
+            assertPublishedTopLevelKeys($response->json(), $this->published['GET /me/events/going 200']);
+            assertPublishedPaginationTypes($response->json(), $this->published['GET /me/events/going 200']);
+        });
 
     $this->getJson(route('api.events.saved.index'))
         ->assertOk()
-        ->tap(fn ($response) => assertPublishedTopLevelKeys($response->json(), $this->published['GET /me/events/saved 200']));
+        ->tap(function ($response): void {
+            assertPublishedTopLevelKeys($response->json(), $this->published['GET /me/events/saved 200']);
+            assertPublishedPaginationTypes($response->json(), $this->published['GET /me/events/saved 200']);
+        });
 
     $this->getJson(route('api.events.me.show', $event))
         ->assertOk()
-        ->tap(fn ($response) => assertPublishedTopLevelKeys($response->json(), $this->published['GET /events/{event}/me 200']));
+        ->tap(function ($response): void {
+            assertPublishedTopLevelKeys($response->json(), $this->published['GET /events/{event}/me 200']);
+            assertPublishedSchemaValueType($response->json(), $this->published['GET /events/{event}/me 200'], ['meta', 'request_id']);
+        });
 });
