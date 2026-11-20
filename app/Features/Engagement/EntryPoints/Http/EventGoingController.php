@@ -9,7 +9,7 @@ use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\EntryPoints\Http\Data\EventEngagementListItemData;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Models\Event;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
 class EventGoingController extends Controller
 {
     public function __construct(
-        private readonly EventScheduleQuery $events,
+        private readonly EventScheduleReads $events,
         private readonly EventAuthoring $eventAuthoring,
     ) {}
 

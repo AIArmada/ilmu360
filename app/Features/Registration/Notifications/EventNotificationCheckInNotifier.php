@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Notifications;
 
-use App\Features\Events\Api\EventRegistrationNotifications;
+use App\Features\Events\Api\Orm\EventRegistrationNotifications;
 use App\Features\Registration\Api\CheckInNotifier;
 
 /**

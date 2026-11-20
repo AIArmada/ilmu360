@@ -7,7 +7,7 @@ use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\Discovery\Api\SearchSignal;
 use App\Features\Engagement\Api\Data\EventGoingStateData;
 use App\Features\Engagement\Api\Data\EventSaveStateData;
@@ -15,22 +15,22 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
-use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\EntryPoints\Http\Data\EventMeData;
 use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
 use App\Features\Events\Queries\PrimaryLocationSql;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
-use App\Features\Places\Api\PlaceLookup;
+use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerReference;
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Api\Data\EventCheckInStateData;
 use App\Features\Registration\Api\Data\EventRegistrationData;
 use App\Features\Registration\Api\Data\EventRegistrationStatusData;
-use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
@@ -55,7 +55,7 @@ class EventController extends Controller
 {
     public function __construct(
         private readonly SignalRecorder $signals,
-        private readonly ReferenceQueries $referenceQueries,
+        private readonly ReferenceOrmPort $referenceQueries,
         private readonly EventListPayloads $eventListPayloads,
         private readonly PlaceLookup $placeLookup,
         private readonly RegistrationLookup $registrationLookup,

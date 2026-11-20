@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
-use App\Features\ShareTracking\Api\ShareTrackingProfile;
+use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
 use App\Models\User;
 
 it('marks guest share profiles with the neutral purpose', function (): void {

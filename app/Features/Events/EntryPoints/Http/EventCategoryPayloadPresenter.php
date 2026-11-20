@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Http;
 
-use App\Features\Events\Api\EventCategoryPayloads;
+use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\EntryPoints\Ui\EventCategoryPresenter;
 use App\Features\Events\Models\Event;
 

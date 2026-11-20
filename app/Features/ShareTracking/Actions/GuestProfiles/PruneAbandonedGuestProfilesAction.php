@@ -16,7 +16,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Api\FinancialObligationReader;
 use App\Features\ShareTracking\Api\GuestProfilePruner;
-use App\Features\ShareTracking\Api\ShareTrackingProfile;
+use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
 use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;

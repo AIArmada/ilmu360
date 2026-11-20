@@ -133,11 +133,19 @@ final class PersonDirectoryController extends FrontendController
             $followingTotal = $persons->total();
         }
 
-        $this->applyFollowStates($persons->items(), $followingIds);
+        $cards = $this->personCards->forIds(
+            collect($persons->items())
+                ->map(static fn (Person $person): string => (string) $person->id)
+                ->all(),
+            $user instanceof User ? (string) $user->id : null,
+        );
 
         return response()->json([
             'data' => collect($persons->items())
-                ->map(fn (Person $person): array => $this->searchRequestNormalizer->sparsePayload($this->personCards->forPerson($person), $requestedFields))
+                ->map(fn (Person $person): array => $this->searchRequestNormalizer->sparsePayload(
+                    $cards[(string) $person->id] ?? [],
+                    $requestedFields,
+                ))
                 ->all(),
             'meta' => [
                 'pagination' => [
@@ -219,20 +227,6 @@ final class PersonDirectoryController extends FrontendController
         return $user instanceof User
             ? $this->subjectFollows->followedSubjectIds((string) $user->id, EngagementSubjectType::Person)
             : [];
-    }
-
-    /**
-     * @param  iterable<int, Person>  $persons
-     * @param  list<string>  $followingIds
-     */
-    private function applyFollowStates(iterable $persons, array $followingIds): void
-    {
-        foreach ($persons as $person) {
-            $person->setAttribute(
-                'is_following',
-                in_array((string) $person->id, $followingIds, true),
-            );
-        }
     }
 
     /**

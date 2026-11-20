@@ -6,7 +6,7 @@ namespace App\Features\Events\Services;
 
 use App\Features\Events\Actions\Series\DeleteSeriesAction;
 use App\Features\Events\Actions\Series\SaveSeriesAction;
-use App\Features\Events\Api\SeriesAuthoring;
+use App\Features\Events\Api\Orm\SeriesAuthoring;
 use App\Features\Events\Models\Series;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\FollowableSubject;

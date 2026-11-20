@@ -6,7 +6,7 @@ namespace App\Features\Events\Queries;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
-use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\References\Api\ReferenceQueries;
 use App\Platform\Search\EventDiscoveryReader;

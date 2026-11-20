@@ -7,7 +7,7 @@ namespace App\Features\Events\EntryPoints\Admin\Resources;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
-use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
 use App\Features\Prayer\Api\PrayerReference;

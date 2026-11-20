@@ -2,7 +2,7 @@
 
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\EventDetailPresenter;
 use App\Features\Institutions\Models\Institution;

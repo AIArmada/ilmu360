@@ -9,10 +9,8 @@ use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
-use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventCollections;
-use App\Features\Events\Api\EventScheduleQuery;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Institutions\Api\Data\InstitutionDetailData;
 use App\Features\Institutions\Api\Data\InstitutionDonationChannelData;
 use App\Features\Institutions\Api\Documentation\Schemas\InstitutionDetailResponse;
@@ -72,7 +70,7 @@ final class InstitutionDirectoryController extends FrontendController
         private readonly AddressLocationScope $addressLocationScope,
         private readonly PublicDiscovery $publicDiscovery,
         private readonly EventCollections $eventCollections,
-        private readonly EventScheduleQuery $eventScheduleQuery,
+        private readonly EventScheduleReads $eventScheduleQuery,
         private readonly InstitutionCards $institutionCards,
         private readonly SubjectFollows $subjectFollows,
         private readonly SearchPayloadTransformer $searchPayloadTransformer,
@@ -158,11 +156,25 @@ final class InstitutionDirectoryController extends FrontendController
             $followingTotal = $institutions->total();
         }
 
-        $this->applyFollowStates($institutions->items(), $followingIds);
+        $cards = $this->institutionCards->forIds(
+            collect($institutions->items())
+                ->map(static fn (Institution $institution): string => (string) $institution->id)
+                ->all(),
+            $user instanceof User ? (string) $user->id : null,
+            collect($institutions->items())
+                ->mapWithKeys(static fn (Institution $institution): array => [
+                    (string) $institution->id => $institution->getAttributes()['distance_km'] ?? null,
+                ])
+                ->filter(static fn (mixed $distance): bool => is_numeric($distance))
+                ->all(),
+        );
 
         return response()->json([
             'data' => collect($institutions->items())
-                ->map(fn (Institution $institution): array => $this->searchRequestNormalizer->sparsePayload($this->institutionCards->forInstitution($institution), $requestedFields))
+                ->map(fn (Institution $institution): array => $this->searchRequestNormalizer->sparsePayload(
+                    $cards[(string) $institution->id] ?? [],
+                    $requestedFields,
+                ))
                 ->all(),
             'meta' => [
                 'pagination' => [
@@ -278,20 +290,6 @@ final class InstitutionDirectoryController extends FrontendController
     }
 
     /**
-     * @param  iterable<int, Institution>  $institutions
-     * @param  list<string>  $followingIds
-     */
-    private function applyFollowStates(iterable $institutions, array $followingIds): void
-    {
-        foreach ($institutions as $institution) {
-            $institution->setAttribute(
-                'is_following',
-                in_array((string) $institution->id, $followingIds, true),
-            );
-        }
-    }
-
-    /**
      * @param  Builder<Institution>  $query
      * @param  list<string>  $followingIds
      */
@@ -320,13 +318,6 @@ final class InstitutionDirectoryController extends FrontendController
         $query = Institution::query()
             ->select('institutions.*')
             ->active()
-            ->withCount(['events as events_count' => function (Builder $events): void {
-                $events
-                    ->whereNotNull('events.published_at')
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->whereHas('occurrences');
-            }])
             ->with(['addresses', 'media', 'names']);
 
         if ($type instanceof InstitutionType) {

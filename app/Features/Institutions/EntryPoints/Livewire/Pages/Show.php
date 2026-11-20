@@ -6,17 +6,17 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Discovery\Api\PublicScheduleLeaf;
+use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\EventSchedulePageData;
+use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventReferencePivot;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
@@ -57,7 +57,7 @@ class Show extends Component
     public bool $showCustomDateRange = false;
 
     /**
-     * @var array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}|null
+     * @var array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}|null
      */
     private ?array $schedulePageData = null;
 
@@ -224,7 +224,7 @@ class Show extends Component
     }
 
     /**
-     * @return Collection<int, PublicScheduleLeaf>
+     * @return Collection<int, PublicScheduleModelLeaf>
      */
     public function getUpcomingEventsProperty(): Collection
     {
@@ -237,7 +237,7 @@ class Show extends Component
     }
 
     /**
-     * @return Collection<int, PublicScheduleLeaf>
+     * @return Collection<int, PublicScheduleModelLeaf>
      */
     public function getPastEventsProperty(): Collection
     {
@@ -290,7 +290,7 @@ class Show extends Component
                 'persons.titleAssignments.title.category',
                 'keyPeople.person',
                 'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
-                    app(ReferenceQueries::class)->applyPublicVisibility($references->getQuery());
+                    app(ReferenceOrmPort::class)->applyPublicVisibility($references->getQuery());
                 },
                 'media',
                 'institution.media',
@@ -309,7 +309,7 @@ class Show extends Component
     }
 
     /**
-     * @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     * @return array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function schedulePageData(): array
     {
@@ -319,7 +319,7 @@ class Show extends Component
 
         $range = $this->upcomingDateRange();
 
-        /** @var array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
+        /** @var array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
         $data = app(EventSchedulePageData::class)->forQuery(
             $this->eventPageBaseQuery(),
             $this->upcomingPerPage,

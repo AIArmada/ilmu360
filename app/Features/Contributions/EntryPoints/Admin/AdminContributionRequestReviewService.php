@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\EntryPoints\Admin;
 
-use App\Features\Contributions\Api\AdminContributionRequestReview;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionReviewAccess;
+use App\Features\Contributions\Api\Orm\AdminContributionRequestReview;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Features\Contributions\Models\ContributionRequest;

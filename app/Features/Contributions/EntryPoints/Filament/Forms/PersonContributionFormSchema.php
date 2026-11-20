@@ -8,7 +8,7 @@ use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
 use App\Features\Contributions\Api\Filament\PersonContributionSchema;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
-use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Platform\Ui\Forms\ContactFields;

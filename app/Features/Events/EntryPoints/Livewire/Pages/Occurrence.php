@@ -6,11 +6,11 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Features\Discovery\Api\PublicScheduleReader;
+use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Livewire\Attributes\Computed;
@@ -35,7 +35,7 @@ class Occurrence extends Show
 
     public function mount(Event $event, string $occurrenceSlug = ''): void
     {
-        $discovery = app(PublicScheduleReader::class);
+        $discovery = app(PublicScheduleOrmPort::class);
 
         // Load the public schedule set first with counts attached, so the
         // slug resolver below reuses the loaded relation instead of issuing
@@ -170,7 +170,7 @@ class Occurrence extends Show
             'languages',
             'references' => function (Relation $query) use ($event): void {
                 if (! $this->isEventOwner($event)) {
-                    app(ReferenceQueries::class)->applyPublicVisibility($query->getQuery());
+                    app(ReferenceOrmPort::class)->applyPublicVisibility($query->getQuery());
                     $query->where(config('events.database.tables.event_references', 'event_references').'.visibility', 'public');
                 }
 

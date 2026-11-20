@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Filament\Resources\Series\Tables;
 
-use App\Features\Events\Api\SeriesAuthoring;
+use App\Features\Events\Api\Orm\SeriesAuthoring;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

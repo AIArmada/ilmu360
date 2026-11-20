@@ -4,7 +4,7 @@ namespace App\Features\Institutions\EntryPoints\Http;
 
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipDirectory;
@@ -26,7 +26,7 @@ class InstitutionWorkspaceController extends FrontendController
 {
     public function __construct(
         private readonly MembershipDirectory $memberships,
-        private readonly EventScheduleQuery $eventReader,
+        private readonly EventScheduleReads $eventReader,
     ) {}
 
     #[Endpoint(

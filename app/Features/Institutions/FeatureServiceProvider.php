@@ -12,13 +12,13 @@ use App\Features\Institutions\Api\Frontend\InstitutionWorkspaceFormContractContr
 use App\Features\Institutions\Api\InstitutionCatalog;
 use App\Features\Institutions\Api\InstitutionHomepageStats;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
-use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Institutions\Api\InstitutionSearchCache;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\EntryPoints\Admin\Member\InstitutionMemberResourceHooks;
 use App\Features\Institutions\EntryPoints\Admin\Resources\InstitutionMutationHooks;
 use App\Features\Institutions\EntryPoints\Api\Admin\InstitutionResourceDefinition;

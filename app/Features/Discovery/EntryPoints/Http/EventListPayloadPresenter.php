@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Features\Discovery\EntryPoints\Http;
 
 use App\Features\Discovery\Api\Data\EventListData;
-use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\Discovery\EntryPoints\Http\Data\EventListInstitutionData;
 use App\Features\Discovery\EntryPoints\Http\Data\EventListPersonData;
 use App\Features\Discovery\EntryPoints\Http\Data\EventListVenueData;
 use App\Features\Events\Api\Enums\EventFormat;
-use App\Features\Events\Api\EventCategoryPayloads;
+use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Places\EntryPoints\Ui;
 
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 
 final class SpaceLocationPresenter
 {

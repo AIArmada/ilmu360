@@ -146,7 +146,7 @@ PHP);
         ->and(array_column($findings, 'target'))->toContain('App\\Features\\Orders\\Models\\Order');
 });
 
-it('allows a feature to use an app model whose table it owns', function (): void {
+it('rejects an app model outside the production allowlist even when a feature owns its table', function (): void {
     $this->project->write('app/Models/Order.php', <<<'PHP'
 <?php
 namespace App\Models;
@@ -166,8 +166,11 @@ class PlaceOrder
 PHP);
 
     $result = $this->project->check();
-    expect($result)->toMatchArray(['stderr' => '', 'exitCode' => 0])
-        ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('root-model')
+        ->and(array_column($findings, 'target'))->toContain('app/Models/Order.php');
 });
 
 it('accepts parent delete only from the exact declared root model', function (): void {
@@ -205,7 +208,7 @@ class Venue extends \Illuminate\Database\Eloquent\Model
     }
 }
 PHP);
-    $this->project->configure([
+    $this->project->configure(exceptions: [
         [
             'rule' => 'architecture.foreignWrite',
             'file' => 'app/Models/Space.php',
@@ -224,7 +227,17 @@ PHP);
             'owner' => 'Places',
             'expires' => '2999-12-31',
         ],
-    ]);
+    ],
+        extra: [
+            // This fixture exercises the exact parent-delete lifecycle rule; the
+            // production root-model gate is covered by its own fixture test.
+            'root_models' => [
+                'app/Models/User.php',
+                'app/Models/PassportUser.php',
+                'app/Models/Space.php',
+                'app/Models/Venue.php',
+            ],
+        ]);
 
     $exactModels = $this->project->check();
 
@@ -342,6 +355,142 @@ PHP);
     $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
     expect(array_column($findings, 'rule'))->toContain('api-leak')
         ->and(array_column($findings, 'target'))->toContain('App\\Features\\Orders\\Models\\Order');
+});
+
+it('rejects opaque model-shaped values in ordinary Api contracts', function (string $source, string $rule): void {
+    $this->project->write('app/Features/Orders/Api/FindOrder.php', $source);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain($rule);
+})->with([
+    'object parameter' => [<<<'PHP'
+<?php
+namespace App\Features\Orders\Api;
+interface FindOrder
+{
+    public function find(object $order): void;
+}
+PHP, 'api-opaque-param'],
+    'object return' => [<<<'PHP'
+<?php
+namespace App\Features\Orders\Api;
+interface FindOrder
+{
+    public function find(string $id): object;
+}
+PHP, 'api-opaque-return'],
+    'model return' => [<<<'PHP'
+<?php
+namespace App\Features\Orders\Api;
+use App\Features\Orders\Models\Order;
+interface FindOrder
+{
+    public function find(string $id): ?Order;
+}
+PHP, 'api-model-leak'],
+    'builder return' => [<<<'PHP'
+<?php
+namespace App\Features\Orders\Api;
+use Illuminate\Database\Eloquent\Builder;
+interface FindOrder
+{
+    public function find(string $id): Builder;
+}
+PHP, 'api-model-leak'],
+]);
+
+it('allows the framework request object in an ordinary Api contract', function (): void {
+    $this->project->write('app/Features/Orders/Api/FindOrder.php', <<<'PHP'
+<?php
+namespace App\Features\Orders\Api;
+interface FindOrder
+{
+    public function find(?object $request = null): void;
+}
+PHP);
+
+    $result = $this->project->check();
+
+    expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
+        ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
+});
+
+it('requires Api/Orm ports to declare internal consumers', function (): void {
+    $this->project->write('app/Features/Orders/Api/Orm/FindOrderOrm.php', <<<'PHP'
+<?php
+namespace App\Features\Orders\Api\Orm;
+use App\Features\Orders\Models\Order;
+interface FindOrderOrm
+{
+    public function find(string $id): ?Order;
+}
+PHP);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('orm-port-contract');
+
+    $this->project->write('app/Features/Orders/Api/Orm/FindOrderOrm.php', <<<'PHP'
+<?php
+namespace App\Features\Orders\Api\Orm;
+use App\Features\Orders\Models\Order;
+/**
+ * @internal
+ *
+ * Consumers: Orders admin presentation.
+ */
+interface FindOrderOrm
+{
+    public function find(string $id): ?Order;
+}
+PHP);
+
+    $result = $this->project->check();
+
+    expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
+        ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
+});
+
+it('rejects container resolution of a foreign model', function (): void {
+    $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
+<?php
+namespace App\Features\Billing\Actions;
+class Charge
+{
+    public function handle(): void { app(\App\Features\Orders\Models\Order::class); }
+}
+PHP);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('foreign-model-domain-operation')
+        ->and(array_column($findings, 'target'))->toContain('App\Features\Orders\Models\Order');
+});
+
+it('rejects foreign model instance mutations in another owner', function (): void {
+    $this->project->write('app/Features/Billing/Actions/Charge.php', <<<'PHP'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Models\Order;
+class Charge
+{
+    public function handle(Order $order): void { $order->update(['status' => 'paid']); }
+}
+PHP);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('foreign-model-domain-operation')
+        ->and(array_column($findings, 'target'))->toContain('App\Features\Orders\Models\Order');
 });
 
 it('rejects an exception after its private dependency has been removed', function (): void {

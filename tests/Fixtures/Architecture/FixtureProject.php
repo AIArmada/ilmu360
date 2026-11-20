@@ -37,6 +37,7 @@ final readonly class FixtureProject
             'schema' => 2,
             'root_store_writers' => $rootStoreWriters,
             'exceptions' => $exceptions,
+            'root_models' => ['app/Models/User.php', 'app/Models/PassportUser.php'],
             ...$extra,
         ], JSON_THROW_ON_ERROR));
     }

@@ -19,7 +19,6 @@ use App\Platform\Api\Frontend\Data\CountryData;
 use App\Platform\Location\AddressHierarchyFormatter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use InvalidArgumentException;
 
 final readonly class InstitutionCardsQuery implements InstitutionCards
 {
@@ -28,48 +27,56 @@ final readonly class InstitutionCardsQuery implements InstitutionCards
         private SubjectFollows $subjectFollows,
     ) {}
 
-    public function forInstitution(object $institution, ?string $accountId = null): array
+    /**
+     * @param  list<string>  $institutionIds
+     * @param  array<string, float|int|string>  $distances
+     */
+    public function forIds(array $institutionIds, ?string $accountId = null, array $distances = []): array
     {
-        if (! $institution instanceof Institution) {
-            throw new InvalidArgumentException('Institution cards require an institution model.');
+        $institutionIds = array_values(array_unique(array_filter(
+            $institutionIds,
+            static fn (string $institutionId): bool => $institutionId !== '',
+        )));
+
+        if ($institutionIds === []) {
+            return [];
         }
 
-        $attributes = $institution->getAttributes();
-        $type = $institution->type;
-        $institutionType = $type instanceof InstitutionType
-            ? $type->value
-            : (is_string($type) ? $type : null);
-        $isFollowing = array_key_exists('is_following', $attributes)
-            ? (bool) $attributes['is_following']
-            : ($accountId !== null
-                && $this->subjectFollows->followStateFor($accountId, EngagementSubjectType::Institution, (string) $institution->id)->isFollowing);
-        $media = $this->cardMedia($institution);
-        $location = AddressHierarchyFormatter::format($institution->primaryAddress());
-        $distanceKm = $this->distanceKm($attributes['distance_km'] ?? null);
+        $followingIds = $accountId !== null
+            ? $this->subjectFollows->followedSubjectIds($accountId, EngagementSubjectType::Institution)
+            : [];
 
-        return new InstitutionListData(
-            id: (string) $institution->id,
-            slug: (string) $institution->slug,
-            name: (string) $institution->name,
-            type: $institutionType,
-            primary_nickname: $institution->primaryNickname,
-            names: $institution->names->map(fn (InstitutionName $name): array => [
-                'name_type' => $name->name_type->value,
-                'full_name' => $name->full_name,
-                'language_code' => $name->language_code,
-                'is_primary' => $name->is_primary,
-            ])->values()->all(),
-            display_name: (string) $institution->display_name,
-            events_count: (int) ($institution->events_count ?? 0),
-            public_image_url: $media['public_image_url'],
-            logo_url: $media['logo_url'],
-            cover_url: $media['cover_url'],
-            country: CountryData::fromAddress($institution->primaryAddress())?->toArray(),
-            location: $location !== '' ? $location : null,
-            distance_km: $distanceKm,
-            is_following: $isFollowing,
-            verified_by: $institution->getAttribute('verified_by'),
-        )->toArray();
+        return Institution::query()
+            ->with(['addresses', 'media', 'names'])
+            ->withCount(['events as events_count' => $this->publicEventCountScope(...)])
+            ->whereIn('institutions.id', $institutionIds)
+            ->get()
+            ->mapWithKeys(fn (Institution $institution): array => [
+                (string) $institution->id => $this->toArray(
+                    $institution,
+                    in_array((string) $institution->id, $followingIds, true),
+                    $distances[(string) $institution->id] ?? null,
+                ),
+            ])
+            ->all();
+    }
+
+    public function forId(string $institutionId, ?string $accountId = null): ?array
+    {
+        $institution = Institution::query()
+            ->with(['addresses', 'media', 'names'])
+            ->withCount(['events as events_count' => $this->publicEventCountScope(...)])
+            ->whereKey($institutionId)
+            ->first();
+
+        if (! $institution instanceof Institution) {
+            return null;
+        }
+
+        $isFollowing = $accountId !== null
+            && $this->subjectFollows->followStateFor($accountId, EngagementSubjectType::Institution, $institutionId)->isFollowing;
+
+        return $this->toArray($institution, $isFollowing);
     }
 
     public function personAffiliations(string $personId, int $limit = 3): array
@@ -121,14 +128,7 @@ final readonly class InstitutionCardsQuery implements InstitutionCards
         $base = Institution::query()
             ->select('institutions.*')
             ->active()
-            ->withCount(['events as events_count' => function (Builder $query): void {
-                $query
-                    ->whereNotNull('events.published_at')
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->whereHas('occurrences')
-                    ->where('events.starts_at', '>=', now());
-            }])
+            ->withCount(['events as events_count' => $this->publicEventCountScope(...)])
             ->with(['addresses', 'media', 'names'])
             ->whereIn('institutions.id', $institutionIds);
 
@@ -143,7 +143,7 @@ final readonly class InstitutionCardsQuery implements InstitutionCards
             ->orderBy('name')
             ->limit(max(1, $limit))
             ->get()
-            ->map(fn (Institution $institution): array => $this->forInstitution($institution))
+            ->map(fn (Institution $institution): array => $this->toArray($institution, false))
             ->all();
 
         return ['items' => $items, 'total' => $total];
@@ -177,6 +177,57 @@ final readonly class InstitutionCardsQuery implements InstitutionCards
             ->orderBy('distance_km')
             ->orderBy('institutions.name')
             ->orderBy('institutions.id');
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     */
+    private function publicEventCountScope(Builder $query): void
+    {
+        $query
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereHas('occurrences');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function toArray(Institution $institution, bool $isFollowing, ?float $distanceOverride = null): array
+    {
+        $attributes = $institution->getAttributes();
+        $type = $institution->type;
+        $institutionType = $type instanceof InstitutionType
+            ? $type->value
+            : (is_string($type) ? $type : null);
+        $media = $this->cardMedia($institution);
+        $location = AddressHierarchyFormatter::format($institution->primaryAddress());
+        $distanceKm = $distanceOverride ?? $this->distanceKm($attributes['distance_km'] ?? null);
+
+        return new InstitutionListData(
+            id: (string) $institution->id,
+            slug: (string) $institution->slug,
+            name: (string) $institution->name,
+            type: $institutionType,
+            primary_nickname: $institution->primaryNickname,
+            names: $institution->names->map(fn (InstitutionName $name): array => [
+                'name_type' => $name->name_type->value,
+                'full_name' => $name->full_name,
+                'language_code' => $name->language_code,
+                'is_primary' => $name->is_primary,
+            ])->values()->all(),
+            display_name: (string) $institution->display_name,
+            events_count: (int) ($institution->events_count ?? 0),
+            public_image_url: $media['public_image_url'],
+            logo_url: $media['logo_url'],
+            cover_url: $media['cover_url'],
+            country: CountryData::fromAddress($institution->primaryAddress())?->toArray(),
+            location: $location !== '' ? $location : null,
+            distance_km: $distanceKm,
+            is_following: $isFollowing,
+            verified_by: $institution->getAttribute('verified_by'),
+        )->toArray();
     }
 
     /**

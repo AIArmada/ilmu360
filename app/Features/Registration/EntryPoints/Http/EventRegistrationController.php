@@ -2,8 +2,8 @@
 
 namespace App\Features\Registration\EntryPoints\Http;
 
-use App\Features\Events\Api\EventRegistrationNotifications;
 use App\Features\Events\Api\EventTicketing;
+use App\Features\Events\Api\Orm\EventRegistrationNotifications;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\Data\EventRegistrationData;

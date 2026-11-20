@@ -19,7 +19,7 @@ use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissionOrganizerKind;
-use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Orm\EventSubmissions;
 use App\Features\Events\EntryPoints\Http\SubmitEventRequestHandler;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Events\Models\Event;

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Policies;
 
-use App\Features\Events\Api\EventScheduleQuery;
-use App\Features\Events\Api\SeriesAuthoring;
-use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Persons\Api\PersonLookup;
-use App\Features\References\Api\ReferenceLookup;
+use App\Features\Events\Api\EventScheduleReads;
+use App\Features\Events\Api\Orm\SeriesAuthoring;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\References\Api\Orm\ReferenceLookup;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Services\ShareTrackingUrlService;
 use InvalidArgumentException;
@@ -60,7 +60,7 @@ final readonly class ShareDestinationPolicy
             return false;
         }
 
-        return app(EventScheduleQuery::class)->isPubliclyReachable($subjectId);
+        return app(EventScheduleReads::class)->isPubliclyReachable($subjectId);
     }
 
     private function isInstitutionReachable(?string $subjectId): bool

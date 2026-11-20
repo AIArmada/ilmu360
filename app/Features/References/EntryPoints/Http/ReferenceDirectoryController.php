@@ -7,7 +7,7 @@ namespace App\Features\References\EntryPoints\Http;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventCollections;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\References\Api\Data\ReferenceDetailData;
 use App\Features\References\Api\Data\ReferenceListData;
 use App\Features\References\Api\Documentation\Schemas\ReferenceDirectoryResponse;
@@ -66,7 +66,7 @@ final class ReferenceDirectoryController extends FrontendController
         private readonly ReferenceSearch $referenceSearch,
         private readonly ReferenceQueries $referenceQueries,
         private readonly EventCollections $eventCollections,
-        private readonly EventScheduleQuery $eventScheduleQuery,
+        private readonly EventOrmPort $eventScheduleQuery,
         private readonly SearchRequestNormalizer $searchRequestNormalizer,
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
         private readonly PublicDiscovery $publicDiscovery,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\EntryPoints\Admin;
 
-use App\Features\Reports\Api\AdminReportTriage;
+use App\Features\Reports\Api\Orm\AdminReportTriage;
 use App\Features\Reports\Api\ReportCommands;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;

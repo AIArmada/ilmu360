@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\Services;
 
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\References\Models\Reference;
 use App\Features\References\Support\ReferenceFamily;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,7 +15,7 @@ use InvalidArgumentException;
 /**
  * Implements the reference query boundary over the current Eloquent models.
  */
-final readonly class ReferenceQueryService implements ReferenceQueries
+final readonly class ReferenceQueryService implements ReferenceOrmPort
 {
     public function __construct(private ReferenceSearchService $search) {}
 

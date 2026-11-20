@@ -6,16 +6,16 @@ namespace App\Features\Contributions\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Contributions\Api\ContributionOrganizer;
-use App\Features\Contributions\Api\SubmissionContext;
+use App\Features\Contributions\Api\Orm\SubmissionContext;
 use App\Features\Events\Api\Enums\EventFormat;
-use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Api\OrganizerLookup;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Models\User;
 use App\Shared\Submission\SpaceSelectionEligibility;
@@ -121,7 +121,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
             ]);
         }
 
-        $persisted = app(EventScheduleQuery::class)->findEvent($containerId);
+        $persisted = app(EventOrmPort::class)->findEvent($containerId);
 
         if (! $persisted instanceof Event) {
             throw ValidationException::withMessages([

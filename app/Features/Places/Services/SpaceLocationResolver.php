@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Places\Services;
 
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Places\Api\SpaceLocation;
+use App\Features\Places\Api\Orm\SpaceLocation;
 use App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter;
 
 /**

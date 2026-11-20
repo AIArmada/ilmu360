@@ -12,7 +12,7 @@ interface EventDeletionScope
      * @param  callable(): TResult  $callback
      * @return TResult
      */
-    public function whileDeleting(string $eventId, callable $callback): mixed;
+    public function whileDeleting(string $eventId, callable $callback);
 
     public function isDeleting(string $eventId): bool;
 }

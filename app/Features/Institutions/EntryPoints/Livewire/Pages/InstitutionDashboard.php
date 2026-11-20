@@ -4,16 +4,16 @@ namespace App\Features\Institutions\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Contributions\Api\SubmissionEntityAccess;
+use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Places\Api\SpaceLocation;
+use App\Features\Places\Api\Orm\SpaceLocation;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
@@ -394,7 +394,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $totalEvents = (int) ($institution->events_count ?? 0);
         $publicEvents = (int) ($institution->public_events_count ?? 0);
-        $registrationsCount = app(EventScheduleQuery::class)->institutionRegistrationCount((string) $institution->id);
+        $registrationsCount = app(EventOrmPort::class)->institutionRegistrationCount((string) $institution->id);
 
         return [
             'events_count' => $totalEvents,
@@ -577,10 +577,10 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                 $institution = $this->selectedInstitution();
 
                 if (! $institution instanceof Institution) {
-                    return app(EventScheduleQuery::class)->emptyEventsQuery();
+                    return app(EventOrmPort::class)->emptyEventsQuery();
                 }
 
-                return app(EventScheduleQuery::class)->institutionTableQuery((string) $institution->id);
+                return app(EventOrmPort::class)->institutionTableQuery((string) $institution->id);
             })
             ->columns([
                 TextColumn::make('title')
@@ -721,7 +721,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
      */
     protected function institutionEventCountSubquery(?callable $callback = null): Builder
     {
-        $query = app(EventScheduleQuery::class)->institutionEventCountSubquery();
+        $query = app(EventOrmPort::class)->institutionEventCountSubquery();
 
         if ($callback !== null) {
             $callback($query);
@@ -736,7 +736,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     protected function institutionEventCardQuery(Institution $institution): Builder
     {
         /** @var Builder<Event> $query */
-        $query = app(EventScheduleQuery::class)->institutionEventCardsQuery((string) $institution->id);
+        $query = app(EventOrmPort::class)->institutionEventCardsQuery((string) $institution->id);
 
         return $query;
     }

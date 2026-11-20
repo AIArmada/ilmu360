@@ -9,7 +9,7 @@ use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\EntryPoints\Filament\Forms\InstitutionContributionFormSchema;
-use App\Features\DonationChannels\Api\DonationQrMedia;
+use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;

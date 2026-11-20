@@ -7,7 +7,7 @@ namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventAttendance;
 use AIArmada\Events\Models\EventRegistrationParticipant;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
@@ -775,7 +775,7 @@ final class Participants extends Component
 
     private function selectedEvent(): Event
     {
-        $event = app(EventScheduleQuery::class)->findEvent($this->eventId);
+        $event = app(EventOrmPort::class)->findEvent($this->eventId);
 
         if (! $event instanceof Event) {
             throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);

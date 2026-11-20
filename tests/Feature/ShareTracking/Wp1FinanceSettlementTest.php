@@ -9,7 +9,7 @@ use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\PaidConversion;
 use AIArmada\Affiliates\States\ReversedConversion;
 use App\Features\Events\Models\Event;
-use App\Features\ShareTracking\Api\ShareTrackingFinance;
+use App\Features\ShareTracking\Api\Orm\ShareTrackingFinance;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\Events\Api\EventContributionStateMapper;
+use App\Features\Events\Api\Orm\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;

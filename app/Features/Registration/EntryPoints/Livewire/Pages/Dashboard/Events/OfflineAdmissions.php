@@ -13,7 +13,7 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\Enums\OfflineAdmissionPaymentMethod;
@@ -636,7 +636,7 @@ final class OfflineAdmissions extends Component
 
     private function selectedEvent(): Event
     {
-        $event = app(EventScheduleQuery::class)->findEvent($this->eventId);
+        $event = app(EventOrmPort::class)->findEvent($this->eventId);
 
         if (! $event instanceof Event) {
             throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);

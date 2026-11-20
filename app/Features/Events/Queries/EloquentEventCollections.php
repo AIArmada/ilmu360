@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\EventCollections;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Platform\Api\Frontend\SearchPayloadTransformer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -22,7 +22,7 @@ final readonly class EloquentEventCollections implements EventCollections
     public function __construct(
         private EventListPayloads $eventListPayloads,
         private EventScheduleSql $eventScheduleSql,
-        private ReferenceQueries $referenceQueries,
+        private ReferenceOrmPort $referenceQueries,
         private SearchPayloadTransformer $searchPayloadTransformer,
     ) {}
 

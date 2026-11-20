@@ -329,7 +329,8 @@ try {
         $shared = str_starts_with($relative, 'app/Shared/');
         // A feature's published contract is Features/X/Api/**. Transport
         // folders such as EntryPoints/Api/Admin are adapters, not public API.
-        $public = $sourceFeature && preg_match('~^app/Features/[^/]+/Api/~', $relative) === 1;
+        $public = $sourceFeature && preg_match('~^app/Features/[^/]+/Api/~', $relative) === 1
+            && ! str_contains($relative, '/Api/Orm/');
         $models = $sourceFeature && str_contains($relative, '/Models/');
         // Framework composition roots bind concrete owners; they are not
         // reusable business modules and may name any canonical feature class.
@@ -339,6 +340,65 @@ try {
             || str_starts_with($relative, 'app/Providers/')
             || str_starts_with($relative, 'app/Models/');
         $expectedClass = 'App\\'.str_replace('/', '\\', substr($relative, 4, -4));
+
+        if ($public) {
+            $contractSource = file_get_contents($path);
+
+            if (is_string($contractSource)) {
+                $modelLeakPatterns = [
+                    '/App\\\\Features\\\\[A-Za-z]+\\\\Models\\\\/',
+                    '/Illuminate\\\\Database\\\\Eloquent\\\\/',
+                    '/Illuminate\\\\Contracts\\\\Pagination\\\\/',
+                    '/Illuminate\\\\Support\\\\Collection/',
+                    '/\bBuilder\b/',
+                ];
+
+                foreach ($modelLeakPatterns as $modelLeakPattern) {
+                    if (preg_match($modelLeakPattern, $contractSource) === 1) {
+                        $report('api-model-leak', $relative, 1, 'model/eloquent', 'Ordinary Api contracts must return scalar/card/read-model values; move ORM-shaped signatures to Api/Orm.');
+                        break;
+                    }
+                }
+            }
+
+            foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassMethod::class) as $method) {
+                $returnType = $method->returnType instanceof Node\NullableType ? $method->returnType->type : $method->returnType;
+                $returnName = $returnType instanceof Node\Identifier
+                    ? strtolower($returnType->toString())
+                    : ($returnType instanceof Node\Name ? strtolower($returnType->toString()) : null);
+
+                if ($returnName === 'object') {
+                    $report('api-opaque-return', $relative, $method->getStartLine(), $returnName, 'Return a concrete immutable value or move model/builder-shaped methods to Api/Orm.');
+                }
+
+                foreach ($method->params as $parameter) {
+                    $paramType = $parameter->type instanceof Node\NullableType ? $parameter->type->type : $parameter->type;
+                    $paramName = $paramType instanceof Node\Identifier
+                        ? strtolower($paramType->toString())
+                        : ($paramType instanceof Node\Name ? strtolower($paramType->toString()) : null);
+
+                    if ($paramName !== 'object') {
+                        continue;
+                    }
+
+                    if ($parameter->var instanceof Node\Expr\Variable
+                        && $parameter->var->name === 'request') {
+                        continue;
+                    }
+
+                    $report('api-opaque-param', $relative, $parameter->getStartLine(), (string) $paramName, 'Pass scalar ids or immutable values; move model/builder-shaped parameters to Api/Orm.');
+                }
+            }
+        }
+
+        if ($sourceFeature && str_contains($relative, '/Api/Orm/')) {
+            $ormSource = file_get_contents($path);
+
+            if (is_string($ormSource)
+                && (preg_match('/@internal\b/', $ormSource) !== 1 || preg_match('/Consumers:/', $ormSource) !== 1)) {
+                $report('orm-port-contract', $relative, 1, 'Api/Orm', 'Every Api/Orm port must document @internal and its Consumers: list.');
+            }
+        }
 
         foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassLike::class) as $class) {
             if ($sourceFeature && $class->name !== null) {
@@ -410,6 +470,36 @@ try {
             }
         };
 
+        $foreignModelVars = [];
+        if ($sourceFeature && ! $models) {
+            foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassMethod::class) as $foreignMethod) {
+                foreach ($foreignMethod->params as $foreignParam) {
+                    if (! $foreignParam->type instanceof Node\Name || ! $foreignParam->var instanceof Node\Expr\Variable || ! is_string($foreignParam->var->name)) {
+                        continue;
+                    }
+                    $foreignType = ltrim($foreignParam->type->toString(), '\\');
+                    $foreignOwner = $featureOf($foreignType);
+                    if ($foreignOwner !== null && $foreignOwner !== $sourceFeature && str_contains($foreignType, '\\Models\\')) {
+                        $foreignModelVars[$foreignParam->var->name] = $foreignType;
+                    }
+                }
+            }
+            foreach ($finder->findInstanceOf($ast, Node\Stmt\Property::class) as $foreignProperty) {
+                if (! $foreignProperty->type instanceof Node\Name) {
+                    continue;
+                }
+                $foreignType = ltrim($foreignProperty->type->toString(), '\\');
+                $foreignOwner = $featureOf($foreignType);
+                if ($foreignOwner === null || $foreignOwner === $sourceFeature || ! str_contains($foreignType, '\\Models\\')) {
+                    continue;
+                }
+                foreach ($foreignProperty->props as $foreignProp) {
+                    $foreignModelVars['this->'.$foreignProp->name->toString()] = $foreignType;
+                }
+            }
+        }
+        $foreignMutationMethods = ['save', 'update', 'delete', 'forceDelete', 'restore', 'increment', 'decrement', 'push', 'create', 'insert', 'updateOrCreate', 'firstOrCreate', 'associate', 'dissociate', 'attach', 'detach', 'sync', 'syncWithoutDetaching', 'toggle', 'fill'];
+
         foreach ($finder->find($ast, static fn (Node $node): bool => true) as $node) {
             if ($node instanceof Node\Stmt\Use_) {
                 foreach ($node->uses as $use) {
@@ -449,6 +539,32 @@ try {
                     } else {
                         $report('foreign-model-domain-operation', $relative, $node->getStartLine(), $constructed, 'Cross-owner Eloquent models cannot be constructed directly; use the owning feature Action.');
                     }
+                }
+            }
+            if ($node instanceof Node\Expr\FuncCall && $node->name instanceof Node\Name
+                && in_array(strtolower($node->name->toString()), ['app', 'resolve'], true)
+                && isset($node->args[0]) && $node->args[0] instanceof Node\Arg
+                && $node->args[0]->value instanceof Node\Expr\ClassConstFetch
+                && $node->args[0]->value->class instanceof Node\Name) {
+                $resolved = $node->args[0]->value->class->getAttribute('resolvedName');
+                $resolvedClass = ltrim($resolved instanceof Node\Name ? $resolved->toString() : $node->args[0]->value->class->toString(), '\\');
+                $resolvedFeature = $featureOf($resolvedClass);
+                if ($sourceFeature && $resolvedFeature && $resolvedFeature !== $sourceFeature && str_contains($resolvedClass, '\\Models\\')) {
+                    $report('foreign-model-domain-operation', $relative, $node->getStartLine(), $resolvedClass, 'Resolve foreign Eloquent models through the owning feature Api, not the container.');
+                }
+            }
+            if ($node instanceof Node\Expr\MethodCall && $node->name instanceof Node\Identifier
+                && in_array(strtolower($node->name->toString()), $foreignMutationMethods, true)) {
+                $variableKey = null;
+                if ($node->var instanceof Node\Expr\Variable && is_string($node->var->name)) {
+                    $variableKey = $node->var->name;
+                } elseif ($node->var instanceof Node\Expr\PropertyFetch
+                    && $node->var->var instanceof Node\Expr\Variable && $node->var->var->name === 'this'
+                    && $node->var->name instanceof Node\Identifier) {
+                    $variableKey = 'this->'.$node->var->name->toString();
+                }
+                if ($variableKey !== null && isset($foreignModelVars[$variableKey])) {
+                    $report('foreign-model-domain-operation', $relative, $node->getStartLine(), $foreignModelVars[$variableKey], 'Foreign Eloquent model mutations belong in the owning feature Action.');
                 }
             }
             if ($models && $node instanceof Node\Stmt\PropertyProperty && $node->name->toString() === 'table'

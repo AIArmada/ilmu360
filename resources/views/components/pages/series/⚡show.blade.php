@@ -2,7 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\EventPageSchedule;
+use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
 use App\Shared\Auth\IntendedRedirect;
@@ -132,7 +132,7 @@ new
          */
         protected function eventPageData(): array
         {
-            return $this->eventPageDataCache ??= app(EventPageSchedule::class)->forQuery(
+            return $this->eventPageDataCache ??= app(EventPageScheduleOrmPort::class)->forQuery(
                 $this->eventPageBaseQuery(),
                 $this->eventPageEagerLoads(),
                 $this->eventPageUpcomingLimit(),

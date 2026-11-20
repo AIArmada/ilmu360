@@ -8,17 +8,17 @@ use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpace;
 use App\Features\Events\Api\Enums\EventChangeType;
-use App\Features\Events\Api\EventCategoryPayloads;
 use App\Features\Events\Api\EventChangeSeverity;
+use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Services\ShareCards\ShareCardService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\Api\SpaceLocation;
+use App\Features\Places\Api\Orm\SpaceLocation;
 use App\Features\Prayer\Api\PrayerOffset;
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\References\Models\Reference;
 use App\Platform\Language\Models\Language;
 use App\Platform\Location\AddressHierarchyFormatter;
@@ -48,7 +48,7 @@ class EventPayloadData extends Data
 
     public static function fromModel(Event $event): self
     {
-        $referenceQueries = app(ReferenceQueries::class);
+        $referenceQueries = app(ReferenceOrmPort::class);
         $referenceModelClass = $referenceQueries->referenceModelClass();
 
         $event->loadMissing([

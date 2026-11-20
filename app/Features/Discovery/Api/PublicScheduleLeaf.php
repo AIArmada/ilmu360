@@ -32,24 +32,6 @@ interface PublicScheduleLeaf
     public function endsAt(): ?CarbonInterface;
 
     /**
-     * Hydrated owner event model. Narrow to the owner event type before
-     * reading relations.
-     */
-    public function event(): object;
-
-    /**
-     * Hydrated package occurrence model.
-     */
-    public function occurrence(): object;
-
-    /**
-     * Hydrated session models.
-     *
-     * @return iterable<int, object>
-     */
-    public function sessions(): iterable;
-
-    /**
      * Rebuild this leaf with the given session subset, preserving order.
      *
      * @param  list<string>  $sessionIds

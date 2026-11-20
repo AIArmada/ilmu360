@@ -6,7 +6,7 @@ namespace App\Features\Events\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Events\Api\PublicScheduleEligibility;
+use App\Features\Events\Api\Orm\PublicScheduleEligibility;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 
 /**

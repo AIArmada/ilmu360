@@ -120,7 +120,7 @@
     };
 
     $eventTypeLabels = collect($asList($get('event_category_ids')))
-        ->map(fn (string $id): string => app(\App\Features\Events\Api\EventCategoryCatalog::class)->options()[$id] ?? $id)
+        ->map(fn (string $id): string => app(\App\Features\Events\Api\Orm\EventCategoryCatalog::class)->options()[$id] ?? $id)
         ->all();
 
     $prayerTimeState = $get('prayer_time');

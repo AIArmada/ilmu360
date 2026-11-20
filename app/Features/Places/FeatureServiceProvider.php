@@ -6,8 +6,8 @@ namespace App\Features\Places;
 
 use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\InstitutionSpaceLinks;
+use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Api\PlaceCatalog;
-use App\Features\Places\Api\PlaceLookup;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\Api\VenueWorkflow;

@@ -14,7 +14,6 @@ use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
 use App\Platform\Api\Frontend\Data\CountryData;
 use Illuminate\Database\Eloquent\Builder;
-use InvalidArgumentException;
 
 final readonly class PersonCardsQuery implements PersonCards
 {
@@ -23,17 +22,51 @@ final readonly class PersonCardsQuery implements PersonCards
         private SubjectFollows $follows,
     ) {}
 
-    public function forPerson(object $person, ?string $accountId = null): array
+    public function forIds(array $personIds, ?string $accountId = null): array
     {
-        if (! $person instanceof Person) {
-            throw new InvalidArgumentException('Person cards require a person model.');
+        $personIds = array_values(array_unique(array_filter(
+            $personIds,
+            static fn (string $personId): bool => $personId !== '',
+        )));
+
+        if ($personIds === []) {
+            return [];
         }
 
-        $attributes = $person->getAttributes();
-        $isFollowing = array_key_exists('is_following', $attributes)
-            ? (bool) $attributes['is_following']
-            : ($accountId !== null
-                && $this->follows->followStateFor($accountId, EngagementSubjectType::Person, (string) $person->id)->isFollowing);
+        $followingIds = $accountId !== null
+            ? $this->follows->followedSubjectIds($accountId, EngagementSubjectType::Person)
+            : [];
+
+        return Person::query()
+            ->active()
+            ->withCount(['events' => $this->publicEventCountScope(...)])
+            ->with(['media', 'addresses'])
+            ->whereIn('persons.id', $personIds)
+            ->get()
+            ->mapWithKeys(fn (Person $person): array => [
+                (string) $person->id => $this->toArray(
+                    $person,
+                    in_array((string) $person->id, $followingIds, true),
+                ),
+            ])
+            ->all();
+    }
+
+    public function forId(string $personId, ?string $accountId = null): ?array
+    {
+        $person = Person::query()
+            ->active()
+            ->withCount(['events' => $this->publicEventCountScope(...)])
+            ->with(['media', 'addresses'])
+            ->whereKey($personId)
+            ->first();
+
+        if (! $person instanceof Person) {
+            return null;
+        }
+
+        $isFollowing = $accountId !== null
+            && $this->follows->followStateFor($accountId, EngagementSubjectType::Person, $personId)->isFollowing;
 
         return $this->toArray($person, $isFollowing);
     }
@@ -55,14 +88,7 @@ final readonly class PersonCardsQuery implements PersonCards
 
         $items = Person::query()
             ->active()
-            ->withCount(['events' => function (Builder $query): void {
-                $query
-                    ->whereNotNull('events.published_at')
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->whereHas('occurrences')
-                    ->where('events.starts_at', '>=', now());
-            }])
+            ->withCount(['events' => $this->publicEventCountScope(...)])
             ->with(['media', 'addresses'])
             ->whereIn('persons.id', $personIds)
             ->orderBy('name')
@@ -75,6 +101,19 @@ final readonly class PersonCardsQuery implements PersonCards
             ->all();
 
         return ['items' => $items, 'total' => count($personIds)];
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     */
+    private function publicEventCountScope(Builder $query): void
+    {
+        $query
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereHas('occurrences')
+            ->where('events.starts_at', '>=', now());
     }
 
     /**

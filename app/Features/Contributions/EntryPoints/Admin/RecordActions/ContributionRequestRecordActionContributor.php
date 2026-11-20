@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\EntryPoints\Admin\RecordActions;
 
-use App\Features\Contributions\Api\AdminContributionRequestReview;
+use App\Features\Contributions\Api\Orm\AdminContributionRequestReview;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\BuildsWorkflowActionDescriptors;
 use App\Platform\Api\Admin\Contracts\RecordActionContributor;

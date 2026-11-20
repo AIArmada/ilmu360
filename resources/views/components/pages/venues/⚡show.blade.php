@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Events\Api\EventPageSchedule;
+use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,7 +50,7 @@ new class extends Component
      */
     protected function eventPageData(): array
     {
-        return $this->eventPageDataCache ??= app(EventPageSchedule::class)->forQuery(
+        return $this->eventPageDataCache ??= app(EventPageScheduleOrmPort::class)->forQuery(
             $this->eventPageBaseQuery(),
             $this->eventPageEagerLoads(),
             $this->eventPageUpcomingLimit(),

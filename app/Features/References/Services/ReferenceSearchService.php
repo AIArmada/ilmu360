@@ -4,7 +4,7 @@ namespace App\Features\References\Services;
 
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\References\Enums\ReferenceContributorRole;
-use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Models\Reference;
 use App\Features\References\Support\ReferenceScopedSearch;

@@ -5,13 +5,12 @@ namespace App\Features\References\EntryPoints\Livewire\Pages;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventOccurrence;
-use App\Features\Discovery\Api\PublicScheduleLeaf as PublicScheduleLeafContract;
+use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf as PublicScheduleLeafContract;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\EventSchedulePageData;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\References\Api\ReferenceQueries;
@@ -268,7 +267,7 @@ class Show extends Component
         $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
 
         /** @var EventBuilder $query */
-        $query = app(EventScheduleQuery::class)->referenceEventsQuery($referenceIds, $addressRelations);
+        $query = app(EventOrmPort::class)->referenceEventsQuery($referenceIds, $addressRelations);
 
         return $query;
     }
@@ -285,10 +284,6 @@ class Show extends Component
             ->map(function (PublicScheduleLeafContract $leaf) use ($referenceIds): ?PublicScheduleLeafContract {
                 $event = $leaf->event();
                 $occurrence = $leaf->occurrence();
-
-                if (! $event instanceof Event || ! $occurrence instanceof EventOccurrence) {
-                    return null;
-                }
 
                 if ($event->references->contains(fn (Reference $reference): bool => in_array((string) $reference->getKey(), $referenceIds, true))) {
                     return $leaf;

@@ -1,0 +1,22 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\ShareTracking\Api\Orm;
+
+/**
+ * Read scope for guest share profiles that were actively claimed.
+ *
+ * Revoked claims are excluded so detached history is never readable.
+ *
+ * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
+ *
+ * Consumers: Providers/AppServiceProvider.php, Rewards/Queries, ShareTracking/Services
+ */
+interface GuestClaimScope
+{
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<\AIArmada\Affiliates\Models\AffiliateClaim>
+     */
+    public function guestClaims();
+}

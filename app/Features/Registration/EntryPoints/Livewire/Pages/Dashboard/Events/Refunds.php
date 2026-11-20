@@ -7,7 +7,7 @@ namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 use AIArmada\Orders\Enums\PaymentStatus as OrderPaymentStatus;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderPayment;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Models\Registration;
@@ -215,7 +215,7 @@ final class Refunds extends Component
 
     private function selectedEvent(): Event
     {
-        $event = app(EventScheduleQuery::class)->findEvent($this->eventId);
+        $event = app(EventOrmPort::class)->findEvent($this->eventId);
 
         if (! $event instanceof Event) {
             throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);

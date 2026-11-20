@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Reports;
 
-use App\Features\Reports\Api\AdminReportTriage;
 use App\Features\Reports\Api\Frontend\ReportFormContractContributor;
-use App\Features\Reports\Api\ReportAdminContract;
+use App\Features\Reports\Api\Orm\AdminReportTriage;
+use App\Features\Reports\Api\Orm\ReportAdminContract;
 use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSubjectResolver;

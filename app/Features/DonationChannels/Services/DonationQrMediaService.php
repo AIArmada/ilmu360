@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\DonationChannels\Services;
 
-use App\Features\DonationChannels\Api\DonationQrMedia;
+use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Ui\Forms\DonationQrUploads;

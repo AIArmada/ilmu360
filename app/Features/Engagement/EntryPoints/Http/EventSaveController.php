@@ -8,7 +8,7 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventSaveCommands;
 use App\Features\Engagement\EntryPoints\Http\Data\EventEngagementListItemData;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Models\Event;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -23,7 +23,7 @@ use Illuminate\Support\Str;
 class EventSaveController extends Controller
 {
     public function __construct(
-        private readonly EventScheduleQuery $events,
+        private readonly EventScheduleReads $events,
     ) {}
 
     /**

@@ -1,0 +1,1840 @@
+{
+  "DELETE /events/{event}/going 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "message": {
+              "enum": [
+                "Going removed successfully.",
+                "Event was not marked as going."
+              ],
+              "type": "string"
+            },
+            "meta": {
+              "properties": {
+                "request_id": {
+                  "type": [
+                    "string",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "request_id"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "message",
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "DELETE /events/{event}/saved 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "message": {
+              "enum": [
+                "Event save removed successfully.",
+                "Event was not saved."
+              ],
+              "type": "string"
+            },
+            "meta": {
+              "properties": {
+                "request_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "request_id"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "message",
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /admin/{resourceKey} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "items": {},
+              "type": "array"
+            },
+            "meta": {
+              "properties": {
+                "pagination": {
+                  "properties": {
+                    "has_more": {
+                      "type": "boolean"
+                    },
+                    "next_page": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "page",
+                    "per_page",
+                    "total",
+                    "has_more",
+                    "next_page"
+                  ],
+                  "type": "object"
+                },
+                "resource": {
+                  "type": "object"
+                },
+                "search": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "resource",
+                "search",
+                "pagination"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /admin/{resourceKey}/meta 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "resource": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "resource"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /admin/{resourceKey}/schema 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "resource": {
+                  "type": "object"
+                },
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              },
+              "required": [
+                "resource",
+                "schema"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /admin/{resourceKey}/{recordKey} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "record": {
+                  "properties": {
+                    "abilities": {
+                      "properties": {
+                        "delete": {
+                          "type": "boolean"
+                        },
+                        "edit": {
+                          "type": "boolean"
+                        },
+                        "force_delete": {
+                          "type": "string"
+                        },
+                        "replicate": {
+                          "type": "string"
+                        },
+                        "restore": {
+                          "type": "string"
+                        },
+                        "view": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "view",
+                        "edit",
+                        "delete",
+                        "force_delete",
+                        "restore",
+                        "replicate"
+                      ],
+                      "type": "object"
+                    },
+                    "attributes": {
+                      "type": "string"
+                    },
+                    "panel_routes": {
+                      "properties": {
+                        "edit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "view": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "view",
+                        "edit"
+                      ],
+                      "type": "object"
+                    },
+                    "route_key": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "route_key",
+                    "title",
+                    "attributes",
+                    "abilities",
+                    "panel_routes"
+                  ],
+                  "type": "object"
+                },
+                "resource": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "resource",
+                "record"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /admin/{resourceKey}/{recordKey}/relations/{relation} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "items": {},
+              "type": "array"
+            },
+            "meta": {
+              "properties": {
+                "pagination": {
+                  "properties": {
+                    "has_more": {
+                      "type": "boolean"
+                    },
+                    "next_page": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "page",
+                    "per_page",
+                    "total",
+                    "has_more",
+                    "next_page"
+                  ],
+                  "type": "object"
+                },
+                "parent_record": {
+                  "properties": {
+                    "abilities": {
+                      "properties": {
+                        "delete": {
+                          "type": "boolean"
+                        },
+                        "edit": {
+                          "type": "boolean"
+                        },
+                        "force_delete": {
+                          "type": "string"
+                        },
+                        "replicate": {
+                          "type": "string"
+                        },
+                        "restore": {
+                          "type": "string"
+                        },
+                        "view": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "view",
+                        "edit",
+                        "delete",
+                        "force_delete",
+                        "restore",
+                        "replicate"
+                      ],
+                      "type": "object"
+                    },
+                    "attributes": {
+                      "type": "string"
+                    },
+                    "panel_routes": {
+                      "properties": {
+                        "edit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "view": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "view",
+                        "edit"
+                      ],
+                      "type": "object"
+                    },
+                    "route_key": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "route_key",
+                    "title",
+                    "attributes",
+                    "abilities",
+                    "panel_routes"
+                  ],
+                  "type": "object"
+                },
+                "relation": {
+                  "properties": {
+                    "method": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "related_model_class": {
+                      "type": "string"
+                    },
+                    "related_resource": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "method",
+                    "related_model_class",
+                    "related_resource"
+                  ],
+                  "type": "object"
+                },
+                "resource": {
+                  "type": "object"
+                },
+                "search": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "resource",
+                "parent_record",
+                "relation",
+                "search",
+                "pagination"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /events/{event}/me 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "meta": {
+              "properties": {
+                "request_id": {
+                  "type": [
+                    "string",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "request_id"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /institution-workspace 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "can_manage_members": {
+                  "type": "boolean"
+                },
+                "event_filters": {
+                  "properties": {
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "search": {
+                      "type": "string"
+                    },
+                    "sort": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "visibility": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "search",
+                    "status",
+                    "visibility",
+                    "sort",
+                    "per_page"
+                  ],
+                  "type": "object"
+                },
+                "events": {
+                  "items": {
+                    "properties": {
+                      "id": {},
+                      "registrations_count": {
+                        "type": "integer"
+                      },
+                      "slug": {
+                        "type": "string"
+                      },
+                      "starts_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "venue": {
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "visibility": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "slug",
+                      "status",
+                      "visibility",
+                      "starts_at",
+                      "registrations_count",
+                      "venue"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "institution_role_options": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "institutions": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "members": {
+                  "items": {
+                    "properties": {
+                      "email": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "has_protected_role": {
+                        "type": "boolean"
+                      },
+                      "id": {},
+                      "is_owner": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "role_ids": {},
+                      "roles": {}
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "email",
+                      "roles",
+                      "role_ids",
+                      "is_owner",
+                      "has_protected_role"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "selected_institution": {
+                  "properties": {
+                    "display_name": {
+                      "type": "string"
+                    },
+                    "events_count": {
+                      "type": "integer"
+                    },
+                    "id": {},
+                    "internal_events_count": {},
+                    "name": {
+                      "type": "string"
+                    },
+                    "public_events_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "display_name",
+                    "events_count",
+                    "public_events_count",
+                    "internal_events_count"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "institutions",
+                "selected_institution",
+                "events",
+                "event_filters",
+                "members",
+                "can_manage_members",
+                "institution_role_options"
+              ],
+              "type": "object"
+            },
+            "meta": {
+              "properties": {
+                "events_pagination": {
+                  "properties": {
+                    "last_page": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "page",
+                    "per_page",
+                    "total",
+                    "last_page"
+                  ],
+                  "type": "object"
+                },
+                "members_pagination": {
+                  "properties": {
+                    "last_page": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "page",
+                    "per_page",
+                    "total",
+                    "last_page"
+                  ],
+                  "type": "object"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "events_pagination",
+                "members_pagination",
+                "request_id"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /institutions 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/InstitutionDirectorySparseResponse"
+        }
+      }
+    },
+    "description": "Institution directory response."
+  },
+  "GET /institutions/{institutionKey} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/InstitutionDetailResponse"
+        }
+      }
+    },
+    "description": "Institution detail response."
+  },
+  "GET /me/events/going 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "additionalProperties": {
+                "items": {},
+                "type": "array"
+              },
+              "type": "object"
+            },
+            "meta": {
+              "properties": {
+                "pagination": {
+                  "properties": {
+                    "has_more": {
+                      "type": "boolean"
+                    },
+                    "next_page": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "page",
+                    "per_page",
+                    "has_more",
+                    "next_page"
+                  ],
+                  "type": "object"
+                },
+                "request_id": {
+                  "type": [
+                    "string",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "request_id",
+                "pagination"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /me/events/saved 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "additionalProperties": {
+                "items": {},
+                "type": "array"
+              },
+              "type": "object"
+            },
+            "meta": {
+              "properties": {
+                "pagination": {
+                  "properties": {
+                    "has_more": {
+                      "type": "boolean"
+                    },
+                    "next_page": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "page",
+                    "per_page",
+                    "has_more",
+                    "next_page"
+                  ],
+                  "type": "object"
+                },
+                "request_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "request_id",
+                "pagination"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /persons 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/PersonDirectorySparseResponse"
+        }
+      }
+    },
+    "description": "Person directory response."
+  },
+  "GET /persons/{personKey} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/PersonDetailResponse"
+        }
+      }
+    },
+    "description": "Person detail response."
+  },
+  "GET /references 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ReferenceDirectorySparseResponse"
+        }
+      }
+    },
+    "description": "Reference directory response."
+  },
+  "GET /references/{referenceKey} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "past_events": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "past_total": {
+                  "type": "integer"
+                },
+                "reference": {
+                  "additionalProperties": {},
+                  "type": "object"
+                },
+                "upcoming_events": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "upcoming_total": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "reference",
+                "upcoming_events",
+                "upcoming_total",
+                "past_events",
+                "past_total"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /series/{series} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "past_events": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "past_total": {
+                  "type": "integer"
+                },
+                "series": {
+                  "additionalProperties": {},
+                  "type": "object"
+                },
+                "upcoming_events": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "upcoming_total": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "series",
+                "upcoming_events",
+                "upcoming_total",
+                "past_events",
+                "past_total"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "GET /venues/{venueKey} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "past_events": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "past_total": {
+                  "type": "integer"
+                },
+                "upcoming_events": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "upcoming_total": {
+                  "type": "integer"
+                },
+                "venue": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              },
+              "required": [
+                "venue",
+                "upcoming_events",
+                "upcoming_total",
+                "past_events",
+                "past_total"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "POST /contributions/institutions 201": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "institution": {
+                  "properties": {
+                    "id": {},
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "pending",
+                        "verified",
+                        "rejected",
+                        "inactive"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "slug",
+                    "name",
+                    "status"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "institution"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "const": "Terima kasih. Penyerahan institusi anda telah diterima. Kami akan memaklumkan anda jika ia diluluskan atau ditolak.",
+              "type": "string"
+            },
+            "meta": {
+              "properties": {
+                "request_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "request_id"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "message",
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "POST /contributions/persons 201": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "person": {
+                  "properties": {
+                    "id": {},
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "slug",
+                    "name",
+                    "status"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "person"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "const": "Thank you. Your person submission has been received. We will notify you if it is approved or rejected.",
+              "type": "string"
+            },
+            "meta": {
+              "properties": {
+                "request_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "request_id"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "message",
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "POST /events/{event}/registrations 201": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "meta": {
+              "properties": {
+                "request_id": {
+                  "type": [
+                    "string",
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "request_id"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data",
+            "meta"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "PUT /admin/{resourceKey}/batch 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": {
+            "data": {
+              "properties": {
+                "resource": {
+                  "type": "object"
+                },
+                "results": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "external_row_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "message": {
+                            "const": "Missing required field: record_key.",
+                            "type": "string"
+                          },
+                          "row": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "const": "error",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "status",
+                          "message",
+                          "external_row_id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "external_row_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "message": {
+                            "const": "Insufficient permissions to update this record.",
+                            "type": "string"
+                          },
+                          "record_key": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "row": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "const": "error",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "record_key",
+                          "status",
+                          "message",
+                          "external_row_id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "array"
+                      },
+                      {
+                        "properties": {
+                          "external_row_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "record": {
+                            "properties": {
+                              "abilities": {
+                                "properties": {
+                                  "delete": {
+                                    "type": "boolean"
+                                  },
+                                  "edit": {
+                                    "type": "boolean"
+                                  },
+                                  "force_delete": {
+                                    "type": "string"
+                                  },
+                                  "replicate": {
+                                    "type": "string"
+                                  },
+                                  "restore": {
+                                    "type": "string"
+                                  },
+                                  "view": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "view",
+                                  "edit",
+                                  "delete",
+                                  "force_delete",
+                                  "restore",
+                                  "replicate"
+                                ],
+                                "type": "object"
+                              },
+                              "attributes": {
+                                "type": "string"
+                              },
+                              "panel_routes": {
+                                "properties": {
+                                  "edit": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "view": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "view",
+                                  "edit"
+                                ],
+                                "type": "object"
+                              },
+                              "route_key": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "route_key",
+                              "title",
+                              "attributes",
+                              "abilities",
+                              "panel_routes"
+                            ],
+                            "type": "object"
+                          },
+                          "record_key": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "row": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "const": "updated",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "record_key",
+                          "status",
+                          "record",
+                          "external_row_id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "external_row_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "record_key": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "row": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "const": "not_found",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "record_key",
+                          "status",
+                          "message",
+                          "external_row_id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "errors": {
+                            "type": "string"
+                          },
+                          "external_row_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "record_key": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "row": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "const": "validation_failed",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "record_key",
+                          "status",
+                          "errors",
+                          "external_row_id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "external_row_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "record_key": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "row": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "const": "error",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "record_key",
+                          "status",
+                          "message",
+                          "external_row_id"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                "summary": {
+                  "properties": {
+                    "errors": {
+                      "type": "integer"
+                    },
+                    "not_found": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "updated": {
+                      "type": "integer"
+                    },
+                    "validation_failed": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "updated",
+                    "validation_failed",
+                    "not_found",
+                    "errors"
+                  ],
+                  "type": "object"
+                },
+                "validate_only": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "resource",
+                "validate_only",
+                "results",
+                "summary"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "data"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "description": ""
+  },
+  "PUT /admin/{resourceKey}/{recordKey} 200": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "anyOf": [
+            {
+              "properties": {
+                "data": {
+                  "properties": {
+                    "record": {
+                      "properties": {
+                        "abilities": {
+                          "properties": {
+                            "delete": {
+                              "type": "boolean"
+                            },
+                            "edit": {
+                              "type": "boolean"
+                            },
+                            "force_delete": {
+                              "type": "string"
+                            },
+                            "replicate": {
+                              "type": "string"
+                            },
+                            "restore": {
+                              "type": "string"
+                            },
+                            "view": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "view",
+                            "edit",
+                            "delete",
+                            "force_delete",
+                            "restore",
+                            "replicate"
+                          ],
+                          "type": "object"
+                        },
+                        "attributes": {
+                          "type": "string"
+                        },
+                        "panel_routes": {
+                          "properties": {
+                            "edit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "view": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "view",
+                            "edit"
+                          ],
+                          "type": "object"
+                        },
+                        "route_key": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "route_key",
+                        "title",
+                        "attributes",
+                        "abilities",
+                        "panel_routes"
+                      ],
+                      "type": "object"
+                    },
+                    "resource": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "resource",
+                    "record"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "data"
+              ],
+              "type": "object"
+            },
+            {
+              "properties": {
+                "data": {
+                  "properties": {
+                    "preview": {
+                      "properties": {
+                        "current_record": {
+                          "properties": {
+                            "abilities": {
+                              "properties": {
+                                "delete": {
+                                  "type": "boolean"
+                                },
+                                "edit": {
+                                  "type": "boolean"
+                                },
+                                "force_delete": {
+                                  "type": "string"
+                                },
+                                "replicate": {
+                                  "type": "string"
+                                },
+                                "restore": {
+                                  "type": "string"
+                                },
+                                "view": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "view",
+                                "edit",
+                                "delete",
+                                "force_delete",
+                                "restore",
+                                "replicate"
+                              ],
+                              "type": "object"
+                            },
+                            "attributes": {
+                              "type": "string"
+                            },
+                            "panel_routes": {
+                              "properties": {
+                                "edit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "view": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "view",
+                                "edit"
+                              ],
+                              "type": "object"
+                            },
+                            "route_key": {
+                              "type": "string"
+                            },
+                            "title": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "route_key",
+                            "title",
+                            "attributes",
+                            "abilities",
+                            "panel_routes"
+                          ],
+                          "type": [
+                            "object",
+                            "null"
+                          ]
+                        },
+                        "destructive_media_fields": {
+                          "items": {},
+                          "type": "array"
+                        },
+                        "normalized_payload": {
+                          "additionalProperties": {},
+                          "type": "object"
+                        },
+                        "operation": {
+                          "const": "update",
+                          "type": "string"
+                        },
+                        "validate_only": {
+                          "type": "boolean"
+                        },
+                        "warnings": {
+                          "items": {},
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "validate_only",
+                        "operation",
+                        "current_record",
+                        "normalized_payload",
+                        "warnings",
+                        "destructive_media_fields"
+                      ],
+                      "type": "object"
+                    },
+                    "resource": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "resource",
+                    "preview"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "data"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    "description": ""
+  }
+}

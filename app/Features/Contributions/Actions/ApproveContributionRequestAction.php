@@ -10,10 +10,10 @@ use App\Features\Contributions\Exceptions\ContributionRequestAlreadyReviewedExce
 use App\Features\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Features\Contributions\Support\ContributionRequestNotifier;
-use App\Features\DonationChannels\Api\DonationQrMedia;
+use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
 use App\Features\Events\Api\EventAuthoring;
-use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Api\EventModeration;
+use App\Features\Events\Api\Orm\EventMedia;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;

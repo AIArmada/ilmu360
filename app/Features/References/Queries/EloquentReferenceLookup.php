@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\References\Queries;
 
-use App\Features\Events\Api\EventScheduleQuery;
-use App\Features\References\Api\ReferenceLookup;
+use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\References\Api\Orm\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
 use App\Features\References\Models\Reference;
 use App\Features\Reports\Api\ReportSubject;
@@ -279,7 +279,7 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
 
         return $query->active()
             ->selectSub(
-                app(EventScheduleQuery::class)->publicReferenceEventCountSubquery(),
+                app(EventOrmPort::class)->publicReferenceEventCountSubquery(),
                 'events_count',
             )
             ->with(['media', 'parentReference.parentReference']);

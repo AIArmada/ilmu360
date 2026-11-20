@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
-use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventDiscoveryFilterSet;
 use App\Features\Events\Queries\FuzzyEventMatcher;
 use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Events\Queries\TypesenseEventDiscovery;
-use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Persons\Api\PersonLookup;
-use App\Features\Places\Api\PlaceLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\References\Api\ReferenceQueries;
 use Tests\Support\RecordingEventSearchRelationProvider;
 

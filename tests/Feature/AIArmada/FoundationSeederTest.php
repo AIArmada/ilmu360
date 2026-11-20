@@ -4,7 +4,7 @@ use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
-use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Enums\Terms\DisciplineTermCode;
 use App\Features\Events\Enums\Terms\DomainTermCode;
 use Database\Seeders\AIArmada\FoundationSeeder;

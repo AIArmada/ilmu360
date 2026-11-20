@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\DonationChannels\Api\DonationQrMedia;
-use App\Features\Events\Api\EventMedia;
+use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\Events\Api\Orm\EventMedia;
 use App\Platform\Media\MediaCollectionSync;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;

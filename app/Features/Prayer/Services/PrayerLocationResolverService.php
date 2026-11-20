@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Prayer\Services;
 
 use AIArmada\Addressing\Models\Address;
-use App\Features\Prayer\Api\PrayerLocationResolver;
+use App\Features\Prayer\Api\Orm\PrayerLocationResolver;
 use App\Features\Prayer\Support\PrayerLocation;
 
 /**

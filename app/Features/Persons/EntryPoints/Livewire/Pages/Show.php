@@ -9,8 +9,8 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Features\Discovery\Api\PublicScheduleLeaf as PublicScheduleLeafContract;
-use App\Features\Discovery\Api\PublicScheduleReader;
+use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf as PublicScheduleLeafContract;
+use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
@@ -310,7 +310,7 @@ class Show extends Component
         }
 
         $events = $this->personEventQuery()->reorder()->with('involvements')->get()->unique('id');
-        $leaves = app(PublicScheduleReader::class)->leavesForEvents($events)
+        $leaves = app(PublicScheduleOrmPort::class)->leavesForEvents($events)
             ->map(fn (PublicScheduleLeafContract $leaf): ?PublicScheduleLeafContract => $this->speakerLeafFor($leaf))
             ->filter()
             ->values();
@@ -362,11 +362,7 @@ class Show extends Component
 
         $speakerEvents = new EloquentCollection($upcoming
             ->concat($past)
-            ->map(function (PublicScheduleLeafContract $leaf): ?Event {
-                $event = $leaf->event();
-
-                return $event instanceof Event ? $event : null;
-            })->filter()
+            ->map(fn (PublicScheduleLeafContract $leaf): Event => $leaf->event())
             ->concat($otherEvents)
             ->filter(fn (mixed $event): bool => $event instanceof Event)
             ->unique(fn (Event $event): string => (string) $event->getKey())
@@ -458,10 +454,6 @@ class Show extends Component
     private function speakerLeafFor(PublicScheduleLeafContract $leaf): ?PublicScheduleLeafContract
     {
         $event = $leaf->event();
-
-        if (! $event instanceof Event) {
-            return null;
-        }
 
         $involvements = $event->involvements
             ->filter(fn ($involvement): bool => $involvement->role_code === EventKeyPersonRole::Speaker->value

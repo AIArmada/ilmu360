@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Admin;
 
-use App\Features\Events\Api\AdminEventModeration;
 use App\Features\Events\Api\EventModeration;
+use App\Features\Events\Api\Orm\AdminEventModeration;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Models\User;

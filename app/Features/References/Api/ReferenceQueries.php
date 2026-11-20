@@ -7,17 +7,11 @@ namespace App\Features\References\Api;
 /**
  * Reference query boundary for Events, Discovery and public readers.
  *
- * Query builders are passed opaquely so this contract keeps Laravel runtime
- * types out of the Directory public surface. Implementations preserve the
- * existing published/status visibility contract and two-level family
- * expansion.
+ * Ordinary reads return immutable ids and scalar values. Query-builder
+ * composition lives in the explicit ORM port.
  */
 interface ReferenceQueries
 {
-    public function applyPublicVisibility(mixed $query, ?string $table = null): mixed;
-
-    public function constrainEventReferenceSubtree(mixed $query, string $referenceIdColumn = 'references.id'): mixed;
-
     /**
      * @param  list<string>  $referenceIds
      * @return list<string>

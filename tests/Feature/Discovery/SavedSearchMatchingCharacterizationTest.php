@@ -6,7 +6,7 @@ use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\Discovery\Api\Data\EventSearchPage;
-use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;

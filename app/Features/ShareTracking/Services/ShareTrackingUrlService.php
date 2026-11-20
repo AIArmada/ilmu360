@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Features\Events\Api\EventScheduleQuery;
-use App\Features\Events\Api\SeriesAuthoring;
+use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\Orm\SeriesAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
-use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Api\ReferenceLookup;
+use App\Features\References\Api\Orm\ReferenceLookup;
 use App\Features\References\Models\Reference;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use Illuminate\Http\Request;
@@ -184,7 +184,7 @@ final readonly class ShareTrackingUrlService
         }
 
         if (preg_match('#^/events/([^/]+)$#', $path, $matches) === 1 || preg_match('#^/majlis/([^/]+)$#', $path, $matches) === 1) {
-            $event = app(EventScheduleQuery::class)->findEventBySlug($matches[1]);
+            $event = app(EventOrmPort::class)->findEventBySlug($matches[1]);
 
             if ($event instanceof Event) {
                 return $this->subjectResult(
@@ -616,7 +616,7 @@ final readonly class ShareTrackingUrlService
      */
     private function eventTarget(string $slug): array
     {
-        $event = app(EventScheduleQuery::class)->findEventBySlug($slug);
+        $event = app(EventOrmPort::class)->findEventBySlug($slug);
 
         if (! $event instanceof Event) {
             return $this->subjectResult(

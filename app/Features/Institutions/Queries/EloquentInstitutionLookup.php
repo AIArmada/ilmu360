@@ -6,11 +6,11 @@ namespace App\Features\Institutions\Queries;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\Enums\InstitutionType;
-use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSummary;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Reports\Api\ReportSubject;
@@ -88,7 +88,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         $query = Institution::query()
             ->select('institutions.*')
             ->active()
-            ->selectSub(app(EventScheduleQuery::class)->institutionPublicEventCountSubquery(upcomingOnly: true), 'events_count')
+            ->selectSub(app(EventOrmPort::class)->institutionPublicEventCountSubquery(upcomingOnly: true), 'events_count')
             ->with(['addresses', 'media', 'names']);
 
         if ($institutionIds !== []) {
@@ -121,7 +121,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
 
         $query
             ->active()
-            ->selectSub(app(EventScheduleQuery::class)->institutionPublicEventCountSubquery(), 'events_count')
+            ->selectSub(app(EventOrmPort::class)->institutionPublicEventCountSubquery(), 'events_count')
             ->with(['addresses', 'media', 'names']);
 
         if ($type !== null && InstitutionType::tryFrom($type) instanceof InstitutionType) {

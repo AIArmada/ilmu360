@@ -19,8 +19,8 @@ use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionForm
 use App\Features\Contributions\EntryPoints\Filament\Forms\ReferenceContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\DonationChannels\Api\DonationQrMedia;
-use App\Features\Events\Api\EventContributionStateMapper;
+use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\Events\Api\Orm\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Institutions\Models\Institution;

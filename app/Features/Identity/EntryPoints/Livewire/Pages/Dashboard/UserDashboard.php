@@ -10,24 +10,24 @@ use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\AccountEventFacts;
-use App\Features\Events\Api\EventScheduleQuery;
-use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\Orm\EventSubmissions;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
-use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Api\ReferenceLookup;
+use App\Features\References\Api\Orm\ReferenceLookup;
 use App\Features\References\Models\Reference;
-use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\Rewards\Api\PublishedProgramVersions;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
-use App\Features\ShareTracking\Api\ShareTrackingAnalytics;
+use App\Features\ShareTracking\Api\Orm\ShareTrackingAnalytics;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
@@ -171,7 +171,7 @@ class UserDashboard extends Component
         /** @var Collection<int, Event> $events */
         $events = $ids === []
             ? new Collection
-            : app(EventScheduleQuery::class)->plannerEventsForIds($ids, true);
+            : app(EventOrmPort::class)->plannerEventsForIds($ids, true);
 
         return $this->sortEventsForPlanner($events);
     }
@@ -187,7 +187,7 @@ class UserDashboard extends Component
         /** @var Collection<int, Event> $events */
         $events = $ids === []
             ? new Collection
-            : app(EventScheduleQuery::class)->plannerEventsForIds($ids, false);
+            : app(EventOrmPort::class)->plannerEventsForIds($ids, false);
 
         return $this->sortEventsForPlanner($events);
     }
@@ -270,7 +270,7 @@ class UserDashboard extends Component
             ->all();
 
         /** @var ?Event $event */
-        $event = app(EventScheduleQuery::class)->recommendedPlannerEvent(
+        $event = app(EventOrmPort::class)->recommendedPlannerEvent(
             $excludedEventIds,
             now('UTC')->toIso8601String(),
         );

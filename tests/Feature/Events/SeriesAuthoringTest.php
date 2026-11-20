@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Events\Api\SeriesAuthoring;
+use App\Features\Events\Api\Orm\SeriesAuthoring;
 use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\CreateSeries;
 use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\EditSeries;
 use App\Features\Events\EntryPoints\Filament\Resources\Series\Pages\ListSeries;

@@ -10,7 +10,7 @@ use AIArmada\Affiliates\States\Active;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\ShareTracking\Api\MemberAffiliateProfileResult;
 use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
-use App\Features\ShareTracking\Api\ShareTrackingProfile;
+use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\UserMorphType;
 use Illuminate\Database\Eloquent\Model;

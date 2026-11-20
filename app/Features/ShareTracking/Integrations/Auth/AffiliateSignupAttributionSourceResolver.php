@@ -15,7 +15,7 @@ use App\Features\Identity\Api\SignupAttributionSource;
 use App\Features\Identity\Api\SignupAttributionSourceResolver;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\ShareTracking\Api\Data\ShareTrackingAttributionData;
-use App\Features\ShareTracking\Api\ShareTrackingProfile;
+use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareProfileScope;

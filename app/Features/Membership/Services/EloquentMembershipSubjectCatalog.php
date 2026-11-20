@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
-use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MembershipSubject;
 use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
-use App\Features\Persons\Api\PersonLookup;
-use App\Features\References\Api\ReferenceLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\References\Api\Orm\ReferenceLookup;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
 

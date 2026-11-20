@@ -6,7 +6,7 @@ namespace App\Features\Persons\Queries;
 
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
-use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Api\PersonSummary;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;

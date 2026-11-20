@@ -3,8 +3,8 @@
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\DonationChannels\Api\DonationQrMedia;
-use App\Features\Events\Api\EventMedia;
+use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\Events\Api\Orm\EventMedia;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\EventMediaService;
 use App\Features\Institutions\Models\Institution;

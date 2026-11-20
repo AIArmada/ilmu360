@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Admin\RecordActions;
 
-use App\Features\Events\Api\AdminEventModeration;
+use App\Features\Events\Api\Orm\AdminEventModeration;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\BuildsWorkflowActionDescriptors;
 use App\Platform\Api\Admin\Contracts\RecordActionContributor;

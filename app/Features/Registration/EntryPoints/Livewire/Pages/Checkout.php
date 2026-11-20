@@ -12,8 +12,8 @@ use AIArmada\Events\Enums\EventRegistrationQuestionType;
 use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Api\EventTicketing;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionRegistration;
@@ -191,7 +191,7 @@ final class Checkout extends Component
             $this->validate();
             $this->processing = true;
 
-            $event = app(EventScheduleQuery::class)->findEvent($this->eventId);
+            $event = app(EventOrmPort::class)->findEvent($this->eventId);
 
             if (! $event instanceof Event) {
                 throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);

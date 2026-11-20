@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\Discovery\Queries\EventCardRelationshipProvider;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Discovery\Services\EventSearchService;

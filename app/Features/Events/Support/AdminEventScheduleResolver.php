@@ -7,7 +7,7 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\Prayer\Api\PrayerLocationResolver;
+use App\Features\Prayer\Api\Orm\PrayerLocationResolver;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use BackedEnum;

@@ -9,8 +9,8 @@ use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Events\Api\EventScheduleQuery;
-use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
@@ -89,7 +89,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
             }
 
             $actor = $this->participantUser($registration);
-            $subject = app(EventScheduleQuery::class)->findEvent((string) $registration->event_id);
+            $subject = app(EventOrmPort::class)->findEvent((string) $registration->event_id);
             $effectiveAttributionId = $attributionId;
             $effectiveOccurredAt = $occurredAt ?? $this->fallbackOccurredAt($session, $registration);
 
@@ -209,7 +209,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
 
     private function isScopeCancelled(Registration $registration): bool
     {
-        if (app(EventScheduleQuery::class)->eventStatus((string) $registration->event_id) === 'cancelled') {
+        if (app(EventOrmPort::class)->eventStatus((string) $registration->event_id) === 'cancelled') {
             return true;
         }
 

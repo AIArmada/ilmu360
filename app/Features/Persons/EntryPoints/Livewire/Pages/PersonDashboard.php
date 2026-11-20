@@ -6,7 +6,7 @@ namespace App\Features\Persons\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipCommands;
@@ -320,7 +320,7 @@ final class PersonDashboard extends Component
     /** @return array{total:int,upcoming:int,needs_attention:int} */
     public function eventStats(): array
     {
-        $eventsTable = app(EventScheduleQuery::class)->eventTable();
+        $eventsTable = app(EventOrmPort::class)->eventTable();
         $events = $this->personEventQuery();
 
         return [
@@ -338,7 +338,7 @@ final class PersonDashboard extends Component
     /** @return LengthAwarePaginator<int, Event> */
     public function events(): LengthAwarePaginator
     {
-        $eventsTable = app(EventScheduleQuery::class)->eventTable();
+        $eventsTable = app(EventOrmPort::class)->eventTable();
         $search = trim($this->eventSearch);
 
         $query = $this->personEventQuery()
@@ -542,7 +542,7 @@ final class PersonDashboard extends Component
         // Profile membership grants workspace visibility, including private
         // and draft events. Public-route visibility is handled per event.
         /** @var Builder<Event> $query */
-        $query = app(EventScheduleQuery::class)->personDashboardQuery((string) $personId);
+        $query = app(EventOrmPort::class)->personDashboardQuery((string) $personId);
 
         return $query;
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\EntryPoints\Admin\RecordActions;
 
-use App\Features\Reports\Api\AdminReportTriage;
+use App\Features\Reports\Api\Orm\AdminReportTriage;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\BuildsWorkflowActionDescriptors;

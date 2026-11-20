@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\EntryPoints\Filament\Support;
 
-use App\Features\Membership\Api\Filament\AccountMembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Membership\Api\Orm\Filament\AccountMembershipDirectory;
 use App\Features\Membership\Queries\MemberDirectorySummary;
 use App\Shared\Auth\AccountActor;
 

@@ -10,7 +10,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Support\OwnerScope;
-use App\Features\ShareTracking\Api\ShareTrackingProfile;
+use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
 use App\Features\ShareTracking\Queries\ShareMetricReader;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Support\ShareTrackingMeasurement;

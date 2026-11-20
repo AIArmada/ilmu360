@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Features\ShareTracking\Api\GuestClaimScope;
+use App\Features\ShareTracking\Api\Orm\GuestClaimScope;
 use Illuminate\Database\Eloquent\Builder;
 
 /**

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Queries;
 
-use App\Features\Places\Api\PlaceLookup;
+use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Platform\Models\SlugOrUuidResolver;

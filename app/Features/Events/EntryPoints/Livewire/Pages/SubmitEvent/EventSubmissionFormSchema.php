@@ -6,15 +6,15 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Features\Contributions\Api\SubmissionEntityAccess;
+use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventTaxonomyCode;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Enums\Terms\DomainTermCode;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
@@ -30,7 +30,7 @@ use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Platform\Ui\Forms\Select;
 use App\Shared\Cache\SelectionCatalogCache;
 use Carbon\CarbonInterface;
@@ -799,7 +799,7 @@ final readonly class EventSubmissionFormSchema
                         ->closeOnSelect()
                         ->searchable()
                         ->native(false)
-                        ->relationship('references', 'title', fn (Builder $query) => app(ReferenceQueries::class)->applyPublicVisibility($query)->with('parentReference.parentReference'))
+                        ->relationship('references', 'title', fn (Builder $query) => app(ReferenceOrmPort::class)->applyPublicVisibility($query)->with('parentReference.parentReference'))
                         ->getSearchResultsUsing(fn (string $search): array => app(ReferenceQuickCreate::class)->searchReferenceOptions($search))
                         ->getOptionLabelsUsing(fn (array $values): array => app(ReferenceQuickCreate::class)->selectedReferenceLabels($values))
                         ->createOptionForm(app(ReferenceQuickCreate::class)->quickCreateSections())

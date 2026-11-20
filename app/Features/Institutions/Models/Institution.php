@@ -19,7 +19,7 @@ use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 use App\Features\Institutions\Support\InstitutionFacilities;
 use App\Features\Membership\Models\MemberInvitation;
-use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;

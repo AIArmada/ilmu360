@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\Events\Api\EventPageSchedule;
+use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
 use Carbon\CarbonInterface;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use InvalidArgumentException;
 
-final readonly class EventPageScheduleService implements EventPageSchedule
+final readonly class EventPageScheduleService implements EventPageScheduleOrmPort
 {
     public function forQuery(
         object $baseQuery,

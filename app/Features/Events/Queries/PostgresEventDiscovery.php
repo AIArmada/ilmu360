@@ -13,21 +13,21 @@ use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
-use App\Features\Events\Api\EventCategoryCatalog;
-use App\Features\Events\Api\EventCategoryPayloads;
-use App\Features\Events\Api\EventScheduleQuery;
 use App\Features\Events\Api\EventScheduleSql;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\Orm\EventCategoryPayloads;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\Series;
-use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Persons\Api\PersonLookup;
-use App\Features\Places\Api\PlaceLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
 use BackedEnum;
@@ -43,7 +43,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
-final readonly class PostgresEventDiscovery implements EventDiscoveryReader, EventScheduleQuery
+final readonly class PostgresEventDiscovery implements EventDiscoveryReader, EventOrmPort
 {
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
@@ -54,7 +54,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
 
         private EventCategoryCatalog $categoryCatalog,
         private EventSearchRelationProvider $relationProvider,
-        private ReferenceQueries $referenceQueries,
+        private ReferenceOrmPort $referenceQueries,
     ) {}
 
     /** @return LengthAwarePaginator<int, Event> */

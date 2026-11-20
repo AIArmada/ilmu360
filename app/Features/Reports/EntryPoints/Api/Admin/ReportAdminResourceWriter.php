@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\EntryPoints\Api\Admin;
 
-use App\Features\Reports\Api\ReportAdminContract;
+use App\Features\Reports\Api\Orm\ReportAdminContract;
 use App\Models\User;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;

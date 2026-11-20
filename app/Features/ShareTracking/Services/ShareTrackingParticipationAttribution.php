@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Registration\Api\Data\CheckInSourceFacts;
-use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\ParticipationAttribution;
@@ -153,7 +153,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
 
     private function findEvent(string $eventId): ?Model
     {
-        $event = app(EventScheduleQuery::class)->findEvent($eventId);
+        $event = app(EventOrmPort::class)->findEvent($eventId);
 
         return $event instanceof Model ? $event : null;
     }

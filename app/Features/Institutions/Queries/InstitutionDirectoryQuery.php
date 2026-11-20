@@ -2,7 +2,7 @@
 
 namespace App\Features\Institutions\Queries;
 
-use App\Features\Events\Api\EventScheduleQuery;
+use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +12,7 @@ final readonly class InstitutionDirectoryQuery
 {
     public function __construct(
         private InstitutionSearchService $searchService,
-        private EventScheduleQuery $eventReader,
+        private EventOrmPort $eventReader,
     ) {}
 
     /**

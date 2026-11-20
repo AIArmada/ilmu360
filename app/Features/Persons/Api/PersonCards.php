@@ -7,15 +7,21 @@ namespace App\Features\Persons\Api;
 /**
  * Public person-card payload boundary.
  *
- * Consumers pass a hydrated owner person model and receive the immutable card
- * payload the public HTTP and MCP surfaces serialize.
+ * Ordinary callers pass scalar ids and receive immutable card payloads; the
+ * owner performs the hydration and follow-state lookup.
  */
 interface PersonCards
 {
     /**
-     * @return array<string, mixed>
+     * @param  list<string>  $personIds
+     * @return array<string, array<string, mixed>> Card payloads keyed by person id.
      */
-    public function forPerson(object $person, ?string $accountId = null): array;
+    public function forIds(array $personIds, ?string $accountId = null): array;
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function forId(string $personId, ?string $accountId = null): ?array;
 
     /**
      * Aggregate-search person cards with the owner's public visibility and

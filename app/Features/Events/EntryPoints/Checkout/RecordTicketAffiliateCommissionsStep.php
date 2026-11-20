@@ -9,7 +9,7 @@ use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
-use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Orm\RegistrationLookup;
 use Illuminate\Support\Str;
 use Throwable;
 

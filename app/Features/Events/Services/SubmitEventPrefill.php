@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\Contributions\Api\EntitySubmissionAccessContract;
+use App\Features\Contributions\Api\Orm\EntitySubmissionAccessContract;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
-use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventTaxonomyCode;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\EventSubmissionFormSchema;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Support\SubmissionTimingPolicy;
-use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use BackedEnum;

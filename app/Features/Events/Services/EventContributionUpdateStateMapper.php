@@ -8,7 +8,7 @@ use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\Prayer\Api\PrayerLocationResolver;
+use App\Features\Prayer\Api\Orm\PrayerLocationResolver;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use BackedEnum;

@@ -7,7 +7,7 @@ namespace App\Features\Registration\Queries;
 use App\Features\Registration\Api\Data\CheckInSourceFacts;
 use App\Features\Registration\Api\Data\EventCheckInFacts;
 use App\Features\Registration\Api\Data\EventRegistrationData;
-use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;

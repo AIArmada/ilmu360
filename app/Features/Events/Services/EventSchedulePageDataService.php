@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\Discovery\Api\PublicScheduleLeaf;
-use App\Features\Discovery\Api\PublicScheduleReader;
-use App\Features\Events\Api\EventSchedulePageData;
+use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
+use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Models\Event;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +19,7 @@ use InvalidArgumentException;
  */
 final readonly class EventSchedulePageDataService implements EventSchedulePageData
 {
-    public function __construct(private PublicScheduleReader $schedule) {}
+    public function __construct(private PublicScheduleOrmPort $schedule) {}
 
     public function forQuery(
         object $baseQuery,
@@ -39,19 +39,19 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         $leaves = $this->schedule->leavesForEvents($events);
 
         if ($filterLeaves !== null) {
-            /** @var Collection<int, PublicScheduleLeaf> $leaves */
+            /** @var Collection<int, PublicScheduleModelLeaf> $leaves */
             $leaves = $filterLeaves($leaves);
         }
 
         $now = now();
-        $endInstant = static fn (PublicScheduleLeaf $leaf): ?CarbonInterface => $leaf->endsAt() ?? $leaf->startsAt();
+        $endInstant = static fn (PublicScheduleModelLeaf $leaf): ?CarbonInterface => $leaf->endsAt() ?? $leaf->startsAt();
 
         $upcomingOverall = $leaves
-            ->filter(fn (PublicScheduleLeaf $leaf): bool => ($endInstant($leaf)?->greaterThanOrEqualTo($now)) ?? false)
+            ->filter(fn (PublicScheduleModelLeaf $leaf): bool => ($endInstant($leaf)?->greaterThanOrEqualTo($now)) ?? false)
             ->values();
 
         $upcoming = $upcomingOverall
-            ->filter(static function (PublicScheduleLeaf $leaf) use ($rangeFrom, $rangeTo): bool {
+            ->filter(static function (PublicScheduleModelLeaf $leaf) use ($rangeFrom, $rangeTo): bool {
                 if (! $rangeFrom instanceof CarbonInterface || ! $rangeTo instanceof CarbonInterface) {
                     return true;
                 }
@@ -65,7 +65,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             ->values();
 
         $past = $leaves
-            ->filter(fn (PublicScheduleLeaf $leaf): bool => ($endInstant($leaf)?->lessThan($now)) ?? false)
+            ->filter(fn (PublicScheduleModelLeaf $leaf): bool => ($endInstant($leaf)?->lessThan($now)) ?? false)
             ->reverse()
             ->values();
 

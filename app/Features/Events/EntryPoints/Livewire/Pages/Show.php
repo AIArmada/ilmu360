@@ -10,8 +10,8 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Features\Discovery\Api\PublicScheduleLeaf;
-use App\Features\Discovery\Api\PublicScheduleReader;
+use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
+use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\Api\EventSaveCommands;
@@ -29,12 +29,12 @@ use App\Features\Events\States\EventStatus\EventStatus;
 use App\Features\Events\States\EventStatus\Pending;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\Api\PlaceLookup;
+use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Models\Venue;
-use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
-use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Models\User;
 use App\Platform\Language\Models\Language;
@@ -58,8 +58,8 @@ use Livewire\Component;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
- * @property-read Collection<int, PublicScheduleLeaf> $scheduleLeaves
- * @property-read Collection<int, PublicScheduleLeaf> $siblingScheduleLeaves
+ * @property-read Collection<int, PublicScheduleModelLeaf> $scheduleLeaves
+ * @property-read Collection<int, PublicScheduleModelLeaf> $siblingScheduleLeaves
  */
 #[Layout('layouts.app')]
 #[Title('Event Details')]
@@ -150,7 +150,7 @@ class Show extends Component
                 'series',
                 'references' => function (Relation $query) use ($event): void {
                     if (! $this->isEventOwner($event)) {
-                        app(ReferenceQueries::class)->applyPublicVisibility($query->getQuery());
+                        app(ReferenceOrmPort::class)->applyPublicVisibility($query->getQuery());
                         $query->where(config('events.database.tables.event_references', 'event_references').'.visibility', 'public');
                     }
 
@@ -477,7 +477,7 @@ class Show extends Component
             },
             'references.referenceable' => function (MorphTo $relation): void {
                 $relation->constrain([
-                    app(ReferenceQueries::class)->referenceModelClass() => fn (Builder $query) => app(ReferenceQueries::class)->applyPublicVisibility($query)
+                    app(ReferenceOrmPort::class)->referenceModelClass() => fn (Builder $query) => app(ReferenceOrmPort::class)->applyPublicVisibility($query)
                         ->with(['authors', 'parentReference']),
                 ]);
             },
@@ -709,7 +709,7 @@ class Show extends Component
      * Every public date on the event, shaped as the same schedule cards used
      * by the public directory.
      *
-     * @return Collection<int, PublicScheduleLeaf>
+     * @return Collection<int, PublicScheduleModelLeaf>
      */
     #[Computed]
     public function scheduleLeaves(): Collection
@@ -732,10 +732,10 @@ class Show extends Component
             $venue->loadMissing('addresses.areaAssignments.area');
         }
 
-        $reader = app(PublicScheduleReader::class);
+        $reader = app(PublicScheduleOrmPort::class);
 
         return $occurrences
-            ->map(fn (EventOccurrence $occurrence): PublicScheduleLeaf => $reader->leafFor(
+            ->map(fn (EventOccurrence $occurrence): PublicScheduleModelLeaf => $reader->leafFor(
                 $this->event,
                 $occurrence,
                 $occurrence->sessions
@@ -748,7 +748,7 @@ class Show extends Component
     /**
      * Other public dates of the selected occurrence's own event.
      *
-     * @return Collection<int, PublicScheduleLeaf>
+     * @return Collection<int, PublicScheduleModelLeaf>
      */
     #[Computed]
     public function siblingScheduleLeaves(): Collection
@@ -760,7 +760,7 @@ class Show extends Component
         }
 
         return $this->scheduleLeaves
-            ->reject(fn (PublicScheduleLeaf $leaf): bool => $leaf->id() === (string) $selected->getKey())
+            ->reject(fn (PublicScheduleModelLeaf $leaf): bool => $leaf->id() === (string) $selected->getKey())
             ->take(6)
             ->values();
     }

@@ -7,16 +7,22 @@ namespace App\Features\Institutions\Api;
 /**
  * Public institution-card payload boundary.
  *
- * Consumers pass a hydrated owner institution model (or a person id for
- * affiliation cards) and receive the immutable card payload the public HTTP
- * and MCP surfaces serialize.
+ * Ordinary callers pass scalar ids and receive immutable card payloads; the
+ * owner performs the hydration and follow-state lookup.
  */
 interface InstitutionCards
 {
     /**
-     * @return array<string, mixed>
+     * @param  list<string>  $institutionIds
+     * @param  array<string, float|int|string>  $distances
+     * @return array<string, array<string, mixed>> Card payloads keyed by institution id.
      */
-    public function forInstitution(object $institution, ?string $accountId = null): array;
+    public function forIds(array $institutionIds, ?string $accountId = null, array $distances = []): array;
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function forId(string $institutionId, ?string $accountId = null): ?array;
 
     /**
      * Institution cards for a person's primary affiliations, primary first.

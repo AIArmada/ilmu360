@@ -7,7 +7,7 @@ namespace App\Features\Membership\EntryPoints\Filament\Support;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Membership\Api\Filament\MemberInvitationAccess;
+use App\Features\Membership\Api\Orm\Filament\MemberInvitationAccess;
 use App\Features\Membership\Services\MemberInvitationGate;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;

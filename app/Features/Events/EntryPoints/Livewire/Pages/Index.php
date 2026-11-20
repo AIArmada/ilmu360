@@ -13,8 +13,8 @@ use AIArmada\Events\Models\EventTerm;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
-use App\Features\Discovery\Api\PublicScheduleLeaf;
-use App\Features\Discovery\Api\PublicScheduleReader;
+use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
+use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\EventSaveCommands;
@@ -22,12 +22,12 @@ use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\TimingMode;
-use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Persons\Api\PersonLookup;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\References\Api\ReferenceLookup;
+use App\Features\References\Api\Orm\ReferenceLookup;
 use App\Models\User;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Language\MalaysiaLanguageCatalog;
@@ -330,7 +330,7 @@ class Index extends Component implements HasForms
     /** @var LengthAwarePaginator<int, Event>|null */
     private ?LengthAwarePaginator $eventsForRequest = null;
 
-    /** @var LengthAwarePaginator<int, PublicScheduleLeaf>|null */
+    /** @var LengthAwarePaginator<int, PublicScheduleModelLeaf>|null */
     private ?LengthAwarePaginator $scheduleItemsForRequest = null;
 
     public function boot(): void
@@ -1053,7 +1053,7 @@ class Index extends Component implements HasForms
         $eventIds = [];
 
         foreach ($this->scheduleItems()->items() as $scheduleLeaf) {
-            if ($scheduleLeaf instanceof PublicScheduleLeaf) {
+            if ($scheduleLeaf instanceof PublicScheduleModelLeaf) {
                 $eventIds[] = $scheduleLeaf->eventId();
             }
         }
@@ -1601,7 +1601,7 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return LengthAwarePaginator<int, PublicScheduleLeaf>
+     * @return LengthAwarePaginator<int, PublicScheduleModelLeaf>
      */
     #[Computed]
     public function scheduleItems(): LengthAwarePaginator
@@ -1617,7 +1617,7 @@ class Index extends Component implements HasForms
         $filters = $this->normalizedUrlState();
         $searchFilters = $this->buildSearchFilters($filters);
 
-        $discovery = app(PublicScheduleReader::class);
+        $discovery = app(PublicScheduleOrmPort::class);
 
         return $this->scheduleItemsForRequest = $discovery->search(
             query: $filters['search'],
@@ -1771,7 +1771,7 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return LengthAwarePaginator<int, PublicScheduleLeaf>
+     * @return LengthAwarePaginator<int, PublicScheduleModelLeaf>
      */
     private function emptySchedulePaginator(): LengthAwarePaginator
     {

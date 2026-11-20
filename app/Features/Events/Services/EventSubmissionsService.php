@@ -17,7 +17,7 @@ use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionCategoriesAction;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Api\EventSubmissionInput;
-use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Orm\EventSubmissions;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Support\EventModel;
 use App\Features\Prayer\Api\EventPrayerTime;

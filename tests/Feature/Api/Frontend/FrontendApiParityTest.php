@@ -11,7 +11,7 @@ use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Discovery\Api\EventListPayloads;
+use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -1511,7 +1511,7 @@ it('serializes institution directory payloads with card media aliases for mobile
             ->count()),
     ]);
 
-    $item = app(InstitutionCards::class)->forInstitution($directoryInstitution, (string) $user->getKey());
+    $item = app(InstitutionCards::class)->forId((string) $directoryInstitution->getKey(), (string) $user->getKey());
 
     expect(data_get($item, 'display_name'))->toBe($institution->display_name)
         ->and(data_get($item, 'type'))->toBe('masjid')
@@ -1835,7 +1835,7 @@ it('keeps placeholder institution imagery when no real media exists', function (
 
     expect($directoryInstitution)->not->toBeNull();
 
-    $item = app(InstitutionCards::class)->forInstitution($directoryInstitution);
+    $item = app(InstitutionCards::class)->forId((string) $directoryInstitution->getKey());
 
     expect(data_get($item, 'cover_url'))->toBeNull()
         ->and(data_get($item, 'logo_url'))->toBeString()->toContain('/images/placeholders/institution.png')
@@ -2701,7 +2701,7 @@ it('serializes person directory payloads with country and follow metadata for mo
 
     expect($directoryPerson)->not->toBeNull();
 
-    $item = app(PersonCards::class)->forPerson($directoryPerson, (string) $user->getKey());
+    $item = app(PersonCards::class)->forId((string) $directoryPerson->getKey(), (string) $user->getKey());
 
     expect(data_get($item, 'formatted_name'))->toBe($person->formatted_name)
         ->and(data_get($item, 'gender'))->toBe('male')
