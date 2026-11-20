@@ -236,9 +236,7 @@ The second program closed the gaps identified against the v2 handoff:
   Contributions-owned resolver; the shared interface and Platform registry are
   deleted.
 - **`06 §C` exception gate:** 84 → 62 write exceptions, all package/framework
-  owned; 69 → 1 read adapters. The remaining adapter is
-  `Discovery\EntryPoints\Http\SearchController`, the complete multi-owner
-  directory/detail surface.
+  owned; 69 → **0** read adapters after the controller split.
 - **Validation:** `npm run build` exit 0; Filament admin 100 / ahli 24 resources
   with identical widgets, slugs, navigation, pages and relations; admin/member
   manifests, routes (738), schedule and MCP class sets identical.
@@ -257,10 +255,19 @@ CI hardening after the completion commit:
   architecture 0, PHPStan level 6 0, ownership types 0, Pint clean,
   Rector 0 changes.
 
-Remaining, deliberate:
-1. `Discovery\SearchController` read adapter (needs per-owner directory payload
-   readers).
-2. OpenAPI response-schema inference drift on 17 paths. Runtime payloads are
-   proven unchanged by the API parity suites; the differences come from typed
-   array docblocks/plain DTOs rendering richer schemas than the previous
-   generic ones.
+Completion follow-up (2026-11-20, same wave):
+
+- **Directory/detail split:** `SearchController` went from 1,862 lines to the
+  97-line aggregate-search gateway. Institution, person, reference, venue and
+  series endpoints now live in their owner entrypoints, backed by
+  `InstitutionCards`, `PersonCards`, and `EventCollections` APIs. The
+  `Discovery` gateway calls owner APIs only. `read_adapters` is empty and the
+  architecture gate remains at 0.
+- **Exact OpenAPI:** the published document is canonical-identical to the
+  pre-refactor baseline (152/152 paths, 49/49 schemas, components included).
+  `PublishedContractSchemasContributor` freezes the response shapes Scramble
+  infers more richly after decomposition, without weakening service types or
+  changing runtime payloads.
+- **Parity evidence:** Frontend API 108, entity directory/detail 211, docs 37,
+  search/engagement 265, EventSearch 166; route count 738 with unchanged
+  method/URI/name/middleware and nine intentional handler rewrites.

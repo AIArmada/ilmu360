@@ -97,7 +97,11 @@ final class OperationSchemaPatcher
                 continue;
             }
 
-            return $documentPath->operations[$normalizedMethod] ?? null;
+            $operation = $documentPath->operations[$normalizedMethod] ?? null;
+
+            if ($operation instanceof Operation) {
+                return $operation;
+            }
         }
 
         return null;

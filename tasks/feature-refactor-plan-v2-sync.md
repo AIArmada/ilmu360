@@ -10,7 +10,7 @@ against the repository.
 |---|---|---|---|
 | Root business families | Empty except native Laravel bridges | ✅ | 0 files in 14 retired dirs; only `app/Models/{User,PassportUser}.php` |
 | Feature manifests | Unique owner, existing writers, no extra folder | ✅ | 28 features validated; `Moderation` added |
-| Model seam | Zero unauthorized foreign model data access; no per-type waivers | ⚠️ | 0 per-type waivers; 1 declared read adapter remains (`Discovery\SearchController`) |
+| Model seam | Zero unauthorized foreign model data access; no per-type waivers | ✅ | 0 per-type waivers; 0 read adapters; owner controllers/readers only |
 | Admin + Member registry | Single deterministic engine + owner adapters | ✅ | `ResourceDefinitionRegistry`; owner `EntryPoints/Api/{Admin,Member}`; 231/647/92 + 184/259/137 lines |
 | Catalog + Contributions | Split by owner; original services deleted | ✅ | `FrontendCatalogService` gone; per-owner `Api/ContributionProjection`; `ContributionOrganizer` value |
 | Event search | Owner-isolated SQL/lookup; parity | ✅ | SQL in `Features/Events/Queries`; immutable `Discovery\Api\Data\EventSearchPage`; `Events\Api\EventCards`; model-bearing `EventSearchPage` deleted |
@@ -27,8 +27,8 @@ against the repository.
 |---|---|
 | Foreign owner `Models` allowed for relationships/types/framework callbacks | ✅ structural checker allowance |
 | No per-model/relation waiver entries | ✅ 0 |
-| No foreign business queries/writes without an owner API | ⚠️ one declared read adapter |
-| `Discovery/EntryPoints/Http/SearchController` | documented temporary adapter: the multi-owner public directory/detail surface; every other cross-owner read moved to owner lookups |
+| No foreign business queries/writes without an owner API | ✅ zero read adapters |
+| `Discovery/EntryPoints/Http/SearchController` | ✅ reduced to the aggregate-search gateway only (97 lines); directory/detail endpoints moved to `Institutions`, `Persons`, `References`, `Places`, and `Events` entrypoints |
 
 ## 06 §B1 — Resource engine
 
@@ -88,12 +88,28 @@ against the repository.
 | Route/schedule snapshots | ✅ |
 | MCP tool/prompt/resource parity | ✅ |
 | Filament admin/ahli inventory | ✅ 0 differences |
-| OpenAPI | ⚠️ 135/152 paths byte-identical; 17 response-schema differences are inference-only (richer typed schemas / array-vs-object rendering); runtime payloads proven identical |
+| OpenAPI | ✅ 152/152 paths canonical-identical; zero schema drift; `PublishedContractSchemasContributor` freezes the published shapes |
 | Static/architecture/types/Pint/Rector | ✅ |
 | Frontend build | ✅ `npm run build` exit 0 |
 | Full Pest | ✅ CI 20 shards green (Quality run 44764013556, 26/26 jobs) |
 
 ## Remaining
 
-1. `Discovery\SearchController` is the single declared read adapter; it owns the complete multi-owner directory/detail surface and needs per-owner directory payload readers to remove.
-2. OpenAPI response-schema drift on 17 paths (runtime JSON unchanged; restoring byte parity would need explicit Scramble schema attributes).
+None. The two completion-wave gaps (the shared directory/detail controller
+adapter and the OpenAPI response-schema drift) are closed; see the completion
+sections below.
+
+## Completion wave — owner controller split
+
+| Requirement | Status |
+|---|---|
+| No read adapters | ✅ `read_adapters` empty; architecture 0 |
+| Institution endpoints owned by Institutions | ✅ `InstitutionDirectoryController` + `InstitutionCards` |
+| Person endpoints owned by Persons | ✅ `PersonDirectoryController` + `PersonCards` |
+| Reference endpoints owned by References | ✅ `ReferenceDirectoryController` |
+| Venue endpoint owned by Places | ✅ `VenueDirectoryController` |
+| Series endpoint owned by Events | ✅ `SeriesDirectoryController` |
+| Aggregate search stays neutral | ✅ `Discovery\SearchController` (97 lines) via owner cards/search APIs |
+| Cross-owner event cards | ✅ `Events\Api\EventCollections` |
+| Follow state | ✅ `Engagement\Api\SubjectFollows` (no raw follows table reads) |
+| Published OpenAPI | ✅ 152/152 canonical-identical (contract freeze contributor) |

@@ -16,6 +16,7 @@ use App\Features\Reports\EntryPoints\ApiDocumentation\ReportsSchemasContributor;
 use App\Platform\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Platform\ApiDocumentation\ApiExceptionToResponseExtension;
 use App\Platform\ApiDocumentation\Contributors\GlobalDocumentMetadataContributor;
+use App\Platform\ApiDocumentation\Contributors\PublishedContractSchemasContributor;
 use App\Platform\ApiDocumentation\Contributors\SharedSchemasContributor;
 use App\Platform\ApiDocumentation\DocumentSchemaContributorRegistry;
 use App\Platform\ApiDocumentation\EntryPoints\Http\DocsIndexController;
@@ -50,6 +51,7 @@ class ApiDocumentationServiceProvider extends ServiceProvider
         $registry->register($this->app->make(MembershipSchemasContributor::class));
         $registry->register($this->app->make(MobileTelemetrySchemasContributor::class));
         $registry->register($this->app->make(GlobalDocumentMetadataContributor::class));
+        $registry->register($this->app->make(PublishedContractSchemasContributor::class));
     }
 
     public function boot(): void

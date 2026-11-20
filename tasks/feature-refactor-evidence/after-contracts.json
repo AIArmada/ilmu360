@@ -1,7 +1,19 @@
 {
     "routes": {
         "count": 738,
-        "sha256": "c1e55f7a2afd91883a548a6cc3aa7a592bab80c413da66b7b67aea08ffedbef9"
+        "external_sha256": "81030a7c071cb756f1cd74aae24e37d04a1165fcaa60a6a38e36f666803e6b19",
+        "external_scope": "method, uri, name, middleware (sorted); detached from the internal controller class",
+        "handler_rewrites": {
+            "api.client.institutions.index": "App\\Features\\Institutions\\EntryPoints\\Http\\InstitutionDirectoryController@institutions",
+            "api.client.institutions.near": "App\\Features\\Institutions\\EntryPoints\\Http\\InstitutionDirectoryController@institutionsNear",
+            "api.client.institutions.show": "App\\Features\\Institutions\\EntryPoints\\Http\\InstitutionDirectoryController@showInstitution",
+            "api.client.persons.index": "App\\Features\\Persons\\EntryPoints\\Http\\PersonDirectoryController@persons",
+            "api.client.persons.show": "App\\Features\\Persons\\EntryPoints\\Http\\PersonDirectoryController@showPerson",
+            "api.client.venues.show": "App\\Features\\Places\\EntryPoints\\Http\\VenueDirectoryController@showVenue",
+            "api.client.references.index": "App\\Features\\References\\EntryPoints\\Http\\ReferenceDirectoryController@references",
+            "api.client.references.show": "App\\Features\\References\\EntryPoints\\Http\\ReferenceDirectoryController@showReference",
+            "api.client.series.show": "App\\Features\\Events\\EntryPoints\\Http\\SeriesDirectoryController@showSeries"
+        }
     },
     "schedule": [
         "'/usr/bin/php8.5' 'artisan' communications:dispatch-due @ * * * * *",

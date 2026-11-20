@@ -849,3 +849,22 @@ Review: final commit `554805ec` is CI-green with 26/26 Quality jobs. Architectur
 - [x] Refresh the exception ledger (254 historical rows retired) and the R6 evidence/report.
 
 Review: `tools/architecture.json` now holds only 84 package-owned write exceptions and 69 time-boxed read adapters, with zero `feature-private`, `api-leak` or `platform-direction` entries. Architecture, ownership types, PHPStan L6, Pint and Rector are clean. Six OpenAPI response containers render as arrays rather than Spatie Data objects; runtime JSON is unchanged and proven by the API parity suites.
+
+# Plan-v2 final completion — owner split + OpenAPI freeze (2026-11-20)
+
+- [x] Split the 1,862-line `Discovery\SearchController` into owner entrypoints:
+      Institutions, Persons, References, Places and Events, with a 97-line
+      aggregate-search gateway.
+- [x] Publish `InstitutionCards`, `PersonCards`, and `EventCollections` owner APIs;
+      move `SearchPayloadTransformer` to Platform and `SeriesDetailData` to Events.
+- [x] Remove the final read adapter from `tools/architecture.json`; architecture
+      gate at 0.
+- [x] Restore the published OpenAPI document to canonical byte parity
+      (152/152 paths, 49/49 schemas) through
+      `PublishedContractSchemasContributor`, without changing runtime payloads.
+- [x] Refresh evidence (`after-contracts.json`, `after-openapi.txt`), R6 report and
+      this tracker.
+
+Review: targeted API/entity/docs/search suites green (108 + 211 + 37 + 265 +
+166), route inventory 738 with unchanged external keys, architecture 0,
+PHPStan L6 0, ownership types 0, Pint and Rector clean. CI is the full gate.
