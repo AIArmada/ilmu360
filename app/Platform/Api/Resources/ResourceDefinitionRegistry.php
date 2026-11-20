@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Resources;
 
+use AIArmada\FilamentRewards\Resources\RewardAwardResource\RewardAwardResource;
+use AIArmada\FilamentRewards\Resources\RewardFraudResource\RewardFraudResource;
+use Filament\Resources\Resource;
 use RuntimeException;
 
 /**
@@ -12,10 +15,36 @@ use RuntimeException;
  * Filament permits several resource classes for the same model; those share a
  * public resource key and resolve to the first registered definition, exactly
  * like the legacy ordered discovery. Registering the same definition class for
- * the same surface key twice is still a duplicate-registration error.
+ * the same surface key twice is still a duplicate-registration error, and any
+ * other collision must be declared here explicitly.
  */
 final class ResourceDefinitionRegistry
 {
+    /**
+     * Resource classes that intentionally share a surface key.
+     *
+     * Every entry is [surface, key, first class, second class]. The first class
+     * must be the one Filament discovers first, because the legacy admin API
+     * contract resolves the public key to that definition. The second class is
+     * still discoverable through `all()`/`accessible()` under the same key.
+     *
+     * `RewardFraudResource` is the fraud-stewardship view (gated by the
+     * `reward-fraud-steward` ability) over the `RewardAwardResource` model.
+     * Both classes must keep resolving the same model class;
+     * `FilamentRewardsPlugin` registers `RewardAwardResource` first, so it
+     * remains the public `reward-awards` winner.
+     *
+     * @var list<array{0: ResourceSurface, 1: string, 2: class-string<resource>, 3: class-string<resource>}>
+     */
+    private const array INTENTIONAL_COLLISIONS = [
+        [
+            ResourceSurface::Admin,
+            'reward-awards',
+            RewardAwardResource::class,
+            RewardFraudResource::class,
+        ],
+    ];
+
     /** @var array<string, ResourceDefinition> First definition per surface key. */
     private array $definitions = [];
 
@@ -46,12 +75,19 @@ final class ResourceDefinitionRegistry
     public function register(ResourceDefinition $definition): void
     {
         $key = $this->key($definition->surface(), $definition->key());
-        $identity = $key.'|'.($definition instanceof FilamentBackedResourceDefinition
-            ? $definition->resourceClass()
-            : $definition::class);
+        $identity = $key.'|'.$this->definitionClass($definition);
 
         if (isset($this->registered[$identity])) {
             throw new RuntimeException("Duplicate resource definition: {$key}");
+        }
+
+        if (isset($this->definitions[$key])) {
+            $this->assertIntentionalCollision(
+                $definition->surface(),
+                $definition->key(),
+                $this->definitions[$key],
+                $definition,
+            );
         }
 
         $this->registered[$identity] = true;
@@ -154,6 +190,74 @@ final class ResourceDefinitionRegistry
         );
 
         return array_values($writers);
+    }
+
+    private function assertIntentionalCollision(
+        ResourceSurface $surface,
+        string $key,
+        ResourceDefinition $existing,
+        ResourceDefinition $incoming,
+    ): void {
+        $surfaceKey = $this->key($surface, $key);
+        $existingClass = $this->definitionClass($existing);
+        $incomingClass = $this->definitionClass($incoming);
+        $declared = $this->declaredCollision($surface, $key);
+
+        if ($declared === null) {
+            throw new RuntimeException(
+                "Conflicting resource definitions for {$surfaceKey}: {$existingClass} and {$incomingClass}. "
+                .'Declare the collision in ResourceDefinitionRegistry::INTENTIONAL_COLLISIONS when it is intentional.',
+            );
+        }
+
+        if (! $existing instanceof FilamentBackedResourceDefinition
+            || ! $incoming instanceof FilamentBackedResourceDefinition) {
+            throw new RuntimeException(
+                "Stale intentional collision for {$surfaceKey}: expected Filament-backed "
+                ."{$declared[0]} and {$declared[1]}, got {$existingClass} and {$incomingClass}.",
+            );
+        }
+
+        $existingClass = $existing->resourceClass();
+        $incomingClass = $incoming->resourceClass();
+
+        if ($existingClass::getModel() !== $incomingClass::getModel()) {
+            throw new RuntimeException(
+                "Conflicting resource definitions for {$surfaceKey}: {$existingClass} and {$incomingClass} "
+                ."resolve different models ({$existingClass::getModel()} and {$incomingClass::getModel()}).",
+            );
+        }
+
+        if ($existingClass !== $declared[0] || $incomingClass !== $declared[1]) {
+            throw new RuntimeException(
+                "Stale intentional collision for {$surfaceKey}: expected {$declared[0]} and {$declared[1]}, "
+                ."got {$existingClass} and {$incomingClass}.",
+            );
+        }
+    }
+
+    /**
+     * @return array{0: class-string<resource>, 1: class-string<resource>}|null
+     */
+    private function declaredCollision(ResourceSurface $surface, string $key): ?array
+    {
+        foreach (self::INTENTIONAL_COLLISIONS as $collision) {
+            if ($collision[0] === $surface && $collision[1] === $key) {
+                return [$collision[2], $collision[3]];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return class-string
+     */
+    private function definitionClass(ResourceDefinition $definition): string
+    {
+        return $definition instanceof FilamentBackedResourceDefinition
+            ? $definition->resourceClass()
+            : $definition::class;
     }
 
     private function key(ResourceSurface $surface, string $key): string
