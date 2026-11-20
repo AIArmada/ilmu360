@@ -161,6 +161,8 @@ final readonly class InstitutionDirectoryQuery
 
         return $query
             ->select('institutions.*')
+            ->selectSub($this->eventReader->institutionUpcomingCountSubquery(), 'events_count')
+            ->selectSub($this->eventReader->institutionNextEventIdSubquery(), 'next_event_id')
             ->with([
                 'addresses.state',
                 'addresses.city',
@@ -258,21 +260,23 @@ final readonly class InstitutionDirectoryQuery
             return;
         }
 
-        $institutionIds = collect($institutions)
-            ->map(static fn (Institution $institution): string => (string) $institution->getKey())
+        $nextEventIds = collect($institutions)
+            ->map(static fn (Institution $institution): mixed => $institution->getAttribute('next_event_id'))
+            ->filter()
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->unique()
             ->values()
             ->all();
 
-        $facts = $this->eventReader->institutionDirectoryFacts($institutionIds);
+        $details = $this->nextEventDetails($nextEventIds);
 
         foreach ($institutions as $institution) {
-            $fact = $facts[(string) $institution->getKey()] ?? null;
-            $nextEvent = is_array($fact) ? ($fact['next_event'] ?? null) : null;
+            $detail = $details->get((string) $institution->getAttribute('next_event_id'));
 
-            $institution->setAttribute('events_count', is_array($fact) ? ($fact['events_count'] ?? 0) : 0);
-            $institution->setAttribute('next_event_slug', is_array($nextEvent) ? ($nextEvent['slug'] ?? null) : null);
-            $institution->setAttribute('next_event_title', is_array($nextEvent) ? ($nextEvent['title'] ?? null) : null);
-            $institution->setAttribute('next_event_starts_at', is_array($nextEvent) ? ($nextEvent['starts_at'] ?? null) : null);
+            $institution->setAttribute('next_event_slug', $detail?->getAttribute('slug'));
+            $institution->setAttribute('next_event_title', $detail?->getAttribute('title'));
+            $institution->setAttribute('next_event_starts_at', $detail?->getAttribute('next_event_starts_at'));
+            $institution->offsetUnset('next_event_id');
         }
     }
 
@@ -390,5 +394,24 @@ final readonly class InstitutionDirectoryQuery
     private function emptyPaginator(int $page, array $paginationMeta, int $perPage): LengthAwarePaginator
     {
         return new LengthAwarePaginator(collect(), 0, $perPage, max(1, $page), $paginationMeta);
+    }
+
+    /**
+     * @param  list<string>  $eventIds
+     * @return \Illuminate\Support\Collection<string, \Illuminate\Database\Eloquent\Model>
+     */
+    private function nextEventDetails(array $eventIds): \Illuminate\Support\Collection
+    {
+        if ($eventIds === []) {
+            return collect();
+        }
+
+        $details = $this->eventReader->institutionNextEventDetails($eventIds);
+
+        if (! $details instanceof \Illuminate\Database\Eloquent\Collection) {
+            return collect();
+        }
+
+        return $details->keyBy(static fn (\Illuminate\Database\Eloquent\Model $event): string => (string) $event->getKey());
     }
 }

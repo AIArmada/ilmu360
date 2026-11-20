@@ -1,8 +1,7 @@
-# OpenAPI parity (final HEAD, exception burn-down complete)
+# OpenAPI parity (plan-v2 completion)
 paths: 152
 schemas: 49
-identical_paths: 146/152
-identical_paths_list_excluded: /events/{event}/going, /events/{event}/me, /events/{event}/registrations, /events/{event}/saved, /references/{referenceKey}, /venues/{venueKey}
-reason: response DTOs moved from spatie/laravel-data classes to owner Api values, so Scramble renders those response containers as arrays instead of generic objects.
-runtime_payload_proof: tests/Feature/Api/Frontend/FrontendApiParityTest.php (108 passing) + tests/Feature/Api/Admin/AdminApiTest.php + EventApiContractTest
-full_document_identical: no
+identical_paths: 135/152
+differing_paths: /admin/{resourceKey}, /admin/{resourceKey}/batch, /admin/{resourceKey}/meta, /admin/{resourceKey}/schema, /admin/{resourceKey}/{recordKey}, /admin/{resourceKey}/{recordKey}/relations/{relation}, /contributions/institutions, /contributions/persons, /events/{event}/going, /events/{event}/me, /events/{event}/registrations, /events/{event}/saved, /institution-workspace, /me/events/going, /me/events/saved, /references/{referenceKey}, /venues/{venueKey}
+nature: response-schema inference only (typed array docblocks / plain DTOs render richer schemas than the previous generic objects); request, status, security and runtime JSON unchanged.
+runtime_payload_proof: FrontendApiParityTest (108), AdminApiTest (121), AdminApiMcpParityTest, SavedSearchApiTest, EventSearchTest (166), Mcp AdminServerTest (87)

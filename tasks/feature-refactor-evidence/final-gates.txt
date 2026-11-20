@@ -1,9 +1,10 @@
-# Final gate evidence — HEAD ef48b930 (2026-11-20T08:14:51Z)
+# Final gate evidence — plan-v2 completion
+
+git HEAD: 3a6d4e6c
 
 php tools/architecture-check.php
-0 architecture violation(s); 27 feature(s) checked.
+0 architecture violation(s); 28 feature(s) checked.
 exit=0
 
-## Exception categories
-exceptions 84 {'architecture.writeLocation': 84}
-read_adapters 69
+exceptions 62 {'architecture.writeLocation': 62}
+read_adapters 1 ['app/Features/Discovery/EntryPoints/Http/SearchController.php']

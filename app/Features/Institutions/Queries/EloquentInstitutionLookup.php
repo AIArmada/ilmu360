@@ -27,10 +27,16 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final readonly class EloquentInstitutionLookup implements InstitutionLookup
 {
-    public function __construct(
-        private SlugOrUuidResolver $resolver,
-        private InstitutionSearchService $search,
-    ) {}
+    public function __construct(private SlugOrUuidResolver $resolver) {}
+
+    /**
+     * Resolved lazily so directory/follow reads do not construct the search
+     * services (and their caches) unless a search-specific method is called.
+     */
+    private function search(): InstitutionSearchService
+    {
+        return app(InstitutionSearchService::class);
+    }
 
     public function findInstitutionBySlug(string $slug): ?object
     {
@@ -486,7 +492,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
 
     public function publicSearchIds(string $search): array
     {
-        return $this->search->publicSearchIds($search);
+        return $this->search()->publicSearchIds($search);
     }
 
     public function institutionMorphType(): string

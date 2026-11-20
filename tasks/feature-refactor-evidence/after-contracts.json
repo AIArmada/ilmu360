@@ -316,7 +316,7 @@
         "contribution_request": "App\\Features\\Contributions\\Models\\ContributionRequest",
         "event_registration_participant": "AIArmada\\Events\\Models\\EventRegistrationParticipant",
         "membership_application": "App\\Features\\Membership\\Models\\MembershipApplication",
-        "moderation_review": "App\\Platform\\Moderation\\Models\\ModerationReview",
+        "moderation_review": "App\\Features\\Moderation\\Models\\ModerationReview",
         "media_link": "App\\Features\\Events\\Models\\MediaLink",
         "institution": "App\\Features\\Institutions\\Models\\Institution",
         "institution_name": "App\\Features\\Institutions\\Models\\InstitutionName",

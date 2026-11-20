@@ -80,7 +80,7 @@ it('rehydrates the current default events search cache safely from the database 
     $paginator = $service->search(null, [], 12, 'time');
 
     expect($paginator->total())->toBe(2)
-        ->and(collect($paginator->items())->map(fn (Event $event): string => (string) $event->id)->all())
+        ->and(collect($paginator->items())->map(fn ($event): string => (string) $event->id)->all())
         ->toBe([(string) $firstEvent->id, (string) $secondEvent->id])
         ->and(Cache::get('default_events_search_v2'))->toMatchArray([
             'ids' => [(string) $firstEvent->id, (string) $secondEvent->id],

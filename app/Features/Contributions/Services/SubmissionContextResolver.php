@@ -358,8 +358,10 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      */
     public function resolveTargetLocation(
         array $validated,
-        ContributionOrganizer $primaryOrganizer,
+        object $primaryOrganizer,
     ): array {
+        $primaryOrganizer = $this->normalizeOrganizer($primaryOrganizer);
+
         if (SubmissionValues::enumValue($validated['event_format'] ?? null) === EventFormat::Online->value) {
             return PrayerTargetSelector::forOnline($primaryOrganizer->kind, $primaryOrganizer->id);
         }
@@ -552,5 +554,22 @@ final readonly class SubmissionContextResolver implements SubmissionContext
         $normalized = trim((string) $value);
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    private function normalizeOrganizer(object $organizer): ContributionOrganizer
+    {
+        if ($organizer instanceof ContributionOrganizer) {
+            return $organizer;
+        }
+
+        if ($organizer instanceof Institution) {
+            return new ContributionOrganizer('institution', (string) $organizer->getKey());
+        }
+
+        if ($organizer instanceof \App\Features\Persons\Models\Person) {
+            return new ContributionOrganizer('person', (string) $organizer->getKey());
+        }
+
+        throw new InvalidArgumentException('The primary organizer must be an institution or a person.');
     }
 }

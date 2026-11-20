@@ -1415,6 +1415,54 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         ];
     }
 
+    public function institutionUpcomingCountSubquery(): object
+    {
+        $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
+
+        return DB::table("{$occurrencesTable} as public_occurrences")
+            ->join('events', 'events.id', '=', 'public_occurrences.event_id')
+            ->whereColumn('events.institution_id', 'institutions.id')
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->whereIn('public_occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
+            ->whereIn('public_occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+            ->whereNotNull('public_occurrences.starts_at')
+            ->where('public_occurrences.starts_at', '>=', now())
+            ->selectRaw('count(*)');
+    }
+
+    public function institutionNextEventIdSubquery(): object
+    {
+        $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
+
+        return Event::query()
+            ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
+            ->whereColumn('events.institution_id', 'institutions.id')
+            ->where('next_event_occurrences.starts_at', '>=', now())
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->orderBy('next_event_occurrences.starts_at')
+            ->orderBy('events.id')
+            ->limit(1)
+            ->select('events.id');
+    }
+
+    public function institutionNextEventDetails(array $eventIds): object
+    {
+        $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
+
+        return Event::query()
+            ->select('events.id', 'events.slug', 'events.title')
+            ->selectRaw('min("'.$occurrencesTable.'"."starts_at") as next_event_starts_at')
+            ->join($occurrencesTable, "{$occurrencesTable}.event_id", '=', 'events.id')
+            ->whereIn('events.id', $eventIds)
+            ->where("{$occurrencesTable}.starts_at", '>=', now())
+            ->groupBy('events.id', 'events.slug', 'events.title')
+            ->get();
+    }
+
     public function institutionDirectoryFacts(array $institutionIds): array
     {
         $institutionIds = $this->uniqueIds($institutionIds);

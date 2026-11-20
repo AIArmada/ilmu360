@@ -121,18 +121,18 @@ new
 
             $subject = app(DirectoryFollowSubjectResolver::class)->resolve('reference', $referenceId);
 
-            if (! $subject instanceof Reference) {
+            if (! $subject instanceof \App\Shared\Directory\FollowableSubject) {
                 return;
             }
 
-            if ($user->isFollowing($subject)) {
-                app(SubjectFollowCommands::class)->unfollow($subject->getMorphClass(), (string) $subject->getKey(), (string) $user->getKey());
+            if (\AIArmada\CommerceSupport\Support\OwnerContext::withOwner(null, fn (): bool => app(\App\Features\Engagement\Api\SubjectFollows::class)->followStateFor((string) $user->getKey(), \App\Features\Engagement\Api\EngagementSubjectType::Reference, $subject->id)->isFollowing)) {
+                app(SubjectFollowCommands::class)->unfollow($subject->morphType, $subject->id, (string) $user->getKey());
             } else {
                 app(SubjectFollowCommands::class)->follow(
-                    $subject->getMorphClass(),
-                    (string) $subject->getKey(),
+                    $subject->morphType,
+                    $subject->id,
                     (string) $user->getKey(),
-                    ['reference_id' => $subject->getKey()],
+                    ['reference_id' => $subject->id],
                 );
             }
 

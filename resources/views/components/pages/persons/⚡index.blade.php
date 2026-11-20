@@ -184,18 +184,18 @@ new
 
             $subject = app(DirectoryFollowSubjectResolver::class)->resolve('person', $personId);
 
-            if (! $subject instanceof Person) {
+            if (! $subject instanceof \App\Shared\Directory\FollowableSubject) {
                 return;
             }
 
-            if ($user->isFollowing($subject)) {
-                app(SubjectFollowCommands::class)->unfollow($subject->getMorphClass(), (string) $subject->getKey(), (string) $user->getKey());
+            if (\AIArmada\CommerceSupport\Support\OwnerContext::withOwner(null, fn (): bool => app(\App\Features\Engagement\Api\SubjectFollows::class)->followStateFor((string) $user->getKey(), \App\Features\Engagement\Api\EngagementSubjectType::Person, $subject->id)->isFollowing)) {
+                app(SubjectFollowCommands::class)->unfollow($subject->morphType, $subject->id, (string) $user->getKey());
             } else {
                 app(SubjectFollowCommands::class)->follow(
-                    $subject->getMorphClass(),
-                    (string) $subject->getKey(),
+                    $subject->morphType,
+                    $subject->id,
                     (string) $user->getKey(),
-                    ['person_id' => $subject->getKey()],
+                    ['person_id' => $subject->id],
                 );
             }
 

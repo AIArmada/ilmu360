@@ -67,6 +67,27 @@ interface EventScheduleQuery
     public function institutionDirectoryFacts(array $institutionIds): array;
 
     /**
+     * Documented transport: correlated upcoming-occurrence count subquery for
+     * the institutions directory listing. The caller applies it with
+     * selectSub() to the institutions query.
+     */
+    public function institutionUpcomingCountSubquery(): object;
+
+    /**
+     * Documented transport: correlated next-event id subquery for the
+     * institutions directory listing.
+     */
+    public function institutionNextEventIdSubquery(): object;
+
+    /**
+     * Documented transport: card details for the already-selected next event
+     * ids, hydrated in one batched query.
+     *
+     * @param  list<string>  $eventIds
+     */
+    public function institutionNextEventDetails(array $eventIds): object;
+
+    /**
      * Documented transport: a hydrated Event model for framework contracts
      * that cannot be expressed as scalar rows (policies, Livewire page state,
      * eager-loaded relations, media and share subjects). Consumers must not

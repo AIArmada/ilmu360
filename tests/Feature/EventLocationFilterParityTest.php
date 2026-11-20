@@ -311,7 +311,7 @@ it('measures nearby distance from the selected owner address', function (): void
     expect($titles)->toContain('Parity Nearby Default Wins', 'Parity Nearby Package Only')
         ->and($titles)->not->toContain('Parity Nearby Suppressed Package')
         ->and($nearest)->not->toBeNull()
-        ->and($nearest->distance_km ?? null)->not->toBeNull();
+        ->and($events->distances[$nearest->id] ?? null)->not->toBeNull();
 });
 
 it('serializes the selected package venue place in the list payload', function (): void {
