@@ -1,7 +1,9 @@
 # R6 — Feature-ownership refactor completion report
 
-Branch `refactor`. Verified commit before the exception burn-down: `554805ec`
-(CI Quality 26/26); the burn-down commit is recorded at the end of this file.
+Branch `refactor`. Final verified commit: `ef48b930` (CI Quality 26/26).
+The exception burn-down landed in `471a6af6`; `ef48b930` moved the last two
+Volt pages (venue, series) onto the `EventPageSchedule` Api and is the
+CI-green head.
 
 ## 1. Target architecture
 
