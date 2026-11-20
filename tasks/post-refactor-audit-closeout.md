@@ -93,12 +93,23 @@ Deleted 11 `config/*.pre-majlisilmu-merge-20260511` backups plus
   search/schedule/read composition; the audit explicitly warned against
   splitting by length alone.
 
-## Watch item — pre-existing read authorization
+## Post-audit authorization and contract hardening
 
-`FilamentResourceDefinition` still treats any true record ability as sufficient
-for `show`/related/media, matching the pre-refactor AdminResourceService. This
-is unchanged by the refactor; policy semantics for delete-only/edit-only roles
-should be verified with negative access tests before any behavior change.
+- Admin resource details, relations and media now require explicit `view`
+  permission; having only `edit` or `delete` can no longer unlock record
+  details. The negative `AdminRecordReadAuthorizationTest` covers an
+  actor with `update=true` and `view=false` and checks the HTTP 403s and
+  the media service's exact 403 status.
+- The one historic Rewards resource-key collision is now declared in
+  `AdminRegistryServiceProvider` rather than hard-coded in the generic
+  `ResourceDefinitionRegistry`. First-winner parity is unchanged.
+- `PublishedContractSchemaParityTest` now checks nested detail and pagination
+  value types against the frozen OpenAPI response contract, in addition to
+  schema snapshots and response keys. The published document is unchanged.
+- The 40 explicit `Api/Orm` ports remain narrowly documented, internal
+  integration boundaries. Fully replacing model/builder ports with scalar
+  readers would require a separate, larger behavior-sensitive refactor.
+
 
 ## Verification at this closeout
 

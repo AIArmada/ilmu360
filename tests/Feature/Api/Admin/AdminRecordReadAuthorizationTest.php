@@ -68,6 +68,11 @@ it('does not expose admin details, relations or media when editing is allowed bu
     $this->getJson('/api/v1/admin/people/'.$routeKey)->assertForbidden();
     $this->getJson('/api/v1/admin/people/'.$routeKey.'/relations/institutions')->assertForbidden();
 
-    expect(fn () => app(AdminResourceService::class)->recordMedia('people', $routeKey))
-        ->toThrow(HttpException::class);
+    try {
+        app(AdminResourceService::class)->recordMedia('people', $routeKey);
+
+        throw new LogicException('Admin media reads must require view permission.');
+    } catch (HttpException $exception) {
+        expect($exception->getStatusCode())->toBe(403);
+    }
 });
