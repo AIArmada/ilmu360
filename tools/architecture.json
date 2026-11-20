@@ -623,14 +623,7 @@
       "validated_by": "phpstan"
     }
   ],
-  "read_adapters": {
-    "app/Features/Discovery/EntryPoints/Http/SearchController.php": {
-      "owner": "Discovery",
-      "reason": "Temporary read-only ORM adapter reading Event, EventKeyPerson, Institution, Person, Reference, Series, Venue; no owner writes occur here.",
-      "removal_task": "Replace direct Event, EventKeyPerson, Institution, Person, Reference, Series, Venue Eloquent reads with the owning feature Api in this owner slice.",
-      "expires": "2027-03-31"
-    }
-  },
+  "read_adapters": {},
   "root_models": [
     "app/Models/User.php",
     "app/Models/PassportUser.php"

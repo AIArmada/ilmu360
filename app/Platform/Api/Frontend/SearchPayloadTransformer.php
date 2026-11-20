@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Features\Discovery\EntryPoints\Http;
+namespace App\Platform\Api\Frontend;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Contacting\Enums\ContactMethodType;

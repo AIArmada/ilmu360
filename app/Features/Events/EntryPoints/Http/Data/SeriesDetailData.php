@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Features\Discovery\EntryPoints\Http\Data;
+namespace App\Features\Events\EntryPoints\Http\Data;
 
 use App\Features\Events\Models\Series;
 use App\Models\User;

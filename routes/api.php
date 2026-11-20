@@ -14,9 +14,14 @@ use App\Features\Events\EntryPoints\Http\AdvancedEventController;
 use App\Features\Events\EntryPoints\Http\EventController;
 use App\Features\Events\EntryPoints\Http\EventModerationController as AdminEventModerationController;
 use App\Features\Events\EntryPoints\Http\EventSubmissionController;
+use App\Features\Events\EntryPoints\Http\SeriesDirectoryController;
 use App\Features\Identity\EntryPoints\Http\AccountSettingsMcpTokenController;
+use App\Features\Institutions\EntryPoints\Http\InstitutionDirectoryController;
 use App\Features\Institutions\EntryPoints\Http\InstitutionWorkspaceController;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;
+use App\Features\Persons\EntryPoints\Http\PersonDirectoryController;
+use App\Features\Places\EntryPoints\Http\VenueDirectoryController;
+use App\Features\References\EntryPoints\Http\ReferenceDirectoryController;
 use App\Features\Registration\EntryPoints\Http\EventCheckInController;
 use App\Features\Registration\EntryPoints\Http\EventRegistrationController;
 use App\Features\Registration\EntryPoints\Http\UserRegistrationController;
@@ -87,15 +92,15 @@ Route::prefix('v1')->group(function () {
         Route::post('/mobile/telemetry/events', [MobileTelemetryController::class, 'store'])
             ->middleware('throttle:mobile-telemetry')
             ->name('mobile-telemetry.store');
-        Route::get('/institutions', [SearchController::class, 'institutions'])->name('institutions.index');
-        Route::get('/institutions/near', [SearchController::class, 'institutionsNear'])->name('institutions.near');
-        Route::get('/institutions/{institutionKey}', [SearchController::class, 'showInstitution'])->name('institutions.show');
-        Route::get('/persons', [SearchController::class, 'persons'])->name('persons.index');
-        Route::get('/persons/{personKey}', [SearchController::class, 'showPerson'])->name('persons.show');
-        Route::get('/venues/{venueKey}', [SearchController::class, 'showVenue'])->name('venues.show');
-        Route::get('/references', [SearchController::class, 'references'])->name('references.index');
-        Route::get('/references/{referenceKey}', [SearchController::class, 'showReference'])->name('references.show');
-        Route::get('/series/{series}', [SearchController::class, 'showSeries'])->name('series.show');
+        Route::get('/institutions', [InstitutionDirectoryController::class, 'institutions'])->name('institutions.index');
+        Route::get('/institutions/near', [InstitutionDirectoryController::class, 'institutionsNear'])->name('institutions.near');
+        Route::get('/institutions/{institutionKey}', [InstitutionDirectoryController::class, 'showInstitution'])->name('institutions.show');
+        Route::get('/persons', [PersonDirectoryController::class, 'persons'])->name('persons.index');
+        Route::get('/persons/{personKey}', [PersonDirectoryController::class, 'showPerson'])->name('persons.show');
+        Route::get('/venues/{venueKey}', [VenueDirectoryController::class, 'showVenue'])->name('venues.show');
+        Route::get('/references', [ReferenceDirectoryController::class, 'references'])->name('references.index');
+        Route::get('/references/{referenceKey}', [ReferenceDirectoryController::class, 'showReference'])->name('references.show');
+        Route::get('/series/{series}', [SeriesDirectoryController::class, 'showSeries'])->name('series.show');
         Route::post('/submit-event', [EventSubmissionController::class, 'store'])
             ->middleware('throttle:event-submission')
             ->name('submit-event.store');

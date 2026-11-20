@@ -11,7 +11,7 @@ use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Discovery\EntryPoints\Http\SearchController;
+use App\Features\Discovery\Api\EventListPayloads;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -25,19 +25,24 @@ use App\Features\Inspirations\Models\Inspiration;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\Enums\InstitutionType;
+use App\Features\Institutions\Api\InstitutionCards;
 use App\Features\Institutions\Api\InstitutionSearchCache;
+use App\Features\Institutions\EntryPoints\Http\InstitutionDirectoryController;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Membership\Models\MembershipApplication;
+use App\Features\Persons\Api\PersonCards;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Affiliation;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
+use App\Features\Places\EntryPoints\Http\VenueDirectoryController;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Features\References\Api\ReferenceSearchCache;
+use App\Features\References\EntryPoints\Http\ReferenceDirectoryController;
 use App\Features\References\Models\Reference;
 use App\Features\References\Services\ReferenceSearchService;
 use App\Models\User;
@@ -1402,11 +1407,9 @@ it('serializes event list payloads with card image metadata for mobile clients',
     $event->addMedia(fakeGeneratedImageUpload('event-poster.jpg', 1200, 1600))
         ->toMediaCollection('poster');
 
-    $item = Closure::bind(
-        fn (): array => $this->eventListData($event->fresh(['institution.media', 'venue', 'persons.media', 'keyPeople.person'])),
-        app(SearchController::class),
-        SearchController::class,
-    )();
+    $item = app(EventListPayloads::class)
+        ->forEvent($event->fresh(['institution.media', 'venue', 'persons.media', 'keyPeople.person']))
+        ->toArray();
 
     expect(data_get($item, 'has_poster'))->toBeTrue()
         ->and(data_get($item, 'poster_url'))->toBeString()->not->toBe('')
@@ -1508,11 +1511,7 @@ it('serializes institution directory payloads with card media aliases for mobile
             ->count()),
     ]);
 
-    $item = Closure::bind(
-        fn (): array => $this->institutionListData($directoryInstitution, $user),
-        app(SearchController::class),
-        SearchController::class,
-    )();
+    $item = app(InstitutionCards::class)->forInstitution($directoryInstitution, (string) $user->getKey());
 
     expect(data_get($item, 'display_name'))->toBe($institution->display_name)
         ->and(data_get($item, 'type'))->toBe('masjid')
@@ -1569,6 +1568,8 @@ it('reads follow state from the configured engagement follows table', function (
         $table->string('followable_type');
         $table->uuid('followable_id');
         $table->string('status');
+        $table->string('owner_type')->nullable();
+        $table->uuid('owner_id')->nullable();
         $table->timestamps();
     });
 
@@ -1834,11 +1835,7 @@ it('keeps placeholder institution imagery when no real media exists', function (
 
     expect($directoryInstitution)->not->toBeNull();
 
-    $item = Closure::bind(
-        fn (): array => $this->institutionListData($directoryInstitution),
-        app(SearchController::class),
-        SearchController::class,
-    )();
+    $item = app(InstitutionCards::class)->forInstitution($directoryInstitution);
 
     expect(data_get($item, 'cover_url'))->toBeNull()
         ->and(data_get($item, 'logo_url'))->toBeString()->toContain('/images/placeholders/institution.png')
@@ -1963,8 +1960,8 @@ it('serializes institution detail payloads with address and donation metadata fo
 
     $item = Closure::bind(
         fn (): array => $this->institutionDetailData($detailInstitution, $user),
-        app(SearchController::class),
-        SearchController::class,
+        app(InstitutionDirectoryController::class),
+        InstitutionDirectoryController::class,
     )();
 
     expect(data_get($item, 'address.country_id'))->toBe($countryId)
@@ -2555,8 +2552,8 @@ it('falls back to the original front cover url in reference directory serializat
 
     $item = Closure::bind(
         fn (): array => $this->referenceListData($reference),
-        app(SearchController::class),
-        SearchController::class,
+        app(ReferenceDirectoryController::class),
+        ReferenceDirectoryController::class,
     )();
 
     expect(data_get($item, 'front_cover_url'))->toBe('https://cdn.example.test/reference-original.webp');
@@ -2704,11 +2701,7 @@ it('serializes person directory payloads with country and follow metadata for mo
 
     expect($directoryPerson)->not->toBeNull();
 
-    $item = Closure::bind(
-        fn (): array => $this->personListData($directoryPerson, $user),
-        app(SearchController::class),
-        SearchController::class,
-    )();
+    $item = app(PersonCards::class)->forPerson($directoryPerson, (string) $user->getKey());
 
     expect(data_get($item, 'formatted_name'))->toBe($person->formatted_name)
         ->and(data_get($item, 'gender'))->toBe('male')
@@ -3666,14 +3659,14 @@ it('serializes venue and reference detail payloads with core metadata for mobile
 
     $venueItem = Closure::bind(
         fn (): array => $this->venueDetailData($detailVenue),
-        app(SearchController::class),
-        SearchController::class,
+        app(VenueDirectoryController::class),
+        VenueDirectoryController::class,
     )();
 
     $referenceItem = Closure::bind(
         fn (): array => $this->referenceDetailData($detailReference, $user),
-        app(SearchController::class),
-        SearchController::class,
+        app(ReferenceDirectoryController::class),
+        ReferenceDirectoryController::class,
     )();
 
     expect(data_get($venueItem, 'name'))->toBe('Dewan DTO API')
