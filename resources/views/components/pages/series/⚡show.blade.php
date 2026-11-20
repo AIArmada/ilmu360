@@ -2,7 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\EntryPoints\Livewire\Concerns\LoadsEventPageData;
+use App\Features\Events\Api\EventPageSchedule;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
 use App\Shared\Auth\IntendedRedirect;
@@ -18,7 +18,7 @@ new
     #[Title('Siri')]
     class extends Component
     {
-        use LoadsEventPageData;
+        private ?array $eventPageDataCache = null;
 
         public Series $series;
 
@@ -124,11 +124,26 @@ new
         public function loadMoreUpcoming(): void
         {
             $this->upcomingPerPage += 10;
+            $this->eventPageDataCache = null;
+        }
+
+        /**
+         * @return array{upcoming: Collection<int, Event>, past: Collection<int, Event>, upcoming_total: int, past_total: int}
+         */
+        protected function eventPageData(): array
+        {
+            return $this->eventPageDataCache ??= app(EventPageSchedule::class)->forQuery(
+                $this->eventPageBaseQuery(),
+                $this->eventPageEagerLoads(),
+                $this->eventPageUpcomingLimit(),
+                $this->eventPagePastLimit(),
+            );
         }
 
         public function loadMorePast(): void
         {
             $this->pastPerPage += 10;
+            $this->eventPageDataCache = null;
         }
 
         public function rendering($view): void

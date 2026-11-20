@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\Events\EntryPoints\Livewire\Concerns\LoadsEventPageData;
+use App\Features\Events\Api\EventPageSchedule;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
@@ -9,7 +9,7 @@ use Livewire\Component;
 
 new class extends Component
 {
-    use LoadsEventPageData;
+    private ?array $eventPageDataCache = null;
 
     public Venue $venue;
 
@@ -36,11 +36,26 @@ new class extends Component
     public function loadMoreUpcoming(): void
     {
         $this->upcomingPerPage += 8;
+        $this->eventPageDataCache = null;
     }
 
     public function loadMorePast(): void
     {
         $this->pastPerPage += 8;
+        $this->eventPageDataCache = null;
+    }
+
+    /**
+     * @return array{upcoming: Collection<int, Event>, past: Collection<int, Event>, upcoming_total: int, past_total: int}
+     */
+    protected function eventPageData(): array
+    {
+        return $this->eventPageDataCache ??= app(EventPageSchedule::class)->forQuery(
+            $this->eventPageBaseQuery(),
+            $this->eventPageEagerLoads(),
+            $this->eventPageUpcomingLimit(),
+            $this->eventPagePastLimit(),
+        );
     }
 
     /**
