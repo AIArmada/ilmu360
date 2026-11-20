@@ -74,6 +74,14 @@ it('records a resolvable verified commit for every migration ledger row', functi
 
     expect($invalid)->toBeEmpty();
 
+    $shallow = new Process(['git', 'rev-parse', '--is-shallow-repository'], $root, ['GIT_OPTIONAL_LOCKS' => '0']);
+    $shallow->setTimeout(30);
+    $shallow->run();
+
+    if (trim($shallow->getOutput()) === 'true') {
+        $this->markTestSkipped('Shallow CI checkout cannot resolve historical commit ids; run the ledger audit on a full clone.');
+    }
+
     $missing = [];
 
     foreach (array_unique(array_column($rows, 'verified_commit')) as $commit) {
