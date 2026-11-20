@@ -1,7 +1,9 @@
 # R6 — Feature-ownership refactor completion report
 
-Branch `refactor`. Final verified commit: **the plan-v2 completion commit**
-(CI Quality 26/26 at the SHA recorded in the final handoff).
+Branch `refactor`. Final verified commit: **`12701a88`** (CI Quality 26/26,
+run 44764013556). The plan-v2 completion itself landed in `3a6d4e6c`; two
+follow-up test fixes (`fdf5b262`, `12701a88`) closed CI regressions without
+touching application code.
 The exception burn-down landed in `471a6af6`; `ef48b930` moved the last two
 Volt pages (venue, series) onto the `EventPageSchedule` Api and is the
 CI-green head.
@@ -240,6 +242,20 @@ The second program closed the gaps identified against the v2 handoff:
 - **Validation:** `npm run build` exit 0; Filament admin 100 / ahli 24 resources
   with identical widgets, slugs, navigation, pages and relations; admin/member
   manifests, routes (738), schedule and MCP class sets identical.
+
+CI hardening after the completion commit:
+
+- `fdf5b262` adapted the D0 saved-search characterization double to the new
+  immutable `EventSearchPage` return type (`EventSearchService` no longer
+  returns a paginator).
+- `12701a88` removed a pre-existing shard flake: the suite seeds Malaysia
+  (`iso2=MY`) for every feature test, while the package country factory draws
+  a random `countryCode()`; the single country-factory call now pins the
+  user-assigned `XA/XAA` codes.
+- `12701a88` is the CI-green head: Quality run 44764013556, **26/26 jobs
+  success**, all 20 Pest shards included. Final gates re-run at that commit:
+  architecture 0, PHPStan level 6 0, ownership types 0, Pint clean,
+  Rector 0 changes.
 
 Remaining, deliberate:
 1. `Discovery\SearchController` read adapter (needs per-owner directory payload

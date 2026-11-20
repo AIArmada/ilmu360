@@ -1,9 +1,22 @@
 # Final gate evidence — plan-v2 completion
 
-git HEAD: 3a6d4e6c
+git HEAD: 12701a88
+CI: Quality run 44764013556 on 12701a88 — 26/26 jobs success
 
 php tools/architecture-check.php
 0 architecture violation(s); 28 feature(s) checked.
+exit=0
+
+phpstan level 6
+exit=0
+
+ownership types
+exit=0
+
+pint --test
+exit=0
+
+rector --dry-run
 exit=0
 
 exceptions 62 {'architecture.writeLocation': 62}

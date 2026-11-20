@@ -17,7 +17,7 @@ against the repository.
 | Architecture exceptions | Only justified package writes | ✅ | 62 entries, all package/framework-owned (Affiliates, Communications, Engagement, Orders, Sanctum, Spatie, users, audit) |
 | Route and schedule | Identical to baseline | ✅ | 738 routes, same normalized hash; schedule identical |
 | Filament and MCP | Same resources/tools/access | ✅ | admin 100 / ahli 24 resources, widgets and nav identical; MCP class sets identical |
-| Static/tests/CI | Executed with evidence | ✅ | architecture 0, PHPStan L6 0, ownership types 0, Pint, Rector; `npm run build` exit 0; CI verified at the final commit |
+| Static/tests/CI | Executed with evidence | ✅ | architecture 0, PHPStan L6 0, ownership types 0, Pint, Rector; `npm run build` exit 0; CI Quality 26/26 at `12701a88` (run 44764013556) |
 | No legacies/leftovers | No obsolete classes/aliases/wrappers | ✅ | 0 stale namespaces, 0 empty app dirs |
 | Final report | Categorized deltas and evidence | ✅ | R6 report + this tracker + evidence directory |
 
@@ -91,7 +91,7 @@ against the repository.
 | OpenAPI | ⚠️ 135/152 paths byte-identical; 17 response-schema differences are inference-only (richer typed schemas / array-vs-object rendering); runtime payloads proven identical |
 | Static/architecture/types/Pint/Rector | ✅ |
 | Frontend build | ✅ `npm run build` exit 0 |
-| Full Pest | CI 20 shards (final run) |
+| Full Pest | ✅ CI 20 shards green (Quality run 44764013556, 26/26 jobs) |
 
 ## Remaining
 
