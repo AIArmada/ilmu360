@@ -21,6 +21,7 @@ final readonly class ManageContributionAccountAttributionAction
             ->update(['reviewer_id' => null]);
     }
 
+    /** @param array<string, mixed> $snapshot */
     public function restore(string $accountId, array $snapshot): void
     {
         $this->restoreLinks($accountId, 'proposer_id', $this->stringIds($snapshot['proposer_ids'] ?? []));

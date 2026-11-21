@@ -21,6 +21,7 @@ final readonly class ManageCommunicationsAccountLifecycleAction
         private UserMorphType $userMorphType,
     ) {}
 
+    /** @return array<string, mixed> */
     public function snapshot(string $accountId): array
     {
         return [
@@ -55,6 +56,7 @@ final readonly class ManageCommunicationsAccountLifecycleAction
             ->delete();
     }
 
+    /** @param array<string, mixed> $snapshot */
     public function restore(string $accountId, array $snapshot): void
     {
         $this->restorePreference($snapshot['notification_setting'] ?? null);

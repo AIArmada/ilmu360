@@ -414,6 +414,6 @@ final readonly class InstitutionDirectoryQuery
             return [];
         }
 
-        return $this->eventReader->institutionNextEventDetails($eventIds);
+        return $this->eventProjection->institutionNextEventDetails($eventIds);
     }
 }

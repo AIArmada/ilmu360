@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class ManageEngagementAccountLifecycleAction
 {
+    /** @return array<string, mixed> */
     public function snapshot(string $accountId): array
     {
         return [
@@ -98,6 +99,7 @@ final readonly class ManageEngagementAccountLifecycleAction
             ->delete();
     }
 
+    /** @param array<string, mixed> $snapshot */
     public function restore(string $accountId, array $snapshot): void
     {
         $userClass = MorphModelResolver::resolve('user');

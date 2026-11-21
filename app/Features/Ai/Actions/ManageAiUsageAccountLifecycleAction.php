@@ -19,6 +19,7 @@ final readonly class ManageAiUsageAccountLifecycleAction
             ->each(static fn (AiUsageLog $log): ?bool => $log->delete());
     }
 
+    /** @param array<string, mixed> $snapshot */
     public function restore(string $accountId, array $snapshot): void
     {
         foreach ($snapshot['ai_usage_logs'] ?? [] as $attributes) {

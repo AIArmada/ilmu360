@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Platform\Api\Frontend;
 
 use App\Features\Contributions\Api\SubmissionCatalog;
-use App\Features\Events\Api\Orm\AdvancedBuilderContext;
+use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\TaxonomyCatalog;
 use App\Features\Institutions\Api\InstitutionCatalog;
 use App\Features\Membership\Api\MembershipSubjectOptionsCatalog;

@@ -3,7 +3,7 @@
 namespace App\Features\Events\Actions\Authoring;
 
 use App\Features\Events\Api\AdvancedProgramPreparation;
-use App\Features\Events\Api\Orm\AdvancedBuilderMembershipOptions;
+use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
 use Illuminate\Support\Carbon;
