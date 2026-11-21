@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace App\Features\Identity;
 
+use App\Features\Identity\Listeners\ClaimGuestSubmissionsOnVerified;
+use App\Features\Identity\Listeners\RecordVerifiedEmail;
+use App\Features\Identity\Listeners\SendRegisteredUserEmails;
+use App\Features\Identity\Observers\UserObserver;
+use App\Models\User;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Facades\Event;
+
 use App\Features\Identity\Actions\RecordNewAccountAttributionAction;
 use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountAdministration;
@@ -88,6 +97,11 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        User::observe(UserObserver::class);
+        Event::listen(Registered::class, SendRegisteredUserEmails::class);
+        Event::listen(Verified::class, ClaimGuestSubmissionsOnVerified::class);
+        Event::listen(Verified::class, RecordVerifiedEmail::class);
+
         $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(UserResourceDefinition::class));
         parent::boot();
 

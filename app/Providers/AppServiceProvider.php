@@ -54,10 +54,6 @@ use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Models\MediaLink;
 use App\Features\Events\Models\Series;
 use App\Features\Events\Policies\EventPolicy;
-use App\Features\Identity\Listeners\ClaimGuestSubmissionsOnVerified;
-use App\Features\Identity\Listeners\RecordVerifiedEmail;
-use App\Features\Identity\Listeners\SendRegisteredUserEmails;
-use App\Features\Identity\Observers\UserObserver;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionImportExclusion;
 use App\Features\Institutions\Models\InstitutionName;
@@ -143,8 +139,6 @@ use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Events\Verified;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -274,12 +268,6 @@ class AppServiceProvider extends ServiceProvider
         // Preserve the public <x-event-json-ld> tag after removing App/View.
         Blade::component(EventJsonLd::class, 'event-json-ld');
 
-        // Explicit registration replaces Laravel's old app/Listeners/Auth discovery.
-        // Preserve registered-email and verified-email after-commit listeners.
-        EventFacade::listen(Registered::class, SendRegisteredUserEmails::class);
-        EventFacade::listen(Verified::class, ClaimGuestSubmissionsOnVerified::class);
-        EventFacade::listen(Verified::class, RecordVerifiedEmail::class);
-
         PassportKeyProvisioner::ensure();
 
         Passport::authorizationView('mcp.authorize');
@@ -321,8 +309,6 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->registerModelObservers();
-
-        User::observe(UserObserver::class);
 
         // Event ownership is an application projection of the reusable
         // organization aggregate; the organizations package remains event-agnostic.
