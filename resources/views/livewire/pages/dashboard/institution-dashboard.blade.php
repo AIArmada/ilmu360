@@ -81,7 +81,10 @@
 
         return $start.' - '.\App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
     };
-    $eventLocationLabel = static fn (\App\Features\Events\Models\Event $event): string => \App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter::name($event->primaryLocation)
+    $eventLocationLabel = static fn (\App\Features\Events\Models\Event $event): string => app(\App\Features\Places\Api\SpaceLocation::class)->name(
+        (string) ($event->primaryLocation?->space_name_snapshot ?? ''),
+        $event->primaryLocation?->venueSpace?->name,
+    )
         ?? $event->venue?->name
         ?? $event->institution?->display_name
         ?? __('Location to be confirmed');

@@ -394,7 +394,10 @@ new
                                 $occurrence = $scheduleLeaf->occurrence;
                                 $scheduleLocation = $occurrence->locations->first() ?? $scheduleLeaf->sessions->first()?->locations->first() ?? $event->primaryLocation;
                                 $locationName = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $event->resolvedLocationName();
-                                $spaceName = \App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter::name($scheduleLocation);
+                                $spaceName = app(\App\Features\Places\Api\SpaceLocation::class)->name(
+                                    (string) ($scheduleLocation?->space_name_snapshot ?? ''),
+                                    $scheduleLocation?->venueSpace?->name,
+                                );
                                 if (filled($spaceName)) {
                                     $locationName = collect([$locationName, $spaceName])->filter()->implode(' · ');
                                 }
