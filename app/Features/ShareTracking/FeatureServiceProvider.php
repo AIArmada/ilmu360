@@ -9,6 +9,7 @@ use AIArmada\Checkout\Contracts\StepContributor;
 use AIArmada\Events\Events\EventCancelled;
 use AIArmada\Events\Events\EventOccurrenceCancelled;
 use AIArmada\Events\Events\EventSessionCancelled;
+use App\Features\Engagement\Api\EngagementShareOutcomes;
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\Actions\EffectReceipts\DispatchShareEffectReceiptsAction;
@@ -23,6 +24,7 @@ use App\Features\ShareTracking\Actions\Reversals\ReverseEventParticipationOutcom
 use App\Features\ShareTracking\Actions\Reversals\ReverseShareOutcomeAction;
 use App\Features\ShareTracking\Actions\Touchpoints\RecordOutboundShareTouchpointAction;
 use App\Features\ShareTracking\Actions\Touchpoints\RecordVisitTouchpointAction;
+use App\Features\ShareTracking\Api\ActiveAttribution;
 use App\Features\ShareTracking\Api\ActiveGuestClaimants;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
@@ -37,16 +39,22 @@ use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
 use App\Features\ShareTracking\Api\OutboundShareAttributionWriter;
 use App\Features\ShareTracking\Api\OutboundShareTouchpointWriter;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
+use App\Features\ShareTracking\Api\ParticipationAttribution;
 use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Features\ShareTracking\Api\PassiveNavigationAttributionWriter;
 use App\Features\ShareTracking\Api\PendingShareEffects;
+use App\Features\ShareTracking\Api\SavedSearchShareOutcomes;
+use App\Features\ShareTracking\Api\ShareAnalytics as ShareAnalyticsApi;
 use App\Features\ShareTracking\Api\ShareOutcomeEvidenceReader;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareTrackingAnalytics;
+use App\Features\ShareTracking\Api\ShareTrackingContract;
+use App\Features\ShareTracking\Api\SignupRecorder;
 use App\Features\ShareTracking\Api\SourceAttributionReceipts;
 use App\Features\ShareTracking\Api\SourceReceiptReader;
 use App\Features\ShareTracking\Api\TrackedShareLinkDetacher;
 use App\Features\ShareTracking\Api\VisitTouchpointWriter;
+use App\Features\ShareTracking\Contracts\ClaimRecipients;
 use App\Features\ShareTracking\Contributors\ShareTrackingAccountLifecycleContributor;
 use App\Features\ShareTracking\EntryPoints\Checkout\ShareCheckoutStepContributor;
 use App\Features\ShareTracking\EntryPoints\Filament\Pages\ShareAnalytics;
@@ -57,10 +65,19 @@ use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseSourceReceiptReader;
 use App\Features\ShareTracking\Queries\AffiliateFinancialObligationReader as DatabaseFinancialObligationReader;
+use App\Features\ShareTracking\Queries\ClaimRecipientLookup;
 use App\Features\ShareTracking\Queries\DatabaseMarkedShareAffiliateIds;
 use App\Features\ShareTracking\Queries\DatabaseShareOutcomeEvidenceReader;
+use App\Features\ShareTracking\Queries\GuestClaimLookup;
+use App\Features\ShareTracking\Queries\ShareAnalyticsReader;
+use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
+use App\Features\ShareTracking\Services\EngagementOutcomeRecorder;
 use App\Features\ShareTracking\Services\GuestClaimScopeService;
+use App\Features\ShareTracking\Services\SavedSearchOutcomeRecorder;
+use App\Features\ShareTracking\Services\ShareTrackingActiveAttribution;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Services\ShareTrackingParticipationAttribution;
+use App\Features\ShareTracking\Services\ShareTrackingSignupRecorder;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
@@ -151,6 +168,15 @@ class FeatureServiceProvider extends FeatureModule
 
     public function register(): void
     {
+        $this->app->bind(GuestClaims::class, GuestClaimLookup::class);
+        $this->app->bind(ClaimRecipients::class, ClaimRecipientLookup::class);
+        $this->app->bind(SignupRecorder::class, ShareTrackingSignupRecorder::class);
+        $this->app->bind(ParticipationAttribution::class, ShareTrackingParticipationAttribution::class);
+        $this->app->bind(ActiveAttribution::class, ShareTrackingActiveAttribution::class);
+        $this->app->bind(ShareAnalyticsApi::class, ShareAnalyticsReader::class);
+        $this->app->bind(SavedSearchShareOutcomes::class, SavedSearchOutcomeRecorder::class);
+        $this->app->bind(EngagementShareOutcomes::class, EngagementOutcomeRecorder::class);
+        $this->app->singleton(ShareTrackingContract::class, AffiliatesShareTrackingService::class);
         $this->app->tag([ShareTrackingAccountLifecycleContributor::class], AccountLifecycleContributor::TAG);
 
         if (interface_exists(StepContributor::class)) {

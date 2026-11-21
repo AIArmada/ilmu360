@@ -9,6 +9,7 @@ use App\Features\Contributions\Actions\EnsureNoPendingContributionRequestAction;
 use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Features\Contributions\Actions\SubmitStagedContributionCreateAction;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
+use App\Features\Contributions\Api\ContributionEntityState;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionReviewAccess;
@@ -17,6 +18,9 @@ use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Features\Contributions\Api\Filament\PersonContributionSchema;
 use App\Features\Contributions\Api\Frontend\SubmitInstitutionFormContractContributor;
 use App\Features\Contributions\Api\Frontend\SubmitPersonFormContractContributor;
+use App\Features\Contributions\Api\Orm\EntitySubmissionAccessContract;
+use App\Features\Contributions\Api\Orm\SubmissionContext;
+use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\SubmissionCatalog;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -34,13 +38,18 @@ use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberApproveContributionRe
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberCancelContributionRequestTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberListContributionRequestsTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberRejectContributionRequestTool;
+use App\Features\Contributions\Notifications\ContributionRequestNotificationService;
 use App\Features\Contributions\Persistence\CacheVerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
 use App\Features\Contributions\Queries\ResolveContributionUpdateContextAction;
+use App\Features\Contributions\Services\ContributionEntityStateService;
 use App\Features\Contributions\Services\ContributionRequestLifecycleService;
 use App\Features\Contributions\Services\ContributionReviewAccessService;
 use App\Features\Contributions\Services\ContributionSubmissionPreparationService;
 use App\Features\Contributions\Services\EloquentSubmissionCatalog;
+use App\Features\Contributions\Services\EntitySubmissionAccess;
+use App\Features\Contributions\Services\SubmissionContextResolver;
+use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Features\Contributions\Support\Telemetry\ContributionsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
@@ -85,6 +94,11 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(EntitySubmissionAccessContract::class, EntitySubmissionAccess::class);
+        $this->app->bind(SubmissionEntityAccess::class, EntitySubmissionAccess::class);
+        $this->app->bind(SubmissionContext::class, SubmissionContextResolver::class);
+        $this->app->bind(ContributionEntityState::class, ContributionEntityStateService::class);
+        $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
         $this->app->bind(PersonContributionSchema::class, PersonContributionFormSchema::class);
 
         $this->app->bind(SubmissionCatalog::class, EloquentSubmissionCatalog::class);
