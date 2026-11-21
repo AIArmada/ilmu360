@@ -91,6 +91,7 @@ use App\Features\ShareTracking\Services\ShareTrackingSignupRecorder;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event as EventFacade;
 
 /**
@@ -165,6 +166,12 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        Relation::morphMap([
+            'share_outcome_correction' => ShareOutcomeCorrection::class,
+            'share_source_attribution_receipt' => ShareSourceAttributionReceipt::class,
+        ]);
+
         AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);
         ShareSourceAttributionReceipt::observe(ShareSourceAttributionReceiptObserver::class);
         ShareOutcomeCorrection::observe(ShareOutcomeCorrectionObserver::class);
