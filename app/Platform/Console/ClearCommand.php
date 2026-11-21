@@ -7,12 +7,10 @@ namespace App\Platform\Console;
 use App\Platform\FeatureCatalog;
 use Illuminate\Console\Command;
 
+#[\Illuminate\Console\Attributes\Description('Remove the cached Platform catalog')]
+#[\Illuminate\Console\Attributes\Signature('platform:clear')]
 final class ClearCommand extends Command
 {
-    protected $signature = 'platform:clear';
-
-    protected $description = 'Remove the cached Platform catalog';
-
     public function handle(): int
     {
         $target = FeatureCatalog::cachePath($this->laravel->basePath());

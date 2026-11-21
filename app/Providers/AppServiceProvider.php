@@ -237,6 +237,7 @@ use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Features\ShareTracking\Services\ShareTrackingParticipationAttribution;
 use App\Features\ShareTracking\Services\ShareTrackingSignupRecorder;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
+use App\Host\Typesense\TypesenseHealthProbe;
 use App\Models\User;
 use App\Platform\Addressing\Observers\AddressableObserver;
 use App\Platform\Addressing\Observers\AddressAreaObserver;
@@ -282,6 +283,7 @@ use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Captcha\CaptchaVerifier;
+use App\Shared\Contracts\SearchHealthProbe;
 use App\Shared\Language\LanguageCatalog;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Signals\SignalRecorder;
@@ -321,8 +323,6 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use PhpParser\PrettyPrinter;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Shared\Contracts\SearchHealthProbe;
-use App\Host\Typesense\TypesenseHealthProbe;
 
 class AppServiceProvider extends ServiceProvider
 {

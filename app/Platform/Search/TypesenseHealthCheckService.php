@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Platform\Search;
 
+use App\Shared\Contracts\SearchHealthProbe;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use App\Shared\Contracts\SearchHealthProbe;
 use Throwable;
 
 class TypesenseHealthCheckService

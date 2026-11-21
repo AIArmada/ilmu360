@@ -8,12 +8,10 @@ use App\Platform\FeatureCatalog;
 use Illuminate\Console\Command;
 use RuntimeException;
 
+#[\Illuminate\Console\Attributes\Description('Validate and cache feature ownership and extension manifests')]
+#[\Illuminate\Console\Attributes\Signature('platform:cache')]
 final class CacheCommand extends Command
 {
-    protected $signature = 'platform:cache';
-
-    protected $description = 'Validate and cache feature ownership and extension manifests';
-
     public function handle(): int
     {
         $root = $this->laravel->basePath();
