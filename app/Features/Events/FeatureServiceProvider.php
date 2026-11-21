@@ -200,8 +200,8 @@ use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
-use App\Platform\Search\EventDiscoveryReader;
-use App\Platform\Search\EventDiscoveryReaders;
+use App\Features\Events\Api\EventDiscoveryReader;
+use App\Features\Events\Api\EventDiscoveryReaders;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use Illuminate\Support\Facades\Schedule;
 

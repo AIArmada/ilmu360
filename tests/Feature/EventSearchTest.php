@@ -16,6 +16,7 @@ use App\Features\Discovery\Services\EventSearchFilterNormalizer;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Events\Api\Data\EventDiscoveryHit;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -544,7 +545,7 @@ describe('Event Search Filters', function () {
             ->toContain($event->id);
     });
 
-    it('hydrates package and application relations through the configured provider', function () {
+    it('returns event cards and immutable Typesense discovery candidates', function () {
         config()->set('scout.driver', 'database');
 
         $event = createVisibleEventForSearch([
@@ -572,11 +573,8 @@ describe('Event Search Filters', function () {
 
         $hydratedEvent = collect($typesenseResults->items())->firstWhere('id', $event->id);
 
-        expect($hydratedEvent)->toBeInstanceOf(Event::class)
-            ->and($hydratedEvent->relationLoaded('classifications'))->toBeTrue()
-            ->and($hydratedEvent->classifications->first()->relationLoaded('term'))->toBeTrue()
-            ->and($hydratedEvent->relationLoaded('institution'))->toBeTrue()
-            ->and($hydratedEvent->institution->relationLoaded('media'))->toBeTrue();
+        expect($hydratedEvent)->toBeInstanceOf(EventDiscoveryHit::class)
+            ->and($hydratedEvent->title)->toBe((string) $event->title);
     });
 
     it('shows search placeholder on events index', function () {

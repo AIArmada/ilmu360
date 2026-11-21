@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
+use App\Features\Events\Api\Data\EventDiscoveryHit;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Queries\EventCardsQuery;
 use App\Features\Events\Queries\EventDiscoveryFilterSet;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Queries\FuzzyEventMatcher;
 use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Events\Queries\TypesenseEventDiscovery;
@@ -15,7 +18,7 @@ use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\References\Api\ReferenceQueries;
 use Tests\Support\RecordingEventSearchRelationProvider;
 
-it('makes PostgreSQL discovery consume the injected relation provider', function (): void {
+it('returns immutable PostgreSQL search hits without importing event models into Discovery', function (): void {
     $provider = new RecordingEventSearchRelationProvider;
     $event = Event::factory()->create([
         'status' => 'approved',
@@ -38,21 +41,16 @@ it('makes PostgreSQL discovery consume the injected relation provider', function
         referenceQueries: app(ReferenceQueries::class),
     );
 
-    $results = $discovery->search($criteria);
-    $hydratedEvent = collect($results->items())->firstWhere('id', $event->id);
+    $hit = collect($discovery->search($criteria)->items())->firstWhere('id', (string) $event->getKey());
 
-    expect($provider->calls)->toBeGreaterThan(0)
-        ->and($hydratedEvent)->toBeInstanceOf(Event::class);
-
-    if ($hydratedEvent instanceof Event) {
-        expect($hydratedEvent->relationLoaded('languageRecords'))->toBeTrue();
-    }
+    expect($hit)->toBeInstanceOf(EventDiscoveryHit::class)
+        ->and($hit->title)->toBe((string) $event->title)
+        ->and($provider->calls)->toBe(0);
 });
 
-it('makes Typesense discovery consume the injected relation provider', function (): void {
+it('returns immutable Typesense search hits without eager model relations', function (): void {
     config()->set('scout.driver', 'database');
 
-    $provider = new RecordingEventSearchRelationProvider;
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
@@ -66,17 +64,26 @@ it('makes Typesense discovery consume the injected relation provider', function 
     $discovery = new TypesenseEventDiscovery(
         filterSet: new EventDiscoveryFilterSet,
         categoryCatalog: app(EventCategoryCatalog::class),
-        relationProvider: $provider,
         referenceQueries: app(ReferenceQueries::class),
     );
 
-    $results = $discovery->search($criteria);
-    $hydratedEvent = collect($results->items())->firstWhere('id', $event->id);
+    $hit = collect($discovery->search($criteria)->items())->firstWhere('id', (string) $event->getKey());
 
-    expect($provider->calls)->toBeGreaterThan(0)
-        ->and($hydratedEvent)->toBeInstanceOf(Event::class);
+    expect($hit)->toBeInstanceOf(EventDiscoveryHit::class)
+        ->and($hit->title)->toBe((string) $event->title);
+});
 
-    if ($hydratedEvent instanceof Event) {
-        expect($hydratedEvent->relationLoaded('languageRecords'))->toBeTrue();
-    }
+it('uses the injected search relation provider only when the owning feature renders full event cards', function (): void {
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+        'starts_at' => now()->addDay(),
+    ]);
+    $provider = new RecordingEventSearchRelationProvider;
+    $cards = new EventCardsQuery($provider, app(EventListPayloadPresenter::class));
+
+    $cards->forIds([(string) $event->getKey()]);
+
+    expect($provider->calls)->toBeGreaterThan(0);
 });

@@ -8,12 +8,12 @@ use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
+use App\Features\Events\Api\Data\EventDiscoveryHit;
+use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\EventCards;
+use App\Features\Events\Api\EventDiscoveryReaders;
 use App\Features\Events\Api\EventSearchCache;
-use App\Features\Events\Models\Event;
-use App\Platform\Search\EventDiscoveryReaders;
 use App\Platform\Search\TypesenseHealthCheckService;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -47,8 +47,7 @@ class EventSearchService implements EventSearchReader
         return $this->toPage($this->performSearch($criteria));
     }
 
-    /** @return LengthAwarePaginator<int, Event> */
-    protected function performSearch(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    protected function performSearch(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         if ($criteria->requiresDatabaseFiltering) {
             return $this->readers->database()->search($criteria);
@@ -85,8 +84,8 @@ class EventSearchService implements EventSearchReader
                 $paginator = $this->performSearch($criteria);
 
                 return [
-                    'ids' => array_values(array_map(static fn (Event $event): string => (string) $event->getKey(), $paginator->items())),
-                    'total' => $paginator->total(),
+                    'ids' => array_map(static fn (EventDiscoveryHit $hit): string => $hit->id, $paginator->items),
+                    'total' => $paginator->total,
                 ];
             });
         } catch (Throwable $exception) {
@@ -125,43 +124,33 @@ class EventSearchService implements EventSearchReader
         );
     }
 
-    /**
-     * @param  LengthAwarePaginator<int, Event>  $paginator
-     */
-    private function toPage(LengthAwarePaginator $paginator): EventSearchPage
+    private function toPage(EventDiscoveryPage $page): EventSearchPage
     {
-        $events = array_values(array_filter(
-            $paginator->items(),
-            static fn (mixed $event): bool => $event instanceof Event,
-        ));
-
         $items = array_map(
             EventListData::fromArray(...),
             $this->eventCards->forIds(array_map(
-                static fn (Event $event): string => (string) $event->getKey(),
-                $events,
+                static fn (EventDiscoveryHit $hit): string => $hit->id,
+                $page->items,
             )),
         );
         $distances = [];
 
-        foreach ($events as $event) {
-            $distanceKm = $event->getAttributes()['distance_km'] ?? null;
-
-            if (is_numeric($distanceKm)) {
-                $distances[(string) $event->getKey()] = round((float) $distanceKm, 3);
+        foreach ($page->items as $hit) {
+            if ($hit->distanceKm !== null) {
+                $distances[$hit->id] = round($hit->distanceKm, 3);
             }
         }
 
         return new EventSearchPage(
             items: $items,
             distances: $distances,
-            total: $paginator->total(),
-            perPage: $paginator->perPage(),
-            currentPage: $paginator->currentPage(),
-            lastPage: $paginator->lastPage(),
-            from: $paginator->firstItem(),
-            to: $paginator->lastItem(),
-            hasMorePages: $paginator->hasMorePages(),
+            total: $page->total,
+            perPage: $page->perPage,
+            currentPage: $page->currentPage,
+            lastPage: $page->lastPage,
+            from: $page->from,
+            to: $page->to,
+            hasMorePages: $page->hasMorePages,
         );
     }
 

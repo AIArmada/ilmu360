@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-/** Discovery paginators need event identities, not hydrated occurrence media. */
+/** Card projections batch occurrence media separately from shared relation hydration. */
 final readonly class SearchResultRelations
 {
     /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use App\Platform\Search\EventDiscoveryReader;
-use App\Platform\Search\EventDiscoveryReaders;
+use App\Features\Events\Api\EventDiscoveryReader;
+use App\Features\Events\Api\EventDiscoveryReaders;
 
 final readonly class EventDiscoveryReaderFactory implements EventDiscoveryReaders
 {

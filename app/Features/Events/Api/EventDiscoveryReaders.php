@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Search;
+namespace App\Features\Events\Api;
 
 interface EventDiscoveryReaders
 {

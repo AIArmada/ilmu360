@@ -17,7 +17,9 @@ use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\EventDirectoryProjectionProvider;
+use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Api\EventDirectorySqlColumn;
 use App\Features\Events\Api\EventDirectorySqlProjection;
 use App\Features\Events\Api\EventScheduleFact;
@@ -40,7 +42,6 @@ use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\ReferenceQueries;
 use App\Platform\Models\MorphModelResolver;
-use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -73,8 +74,8 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         private ReferenceQueries $referenceQueries,
     ) {}
 
-    /** @return LengthAwarePaginator<int, Event> */
-    public function search(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    /** @return EventDiscoveryPage */
+    public function search(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         $query = $this->normalizeSearchQuery($criteria->text);
         $filters = $criteria->filters;
@@ -82,16 +83,14 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         $sort = $criteria->sort;
 
         if ($query === null) {
-            $queryBuilder = $this->buildDatabaseQuery(null, $filters)
-                ->with(SearchResultRelations::forCards($this->relationProvider->relations()));
+            $queryBuilder = $this->buildDatabaseQuery(null, $filters);
 
             $this->applyDatabaseOrdering($queryBuilder, $sort, null);
 
-            return $queryBuilder->paginate($perPage);
+            return EventDiscoveryPageProjector::fromPaginator($queryBuilder->paginate($perPage));
         }
 
-        $directQuery = $this->buildDatabaseQuery(null, $filters)
-            ->with(SearchResultRelations::forCards($this->relationProvider->relations()));
+        $directQuery = $this->buildDatabaseQuery(null, $filters);
         $this->applyDirectSearch(
             $directQuery,
             $query,
@@ -104,35 +103,35 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         $directMatches = $directQuery->paginate($perPage);
 
         if ($directMatches->total() > 0 || mb_strlen($query) < 3) {
-            return $directMatches;
+            return EventDiscoveryPageProjector::fromPaginator($directMatches);
         }
 
-        return $this->fuzzySearchWithDatabase($filters, $query, $perPage);
+        return EventDiscoveryPageProjector::fromPaginator($this->fuzzySearchWithDatabase($filters, $query, $perPage));
     }
 
-    /** @return LengthAwarePaginator<int, Event> */
-    public function nearby(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    /** @return EventDiscoveryPage */
+    public function nearby(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
-        return $this->searchNearbyWithDatabase(
+        return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithDatabase(
             $criteria->latitude ?? 0.0,
             $criteria->longitude ?? 0.0,
             (int) ($criteria->radiusKm ?? 0.0),
             $criteria->filters,
             $criteria->perPage,
-        );
+        ));
     }
 
-    /** @return LengthAwarePaginator<int, Event> */
-    public function nearbyWithQuery(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    /** @return EventDiscoveryPage */
+    public function nearbyWithQuery(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
-        return $this->searchNearbyWithDatabaseQuery(
+        return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithDatabaseQuery(
             $criteria->text ?? '',
             $criteria->latitude ?? 0.0,
             $criteria->longitude ?? 0.0,
             (int) ($criteria->radiusKm ?? 0.0),
             $criteria->filters,
             $criteria->perPage,
-        );
+        ));
     }
 
     /**
@@ -1139,7 +1138,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
         if ($normalizedSearch === '') {
             $queryBuilder = $this->buildDatabaseQuery(null, $filters)
-                ->with(SearchResultRelations::forCards($this->relationProvider->relations()))
                 ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc');
 
             return $queryBuilder->paginate($perPage);
@@ -1179,7 +1177,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         }
 
         $events = $this->buildDatabaseQuery(null, $filters)
-            ->with(SearchResultRelations::forCards($this->relationProvider->relations()))
             ->whereIn('events.id', $paginatedIds)
             ->get()
             ->sortBy(static function (Event $event) use ($paginatedIds): int {
@@ -1270,7 +1267,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->select("{$eventsTable}.*")
             ->selectRaw("{$distanceSql} as distance_km", [$lat, $lng, $lat])
             ->whereRaw("{$distanceSql} <= ?", [$lat, $lng, $lat, $radiusKm])
-            ->with(SearchResultRelations::forCards($this->relationProvider->relations()))
             ->orderBy('distance_km', 'asc')
             ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc')
             ->paginate($perPage);

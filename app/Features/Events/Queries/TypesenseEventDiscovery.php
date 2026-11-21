@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Models\Event;
 use App\Features\References\Api\ReferenceQueries;
-use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -22,33 +22,32 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
     public function __construct(
         private readonly EventDiscoveryFilterSet $filterSet,
         private readonly EventCategoryCatalog $categoryCatalog,
-        private readonly EventSearchRelationProvider $relationProvider,
         private readonly ReferenceQueries $referenceQueries,
     ) {}
 
-    /** @return LengthAwarePaginator<int, Event> */
-    public function search(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    /** @return EventDiscoveryPage */
+    public function search(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
-        return $this->searchWithTypesense($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort);
+        return EventDiscoveryPageProjector::fromPaginator($this->searchWithTypesense($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort));
     }
 
-    /** @return LengthAwarePaginator<int, Event> */
-    public function nearby(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    /** @return EventDiscoveryPage */
+    public function nearby(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
-        return $this->searchNearbyWithTypesense($criteria);
+        return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithTypesense($criteria));
     }
 
-    /** @return LengthAwarePaginator<int, Event> */
-    public function nearbyWithQuery(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    /** @return EventDiscoveryPage */
+    public function nearbyWithQuery(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
-        return $this->searchNearbyWithTypesenseQuery(
+        return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithTypesenseQuery(
             $criteria->text ?? '',
             $criteria->latitude ?? 0.0,
             $criteria->longitude ?? 0.0,
             (int) ($criteria->radiusKm ?? 0.0),
             $criteria->filters,
             $criteria->perPage,
-        );
+        ));
     }
 
     /**
@@ -62,8 +61,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         string $sort
     ): LengthAwarePaginator {
         $search = Event::search($query ?? '')
-            ->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
-                ->with(SearchResultRelations::forCards($this->relationProvider->relations())));
+            ->query(fn (Builder $builder): Builder => $this->constrainCurrentPublicState($builder));
 
         $sortBy = match ($sort) {
             'relevance' => '_text_match:desc,starts_at:asc',
@@ -91,8 +89,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         $radiusKm = $criteria->radiusKm ?? 0.0;
         $search = Event::search('');
 
-        $search->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
-            ->with(SearchResultRelations::forCards($this->relationProvider->relations())));
+        $search->query(fn (Builder $builder): Builder => $this->constrainCurrentPublicState($builder));
         $search->options([
             'filter_by' => implode(' && ', [
                 "location:({$lat}, {$lng}, {$radiusKm} km)",
@@ -117,8 +114,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         int $perPage
     ): LengthAwarePaginator {
         $search = Event::search($query)
-            ->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
-                ->with(SearchResultRelations::forCards($this->relationProvider->relations())));
+            ->query(fn (Builder $builder): Builder => $this->constrainCurrentPublicState($builder));
 
         $filterBy = implode(' && ', [
             "location:({$lat}, {$lng}, {$radiusKm} km)",

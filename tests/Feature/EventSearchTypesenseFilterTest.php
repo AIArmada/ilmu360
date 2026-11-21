@@ -1,6 +1,5 @@
 <?php
 
-use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
@@ -13,14 +12,13 @@ use Laravel\Scout\Engines\TypesenseEngine;
 use Mockery;
 
 /**
- * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog, 2: EventSearchRelationProvider, 3: ReferenceQueries}
+ * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog, 2: ReferenceQueries}
  */
 function typesenseDiscoveryDependencies(): array
 {
     return [
         new EventDiscoveryFilterSet,
         app(EventCategoryCatalog::class),
-        app(EventSearchRelationProvider::class),
         app(ReferenceQueries::class),
     ];
 }
