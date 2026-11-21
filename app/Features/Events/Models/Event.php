@@ -25,7 +25,6 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
-use AIArmada\Events\Support\EventDeleteCascade;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\DonationChannels\Concerns\HasDonationChannels;
@@ -39,10 +38,7 @@ use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventAuthoring;
-use App\Features\Events\Api\EventDeletion;
-use App\Features\Events\Api\EventDeletionScope;
 use App\Features\Events\Api\EventLocations;
-use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Models\Builders\EventBuilder;
@@ -272,21 +268,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             }
         });
 
-        static::saved(function (Event $event): void {
-            $event->syncUrlLinks();
-            $event->syncAudiences();
-        });
-
-        static::deleting(function (Event $event): void {
-            $eventId = (string) $event->getKey();
-
-            app(EventDeletionScope::class)->whileDeleting($eventId, function () use ($event, $eventId): void {
-                OwnerContext::withOwner(null, function () use ($event, $eventId): void {
-                    app(EventDeletion::class)->cleanup($eventId);
-                    EventDeleteCascade::deleteForEvent($event);
-                });
-            });
-        });
     }
 
     /**
@@ -614,15 +595,23 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         return $this->links->firstWhere('link_type', $linkType)?->url;
     }
 
-    public function syncUrlLinks(): void
+    /**
+     * @return array{links: array<string, string|null>, audiences: array<string, mixed>, profiles: array<string, mixed>}
+     */
+    public function pendingProjectionWrites(): array
     {
-        if ($this->pendingLinkWrites === []) {
-            return;
-        }
+        return [
+            'links' => $this->pendingLinkWrites,
+            'audiences' => $this->pendingAudienceWrites,
+            'profiles' => $this->pendingAudienceProfileWrites,
+        ];
+    }
 
-        app(EventProjections::class)->syncLinks((string) $this->getKey(), $this->pendingLinkWrites);
-
+    public function clearPendingProjectionWrites(): void
+    {
         $this->pendingLinkWrites = [];
+        $this->pendingAudienceWrites = [];
+        $this->pendingAudienceProfileWrites = [];
     }
 
     // ─── Prayer Time Expression (EventTimeExpression) ───────────────────────
@@ -761,22 +750,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         $this->pendingAudienceWrites['is_muslim_only'] = $value === null ? null : (bool) $value;
     }
 
-    public function syncAudiences(): void
-    {
-        if ($this->pendingAudienceWrites === [] && $this->pendingAudienceProfileWrites === []) {
-            return;
-        }
-
-        app(EventProjections::class)->syncAudiences(
-            (string) $this->getKey(),
-            $this->pendingAudienceWrites,
-            $this->pendingAudienceProfileWrites,
-        );
-
-        $this->pendingAudienceWrites = [];
-        $this->pendingAudienceProfileWrites = [];
-    }
-
     // ─── EventLocation (primary venue space) ───────────────────────────────
 
     #[\Override]
@@ -789,25 +762,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             ->orderBy('sort_order')
             ->orderBy('created_at')
             ->orderBy('id');
-    }
-
-    /**
-     * Keep the event-level primary location row aligned with the selected
-     * default venue. Direct event saves (e.g. the Filament edit form) only
-     * write events.default_venue_id, while the public detail page reads the
-     * event_locations row; without this sync the page keeps showing the old
-     * venue after a venue change or removal.
-     */
-    public function syncPrimaryLocationFromSelection(): void
-    {
-        $changed = app(EventLocations::class)->syncPrimaryFromSelection(
-            (string) $this->getKey(),
-            venueChanged: $this->wasChanged('default_venue_id'),
-        );
-
-        if ($changed) {
-            $this->unsetRelation('primaryLocation');
-        }
     }
 
     /**

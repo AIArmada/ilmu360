@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\VenueSpaceType;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Support\EventModel;
+use App\Features\Events\Models\Event;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -93,6 +94,18 @@ final readonly class SyncEventLocationsAction implements EventLocations
                     'sort_order' => 0,
                 ]);
             }
+        }
+    }
+
+    public function syncSelectedPrimaryLocation(Event $event): void
+    {
+        $changed = $this->syncPrimaryFromSelection(
+            (string) $event->getKey(),
+            venueChanged: $event->wasChanged('default_venue_id'),
+        );
+
+        if ($changed) {
+            $event->unsetRelation('primaryLocation');
         }
     }
 

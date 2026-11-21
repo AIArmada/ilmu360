@@ -110,6 +110,7 @@ use App\Features\Events\Notifications\EventChangeNoticeNotificationAdapter;
 use App\Features\Events\Notifications\EventNotificationService;
 use App\Features\Events\Notifications\EventOccurrenceReviewNotifier;
 use App\Features\Events\Observers\EventKeyPersonObserver;
+use App\Features\Events\Observers\EventLifecycleObserver;
 use App\Features\Events\Observers\EventLocationSyncObserver;
 use App\Features\Events\Observers\EventObserver;
 use App\Features\Events\Observers\EventOccurrenceFeaturedObserver;
@@ -742,6 +743,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
+        Event::observe(EventLifecycleObserver::class);
         Event::observe(EventLocationSyncObserver::class);
         Event::observe(EventObserver::class);
         EventTerm::observe(EventTermObserver::class);

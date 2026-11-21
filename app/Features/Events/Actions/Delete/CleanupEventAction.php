@@ -21,7 +21,7 @@ use App\Features\Registration\Api\EventRegistrationDeletion;
  * submissions, moderation reviews, change announcements and media links.
  * Engagement and Registration cleanup delegate to their owning features before
  * the event row is deleted. The vendor EventDeleteCascade runs afterward in the
- * model's `deleting` hook while the event is still available to its owner-scoped
+ * synchronous lifecycle observer while the event is still available to its owner-scoped
  * child queries, so it removes the remaining package-owned children.
  * The event-scoped package tables without app write paths (links, audiences,
  * languages, locations, classifications, time expressions, series items) are

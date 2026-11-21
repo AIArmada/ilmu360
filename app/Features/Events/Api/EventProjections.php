@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Api;
 
 /**
- * Event link/audience projection synchronisation used by the root model hook.
+ * Event link/audience projection synchronisation used by the named feature Action.
  */
 interface EventProjections
 {
