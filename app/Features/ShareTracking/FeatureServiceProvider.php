@@ -10,6 +10,7 @@ use AIArmada\Events\Events\EventCancelled;
 use AIArmada\Events\Events\EventOccurrenceCancelled;
 use AIArmada\Events\Events\EventSessionCancelled;
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
+use App\Features\ShareTracking\Contributors\ShareTrackingAccountLifecycleContributor;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\Actions\EffectReceipts\DispatchShareEffectReceiptsAction;
 use App\Features\ShareTracking\Actions\GuestClaims\ClaimGuestProfileAction;
@@ -62,6 +63,7 @@ use App\Features\ShareTracking\Services\GuestClaimScopeService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
+use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Support\Facades\Event as EventFacade;
 
 /**
@@ -149,6 +151,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function register(): void
     {
+        $this->app->tag([ShareTrackingAccountLifecycleContributor::class], AccountLifecycleContributor::TAG);
+
         if (interface_exists(StepContributor::class)) {
             $this->app->tag(ShareCheckoutStepContributor::class, 'checkout.steps');
         }

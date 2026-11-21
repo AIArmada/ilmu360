@@ -83,15 +83,6 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/Identity/Persistence/HasUserRestoration.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
-      "reason": "Identity restores the user's validated member affiliate profile through the canonical Affiliates model; affiliate storage remains package-owned.",
-      "owner": "Identity",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
       "file": "app/Features/Registration/Actions/PrepareAdmissionCheckoutAction.php",
       "target": "table:unknown",
       "model": "AIArmada\\Checkout\\Models\\CheckoutSession",
