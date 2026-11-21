@@ -461,11 +461,11 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
             EngagementSubjectType::Series => $this->morphType('series'),
         };
     }
+
     private function morphType(string $alias): string
     {
         $modelClass = MorphModelResolver::resolve($alias);
 
         return (new $modelClass)->getMorphClass();
     }
-
 }
