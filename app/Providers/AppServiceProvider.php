@@ -266,7 +266,6 @@ class AppServiceProvider extends ServiceProvider
             },
         );
 
-
         $this->registerPackageMigrations();
     }
 

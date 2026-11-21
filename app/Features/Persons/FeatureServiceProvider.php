@@ -40,6 +40,7 @@ use App\Features\Persons\Queries\EloquentPersonAuthoringCandidates;
 use App\Features\Persons\Queries\EloquentPersonLookup;
 use App\Features\Persons\Queries\PersonCardsQuery;
 use App\Features\Persons\Queries\PersonContributionProjection;
+use App\Features\Persons\Queries\PersonResourceSearchAdapter;
 use App\Features\Persons\Services\EloquentPersonCatalog;
 use App\Features\Persons\Services\PersonSearchService;
 use App\Features\Persons\Services\PersonWorkflowService;
@@ -50,9 +51,8 @@ use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
-use App\Platform\Telemetry\SignalSchemaRegistry;
-use App\Features\Persons\Queries\PersonResourceSearchAdapter;
 use App\Platform\Search\ResourceSearchAdapter;
+use App\Platform\Telemetry\SignalSchemaRegistry;
 
 class FeatureServiceProvider extends FeatureModule
 {

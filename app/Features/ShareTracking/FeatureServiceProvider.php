@@ -10,6 +10,7 @@ use AIArmada\Events\Events\EventCancelled;
 use AIArmada\Events\Events\EventOccurrenceCancelled;
 use AIArmada\Events\Events\EventSessionCancelled;
 use App\Features\Engagement\Api\EngagementShareOutcomes;
+use App\Features\Identity\Api\SignupAttributionSourceResolver;
 use App\Features\ShareTracking\Actions\BrowserSelection\LockBrowserSelectionAction;
 use App\Features\ShareTracking\Actions\CommittedSignals\DrainCommittedShareSignalsAction;
 use App\Features\ShareTracking\Actions\EffectReceipts\DispatchShareEffectReceiptsAction;
@@ -60,6 +61,7 @@ use App\Features\ShareTracking\EntryPoints\Checkout\ShareCheckoutStepContributor
 use App\Features\ShareTracking\EntryPoints\Filament\Pages\ShareAnalytics;
 use App\Features\ShareTracking\EntryPoints\Listeners\ReverseScheduleCancellationShareOutcome;
 use App\Features\ShareTracking\EntryPoints\Observers\CommittedShareTouchpointObserver;
+use App\Features\ShareTracking\Integrations\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Features\ShareTracking\Persistence\DatabaseEffectReceipts;
 use App\Features\ShareTracking\Persistence\DatabaseOutcomeCorrections;
 use App\Features\ShareTracking\Persistence\DatabaseSourceAttributionReceipts;
@@ -82,8 +84,6 @@ use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Support\Facades\Event as EventFacade;
-use App\Features\Identity\Api\SignupAttributionSourceResolver;
-use App\Features\ShareTracking\Integrations\Auth\AffiliateSignupAttributionSourceResolver;
 
 /**
  * Share tracking claims all seven app tables named in feature.json: browser

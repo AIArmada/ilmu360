@@ -6,9 +6,9 @@ namespace App\Features\Moderation;
 
 use App\Features\Moderation\Api\ModerationActionHistory;
 use App\Features\Moderation\Api\RecordModerationAction;
+use App\Features\Moderation\Contributors\ModerationAccountLifecycleContributor;
 use App\Features\Moderation\Persistence\ModerationActionStore;
 use App\Platform\FeatureModule;
-use App\Features\Moderation\Contributors\ModerationAccountLifecycleContributor;
 use App\Shared\Auth\AccountLifecycleContributor;
 
 /**

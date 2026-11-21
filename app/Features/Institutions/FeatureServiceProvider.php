@@ -46,6 +46,7 @@ use App\Features\Institutions\Queries\EloquentInstitutionAuthoringCandidates;
 use App\Features\Institutions\Queries\EloquentInstitutionLookup;
 use App\Features\Institutions\Queries\InstitutionCardsQuery;
 use App\Features\Institutions\Queries\InstitutionContributionProjection;
+use App\Features\Institutions\Queries\InstitutionResourceSearchAdapter;
 use App\Features\Institutions\Services\EloquentInstitutionCatalog;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Institutions\Services\InstitutionVenueLinkService;
@@ -59,11 +60,10 @@ use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
+use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Contracts\AddressableChangeEffects;
 use App\Shared\Contracts\AddressChangeEffects;
-use App\Features\Institutions\Queries\InstitutionResourceSearchAdapter;
-use App\Platform\Search\ResourceSearchAdapter;
 
 class FeatureServiceProvider extends FeatureModule
 {
