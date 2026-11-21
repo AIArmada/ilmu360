@@ -11,13 +11,13 @@ use App\Platform\Search\ResourceSearchDispatcher;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-it('registers adapters in the preserved person institution reference order', function () {
+it('registers adapters in the deterministic feature discovery order', function () {
     $adapters = iterator_to_array(app()->tagged(ResourceSearchAdapter::TAG), false);
 
     expect(array_map(static fn (ResourceSearchAdapter $adapter): string => $adapter::class, $adapters))
         ->toBe([
-            PersonResourceSearchAdapter::class,
             InstitutionResourceSearchAdapter::class,
+            PersonResourceSearchAdapter::class,
             ReferenceResourceSearchAdapter::class,
         ]);
 });

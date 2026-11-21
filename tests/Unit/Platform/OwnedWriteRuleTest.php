@@ -27,7 +27,7 @@ parameters:
         - {$root}/vendor/autoload.php
 services:
     -
-        class: LaravelAgentArchitecture\OwnedWriteRule
+        class: Tools\Architecture\OwnedWriteRule
         arguments:
             projectRoot: {$project->path}
         tags:
@@ -39,7 +39,6 @@ NEON);
         $root.'/vendor/phpstan/phpstan/phpstan',
         'analyse',
         '--configuration='.$project->path.'/phpstan.neon',
-        '--autoload-file='.$root.'/tools/Architecture/OwnedWriteRule.php',
         '--no-progress',
         '--debug',
         '--error-format=json',
