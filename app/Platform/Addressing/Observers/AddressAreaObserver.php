@@ -4,93 +4,32 @@ declare(strict_types=1);
 
 namespace App\Platform\Addressing\Observers;
 
-use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaRelationship;
-use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
-use App\Features\Institutions\Api\InstitutionListingCacheVersion;
-use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Platform\Addressing\Actions\GuardAddressAreaDeletionAction;
+use App\Shared\Contracts\AddressCatalogEffects;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
-use Illuminate\Validation\ValidationException;
 
-class AddressAreaObserver implements ShouldHandleEventsAfterCommit
+final readonly class AddressAreaObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        private readonly InstitutionListingCacheVersion $institutionCacheVersion,
-        private readonly PersonListingCacheVersion $personCacheVersion,
-        private readonly PublicListingsCacheInvalidator $publicListingsCache,
-        private readonly SelectionCatalogCache $selectionCatalogCache,
+        private AddressCatalogEffects $catalogEffects,
+        private GuardAddressAreaDeletionAction $deletionGuard,
     ) {}
 
     public function saved(AddressArea $addressArea): void
     {
-        if (! $addressArea->wasRecentlyCreated && ! $addressArea->wasChanged()) {
-            return;
+        if ($addressArea->wasRecentlyCreated || $addressArea->wasChanged()) {
+            $this->catalogEffects->invalidateLocationCatalogs();
         }
-
-        $this->flushLocationCaches();
     }
 
     public function deleted(AddressArea $addressArea): void
     {
-        $this->flushLocationCaches();
+        $this->catalogEffects->invalidateLocationCatalogs();
     }
 
     public function deleting(AddressArea $addressArea): void
     {
-        $childAreaMessage = $this->childAreaDeletionMessage($addressArea);
-
-        if ($childAreaMessage !== null) {
-            throw ValidationException::withMessages([
-                'address_area' => $childAreaMessage,
-            ]);
-        }
-
-        if (! $this->isReferencedByAddresses($addressArea)) {
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            'address_area' => $this->addressReferenceMessage(),
-        ]);
-    }
-
-    private function flushLocationCaches(): void
-    {
-        $this->institutionCacheVersion->bump();
-        $this->personCacheVersion->bump();
-        $this->publicListingsCache->bustMajlisListing();
-        $this->selectionCatalogCache->bustAddress();
-    }
-
-    private function childAreaDeletionMessage(AddressArea $addressArea): ?string
-    {
-        $recordKey = (string) $addressArea->getKey();
-
-        if (AddressAreaRelationship::query()
-            ->where('parent_address_area_id', $recordKey)
-            ->where('relationship_type', 'contains')
-            ->exists()) {
-            return 'Delete or reassign this address area\'s child areas before deleting it.';
-        }
-
-        return null;
-    }
-
-    private function isReferencedByAddresses(AddressArea $addressArea): bool
-    {
-        $recordKey = (string) $addressArea->getKey();
-
-        return Address::query()
-            ->whereHas('areaAssignments', static fn ($query) => $query->where('address_area_id', $recordKey))
-            ->exists();
-    }
-
-    private function addressReferenceMessage(): string
-    {
-        $label = 'address area';
-
-        return "This {$label} is still referenced by one or more addresses.";
+        $this->deletionGuard->handle($addressArea);
     }
 }
