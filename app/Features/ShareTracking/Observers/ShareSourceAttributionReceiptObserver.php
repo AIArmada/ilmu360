@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Observers;
 
-use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
+use App\Features\ShareTracking\Actions\Effects\ScheduleShareReceiptEffectsAction;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 
-class ShareSourceAttributionReceiptObserver
+/** Notify ShareTracking's owned after-write effects action. */
+final readonly class ShareSourceAttributionReceiptObserver
 {
-    public function created(ShareSourceAttributionReceipt $receipt): void
-    {
-        EvaluateRewardEntitlementJob::dispatch((string) $receipt->getAttribute('business_key'))->afterCommit();
+    public function __construct(private ScheduleShareReceiptEffectsAction $effects) {}
 
-        // Reward evaluation keeps its own dedicated dispatch. The
-        // committed-share signal is produced from committed OUTBOUND
-        // shares (CommittedShareTouchpointObserver), never from
-        // downstream receipts.
+    public function created(ShareSourceAttributionReceipt $record): void
+    {
+        $this->effects->created($record);
     }
 }

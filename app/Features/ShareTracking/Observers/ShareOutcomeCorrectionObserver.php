@@ -4,39 +4,16 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Observers;
 
-use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
-use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
+use App\Features\ShareTracking\Actions\Effects\ScheduleShareOutcomeCorrectionEffectsAction;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
-class ShareOutcomeCorrectionObserver
+/** Notify ShareTracking's owned after-write effects action. */
+final readonly class ShareOutcomeCorrectionObserver
 {
-    public function created(ShareOutcomeCorrection $correction): void
+    public function __construct(private ScheduleShareOutcomeCorrectionEffectsAction $effects) {}
+
+    public function created(ShareOutcomeCorrection $record): void
     {
-        $businessKey = (string) $correction->getAttribute('business_key');
-
-        try {
-            app(ReferralOutcomeWorkflow::class)->scheduleRewardReversal(
-                $businessKey,
-                'source-correction:'.$correction->getAttribute('reason'),
-            );
-        } catch (Throwable $exception) {
-            Log::warning('Referral reversal dispatch failed after recording a share correction.', [
-                'correction_id' => (string) $correction->getKey(),
-                'business_key' => $businessKey,
-                'exception' => $exception,
-            ]);
-        }
-
-        try {
-            RecheckRewardAwardsJob::dispatch($businessKey)->afterCommit();
-        } catch (Throwable $exception) {
-            Log::warning('Reward award recheck dispatch failed after recording a share correction.', [
-                'correction_id' => (string) $correction->getKey(),
-                'business_key' => $businessKey,
-                'exception' => $exception,
-            ]);
-        }
+        $this->effects->created($record);
     }
 }
