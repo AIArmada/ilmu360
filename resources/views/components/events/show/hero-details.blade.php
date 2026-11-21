@@ -40,7 +40,7 @@
             </span>
         @endif
 
-        @php($firstEventCategory = app(\App\Features\Events\EntryPoints\Ui\EventCategoryPresenter::class)->forEvent($event)[0] ?? null)
+        @php($firstEventCategory = app(\App\Features\Events\Queries\EventCategoryPresenter::class)->forEvent($event)[0] ?? null)
 
         @if($firstEventCategory)
             <span

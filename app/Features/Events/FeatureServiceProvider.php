@@ -79,7 +79,7 @@ use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Api\Orm\EventContributionStateMapper;
 use App\Features\Events\Api\Orm\EventMedia;
 use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
+use App\Features\Events\Api\EventPageSchedule;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Api\Orm\EventSubmissions;
 use App\Features\Events\Api\Orm\Filament\EventContributionOptionsCountry;
@@ -277,7 +277,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(PublicScheduleEligibility::class, PublicScheduleEligibilityService::class);
         $this->app->bind(EventEngagementEligibility::class, EventEngagementEligibilityService::class);
         $this->app->bind(EventSchedulePageData::class, EventSchedulePageDataService::class);
-        $this->app->bind(EventPageScheduleOrmPort::class, EventPageScheduleService::class);
+        $this->app->bind(EventPageSchedule::class, EventPageScheduleService::class);
         $this->app->bind(EventCollections::class, EloquentEventCollections::class);
         $this->app->bind(AdminEventSearch::class, McpEventSearchService::class);
         $this->app->bind(EventCategoryPayloads::class, EventCategoryPayloadPresenter::class);

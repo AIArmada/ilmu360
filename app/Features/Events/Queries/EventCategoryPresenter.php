@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\EntryPoints\Ui;
+namespace App\Features\Events\Queries;
 
 use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Models\Event;

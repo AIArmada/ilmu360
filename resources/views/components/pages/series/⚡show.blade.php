@@ -2,8 +2,8 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventPageSchedule;
+use App\Features\Events\Api\Data\EventScheduleCard;
 use App\Features\Events\Models\Series;
 use App\Shared\Auth\IntendedRedirect;
 use Illuminate\Database\Eloquent\Collection;
@@ -45,7 +45,7 @@ new
         }
 
         /**
-         * @return Collection<int, Event>
+         * @return Collection<int, EventScheduleCard>
          */
         public function toggleFollow(): void
         {
@@ -73,7 +73,7 @@ new
 
         public function getUpcomingEventsProperty(): Collection
         {
-            return $this->eventPageData()['upcoming'];
+            return collect($this->eventPageData()['upcoming']);
         }
 
         public function getUpcomingTotalProperty(): int
@@ -82,11 +82,11 @@ new
         }
 
         /**
-         * @return Collection<int, Event>
+         * @return Collection<int, EventScheduleCard>
          */
         public function getPastEventsProperty(): Collection
         {
-            return $this->eventPageData()['past'];
+            return collect($this->eventPageData()['past']);
         }
 
         public function getPastTotalProperty(): int
@@ -111,11 +111,11 @@ new
         }
 
         /**
-         * @return array{upcoming: Collection<int, Event>, past: Collection<int, Event>, upcoming_total: int, past_total: int}
+         * @return array{upcoming: list<EventScheduleCard>, past: list<EventScheduleCard>, upcoming_total: int, past_total: int}
          */
         protected function eventPageData(): array
         {
-            return $this->eventPageDataCache ??= app(EventPageScheduleOrmPort::class)->forSeries(
+            return $this->eventPageDataCache ??= app(EventPageSchedule::class)->forSeries(
                 (string) $this->series->getKey(),
                 $this->eventPageUpcomingLimit(),
                 $this->eventPagePastLimit(),
@@ -168,30 +168,6 @@ new
     $frontCover = $series->getFirstMediaUrl('cover', 'thumb');
     $backCover = null;
 
-    // ── Helpers identical to person page ────────────────────────────────────
-    $resolveEventCategoryLabel = static fn (\App\Features\Events\Models\Event $event): string => app(\App\Features\Events\EntryPoints\Ui\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
-
-    $resolveVenueLocation = static function (\App\Features\Events\Models\Event $event) use ($resolveEventCategoryLabel): string {
-        $primaryLocationName = $event->resolvedLocationName();
-        $address = $event->resolvedLocationAddress();
-
-        $parts = array_filter([
-            $primaryLocationName,
-            ...\App\Platform\Location\AddressHierarchyFormatter::parts($address),
-        ]);
-
-        return $parts !== [] ? implode(', ', $parts) : (string) $primaryLocationName;
-    };
-
-    $resolveEventTimeDisplay = static function (\App\Features\Events\Models\Event $event): string {
-        return $event->timing_display !== ''
-            ? $event->timing_display
-            : \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'h:i A');
-    };
-
-    $resolveEventEndTimeDisplay = static function (\App\Features\Events\Models\Event $event): string {
-        return \App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
-    };
 @endphp
 
 <div class="min-h-screen bg-slate-50/80" x-data="{ shareModalOpen: false }">
@@ -561,30 +537,30 @@ new
                                 <div class="space-y-4">
                                     @foreach($upcomingEvents as $event)
                                         @php
-                                            $venueLocation = $resolveVenueLocation($event);
-                                            $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
+                                            $venueLocation = $event->location;
+                                            $eventFormatValue = $event->deliveryMode;
                                             $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
-                                            $isPendingEvent = $event->status instanceof \App\Features\Events\States\EventStatus\Pending;
+                                            $isPendingEvent = $event->isPending;
                                         @endphp
-                                        <a href="{{ route('events.show', $event) }}" wire:navigate
+                                        <a href="{{ $event->url }}" wire:navigate
                                             wire:key="upcoming-{{ $event->id }}"
                                             class="group relative flex overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ring-1 ring-transparent transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200/80 hover:ring-emerald-100 hover:shadow-xl hover:shadow-emerald-500/[0.08]">
                                             {{-- Date accent sidebar --}}
                                             <div
                                                 class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-emerald-600 to-emerald-800') }} p-2.5 text-white sm:w-24 sm:p-3">
                                                 <span
-                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[11px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
+                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[11px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'l') }}</span>
                                                 <span
-                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
+                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd') }}</span>
                                                 <span
-                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[13px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[13px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'F') }}</span>
                                             </div>
                                             {{-- Event details --}}
                                             <div class="flex flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
                                                 <div class="flex items-center gap-2">
                                                     <span
                                                         class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200/60">
-                                                        {{ $resolveEventCategoryLabel($event) }}
+                                                        {{ $event->categoryLabel }}
                                                     </span>
                                                     @if($isPendingEvent)
                                                         <span
@@ -602,18 +578,18 @@ new
                                                     class="font-heading text-base font-bold leading-snug text-slate-900 transition-colors group-hover:text-emerald-700 sm:text-lg">
                                                     {{ $event->title }}
                                                 </h3>
-                                                @if($event->reference_study_subtitle)
+                                                @if($event->referenceSubtitle)
                                                     <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
-                                                        {{ $event->reference_study_subtitle }}
+                                                        {{ $event->referenceSubtitle }}
                                                     </p>
                                                 @endif
                                                 <div class="space-y-1 text-sm text-slate-500">
                                                     <div class="flex items-center gap-1.5">
                                                         <flux:icon.clock class="size-3.5 text-slate-400" />
-                                                        {{ $resolveEventTimeDisplay($event) }}
-                                                        @if($event->ends_at)
+                                                        {{ $event->timingText }}
+                                                        @if($event->endsAt)
                                                             <span
-                                                                class="text-slate-300">–</span>{{ $resolveEventEndTimeDisplay($event) }}
+                                                                class="text-slate-300">–</span>{{ \App\Platform\Time\UserDateTimeFormatter::format($event->endsAt, 'h:i A') }}
                                                         @endif
                                                     </div>
                                                     @if($venueLocation && $eventFormatValue !== 'online')
@@ -621,10 +597,10 @@ new
                                                             <flux:icon.map-pin class="size-3.5 shrink-0 text-slate-400" />
                                                             <span class="line-clamp-1">{{ $venueLocation }}</span>
                                                         </div>
-                                                    @elseif($event->institution && $eventFormatValue !== 'online')
+                                                    @elseif($event->institutionName && $eventFormatValue !== 'online')
                                                         <div class="flex items-center gap-1.5">
                                                             <flux:icon.building-library class="size-3.5 shrink-0 text-slate-400" />
-                                                            {{ $event->institution->name }}
+                                                            {{ $event->institutionName }}
                                                         </div>
                                                     @endif
                                                 </div>
@@ -671,27 +647,27 @@ new
                                 <div class="space-y-4">
                                     @foreach($pastEvents as $event)
                                         @php
-                                            $pastVenueLocation = $resolveVenueLocation($event);
-                                            $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
+                                            $pastVenueLocation = $event->location;
+                                            $eventFormatValue = $event->deliveryMode;
                                             $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
-                                            $isPendingEvent = $event->status instanceof \App\Features\Events\States\EventStatus\Pending;
+                                            $isPendingEvent = $event->isPending;
                                         @endphp
-                                        <a href="{{ route('events.show', $event) }}" wire:navigate
+                                        <a href="{{ $event->url }}" wire:navigate
                                             wire:key="past-{{ $event->id }}"
                                             class="group relative flex overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ring-1 ring-transparent transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:ring-slate-200 hover:shadow-xl hover:shadow-slate-500/[0.06]">
                                             <div
                                                 class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-slate-500 to-slate-700') }} p-2.5 text-white sm:w-24 sm:p-3">
                                                 <span
-                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[11px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
+                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[11px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'l') }}</span>
                                                 <span
-                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
+                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd') }}</span>
                                                 <span
-                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[13px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[13px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'F') }}</span>
                                             </div>
                                             <div class="flex flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
                                                 <div class="flex items-center gap-2">
                                                     <span
-                                                        class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200/60">{{ $resolveEventCategoryLabel($event) }}</span>
+                                                        class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200/60">{{ $event->categoryLabel }}</span>
                                                     @if($isPendingEvent)
                                                         <span
                                                             class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200/60">{{ __('Menunggu Kelulusan') }}</span>
@@ -710,18 +686,18 @@ new
                                                     class="font-heading text-base font-bold leading-snug text-slate-900 transition-colors group-hover:text-slate-700 sm:text-lg">
                                                     {{ $event->title }}
                                                 </h3>
-                                                @if($event->reference_study_subtitle)
+                                                @if($event->referenceSubtitle)
                                                     <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
-                                                        {{ $event->reference_study_subtitle }}
+                                                        {{ $event->referenceSubtitle }}
                                                     </p>
                                                 @endif
                                                 <div class="space-y-1 text-sm text-slate-500">
                                                     <div class="flex items-center gap-1.5">
                                                         <flux:icon.clock class="size-3.5 text-slate-400" />
-                                                        {{ $resolveEventTimeDisplay($event) }}
-                                                        @if($event->ends_at)
+                                                        {{ $event->timingText }}
+                                                        @if($event->endsAt)
                                                             <span
-                                                                class="text-slate-300">–</span>{{ $resolveEventEndTimeDisplay($event) }}
+                                                                class="text-slate-300">–</span>{{ \App\Platform\Time\UserDateTimeFormatter::format($event->endsAt, 'h:i A') }}
                                                         @endif
                                                     </div>
                                                     @if($pastVenueLocation && $eventFormatValue !== 'online')
@@ -729,10 +705,10 @@ new
                                                             <flux:icon.map-pin class="size-3.5 shrink-0 text-slate-400" />
                                                             <span class="line-clamp-1">{{ $pastVenueLocation }}</span>
                                                         </div>
-                                                    @elseif($event->institution && $eventFormatValue !== 'online')
+                                                    @elseif($event->institutionName && $eventFormatValue !== 'online')
                                                         <div class="flex items-center gap-1.5">
                                                             <flux:icon.building-library class="size-3.5 shrink-0 text-slate-400" />
-                                                            {{ $event->institution->name }}
+                                                            {{ $event->institutionName }}
                                                         </div>
                                                     @endif
                                                 </div>

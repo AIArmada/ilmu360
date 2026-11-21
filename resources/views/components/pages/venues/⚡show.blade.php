@@ -1,7 +1,7 @@
 <?php
 
-use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventPageSchedule;
+use App\Features\Events\Api\Data\EventScheduleCard;
 use App\Features\Places\Models\Venue;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Component;
@@ -45,11 +45,11 @@ new class extends Component
     }
 
     /**
-     * @return array{upcoming: Collection<int, Event>, past: Collection<int, Event>, upcoming_total: int, past_total: int}
+     * @return array{upcoming: list<EventScheduleCard>, past: list<EventScheduleCard>, upcoming_total: int, past_total: int}
      */
     protected function eventPageData(): array
     {
-        return $this->eventPageDataCache ??= app(EventPageScheduleOrmPort::class)->forVenue(
+        return $this->eventPageDataCache ??= app(EventPageSchedule::class)->forVenue(
             (string) $this->venue->getKey(),
             $this->eventPageUpcomingLimit(),
             $this->eventPagePastLimit(),
@@ -57,11 +57,11 @@ new class extends Component
     }
 
     /**
-     * @return Collection<int, Event>
+     * @return Collection<int, EventScheduleCard>
      */
     public function getUpcomingEventsProperty(): Collection
     {
-        return $this->eventPageData()['upcoming'];
+        return collect($this->eventPageData()['upcoming']);
     }
 
     public function getUpcomingTotalProperty(): int
@@ -70,11 +70,11 @@ new class extends Component
     }
 
     /**
-     * @return Collection<int, Event>
+     * @return Collection<int, EventScheduleCard>
      */
     public function getPastEventsProperty(): Collection
     {
-        return $this->eventPageData()['past'];
+        return collect($this->eventPageData()['past']);
     }
 
     public function getPastTotalProperty(): int
@@ -200,13 +200,13 @@ new class extends Component
 
                 <div class="mt-6 space-y-4">
                     @forelse ($upcomingEvents as $event)
-                        <a href="{{ route('events.show', $event) }}" wire:navigate class="group flex flex-col gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white hover:shadow-lg hover:shadow-emerald-950/5 sm:flex-row sm:items-center">
-                            <img src="{{ $event->getFirstMediaUrl('poster', 'thumb') ?: ($event->institution?->getFirstMediaUrl('logo', 'thumb') ?: $thumbUrl) }}" alt="{{ $event->title }}" class="h-24 w-full rounded-2xl object-cover sm:h-20 sm:w-28">
+                        <a href="{{ $event->url }}" wire:navigate class="group flex flex-col gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white hover:shadow-lg hover:shadow-emerald-950/5 sm:flex-row sm:items-center">
+                            <img src="{{ $event->posterUrl ?: $thumbUrl }}" alt="{{ $event->title }}" class="h-24 w-full rounded-2xl object-cover sm:h-20 sm:w-28">
                             <div class="min-w-0 flex-1">
-                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'D, j M Y g:i A') }}</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'D, j M Y g:i A') }}</p>
                                 <h3 class="mt-2 text-lg font-semibold text-slate-900 transition group-hover:text-emerald-700">{{ $event->title }}</h3>
-                                @if ($event->institution)
-                                    <p class="mt-2 text-sm text-slate-600">{{ $event->institution->name }}</p>
+                                @if ($event->institutionName)
+                                    <p class="mt-2 text-sm text-slate-600">{{ $event->institutionName }}</p>
                                 @endif
                             </div>
                         </a>
@@ -231,13 +231,13 @@ new class extends Component
 
                 <div class="mt-6 space-y-4">
                     @forelse ($pastEvents as $event)
-                        <a href="{{ route('events.show', $event) }}" wire:navigate class="group flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-950/5 sm:flex-row sm:items-center">
-                            <img src="{{ $event->getFirstMediaUrl('poster', 'thumb') ?: ($event->institution?->getFirstMediaUrl('logo', 'thumb') ?: $thumbUrl) }}" alt="{{ $event->title }}" class="h-24 w-full rounded-2xl object-cover sm:h-20 sm:w-28">
+                        <a href="{{ $event->url }}" wire:navigate class="group flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-950/5 sm:flex-row sm:items-center">
+                            <img src="{{ $event->posterUrl ?: $thumbUrl }}" alt="{{ $event->title }}" class="h-24 w-full rounded-2xl object-cover sm:h-20 sm:w-28">
                             <div class="min-w-0 flex-1">
-                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'D, j M Y g:i A') }}</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'D, j M Y g:i A') }}</p>
                                 <h3 class="mt-2 text-lg font-semibold text-slate-900 transition group-hover:text-emerald-700">{{ $event->title }}</h3>
-                                @if ($event->institution)
-                                    <p class="mt-2 text-sm text-slate-600">{{ $event->institution->name }}</p>
+                                @if ($event->institutionName)
+                                    <p class="mt-2 text-sm text-slate-600">{{ $event->institutionName }}</p>
                                 @endif
                             </div>
                         </a>
