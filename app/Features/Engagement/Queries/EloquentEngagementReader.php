@@ -14,16 +14,10 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementState;
 use App\Features\Engagement\Api\FollowState;
 use App\Features\Engagement\Api\SubjectFollows;
-use App\Features\Events\Models\Event;
-use App\Features\Events\Models\Series;
 use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\PersonLookup;
-use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
-use App\Features\Places\Models\Venue;
 use App\Features\References\Api\ReferenceLookup;
-use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
 use BackedEnum;
@@ -32,11 +26,9 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Root read adapter over the package interaction tables.
+ * Engagement-owned reader over the package interaction tables.
  *
- * Discovery/engagement will own these reads once the feature is extracted.
- * Until then this adapter replaces the User reverse relations with the same
- * follow/bookmark/response queries and supplies the Engagement feature Api.
+ * Returns immutable follow, bookmark and response state through Engagement APIs.
  */
 final readonly class EloquentEngagementReader implements EngagementActivityReader, EventEngagement, SubjectFollows
 {
@@ -448,9 +440,6 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
         return null;
     }
 
-    /**
-     * @return class-string<Event|Person|Institution|Reference|Series|Venue>
-     */
     private function subjectMorphClass(EngagementSubjectType $subjectType): string
     {
         return match ($subjectType) {
