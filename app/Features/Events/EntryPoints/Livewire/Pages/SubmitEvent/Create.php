@@ -15,7 +15,7 @@ use App\Features\Events\Api\EventInstitutionQuickAddMapsProofStore;
 use App\Features\Events\Api\EventMediaExtraction;
 use App\Features\Events\Api\EventMediaExtractionSource;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Http\SubmitEventRequestHandler;
 use App\Features\Events\Enums\Terms\DomainTermCode;

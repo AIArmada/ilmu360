@@ -24,7 +24,7 @@ use App\Features\Events\Api\EventScheduleFact;
 use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Api\EventScheduleTimeFact;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\PublicScheduleEligibility;

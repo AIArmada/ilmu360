@@ -12,7 +12,7 @@ use App\Features\Contributions\Api\Orm\EntitySubmissionAccessContract;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventSubmissionOptionsCache;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;

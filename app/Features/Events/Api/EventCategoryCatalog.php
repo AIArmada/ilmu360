@@ -2,15 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Api\Orm;
+namespace App\Features\Events\Api;
 
-use AIArmada\Events\Models\EventTerm;
 
-/**
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
- * Consumers: Events/FeatureServiceProvider.php, Events/Queries, Events/Models, Events/Services, Events/Support, Events/Actions
- */
+/** Event taxonomy reads for display, validation and classification. */
 interface EventCategoryCatalog
 {
     public const string TAXONOMY_CODE = 'event_category';
@@ -43,7 +38,7 @@ interface EventCategoryCatalog
 
     /**
      * @param  list<string>  $termIds
-     * @return array<int, EventTerm>
+     * @return list<string>
      */
-    public function terms(array $termIds): array;
+    public function termNames(array $termIds): array;
 }

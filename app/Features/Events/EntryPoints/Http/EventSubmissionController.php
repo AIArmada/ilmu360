@@ -6,7 +6,7 @@ use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Support\SubmitterContactRules;

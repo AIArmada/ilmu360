@@ -40,7 +40,7 @@ use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Queries\PrimaryLocationSql;
 use App\Features\Events\States\EventStatus\EventStatus;

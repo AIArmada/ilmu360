@@ -6,7 +6,7 @@ namespace App\Features\Events\Services;
 
 use AIArmada\Events\Models\EventTermPolicy;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 
 final class EventCategoryPolicy implements EventCategoryPolicyResolver
 {

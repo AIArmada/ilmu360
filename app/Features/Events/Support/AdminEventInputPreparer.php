@@ -10,7 +10,7 @@ use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Places\Api\SpaceEligibility;
 use BackedEnum;

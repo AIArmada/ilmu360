@@ -6,7 +6,7 @@ use App\Features\Events\Api\EventPageSchedule;
 use App\Features\Events\Api\Data\EventScheduleCard;
 use App\Features\Events\Models\Series;
 use App\Shared\Auth\IntendedRedirect;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;

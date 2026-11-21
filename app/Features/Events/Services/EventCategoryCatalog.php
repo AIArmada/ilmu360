@@ -6,7 +6,7 @@ namespace App\Features\Events\Services;
 
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Models\EventTerm;
-use App\Features\Events\Api\Orm\EventCategoryCatalog as EventCategoryCatalogContract;
+use App\Features\Events\Api\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Shared\Cache\SelectionCatalogCache;
 
 final readonly class EventCategoryCatalog implements EventCategoryCatalogContract
@@ -62,13 +62,17 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
 
     /**
      * @param  list<string>  $termIds
-     * @return array<int, EventTerm>
+     * @return list<string>
      */
-    public function terms(array $termIds): array
+    public function termNames(array $termIds): array
     {
         $terms = $this->hierarchy->terms(self::TAXONOMY_CODE);
         $selected = array_fill_keys($this->validTermIds($termIds), true);
 
-        return $terms->filter(fn (EventTerm $term): bool => isset($selected[(string) $term->getKey()]))->values()->all();
+        return $terms
+            ->filter(fn (EventTerm $term): bool => isset($selected[(string) $term->getKey()]))
+            ->map(fn (EventTerm $term): string => (string) $term->name)
+            ->values()
+            ->all();
     }
 }

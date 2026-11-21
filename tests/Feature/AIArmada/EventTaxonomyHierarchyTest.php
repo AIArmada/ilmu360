@@ -5,7 +5,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTermPolicy;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -62,6 +62,15 @@ it('validates the flat category IDs before minimizing them', function (): void {
         ['event_category_ids.*' => ['uuid', Rule::in($catalog->validTermIds($ids))]],
     )->passes())->toBeTrue()
         ->and($catalog->validateTermIds($ids))->toBe([(string) $lecture->getKey()]);
+});
+
+it('publishes names of selected event categories without leaking event term models', function (): void {
+    seed(FoundationSeeder::class);
+
+    $category = EventTerm::query()->where('code', 'kuliah_ceramah')->firstOrFail();
+
+    expect(app(EventCategoryCatalog::class)->termNames([(string) $category->getKey()]))
+        ->toBe(['Kuliah / Ceramah']);
 });
 
 it('hides an inactive taxonomy from active hierarchy reads', function (): void {

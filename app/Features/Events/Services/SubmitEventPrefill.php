@@ -11,7 +11,7 @@ use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\EventSubmissionFormSchema;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;

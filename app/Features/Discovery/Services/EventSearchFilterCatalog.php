@@ -10,7 +10,7 @@ use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\TimingMode;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Prayer\Api\EventPrayerTime;
 
 final readonly class EventSearchFilterCatalog implements SearchFilterCatalog

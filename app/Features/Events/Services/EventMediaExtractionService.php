@@ -16,7 +16,7 @@ use App\Features\Events\Api\EventMediaExtraction;
 use App\Features\Events\Api\EventMediaExtractionResult;
 use App\Features\Events\Api\EventMediaExtractionSource;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Shared\Language\LanguageCatalog;
 use ArrayAccess;

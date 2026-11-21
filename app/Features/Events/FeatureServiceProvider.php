@@ -74,7 +74,7 @@ use App\Features\Events\Api\GuestEventSubmissionClaims;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\OrganizerLookup;
-use App\Features\Events\Api\Orm\EventCategoryCatalog as EventCategoryCatalogContract;
+use App\Features\Events\Api\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Api\Orm\EventContributionStateMapper;
 use App\Features\Events\Api\Orm\EventMedia;

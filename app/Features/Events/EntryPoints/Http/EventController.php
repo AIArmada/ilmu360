@@ -15,7 +15,7 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\EntryPoints\Http\Data\EventMeData;
 use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
 use App\Features\Events\Models\Event;

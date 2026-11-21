@@ -10,7 +10,7 @@ use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Membership\Api\OrganizationEventAccessContract;
 use App\Features\Organizations\Api\OrganizationEventCreator;
 use App\Models\User;

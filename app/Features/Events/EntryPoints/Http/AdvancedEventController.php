@@ -7,7 +7,7 @@ use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\AdvancedProgramPreparation;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;

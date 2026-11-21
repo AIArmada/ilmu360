@@ -8,7 +8,7 @@ use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Support\EventModel;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerReference;
@@ -43,8 +43,8 @@ final readonly class ResolveInstitutionalPrayerSlotGroupAction
             return null;
         }
 
-        $categoryNames = collect($this->categories->terms($categoryIds))
-            ->map(fn ($term): string => trim((string) $term->name))
+        $categoryNames = collect($this->categories->termNames($categoryIds))
+            ->map(fn (string $name): string => trim($name))
             ->filter()
             ->values();
 
