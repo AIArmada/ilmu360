@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Features\Prayer\Api\PrayerLocationData;
 use App\Features\Prayer\Api\PrayerLocationResolver;
+use Tests\TestCase;
+
+pest()->extend(TestCase::class);
 
 it('returns immutable prayer geography when event targets have no address', function (): void {
     $location = app(PrayerLocationResolver::class)->forTargets(null, null, 'MY');
