@@ -9,12 +9,12 @@ use App\Features\Identity\Api\NewAccountAttribution;
 use App\Features\Identity\Api\SignupAttributionContextResolver;
 use App\Features\ShareTracking\Api\SignupRecorder;
 use App\Models\User;
+use App\Platform\Auth\PasswordValidationRules;
 use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\Signals\SignalRecorder;
-use App\Platform\Auth\PasswordValidationRules;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Owns the atomic signup, attribution and share-credit workflow.
@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 final readonly class RegisterNewAccountAction
 {
     use PasswordValidationRules;
+
     public function __construct(
         private AccountAccess $accounts,
         private NewAccountAttribution $attribution,

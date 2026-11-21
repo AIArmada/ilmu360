@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Discovery\Services\CatalogDispatcher;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Models\Event;
@@ -7,7 +8,6 @@ use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
-use App\Features\Discovery\Services\CatalogDispatcher;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;

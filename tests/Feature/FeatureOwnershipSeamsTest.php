@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Discovery\Services\CatalogDispatcher;
 use App\Features\DonationChannels\Api\DonationChannelLookup;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\DonationChannels\Queries\EloquentDonationChannelLookup;
@@ -36,7 +37,6 @@ use App\Features\References\Queries\EloquentReferenceLookup;
 use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Services\CompositeReportSubjectResolver;
 use App\Models\User;
-use App\Features\Discovery\Services\CatalogDispatcher;
 use App\Platform\Models\MorphModelResolver;
 
 it('binds the directory seams to their owning implementations', function (): void {
