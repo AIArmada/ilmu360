@@ -41,3 +41,18 @@ it('discovers every feature provider through Platform bootstrap', function (): v
         expect($loaded[$provider] ?? false)->toBeTrue();
     }
 });
+
+it('rejects contributor classes as declared state owners', function (): void {
+    $project = new FixtureProject;
+
+    try {
+        $writer = $project->writer('Engagement', 'LifecycleContributor', 'Contributors');
+        $project->feature('Engagement', ['table:bookmarks' => [$writer]]);
+
+        expect(fn () => FeatureCatalog::scan($project->path))
+            ->toThrow(\RuntimeException::class, 'write classes must be under');
+    } finally {
+        FeatureCatalog::flushMemory();
+        $project->remove();
+    }
+});

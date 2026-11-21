@@ -12,7 +12,6 @@ use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use App\Features\Communications\Actions\PersistDeliveryFencingAction;
-use Carbon\CarbonImmutable;
 use Illuminate\Notifications\Notification;
 
 /**

@@ -72,8 +72,8 @@ use App\Shared\Auth\AccountLifecycleContributor;
  * ContributionEntityStateService is a neutral dispatcher over owner-published
  * contribution projections and holds no entity schema, model or write.
  *
- * ContributionsAccountLifecycleContributor rewrites proposer/reviewer links
- * during account deletion/restoration. It is tagged here with the unchanged
+ * ContributionsAccountLifecycleContributor delegates proposer/reviewer link
+ * writes to the owning ManageContributionAccountAttributionAction. It is tagged here with the unchanged
  * `contributions` key and priority 60 so existing deleted-account snapshots
  * stay readable.
  *

@@ -24,10 +24,6 @@ final readonly class FixtureProject
     }
 
     /**
-     * @param  list<array<string, string>>  $exceptions
-     * @param  array<string, string>  $rootStoreWriters
-     */
-    /**
      * @param  array<string, list<string>>  $rootStoreWriters
      * @param  array<string, mixed>  $extra
      */
