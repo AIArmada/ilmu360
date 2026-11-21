@@ -8,7 +8,7 @@ use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\Prayer\Api\Orm\PrayerLocationResolver;
+use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use BackedEnum;
@@ -128,8 +128,6 @@ class EventContributionUpdateStateMapper
         $currentMeta = self::currentPrayerMeta($event);
 
         [$countryIso, $targetInstitutionId, $targetVenueId] = self::effectivePrayerTargets($state, $event);
-        $address = app(PrayerLocationResolver::class)->forTargets($targetVenueId, $targetInstitutionId);
-
         self::assertContributionCalendarEligibility($state, $timezone, $countryIso);
 
         if ($event->starts_at !== null && self::contributionTimingUnchanged($state, $event, $timezone)) {
@@ -157,7 +155,7 @@ class EventContributionUpdateStateMapper
 
         $prayerTime = EventPrayerTime::tryFrom((string) ($state['prayer_time'] ?? ''));
         $eventDate = app(EventAuthoring::class)->normalizeEventDateString($state['event_date'] ?? null, $timezone);
-        $location = app(PrayerLocationResolver::class)->fromAddress($address, $countryIso);
+        $location = app(PrayerLocationResolver::class)->forTargets($targetVenueId, $targetInstitutionId, $countryIso);
 
         $resolved = $prayerTime instanceof EventPrayerTime && $eventDate !== null
             ? app(ResolvePrayerStartClockAction::class)->handle(
@@ -165,10 +163,10 @@ class EventContributionUpdateStateMapper
                 date: $eventDate,
                 timezone: $timezone,
                 prayerTime: $prayerTime,
-                latitude: $location['latitude'],
-                longitude: $location['longitude'],
-                stateCode: $location['stateCode'],
-                districtCandidates: $location['districtCandidates'],
+                latitude: $location->latitude,
+                longitude: $location->longitude,
+                stateCode: $location->stateCode,
+                districtCandidates: $location->districtCandidates,
             )
             : null;
 
@@ -211,9 +209,9 @@ class EventContributionUpdateStateMapper
             self::normalizeOptionalString($state['venue_id'] ?? null),
         );
 
-        $address = app(PrayerLocationResolver::class)->forTargets($targetVenueId, $targetInstitutionId);
+        $location = app(PrayerLocationResolver::class)->forTargets($targetVenueId, $targetInstitutionId);
         $pinned = $event instanceof Event ? self::currentPrayerMeta($event)['country'] ?? null : null;
-        $countryIso = app(PrayerLocationResolver::class)->fromAddress($address)['countryCode']
+        $countryIso = $location->countryCode
             ?? (is_string($pinned) && $pinned !== '' ? $pinned : null)
             ?? 'MY';
 
