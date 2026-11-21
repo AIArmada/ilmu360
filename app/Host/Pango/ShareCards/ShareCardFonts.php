@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Host\Pango\ShareCards;
 
-use InvalidArgumentException;
 use App\Shared\Media\ShareCards\ShareCardRenderSpec;
+use InvalidArgumentException;
 
 /**
  * Version-pinned font catalog for the share-card renderer leaf.
