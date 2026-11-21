@@ -3499,6 +3499,51 @@ class LoadOrders
     }
 }
 SOURCE],
+    'unsupported builder mutator' => [<<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+class LoadOrders
+{
+    public function handle(OrderQuery $orders): void
+    {
+        $orders->latest()->whereBetween('created_at', [1, 2])->get();
+    }
+}
+SOURCE],
+    'callback query mutator' => [<<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+class LoadOrders
+{
+    public function handle(OrderQuery $orders): void
+    {
+        $orders->latest()->when(true, fn ($query) => $query->where('status', 'paid'))->get();
+    }
+}
+SOURCE],
+    'helper returned builder' => [<<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+use Illuminate\Database\Eloquent\Builder;
+class LoadOrders
+{
+    public function __construct(private OrderQuery $orders) {}
+
+    private function latest(): Builder
+    {
+        return $this->orders->latest();
+    }
+
+    public function handle(): void
+    {
+        $query = $this->latest();
+        $query->where('status', 'paid')->get();
+    }
+}
+SOURCE],
     'injected property' => [<<<'SOURCE'
 <?php
 namespace App\Features\Billing\Actions;
@@ -3526,6 +3571,281 @@ class LoadOrders
 }
 SOURCE],
 ]);
+
+it('allows foreign owner query read terminals without consumer composition', function (): void {
+    $this->project->write('app/Features/Orders/Api/Orm/OrderQuery.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+use Illuminate\Database\Eloquent\Builder;
+/**
+ * @internal
+ * Consumers: Billing reads.
+ */
+interface OrderQuery
+{
+    public function latest(): Builder;
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Actions/ReadOrders.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+class ReadOrders
+{
+    public function handle(OrderQuery $orders): int
+    {
+        return $orders->latest()->count();
+    }
+}
+SOURCE);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
+        ->and(array_column($findings, 'rule'))->not->toContain('orm-query-escape');
+});
+
+it('allows exact correlated SQL subquery composition but rejects mutating the foreign subquery', function (): void {
+    $this->project->write('app/Features/Orders/Api/Orm/OrderDirectorySql.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+use Illuminate\Database\Query\Builder;
+/**
+ * @internal
+ * Consumers: Billing directory correlated count.
+ */
+interface OrderDirectorySql
+{
+    public function upcomingCountSubquery(): Builder;
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Queries/InvoiceDirectoryQuery.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Queries;
+use App\Features\Orders\Api\Orm\OrderDirectorySql;
+use Illuminate\Support\Facades\DB;
+class InvoiceDirectoryQuery
+{
+    public function read(): void
+    {
+        DB::table('invoices')
+            ->selectSub(app(OrderDirectorySql::class)->upcomingCountSubquery(), 'order_count')
+            ->get();
+    }
+}
+SOURCE);
+
+    $correlatedComposition = $this->project->check();
+    $compositionFindings = json_decode($correlatedComposition['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($correlatedComposition)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
+        ->and(array_column($compositionFindings, 'rule'))->not->toContain('orm-query-escape');
+
+    $this->project->write('app/Features/Billing/Queries/InvoiceDirectoryQuery.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Queries;
+use App\Features\Orders\Api\Orm\OrderDirectorySql;
+use Illuminate\Support\Facades\DB;
+class InvoiceDirectoryQuery
+{
+    public function read(): void
+    {
+        DB::table('invoices')->selectSub(
+            app(OrderDirectorySql::class)->upcomingCountSubquery()->whereBetween('created_at', [1, 2]),
+            'order_count',
+        )->get();
+    }
+}
+SOURCE);
+
+    $mutatedSubquery = $this->project->check();
+    $mutationFindings = json_decode($mutatedSubquery['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($mutatedSubquery['exitCode'])->toBe(1)
+        ->and(array_column($mutationFindings, 'rule'))->toContain('orm-query-escape');
+});
+
+it('preserves an untainted caller query through a documented owner scope adapter', function (): void {
+    $this->project->write('app/Features/Orders/Api/Orm/OrderVisibilityOrm.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+use Illuminate\Database\Eloquent\Builder;
+/**
+ * @internal
+ * Consumers: Billing query scopes.
+ */
+interface OrderVisibilityOrm
+{
+    /**
+     * @template TQuery of Builder
+     * @param TQuery $query
+     * @return TQuery
+     */
+    public function applyVisibility(Builder $query): Builder;
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Actions/ScopedOrders.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderVisibilityOrm;
+use Illuminate\Database\Eloquent\Builder;
+class ScopedOrders
+{
+    public function read(OrderVisibilityOrm $visibility, Builder $query): void
+    {
+        $visibility->applyVisibility($query)->whereBetween('created_at', [1, 2])->get();
+    }
+}
+SOURCE);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
+        ->and(array_column($findings, 'rule'))->not->toContain('orm-query-escape');
+});
+
+it('rejects foreign model and collection mutations returned by ORM ports', function (): void {
+    $this->project->write('app/Features/Orders/Api/Orm/OrderQuery.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+use App\Features\Orders\Models\Order;
+use Illuminate\Database\Eloquent\Collection;
+/**
+ * @internal
+ * Consumers: Billing reads.
+ */
+interface OrderQuery
+{
+    public function order(): Order;
+    public function orders(): Collection;
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Actions/MutateOrders.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+use App\Features\Orders\Models\Order;
+class MutateOrders
+{
+    public function __construct(private OrderQuery $orders) {}
+
+    public function handle(): void
+    {
+        $order = $this->orders->order();
+        $order->fill(['status' => 'paid']);
+        $order->status = 'paid';
+
+        $this->orders->orders()->each(function ($order): void {
+            $alias = $order;
+            $alias->update(['status' => 'paid']);
+        });
+
+        $this->orders->orders()->push(new Order);
+    }
+}
+SOURCE);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('orm-mutation-escape')
+        ->and(collect($findings)->where('rule', 'orm-mutation-escape'))->toHaveCount(4);
+});
+
+it('checks ORM builder escapes from API ORM, Platform, and Blade consumers', function (): void {
+    $this->project->write('app/Features/Orders/Api/Orm/OrderQuery.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+use Illuminate\Database\Eloquent\Builder;
+/**
+ * @internal
+ * Consumers: Billing, Platform and Blade reads.
+ */
+interface OrderQuery
+{
+    public function latest(): Builder;
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Api/Orm/BillingOrm.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Api\Orm;
+use App\Features\Orders\Api\Orm\OrderQuery;
+/**
+ * @internal
+ * Consumers: Billing reads.
+ */
+final class BillingOrm
+{
+    public function __construct(private OrderQuery $orders) {}
+
+    public function read(): void
+    {
+        $this->orders->latest()->whereBetween('created_at', [1, 2])->get();
+    }
+}
+SOURCE);
+    $this->project->write('app/Platform/Jobs/ReadOrders.php', <<<'SOURCE'
+<?php
+namespace App\Platform\Jobs;
+use App\Features\Orders\Api\Orm\OrderQuery;
+final class ReadOrders
+{
+    public function read(OrderQuery $orders): void
+    {
+        $orders->latest()->where('status', 'paid')->get();
+    }
+}
+SOURCE);
+    $this->project->write('resources/views/read-orders.blade.php', <<<'BLADE'
+@php
+    app(\App\Features\Orders\Api\Orm\OrderQuery::class)->latest()->where('status', 'paid')->get();
+@endphp
+BLADE);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+    $escapes = array_values(array_unique(collect($findings)->where('rule', 'orm-query-escape')->pluck('file')->all()));
+
+    expect($result['exitCode'])->toBe(1)
+        ->and($escapes)->toBe([
+            'app/Features/Billing/Api/Orm/BillingOrm.php',
+            'app/Platform/Jobs/ReadOrders.php',
+            'resources/views/read-orders.blade.php',
+        ]);
+});
+
+it('requires concrete ORM port returns and rejects mixed mutable unions', function (): void {
+    $this->project->write('app/Features/Orders/Api/Orm/OrderQuery.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Features\Orders\Models\Order;
+/**
+ * @internal
+ * Consumers: Billing reads.
+ */
+interface OrderQuery
+{
+    public function missing();
+    public function nativeUnion(): Builder|string;
+    /** @return Builder|int */
+    public function documentedUnion();
+    /** @return LengthAwarePaginator<int, Order> */
+    public function paginator();
+}
+SOURCE);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('orm-opaque-return')
+        ->and(array_column($findings, 'target'))->toContain('missing', 'nativeUnion', 'documentedUnion', 'paginator');
+});
 
 it('allows immutable owner facts across a feature boundary', function (): void {
     $this->project->write('app/Features/Orders/Api/OrderCards.php', <<<'SOURCE'

@@ -271,11 +271,11 @@ final readonly class InstitutionDirectoryQuery
         $details = $this->nextEventDetails($nextEventIds);
 
         foreach ($institutions as $institution) {
-            $detail = $details->get((string) $institution->getAttribute('next_event_id'));
+            $detail = $details[(string) $institution->getAttribute('next_event_id')] ?? null;
 
-            $institution->setAttribute('next_event_slug', $detail?->getAttribute('slug'));
-            $institution->setAttribute('next_event_title', $detail?->getAttribute('title'));
-            $institution->setAttribute('next_event_starts_at', $detail?->getAttribute('next_event_starts_at'));
+            $institution->setAttribute('next_event_slug', $detail['slug'] ?? null);
+            $institution->setAttribute('next_event_title', $detail['title'] ?? null);
+            $institution->setAttribute('next_event_starts_at', $detail['next_event_starts_at'] ?? null);
             $institution->offsetUnset('next_event_id');
         }
     }
@@ -398,16 +398,14 @@ final readonly class InstitutionDirectoryQuery
 
     /**
      * @param  list<string>  $eventIds
-     * @return \Illuminate\Support\Collection<string, \App\Features\Events\Models\Event>
+     * @return array<string, array{slug: string, title: string, next_event_starts_at: string}>
      */
-    private function nextEventDetails(array $eventIds): \Illuminate\Support\Collection
+    private function nextEventDetails(array $eventIds): array
     {
         if ($eventIds === []) {
-            return collect();
+            return [];
         }
 
-        $details = $this->eventReader->institutionNextEventDetails($eventIds);
-
-        return $details->keyBy(static fn (\Illuminate\Database\Eloquent\Model $event): string => (string) $event->getKey());
+        return $this->eventReader->institutionNextEventDetails($eventIds);
     }
 }

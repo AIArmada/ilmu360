@@ -31,14 +31,40 @@ final readonly class EloquentPersonLookup implements PersonLookup
         return app(PersonSearchService::class);
     }
 
-    public function findPersonBySlug(string $slug): ?Person
+    public function shareIdentityBySlug(string $slug): ?array
     {
-        return Person::query()->where('slug', $slug)->first();
+        $person = Person::query()
+            ->where('slug', $slug)
+            ->with('titleAssignments.title.category')
+            ->first(['id', 'slug', 'name', 'middle_name', 'family_name']);
+
+        if (! $person instanceof Person) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $person->getKey(),
+            'slug' => (string) $person->slug,
+            'title' => (string) $person->formatted_name,
+        ];
     }
 
-    public function findPersonByKey(string $personId): ?Person
+    public function contributionResponseById(string $personId): ?array
     {
-        return Person::query()->find($personId);
+        $person = Person::query()->find($personId, ['id', 'slug', 'name', 'status']);
+
+        if (! $person instanceof Person) {
+            return null;
+        }
+
+        $status = $person->status;
+
+        return [
+            'id' => (string) $person->getKey(),
+            'slug' => (string) $person->slug,
+            'name' => (string) $person->name,
+            'status' => $status instanceof BackedEnum ? (string) $status->value : (string) $status,
+        ];
     }
 
     public function personsForMember(string $accountId): EloquentCollection

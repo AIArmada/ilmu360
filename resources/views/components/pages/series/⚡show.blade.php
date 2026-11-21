@@ -3,11 +3,9 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
-use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
 use App\Shared\Auth\IntendedRedirect;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -96,22 +94,6 @@ new
             return $this->eventPageData()['past_total'];
         }
 
-        protected function eventPageBaseQuery(): Builder
-        {
-            return app(PublicScheduleEventReads::class)->seriesScheduleQuery($this->series);
-        }
-
-        protected function eventPageEagerLoads(): array
-        {
-            return [
-                'references' => fn ($query) => $query->active(),
-                'institution',
-                'institution.addresses.country',
-                'venue.addresses.country',
-                'media',
-            ];
-        }
-
         protected function eventPageUpcomingLimit(): int
         {
             return $this->upcomingPerPage;
@@ -133,9 +115,8 @@ new
          */
         protected function eventPageData(): array
         {
-            return $this->eventPageDataCache ??= app(EventPageScheduleOrmPort::class)->forQuery(
-                $this->eventPageBaseQuery(),
-                $this->eventPageEagerLoads(),
+            return $this->eventPageDataCache ??= app(EventPageScheduleOrmPort::class)->forSeries(
+                (string) $this->series->getKey(),
                 $this->eventPageUpcomingLimit(),
                 $this->eventPagePastLimit(),
             );

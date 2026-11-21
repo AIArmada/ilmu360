@@ -41,10 +41,11 @@ interface SeriesAuthoring
     public function titleOptions(): array;
 
     /**
-     * Documented transport: a hydrated Series model for route/slug/title
-     * presentation contracts.
+     * Immutable series identity for share URL construction.
+     *
+     * @return array{id: string, slug: string, title: string}|null
      */
-    public function findSeriesBySlug(string $slug): ?Series;
+    public function shareIdentityBySlug(string $slug): ?array;
 
     public function isPubliclyReachable(string $seriesId): bool;
 }

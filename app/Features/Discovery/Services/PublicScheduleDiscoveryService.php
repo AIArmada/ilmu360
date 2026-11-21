@@ -14,7 +14,9 @@ use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Discovery\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
-use App\Features\Events\Api\Orm\PublicScheduleEligibility;
+use App\Features\Events\Api\EventScheduleFact;
+use App\Features\Events\Api\EventScheduleFactSet;
+use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Api\Orm\PlaceLookup;
@@ -77,50 +79,40 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
                 perPage: 1000,
             );
 
-            $events = $this->eventsFromSearchPage($parentPage);
+            $factSet = $this->factsFromSearchPage($parentPage);
         } else {
-            $relations = $this->scheduleEvents->publicScheduleCardRelations();
+            $directFactSet = $this->scheduleEvents->publicScheduleFactSet($criteria->text, $eventFilters);
 
-            if ($criteria->text === null) {
-                /** @var EloquentCollection<int, Event> $events */
-                $events = $this->scheduleEvents->publicScheduleEvents(null, $eventFilters, $relations);
+            if ($criteria->text === null || $directFactSet->eventIds !== []) {
+                $factSet = $directFactSet;
             } else {
-                $directEvents = $this->scheduleEvents->publicScheduleEvents($criteria->text, $eventFilters, $relations);
+                $parentPage = app(EventSearchService::class)->search(
+                    query: $criteria->text,
+                    filters: $eventFilters,
+                    perPage: 1000,
+                    sort: $sort,
+                );
 
-                if ($directEvents->isNotEmpty()) {
-                    /** @var EloquentCollection<int, Event> $events */
-                    $events = $directEvents;
-                } else {
-                    $parentPage = app(EventSearchService::class)->search(
-                        query: $criteria->text,
-                        filters: $eventFilters,
-                        perPage: 1000,
-                        sort: $sort,
-                    );
-
-                    $events = $this->eventsFromSearchPage($parentPage);
-                }
+                $factSet = $this->factsFromSearchPage($parentPage);
             }
         }
 
-        $this->hydrateApplicationVenues($events);
-
-        $leaves = $this->flatten($events)
-            ->filter(fn (PublicScheduleModelLeaf $leaf): bool => $this->matchesFilters($leaf, $criteria->filters))
+        $leaves = collect($factSet->leaves)
+            ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $criteria->filters))
             ->values();
 
         if ($sort === 'distance') {
-            $leaves = $leaves->sort(fn (PublicScheduleModelLeaf $left, PublicScheduleModelLeaf $right): int => $this->compareByDistance($left, $right))->values();
+            $leaves = $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByDistance($left, $right))->values();
         } elseif (($criteria->filters['time_scope'] ?? null) === 'past') {
             // Past listings read newest-first ("Terbaru"): the most recently
             // held majlis should lead, mirroring how upcoming listings lead
             // with the soonest one.
-            $leaves = $leaves->sort(fn (PublicScheduleModelLeaf $left, PublicScheduleModelLeaf $right): int => $this->compareByTime($right, $left))->values();
+            $leaves = $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($right, $left))->values();
         } else {
-            $leaves = $leaves->sort(fn (PublicScheduleModelLeaf $left, PublicScheduleModelLeaf $right): int => $this->compareByTime($left, $right))->values();
+            $leaves = $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($left, $right))->values();
         }
 
-        return $this->paginate($leaves, $perPage);
+        return $this->paginateFacts($leaves, $perPage);
     }
 
     /** @return Collection<int, PublicScheduleModelLeaf> */
@@ -133,36 +125,36 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         $referenceIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Reference) : [];
         $hasFollows = $personIds !== [] || $institutionIds !== [] || $referenceIds !== [];
 
-        $relations = $this->scheduleEvents->publicScheduleCardRelations();
-        $events = $this->scheduleEvents->homepageScheduleEvents($personIds, $institutionIds, $referenceIds, $relations);
+        $factSet = $this->scheduleEvents->homepageScheduleFacts($personIds, $institutionIds, $referenceIds);
 
         $followedEventIds = $hasFollows
             ? collect($this->scheduleEvents->homepageFollowedEventIds($personIds, $institutionIds, $referenceIds))->flip()
             : collect();
 
-        $this->hydrateApplicationVenues($events);
         $filters = [
             'time_scope' => 'upcoming',
             'starts_before' => UserDateTimeFormatter::userNow()->addDays(14)->toDateString(),
         ];
         $featuredFilters = ['time_scope' => 'upcoming'];
-        $leaves = $this->flatten($events)
-            ->unique(fn (PublicScheduleModelLeaf $leaf): string => $leaf->id());
+        $leaves = collect($factSet->leaves)
+            ->unique(static fn (EventScheduleFact $fact): string => $fact->occurrenceId);
 
         $featured = $leaves
-            ->filter(fn (PublicScheduleModelLeaf $leaf): bool => $this->matchesFilters($leaf, $featuredFilters))
-            ->filter(fn (PublicScheduleModelLeaf $leaf): bool => (bool) $this->occurrenceOf($leaf)->is_featured)
-            ->sort(fn (PublicScheduleModelLeaf $left, PublicScheduleModelLeaf $right): int => $this->compareByTime($left, $right))
+            ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $featuredFilters))
+            ->filter(static fn (EventScheduleFact $fact): bool => $fact->isFeatured)
+            ->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($left, $right))
             ->take(9);
 
-        return $featured->concat(
+        $selected = $featured->concat(
             $leaves
-                ->filter(fn (PublicScheduleModelLeaf $leaf): bool => $this->matchesFilters($leaf, $filters))
-                ->reject(fn (PublicScheduleModelLeaf $leaf): bool => (bool) $this->occurrenceOf($leaf)->is_featured)
-                ->filter(fn (PublicScheduleModelLeaf $leaf): bool => $followedEventIds->has($this->eventOf($leaf)->id))
+                ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $filters))
+                ->reject(static fn (EventScheduleFact $fact): bool => $fact->isFeatured)
+                ->filter(fn (EventScheduleFact $fact): bool => $followedEventIds->has($fact->eventId))
                 ->shuffle()
                 ->take(9 - $featured->count()),
         )->values();
+
+        return $this->hydrateLeaves($selected);
     }
 
     public function leafFor(Event $event, EventOccurrence $occurrence, iterable $sessions = []): PublicScheduleModelLeaf
@@ -184,44 +176,18 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
      */
     public function leavesForEvents(iterable $events): Collection
     {
-        /** @var EloquentCollection<int, Event> $eventCollection */
-        $eventCollection = $events instanceof EloquentCollection
-            ? $events
-            : EloquentCollection::make($events);
-
-        $this->scheduleEvents->loadScheduleGraph($eventCollection, withOccurrenceReferences: true);
-        $this->hydrateApplicationVenues($eventCollection);
-
-        return $this->flatten($eventCollection)
-            ->filter(fn (PublicScheduleModelLeaf $leaf): bool => $leaf->startsAt() instanceof CarbonInterface)
-            ->sort(fn (PublicScheduleModelLeaf $left, PublicScheduleModelLeaf $right): int => $this->compareByTime($left, $right))
+        $eventIds = collect($events)
+            ->filter(static fn (mixed $event): bool => $event instanceof Event)
+            ->map(static fn (Event $event): string => (string) $event->getKey())
+            ->unique()
+            ->values()
+            ->all();
+        $factSet = $this->scheduleEvents->scheduleFactsForEventIds($eventIds);
+        $leaves = collect($factSet->leaves)
+            ->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($left, $right))
             ->values();
-    }
 
-    /**
-     * @param  EloquentCollection<int, Event>  $events
-     * @return Collection<int, PublicScheduleModelLeaf>
-     */
-    private function flatten(EloquentCollection $events): Collection
-    {
-        $leaves = collect();
-        $eligibility = app(PublicScheduleEligibility::class);
-
-        foreach ($events as $event) {
-            foreach ($event->occurrences as $occurrence) {
-                if (! $eligibility->isPublicOccurrence($occurrence)) {
-                    continue;
-                }
-
-                $sessions = $occurrence->sessions
-                    ->filter(fn (EventSession $session): bool => $eligibility->isMeaningfulSession($session))
-                    ->values();
-
-                $leaves->push(new PublicScheduleLeafValue($event, $occurrence, $sessions));
-            }
-        }
-
-        return $leaves;
+        return $this->hydrateLeaves($leaves, withOccurrenceReferences: true);
     }
 
     /**
@@ -300,15 +266,10 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
     /**
      * @param  array<string, mixed>  $filters
      */
-    private function matchesFilters(PublicScheduleModelLeaf $leaf, array $filters): bool
+    private function matchesFilters(EventScheduleFact $fact, array $filters): bool
     {
-        $startsAt = $leaf->startsAt();
-
-        if (! $startsAt instanceof CarbonInterface) {
-            return false;
-        }
-
-        $endsAt = $leaf->endsAt();
+        $startsAt = $fact->startsAt;
+        $endsAt = $fact->endsAt;
         $now = UserDateTimeFormatter::userNow()->utc();
         $endInstant = $endsAt ?? $startsAt;
         $timeScope = is_string($filters['time_scope'] ?? null) ? $filters['time_scope'] : 'upcoming';
@@ -340,7 +301,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         $startsOnLocalDate = $filters['starts_on_local_date'] ?? null;
 
         if (is_string($startsOnLocalDate) && $startsOnLocalDate !== '') {
-            $localStart = $startsAt->copy()->timezone(UserDateTimeFormatter::resolveTimezone())->toDateString();
+            $localStart = $startsAt->timezone(UserDateTimeFormatter::resolveTimezone())->toDateString();
 
             if ($localStart !== $startsOnLocalDate) {
                 return false;
@@ -357,14 +318,14 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
             return false;
         }
 
-        $expressions = $this->timeExpressions($leaf);
+        $expressions = $this->timeExpressions($fact);
         $timingMode = $filters['timing_mode'] ?? null;
 
-        if ($timingMode === 'prayer_relative' && ! $expressions->contains(fn (mixed $expression): bool => $expression->time_mode === 'prayer_relative')) {
+        if ($timingMode === 'prayer_relative' && ! collect($expressions)->contains(static fn (EventScheduleTimeFact $expression): bool => $expression->timeMode === 'prayer_relative')) {
             return false;
         }
 
-        if ($timingMode === 'absolute' && $expressions->contains(fn (mixed $expression): bool => $expression->time_mode === 'prayer_relative')) {
+        if ($timingMode === 'absolute' && collect($expressions)->contains(static fn (EventScheduleTimeFact $expression): bool => $expression->timeMode === 'prayer_relative')) {
             return false;
         }
 
@@ -377,11 +338,16 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
             static fn (mixed $prayerTime): bool => is_string($prayerTime) && trim($prayerTime) !== '',
         ));
 
-        if ($prayerTimes !== [] && ! $expressions->contains(fn (mixed $expression): bool => array_any($prayerTimes, fn ($prayerTime) => is_string($prayerTime) && $this->matchesPrayerTimeExpression($expression, $prayerTime)))) {
+        if ($prayerTimes !== [] && ! collect($expressions)->contains(
+            fn (EventScheduleTimeFact $expression): bool => array_any(
+                $prayerTimes,
+                fn (mixed $prayerTime): bool => is_string($prayerTime) && $this->matchesPrayerTimeExpression($expression, $prayerTime),
+            ),
+        )) {
             return false;
         }
 
-        $localTime = $startsAt->copy()->timezone(UserDateTimeFormatter::resolveTimezone())->format('H:i');
+        $localTime = $startsAt->timezone(UserDateTimeFormatter::resolveTimezone())->format('H:i');
         $from = $this->normalizeTime($filters['starts_time_from'] ?? null);
         $until = $this->normalizeTime($filters['starts_time_until'] ?? null);
 
@@ -402,12 +368,12 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         return true;
     }
 
-    private function matchesPrayerTimeExpression(mixed $expression, string $prayerTime): bool
+    private function matchesPrayerTimeExpression(EventScheduleTimeFact $expression, string $prayerTime): bool
     {
         $normalizedPrayerTime = mb_strtolower(trim($prayerTime));
         $prayerTimeEnum = EventPrayerTime::tryFrom($normalizedPrayerTime);
-        $displayLabel = mb_strtolower((string) $expression->display_label);
-        $anchorCode = (string) $expression->anchor_code;
+        $displayLabel = mb_strtolower($expression->displayLabel);
+        $anchorCode = $expression->anchorCode;
 
         if (! $prayerTimeEnum instanceof EventPrayerTime) {
             return str_contains($displayLabel, $normalizedPrayerTime)
@@ -423,7 +389,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         $offset = $prayerTimeEnum->getDefaultOffset();
         $relation = $offset instanceof PrayerOffset && $offset->minutes() < 0 ? 'before' : 'after';
 
-        if ((string) $expression->relation !== $relation) {
+        if ($expression->relation !== $relation) {
             return false;
         }
 
@@ -431,16 +397,12 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
             || str_contains($displayLabel, mb_strtolower($prayerTimeEnum->getLabel()));
     }
 
-    /** @return Collection<int, mixed> */
-    private function timeExpressions(PublicScheduleModelLeaf $leaf): Collection
+    /** @return list<EventScheduleTimeFact> */
+    private function timeExpressions(EventScheduleFact $fact): array
     {
-        $occurrence = $this->occurrenceOf($leaf);
-
-        if ($occurrence->timeExpressions->isNotEmpty()) {
-            return $occurrence->timeExpressions;
-        }
-
-        return $this->eventOf($leaf)->timeExpressions;
+        return $fact->occurrenceTimeExpressions !== []
+            ? $fact->occurrenceTimeExpressions
+            : $fact->eventTimeExpressions;
     }
 
     private function normalizeTime(mixed $value): ?string
@@ -458,22 +420,20 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         }
     }
 
-    private function compareByDistance(PublicScheduleModelLeaf $left, PublicScheduleModelLeaf $right): int
+    private function compareByDistance(EventScheduleFact $left, EventScheduleFact $right): int
     {
-        $leftDistance = $this->eventOf($left)->getAttribute('distance_km');
-        $rightDistance = $this->eventOf($right)->getAttribute('distance_km');
-        $distanceResult = ((float) (is_numeric($leftDistance) ? $leftDistance : PHP_FLOAT_MAX))
-            <=> ((float) (is_numeric($rightDistance) ? $rightDistance : PHP_FLOAT_MAX));
+        $distanceResult = ($left->distanceKm ?? PHP_FLOAT_MAX)
+            <=> ($right->distanceKm ?? PHP_FLOAT_MAX);
 
         return $distanceResult !== 0
             ? $distanceResult
             : $this->compareByTime($left, $right);
     }
 
-    private function compareByTime(PublicScheduleModelLeaf $left, PublicScheduleModelLeaf $right): int
+    private function compareByTime(EventScheduleFact $left, EventScheduleFact $right): int
     {
-        $startResult = ($left->startsAt()?->getTimestamp() ?? PHP_INT_MAX)
-            <=> ($right->startsAt()?->getTimestamp() ?? PHP_INT_MAX);
+        $startResult = $left->startsAt->getTimestamp()
+            <=> $right->startsAt->getTimestamp();
 
         if ($startResult !== 0) {
             return $startResult;
@@ -481,39 +441,35 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
 
         $titleResult = $left->title() <=> $right->title();
 
-        return $titleResult !== 0 ? $titleResult : $left->id() <=> $right->id();
+        return $titleResult !== 0 ? $titleResult : $left->occurrenceId <=> $right->occurrenceId;
     }
 
     /**
-     * Rehydrate the page ids into models with the schedule eager loads.
-     *
-     * @return EloquentCollection<int, Event>
+     * Convert an immutable event search result into schedule facts.
      */
-    private function eventsFromSearchPage(EventSearchPage $page): EloquentCollection
+    private function factsFromSearchPage(EventSearchPage $page): EventScheduleFactSet
     {
         $eventIds = array_map(
             static fn (EventListData $item): string => $item->id,
             $page->items,
         );
 
-        if ($eventIds === []) {
-            return new EloquentCollection;
-        }
-
-        return $this->scheduleEvents->hydrateScheduleEvents($eventIds);
+        return $this->scheduleEvents->scheduleFactsForEventIds($eventIds, $page->distances);
     }
 
     /**
-     * @param  Collection<int, PublicScheduleModelLeaf>  $items
+     * @param  Collection<int, EventScheduleFact>  $facts
      * @return LengthAwarePaginator<int, PublicScheduleModelLeaf>
      */
-    private function paginate(Collection $items, int $perPage): LengthAwarePaginator
+    private function paginateFacts(Collection $facts, int $perPage): LengthAwarePaginator
     {
         $currentPage = Paginator::resolveCurrentPage();
+        $selectedFacts = $facts->forPage($currentPage, $perPage)->values();
+        $items = $this->hydrateLeaves($selectedFacts);
 
         return new Paginator(
-            items: $items->forPage($currentPage, $perPage)->values(),
-            total: $items->count(),
+            items: $items,
+            total: $facts->count(),
             perPage: $perPage,
             currentPage: $currentPage,
             options: [
@@ -524,13 +480,58 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         );
     }
 
-    private function occurrenceOf(PublicScheduleModelLeaf $leaf): EventOccurrence
+    /**
+     * Hydrate only facts selected for a page or explicit model-bound section.
+     *
+     * @param  Collection<int, EventScheduleFact>  $facts
+     * @return Collection<int, PublicScheduleModelLeaf>
+     */
+    private function hydrateLeaves(Collection $facts, bool $withOccurrenceReferences = false): Collection
     {
-        return $leaf->occurrence();
-    }
+        if ($facts->isEmpty()) {
+            return collect();
+        }
 
-    private function eventOf(PublicScheduleModelLeaf $leaf): Event
-    {
-        return $leaf->event();
+        $eventIds = $facts
+            ->map(static fn (EventScheduleFact $fact): string => $fact->eventId)
+            ->unique()
+            ->values()
+            ->all();
+        $distanceByEventId = $facts
+            ->filter(static fn (EventScheduleFact $fact): bool => $fact->distanceKm !== null)
+            ->mapWithKeys(static fn (EventScheduleFact $fact): array => [$fact->eventId => $fact->distanceKm]);
+        $events = $this->scheduleEvents->hydrateScheduleEvents(
+            $eventIds,
+            withOccurrenceReferences: $withOccurrenceReferences,
+            distanceByEventId: $distanceByEventId->all(),
+        );
+        $this->hydrateApplicationVenues($events);
+        $eventsById = $events->keyBy(static fn (Event $event): string => (string) $event->getKey());
+        $leaves = collect();
+
+        foreach ($facts as $fact) {
+            $event = $eventsById->get($fact->eventId);
+
+            if (! $event instanceof Event || ! $event->relationLoaded('occurrences')) {
+                continue;
+            }
+
+            $occurrence = $event->occurrences->first(
+                static fn (EventOccurrence $candidate): bool => (string) $candidate->getKey() === $fact->occurrenceId,
+            );
+
+            if (! $occurrence instanceof EventOccurrence || ! $occurrence->relationLoaded('sessions')) {
+                continue;
+            }
+
+            $selectedSessionIds = array_fill_keys($fact->sessionIds, true);
+            $sessions = $occurrence->sessions
+                ->filter(static fn (EventSession $session): bool => isset($selectedSessionIds[(string) $session->getKey()]))
+                ->values();
+
+            $leaves->push($this->leafFor($event, $occurrence, $sessions));
+        }
+
+        return $leaves;
     }
 }

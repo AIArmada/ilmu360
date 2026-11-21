@@ -22,7 +22,7 @@ use BackedEnum;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -320,56 +320,19 @@ final class PersonDashboard extends Component
     /** @return array{total:int,upcoming:int,needs_attention:int} */
     public function eventStats(): array
     {
-        $eventsTable = app(EventOrmPort::class)->eventTable();
-        $events = $this->personEventQuery();
-
-        return [
-            'total' => (clone $events)->count(),
-            'upcoming' => (clone $events)
-                ->whereNotNull("{$eventsTable}.starts_at")
-                ->where("{$eventsTable}.starts_at", '>=', now())
-                ->count(),
-            'needs_attention' => (clone $events)
-                ->whereIn("{$eventsTable}.status", ['draft', 'pending', 'needs_changes'])
-                ->count(),
-        ];
+        return app(EventOrmPort::class)->personDashboardEventStats((string) $this->selectedPerson()->getKey());
     }
 
     /** @return LengthAwarePaginator<int, Event> */
     public function events(): LengthAwarePaginator
     {
-        $eventsTable = app(EventOrmPort::class)->eventTable();
-        $search = trim($this->eventSearch);
-
-        $query = $this->personEventQuery()
-            ->with([
-                'institution:id,name',
-                'primaryLocation.venueSpace:id,name',
-            ])
-            ->withCount(['registrations as dashboard_registrations_count']);
-
-        if ($search !== '') {
-            $like = '%'.$search.'%';
-
-            $query->where(function (Builder $eventQuery) use ($eventsTable, $like): void {
-                $eventQuery
-                    ->whereLike("{$eventsTable}.title", $like)
-                    ->orWhereHas('institution', fn (Builder $institutionQuery): Builder => $institutionQuery->whereLike('name', $like));
-            });
-        }
-
-        if ($this->eventStatus !== 'all') {
-            $query->where("{$eventsTable}.status", $this->eventStatus);
-        }
-
-        return $query
-            ->orderByRaw("CASE WHEN {$eventsTable}.status IN ('draft', 'pending', 'needs_changes') THEN 0 ELSE 1 END")
-            ->orderByDesc("{$eventsTable}.starts_at")
-            ->orderByDesc("{$eventsTable}.updated_at")
-            ->paginate(
-                perPage: $this->normalizeEventPerPage($this->eventPerPage),
-                pageName: 'person_events_page',
-            );
+        return app(EventOrmPort::class)->personDashboardEventsPage(
+            personId: (string) $this->selectedPerson()->getKey(),
+            search: $this->eventSearch,
+            status: $this->eventStatus,
+            perPage: $this->normalizeEventPerPage($this->eventPerPage),
+            page: max(1, Paginator::resolveCurrentPage('person_events_page')),
+        );
     }
 
     public function canManageEvents(): bool
@@ -532,18 +495,5 @@ final class PersonDashboard extends Component
         $perPage = (int) $value;
 
         return in_array($perPage, [8, 15, 25], true) ? $perPage : 8;
-    }
-
-    /** @return Builder<Event> */
-    private function personEventQuery(): Builder
-    {
-        $personId = $this->selectedPerson()->getKey();
-
-        // Profile membership grants workspace visibility, including private
-        // and draft events. Public-route visibility is handled per event.
-        /** @var Builder<Event> $query */
-        $query = app(EventOrmPort::class)->personDashboardQuery((string) $personId);
-
-        return $query;
     }
 }

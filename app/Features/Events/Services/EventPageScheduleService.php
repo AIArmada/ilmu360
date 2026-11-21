@@ -6,6 +6,7 @@ namespace App\Features\Events\Services;
 
 use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Models\Series;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,7 +14,64 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 final readonly class EventPageScheduleService implements EventPageScheduleOrmPort
 {
-    public function forQuery(
+    public function forVenue(
+        string $venueId,
+        int $upcomingLimit,
+        int $pastLimit,
+        ?CarbonInterface $rangeFrom = null,
+        ?CarbonInterface $rangeTo = null,
+    ): array {
+        return $this->forQuery(
+            Event::query()->where('default_venue_id', $venueId)->active(),
+            [
+                'institution.media',
+                'institution.addresses.country',
+                'persons.media',
+                'keyPeople.person.media',
+                'media',
+            ],
+            $upcomingLimit,
+            $pastLimit,
+            $rangeFrom,
+            $rangeTo,
+        );
+    }
+
+    public function forSeries(
+        string $seriesId,
+        int $upcomingLimit,
+        int $pastLimit,
+        ?CarbonInterface $rangeFrom = null,
+        ?CarbonInterface $rangeTo = null,
+    ): array {
+        $series = Series::query()->find($seriesId);
+
+        if (! $series instanceof Series) {
+            return $this->emptyPageData();
+        }
+
+        return $this->forQuery(
+            $series->events()->getQuery()->active(),
+            [
+                'references' => fn ($query) => $query->active(),
+                'institution',
+                'institution.addresses.country',
+                'venue.addresses.country',
+                'media',
+            ],
+            $upcomingLimit,
+            $pastLimit,
+            $rangeFrom,
+            $rangeTo,
+        );
+    }
+
+    /**
+     * @param  Builder<Event>  $baseQuery
+     * @param  array<int|string, string|array<string, mixed>|\Closure>  $eagerLoads
+     * @return array{upcoming: EloquentCollection<int, Event>, past: EloquentCollection<int, Event>, upcoming_total: int, past_total: int}
+     */
+    private function forQuery(
         Builder $baseQuery,
         array $eagerLoads,
         int $upcomingLimit,
@@ -70,6 +128,17 @@ final readonly class EventPageScheduleService implements EventPageScheduleOrmPor
             'past' => $past,
             'upcoming_total' => $upcomingTotal,
             'past_total' => $pastTotal,
+        ];
+    }
+
+    /** @return array{upcoming: EloquentCollection<int, Event>, past: EloquentCollection<int, Event>, upcoming_total: int, past_total: int} */
+    private function emptyPageData(): array
+    {
+        return [
+            'upcoming' => new EloquentCollection,
+            'past' => new EloquentCollection,
+            'upcoming_total' => 0,
+            'past_total' => 0,
         ];
     }
 

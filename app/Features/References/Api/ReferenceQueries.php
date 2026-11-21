@@ -29,6 +29,14 @@ interface ReferenceQueries
     public function defaultEventReferenceIds(string $referenceId): array;
 
     /**
+     * Default-event reference ids for each selected directory reference.
+     *
+     * @param  list<string>  $referenceIds
+     * @return array<string, list<string>>
+     */
+    public function defaultEventReferenceIdsForMany(array $referenceIds): array;
+
+    /**
      * @return class-string
      */
     public function referenceModelClass(): string;

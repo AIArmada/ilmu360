@@ -42,16 +42,18 @@ interface InstitutionLookup
     public function institutionSpaceCapacity(string $institutionId, string $venueSpaceId): array;
 
     /**
-     * Documented transport: a hydrated institution model resolved by its
-     * public slug for share-link title and route presentation.
+     * Immutable institution identity for share URL construction.
+     *
+     * @return array{id: string, slug: string, title: string}|null
      */
-    public function findInstitutionBySlug(string $slug): ?Institution;
+    public function shareIdentityBySlug(string $slug): ?array;
 
     /**
-     * Documented transport: a hydrated institution model resolved by its
-     * primary key for the created-contribution response payload.
+     * Immutable institution identity for the created-contribution response.
+     *
+     * @return array{id: string, slug: string, name: string, status: string}|null
      */
-    public function findInstitutionByKey(string $institutionId): ?Institution;
+    public function contributionResponseById(string $institutionId): ?array;
 
     /**
      * Documented transport: the institution the account is a member of, used

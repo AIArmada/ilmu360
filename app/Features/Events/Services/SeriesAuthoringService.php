@@ -77,9 +77,19 @@ final readonly class SeriesAuthoringService implements SeriesAuthoring
             ->all();
     }
 
-    public function findSeriesBySlug(string $slug): ?Series
+    public function shareIdentityBySlug(string $slug): ?array
     {
-        return Series::query()->where('slug', $slug)->first();
+        $series = Series::query()->where('slug', $slug)->first(['id', 'slug', 'title']);
+
+        if (! $series instanceof Series) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $series->getKey(),
+            'slug' => (string) $series->slug,
+            'title' => (string) $series->title,
+        ];
     }
 
     public function isPubliclyReachable(string $seriesId): bool

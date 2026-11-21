@@ -7,6 +7,7 @@ namespace App\Features\Events\Api\Orm;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
@@ -42,9 +43,9 @@ interface EventOrmPort extends EventScheduleReads
      * batched query.
      *
      * @param  list<string>  $eventIds
-     * @return EloquentCollection<int, Event>
+     * @return array<string, array{slug: string, title: string, next_event_starts_at: string}>
      */
-    public function institutionNextEventDetails(array $eventIds): EloquentCollection;
+    public function institutionNextEventDetails(array $eventIds): array;
 
     /**
      * A hydrated Event model for framework contracts (policies, Livewire page
@@ -53,19 +54,11 @@ interface EventOrmPort extends EventScheduleReads
     public function findEvent(string $eventId): ?Event;
 
     /**
-     * A hydrated Event model resolved by public slug.
-     */
-    public function findEventBySlug(string $slug): ?Event;
-
-    /**
-     * Hydrated Event models for schedule leaves, keyed by id and loaded with
-     * the supplied relations.
+     * Immutable event identity for share URL construction.
      *
-     * @param  list<string>  $eventIds
-     * @param  list<string>  $relations
-     * @return EloquentCollection<string, Event>
+     * @return array{id: string, slug: string, title: string}|null
      */
-    public function hydrateEventsForIds(array $eventIds, array $relations): EloquentCollection;
+    public function shareIdentityBySlug(string $slug): ?array;
 
     /**
      * Events owned by an organization, newest first.
@@ -105,10 +98,26 @@ interface EventOrmPort extends EventScheduleReads
     public function institutionTableQuery(string $institutionId): EventBuilder;
 
     /**
-     * Institution dashboard card query with the card relation set and
-     * dashboard registration count.
+     * Recent institution dashboard cards. Events chooses upcoming cards first,
+     * then falls back to the most recent events when no upcoming rows exist.
+     *
+     * @return EloquentCollection<int, Event>
      */
-    public function institutionEventCardsQuery(string $institutionId): EventBuilder;
+    public function recentInstitutionEventCards(string $institutionId, int $limit): EloquentCollection;
+
+    /**
+     * Pending institution dashboard cards filtered by the current dashboard
+     * search, status, and visibility state.
+     *
+     * @return EloquentCollection<int, Event>
+     */
+    public function pendingInstitutionEventCards(
+        string $institutionId,
+        string $search,
+        string $status,
+        string $visibility,
+        int $limit,
+    ): EloquentCollection;
 
     /**
      * A guaranteed-empty event query.
@@ -116,10 +125,25 @@ interface EventOrmPort extends EventScheduleReads
     public function emptyEventsQuery(): EventBuilder;
 
     /**
-     * Person dashboard event query (events the person is involved in,
-     * including private/draft workspace rows).
+     * Counts for a person's event workspace, including private and draft rows.
+     *
+     * @return array{total: int, upcoming: int, needs_attention: int}
      */
-    public function personDashboardQuery(string $personId): EventBuilder;
+    public function personDashboardEventStats(string $personId): array;
+
+    /**
+     * Paginated person workspace rows, filtered and ordered by Events before
+     * hydrating the Livewire table models.
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    public function personDashboardEventsPage(
+        string $personId,
+        string $search,
+        string $status,
+        int $perPage,
+        int $page,
+    ): LengthAwarePaginator;
 
     /**
      * Public schedule query for a reference family.

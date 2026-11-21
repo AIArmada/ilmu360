@@ -1,10 +1,8 @@
 <?php
 
 use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
-use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Models\Venue;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Component;
 
@@ -51,9 +49,8 @@ new class extends Component
      */
     protected function eventPageData(): array
     {
-        return $this->eventPageDataCache ??= app(EventPageScheduleOrmPort::class)->forQuery(
-            $this->eventPageBaseQuery(),
-            $this->eventPageEagerLoads(),
+        return $this->eventPageDataCache ??= app(EventPageScheduleOrmPort::class)->forVenue(
+            (string) $this->venue->getKey(),
             $this->eventPageUpcomingLimit(),
             $this->eventPagePastLimit(),
         );
@@ -83,22 +80,6 @@ new class extends Component
     public function getPastTotalProperty(): int
     {
         return $this->eventPageData()['past_total'];
-    }
-
-    protected function eventPageBaseQuery(): Builder
-    {
-        return app(PublicScheduleEventReads::class)->venueScheduleQuery($this->venue);
-    }
-
-    protected function eventPageEagerLoads(): array
-    {
-        return [
-            'institution.media',
-            'institution.addresses.country',
-            'persons.media',
-            'keyPeople.person.media',
-            'media',
-        ];
     }
 
     protected function eventPageUpcomingLimit(): int

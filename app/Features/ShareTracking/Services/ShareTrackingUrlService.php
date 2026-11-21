@@ -6,14 +6,9 @@ namespace App\Features\ShareTracking\Services;
 
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\SeriesAuthoring;
-use App\Features\Events\Models\Event;
-use App\Features\Events\Models\Series;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\Orm\PersonLookup;
-use App\Features\Persons\Models\Person;
 use App\Features\References\Api\Orm\ReferenceLookup;
-use App\Features\References\Models\Reference;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -184,17 +179,17 @@ final readonly class ShareTrackingUrlService
         }
 
         if (preg_match('#^/events/([^/]+)$#', $path, $matches) === 1 || preg_match('#^/majlis/([^/]+)$#', $path, $matches) === 1) {
-            $event = app(EventOrmPort::class)->findEventBySlug($matches[1]);
+            $event = app(EventOrmPort::class)->shareIdentityBySlug($matches[1]);
 
-            if ($event instanceof Event) {
+            if ($event !== null) {
                 return $this->subjectResult(
                     ShareSubjectType::Event,
-                    $event->id,
-                    'event:'.$event->id,
-                    route('events.show', $event),
-                    route('events.show', $event),
-                    $event->title,
-                    ['slug' => $event->slug],
+                    $event['id'],
+                    'event:'.$event['id'],
+                    route('events.show', ['event' => $event['slug']]),
+                    route('events.show', ['event' => $event['slug']]),
+                    $event['title'],
+                    ['slug' => $event['slug']],
                 );
             }
         }
@@ -616,9 +611,9 @@ final readonly class ShareTrackingUrlService
      */
     private function eventTarget(string $slug): array
     {
-        $event = app(EventOrmPort::class)->findEventBySlug($slug);
+        $event = app(EventOrmPort::class)->shareIdentityBySlug($slug);
 
-        if (! $event instanceof Event) {
+        if ($event === null) {
             return $this->subjectResult(
                 ShareSubjectType::Page,
                 null,
@@ -632,12 +627,12 @@ final readonly class ShareTrackingUrlService
 
         return $this->subjectResult(
             ShareSubjectType::Event,
-            $event->id,
-            'event:'.$event->id,
-            route('events.show', $event),
-            route('events.show', $event),
-            $event->title,
-            ['slug' => $event->slug],
+            $event['id'],
+            'event:'.$event['id'],
+            route('events.show', ['event' => $event['slug']]),
+            route('events.show', ['event' => $event['slug']]),
+            $event['title'],
+            ['slug' => $event['slug']],
         );
     }
 
@@ -654,9 +649,9 @@ final readonly class ShareTrackingUrlService
      */
     private function institutionTarget(string $slug): array
     {
-        $institution = app(InstitutionLookup::class)->findInstitutionBySlug($slug);
+        $institution = app(InstitutionLookup::class)->shareIdentityBySlug($slug);
 
-        if (! $institution instanceof Institution) {
+        if ($institution === null) {
             return $this->subjectResult(
                 ShareSubjectType::Page,
                 null,
@@ -670,12 +665,12 @@ final readonly class ShareTrackingUrlService
 
         return $this->subjectResult(
             ShareSubjectType::Institution,
-            $institution->id,
-            'institution:'.$institution->id,
-            route('institutions.show', $institution),
-            route('institutions.show', $institution),
-            $institution->name,
-            ['slug' => $institution->slug],
+            $institution['id'],
+            'institution:'.$institution['id'],
+            route('institutions.show', ['institution' => $institution['slug']]),
+            route('institutions.show', ['institution' => $institution['slug']]),
+            $institution['title'],
+            ['slug' => $institution['slug']],
         );
     }
 
@@ -692,9 +687,9 @@ final readonly class ShareTrackingUrlService
      */
     private function personTarget(string $slug): array
     {
-        $person = app(PersonLookup::class)->findPersonBySlug($slug);
+        $person = app(PersonLookup::class)->shareIdentityBySlug($slug);
 
-        if (! $person instanceof Person) {
+        if ($person === null) {
             return $this->subjectResult(
                 ShareSubjectType::Page,
                 null,
@@ -708,12 +703,12 @@ final readonly class ShareTrackingUrlService
 
         return $this->subjectResult(
             ShareSubjectType::Person,
-            $person->id,
-            'person:'.$person->id,
-            route('persons.show', $person),
-            route('persons.show', $person),
-            $person->formatted_name,
-            ['slug' => $person->slug],
+            $person['id'],
+            'person:'.$person['id'],
+            route('persons.show', ['person' => $person['slug']]),
+            route('persons.show', ['person' => $person['slug']]),
+            $person['title'],
+            ['slug' => $person['slug']],
         );
     }
 
@@ -730,9 +725,9 @@ final readonly class ShareTrackingUrlService
      */
     private function seriesTarget(string $slug): array
     {
-        $series = app(SeriesAuthoring::class)->findSeriesBySlug($slug);
+        $series = app(SeriesAuthoring::class)->shareIdentityBySlug($slug);
 
-        if (! $series instanceof Series) {
+        if ($series === null) {
             return $this->subjectResult(
                 ShareSubjectType::Page,
                 null,
@@ -746,12 +741,12 @@ final readonly class ShareTrackingUrlService
 
         return $this->subjectResult(
             ShareSubjectType::Series,
-            $series->id,
-            'series:'.$series->id,
-            route('series.show', $series),
-            route('series.show', $series),
-            $series->title,
-            ['slug' => $series->slug],
+            $series['id'],
+            'series:'.$series['id'],
+            route('series.show', ['series' => $series['slug']]),
+            route('series.show', ['series' => $series['slug']]),
+            $series['title'],
+            ['slug' => $series['slug']],
         );
     }
 
@@ -768,9 +763,9 @@ final readonly class ShareTrackingUrlService
      */
     private function referenceTarget(string $referenceIdentifier): array
     {
-        $reference = app(ReferenceLookup::class)->findReferenceByIdentifier($referenceIdentifier);
+        $reference = app(ReferenceLookup::class)->shareIdentityByIdentifier($referenceIdentifier);
 
-        if (! $reference instanceof Reference) {
+        if ($reference === null) {
             return $this->subjectResult(
                 ShareSubjectType::Page,
                 null,
@@ -784,12 +779,12 @@ final readonly class ShareTrackingUrlService
 
         return $this->subjectResult(
             ShareSubjectType::Reference,
-            $reference->id,
-            'reference:'.$reference->id,
-            route('references.show', $reference),
-            route('references.show', $reference),
-            $reference->displayTitle(),
-            ['reference' => $reference->slug],
+            $reference['id'],
+            'reference:'.$reference['id'],
+            route('references.show', ['reference' => $reference['slug']]),
+            route('references.show', ['reference' => $reference['slug']]),
+            $reference['title'],
+            ['reference' => $reference['slug']],
         );
     }
 

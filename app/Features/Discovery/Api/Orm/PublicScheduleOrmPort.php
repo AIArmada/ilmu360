@@ -7,6 +7,8 @@ namespace App\Features\Discovery\Api\Orm;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 /**
  * Explicit Eloquent integration port for the public schedule pages.
@@ -23,7 +25,7 @@ interface PublicScheduleOrmPort
 {
     /**
      * @param  array<string, mixed>  $filters
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, PublicScheduleModelLeaf>
+     * @return LengthAwarePaginator<int, PublicScheduleModelLeaf>
      */
     public function search(
         ?string $query = null,
@@ -33,18 +35,18 @@ interface PublicScheduleOrmPort
         ?float $latitude = null,
         ?float $longitude = null,
         ?float $radiusKm = null,
-    );
+    ): LengthAwarePaginator;
 
     /**
-     * @return \Illuminate\Support\Collection<int, PublicScheduleModelLeaf>
+     * @return Collection<int, PublicScheduleModelLeaf>
      */
-    public function homepageSelection(?User $user);
+    public function homepageSelection(?User $user): Collection;
 
     /**
      * @param  iterable<int, Event>  $events
-     * @return \Illuminate\Support\Collection<int, PublicScheduleModelLeaf>
+     * @return Collection<int, PublicScheduleModelLeaf>
      */
-    public function leavesForEvents(iterable $events);
+    public function leavesForEvents(iterable $events): Collection;
 
     /**
      * Build one leaf from already-loaded models, so pages that own the

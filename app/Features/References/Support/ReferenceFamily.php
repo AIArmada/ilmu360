@@ -68,6 +68,80 @@ final class ReferenceFamily
     }
 
     /**
+     * Expand multiple independent default-event families with at most one
+     * selected-row query and one query per descendant depth.
+     *
+     * @param  list<string>  $referenceIds
+     * @return array<string, list<string>>
+     */
+    public static function expandIdsForMany(array $referenceIds): array
+    {
+        $families = [];
+
+        foreach (array_values(array_unique($referenceIds)) as $referenceId) {
+            $families[$referenceId] = [];
+        }
+
+        if ($families === []) {
+            return [];
+        }
+
+        $selected = self::activeQuery()
+            ->whereKey(array_keys($families))
+            ->get(['id', 'record_kind']);
+        $frontierByFamily = [];
+
+        foreach ($selected as $reference) {
+            $referenceId = (string) $reference->getKey();
+            $families[$referenceId] = [$referenceId];
+
+            if (! ReferencePayload::isPart($reference)) {
+                $frontierByFamily[$referenceId] = [$referenceId];
+            }
+        }
+
+        for ($depth = 0; $depth < 2 && $frontierByFamily !== []; $depth++) {
+            $familiesByParent = [];
+
+            foreach ($frontierByFamily as $familyId => $parentIds) {
+                foreach ($parentIds as $parentId) {
+                    $familiesByParent[$parentId][] = $familyId;
+                }
+            }
+
+            $children = (clone self::activeQuery())
+                ->whereIn('parent_id', array_keys($familiesByParent))
+                ->get(['id', 'parent_id', 'record_kind']);
+            $nextFrontierByFamily = [];
+
+            foreach ($children as $child) {
+                $childId = (string) $child->getKey();
+                $parentId = (string) $child->getAttribute('parent_id');
+
+                foreach ($familiesByParent[$parentId] ?? [] as $familyId) {
+                    $families[$familyId][] = $childId;
+
+                    if (! ReferencePayload::isPart($child)) {
+                        $nextFrontierByFamily[$familyId][] = $childId;
+                    }
+                }
+            }
+
+            foreach ($nextFrontierByFamily as $familyId => $nextIds) {
+                $nextFrontierByFamily[$familyId] = array_values(array_unique($nextIds));
+            }
+
+            $frontierByFamily = $nextFrontierByFamily;
+        }
+
+        foreach ($families as $familyId => $ids) {
+            $families[$familyId] = array_values(array_unique($ids));
+        }
+
+        return $families;
+    }
+
+    /**
      * Expand a family without the public-visibility filter.
      *
      * Search reindexing must still visit hidden descendants so their index

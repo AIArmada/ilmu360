@@ -276,9 +276,9 @@ class ContributionController extends FrontendController
                 is_array($request->file('gallery')) ? $request->file('gallery') : null,
             ),
         );
-        $institution = app(InstitutionLookup::class)->findInstitutionByKey($institutionId);
+        $institution = app(InstitutionLookup::class)->contributionResponseById($institutionId);
 
-        if (! $institution instanceof Institution) {
+        if ($institution === null) {
             throw (new ModelNotFoundException)->setModel(Institution::class, [$institutionId]);
         }
 
@@ -286,10 +286,10 @@ class ContributionController extends FrontendController
             'message' => __('Thank you. Your institution submission has been received. We will notify you if it is approved or rejected.'),
             'data' => [
                 'institution' => [
-                    'id' => $institution->getKey(),
-                    'slug' => $institution->slug,
-                    'name' => $institution->name,
-                    'status' => $institution->status->value,
+                    'id' => $institution['id'],
+                    'slug' => $institution['slug'],
+                    'name' => $institution['name'],
+                    'status' => $institution['status'],
                 ],
             ],
             'meta' => [
@@ -368,9 +368,9 @@ class ContributionController extends FrontendController
                 is_array($request->file('gallery')) ? $request->file('gallery') : null,
             ),
         );
-        $person = app(PersonLookup::class)->findPersonByKey($personId);
+        $person = app(PersonLookup::class)->contributionResponseById($personId);
 
-        if (! $person instanceof Person) {
+        if ($person === null) {
             throw (new ModelNotFoundException)->setModel(Person::class, [$personId]);
         }
 
@@ -378,10 +378,10 @@ class ContributionController extends FrontendController
             'message' => __('Thank you. Your person submission has been received. We will notify you if it is approved or rejected.'),
             'data' => [
                 'person' => [
-                    'id' => $person->getKey(),
-                    'slug' => $person->slug,
-                    'name' => $person->name,
-                    'status' => $person->status,
+                    'id' => $person['id'],
+                    'slug' => $person['slug'],
+                    'name' => $person['name'],
+                    'status' => $person['status'],
                 ],
             ],
             'meta' => [

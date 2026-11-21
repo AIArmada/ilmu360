@@ -422,22 +422,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return collect();
         }
 
-        $upcomingEvents = $this->institutionEventCardQuery($institution)
-            ->whereNotNull('starts_at')
-            ->where('starts_at', '>=', now())
-            ->orderBy('starts_at')
-            ->limit(7)
-            ->get();
-
-        if ($upcomingEvents->isNotEmpty()) {
-            return $upcomingEvents;
-        }
-
-        return $this->institutionEventCardQuery($institution)
-            ->orderByDesc('starts_at')
-            ->orderBy('title')
-            ->limit(7)
-            ->get();
+        return app(EventOrmPort::class)->recentInstitutionEventCards((string) $institution->getKey(), 7);
     }
 
     /**
@@ -452,13 +437,13 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return collect();
         }
 
-        return $this->applyDashboardEventFilters($this->institutionEventCardQuery($institution))
-            ->whereIn('status', ['pending', 'needs_changes'])
-            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
-            ->orderBy('starts_at')
-            ->orderBy('title')
-            ->limit(2)
-            ->get();
+        return app(EventOrmPort::class)->pendingInstitutionEventCards(
+            institutionId: (string) $institution->getKey(),
+            search: $this->eventSearch,
+            status: $this->eventStatus,
+            visibility: $this->eventVisibility,
+            limit: 2,
+        );
     }
 
     /**
@@ -714,46 +699,6 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                 MemberSubjectType::Institution,
             ),
         );
-    }
-
-    /**
-     * @return Builder<Event>
-     */
-    protected function institutionEventCardQuery(Institution $institution): Builder
-    {
-        /** @var Builder<Event> $query */
-        $query = app(EventOrmPort::class)->institutionEventCardsQuery((string) $institution->id);
-
-        return $query;
-    }
-
-    /**
-     * @param  Builder<Event>  $query
-     * @return Builder<Event>
-     */
-    protected function applyDashboardEventFilters(Builder $query): Builder
-    {
-        $search = trim($this->eventSearch);
-
-        if ($search !== '') {
-            $search = '%'.$search.'%';
-
-            $query->where(function (Builder $builder) use ($search): void {
-                $builder
-                    ->whereLike('title', $search)
-                    ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereLike('name', $search));
-            });
-        }
-
-        if ($this->eventStatus !== 'all') {
-            $query->where('status', $this->eventStatus);
-        }
-
-        if ($this->eventVisibility !== 'all') {
-            $query->where('visibility', $this->eventVisibility);
-        }
-
-        return $query;
     }
 
     protected function selectedInstitutionSupportsScopedSubmission(): bool

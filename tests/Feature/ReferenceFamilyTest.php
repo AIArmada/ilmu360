@@ -1,13 +1,16 @@
 <?php
 
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Models\Event;
 use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
 use App\Platform\Api\Frontend\CatalogDispatcher;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     config()->set('scout.driver', 'null');
@@ -75,6 +78,149 @@ it('resolves reference family ids and part display titles', function () {
             (string) $partThree->id,
         ])
         ->and($partTwo->defaultEventReferenceIds())->toBe([(string) $partTwo->id]);
+});
+
+it('expands multiple default-event reference families in bounded queries', function (): void {
+    $work = Reference::factory()->create([
+        'title' => 'Batched Work',
+        'type' => ReferenceType::Book->value,
+        'status' => 'verified',
+    ]);
+    $edition = Reference::factory()->edition()->create([
+        'title' => $work->title,
+        'parent_id' => $work->getKey(),
+        'status' => 'verified',
+    ]);
+    $part = Reference::factory()->part()->create([
+        'title' => $work->title,
+        'parent_id' => $edition->getKey(),
+        'status' => 'verified',
+    ]);
+
+    $families = app(ReferenceQueries::class)->defaultEventReferenceIdsForMany([
+        (string) $work->getKey(),
+        (string) $edition->getKey(),
+        (string) $part->getKey(),
+        'missing-reference-id',
+    ]);
+
+    expect($families[(string) $work->getKey()])->toEqualCanonicalizing([
+        (string) $work->getKey(),
+        (string) $edition->getKey(),
+        (string) $part->getKey(),
+    ])
+        ->and($families[(string) $edition->getKey()])->toEqualCanonicalizing([
+            (string) $edition->getKey(),
+            (string) $part->getKey(),
+        ])
+        ->and($families[(string) $part->getKey()])->toBe([(string) $part->getKey()])
+        ->and($families['missing-reference-id'])->toBeEmpty();
+});
+
+it('keeps reference directory family and count queries bounded for 1, 12, and 50 rows', function (): void {
+    $references = Reference::factory()->count(50)->create([
+        'title' => 'Reference Query Budget',
+        'type' => ReferenceType::Book->value,
+        'status' => 'verified',
+    ]);
+    $referenceIds = $references->modelKeys();
+    foreach ($references as $index => $reference) {
+        $edition = Reference::factory()->edition()->create([
+            'title' => $reference->title,
+            'parent_id' => $reference->getKey(),
+            'status' => 'verified',
+        ]);
+        Reference::factory()->part()->create([
+            'title' => $reference->title,
+            'parent_id' => $edition->getKey(),
+            'status' => 'verified',
+        ]);
+
+        $event = publicReferenceFamilyEvent(['title' => 'Reference Query Budget Event '.$index]);
+        $reference->events()->attach($event);
+    }
+
+    $connection = DB::connection();
+    $wasLoggingQueries = $connection->logging();
+    $connection->enableQueryLog();
+    $queryCounts = [];
+    $plans = [];
+    $driver = DB::connection()->getDriverName();
+
+    try {
+        foreach ([1, 12, 50] as $pageSize) {
+            $connection->flushQueryLog();
+            $families = app(ReferenceQueries::class)->defaultEventReferenceIdsForMany(array_slice($referenceIds, 0, $pageSize));
+            app(EventScheduleReads::class)->publicEventCountsForReferenceFamilies($families);
+            $queryLog = $connection->getQueryLog();
+            $queryCounts[$pageSize] = count($queryLog);
+
+            if ($driver === 'pgsql') {
+                $countQuery = array_last($queryLog);
+                $connection->flushQueryLog();
+                $planRows = DB::select('EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) '.$countQuery['query'], $countQuery['bindings']);
+                $plans[$pageSize] = json_decode((string) array_first((array) $planRows[0]), true, 512, JSON_THROW_ON_ERROR);
+            }
+        }
+    } finally {
+        if (! $wasLoggingQueries) {
+            $connection->disableQueryLog();
+        }
+    }
+
+    expect($queryCounts)->toBe([1 => 4, 12 => 4, 50 => 4]);
+
+    if ($driver === 'pgsql') {
+        $planPath = sys_get_temp_dir().'/ilmu360-reference-count-plans-'.getmypid().'.json';
+
+        file_put_contents($planPath, json_encode([
+            'driver' => $driver,
+            'query_counts' => $queryCounts,
+            'plans' => $plans,
+        ], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+        expect($plans)->toHaveKeys([1, 12, 50]);
+    }
+});
+
+it('counts distinct public events by reference family in SQL', function (): void {
+    $work = Reference::factory()->create([
+        'title' => 'Grouped Count Work',
+        'type' => ReferenceType::Book->value,
+        'status' => 'verified',
+    ]);
+    $edition = Reference::factory()->edition()->create([
+        'title' => $work->title,
+        'parent_id' => $work->getKey(),
+        'status' => 'verified',
+    ]);
+    $part = Reference::factory()->part()->create([
+        'title' => $work->title,
+        'parent_id' => $edition->getKey(),
+        'status' => 'verified',
+    ]);
+    $rootEvent = publicReferenceFamilyEvent(['title' => 'Root linked event']);
+    $sharedEvent = publicReferenceFamilyEvent(['title' => 'Part linked event']);
+    $hiddenEvent = publicReferenceFamilyEvent([
+        'title' => 'Unpublished linked event',
+        'status' => 'draft',
+    ]);
+
+    $work->events()->attach($rootEvent);
+    $edition->events()->attach($sharedEvent);
+    $part->events()->attach($sharedEvent);
+    $part->events()->attach($hiddenEvent);
+
+    $families = app(ReferenceQueries::class)->defaultEventReferenceIdsForMany([
+        (string) $work->getKey(),
+        (string) $edition->getKey(),
+        (string) $part->getKey(),
+    ]);
+    $counts = app(EventScheduleReads::class)->publicEventCountsForReferenceFamilies($families);
+
+    expect($counts[(string) $work->getKey()])->toBe(2)
+        ->and($counts[(string) $edition->getKey()])->toBe(1)
+        ->and($counts[(string) $part->getKey()])->toBe(1);
 });
 
 it('shows root reference detail events from all child parts', function () {

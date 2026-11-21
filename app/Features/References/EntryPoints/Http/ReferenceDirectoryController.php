@@ -198,12 +198,13 @@ final class ReferenceDirectoryController extends FrontendController
      */
     private function applyEventCounts(iterable $references): void
     {
-        $families = [];
+        $referenceIds = [];
 
         foreach ($references as $reference) {
-            $referenceId = (string) $reference->getKey();
-            $families[$referenceId] = $this->referenceQueries->defaultEventReferenceIds($referenceId);
+            $referenceIds[] = (string) $reference->getKey();
         }
+
+        $families = $this->referenceQueries->defaultEventReferenceIdsForMany($referenceIds);
 
         $counts = app(EventScheduleReads::class)->publicEventCountsForReferenceFamilies($families);
 

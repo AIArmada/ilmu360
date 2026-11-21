@@ -6,24 +6,21 @@ namespace App\Features\Events\Api\Orm;
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
-use App\Features\Places\Models\Venue;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Narrow Events-owned read seam for the public schedule.
  *
  * This is the only place where public-schedule business predicates, status and
- * visibility rules, occurrence/session matching and the card eager-load graph
- * are composed. Consumers may render the hydrated models and read their loaded
- * relations; they must not add event-domain predicates, joins or writes, and
- * must not build their own Event queries.
+ * visibility rules, occurrence/session eligibility and schedule facts are
+ * composed. Immutable facts cross into Discovery for filtering and ordering;
+ * model hydration is limited to selected rows needed by page rendering.
  *
- * @internal Model transport exists solely for Livewire page identity, relation
- *           rendering (media, institution, references, persons) and the
- *           Discovery schedule leaf conversion. Ordinary cross-owner reads use
- *           Events scalar/card APIs instead.
+ * @internal Model transport exists solely for Livewire page identity and
+ *           relation rendering (media, institution, references, persons).
  *
  * Consumers: Discovery PublicScheduleDiscoveryService and the Events,
  * Institution, Person and Reference public schedule pages.
@@ -31,17 +28,12 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 interface PublicScheduleEventReads
 {
     /**
-     * Public events matching the schedule filters, hydrated with the supplied
-     * card relations.
-     *
-     * Parent-projected time filters are applied by the owner exactly as the
-     * historical discovery query did; callers pass the same filter array.
+     * Public event candidates matching the owner-applied parent filters, with
+     * immutable eligible schedule facts for Discovery's leaf-level filters.
      *
      * @param  array<string, mixed>  $filters
-     * @param  array<int|string, mixed>  $relations
-     * @return EloquentCollection<int, Event>
      */
-    public function publicScheduleEvents(?string $query, array $filters, array $relations): EloquentCollection;
+    public function publicScheduleFactSet(?string $query, array $filters): EventScheduleFactSet;
 
     /**
      * Homepage candidate events: featured occurrences plus events followed by
@@ -50,15 +42,21 @@ interface PublicScheduleEventReads
      * @param  list<string>  $personIds
      * @param  list<string>  $institutionIds
      * @param  list<string>  $referenceIds
-     * @param  array<int|string, mixed>  $relations
-     * @return EloquentCollection<int, Event>
      */
-    public function homepageScheduleEvents(
+    public function homepageScheduleFacts(
         array $personIds,
         array $institutionIds,
         array $referenceIds,
-        array $relations,
-    ): EloquentCollection;
+    ): EventScheduleFactSet;
+
+    /**
+     * Schedule facts for page-owned event ids. Discovery uses only ids from
+     * its input models; Events owns the query and eligibility policy.
+     *
+     * @param  list<string>  $eventIds
+     * @param  array<string, float>  $distanceByEventId
+     */
+    public function scheduleFactsForEventIds(array $eventIds, array $distanceByEventId = []): EventScheduleFactSet;
 
     /**
      * Event ids matched by the homepage follow predicates, used to order the
@@ -76,27 +74,18 @@ interface PublicScheduleEventReads
     ): array;
 
     /**
-     * Card rendering relations for the public schedule.
-     *
-     * @return array<int|string, mixed>
-     */
-    public function publicScheduleCardRelations(): array;
-
-    /**
-     * Load the schedule graph on already-hydrated events.
-     *
-     * @param  EloquentCollection<int, Event>  $events
-     */
-    public function loadScheduleGraph(EloquentCollection $events, bool $withOccurrenceReferences = false): void;
-
-    /**
      * Rehydrate search-page ids into schedule models, preserving the search
      * result order and dropping ids that no longer resolve.
      *
      * @param  list<string>  $eventIds
+     * @param  array<string, float>  $distanceByEventId
      * @return EloquentCollection<int, Event>
      */
-    public function hydrateScheduleEvents(array $eventIds): EloquentCollection;
+    public function hydrateScheduleEvents(
+        array $eventIds,
+        bool $withOccurrenceReferences = false,
+        array $distanceByEventId = [],
+    ): EloquentCollection;
 
     /**
      * Resolve the public occurrence for an event by its public slug.
@@ -118,18 +107,4 @@ interface PublicScheduleEventReads
      * @param  array<int|string, mixed>  $relations
      */
     public function institutionScheduleQuery(string $institutionId, array $relations): EventBuilder;
-
-    /**
-     * Base active event query for a venue detail page.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<Event>
-     */
-    public function venueScheduleQuery(Venue $venue): \Illuminate\Database\Eloquent\Builder;
-
-    /**
-     * Base active event query for a series detail page.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<Event>
-     */
-    public function seriesScheduleQuery(\App\Features\Events\Models\Series $series): \Illuminate\Database\Eloquent\Builder;
 }

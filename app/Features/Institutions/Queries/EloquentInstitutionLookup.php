@@ -36,14 +36,37 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         return app(InstitutionSearchService::class);
     }
 
-    public function findInstitutionBySlug(string $slug): ?Institution
+    public function shareIdentityBySlug(string $slug): ?array
     {
-        return Institution::query()->where('slug', $slug)->first();
+        $institution = Institution::query()->where('slug', $slug)->first(['id', 'slug', 'name']);
+
+        if (! $institution instanceof Institution) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $institution->getKey(),
+            'slug' => (string) $institution->slug,
+            'title' => (string) $institution->name,
+        ];
     }
 
-    public function findInstitutionByKey(string $institutionId): ?Institution
+    public function contributionResponseById(string $institutionId): ?array
     {
-        return Institution::query()->find($institutionId);
+        $institution = Institution::query()->find($institutionId, ['id', 'slug', 'name', 'status']);
+
+        if (! $institution instanceof Institution) {
+            return null;
+        }
+
+        $status = $institution->status;
+
+        return [
+            'id' => (string) $institution->getKey(),
+            'slug' => (string) $institution->slug,
+            'name' => (string) $institution->name,
+            'status' => $status instanceof BackedEnum ? (string) $status->value : (string) $status,
+        ];
     }
 
     public function findMemberInstitution(string $institutionId, string $accountId): ?Institution

@@ -37,9 +37,12 @@ final readonly class ReferenceQueryService implements ReferenceOrmPort
 
     public function defaultEventReferenceIds(string $referenceId): array
     {
-        $reference = Reference::query()->withoutOwnerScope()->find($referenceId);
+        return ReferenceFamily::expandIdsForMany([$referenceId])[$referenceId] ?? [];
+    }
 
-        return $reference instanceof Model ? ReferenceFamily::expandIds([(string) $reference->getKey()]) : [];
+    public function defaultEventReferenceIdsForMany(array $referenceIds): array
+    {
+        return ReferenceFamily::expandIdsForMany($referenceIds);
     }
 
     public function referenceModelClass(): string

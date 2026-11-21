@@ -20,13 +20,23 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
 {
     public function __construct(private SlugOrUuidResolver $resolver) {}
 
-    public function findReferenceByIdentifier(string $identifier): ?Reference
+    public function shareIdentityByIdentifier(string $identifier): ?array
     {
-        return $this->resolver->first(
+        $reference = $this->resolver->first(
             Reference::query()->withoutOwnerScope()->active(),
             'references.slug',
             $identifier,
         );
+
+        if (! $reference instanceof Reference) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $reference->getKey(),
+            'slug' => (string) $reference->slug,
+            'title' => $reference->displayTitle(),
+        ];
     }
 
     public function resolveIdentifier(string $identifier): ?string

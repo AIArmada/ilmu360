@@ -225,17 +225,18 @@ it('renders the submit-event upload copy in the selected locale', function () {
 });
 
 it('loads public detail pages', function () {
+    $venue = Venue::factory()->create(['status' => 'verified']);
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
         'ends_at' => now()->addDay()->addHour(),
+        'default_venue_id' => $venue->getKey(),
     ]);
 
     $institution = Institution::factory()->create(['status' => 'verified']);
     $person = Person::factory()->create(['status' => 'verified']);
-    $venue = Venue::factory()->create(['status' => 'verified']);
     $series = Series::factory()->create([
         'visibility' => 'public',
     ]);
@@ -247,7 +248,10 @@ it('loads public detail pages', function () {
     $this->get(route('events.show', $event))->assertSuccessful()->assertSee($event->title);
     $this->get(route('institutions.show', $institution))->assertSuccessful()->assertSee($institution->name);
     $this->get(route('persons.show', $person))->assertSuccessful()->assertSee($person->name);
-    $this->get(route('venues.show', $venue))->assertSuccessful()->assertSee($venue->name);
+    $this->get(route('venues.show', $venue))
+        ->assertSuccessful()
+        ->assertSee($venue->name)
+        ->assertSee($event->title);
     $this->get(route('series.show', $series))
         ->assertSuccessful()
         ->assertSee($series->title)

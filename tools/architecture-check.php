@@ -92,6 +92,103 @@ try {
     }
     ksort($paths);
 
+    $nativeTypeNames = static function (?Node $type) use (&$nativeTypeNames): array {
+        if ($type instanceof Node\Name) {
+            $resolved = $type->getAttribute('resolvedName');
+
+            return [strtolower(ltrim($resolved instanceof Node\Name ? $resolved->toString() : $type->toString(), '\\'))];
+        }
+
+        if ($type instanceof Node\Identifier) {
+            return [strtolower($type->toString())];
+        }
+
+        if ($type instanceof Node\NullableType) {
+            return $nativeTypeNames($type->type);
+        }
+
+        if ($type instanceof Node\UnionType || $type instanceof Node\IntersectionType) {
+            $names = [];
+
+            foreach ($type->types as $innerType) {
+                array_push($names, ...$nativeTypeNames($innerType));
+            }
+
+            return $names;
+        }
+
+        return [];
+    };
+    $phpDocTypeNames = static function (string $type, array $imports, string $namespace): array {
+        preg_match_all('~\\\\?[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)*~', $type, $matches);
+        $names = [];
+
+        foreach ($matches[0] as $rawName) {
+            $isAbsolute = str_starts_with($rawName, '\\');
+            $name = trim($rawName, '\\');
+            $segments = explode('\\', $name);
+            $firstSegment = $segments[0];
+
+            if ($isAbsolute) {
+                $resolved = $name;
+            } elseif (isset($imports[strtolower($firstSegment)])) {
+                $resolved = $imports[strtolower($firstSegment)].(isset($segments[1]) ? '\\'.implode('\\', array_slice($segments, 1)) : '');
+            } elseif (count($segments) > 1 || in_array(strtolower($name), ['array', 'list', 'iterable', 'collection', 'mixed', 'object', 'null', 'void', 'never', 'int', 'integer', 'string', 'bool', 'boolean', 'float', 'callable', 'resource', 'scalar', 'self', 'static', 'parent'], true)) {
+                $resolved = $name;
+            } else {
+                $resolved = $namespace === '' ? $name : $namespace.'\\'.$name;
+            }
+
+            $names[] = strtolower($resolved);
+        }
+
+        return array_values(array_unique($names));
+    };
+    $ormReturnShape = static function (array $typeNames): string {
+        $hasCollection = false;
+        $hasEloquentCollection = false;
+        $hasModel = false;
+
+        foreach ($typeNames as $typeName) {
+            if (in_array($typeName, ['object', 'mixed'], true)) {
+                return 'opaque';
+            }
+
+            $lastSeparator = strrpos($typeName, '\\');
+            $shortName = strtolower($lastSeparator === false ? $typeName : substr($typeName, $lastSeparator + 1));
+
+            if (str_ends_with($shortName, 'builder') || $shortName === 'relation' || str_contains($typeName, '\\database\\eloquent\\relations\\')) {
+                return 'builder';
+            }
+
+            if (in_array($shortName, ['array', 'list', 'iterable', 'eloquentcollection', 'collection'], true)
+                || str_contains($typeName, '\\database\\eloquent\\collection')
+                || str_contains($shortName, 'paginator')) {
+                $hasCollection = true;
+            }
+
+            if ($shortName === 'eloquentcollection' || str_contains($typeName, '\\database\\eloquent\\collection')) {
+                $hasEloquentCollection = true;
+            }
+
+            if ($typeName === 'illuminate\\database\\eloquent\\model'
+                || (str_starts_with($typeName, 'app\\') && str_contains($typeName, '\\models\\'))
+                || (str_starts_with($typeName, 'aiarmada\\') && str_contains($typeName, '\\models\\'))) {
+                $hasModel = true;
+            }
+        }
+
+        if ($hasCollection && ($hasModel || $hasEloquentCollection || array_any($typeNames, static fn (string $typeName): bool => str_contains($typeName, 'paginator')))) {
+            return 'collection';
+        }
+
+        if ($hasCollection) {
+            return 'value';
+        }
+
+        return $hasModel ? 'model' : 'value';
+    };
+
     // Business-query escape detection needs the published ORM surface before
     // the per-file pass. Record every Api/Orm method's return shape so a
     // foreign consumer that receives a builder can be rejected even when the
@@ -105,6 +202,23 @@ try {
         $ormTraverser = new NodeTraverser;
         $ormTraverser->addVisitor(new NameResolver);
         $ormAst = $ormTraverser->traverse($ormAst);
+        $namespaceName = '';
+        $imports = [];
+
+        foreach ($ormAst as $rootNode) {
+            if ($rootNode instanceof Node\Stmt\Namespace_) {
+                $namespaceName = $rootNode->name?->toString() ?? '';
+            }
+        }
+
+        foreach ($finder->findInstanceOf($ormAst, Node\Stmt\UseUse::class) as $use) {
+            $resolved = $use->name->getAttribute('resolvedName');
+            $importName = ltrim($resolved instanceof Node\Name ? $resolved->toString() : $use->name->toString(), '\\');
+            $importSegments = explode('\\', $importName);
+            $alias = $use->alias?->toString() ?? end($importSegments);
+            $imports[strtolower($alias)] = strtolower($importName);
+        }
+
         foreach ($finder->findInstanceOf($ormAst, Node\Stmt\ClassLike::class) as $ormClass) {
             if ($ormClass->name === null) {
                 continue;
@@ -115,31 +229,619 @@ try {
                 if (! $ormMethod->isPublic()) {
                     continue;
                 }
-                $returnType = $ormMethod->returnType instanceof Node\NullableType ? $ormMethod->returnType->type : $ormMethod->returnType;
-                $nativeReturn = $returnType instanceof Node\Identifier
-                    ? strtolower($returnType->toString())
-                    : ($returnType instanceof Node\Name ? strtolower($returnType->toString()) : '');
                 $ormDoc = $ormMethod->getDocComment()?->getText() ?? '';
-                $docReturn = preg_match('~@return\s+([^\n*]+)~', $ormDoc, $docMatch) === 1 ? trim($docMatch[1]) : '';
-                $returnShape = 'scalar';
-                if (in_array($nativeReturn, ['object', 'mixed'], true)) {
-                    $returnShape = 'opaque';
-                } elseif (str_contains($nativeReturn, 'builder') || str_contains($docReturn, 'Builder')
-                    || str_contains($nativeReturn, 'relation') || str_contains($docReturn, 'Relation')) {
-                    $returnShape = 'builder';
-                } elseif (str_contains($nativeReturn, 'collection') || str_contains($docReturn, 'Collection')
-                    || str_contains($nativeReturn, 'paginator') || str_contains($docReturn, 'Paginator')) {
-                    $returnShape = 'collection';
-                } elseif (preg_match('~App\\\\Features\\\\[A-Za-z]+\\\\Models\\\\~', $nativeReturn.' '.$docReturn) === 1) {
-                    $returnShape = 'model';
+                $docReturn = preg_match('~@return\s+([^\s*]+)~', $ormDoc, $docMatch) === 1 ? trim($docMatch[1]) : '';
+                $typeNames = $nativeTypeNames($ormMethod->returnType);
+
+                if ($docReturn !== '') {
+                    $docTypes = $phpDocTypeNames($docReturn, $imports, $namespaceName);
+                    array_push($typeNames, ...$docTypes);
                 }
+
+                if ($ormMethod->returnType === null && strtolower($ormMethod->name->toString()) !== '__construct') {
+                    $report('orm-opaque-return', $relative, $ormMethod->getStartLine(), $ormMethod->name->toString(), 'Declare a concrete native return type for every public ORM port method; use PHPDoc for generic details.');
+                }
+
+                $returnShape = $ormReturnShape($typeNames);
+
+                if ($returnShape === 'opaque') {
+                    $report('orm-opaque-return', $relative, $ormMethod->getStartLine(), $ormMethod->name->toString(), 'Name the concrete owner model, Eloquent collection/builder or immutable value; opaque object/mixed is not an integration seam.');
+                }
+
+                $nativeUnionShapes = $ormMethod->returnType instanceof Node\UnionType
+                    ? array_values(array_unique(array_map(
+                        static fn (Node $type): string => $ormReturnShape($nativeTypeNames($type)),
+                        $ormMethod->returnType->types,
+                    )))
+                    : [];
+                $docUnionShapes = [];
+
+                if (str_contains($docReturn, '|')) {
+                    foreach (explode('|', $docReturn) as $unionType) {
+                        $docUnionShapes[] = $ormReturnShape($phpDocTypeNames($unionType, $imports, $namespaceName));
+                    }
+                    $docUnionShapes = array_values(array_unique($docUnionShapes));
+                }
+
+                if (in_array($returnShape, ['builder', 'model', 'collection'], true)
+                    && (count($nativeUnionShapes) > 1 || count($docUnionShapes) > 1)) {
+                    $report('orm-opaque-return', $relative, $ormMethod->getStartLine(), $ormMethod->name->toString(), 'Do not union mutable ORM values with other return shapes; split the contract into explicit methods.');
+                }
+                $preservesBuilderArgument = null;
+                if (preg_match('~@template\s+([A-Za-z_][A-Za-z0-9_]*)\s+of\s+([^\n*]+)~', $ormDoc, $templateMatch) === 1
+                    && preg_match('~@param\s+'.preg_quote($templateMatch[1], '~').'\s+\$([A-Za-z_][A-Za-z0-9_]*)~', $ormDoc) === 1
+                    && preg_match('~@return\s+'.preg_quote($templateMatch[1], '~').'(?:\s|\*|$)~', $ormDoc) === 1
+                    && preg_match('~builder~i', $templateMatch[2]) === 1) {
+                    preg_match('~@param\s+'.preg_quote($templateMatch[1], '~').'\s+\$([A-Za-z_][A-Za-z0-9_]*)~', $ormDoc, $templateParameterMatch);
+
+                    foreach ($ormMethod->params as $parameterIndex => $parameter) {
+                        if ($parameter->var instanceof Node\Expr\Variable
+                            && $parameter->var->name === ($templateParameterMatch[1] ?? null)
+                            && $ormReturnShape($nativeTypeNames($parameter->type)) === 'builder') {
+                            $preservesBuilderArgument = $parameterIndex;
+                            break;
+                        }
+                    }
+                }
+
                 $ormContracts[$declared]['methods'][$ormMethod->name->toString()] = [
                     'shape' => $returnShape,
+                    'preserves-builder-argument' => $preservesBuilderArgument,
                     'line' => $ormMethod->getStartLine(),
                 ];
             }
         }
     }
+
+    $ormBuilderTerminals = [
+        'count', 'cursor', 'cursorpaginate', 'doesntexist', 'exists', 'find', 'findorfail',
+        'first', 'firstorfail', 'get', 'lazy', 'lazybyid', 'max', 'min', 'paginate',
+        'pluck', 'simplepaginate', 'sole', 'sum', 'value', 'avg', 'tosql', 'getbindings',
+    ];
+    $ormBuilderTerminalShapes = [
+        'cursor' => 'collection',
+        'cursorpaginate' => 'collection',
+        'find' => 'model',
+        'findorfail' => 'model',
+        'first' => 'model',
+        'firstorfail' => 'model',
+        'get' => 'collection',
+        'lazy' => 'collection',
+        'lazybyid' => 'collection',
+        'paginate' => 'collection',
+        'simplepaginate' => 'collection',
+        'sole' => 'model',
+    ];
+    $ormModelMutators = [
+        'decrement', 'delete', 'fill', 'forceDelete', 'forceFill', 'increment', 'push',
+        'restore', 'save', 'saveQuietly', 'setAttribute', 'setRelation', 'setRawAttributes',
+        'touch', 'unsetRelation', 'update', 'updateQuietly',
+    ];
+    $ormCollectionMutators = ['forget', 'pop', 'prepend', 'push', 'put', 'shift', 'splice', 'transform'];
+    $analyzeOrmConsumer = static function (string $relative, array $ast, ?string $consumerFeature, string $source) use (
+        $ormContracts,
+        $nativeTypeNames,
+        $report,
+        $finder,
+        $ormBuilderTerminals,
+        $ormBuilderTerminalShapes,
+        $ormModelMutators,
+        $ormCollectionMutators,
+    ): void {
+        $foreignMethods = [];
+
+        foreach ($ormContracts as $contractName => $contract) {
+            if ($contract['owner'] === $consumerFeature) {
+                continue;
+            }
+
+            $contractSegments = explode('\\', $contractName);
+            $contractShort = end($contractSegments);
+
+            if (! str_contains($source, $contractShort) && ! str_contains($source, $contractName)) {
+                continue;
+            }
+
+            foreach ($contract['methods'] as $methodName => $methodMeta) {
+                if (in_array($methodMeta['shape'], ['builder', 'model', 'collection'], true)) {
+                    $foreignMethods[$contractName][$methodName] = $methodMeta;
+                }
+            }
+        }
+
+        if ($foreignMethods === []) {
+            return;
+        }
+
+        $contractForClassName = static function (Node\Name $name) use ($ormContracts): ?string {
+            $resolved = $name->getAttribute('resolvedName');
+            $className = ltrim($resolved instanceof Node\Name ? $resolved->toString() : $name->toString(), '\\');
+
+            return isset($ormContracts[$className]) ? $className : null;
+        };
+        $classNameForScope = static function (Node $scope): ?string {
+            $parent = $scope->getAttribute('parent');
+
+            while ($parent instanceof Node) {
+                if ($parent instanceof Node\Stmt\ClassLike) {
+                    return isset($parent->namespacedName)
+                        ? $parent->namespacedName->toString()
+                        : $parent->name?->toString();
+                }
+
+                $parent = $parent->getAttribute('parent');
+            }
+
+            return null;
+        };
+        $belongsToScope = static function (Node $node, Node $scope): bool {
+            $parent = $node->getAttribute('parent');
+
+            while ($parent instanceof Node) {
+                if ($parent === $scope) {
+                    return true;
+                }
+
+                if ($parent instanceof Node\Stmt\ClassMethod
+                    || $parent instanceof Node\Stmt\Function_
+                    || $parent instanceof Node\Expr\Closure
+                    || $parent instanceof Node\Expr\ArrowFunction) {
+                    return false;
+                }
+
+                $parent = $parent->getAttribute('parent');
+            }
+
+            return false;
+        };
+        $findInScope = static function (Node $scope, string $nodeType) use ($finder, $belongsToScope): array {
+            return array_values(array_filter(
+                $finder->find(
+                    $scope,
+                    static fn (Node $node): bool => is_a($node, $nodeType),
+                ),
+                static fn (Node $node): bool => $belongsToScope($node, $scope),
+            ));
+        };
+        $classForExpression = static function (?Node $expression, array $variableContracts, array $propertyContracts) use (&$classForExpression, $contractForClassName): ?string {
+            if ($expression instanceof Node\Expr\Variable && is_string($expression->name)) {
+                return $variableContracts[$expression->name] ?? null;
+            }
+
+            if ($expression instanceof Node\Expr\PropertyFetch
+                && $expression->var instanceof Node\Expr\Variable
+                && $expression->var->name === 'this'
+                && $expression->name instanceof Node\Identifier) {
+                return $propertyContracts[$expression->name->toString()] ?? null;
+            }
+
+            if ($expression instanceof Node\Expr\FuncCall
+                && $expression->name instanceof Node\Name
+                && in_array(strtolower($expression->name->toString()), ['app', 'resolve'], true)) {
+                $classConstant = $expression->args[0]->value ?? null;
+
+                if ($classConstant instanceof Node\Expr\ClassConstFetch
+                    && $classConstant->name instanceof Node\Identifier
+                    && strtolower($classConstant->name->toString()) === 'class'
+                    && $classConstant->class instanceof Node\Name) {
+                    return $contractForClassName($classConstant->class);
+                }
+            }
+
+            if ($expression instanceof Node\Expr\MethodCall
+                && $expression->name instanceof Node\Identifier
+                && strtolower($expression->name->toString()) === 'make') {
+                $classConstant = $expression->args[0]->value ?? null;
+
+                if ($classConstant instanceof Node\Expr\ClassConstFetch
+                    && $classConstant->name instanceof Node\Identifier
+                    && strtolower($classConstant->name->toString()) === 'class'
+                    && $classConstant->class instanceof Node\Name) {
+                    return $contractForClassName($classConstant->class);
+                }
+            }
+
+            if ($expression instanceof Node\Expr\Assign) {
+                return $classForExpression($expression->expr, $variableContracts, $propertyContracts);
+            }
+
+            return null;
+        };
+        $propertyContracts = [];
+
+        foreach ($finder->findInstanceOf($ast, Node\Stmt\Property::class) as $property) {
+            foreach ($nativeTypeNames($property->type) as $typeName) {
+                foreach (array_keys($ormContracts) as $contractName) {
+                    if (strcasecmp($typeName, $contractName) !== 0) {
+                        continue;
+                    }
+
+                    foreach ($property->props as $propertyNode) {
+                        $propertyContracts[$propertyNode->name->toString()] = $contractName;
+                    }
+                }
+            }
+        }
+
+        foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassMethod::class) as $method) {
+            if (strtolower($method->name->toString()) !== '__construct') {
+                continue;
+            }
+
+            foreach ($method->params as $parameter) {
+                if ($parameter->flags === 0 || ! $parameter->var instanceof Node\Expr\Variable || ! is_string($parameter->var->name)) {
+                    continue;
+                }
+
+                foreach ($nativeTypeNames($parameter->type) as $typeName) {
+                    foreach (array_keys($ormContracts) as $contractName) {
+                        if (strcasecmp($typeName, $contractName) === 0) {
+                            $propertyContracts[$parameter->var->name] = $contractName;
+                        }
+                    }
+                }
+            }
+        }
+
+        $expressionShape = static function (?Node $expression, array $variableShapes, array $propertyShapes, array $variableContracts, array $helperShapes, ?string $scopeClass) use (
+            &$expressionShape,
+            $classForExpression,
+            $foreignMethods,
+            $ormBuilderTerminals,
+            $ormBuilderTerminalShapes,
+        ): ?string {
+            if ($expression instanceof Node\Expr\Variable && is_string($expression->name)) {
+                return $variableShapes[$expression->name] ?? null;
+            }
+
+            if ($expression instanceof Node\Expr\PropertyFetch
+                && $expression->var instanceof Node\Expr\Variable
+                && $expression->var->name === 'this'
+                && $expression->name instanceof Node\Identifier) {
+                return $propertyShapes[$expression->name->toString()] ?? null;
+            }
+
+            if (! $expression instanceof Node\Expr\MethodCall) {
+                if ($expression instanceof Node\Expr\Ternary) {
+                    return $expressionShape($expression->if, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass)
+                        ?? $expressionShape($expression->else, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass);
+                }
+
+                if ($expression instanceof Node\Expr\BinaryOp\Coalesce) {
+                    return $expressionShape($expression->left, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass)
+                        ?? $expressionShape($expression->right, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass);
+                }
+
+                return null;
+            }
+
+            $methodName = $expression->name instanceof Node\Identifier ? $expression->name->toString() : null;
+            $contractName = $classForExpression($expression->var, $variableContracts, $propertyShapes);
+
+            if ($contractName !== null && $methodName !== null
+                && isset($foreignMethods[$contractName][$methodName])) {
+                $methodMeta = $foreignMethods[$contractName][$methodName];
+
+                if ($methodMeta['preserves-builder-argument'] !== null) {
+                    $preservedArgument = $expression->args[$methodMeta['preserves-builder-argument']]->value ?? null;
+
+                    return $expressionShape($preservedArgument, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass);
+                }
+
+                return $methodMeta['shape'];
+            }
+
+            if ($expression->var instanceof Node\Expr\Variable
+                && $expression->var->name === 'this'
+                && $methodName !== null
+                && $scopeClass !== null
+                && isset($helperShapes[$scopeClass.'::'.$methodName])) {
+                return $helperShapes[$scopeClass.'::'.$methodName];
+            }
+
+            $receiverShape = $expressionShape($expression->var, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass);
+
+            if ($receiverShape === 'builder') {
+                $normalizedMethodName = strtolower((string) $methodName);
+
+                if (isset($ormBuilderTerminalShapes[$normalizedMethodName])) {
+                    return $ormBuilderTerminalShapes[$normalizedMethodName];
+                }
+
+                if (in_array($normalizedMethodName, $ormBuilderTerminals, true)) {
+                    return null;
+                }
+
+                return 'builder';
+            }
+
+            if ($receiverShape === 'model' && $methodName !== null
+                && in_array(strtolower($methodName), ['fill', 'forcefill', 'setattribute', 'setrelation', 'setrawattributes'], true)) {
+                return 'model';
+            }
+
+            if ($receiverShape === 'collection' && $methodName !== null
+                && in_array(strtolower($methodName), ['first', 'last'], true)) {
+                return 'model';
+            }
+
+            if ($receiverShape === 'collection' && $methodName !== null
+                && in_array(strtolower($methodName), ['getcollection', 'filter', 'map', 'values', 'unique', 'sort', 'reverse'], true)) {
+                return 'collection';
+            }
+
+            return null;
+        };
+        $scopeNodes = [
+            ...$finder->findInstanceOf($ast, Node\Stmt\ClassMethod::class),
+            ...$finder->findInstanceOf($ast, Node\Expr\Closure::class),
+            ...$finder->findInstanceOf($ast, Node\Expr\ArrowFunction::class),
+            ...$finder->findInstanceOf($ast, Node\Stmt\Function_::class),
+        ];
+        $helperShapes = [];
+
+        for ($pass = 0; $pass < 3; $pass++) {
+            foreach ($scopeNodes as $scope) {
+                if (! $scope instanceof Node\Stmt\ClassMethod) {
+                    continue;
+                }
+                $scopeClass = $classNameForScope($scope);
+
+                if ($scopeClass === null) {
+                    continue;
+                }
+
+                $variableContracts = [];
+
+                foreach ($scope->params as $parameter) {
+                    if (! $parameter->var instanceof Node\Expr\Variable || ! is_string($parameter->var->name)) {
+                        continue;
+                    }
+
+                    foreach ($nativeTypeNames($parameter->type) as $typeName) {
+                        foreach (array_keys($foreignMethods) as $contractName) {
+                            if (strcasecmp($typeName, $contractName) === 0) {
+                                $variableContracts[$parameter->var->name] = $contractName;
+                            }
+                        }
+                    }
+                }
+
+                $variableShapes = [];
+                foreach ($findInScope($scope, Node\Expr\Assign::class) as $assignment) {
+                    if (! $assignment instanceof Node\Expr\Assign) {
+                        continue;
+                    }
+
+                    $shape = $expressionShape($assignment->expr, $variableShapes, $propertyContracts, $variableContracts, $helperShapes, $scopeClass);
+
+                    if ($shape === null) {
+                        continue;
+                    }
+
+                    if ($assignment->var instanceof Node\Expr\Variable && is_string($assignment->var->name)) {
+                        $variableShapes[$assignment->var->name] = $shape;
+                    } elseif ($assignment->var instanceof Node\Expr\PropertyFetch
+                        && $assignment->var->var instanceof Node\Expr\Variable
+                        && $assignment->var->var->name === 'this'
+                        && $assignment->var->name instanceof Node\Identifier) {
+                        $propertyContracts[$assignment->var->name->toString()] = $shape;
+                    }
+                }
+
+                foreach ($findInScope($scope, Node\Stmt\Return_::class) as $return) {
+                    if (! $return instanceof Node\Stmt\Return_) {
+                        continue;
+                    }
+
+                    $shape = $expressionShape($return->expr, $variableShapes, $propertyContracts, $variableContracts, $helperShapes, $scopeClass);
+
+                    if ($shape !== null) {
+                        $helperShapes[$scopeClass.'::'.$scope->name->toString()] = $shape;
+                    }
+                }
+            }
+        }
+
+        $analyzeScope = static function (Node $scope) use (
+
+            $nativeTypeNames,
+            $foreignMethods,
+            $propertyContracts,
+            $helperShapes,
+            $classForExpression,
+            $expressionShape,
+            $ormBuilderTerminals,
+            $ormModelMutators,
+            $ormCollectionMutators,
+            $report,
+            $relative,
+            $classNameForScope,
+            $findInScope,
+        ): void {
+            $scopeClass = $classNameForScope($scope);
+            $variableContracts = [];
+
+            if (property_exists($scope, 'params')) {
+                foreach ($scope->params as $parameter) {
+                    if (! $parameter->var instanceof Node\Expr\Variable || ! is_string($parameter->var->name)) {
+                        continue;
+                    }
+
+                    foreach ($nativeTypeNames($parameter->type) as $typeName) {
+                        foreach (array_keys($foreignMethods) as $contractName) {
+                            if (strcasecmp($typeName, $contractName) === 0) {
+                                $variableContracts[$parameter->var->name] = $contractName;
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach ($findInScope($scope, Node\Expr\Assign::class) as $assignment) {
+                if (! $assignment instanceof Node\Expr\Assign) {
+                    continue;
+                }
+
+                $contractName = $classForExpression($assignment->expr, $variableContracts, $propertyContracts);
+
+                if ($contractName !== null && $assignment->var instanceof Node\Expr\Variable && is_string($assignment->var->name)) {
+                    $variableContracts[$assignment->var->name] = $contractName;
+                }
+            }
+
+            $variableShapes = [];
+            $propertyShapes = $propertyContracts;
+
+            foreach ($findInScope($scope, Node\Expr\Assign::class) as $assignment) {
+                if (! $assignment instanceof Node\Expr\Assign) {
+                    continue;
+                }
+
+                $shape = $expressionShape($assignment->expr, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass);
+
+                if ($shape === null) {
+                    continue;
+                }
+
+                if ($assignment->var instanceof Node\Expr\Variable && is_string($assignment->var->name)) {
+                    $variableShapes[$assignment->var->name] = $shape;
+                } elseif ($assignment->var instanceof Node\Expr\PropertyFetch
+                    && $assignment->var->var instanceof Node\Expr\Variable
+                    && $assignment->var->var->name === 'this'
+                    && $assignment->var->name instanceof Node\Identifier) {
+                    $propertyShapes[$assignment->var->name->toString()] = $shape;
+                }
+            }
+
+            $modelAssignmentNodes = [
+                ...$findInScope($scope, Node\Expr\Assign::class),
+                ...$findInScope($scope, Node\Expr\AssignOp::class),
+            ];
+
+            foreach ($modelAssignmentNodes as $assignment) {
+                if (! $assignment instanceof Node\Expr\Assign && ! $assignment instanceof Node\Expr\AssignOp) {
+                    continue;
+                }
+
+                $assignedValue = $assignment->var;
+                $modelExpression = null;
+
+                if ($assignedValue instanceof Node\Expr\PropertyFetch) {
+                    $modelExpression = $assignedValue->var;
+                } elseif ($assignedValue instanceof Node\Expr\ArrayDimFetch) {
+                    $modelExpression = $assignedValue->var;
+                }
+
+                if ($modelExpression !== null
+                    && $expressionShape($modelExpression, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass) === 'model') {
+                    $report('orm-mutation-escape', $relative, $assignment->getStartLine(), 'foreign-model', 'A model returned by another feature is being mutated here; move the operation to its owner.');
+                }
+            }
+
+            foreach ($findInScope($scope, Node\Expr\MethodCall::class) as $call) {
+                if (! $call instanceof Node\Expr\MethodCall) {
+                    continue;
+                }
+
+                $methodName = $call->name instanceof Node\Identifier ? strtolower($call->name->toString()) : 'dynamic';
+                $receiverShape = $expressionShape($call->var, $variableShapes, $propertyShapes, $variableContracts, $helperShapes, $scopeClass);
+                if ($receiverShape === 'builder' && ! in_array($methodName, $ormBuilderTerminals, true)) {
+                    $report('orm-query-escape', $relative, $call->getStartLine(), 'foreign-builder', 'A foreign owner builder is being composed here; consume it through a read terminal or pass typed criteria to the owner.');
+                }
+
+                if ($receiverShape === 'model' && in_array($methodName, array_map('strtolower', $ormModelMutators), true)) {
+                    $report('orm-mutation-escape', $relative, $call->getStartLine(), 'foreign-model', 'A model returned by another feature is being mutated here; move the operation to its owner.');
+                }
+
+                if ($receiverShape === 'collection') {
+                    $isMutation = in_array($methodName, array_map('strtolower', $ormCollectionMutators), true);
+                    $callbackMutatesModel = false;
+
+                    if (in_array($methodName, ['each', 'map', 'transform', 'tap'], true)) {
+                        foreach ($call->args as $argument) {
+                            if (! $argument->value instanceof Node\Expr\Closure && ! $argument->value instanceof Node\Expr\ArrowFunction) {
+                                continue;
+                            }
+
+                            $callback = $argument->value;
+                            $callbackVariables = [];
+
+                            foreach ($callback->params as $parameter) {
+                                if ($parameter->var instanceof Node\Expr\Variable && is_string($parameter->var->name)) {
+                                    $callbackVariables[$parameter->var->name] = 'model';
+                                }
+                            }
+
+                            foreach ($findInScope($callback, Node\Expr\Assign::class) as $callbackAssignment) {
+                                if (! $callbackAssignment instanceof Node\Expr\Assign) {
+                                    continue;
+                                }
+
+                                if ($callbackAssignment->var instanceof Node\Expr\Variable
+                                    && is_string($callbackAssignment->var->name)
+                                    && $callbackAssignment->expr instanceof Node\Expr\Variable
+                                    && is_string($callbackAssignment->expr->name)
+                                    && isset($callbackVariables[$callbackAssignment->expr->name])) {
+                                    $callbackVariables[$callbackAssignment->var->name] = $callbackVariables[$callbackAssignment->expr->name];
+                                }
+                            }
+
+                            foreach ($findInScope($callback, Node\Expr\MethodCall::class) as $callbackCall) {
+                                if (! $callbackCall instanceof Node\Expr\MethodCall) {
+                                    continue;
+                                }
+
+                                if ($callbackCall->var instanceof Node\Expr\Variable
+                                    && is_string($callbackCall->var->name)
+                                    && isset($callbackVariables[$callbackCall->var->name])
+                                    && $callbackCall->name instanceof Node\Identifier
+                                    && in_array(strtolower($callbackCall->name->toString()), array_map('strtolower', $ormModelMutators), true)) {
+                                    $callbackMutatesModel = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if ($isMutation || $callbackMutatesModel) {
+                        $report('orm-mutation-escape', $relative, $call->getStartLine(), 'foreign-model-collection', 'A collection returned by another feature is being mutated or used to mutate its models; move the operation to its owner.');
+                    }
+                }
+
+            }
+        };
+
+        foreach ($scopeNodes as $scope) {
+            $analyzeScope($scope);
+        }
+
+        $topLevelStatements = [];
+        foreach ($ast as $rootNode) {
+            if ($rootNode instanceof Node\Stmt\Namespace_) {
+                foreach ($rootNode->stmts as $statement) {
+                    if (! $statement instanceof Node\Stmt\ClassLike
+                        && ! $statement instanceof Node\Stmt\Function_
+                        && ! $statement instanceof Node\Stmt\Use_
+                        && ! $statement instanceof Node\Stmt\GroupUse) {
+                        $topLevelStatements[] = $statement;
+                    }
+                }
+            } elseif (! $rootNode instanceof Node\Stmt\ClassLike
+                && ! $rootNode instanceof Node\Stmt\Function_
+                && ! $rootNode instanceof Node\Stmt\Use_
+                && ! $rootNode instanceof Node\Stmt\GroupUse) {
+                $topLevelStatements[] = $rootNode;
+            }
+        }
+
+        if ($topLevelStatements !== []) {
+            $topLevelScope = new Node\Stmt\Namespace_(null, $topLevelStatements);
+            $parentTraverser = new NodeTraverser;
+            $parentTraverser->addVisitor(new ParentConnectingVisitor);
+            $topLevelScope = $parentTraverser->traverse([$topLevelScope])[0];
+            $analyzeScope($topLevelScope);
+        }
+    };
 
     // Conventional Fortify contracts/pipeline are framework entrypoints, not
     // business Actions. All other actions belong in their owning features.
@@ -372,6 +1074,7 @@ try {
         $ast = $parser->parse(file_get_contents($path)) ?? [];
         $traverser = new NodeTraverser;
         $traverser->addVisitor(new NameResolver);
+        $traverser->addVisitor(new ParentConnectingVisitor);
         $ast = $traverser->traverse($ast);
         $sourceFeature = preg_match('~^app/Features/([^/]+)/~', $relative, $match) ? $match[1] : null;
         $platform = str_starts_with($relative, 'app/Platform/');
@@ -463,102 +1166,8 @@ try {
             }
         }
 
-        if ($sourceFeature && ! str_contains($relative, '/Api/Orm/') && $ormContracts !== []) {
-            $foreignBuilderMethods = [];
-            $consumerSource = (string) file_get_contents($path);
-
-            foreach ($ormContracts as $contractName => $contract) {
-                if ($contract['owner'] === $sourceFeature) {
-                    continue;
-                }
-
-                $contractShort = substr($contractName, (int) strrpos($contractName, '\\') + 1);
-
-                if (! str_contains($consumerSource, $contractShort)) {
-                    continue;
-                }
-
-                foreach ($contract['methods'] as $methodName => $methodMeta) {
-                    if ($methodMeta['shape'] === 'builder') {
-                        $foreignBuilderMethods[$methodName] = $contractName;
-                    }
-                }
-            }
-
-            if ($foreignBuilderMethods !== []) {
-                $compositionMethods = [
-                    'where', 'orWhere', 'whereIn', 'whereNotIn', 'whereNull', 'whereNotNull',
-                    'whereHas', 'orWhereHas', 'whereDoesntHave', 'whereRelation', 'whereRaw', 'orWhereRaw',
-                    'join', 'leftJoin', 'rightJoin', 'select', 'addSelect', 'selectRaw', 'with', 'withCount',
-                    'orderBy', 'orderByDesc', 'groupBy', 'having', 'limit', 'offset', 'take', 'skip',
-                    'reorder', 'distinct', 'lockForUpdate', 'sharedLock',
-                    'update', 'delete', 'forceDelete', 'insert', 'create', 'save',
-                    'firstOrCreate', 'updateOrCreate',
-                ];
-
-                $isForeignBuilderCall = static fn (Node\Expr $expression): ?string => $expression instanceof Node\Expr\MethodCall
-                    && $expression->name instanceof Node\Identifier
-                    && isset($foreignBuilderMethods[$expression->name->toString()])
-                        ? $foreignBuilderMethods[$expression->name->toString()]
-                        : null;
-
-                foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassMethod::class) as $consumerMethod) {
-                    $taintedBuilders = [];
-
-                    foreach ($finder->find($consumerMethod, static fn (Node $node): bool => true) as $node) {
-                        if ($node instanceof Node\Expr\Assign) {
-                            if ($isForeignBuilderCall($node->expr) === null) {
-                                continue;
-                            }
-
-                            if ($node->var instanceof Node\Expr\Variable && is_string($node->var->name)) {
-                                $taintedBuilders[$node->var->name] = $node->getStartLine();
-                            } elseif ($node->var instanceof Node\Expr\PropertyFetch
-                                && $node->var->name instanceof Node\Identifier
-                                && $node->var->var instanceof Node\Expr\Variable
-                                && $node->var->var->name === 'this') {
-                                $taintedBuilders['this->'.$node->var->name->toString()] = $node->getStartLine();
-                            }
-
-                            continue;
-                        }
-
-                        if (! $node instanceof Node\Expr\MethodCall || ! $node->name instanceof Node\Identifier) {
-                            continue;
-                        }
-
-                        if (! in_array($node->name->toString(), $compositionMethods, true)) {
-                            continue;
-                        }
-
-                        $consumer = $node->var;
-                        $taintedKey = null;
-
-                        if ($consumer instanceof Node\Expr\Variable && is_string($consumer->name)) {
-                            $taintedKey = $consumer->name;
-                        } elseif ($consumer instanceof Node\Expr\PropertyFetch
-                            && $consumer->name instanceof Node\Identifier
-                            && $consumer->var instanceof Node\Expr\Variable
-                            && $consumer->var->name === 'this') {
-                            $taintedKey = 'this->'.$consumer->name->toString();
-                        }
-
-                        $contract = $isForeignBuilderCall($consumer);
-
-                        if ($contract === null && ($taintedKey === null || ! isset($taintedBuilders[$taintedKey]))) {
-                            continue;
-                        }
-
-                        $report(
-                            'orm-query-escape',
-                            $relative,
-                            $node->getStartLine(),
-                            $contract ?? 'tainted-builder',
-                            'A foreign owner builder is being composed here; pass typed criteria to the owner and consume its immutable result instead of calling '.$node->name->toString().'().',
-                        );
-                    }
-                }
-            }
+        if ($ormContracts !== []) {
+            $analyzeOrmConsumer($relative, $ast, $sourceFeature, (string) file_get_contents($path));
         }
 
         foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassLike::class) as $class) {
@@ -731,6 +1340,42 @@ try {
             if ($models && $node instanceof Node\Stmt\PropertyProperty && $node->name->toString() === 'table'
                 && $node->default instanceof Node\Scalar\String_ && ($owners['table:'.$node->default->value] ?? null) !== $sourceFeature) {
                 $report('resource-owner', $relative, $node->getStartLine(), 'table:'.$node->default->value, 'Model table must be declared in this feature manifest.');
+            }
+        }
+    }
+
+    $viewsPath = $root.'/resources/views';
+
+    if (is_dir($viewsPath)) {
+        $bladeFiles = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($viewsPath, FilesystemIterator::SKIP_DOTS));
+
+        foreach ($bladeFiles as $bladeFile) {
+            if (! $bladeFile->isFile() || ! str_ends_with($bladeFile->getFilename(), '.blade.php')) {
+                continue;
+            }
+
+            $relative = substr($bladeFile->getPathname(), strlen($root) + 1);
+            $bladeSource = file_get_contents($bladeFile->getPathname());
+
+            if (! is_string($bladeSource)) {
+                continue;
+            }
+
+            $bladeSource = preg_replace_callback(
+                '~@php\b\s*(.*?)@endphp~s',
+                static fn (array $match): string => "<?php\n".$match[1]."\n?>",
+                $bladeSource,
+            ) ?? $bladeSource;
+
+            try {
+                $bladeAst = $parser->parse($bladeSource) ?? [];
+                $bladeTraverser = new NodeTraverser;
+                $bladeTraverser->addVisitor(new NameResolver);
+                $bladeTraverser->addVisitor(new ParentConnectingVisitor);
+                $bladeAst = $bladeTraverser->traverse($bladeAst);
+                $analyzeOrmConsumer($relative, $bladeAst, null, $bladeSource);
+            } catch (Throwable $exception) {
+                $report('orm-analysis-incomplete', $relative, 1, 'blade-parse', 'The ORM boundary checker could not parse this Blade/Volt consumer: '.$exception->getMessage());
             }
         }
     }

@@ -41,16 +41,18 @@ interface PersonLookup
     public function authorLabels(array $personIds): array;
 
     /**
-     * Documented transport: a hydrated person model resolved by its public
-     * slug for share-link title and route presentation.
+     * Immutable person identity for share URL construction.
+     *
+     * @return array{id: string, slug: string, title: string}|null
      */
-    public function findPersonBySlug(string $slug): ?Person;
+    public function shareIdentityBySlug(string $slug): ?array;
 
     /**
-     * Documented transport: a hydrated person model resolved by its primary
-     * key for the created-contribution response payload.
+     * Immutable person identity for the created-contribution response.
+     *
+     * @return array{id: string, slug: string, name: string, status: string}|null
      */
-    public function findPersonByKey(string $personId): ?Person;
+    public function contributionResponseById(string $personId): ?array;
 
     /**
      * Documented transport: persons the account is a member of, ordered by

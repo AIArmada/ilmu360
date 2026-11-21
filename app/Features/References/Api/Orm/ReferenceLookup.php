@@ -32,11 +32,11 @@ interface ReferenceLookup
     public function exists(string $referenceId): bool;
 
     /**
-     * Documented transport: a hydrated reference model resolved by slug or
-     * uuid with owner scoping removed and public visibility applied, for
-     * share-link title and route presentation.
+     * Immutable reference identity for share URL construction.
+     *
+     * @return array{id: string, slug: string, title: string}|null
      */
-    public function findReferenceByIdentifier(string $identifier): ?Reference;
+    public function shareIdentityByIdentifier(string $identifier): ?array;
 
     public function resolveIdentifier(string $identifier): ?string;
 

@@ -4,8 +4,12 @@ use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventReference;
+use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
+use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\TimingMode;
+use App\Features\Events\Api\EventScheduleFact;
+use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
@@ -86,6 +90,58 @@ it('lists occurrences with meaningful sessions nested under their occurrence', f
     $component = Livewire::test(Index::class);
 
     expect($component->instance()->scheduleItems->total())->toBe(2);
+});
+
+it('filters immutable schedule facts before hydrating the selected page leaves', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Immutable Fact Schedule',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $publicOccurrence = $event->occurrences()->firstOrFail();
+    $session = app(CreateEventSessionAction::class)->handle($publicOccurrence, [
+        'title' => 'Fact Session',
+        'slug' => 'fact-session',
+        'starts_at' => now()->addDays(2)->addHour(),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+    app(CreateEventOccurrenceAction::class)->handle($event, [
+        'title' => 'Hidden Draft Occurrence',
+        'slug' => 'hidden-draft-occurrence',
+        'starts_at' => now()->addDays(3),
+        'status' => 'draft',
+        'visibility' => 'private',
+    ]);
+    Event::factory()->create([
+        'title' => 'Private Parent Event',
+        'status' => 'approved',
+        'visibility' => 'private',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+
+    $factSet = app(PublicScheduleEventReads::class)->publicScheduleFactSet(null, ['time_scope' => 'all']);
+    $eventFacts = collect($factSet->leaves)
+        ->where('eventId', (string) $event->getKey())
+        ->values();
+    $page = app(PublicScheduleDiscoveryService::class)->search(
+        query: 'Immutable Fact Schedule',
+        filters: ['time_scope' => 'all'],
+        perPage: 1,
+    );
+    $leaf = $page->items()[0];
+
+    expect($eventFacts)->toHaveCount(1)
+        ->and($eventFacts->first())->toBeInstanceOf(EventScheduleFact::class)
+        ->and(new ReflectionClass(EventScheduleFact::class)->isReadOnly())->toBeTrue()
+        ->and($eventFacts->first()->sessionIds)->toBe([(string) $session->getKey()])
+        ->and($page->total())->toBe(1)
+        ->and($leaf)->toBeInstanceOf(PublicScheduleModelLeaf::class)
+        ->and($leaf->event()->getKey())->toBe($event->getKey())
+        ->and($leaf->occurrence()->getKey())->toBe($publicOccurrence->getKey());
 });
 
 it('renders schedule locations whose venue is the package model', function (): void {

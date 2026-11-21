@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Api\Orm;
 
+use AIArmada\Affiliates\Models\AffiliateClaim;
+use Illuminate\Database\Eloquent\Builder;
+
 /**
  * Read scope for guest share profiles that were actively claimed.
  *
@@ -16,9 +19,9 @@ namespace App\Features\ShareTracking\Api\Orm;
 interface GuestClaimScope
 {
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<\AIArmada\Affiliates\Models\AffiliateClaim>
+     * @return Builder<AffiliateClaim>
      */
-    public function guestClaims();
+    public function guestClaims(): Builder;
 
     /**
      * The active user claimant for a guest share profile, or null when the

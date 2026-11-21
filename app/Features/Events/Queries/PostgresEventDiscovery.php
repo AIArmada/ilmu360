@@ -11,15 +11,20 @@ use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
+use App\Features\Events\Api\EventScheduleFact;
+use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleSql;
+use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\Orm\PublicScheduleEligibility;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Builders\EventBuilder;
@@ -30,7 +35,6 @@ use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
-use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
@@ -148,32 +152,63 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
 
     /**
      * @param  array<string, mixed>  $filters
-     * @param  array<int|string, mixed>  $relations
-     * @return EloquentCollection<int, Event>
      */
-    public function publicScheduleEvents(?string $query, array $filters, array $relations): EloquentCollection
+    public function publicScheduleFactSet(?string $query, array $filters): EventScheduleFactSet
     {
-        return $this->buildPublicEventQuery($query, $filters)
-            ->with($relations)
+        /** @var EloquentCollection<int, Event> $events */
+        $events = $this->buildPublicEventQuery($query, $filters)
+            ->with($this->scheduleFactRelations())
             ->get();
+
+        return $this->scheduleFactSet($events);
     }
 
     /**
      * @param  list<string>  $personIds
      * @param  list<string>  $institutionIds
      * @param  list<string>  $referenceIds
-     * @param  array<int|string, mixed>  $relations
-     * @return EloquentCollection<int, Event>
      */
-    public function homepageScheduleEvents(
+    public function homepageScheduleFacts(
         array $personIds,
         array $institutionIds,
         array $referenceIds,
-        array $relations,
-    ): EloquentCollection {
-        return $this->homepageEventQuery($personIds, $institutionIds, $referenceIds)
-            ->with($relations)
+    ): EventScheduleFactSet {
+        /** @var EloquentCollection<int, Event> $events */
+        $events = $this->homepageEventQuery($personIds, $institutionIds, $referenceIds)
+            ->with($this->scheduleFactRelations())
             ->get();
+
+        return $this->scheduleFactSet($events);
+    }
+
+    /**
+     * @param  list<string>  $eventIds
+     * @param  array<string, float>  $distanceByEventId
+     */
+    public function scheduleFactsForEventIds(array $eventIds, array $distanceByEventId = []): EventScheduleFactSet
+    {
+        $eventIds = array_values(array_unique($eventIds));
+
+        if ($eventIds === []) {
+            return new EventScheduleFactSet([], []);
+        }
+
+        /** @var EloquentCollection<string, Event> $eventsById */
+        $eventsById = Event::query()
+            ->with($this->scheduleFactRelations())
+            ->whereKey($eventIds)
+            ->get()
+            ->keyBy(static fn (Event $event): string => (string) $event->getKey());
+
+        $events = collect($eventIds)
+            ->map(static fn (string $eventId): ?Event => $eventsById->get($eventId))
+            ->filter(static fn (mixed $event): bool => $event instanceof Event)
+            ->values();
+
+        /** @var EloquentCollection<int, Event> $orderedEvents */
+        $orderedEvents = new EloquentCollection($events->all());
+
+        return $this->scheduleFactSet($orderedEvents, $distanceByEventId);
     }
 
     /**
@@ -197,7 +232,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
     /**
      * @return array<int|string, mixed>
      */
-    public function publicScheduleCardRelations(): array
+    private function scheduleCardRelations(): array
     {
         return collect($this->scheduleRelations())
             // Keys are strings for constrained relations, but bare nested paths
@@ -220,37 +255,42 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
     }
 
     /**
-     * @param  EloquentCollection<int, Event>  $events
-     */
-    public function loadScheduleGraph(EloquentCollection $events, bool $withOccurrenceReferences = false): void
-    {
-        $events->load(
-            $withOccurrenceReferences
-                ? [...$this->publicScheduleCardRelations(), 'occurrences.references']
-                : $this->publicScheduleCardRelations(),
-        );
-    }
-
-    /**
      * @param  list<string>  $eventIds
+     * @param  array<string, float>  $distanceByEventId
      * @return EloquentCollection<int, Event>
      */
-    public function hydrateScheduleEvents(array $eventIds): EloquentCollection
-    {
+    public function hydrateScheduleEvents(
+        array $eventIds,
+        bool $withOccurrenceReferences = false,
+        array $distanceByEventId = [],
+    ): EloquentCollection {
         if ($eventIds === []) {
             return new EloquentCollection;
         }
 
-        /** @var EloquentCollection<string, Event> $events */
-        $events = $this->hydrateEventsForIds($eventIds, $this->publicScheduleCardRelations());
+        $relations = $this->scheduleCardRelations();
 
-        return new EloquentCollection(
-            collect($eventIds)
-                ->map(static fn (string $eventId): ?Event => $events->get($eventId))
-                ->filter()
-                ->values()
-                ->all(),
-        );
+        if ($withOccurrenceReferences) {
+            $relations[] = 'occurrences.references';
+        }
+
+        /** @var EloquentCollection<string, Event> $events */
+        $events = $this->hydrateEventsForIds($eventIds, $relations);
+
+        $orderedEvents = collect($eventIds)
+            ->map(static fn (string $eventId): ?Event => $events->get($eventId))
+            ->filter()
+            ->values();
+
+        foreach ($orderedEvents as $event) {
+            $eventId = (string) $event->getKey();
+
+            if (array_key_exists($eventId, $distanceByEventId)) {
+                $event->setAttribute('distance_km', $distanceByEventId[$eventId]);
+            }
+        }
+
+        return new EloquentCollection($orderedEvents->all());
     }
 
     public function findPublicOccurrence(Event $event, string $slug): ?EventOccurrence
@@ -298,22 +338,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         );
 
         return $session;
-    }
-
-    /**
-     * @return Builder<Event>
-     */
-    public function venueScheduleQuery(Venue $venue): Builder
-    {
-        return $venue->events()->getQuery()->active();
-    }
-
-    /**
-     * @return Builder<Event>
-     */
-    public function seriesScheduleQuery(Series $series): Builder
-    {
-        return $series->events()->getQuery()->active();
     }
 
     /**
@@ -406,6 +430,113 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
                 $this->referenceQueries->applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
             });
         }
+    }
+
+    /**
+     * Project owner-scoped event models into immutable schedule facts.
+     *
+     * @param  EloquentCollection<int, Event>  $events
+     * @param  array<string, float>  $distanceByEventId
+     */
+    private function scheduleFactSet(EloquentCollection $events, array $distanceByEventId = []): EventScheduleFactSet
+    {
+        $eligibility = app(PublicScheduleEligibility::class);
+        $eventIds = [];
+        $leaves = [];
+
+        foreach ($events as $event) {
+            $eventId = (string) $event->getKey();
+            $eventIds[] = $eventId;
+
+            $distance = $distanceByEventId[$eventId] ?? ($event->getAttributes()['distance_km'] ?? null);
+            $distanceKm = is_numeric($distance) ? (float) $distance : null;
+            $eventTimeFacts = $this->scheduleTimeFacts($event->timeExpressions);
+
+            foreach ($event->occurrences as $occurrence) {
+                if (! $eligibility->isPublicOccurrence($occurrence)) {
+                    continue;
+                }
+
+                $startsAt = $occurrence->getAttribute('starts_at');
+
+                if (! $startsAt instanceof CarbonInterface) {
+                    continue;
+                }
+
+                $endsAt = $occurrence->getAttribute('ends_at');
+                $sessionIds = [];
+
+                foreach ($occurrence->sessions as $session) {
+                    if ($eligibility->isMeaningfulSession($session)) {
+                        $sessionIds[] = (string) $session->getKey();
+                    }
+                }
+
+                $leaves[] = new EventScheduleFact(
+                    eventId: $eventId,
+                    eventTitle: (string) $event->title,
+                    eventStatus: (string) $event->status,
+                    occurrenceId: (string) $occurrence->getKey(),
+                    occurrenceTitle: (string) $occurrence->title,
+                    startsAt: CarbonImmutable::instance($startsAt),
+                    endsAt: $endsAt instanceof CarbonInterface ? CarbonImmutable::instance($endsAt) : null,
+                    occurrenceTimeExpressions: $this->scheduleTimeFacts($occurrence->timeExpressions),
+                    eventTimeExpressions: $eventTimeFacts,
+                    sessionIds: $sessionIds,
+                    isFeatured: (bool) $occurrence->is_featured,
+                    distanceKm: $distanceKm,
+                );
+            }
+        }
+
+        return new EventScheduleFactSet($eventIds, $leaves);
+    }
+
+    /**
+     * @param  iterable<EventTimeExpression>  $expressions
+     * @return list<EventScheduleTimeFact>
+     */
+    private function scheduleTimeFacts(iterable $expressions): array
+    {
+        $facts = [];
+
+        foreach ($expressions as $expression) {
+            $facts[] = new EventScheduleTimeFact(
+                timeMode: (string) $expression->time_mode,
+                displayLabel: (string) $expression->display_label,
+                anchorCode: (string) $expression->anchor_code,
+                relation: (string) $expression->relation,
+            );
+        }
+
+        return $facts;
+    }
+
+    /** @return array<int|string, string|\Closure> */
+    private function scheduleFactRelations(): array
+    {
+        $publicScheduleScope = $this->constrainPublicSchedule(...);
+
+        return [
+            'timeExpressions',
+            'occurrences' => function (Relation $query) use ($publicScheduleScope): void {
+                $publicScheduleScope($query);
+                $query
+                    ->orderBy('starts_at')
+                    ->orderBy('created_at')
+                    ->orderBy('id');
+            },
+            'occurrences.timeExpressions',
+            'occurrences.sessions' => function (Relation $query) use ($publicScheduleScope): void {
+                $publicScheduleScope($query);
+                $query
+                    ->orderBy('sort_order')
+                    ->orderBy('starts_at')
+                    ->orderBy('created_at')
+                    ->orderBy('id');
+            },
+            'occurrences.sessions.timeExpressions',
+        ];
     }
 
     /**
@@ -1794,20 +1925,29 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
 
     /**
      * @param  list<string>  $eventIds
-     * @return EloquentCollection<int, Event>
+     * @return array<string, array{slug: string, title: string, next_event_starts_at: string}>
      */
-    public function institutionNextEventDetails(array $eventIds): EloquentCollection
+    public function institutionNextEventDetails(array $eventIds): array
     {
+        if ($eventIds === []) {
+            return [];
+        }
+
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
 
-        return Event::query()
-            ->select('events.id', 'events.slug', 'events.title')
-            ->selectRaw('min("'.$occurrencesTable.'"."starts_at") as next_event_starts_at')
+        return DB::table('events')
             ->join($occurrencesTable, "{$occurrencesTable}.event_id", '=', 'events.id')
             ->whereIn('events.id', $eventIds)
             ->where("{$occurrencesTable}.starts_at", '>=', now())
             ->groupBy('events.id', 'events.slug', 'events.title')
-            ->get();
+            ->selectRaw("events.id, events.slug, events.title, min(\"{$occurrencesTable}\".\"starts_at\") as next_event_starts_at")
+            ->get()
+            ->mapWithKeys(static fn (object $row): array => [(string) $row->id => [
+                'slug' => (string) $row->slug,
+                'title' => (string) $row->title,
+                'next_event_starts_at' => (string) $row->next_event_starts_at,
+            ]])
+            ->all();
     }
 
     public function institutionDirectoryFacts(array $institutionIds): array
@@ -1931,9 +2071,19 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         return Event::query()->find($eventId);
     }
 
-    public function findEventBySlug(string $slug): ?Event
+    public function shareIdentityBySlug(string $slug): ?array
     {
-        return Event::query()->where('slug', $slug)->first();
+        $event = Event::query()->where('slug', $slug)->first(['id', 'slug', 'title']);
+
+        if (! $event instanceof Event) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $event->getKey(),
+            'slug' => (string) $event->slug,
+            'title' => (string) $event->title,
+        ];
     }
 
     /**
@@ -1941,7 +2091,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
      * @param  list<string>  $relations
      * @return EloquentCollection<string, Event>
      */
-    public function hydrateEventsForIds(array $eventIds, array $relations): EloquentCollection
+    private function hydrateEventsForIds(array $eventIds, array $relations): EloquentCollection
     {
         return Event::query()
             ->with($relations)
@@ -2030,7 +2180,49 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->withCount(['registrations as dashboard_registrations_count']);
     }
 
-    public function institutionEventCardsQuery(string $institutionId): EventBuilder
+    public function recentInstitutionEventCards(string $institutionId, int $limit): EloquentCollection
+    {
+        $query = $this->institutionEventCardQuery($institutionId);
+        $upcoming = (clone $query)
+            ->whereNotNull('starts_at')
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at')
+            ->limit($limit)
+            ->get();
+
+        if ($upcoming->isNotEmpty()) {
+            return $upcoming;
+        }
+
+        return $query
+            ->orderByDesc('starts_at')
+            ->orderBy('title')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function pendingInstitutionEventCards(
+        string $institutionId,
+        string $search,
+        string $status,
+        string $visibility,
+        int $limit,
+    ): EloquentCollection {
+        return $this->applyInstitutionEventCardFilters(
+            $this->institutionEventCardQuery($institutionId),
+            $search,
+            $status,
+            $visibility,
+        )
+            ->whereIn('status', ['pending', 'needs_changes'])
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+            ->orderBy('starts_at')
+            ->orderBy('title')
+            ->limit($limit)
+            ->get();
+    }
+
+    private function institutionEventCardQuery(string $institutionId): EventBuilder
     {
         return Event::query()
             ->where('institution_id', $institutionId)
@@ -2041,6 +2233,35 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
                 'venue:id,name',
             ])
             ->withCount(['registrations as dashboard_registrations_count']);
+    }
+
+    private function applyInstitutionEventCardFilters(
+        EventBuilder $query,
+        string $search,
+        string $status,
+        string $visibility,
+    ): EventBuilder {
+        $search = trim($search);
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+
+            $query->where(function (Builder $builder) use ($like): void {
+                $builder
+                    ->whereLike('title', $like)
+                    ->orWhereHas('venue', fn (Builder $venueQuery): Builder => $venueQuery->whereLike('name', $like));
+            });
+        }
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($visibility !== 'all') {
+            $query->where('visibility', $visibility);
+        }
+
+        return $query;
     }
 
     public function institutionRegistrationCount(string $institutionId): int
@@ -2057,7 +2278,65 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         return Event::query()->whereRaw('1 = 0');
     }
 
-    public function personDashboardQuery(string $personId): EventBuilder
+    public function personDashboardEventStats(string $personId): array
+    {
+        $eventsTable = $this->eventTable();
+        $events = $this->personDashboardEventQuery($personId);
+
+        return [
+            'total' => (clone $events)->count(),
+            'upcoming' => (clone $events)
+                ->whereNotNull("{$eventsTable}.starts_at")
+                ->where("{$eventsTable}.starts_at", '>=', now())
+                ->count(),
+            'needs_attention' => (clone $events)
+                ->whereIn("{$eventsTable}.status", ['draft', 'pending', 'needs_changes'])
+                ->count(),
+        ];
+    }
+
+    public function personDashboardEventsPage(
+        string $personId,
+        string $search,
+        string $status,
+        int $perPage,
+        int $page,
+    ): LengthAwarePaginator {
+        $eventsTable = $this->eventTable();
+        $query = $this->personDashboardEventQuery($personId)
+            ->with([
+                'institution:id,name',
+                'primaryLocation.venueSpace:id,name',
+            ])
+            ->withCount(['registrations as dashboard_registrations_count']);
+        $search = trim($search);
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+
+            $query->where(function (Builder $eventQuery) use ($eventsTable, $like): void {
+                $eventQuery
+                    ->whereLike("{$eventsTable}.title", $like)
+                    ->orWhereHas('institution', fn (Builder $institutionQuery): Builder => $institutionQuery->whereLike('name', $like));
+            });
+        }
+
+        if ($status !== 'all') {
+            $query->where("{$eventsTable}.status", $status);
+        }
+
+        return $query
+            ->orderByRaw("CASE WHEN {$eventsTable}.status IN ('draft', 'pending', 'needs_changes') THEN 0 ELSE 1 END")
+            ->orderByDesc("{$eventsTable}.starts_at")
+            ->orderByDesc("{$eventsTable}.updated_at")
+            ->paginate(
+                perPage: $perPage,
+                pageName: 'person_events_page',
+                page: $page,
+            );
+    }
+
+    private function personDashboardEventQuery(string $personId): EventBuilder
     {
         return Event::query()->whereHas('persons', function (Builder $personQuery) use ($personId): void {
             $personQuery->whereKey($personId);
@@ -2187,27 +2466,41 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
      */
     public function publicEventCountsForReferenceFamilies(array $referenceFamilies): array
     {
-        $uniqueIds = [];
+        $familyMap = null;
+        $counts = [];
+        $uuidCast = DB::connection()->getDriverName() === 'pgsql' ? '::uuid' : '';
 
-        foreach ($referenceFamilies as $ids) {
-            foreach ($ids as $referenceId) {
-                if (is_string($referenceId) && $referenceId !== '') {
-                    $uniqueIds[$referenceId] = true;
+        foreach ($referenceFamilies as $familyId => $ids) {
+            $counts[(string) $familyId] = 0;
+
+            $familyReferenceIds = array_values(array_unique(array_filter(
+                $ids,
+                static fn (mixed $referenceId): bool => is_string($referenceId) && $referenceId !== '',
+            )));
+
+            foreach ($familyReferenceIds as $referenceId) {
+                $familyRow = DB::query()->selectRaw("?{$uuidCast} as family_id, ?{$uuidCast} as reference_id", [(string) $familyId, $referenceId]);
+
+                if ($familyMap === null) {
+                    $familyMap = $familyRow;
+                } else {
+                    $familyMap->unionAll($familyRow);
                 }
             }
         }
 
-        if ($uniqueIds === []) {
+        if ($familyMap === null) {
             return [];
         }
 
         $pivotTable = (string) config('events.database.tables.event_references', 'event_references');
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
 
-        $rows = DB::table('events')
-            ->join("{$pivotTable} as reference_links", 'reference_links.event_id', '=', 'events.id')
+        $rows = DB::query()
+            ->fromSub($familyMap, 'reference_families')
+            ->join("{$pivotTable} as reference_links", 'reference_links.referenceable_id', '=', 'reference_families.reference_id')
+            ->join('events', 'events.id', '=', 'reference_links.event_id')
             ->where('reference_links.referenceable_type', $this->referenceQueries->referenceMorphType())
-            ->whereIn('reference_links.referenceable_id', array_keys($uniqueIds))
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
             ->where('events.visibility', EventVisibility::Public->value)
@@ -2216,28 +2509,13 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
                     ->from($occurrencesTable)
                     ->whereColumn("{$occurrencesTable}.event_id", 'events.id');
             })
-            ->distinct()
-            ->select(['reference_links.referenceable_id as reference_id', 'events.id as event_id'])
+            ->select('reference_families.family_id')
+            ->selectRaw('COUNT(DISTINCT events.id) as event_count')
+            ->groupBy('reference_families.family_id')
             ->get();
 
-        $eventIdsByReference = [];
-
         foreach ($rows as $row) {
-            $eventIdsByReference[(string) $row->reference_id][(string) $row->event_id] = true;
-        }
-
-        $counts = [];
-
-        foreach ($referenceFamilies as $rootId => $ids) {
-            $eventIds = [];
-
-            foreach ($ids as $referenceId) {
-                foreach (array_keys($eventIdsByReference[$referenceId] ?? []) as $eventId) {
-                    $eventIds[$eventId] = true;
-                }
-            }
-
-            $counts[(string) $rootId] = count($eventIds);
+            $counts[(string) $row->family_id] = (int) $row->event_count;
         }
 
         return $counts;
