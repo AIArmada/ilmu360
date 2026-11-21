@@ -4,39 +4,75 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Api\Orm;
 
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 
 /**
  * Submitter-scoped access to the entities an event submission may reference.
  *
- * Query methods return constrained Eloquent builders owned by this feature;
- * callers use them read-only for options and existence checks.
+ * The owning features execute their own candidate queries. This contract only
+ * returns final option/label arrays and submitter booleans; no builder leaves
+ * the boundary.
  *
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
+ * @internal Model transport is limited to the scoped member institution that
+ *           the submit-event page must render and authorize.
  *
- * Consumers: Providers/AppServiceProvider.php, Events/Services
+ * Consumers: Events submit-event options, form schema, prefill, scoped
+ * institution resolver and request handler; Institution dashboard membership
+ * check.
  */
 interface EntitySubmissionAccessContract
 {
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<\App\Features\Institutions\Models\Institution>
+     * Institutions the submitter may choose, keyed by id.
+     *
+     * @return array<string, string>
      */
-    public function institutionQueryForSubmitter(?User $user, ?string $countryId = null);
+    public function institutionOptions(?User $user, ?string $countryId = null): array;
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<\App\Features\Institutions\Models\Institution>
+     * Display labels for the supplied ids within the submitter scope.
+     *
+     * @param  list<string>  $institutionIds
+     * @return array<string, string>
      */
-    public function memberInstitutionQueryForSubmitter(User $user);
+    public function institutionLabels(?User $user, array $institutionIds): array;
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<\App\Features\Persons\Models\Person>
+     * Institutions the account is a visible member of, keyed by id.
+     *
+     * @return array<string, string>
      */
-    public function personQueryForSubmitter(?User $user);
+    public function memberInstitutionOptions(User $user): array;
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder<\App\Features\Places\Models\Venue>
+     * The visible member institution identity, or null when not eligible.
      */
-    public function venueQuery(?string $countryId = null);
+    public function memberInstitution(User $user, string $institutionId): ?Institution;
+
+    /**
+     * Persons the submitter may choose, keyed by id.
+     *
+     * @return array<string, string>
+     */
+    public function personOptions(?User $user): array;
+
+    /**
+     * Formatted labels for the supplied ids within the submitter scope.
+     *
+     * @param  list<string>  $personIds
+     * @return array<string, string>
+     */
+    public function personLabels(?User $user, array $personIds): array;
+
+    public function personLabel(?User $user, string $personId): ?string;
+
+    /**
+     * Venues available for authoring, keyed by id.
+     *
+     * @return array<string, string>
+     */
+    public function venueOptions(?string $countryId = null): array;
 
     public function canUseInstitution(?User $user, string $institutionId): bool;
 

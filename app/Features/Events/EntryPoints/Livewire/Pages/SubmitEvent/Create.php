@@ -285,9 +285,7 @@ class Create extends Component implements HasActions, HasForms
         abort_unless($user instanceof User, 403);
 
         $institution = app(SubmissionEntityAccess::class)
-            ->memberInstitutionQueryForSubmitter($user)
-            ->whereKey($institutionId)
-            ->first();
+            ->memberInstitution($user, $institutionId);
 
         abort_unless($institution instanceof Institution, 403);
 
@@ -327,9 +325,7 @@ class Create extends Component implements HasActions, HasForms
         }
 
         $institution = app(SubmissionEntityAccess::class)
-            ->memberInstitutionQueryForSubmitter($user)
-            ->whereKey($institutionId)
-            ->first();
+            ->memberInstitution($user, $institutionId);
 
         if (! $institution instanceof Institution) {
             $this->resolvedScopedInstitution = null;

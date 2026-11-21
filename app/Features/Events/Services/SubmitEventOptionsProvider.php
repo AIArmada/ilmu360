@@ -18,7 +18,6 @@ use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
-use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Language\Models\Language;
@@ -63,11 +62,7 @@ final class SubmitEventOptionsProvider
 
         $access = app(EntitySubmissionAccessContract::class);
 
-        $load = fn (): array => $access->institutionQueryForSubmitter($submitter, $countryId)
-            ->orderBy('name')
-            ->with('names')->get(['institutions.id', 'institutions.name'])
-            ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
-            ->all();
+        $load = fn (): array => $access->institutionOptions($submitter, $countryId);
 
         // Guest scope is identical for every guest, so it is safe to share
         // across requests; member scopes stay request-local to avoid any
@@ -90,12 +85,7 @@ final class SubmitEventOptionsProvider
 
         $access = app(EntitySubmissionAccessContract::class);
 
-        $load = fn (): array => $access->personQueryForSubmitter($submitter)
-            ->orderBy('name')
-            ->with('titleAssignments.title.category')
-            ->get(['id', 'name', 'middle_name', 'family_name'])
-            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-            ->all();
+        $load = fn (): array => $access->personOptions($submitter);
 
         return $this->optionMemo[$memoKey] = $submitter instanceof User
             ? $load()
@@ -109,10 +99,7 @@ final class SubmitEventOptionsProvider
     {
         return $this->submissionOptionsCache->rememberVenueOptions(
             $countryId,
-            fn (): array => app(EntitySubmissionAccessContract::class)->venueQuery($countryId)
-                ->orderBy('name')
-                ->pluck('name', 'id')
-                ->all(),
+            fn (): array => app(EntitySubmissionAccessContract::class)->venueOptions($countryId),
         );
     }
 

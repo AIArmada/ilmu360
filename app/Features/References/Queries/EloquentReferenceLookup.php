@@ -14,12 +14,13 @@ use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\FollowableSubject;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 final readonly class EloquentReferenceLookup implements ReferenceLookup
 {
     public function __construct(private SlugOrUuidResolver $resolver) {}
 
-    public function findReferenceByIdentifier(string $identifier): ?object
+    public function findReferenceByIdentifier(string $identifier): ?Reference
     {
         return $this->resolver->first(
             Reference::query()->withoutOwnerScope()->active(),
@@ -234,7 +235,7 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
             ->all();
     }
 
-    public function followedReferences(array $referenceIds): object
+    public function followedReferences(array $referenceIds): EloquentCollection
     {
         return Reference::query()
             ->whereKey($referenceIds)
@@ -243,7 +244,7 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
             ->get();
     }
 
-    public function referencesByIds(array $referenceIds): object
+    public function referencesByIds(array $referenceIds): EloquentCollection
     {
         return Reference::query()
             ->whereKey($referenceIds)

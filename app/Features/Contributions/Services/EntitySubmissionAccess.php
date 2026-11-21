@@ -1,168 +1,85 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Contributions\Services;
 
-use AIArmada\Addressing\Data\AddressLocationData;
-use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\SubmissionValues;
-use App\Features\Institutions\Api\Enums\InstitutionStatus;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\Orm\InstitutionAuthoringCandidates;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\Orm\PersonLookup;
-use App\Features\Persons\Models\Person;
-use App\Features\Places\Api\Orm\PlaceLookup;
-use App\Features\Places\Models\Venue;
+use App\Features\Persons\Api\Orm\PersonAuthoringCandidates;
+use App\Features\Places\Api\Orm\VenueAuthoringCandidates;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
-final class EntitySubmissionAccess implements SubmissionEntityAccess
+final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
 {
-    /**
-     * @var list<string>
-     */
-    private const array ALLOWED_ENTITY_STATUSES = ['verified', 'pending'];
+    public function __construct(
+        private InstitutionAuthoringCandidates $institutions,
+        private PersonAuthoringCandidates $persons,
+        private VenueAuthoringCandidates $venues,
+    ) {}
 
-    /**
-     * @return Builder<Institution>
-     */
-    public function institutionQueryForSubmitter(?User $user, ?string $countryId = null): Builder
+    public function institutionOptions(?User $user, ?string $countryId = null): array
     {
-        /** @var Builder<Institution> $query */
-        /** @var Builder<Institution> $query */
-        $query = app(InstitutionLookup::class)->newInstitutionQuery();
-
-        return $this->constrainInstitutionQueryForSubmitter($query, $user, $countryId);
+        return $this->institutions->options($user, $countryId);
     }
 
-    /**
-     * @return Builder<Institution>
-     */
-    public function memberInstitutionQueryForSubmitter(User $user): Builder
+    public function institutionLabels(?User $user, array $institutionIds): array
     {
-        /** @var Builder<Institution> $query */
-        /** @var Builder<Institution> $query */
-        $query = app(InstitutionLookup::class)->newInstitutionQuery();
-
-        return $query
-            ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
-            ->whereHas('members', fn (Builder $memberQuery): Builder => $memberQuery->whereKey($user->getKey()));
+        return $this->institutions->labels($user, $institutionIds);
     }
 
-    /**
-     * @return Builder<Person>
-     */
-    public function personQueryForSubmitter(?User $user): Builder
+    public function memberInstitutionOptions(User $user): array
     {
-        /** @var Builder<Person> $query */
-        /** @var Builder<Person> $query */
-        $query = app(PersonLookup::class)->newPersonQuery();
-
-        return $this->constrainPersonQueryForSubmitter($query, $user);
+        return $this->institutions->memberOptions($user);
     }
 
-    /**
-     * @param  Builder<Institution>  $query
-     * @return Builder<Institution>
-     */
-    public function constrainInstitutionQueryForSubmitter(Builder $query, ?User $user, ?string $countryId = null): Builder
+    public function memberInstitution(User $user, string $institutionId): ?Institution
     {
-        $query
-            ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
-            ->where(function (Builder $visibilityQuery) use ($user): void {
-                $visibilityQuery->where('allow_public_event_submission', true);
-
-                if ($user instanceof User) {
-                    $visibilityQuery->orWhereHas('members', fn (Builder $memberQuery): Builder => $memberQuery->whereKey($user->getKey()));
-                }
-            });
-
-        if (filled($countryId)) {
-            app(AddressLocationScope::class)->apply($query, new AddressLocationData(countryId: $countryId));
-        }
-
-        return $query;
+        return $this->institutions->findMemberCandidate($user, $institutionId);
     }
 
-    /**
-     * @return Builder<Venue>
-     */
-    public function venueQuery(?string $countryId = null): Builder
+    public function personOptions(?User $user): array
     {
-        /** @var Builder<Venue> $query */
-        /** @var Builder<Venue> $query */
-        $query = app(PlaceLookup::class)->newVenueQuery();
-        $query = $query->whereIn('venues.status', self::ALLOWED_ENTITY_STATUSES);
-
-        if (filled($countryId)) {
-            app(AddressLocationScope::class)->apply($query, new AddressLocationData(countryId: $countryId));
-        }
-
-        return $query;
+        return $this->persons->options($user);
     }
 
-    /**
-     * @param  Builder<Person>  $query
-     * @return Builder<Person>
-     */
-    public function constrainPersonQueryForSubmitter(Builder $query, ?User $user): Builder
+    public function personLabels(?User $user, array $personIds): array
     {
-        return $query
-            ->whereIn('persons.status', self::ALLOWED_ENTITY_STATUSES)
-            ->where(function (Builder $visibilityQuery) use ($user): void {
-                $visibilityQuery->where('allow_public_event_submission', true);
+        return $this->persons->labels($user, $personIds);
+    }
 
-                if ($user instanceof User) {
-                    $visibilityQuery->orWhereHas('members', fn (Builder $memberQuery): Builder => $memberQuery->whereKey($user->getKey()));
-                }
-            });
+    public function personLabel(?User $user, string $personId): ?string
+    {
+        return $this->persons->labels($user, [$personId])[$personId] ?? null;
+    }
+
+    public function venueOptions(?string $countryId = null): array
+    {
+        return $this->venues->options($countryId);
     }
 
     public function canUseInstitution(?User $user, string $institutionId): bool
     {
-        return $this->institutionQueryForSubmitter($user)
-            ->whereKey($institutionId)
-            ->exists();
+        return $this->institutions->canUse($user, $institutionId);
     }
 
     public function canUseMemberInstitution(User $user, string $institutionId): bool
     {
-        return $this->memberInstitutionQueryForSubmitter($user)
-            ->whereKey($institutionId)
-            ->exists();
+        return $this->institutions->findMemberCandidate($user, $institutionId) instanceof Institution;
     }
 
     public function canUsePerson(?User $user, string $personId): bool
     {
-        return $this->personQueryForSubmitter($user)
-            ->whereKey($personId)
-            ->exists();
+        return $this->persons->canUse($user, $personId);
     }
 
-    /**
-     * @param  list<string>  $personIds
-     * @return list<string> The subset of IDs the submitter is not allowed to use.
-     */
     public function unusablePersonIds(?User $user, array $personIds): array
     {
-        $ids = array_values(array_unique(array_filter(
-            $personIds,
-            static fn (mixed $id): bool => is_string($id) && $id !== '',
-        )));
-
-        if ($ids === []) {
-            return [];
-        }
-
-        $usable = $this->personQueryForSubmitter($user)
-            ->whereKey($ids)
-            ->pluck('persons.id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->all();
-
-        return array_values(array_diff($ids, $usable));
+        return $this->persons->unusableIds($user, $personIds);
     }
 
     /**
@@ -206,7 +123,7 @@ final class EntitySubmissionAccess implements SubmissionEntityAccess
             && $requiresLocationChoice
             && (($validated['location_type'] ?? null) === 'venue');
 
-        if ($usesLocationVenue && $locationVenueId !== '' && ! $this->venueQuery()->whereKey($locationVenueId)->exists()) {
+        if ($usesLocationVenue && $locationVenueId !== '' && ! $this->venues->canUse($locationVenueId)) {
             throw ValidationException::withMessages([
                 SubmissionValues::prefixedKey('location_venue_id', $validationKeyPrefix) => __('Sila pilih lokasi untuk majlis ini.'),
             ]);
@@ -286,35 +203,25 @@ final class EntitySubmissionAccess implements SubmissionEntityAccess
         array $validated,
         ?string $organizerKind,
         string $submissionCountryId,
-        ?object $scopedInstitution,
+        ?Institution $scopedInstitution,
         string $validationKeyPrefix = '',
     ): void {
         $this->assertSubmissionEntitiesMatchCountry(
             $validated,
             $organizerKind,
             $submissionCountryId,
-            $scopedInstitution instanceof Institution ? $scopedInstitution : null,
+            $scopedInstitution,
             $validationKeyPrefix,
         );
     }
 
     public function institutionBelongsToCountry(string $institutionId, string $countryId): bool
     {
-        /** @var Builder<Institution> $institutionQuery */
-        $institutionQuery = app(InstitutionLookup::class)->newInstitutionQuery();
-
-        return app(AddressLocationScope::class)
-            ->apply($institutionQuery->whereKey($institutionId), new AddressLocationData(countryId: $countryId))
-            ->exists();
+        return $this->institutions->belongsToCountry($institutionId, $countryId);
     }
 
     public function venueBelongsToCountry(string $venueId, string $countryId): bool
     {
-        /** @var Builder<Venue> $venueQuery */
-        $venueQuery = app(PlaceLookup::class)->newVenueQuery();
-
-        return app(AddressLocationScope::class)
-            ->apply($venueQuery->whereKey($venueId), new AddressLocationData(countryId: $countryId))
-            ->exists();
+        return $this->venues->belongsToCountry($venueId, $countryId);
     }
 }

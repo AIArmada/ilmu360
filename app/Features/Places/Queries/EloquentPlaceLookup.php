@@ -53,11 +53,6 @@ final readonly class EloquentPlaceLookup implements PlaceLookup
         return is_string($name) ? $name : null;
     }
 
-    public function newVenueQuery(): object
-    {
-        return Venue::query();
-    }
-
     public function resolvedPrimaryAddressId(string $venueId): ?string
     {
         $venue = Venue::query()->find($venueId);

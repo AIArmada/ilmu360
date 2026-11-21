@@ -22,14 +22,6 @@ interface PlaceLookup
     public function venueName(string $venueId): ?string;
 
     /**
-     * Documented transport: a fresh venue query for the caller's read-only
-     * submitter constraints. Callers must not write through it.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<\App\Features\Places\Models\Venue>
-     */
-    public function newVenueQuery(): object;
-
-    /**
      * Primary address for a venue, falling back to its operating institution.
      */
     public function resolvedPrimaryAddressId(string $venueId): ?string;

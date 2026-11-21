@@ -15,6 +15,7 @@ use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\FollowableSubject;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final readonly class EloquentPersonLookup implements PersonLookup
@@ -30,17 +31,17 @@ final readonly class EloquentPersonLookup implements PersonLookup
         return app(PersonSearchService::class);
     }
 
-    public function findPersonBySlug(string $slug): ?object
+    public function findPersonBySlug(string $slug): ?Person
     {
         return Person::query()->where('slug', $slug)->first();
     }
 
-    public function findPersonByKey(string $personId): ?object
+    public function findPersonByKey(string $personId): ?Person
     {
         return Person::query()->find($personId);
     }
 
-    public function personsForMember(string $accountId): object
+    public function personsForMember(string $accountId): EloquentCollection
     {
         return Person::query()
             ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($accountId))
@@ -347,11 +348,6 @@ final readonly class EloquentPersonLookup implements PersonLookup
             ->all();
     }
 
-    public function newPersonQuery(): object
-    {
-        return Person::query();
-    }
-
     /**
      * @return array<string, string>
      */
@@ -388,7 +384,7 @@ final readonly class EloquentPersonLookup implements PersonLookup
         return $person instanceof Person ? (string) $person->formatted_name : null;
     }
 
-    public function followedPersons(array $personIds): object
+    public function followedPersons(array $personIds): EloquentCollection
     {
         return Person::query()
             ->whereKey($personIds)
@@ -397,7 +393,7 @@ final readonly class EloquentPersonLookup implements PersonLookup
             ->get();
     }
 
-    public function personsByIds(array $personIds): object
+    public function personsByIds(array $personIds): EloquentCollection
     {
         return Person::query()
             ->whereKey($personIds)

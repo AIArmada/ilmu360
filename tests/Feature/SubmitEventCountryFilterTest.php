@@ -80,16 +80,16 @@ it('filters submit institution and venue queries by country', function () {
 
     $access = app(EntitySubmissionAccess::class);
 
-    expect($access->institutionQueryForSubmitter(null, $this->malaysiaId)->pluck('id')->all())
+    expect(array_keys($access->institutionOptions(null, $this->malaysiaId)))
         ->toContain((string) $malaysiaInstitution->getKey())
         ->not->toContain((string) $singaporeInstitution->getKey())
-        ->and($access->institutionQueryForSubmitter(null, $this->singaporeId)->pluck('id')->all())
+        ->and(array_keys($access->institutionOptions(null, $this->singaporeId)))
         ->toContain((string) $singaporeInstitution->getKey())
         ->not->toContain((string) $malaysiaInstitution->getKey())
-        ->and($access->venueQuery($this->malaysiaId)->pluck('id')->all())
+        ->and(array_keys($access->venueOptions($this->malaysiaId)))
         ->toContain((string) $malaysiaVenue->getKey())
         ->not->toContain((string) $singaporeVenue->getKey())
-        ->and($access->venueQuery($this->singaporeId)->pluck('id')->all())
+        ->and(array_keys($access->venueOptions($this->singaporeId)))
         ->toContain((string) $singaporeVenue->getKey())
         ->not->toContain((string) $malaysiaVenue->getKey())
         ->and($access->institutionBelongsToCountry((string) $singaporeInstitution->getKey(), $this->singaporeId))->toBeTrue()

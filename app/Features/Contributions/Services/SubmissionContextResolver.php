@@ -84,9 +84,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
         }
 
         $persisted = $submitter instanceof User
-            ? $this->entitySubmissionAccess->memberInstitutionQueryForSubmitter($submitter)
-                ->whereKey($institutionId)
-                ->first()
+            ? $this->entitySubmissionAccess->memberInstitution($submitter, $institutionId)
             : null;
 
         if ($persisted instanceof Institution) {

@@ -20,6 +20,7 @@ use App\Shared\Directory\DirectoryOption;
 use App\Shared\Directory\FollowableSubject;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final readonly class EloquentInstitutionLookup implements InstitutionLookup
@@ -35,17 +36,17 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         return app(InstitutionSearchService::class);
     }
 
-    public function findInstitutionBySlug(string $slug): ?object
+    public function findInstitutionBySlug(string $slug): ?Institution
     {
         return Institution::query()->where('slug', $slug)->first();
     }
 
-    public function findInstitutionByKey(string $institutionId): ?object
+    public function findInstitutionByKey(string $institutionId): ?Institution
     {
         return Institution::query()->find($institutionId);
     }
 
-    public function findMemberInstitution(string $institutionId, string $accountId): ?object
+    public function findMemberInstitution(string $institutionId, string $accountId): ?Institution
     {
         return Institution::query()
             ->whereKey($institutionId)
@@ -53,7 +54,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             ->first();
     }
 
-    public function institutionsByIds(array $institutionIds): object
+    public function institutionsByIds(array $institutionIds): EloquentCollection
     {
         return Institution::query()
             ->whereKey($institutionIds)
@@ -61,7 +62,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             ->get();
     }
 
-    public function institutionsForMember(string $accountId): object
+    public function institutionsForMember(string $accountId): EloquentCollection
     {
         return Institution::query()
             ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($accountId))
@@ -110,11 +111,6 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             ->all();
     }
 
-    public function newInstitutionQuery(): object
-    {
-        return Institution::query();
-    }
-
     /**
      * @return array<string, string>
      */
@@ -153,7 +149,7 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             : null;
     }
 
-    public function followedInstitutions(array $institutionIds): object
+    public function followedInstitutions(array $institutionIds): EloquentCollection
     {
         return Institution::query()
             ->whereKey($institutionIds)

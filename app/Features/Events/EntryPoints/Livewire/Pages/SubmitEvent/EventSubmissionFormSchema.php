@@ -25,7 +25,6 @@ use App\Features\Events\Support\SubmitterContactRules;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
-use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Prayer\Api\EventPrayerTime;
@@ -1178,11 +1177,10 @@ final readonly class EventSubmissionFormSchema
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.'))
                         ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->getOptionLabelUsing(fn (mixed $value): ?string => $this->personLabel($value))
-                        ->getOptionLabelsUsing(fn (array $values): array => app(SubmissionEntityAccess::class)->personQueryForSubmitter($this->context->submitter)
-                            ->whereIn('persons.id', array_filter($values, is_string(...)))
-                            ->get()
-                            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-                            ->toArray())
+                        ->getOptionLabelsUsing(fn (array $values): array => app(SubmissionEntityAccess::class)->personLabels(
+                            $this->context->submitter,
+                            array_values(array_filter($values, is_string(...))),
+                        ))
                         ->createOptionForm(app(PersonQuickAdd::class)->formComponents())
                         ->createOptionUsing(fn (array $data, Schema $schema): string => app(PersonQuickAdd::class)->createOption($data, $schema)),
 
@@ -1445,8 +1443,7 @@ final readonly class EventSubmissionFormSchema
         }
 
         return app(SubmissionEntityAccess::class)
-            ->personQueryForSubmitter($this->context->submitter)
-            ->find($value)?->formatted_name;
+            ->personLabel($this->context->submitter, $value);
     }
 
     private function applyContextualDefaults(Get $get, Set $set): void

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Persons\Api\Orm;
 
 use App\Features\Persons\Api\PersonSummary;
+use App\Features\Persons\Models\Person;
 use App\Features\Reports\Api\ReportSubject;
 use App\Shared\Directory\FollowableSubject;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
@@ -42,21 +44,21 @@ interface PersonLookup
      * Documented transport: a hydrated person model resolved by its public
      * slug for share-link title and route presentation.
      */
-    public function findPersonBySlug(string $slug): ?object;
+    public function findPersonBySlug(string $slug): ?Person;
 
     /**
      * Documented transport: a hydrated person model resolved by its primary
      * key for the created-contribution response payload.
      */
-    public function findPersonByKey(string $personId): ?object;
+    public function findPersonByKey(string $personId): ?Person;
 
     /**
      * Documented transport: persons the account is a member of, ordered by
      * name, with the member count eager loaded.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Persons\Models\Person>
+     * @return EloquentCollection<int, Person>
      */
-    public function personsForMember(string $accountId): object;
+    public function personsForMember(string $accountId): EloquentCollection;
 
     /**
      * Verified/pending speakers keyed by id, ordered by name, using the
@@ -65,14 +67,6 @@ interface PersonLookup
      * @return array<string, string>
      */
     public function submissionNameOptions(): array;
-
-    /**
-     * Documented transport: a fresh person query for the caller's read-only
-     * submitter constraints. Callers must not write through it.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<\App\Features\Persons\Models\Person>
-     */
-    public function newPersonQuery(): object;
 
     /**
      * Membership-application person options keyed by slug, ordered by name,
@@ -92,17 +86,17 @@ interface PersonLookup
      * loaded, ordered by name.
      *
      * @param  list<string>  $personIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Persons\Models\Person>
+     * @return EloquentCollection<int, Person>
      */
-    public function followedPersons(array $personIds): object;
+    public function followedPersons(array $personIds): EloquentCollection;
 
     /**
      * Documented transport: persons for the supplied ids, ordered by name.
      *
      * @param  list<string>  $personIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Persons\Models\Person>
+     * @return EloquentCollection<int, Person>
      */
-    public function personsByIds(array $personIds): object;
+    public function personsByIds(array $personIds): EloquentCollection;
 
     public function resolveIdentifier(string $identifier): ?string;
 

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\References\Api\Orm;
 
 use App\Features\References\Api\ReferenceSummary;
+use App\Features\References\Models\Reference;
 use App\Features\Reports\Api\ReportSubject;
 use App\Shared\Directory\FollowableSubject;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
@@ -34,7 +36,7 @@ interface ReferenceLookup
      * uuid with owner scoping removed and public visibility applied, for
      * share-link title and route presentation.
      */
-    public function findReferenceByIdentifier(string $identifier): ?object;
+    public function findReferenceByIdentifier(string $identifier): ?Reference;
 
     public function resolveIdentifier(string $identifier): ?string;
 
@@ -72,15 +74,15 @@ interface ReferenceLookup
      * media loaded, ordered by title.
      *
      * @param  list<string>  $referenceIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\References\Models\Reference>
+     * @return EloquentCollection<int, Reference>
      */
-    public function followedReferences(array $referenceIds): object;
+    public function followedReferences(array $referenceIds): EloquentCollection;
 
     /**
      * Documented transport: references for the supplied ids, ordered by title.
      *
      * @param  list<string>  $referenceIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\References\Models\Reference>
+     * @return EloquentCollection<int, Reference>
      */
-    public function referencesByIds(array $referenceIds): object;
+    public function referencesByIds(array $referenceIds): EloquentCollection;
 }

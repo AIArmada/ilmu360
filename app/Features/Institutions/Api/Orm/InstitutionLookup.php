@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Api\Orm;
 
 use App\Features\Institutions\Api\InstitutionSummary;
+use App\Features\Institutions\Models\Institution;
 use App\Features\Reports\Api\ReportSubject;
 use App\Shared\Directory\FollowableSubject;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
@@ -43,36 +45,36 @@ interface InstitutionLookup
      * Documented transport: a hydrated institution model resolved by its
      * public slug for share-link title and route presentation.
      */
-    public function findInstitutionBySlug(string $slug): ?object;
+    public function findInstitutionBySlug(string $slug): ?Institution;
 
     /**
      * Documented transport: a hydrated institution model resolved by its
      * primary key for the created-contribution response payload.
      */
-    public function findInstitutionByKey(string $institutionId): ?object;
+    public function findInstitutionByKey(string $institutionId): ?Institution;
 
     /**
      * Documented transport: the institution the account is a member of, used
      * to authorise institution-scoped submission entry points.
      */
-    public function findMemberInstitution(string $institutionId, string $accountId): ?object;
+    public function findMemberInstitution(string $institutionId, string $accountId): ?Institution;
 
     /**
      * Documented transport: institutions for the supplied ids, ordered by
      * name.
      *
      * @param  list<string>  $institutionIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Institutions\Models\Institution>
+     * @return EloquentCollection<int, Institution>
      */
-    public function institutionsByIds(array $institutionIds): object;
+    public function institutionsByIds(array $institutionIds): EloquentCollection;
 
     /**
      * Documented transport: institutions the account is a member of, ordered
      * by name, with the member count eager loaded.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Institutions\Models\Institution>
+     * @return EloquentCollection<int, Institution>
      */
-    public function institutionsForMember(string $accountId): object;
+    public function institutionsForMember(string $accountId): EloquentCollection;
 
     /**
      * Publicly visible institutions keyed by id, ordered by name, using the
@@ -99,14 +101,6 @@ interface InstitutionLookup
     public function displayNamesByIds(array $institutionIds): array;
 
     /**
-     * Documented transport: a fresh institution query for the caller's
-     * read-only submitter constraints. Callers must not write through it.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder<\App\Features\Institutions\Models\Institution>
-     */
-    public function newInstitutionQuery(): object;
-
-    /**
      * Membership-application institution options keyed by id, ordered by
      * name, labelled with the display name and primary-address hierarchy.
      *
@@ -124,9 +118,9 @@ interface InstitutionLookup
      * media loaded, ordered by name.
      *
      * @param  list<string>  $institutionIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Institutions\Models\Institution>
+     * @return EloquentCollection<int, Institution>
      */
-    public function followedInstitutions(array $institutionIds): object;
+    public function followedInstitutions(array $institutionIds): EloquentCollection;
 
     public function resolveIdentifier(string $identifier): ?string;
 

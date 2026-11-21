@@ -10,7 +10,6 @@ use App\Features\References\Support\ReferenceFamily;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
-use InvalidArgumentException;
 
 /**
  * Implements the reference query boundary over the current Eloquent models.
@@ -19,26 +18,18 @@ final readonly class ReferenceQueryService implements ReferenceOrmPort
 {
     public function __construct(private ReferenceSearchService $search) {}
 
-    public function applyPublicVisibility(mixed $query, ?string $table = null): mixed
+    public function applyPublicVisibility(Builder|QueryBuilder $query, ?string $table = null): Builder|QueryBuilder
     {
-        if (! $query instanceof Builder && ! $query instanceof QueryBuilder) {
-            throw new InvalidArgumentException('Reference visibility requires an Eloquent or query builder.');
-        }
-
-        $referenceClass = Reference::class;
-
-        return $referenceClass::applyPublicVisibility($query, $table);
+        return Reference::applyPublicVisibility($query, $table);
     }
 
-    public function constrainEventReferenceSubtree(mixed $query, string $referenceIdColumn = 'references.id'): mixed
+    /**
+     * @param  Builder<\App\Features\Events\Models\Event>  $query
+     * @return Builder<\App\Features\Events\Models\Event>
+     */
+    public function constrainEventReferenceSubtree(Builder $query, string $referenceIdColumn = 'references.id'): Builder
     {
-        if (! $query instanceof Builder) {
-            throw new InvalidArgumentException('Reference subtree constraints require an Eloquent builder.');
-        }
-
-        $referenceClass = Reference::class;
-
-        return $referenceClass::constrainEventReferenceSubtree($query, $referenceIdColumn);
+        return Reference::constrainEventReferenceSubtree($query, $referenceIdColumn);
     }
 
     public function expandReferenceIdsForFiltering(array $referenceIds): array
