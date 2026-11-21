@@ -106,7 +106,8 @@ final class InstitutionDirectoryController extends FrontendController
         $user = $this->currentUser($request);
         $search = $this->searchRequestNormalizer->normalizedString($request->query('search'));
         $requestedFields = $this->searchRequestNormalizer->requestedFields($request, self::INSTITUTION_LIST_FIELDS, 'institution');
-        $institutionType = $this->searchRequestNormalizer->normalizedInstitutionType($request->query('type'));
+        $normalizedType = $this->searchRequestNormalizer->normalizedString($request->query('type'));
+        $institutionType = $normalizedType !== null ? InstitutionType::tryFrom($normalizedType) : null;
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
         $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
         $cityId = $this->searchRequestNormalizer->normalizedUuid($request->query('city_id'));

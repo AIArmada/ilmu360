@@ -2,7 +2,6 @@
 
 namespace App\Platform\Api\Search;
 
-use App\Features\Institutions\Api\Enums\InstitutionType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -179,17 +178,6 @@ class SearchRequestNormalizer
         $normalized = trim((string) $value);
 
         return Str::isUuid($normalized) ? $normalized : null;
-    }
-
-    public function normalizedInstitutionType(mixed $value): ?InstitutionType
-    {
-        $normalized = $this->normalizedString($value);
-
-        if ($normalized === null) {
-            return null;
-        }
-
-        return InstitutionType::tryFrom($normalized);
     }
 
     public function requestedCountryId(Request $request): ?string
