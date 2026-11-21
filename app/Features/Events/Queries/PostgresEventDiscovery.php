@@ -10,7 +10,6 @@ use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
 use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
