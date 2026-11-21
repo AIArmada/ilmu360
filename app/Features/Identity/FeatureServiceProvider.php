@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Identity;
 
 use App\Features\Identity\Actions\RecordNewAccountAttributionAction;
+use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountLifecycle;
 use App\Features\Identity\Api\AccountPreferences;
+use App\Features\Identity\Api\AccountSettingsStore;
 use App\Features\Identity\Api\AccountSubmissionEligibility;
 use App\Features\Identity\Api\Frontend\AccountSettingsFormContractContributor;
 use App\Features\Identity\Api\NewAccountAttribution;
@@ -22,6 +24,10 @@ use App\Features\Identity\EntryPoints\Api\Admin\UserResourceDefinition;
 use App\Features\Identity\EntryPoints\ApiDocumentation\IdentityRequestExampleContributor;
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
+use App\Features\Identity\Persistence\EloquentAccountAccess;
+use App\Features\Identity\Persistence\EloquentAccountDirectory;
+use App\Features\Identity\Persistence\EloquentAccountSettingsStore;
+use App\Features\Identity\Persistence\EloquentUserMorphType;
 use App\Features\Identity\Services\AccountAdministrationService;
 use App\Features\Identity\Services\AccountLifecycleCoordinator;
 use App\Features\Identity\Services\AccountPreferencesService;
@@ -37,13 +43,19 @@ use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Telemetry\SignalSchemaRegistry;
+use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountLifecycleContributor;
+use App\Shared\Auth\UserMorphType;
 use Illuminate\Contracts\Foundation\Application;
 
 class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(AccountAccess::class, EloquentAccountAccess::class);
+        $this->app->bind(AccountDirectory::class, EloquentAccountDirectory::class);
+        $this->app->bind(AccountSettingsStore::class, EloquentAccountSettingsStore::class);
+        $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(AccountSubmissionEligibility::class, AccountSubmissionEligibilityService::class);
         $this->app->bind(AccountPreferences::class, AccountPreferencesService::class);
         $this->app->bind(SignupAttributions::class, SignupAttributionsService::class);
