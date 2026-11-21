@@ -13,6 +13,7 @@ use App\Features\Identity\Api\AccountSettingsStore;
 use App\Features\Identity\Api\AccountSubmissionEligibility;
 use App\Features\Identity\Api\Frontend\AccountSettingsFormContractContributor;
 use App\Features\Identity\Api\NewAccountAttribution;
+use App\Features\Identity\Api\SignupAttributionContextResolver;
 use App\Features\Identity\Api\SignupAttributions;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Api\SocialAccounts;
@@ -24,6 +25,7 @@ use App\Features\Identity\EntryPoints\Api\Admin\UserResourceDefinition;
 use App\Features\Identity\EntryPoints\ApiDocumentation\IdentityRequestExampleContributor;
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
+use App\Features\Identity\Integrations\Signup\SignupAttributionContextResolverAdapter;
 use App\Features\Identity\Persistence\EloquentAccountAccess;
 use App\Features\Identity\Persistence\EloquentAccountDirectory;
 use App\Features\Identity\Persistence\EloquentAccountSettingsStore;
@@ -52,6 +54,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(SignupAttributionContextResolver::class, SignupAttributionContextResolverAdapter::class);
         $this->app->bind(AccountAccess::class, EloquentAccountAccess::class);
         $this->app->bind(AccountDirectory::class, EloquentAccountDirectory::class);
         $this->app->bind(AccountSettingsStore::class, EloquentAccountSettingsStore::class);

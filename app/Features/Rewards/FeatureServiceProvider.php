@@ -6,10 +6,12 @@ namespace App\Features\Rewards;
 
 use AIArmada\Rewards\Contracts\RewardBenefitCatalog;
 use AIArmada\Rewards\Contracts\RewardBenefitCouponFulfillment;
+use AIArmada\Rewards\Contracts\RewardCorrectionKeySource;
 use AIArmada\Rewards\Contracts\RewardFinancialReadinessChecker;
 use AIArmada\Rewards\Contracts\RewardGratitudePlanner;
 use AIArmada\Rewards\Contracts\RewardReadinessChecker;
 use AIArmada\Rewards\Contracts\RewardReservationResolver;
+use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Rewards\Models\RewardAppeal;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardBenefitGrant;
@@ -38,6 +40,8 @@ use App\Features\Rewards\Policies\RewardPayeePolicy;
 use App\Features\Rewards\Policies\RewardPayoutRequestPolicy;
 use App\Features\Rewards\Policies\RewardProgramPolicy;
 use App\Features\Rewards\Policies\RewardRecoveryPolicy;
+use App\Features\Rewards\Queries\CompositeRewardSourceFactReader;
+use App\Features\Rewards\Services\ShareCorrectionKeySource;
 use App\Features\Rewards\Support\DigestRewardGratitudePlanner;
 use App\Features\Rewards\Support\PublishedProgramVersionsAdapter;
 use App\Features\Rewards\Support\Telemetry\RewardsSignalSchemaContributor;
@@ -126,6 +130,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
+        $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
         $this->commands([
             EntryPoints\Console\Commands\DispatchRewardDigestsCommand::class,
         ]);

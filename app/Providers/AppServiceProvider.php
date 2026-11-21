@@ -43,8 +43,6 @@ use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
 use AIArmada\References\Models\ReferenceContributor;
-use AIArmada\Rewards\Contracts\RewardCorrectionKeySource;
-use AIArmada\Rewards\Contracts\RewardSourceFactReader;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Contributions\Models\ContributionRequest;
@@ -67,9 +65,7 @@ use App\Features\Events\Observers\EventTaxonomyObserver;
 use App\Features\Events\Observers\EventTermObserver;
 use App\Features\Events\Observers\EventTimeExpressionObserver;
 use App\Features\Events\Policies\EventPolicy;
-use App\Features\Identity\Api\SignupAttributionContextResolver;
 use App\Features\Identity\Api\SignupAttributionSourceResolver;
-use App\Features\Identity\Integrations\Signup\SignupAttributionContextResolverAdapter;
 use App\Features\Identity\Listeners\ClaimGuestSubmissionsOnVerified;
 use App\Features\Identity\Listeners\RecordVerifiedEmail;
 use App\Features\Identity\Listeners\SendRegisteredUserEmails;
@@ -93,28 +89,16 @@ use App\Features\Persons\Observers\PersonObserver;
 use App\Features\Persons\Observers\PersonTitleObserver;
 use App\Features\Persons\Observers\TitleCategoryObserver;
 use App\Features\Persons\Queries\PersonResourceSearchAdapter;
-use App\Features\Places\Actions\PruneOrphanedVenuesAction;
-use App\Features\Places\Api\PruneOrphanedVenues;
-use App\Features\Places\Api\SpaceLocation;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Features\Places\Observers\VenueObserver;
-use App\Features\Places\Services\SpaceLocationResolver;
-use App\Features\Prayer\Api\PrayerLocationResolver;
-use App\Features\Prayer\Services\PrayerLocationResolverService;
 use App\Features\References\Models\Reference;
 use App\Features\References\Observers\ReferenceContributorObserver;
 use App\Features\References\Observers\ReferenceObserver;
-use App\Features\Registration\Api\CheckInNotifier;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
-use App\Features\Registration\Notifications\EventNotificationCheckInNotifier;
 use App\Features\Registration\Policies\RegistrationPolicy;
 use App\Features\Rewards\Models\RewardDigestSlot;
-use App\Features\Rewards\Queries\CompositeRewardSourceFactReader;
-use App\Features\Rewards\Services\ShareCorrectionKeySource;
-use App\Features\SavedSearches\Api\SavedSearchExecutor;
-use App\Features\SavedSearches\Services\EventSavedSearchExecutor;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\ShareTracking\EntryPoints\Listeners\ReverseRegistrationShareOutcome;
 use App\Features\ShareTracking\Integrations\Auth\AffiliateSignupAttributionSourceResolver;
@@ -252,9 +236,6 @@ class AppServiceProvider extends ServiceProvider
             ShareCardRenderer::class,
             static fn (): ShareCardRenderer => new PangoShareCardRenderer(public_path('fonts/share-cards')),
         );
-        $this->app->bind(PrayerLocationResolver::class, PrayerLocationResolverService::class);
-        $this->app->bind(PruneOrphanedVenues::class, PruneOrphanedVenuesAction::class);
-        $this->app->bind(SpaceLocation::class, SpaceLocationResolver::class);
         $this->app->bind(LanguageOptions::class, EloquentLanguageOptions::class);
         $this->app->bind(AddressCatalog::class, EloquentAddressCatalog::class);
         // Register before the final vendor EventOccurrence model boots so
@@ -263,10 +244,6 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(AuditRecorder::class, EloquentAuditRecorder::class);
         $this->app->bind(LanguageCatalog::class, DatabaseLanguageCatalog::class);
-        $this->app->bind(SignupAttributionContextResolver::class, SignupAttributionContextResolverAdapter::class);
-        $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
-        $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
-        $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
         $this->app->singleton(SignalSchemaRegistry::class);
         $this->app->singleton(RequestExampleRegistry::class);
         $this->app->singleton(McpSurfaceRegistry::class);
@@ -274,7 +251,6 @@ class AppServiceProvider extends ServiceProvider
             ModerationAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);
 
-        $this->app->bind(SavedSearchExecutor::class, EventSavedSearchExecutor::class);
         $this->app->bind(SignalRecorder::class, ProductSignalRecorder::class);
         $this->app->bind(VisitorCountryResolving::class, VisitorCountryResolver::class);
         $this->app->bind(UserDateTimeFormatting::class, DefaultUserDateTimeFormatter::class);

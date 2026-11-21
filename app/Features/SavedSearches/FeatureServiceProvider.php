@@ -9,12 +9,14 @@ use App\Features\SavedSearches\Actions\DeleteSavedSearchWithAttributionReversalA
 use App\Features\SavedSearches\Api\CreateSavedSearchWithAttribution;
 use App\Features\SavedSearches\Api\DeleteSavedSearchWithAttributionReversal;
 use App\Features\SavedSearches\Api\SavedSearchCommands as SavedSearchCommandsContract;
+use App\Features\SavedSearches\Api\SavedSearchExecutor;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Features\SavedSearches\EntryPoints\ApiDocumentation\SavedSearchesRequestExampleContributor;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Features\SavedSearches\Policies\SavedSearchPolicy;
 use App\Features\SavedSearches\Queries\DatabaseSavedSearchReader;
+use App\Features\SavedSearches\Services\EventSavedSearchExecutor;
 use App\Features\SavedSearches\Services\SavedSearchCommands;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
@@ -26,6 +28,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(SavedSearchExecutor::class, EventSavedSearchExecutor::class);
         $this->app->bind(SavedSearchReader::class, DatabaseSavedSearchReader::class);
         $this->app->bind(SavedSearchCommandsContract::class, SavedSearchCommands::class);
         $this->app->bind(CreateSavedSearchWithAttribution::class, CreateSavedSearchWithAttributionAction::class);

@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\Places;
 
+use App\Features\Places\Actions\PruneOrphanedVenuesAction;
 use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Api\PlaceCatalog;
+use App\Features\Places\Api\PruneOrphanedVenues;
 use App\Features\Places\Api\SpaceEligibility;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\Api\VenueAuthoringCandidates;
 use App\Features\Places\Api\VenueWorkflow;
@@ -28,6 +31,7 @@ use App\Features\Places\Queries\EloquentVenueAuthoringCandidates;
 use App\Features\Places\Services\EloquentPlaceCatalog;
 use App\Features\Places\Services\InstitutionSpaceLinkService;
 use App\Features\Places\Services\SpaceEligibilityService;
+use App\Features\Places\Services\SpaceLocationResolver;
 use App\Features\Places\Services\SpaceWorkflowService;
 use App\Features\Places\Services\VenueWorkflowService;
 use App\Platform\Admin\FilamentResourceRegistry;
@@ -42,6 +46,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(PruneOrphanedVenues::class, PruneOrphanedVenuesAction::class);
+        $this->app->bind(SpaceLocation::class, SpaceLocationResolver::class);
         $this->app->bind(VenueQuickAdd::class, VenueFormSchema::class);
         $this->app->bind(PlaceCatalog::class, EloquentPlaceCatalog::class);
         $this->app->tag([PendingVenuesStat::class], 'admin.stats');

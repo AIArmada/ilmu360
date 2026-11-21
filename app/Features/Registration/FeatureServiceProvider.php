@@ -18,6 +18,7 @@ use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
+use App\Features\Registration\Api\CheckInNotifier;
 use App\Features\Registration\Api\EventRegistrationDeletion;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Api\PaidRegistrationFacts;
@@ -26,6 +27,7 @@ use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
 use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
 use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
+use App\Features\Registration\Notifications\EventNotificationCheckInNotifier;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
 use App\Features\Registration\Queries\DatabasePaidRegistrationFacts;
 use App\Features\Registration\Queries\DatabaseParticipationSourceIds;
@@ -46,6 +48,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
         $this->app->bind(RegistrationLookup::class, DatabaseRegistrationLookup::class);
         $this->app->bind(RegistrationNotificationAudience::class, DatabaseRegistrationLookup::class);
         $this->app->bind(RegistrationConfirmationFactsReader::class, DatabaseRegistrationConfirmationFactsReader::class);
