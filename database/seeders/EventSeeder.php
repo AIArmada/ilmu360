@@ -22,7 +22,7 @@ use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Enums\Terms\DisciplineTermCode;
 use App\Features\Events\Enums\Terms\DomainTermCode;
 use App\Features\Events\Enums\Terms\IssueTermCode;
@@ -720,7 +720,7 @@ class EventSeeder extends Seeder
     private function seedKeyPeopleForEvent(Event $event, array $personIds): void
     {
         $categoryCatalog = app(EventCategoryCatalog::class);
-        $categoryTerms = collect($categoryCatalog->terms($categoryCatalog->descendantIds($event->event_category_ids)));
+        $categoryCodes = $categoryCatalog->termCodes($categoryCatalog->descendantIds($event->event_category_ids));
         $personRoleRequired = app(EventCategoryPolicyResolver::class)->requiresSpeaker($event->event_category_ids);
         $selectedPersonIds = [];
 
@@ -731,7 +731,7 @@ class EventSeeder extends Seeder
 
         $otherKeyPeople = [];
 
-        if ($categoryTerms->contains('code', 'forum_diskusi')) {
+        if (in_array('forum_diskusi', $categoryCodes, true)) {
             $moderatorPersonId = $selectedPersonIds[0] ?? ($personIds[0] ?? null);
 
             if (is_string($moderatorPersonId)) {
@@ -745,7 +745,7 @@ class EventSeeder extends Seeder
             }
         }
 
-        if ($categoryTerms->contains('code', 'aktiviti_keagamaan')) {
+        if (in_array('aktiviti_keagamaan', $categoryCodes, true)) {
             $imamPersonId = $personIds[0] ?? null;
 
             $otherKeyPeople[] = [

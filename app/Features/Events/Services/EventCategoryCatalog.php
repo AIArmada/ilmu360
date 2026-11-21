@@ -75,4 +75,19 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
             ->values()
             ->all();
     }
+
+    /**
+     * @param  list<string>  $termIds
+     * @return list<string>
+     */
+    public function termCodes(array $termIds): array
+    {
+        $selected = array_fill_keys($this->validTermIds($termIds), true);
+
+        return $this->hierarchy->terms(self::TAXONOMY_CODE)
+            ->filter(fn (EventTerm $term): bool => isset($selected[(string) $term->getKey()]))
+            ->map(fn (EventTerm $term): string => (string) $term->code)
+            ->values()
+            ->all();
+    }
 }

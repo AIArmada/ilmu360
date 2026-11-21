@@ -71,6 +71,9 @@ it('publishes names of selected event categories without leaking event term mode
 
     expect(app(EventCategoryCatalog::class)->termNames([(string) $category->getKey()]))
         ->toBe(['Kuliah / Ceramah']);
+
+    expect(app(EventCategoryCatalog::class)->termCodes([(string) $category->getKey()]))
+        ->toBe(['kuliah_ceramah']);
 });
 
 it('hides an inactive taxonomy from active hierarchy reads', function (): void {

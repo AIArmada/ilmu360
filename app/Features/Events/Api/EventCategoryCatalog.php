@@ -40,4 +40,10 @@ interface EventCategoryCatalog
      * @return list<string>
      */
     public function termNames(array $termIds): array;
+    
+    /**
+     * @param  list<string>  $termIds
+     * @return list<string>
+     */
+    public function termCodes(array $termIds): array;
 }
