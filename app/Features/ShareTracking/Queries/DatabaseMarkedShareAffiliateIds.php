@@ -7,7 +7,7 @@ namespace App\Features\ShareTracking\Queries;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Api\MarkedShareAffiliateIds;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 
 final readonly class DatabaseMarkedShareAffiliateIds implements MarkedShareAffiliateIds
 {

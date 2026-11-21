@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\ShareTracking\Api\Orm;
+namespace App\Features\ShareTracking\Support;
 
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\States\Active;
@@ -15,9 +15,8 @@ use App\Models\User;
  * metadata. The marker is the only adoption signal; profile codes, names and
  * descriptions do not determine ownership.
  *
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
- * Consumers: ShareTracking entrypoints and profile actions
+ * Internal marker/eligibility policy over the Affiliate package model.
+ * Do not expose the mutable model policy through a public feature API.
  */
 final readonly class ShareTrackingProfile
 {

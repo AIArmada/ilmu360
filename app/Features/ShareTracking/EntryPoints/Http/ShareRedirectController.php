@@ -8,7 +8,7 @@ use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Features\ShareTracking\Policies\ShareDestinationPolicy;
 use App\Features\ShareTracking\Services\ShareTrackingUrlService;
 use App\Http\Controllers\Controller;

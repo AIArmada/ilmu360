@@ -51,7 +51,7 @@ use App\Features\ShareTracking\Api\LandingAttributionReceipt;
 use App\Features\ShareTracking\Api\LandingAttributionWriter;
 use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
 use App\Features\ShareTracking\Support\ShareTrackingFinance;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Features\ShareTracking\Api\OutboundShareAttributionWriter;
 use App\Features\ShareTracking\Api\OutboundShareTouchpointData;
 use App\Features\ShareTracking\Api\OutboundShareTouchpointWriter;
