@@ -13,15 +13,15 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventCategoryCatalog;
-use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\EventDirectoryProjectionProvider;
-use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Api\EventDirectorySqlColumn;
 use App\Features\Events\Api\EventDirectorySqlProjection;
+use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Api\EventScheduleFact;
 use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleSql;
@@ -74,7 +74,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         private ReferenceQueries $referenceQueries,
     ) {}
 
-    /** @return EventDiscoveryPage */
     public function search(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         $query = $this->normalizeSearchQuery($criteria->text);
@@ -109,7 +108,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         return EventDiscoveryPageProjector::fromPaginator($this->fuzzySearchWithDatabase($filters, $query, $perPage));
     }
 
-    /** @return EventDiscoveryPage */
     public function nearby(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithDatabase(
@@ -121,7 +119,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         ));
     }
 
-    /** @return EventDiscoveryPage */
     public function nearbyWithQuery(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithDatabaseQuery(

@@ -52,6 +52,8 @@ use App\Features\Events\Api\EventContributionStateMapper;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventDeletionScope;
 use App\Features\Events\Api\EventDirectoryProjectionProvider;
+use App\Features\Events\Api\EventDiscoveryReader;
+use App\Features\Events\Api\EventDiscoveryReaders;
 use App\Features\Events\Api\EventEngagementEligibility;
 use App\Features\Events\Api\EventHomepageStats;
 use App\Features\Events\Api\EventImageUploads;
@@ -200,8 +202,6 @@ use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
-use App\Features\Events\Api\EventDiscoveryReader;
-use App\Features\Events\Api\EventDiscoveryReaders;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use Illuminate\Support\Facades\Schedule;
 

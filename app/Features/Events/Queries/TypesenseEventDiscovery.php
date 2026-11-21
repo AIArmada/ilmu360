@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
-use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Models\Event;
@@ -25,19 +25,16 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         private readonly ReferenceQueries $referenceQueries,
     ) {}
 
-    /** @return EventDiscoveryPage */
     public function search(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         return EventDiscoveryPageProjector::fromPaginator($this->searchWithTypesense($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort));
     }
 
-    /** @return EventDiscoveryPage */
     public function nearby(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithTypesense($criteria));
     }
 
-    /** @return EventDiscoveryPage */
     public function nearbyWithQuery(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithTypesenseQuery(
