@@ -13,5 +13,5 @@ it('returns immutable prayer geography when event targets have no address', func
         ->and($location->latitude)->toBeNull()
         ->and($location->longitude)->toBeNull()
         ->and($location->stateCode)->toBeNull()
-        ->and($location->districtCandidates)->toBe([]);
+        ->and($location->districtCandidates)->toBeEmpty();
 });
