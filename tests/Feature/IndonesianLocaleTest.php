@@ -20,3 +20,16 @@ it('keeps Indonesian keys in parity with Malay', function () {
 
     expect($idKeys)->toBe($msKeys);
 });
+
+it('keeps the public locale switch route registered by Communications', function (): void {
+    $this->from('/majlis')
+        ->get(route('locale.switch', ['locale' => 'id']))
+        ->assertRedirect('/majlis');
+
+    expect(session('locale'))->toBe('id');
+});
+
+it('rejects unsupported locale switches', function (): void {
+    $this->get(route('locale.switch', ['locale' => 'unsupported']))
+        ->assertNotFound();
+});
