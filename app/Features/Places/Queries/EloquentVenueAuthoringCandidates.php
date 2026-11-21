@@ -6,7 +6,7 @@ namespace App\Features\Places\Queries;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
-use App\Features\Places\Api\Orm\VenueAuthoringCandidates;
+use App\Features\Places\Api\VenueAuthoringCandidates;
 use App\Features\Places\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
 

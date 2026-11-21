@@ -10,7 +10,7 @@ use App\Features\Events\Api\SubmissionValues;
 use App\Features\Institutions\Api\Orm\InstitutionAuthoringCandidates;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\Orm\PersonAuthoringCandidates;
-use App\Features\Places\Api\Orm\VenueAuthoringCandidates;
+use App\Features\Places\Api\VenueAuthoringCandidates;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 

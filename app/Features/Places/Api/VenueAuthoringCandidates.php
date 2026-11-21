@@ -2,14 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Places\Api\Orm;
+namespace App\Features\Places\Api;
 
 /**
  * Venue-owned authoring candidate reads.
  *
- * @internal No model transport: every method returns final labels or ids.
- *
- * Consumers: Contributions EntitySubmissionAccess and the Events submit-event
  * venue option provider.
  */
 interface VenueAuthoringCandidates
