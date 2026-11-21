@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Mcp;
 
-use App\Shared\Contracts\AccountTokenRevoker;
 use App\Models\User;
+use App\Shared\Contracts\AccountTokenRevoker;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Laravel\Sanctum\PersonalAccessToken;

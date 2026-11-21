@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
-use BackedEnum;
-use Illuminate\Support\Str;
 use App\Features\Events\Api\EventCollections;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
+use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final readonly class EloquentEventCollections implements EventCollections
 {

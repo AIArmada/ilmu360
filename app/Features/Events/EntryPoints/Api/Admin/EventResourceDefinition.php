@@ -8,8 +8,8 @@ use App\Features\Contributions\Api\ContributionEntityState;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
-use App\Platform\Api\Resources\HookedAdminResourceWriter;
 use App\Platform\Api\Resources\FilamentResourceDefinition;
+use App\Platform\Api\Resources\HookedAdminResourceWriter;
 use App\Platform\Api\Resources\ResourceDefinitionContext;
 use Illuminate\Database\Eloquent\Model;
 

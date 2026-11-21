@@ -7,8 +7,8 @@ namespace App\Features\References\EntryPoints\Api\Admin;
 use App\Features\Contributions\Api\ContributionEntityState;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
-use App\Platform\Api\Resources\HookedAdminResourceWriter;
 use App\Platform\Api\Resources\FilamentResourceDefinition;
+use App\Platform\Api\Resources\HookedAdminResourceWriter;
 use App\Platform\Api\Resources\ResourceDefinitionContext;
 use Illuminate\Database\Eloquent\Model;
 

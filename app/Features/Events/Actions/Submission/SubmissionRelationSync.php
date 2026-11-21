@@ -20,9 +20,9 @@ use Illuminate\Validation\ValidationException;
  * input identically; event writes stay event-scoped and session writes stay
  * session-scoped.
  */
-final class SubmissionRelationSync
+final readonly class SubmissionRelationSync
 {
-    public function __construct(private readonly PublicReferenceConstraint $references) {}
+    public function __construct(private PublicReferenceConstraint $references) {}
 
     /** @param array<string, mixed> $state */
     public function assertCatalogSelectionsAreAvailable(array $state, string $validationKeyPrefix): void

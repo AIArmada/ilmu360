@@ -2,8 +2,8 @@
 
 namespace App\Platform\Time\Http\Middleware;
 
-use App\Shared\Contracts\AccountTimezoneUpdater;
 use App\Platform\Time\UserTimezoneResolver;
+use App\Shared\Contracts\AccountTimezoneUpdater;
 use Closure;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Http\Request;
