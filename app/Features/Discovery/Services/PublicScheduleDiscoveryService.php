@@ -9,6 +9,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
+use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Discovery\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
@@ -35,6 +36,9 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
     public function __construct(
         private PublicScheduleEventReads $scheduleEvents,
         private EventScheduleReads $scheduleFacts,
+        private EventSearchReader $eventSearch,
+        private SubjectFollows $subjectFollows,
+        private PlaceLookup $placeLookup,
         private EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
     ) {}
 
@@ -71,7 +75,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         $eventFilters['time_scope'] = 'all';
 
         if ($criteria->latitude !== null && $criteria->longitude !== null) {
-            $parentPage = app(EventSearchService::class)->searchNearbyWithQuery(
+            $parentPage = $this->eventSearch->searchNearbyWithQuery(
                 query: $criteria->text,
                 lat: $criteria->latitude,
                 lng: $criteria->longitude,
@@ -87,7 +91,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
             if ($criteria->text === null || $directFactSet->eventIds !== []) {
                 $factSet = $directFactSet;
             } else {
-                $parentPage = app(EventSearchService::class)->search(
+                $parentPage = $this->eventSearch->search(
                     query: $criteria->text,
                     filters: $eventFilters,
                     perPage: 1000,
@@ -119,10 +123,9 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
     /** @return Collection<int, PublicScheduleModelLeaf> */
     public function homepageSelection(?string $accountId): Collection
     {
-        $engagement = app(SubjectFollows::class);
-        $personIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Person) : [];
-        $institutionIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Institution) : [];
-        $referenceIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Reference) : [];
+        $personIds = $accountId !== null ? $this->subjectFollows->followedSubjectIds($accountId, EngagementSubjectType::Person) : [];
+        $institutionIds = $accountId !== null ? $this->subjectFollows->followedSubjectIds($accountId, EngagementSubjectType::Institution) : [];
+        $referenceIds = $accountId !== null ? $this->subjectFollows->followedSubjectIds($accountId, EngagementSubjectType::Reference) : [];
         $hasFollows = $personIds !== [] || $institutionIds !== [] || $referenceIds !== [];
 
         $factSet = $this->scheduleFacts->homepageScheduleFacts($personIds, $institutionIds, $referenceIds);
@@ -255,7 +258,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
             return;
         }
 
-        app(PlaceLookup::class)->hydrateCardVenues($locations);
+        $this->placeLookup->hydrateCardVenues($locations);
     }
 
     /**
