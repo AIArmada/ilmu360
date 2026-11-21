@@ -52,6 +52,7 @@ jobs:
               - 'composer.lock'
               - 'phpunit.xml'
               - 'tests/**'
+              - 'verify/**'
               - 'tools/**'
               - 'app/Features/**/feature.json'
               - '.github/workflows/quality.yml'
@@ -390,6 +391,25 @@ jobs:
 
       - name: Run real browser smoke
         run: vendor/bin/pest --ci --trace tests/Browser/PlaywrightSmokeTest.php
+
+      - name: Drive the runtime verification harness
+        env:
+          VERIFY_APP_URL: http://127.0.0.1:8099
+          VERIFY_ARTIFACT_DIR: storage/verify-artifacts
+        run: |
+          trap 'verify/cli/verify-app cleanup' EXIT
+          verify/cli/verify-app launch
+          verify/cli/verify-app doctor
+          verify/cli/verify-app http GET /up
+          verify/cli/verify-app http GET /majlis
+
+      - name: Upload runtime verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-verification
+          path: storage/verify-artifacts/
+          if-no-files-found: ignore
 
       - name: Upload failed browser traces
         if: failure()

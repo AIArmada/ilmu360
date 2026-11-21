@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT"
+
+APP_URL="${VERIFY_APP_URL:-http://127.0.0.1:8099}"
+ARTIFACT_DIR="${VERIFY_ARTIFACT_DIR:-storage/verify-artifacts}"
+PID_FILE="$ARTIFACT_DIR/server.pid"
+PORT="${APP_URL##*:}"
+
+usage() {
+  cat <<'HELP'
+Usage: verify/cli/verify-app <launch|doctor|http|cache-check|cleanup|--help>
+
+launch              Start a managed local server against an explicit test database
+doctor              Read-only status of URL, git revision and managed process
+http GET <path>     Two independent HTTP reads; preserve bodies and evidence JSON
+cache-check         Prove Laravel and Platform optimized boot and clear caches
+cleanup             Stop only the managed server; preserve all evidence
+
+Set APP_ENV=testing, DB_CONNECTION, DB_DATABASE and VERIFY_APP_URL explicitly.
+Never point this harness at a production or staging database.
+HELP
+}
+
+ensure_testing() {
+  if [[ "${APP_ENV:-}" != "testing" ]]; then
+    echo "APP_ENV=testing is required for any mutating harness command." >&2
+    exit 2
+  fi
+  case "${DB_DATABASE:-}" in
+    test|test_*|verify_*) ;;
+    *) echo "Use an explicit test or verify database, not a normal application database." >&2; exit 2 ;;
+  esac
+  if [[ "${DB_CONNECTION:-}" != "pgsql" ]]; then
+    echo "This app verification harness requires a disposable PostgreSQL database." >&2
+    exit 2
+  fi
+}
+
+make_artifacts() { mkdir -p "$ARTIFACT_DIR"; }
+
+managed_pid() {
+  if [[ -f "$PID_FILE" ]]; then
+    cat "$PID_FILE"
+  fi
+}
+
+launch() {
+  ensure_testing
+  make_artifacts
+  if [[ -n "$(managed_pid)" ]] && kill -0 "$(managed_pid)" 2>/dev/null; then
+    echo "Managed server already running. Use cleanup first." >&2
+    exit 2
+  fi
+
+  php artisan serve --host=127.0.0.1 --port="$PORT" >"$ARTIFACT_DIR/server.log" 2>&1 &
+  echo "$!" > "$PID_FILE"
+
+  for _ in $(seq 1 60); do
+    if curl --max-time 2 -fsS "$APP_URL/up" >/dev/null 2>&1; then
+      doctor
+      return 0
+    fi
+    if ! kill -0 "$(managed_pid)" 2>/dev/null; then
+      echo "Server exited; inspect $ARTIFACT_DIR/server.log" >&2
+      exit 1
+    fi
+    sleep 0.5
+  done
+
+  echo "Application did not become healthy; inspect $ARTIFACT_DIR/server.log" >&2
+  exit 1
+}
+
+doctor() {
+  local code rev alive
+  code="$(curl --max-time 5 -sS -o /dev/null -w '%{http_code}' "$APP_URL/up" 2>/dev/null || true)"
+  rev="$(git rev-parse HEAD)"
+  alive=false
+  if [[ -n "$(managed_pid)" ]] && kill -0 "$(managed_pid)" 2>/dev/null; then
+    alive=true
+  fi
+  python3 - "$APP_URL" "$code" "$rev" "$alive" <<'PY'
+import json
+import sys
+print(json.dumps({"url": sys.argv[1], "health_status": sys.argv[2], "git_revision": sys.argv[3], "managed_pid_alive": sys.argv[4] == "true"}))
+PY
+  [[ "$code" =~ ^2[0-9][0-9]$ ]]
+}
+
+http_read() {
+  local method="${1:-}" path="${2:-}"
+  if [[ "$method" != "GET" ]] || [[ "$path" != /* ]] || [[ "$path" == *..* ]]; then
+    echo "Only read-only GET requests with absolute, traversal-free paths are supported." >&2
+    exit 2
+  fi
+  make_artifacts
+  local seq_id first second status readback evidence
+  seq_id="$(date -u +%Y%m%dT%H%M%S)-$RANDOM"
+  first="$ARTIFACT_DIR/$seq_id-first.body"
+  second="$ARTIFACT_DIR/$seq_id-readback.body"
+  evidence="$ARTIFACT_DIR/$seq_id.json"
+  status="$(curl --max-time 30 -sS -o "$first" -w '%{http_code}' "$APP_URL$path")"
+  readback="$(curl --max-time 30 -sS -o "$second" -w '%{http_code}' "$APP_URL$path")"
+
+  python3 - "$path" "$status" "$readback" "$first" "$second" "$evidence" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
+
+path, status, readback, first, second, evidence = sys.argv[1:]
+left, right = pathlib.Path(first).read_bytes(), pathlib.Path(second).read_bytes()
+record = {
+    "method": "GET",
+    "path": path,
+    "http_status": int(status),
+    "second_view_http_status": int(readback),
+    "body_sha256": hashlib.sha256(left).hexdigest(),
+    "second_view_sha256": hashlib.sha256(right).hexdigest(),
+    "first_view": first,
+    "second_view": second,
+    "second_view_status_matches": status == readback,
+}
+pathlib.Path(evidence).write_text(json.dumps(record, indent=2) + "\n")
+print(json.dumps(record))
+PY
+  [[ "$status" == "$readback" ]] && [[ "$status" != 5* ]]
+}
+
+cache_check() {
+  ensure_testing
+  (
+    trap 'php artisan optimize:clear >/dev/null 2>&1 || true' EXIT
+    php artisan optimize
+    test -f bootstrap/cache/platform.php
+    php artisan optimize:clear
+    test ! -f bootstrap/cache/platform.php
+  )
+  echo '{"cache_check":"passed"}'
+}
+
+cleanup() {
+  if [[ -f "$PID_FILE" ]]; then
+    local pid args
+    pid="$(cat "$PID_FILE")"
+    if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+      args="$(ps -p "$pid" -o args= || true)"
+      if [[ "$args" == *"artisan serve"* ]]; then
+        kill "$pid" || true
+      fi
+    fi
+    rm -f "$PID_FILE"
+  fi
+  printf '{"cleanup":"complete","evidence_preserved":"%s"}\n' "$ARTIFACT_DIR"
+}
+
+case "${1:---help}" in
+  launch) launch ;;
+  doctor) doctor ;;
+  http) shift; http_read "$@" ;;
+  cache-check) cache_check ;;
+  cleanup) cleanup ;;
+  -h|--help|help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac
