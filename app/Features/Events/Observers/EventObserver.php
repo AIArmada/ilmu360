@@ -1,148 +1,39 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Events\Observers;
 
-use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
-use AIArmada\CommerceSupport\Support\CanonicalSlug;
-use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
-use App\Features\Events\Api\EventAuthoring;
-use App\Features\Events\Api\ShareCardWarmScheduler;
+use App\Features\Events\Actions\Lifecycle\ApplyEventLifecycleEffectsAction;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Api\InstitutionListingCacheVersion;
-use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Features\SlugRedirects\Api\SlugRedirectCommands;
-use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class EventObserver implements ShouldHandleEventsAfterCommit
+final readonly class EventObserver implements ShouldHandleEventsAfterCommit
 {
-    use SyncsCurrentAndPreviousValues;
-
-    public function __construct(
-        protected EventAuthoring $eventAuthoring,
-        protected SlugRedirectRecorder $slugRedirectRecorder,
-        protected SlugRedirectCommands $slugRedirectCommands,
-        protected InstitutionListingCacheVersion $institutionCacheVersion,
-        protected PersonListingCacheVersion $personCacheVersion,
-        protected PublicListingsCacheInvalidator $publicListingsCache
-    ) {}
+    public function __construct(private ApplyEventLifecycleEffectsAction $effects) {}
 
     public function creating(Event $event): void
     {
-        if (blank($event->slug)) {
-            $event->slug = $this->eventAuthoring->eventSlug(
-                $event->title,
-                $event->starts_at,
-                is_string($event->timezone) ? $event->timezone : null,
-                (string) $event->getKey(),
-                [],
-            );
-        }
+        $this->effects->creating($event);
     }
-
-    /**
-     * Handle the Event "updating" event.
-     */
-    public function updating(Event $event): void {}
 
     public function created(Event $event): void
     {
-        $this->publicListingsCache->bustHomepageStats();
-        $this->publicListingsCache->bustMajlisListing();
-        $this->institutionCacheVersion->bump();
-        $this->personCacheVersion->bump();
-
-        if ($event->isPubliclyReachable()) {
-            app(ShareCardWarmScheduler::class)->prewarmForEvent($event->getKey());
-        }
+        $this->effects->created($event);
     }
 
     public function updated(Event $event): void
     {
-        $this->publicListingsCache->bustHomepageStats();
-        $this->publicListingsCache->bustMajlisListing();
-        $this->institutionCacheVersion->bump();
-        $this->personCacheVersion->bump();
-
-        if ($event->wasChanged('slug')) {
-            /**
-             * Direct event write paths can persist the canonical slug before the
-             * observer runs, so redirects are synchronized here from the model's
-             * previous persisted slug snapshot.
-             */
-            CanonicalSlug::syncChanged(
-                $event,
-                $event->getPrevious()['slug'] ?? null,
-                $this->slugRedirectRecorder,
-            );
-        }
-
-        if ($event->isPubliclyReachable() && $event->wasChanged([
-            'title',
-            'status',
-            'published_at',
-            'cancelled_at',
-            'visibility',
-            'timezone',
-            'starts_at',
-            'ends_at',
-            'prayer_reference',
-            'prayer_offset',
-            'prayer_display_text',
-            'institution_id',
-            'default_venue_id',
-        ])) {
-            app(ShareCardWarmScheduler::class)->prewarmForEvent($event->getKey());
-        }
-
-        $needsSlugSync = $event->wasChanged(['title', 'timezone']);
-
-        if ($needsSlugSync) {
-            OwnerContext::withOwner(null, function () use ($event): void {
-                $this->syncCurrentAndPreviousString(
-                    $event->title,
-                    $event->getPrevious()['title'] ?? null,
-                    fn (string $title): bool => $this->eventAuthoring->syncEventSlugsForTitle($title),
-                );
-            });
-        }
-
+        $this->effects->updated($event);
     }
 
-    /**
-     * Scout's model observer covers the app-owned fields. These package-backed
-     * fields are intentionally synced here when their canonical event columns change.
-     */
     public function saved(Event $event): void
     {
-        if ($event->wasRecentlyCreated || ! $event->wasChanged([
-            'metadata',
-            'default_venue_id',
-            'delivery_mode',
-            'timezone',
-        ])) {
-            return;
-        }
-
-        if (! $event->shouldBeSearchable()) {
-            if ($event->wasSearchableBeforeUpdate()) {
-                $event->unsearchable();
-            }
-
-            return;
-        }
-
-        $event->searchable();
+        $this->effects->saved($event);
     }
 
     public function deleted(Event $event): void
     {
-        $this->slugRedirectCommands->purge($event->getMorphClass(), (string) $event->getKey());
-        $this->eventAuthoring->syncEventSlugsForTitle($event->title);
-        $this->publicListingsCache->bustHomepageStats();
-        $this->publicListingsCache->bustMajlisListing();
-        $this->institutionCacheVersion->bump();
-        $this->personCacheVersion->bump();
+        $this->effects->deleted($event);
     }
 }
