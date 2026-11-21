@@ -169,7 +169,6 @@ it('rejects media staged by a different contribution request', function (): void
         $second->getMorphClass(),
         (string) $second->getKey(),
         [(string) $file->getKey()],
-    ))->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
-
-    expect(Media::query()->whereKey($file->getKey())->exists())->toBeTrue();
+    ))->toThrow(Illuminate\Database\Eloquent\ModelNotFoundException::class)
+        ->and(Media::query()->whereKey($file->getKey())->exists())->toBeTrue();
 });

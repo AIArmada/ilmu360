@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
-
 /**
  * Contribution form-state normalisation boundary for event subjects.
  *
@@ -31,6 +30,4 @@ interface EventContributionStateMapper
      * @return array<string, mixed>
      */
     public function provenanceOriginals(?string $eventId = null): array;
-
-
 }

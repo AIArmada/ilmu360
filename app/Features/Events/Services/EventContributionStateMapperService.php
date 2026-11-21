@@ -23,6 +23,4 @@ final readonly class EventContributionStateMapperService implements EventContrib
     {
         return EventContributionUpdateStateMapper::provenanceOriginals($eventId !== null ? Event::query()->findOrFail($eventId) : null);
     }
-
-
 }

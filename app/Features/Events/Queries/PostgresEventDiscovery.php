@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use App\Features\Events\Policies\PublicSchedulePolicy;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
@@ -33,6 +32,7 @@ use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\Series;
+use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;

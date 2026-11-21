@@ -6,8 +6,8 @@ namespace App\Features\Events\Services;
 
 use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
 use App\Features\Events\Api\EventMedia;
-use App\Platform\Media\MediaCollectionSync;
 use App\Features\Events\Models\Event;
+use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
