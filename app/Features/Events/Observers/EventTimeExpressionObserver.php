@@ -21,5 +21,4 @@ final readonly class EventTimeExpressionObserver implements ShouldHandleEventsAf
     {
         $this->searchIndex->handle((string) $expression->event_id);
     }
-
 }

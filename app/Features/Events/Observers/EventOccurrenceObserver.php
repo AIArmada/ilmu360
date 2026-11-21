@@ -48,5 +48,4 @@ final readonly class EventOccurrenceObserver implements ShouldHandleEventsAfterC
     {
         $this->discovery->afterDeleted((string) $occurrence->event_id);
     }
-
 }
