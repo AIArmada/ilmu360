@@ -9,7 +9,6 @@ use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
-use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionVenue;
 use App\Features\Places\Api\Enums\VenueType;
@@ -125,9 +124,6 @@ class Venue extends PackageVenue implements AuditableContract
             }
         });
 
-        static::deleted(function (self $venue): void {
-            app(InstitutionVenueLinks::class)->deleteForVenue((string) $venue->getKey());
-        });
     }
 
     /**

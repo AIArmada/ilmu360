@@ -5,7 +5,6 @@ namespace App\Features\Places\Models;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Events\Models\VenueSpace;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\SpaceFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -51,9 +50,6 @@ class Space extends VenueSpace implements AuditableContract
 
         parent::booted();
 
-        static::deleted(function (self $space): void {
-            app(InstitutionSpaceLinks::class)->deleteForSpace((string) $space->getKey());
-        });
     }
 
     /**
