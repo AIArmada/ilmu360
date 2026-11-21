@@ -65,6 +65,9 @@ interface EventScheduleReads
      */
     public function shareIdentityBySlug(string $slug): ?array;
 
+    /** @return array{id: string, title: string}|null */
+    public function shareIdentityById(string $eventId): ?array;
+
     /**
      * Counts for a person's event workspace, including private and draft rows.
      *

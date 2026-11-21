@@ -33,7 +33,8 @@ use App\Features\ShareTracking\EntryPoints\Livewire\Pages\DakwahIndex;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
-use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -1079,14 +1080,14 @@ test('registration refunds reverse attributed registration and check-in outcomes
     $trackingService->recordOutcome(
         ShareOutcomeType::EventRegistration,
         $registrationKey,
-        ShareSubjectFactory::fromModel($event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title),
         $visitor,
         ShareRequestContext::fromRequest($request),
     );
     $trackingService->recordOutcome(
         ShareOutcomeType::EventCheckin,
         $checkinKey,
-        ShareSubjectFactory::fromModel($event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title),
         $visitor,
         ShareRequestContext::fromRequest($request),
     );

@@ -25,7 +25,8 @@ use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
-use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
@@ -236,7 +237,7 @@ it('invalidates a stale cookie once its link is deactivated', function (): void 
     $outcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
-        ShareSubjectFactory::fromModel($this->event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $this->event->getKey(), (string) $this->event->title),
         $visitor,
         ShareRequestContext::fromRequest($request),
     );
@@ -298,7 +299,7 @@ it('excludes proven self-referral credit without inventing identities', function
     $outcome = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
-        ShareSubjectFactory::fromModel($this->event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $this->event->getKey(), (string) $this->event->title),
         $this->sharer,
         ShareRequestContext::fromRequest($request),
     );
@@ -314,7 +315,7 @@ it('excludes proven self-referral credit without inventing identities', function
     $credited = app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
-        ShareSubjectFactory::fromModel($this->event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $this->event->getKey(), (string) $this->event->title),
         $visitor,
         ShareRequestContext::fromRequest($visitorRequest),
     );
@@ -1024,7 +1025,7 @@ it('excludes new credit for marked profiles whose member owner is missing', func
     expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSave,
         ShareOutcomeBusinessKey::eventSave((string) Str::uuid()),
-        ShareSubjectFactory::fromModel($this->event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $this->event->getKey(), (string) $this->event->title),
         $visitor,
         ShareRequestContext::fromRequest($request),
     ))->toBeNull()

@@ -24,6 +24,7 @@ use App\Features\Events\Api\EventDirectorySqlProjection;
 use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Api\EventScheduleFact;
 use App\Features\Events\Api\EventScheduleFactSet;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Api\Orm\EventOrmPort;
@@ -60,7 +61,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
-final readonly class PostgresEventDiscovery implements EventDirectoryProjectionProvider, EventDiscoveryReader, EventOrmPort, PublicScheduleEventReads
+final readonly class PostgresEventDiscovery implements EventDirectoryProjectionProvider, EventDiscoveryReader, EventScheduleReads, EventOrmPort, PublicScheduleEventReads
 {
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
@@ -2083,6 +2084,16 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
     public function findEvent(string $eventId): ?Event
     {
         return Event::query()->find($eventId);
+    }
+
+    public function shareIdentityById(string $eventId): ?array
+    {
+        $event = Event::query()->whereKey($eventId)->first(['id', 'title']);
+
+        return $event instanceof Event ? [
+            'id' => (string) $event->getKey(),
+            'title' => (string) $event->title,
+        ] : null;
     }
 
     public function shareIdentityBySlug(string $slug): ?array

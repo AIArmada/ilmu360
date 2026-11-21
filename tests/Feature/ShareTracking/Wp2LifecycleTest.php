@@ -56,7 +56,8 @@ use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
-use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Database\Seeders\AIArmada\EventRoleSeeder;
@@ -421,8 +422,8 @@ it('reverses event-scope submissions on reject without cascading into session su
     $eventKey = ShareOutcomeBusinessKey::eventSubmission((string) $eventSubmission->getKey());
     $sessionKey = ShareOutcomeBusinessKey::eventSubmission((string) $sessionSubmission->getKey());
 
-    expect($service->recordOutcome(ShareOutcomeType::EventSubmission, $eventKey, ShareSubjectFactory::fromModel($event), $actor, ShareRequestContext::fromRequest($request)))->not->toBeNull()
-        ->and($service->recordOutcome(ShareOutcomeType::EventSubmission, $sessionKey, ShareSubjectFactory::fromModel($event), $actor, ShareRequestContext::fromRequest($request)))->not->toBeNull();
+    expect($service->recordOutcome(ShareOutcomeType::EventSubmission, $eventKey, ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title), $actor, ShareRequestContext::fromRequest($request)))->not->toBeNull()
+        ->and($service->recordOutcome(ShareOutcomeType::EventSubmission, $sessionKey, ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title), $actor, ShareRequestContext::fromRequest($request)))->not->toBeNull();
 
     app(ModerationService::class)->reject($event, $moderator, 'spam', 'WP2 probe');
 
@@ -463,7 +464,7 @@ it('reverses registration outcomes on cancel and reject through the lifecycle li
     expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventRegistration,
         ShareOutcomeBusinessKey::eventRegistration((string) $rejected->getKey()),
-        ShareSubjectFactory::fromModel($event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title),
         null,
         ShareRequestContext::fromRequest($attributedRequest),
     ))->not->toBeNull();
@@ -1005,7 +1006,7 @@ it('reverses participation outcomes on event cancel while preserving contributio
     expect(app(AffiliatesShareTrackingService::class)->recordOutcome(
         ShareOutcomeType::EventSubmission,
         ShareOutcomeBusinessKey::eventSubmission((string) $submission->getKey()),
-        ShareSubjectFactory::fromModel($event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title),
         $actor,
         ShareRequestContext::fromRequest($attributedRequest),
     ))->not->toBeNull();
@@ -1096,7 +1097,7 @@ it('scopes occurrence and session cancellations to their actual registrations', 
         expect($service->recordOutcome(
             ShareOutcomeType::EventRegistration,
             ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
-            ShareSubjectFactory::fromModel($event),
+            ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title),
             null,
             ShareRequestContext::fromRequest($attributedRequest),
         ))->not->toBeNull();

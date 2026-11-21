@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
-use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -24,7 +23,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
  * References pages, ShareTracking and the Institutions/References lookup
  * queries. Discovery schedule reads use {@see PublicScheduleEventReads}.
  */
-interface EventOrmPort extends EventScheduleReads
+interface EventOrmPort
 {
     /**
      * A hydrated Event model for framework contracts (policies, Livewire page

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Registration\Api\Data\CheckInSourceFacts;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
@@ -13,11 +13,11 @@ use App\Features\ShareTracking\Api\ParticipationAttribution;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
-use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -49,7 +49,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         ?object $request = null,
         array $businessMetadata = [],
     ): void {
-        $subject = $this->findEvent($eventId);
+        $subject = $this->eventSubject($eventId);
         $registration = $this->registrationLookup->findRegistration($registrationId);
         $actor = $this->findActor($actorId);
 
@@ -69,7 +69,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         $this->shareTracking->recordOutcome(
             type: ShareOutcomeType::EventRegistration,
             businessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
-            subject: $subject instanceof Model ? ShareSubjectFactory::fromModel($subject) : null,
+            subject: $subject,
             actor: $actor,
             request: ShareRequestContext::fromRequest($request instanceof Request ? $request : request()),
             metadata: $metadata,
@@ -88,7 +88,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         $this->shareTracking->recordOutcome(
             type: ShareOutcomeType::EventCheckin,
             businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
-            subject: ShareSubjectFactory::fromModel($this->findEvent($eventId)),
+            subject: $this->eventSubject($eventId),
             actor: $this->findActor($actorId),
             request: ShareRequestContext::fromRequest($request instanceof Request ? $request : request()),
             metadata: $this->checkinMetadata($checkin),
@@ -108,7 +108,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             type: ShareOutcomeType::EventCheckin,
             businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
             sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
-            subject: ShareSubjectFactory::fromModel($this->findEvent($eventId)),
+            subject: $this->eventSubject($eventId),
             actor: $this->findActor($actorId),
             metadata: $this->checkinMetadata($checkin),
             occurredAt: $this->occurredAt($checkin),
@@ -127,7 +127,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             type: ShareOutcomeType::EventCheckin,
             businessKey: ShareOutcomeBusinessKey::eventCheckin($checkinId),
             sourceBusinessKey: ShareOutcomeBusinessKey::eventRegistration($registrationId),
-            subject: ShareSubjectFactory::fromModel($this->findEvent($eventId)),
+            subject: $this->eventSubject($eventId),
             metadata: [
                 'registration_id' => $registrationId,
                 'staff_assisted' => true,
@@ -151,11 +151,13 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
         );
     }
 
-    private function findEvent(string $eventId): ?Model
+    private function eventSubject(string $eventId): ?ShareSubject
     {
-        $event = app(EventOrmPort::class)->findEvent($eventId);
+        $identity = app(EventScheduleReads::class)->shareIdentityById($eventId);
 
-        return $event instanceof Model ? $event : null;
+        return $identity !== null
+            ? ShareSubject::for(ShareSubjectType::Event->value, $identity['id'], $identity['title'])
+            : null;
     }
 
     private function findActor(?string $actorId): ?User

@@ -9,7 +9,7 @@ use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
@@ -17,11 +17,11 @@ use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
-use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -89,7 +89,10 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
             }
 
             $actor = $this->participantUser($registration);
-            $subject = app(EventOrmPort::class)->findEvent((string) $registration->event_id);
+            $identity = app(EventScheduleReads::class)->shareIdentityById((string) $registration->event_id);
+            $subject = $identity !== null
+                ? ShareSubject::for(ShareSubjectType::Event->value, $identity['id'], $identity['title'])
+                : null;
             $effectiveAttributionId = $attributionId;
             $effectiveOccurredAt = $occurredAt ?? $this->fallbackOccurredAt($session, $registration);
 
@@ -102,7 +105,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
                 type: ShareOutcomeType::EventRegistration,
                 businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
                 persistedAttributionId: $effectiveAttributionId,
-                subject: $subject instanceof Model ? ShareSubjectFactory::fromModel($subject) : null,
+                subject: $subject,
                 actor: $actor,
                 metadata: [
                     'registration_id' => (string) $registration->getKey(),
@@ -209,7 +212,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
 
     private function isScopeCancelled(Registration $registration): bool
     {
-        if (app(EventOrmPort::class)->eventStatus((string) $registration->event_id) === 'cancelled') {
+        if (app(EventScheduleReads::class)->eventStatus((string) $registration->event_id) === 'cancelled') {
             return true;
         }
 

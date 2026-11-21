@@ -395,7 +395,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $totalEvents = (int) ($institution->events_count ?? 0);
         $publicEvents = (int) ($institution->public_events_count ?? 0);
-        $registrationsCount = app(EventOrmPort::class)->institutionRegistrationCount((string) $institution->id);
+        $registrationsCount = app(EventScheduleReads::class)->institutionRegistrationCount((string) $institution->id);
 
         return [
             'events_count' => $totalEvents,

@@ -11,7 +11,8 @@ use App\Features\Places\Models\Venue;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
-use App\Features\ShareTracking\Support\ShareSubjectFactory;
+use App\Features\ShareTracking\Api\Data\ShareSubject;
+use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Http\Request;
@@ -142,7 +143,7 @@ it('records authoritative share outcomes without writing unread share-fact telem
     $outcome = $shareService->recordOutcome(
         ShareOutcomeType::EventSave,
         $businessKey,
-        ShareSubjectFactory::fromModel($event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title),
         $visitor,
         ShareRequestContext::fromRequest($request),
     );
@@ -187,7 +188,7 @@ it('records authoritative share outcomes when signals delivery is unavailable', 
     $outcome = $shareService->recordOutcome(
         ShareOutcomeType::EventSave,
         $businessKey,
-        ShareSubjectFactory::fromModel($event),
+        ShareSubject::for(ShareSubjectType::Event->value, (string) $event->getKey(), (string) $event->title),
         $visitor,
         ShareRequestContext::fromRequest($request),
     );
