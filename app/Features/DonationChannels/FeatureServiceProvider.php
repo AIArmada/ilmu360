@@ -12,6 +12,8 @@ use App\Features\DonationChannels\EntryPoints\Admin\Resources\DonationChannelMut
 use App\Features\DonationChannels\EntryPoints\Api\Admin\DonationChannelResourceDefinition;
 use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\DonationChannelAdminComponentsAdapter;
 use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\DonationChannelResource;
+use App\Features\DonationChannels\Models\DonationChannel;
+use App\Features\DonationChannels\Observers\DonationChannelObserver;
 use App\Features\DonationChannels\Queries\EloquentDonationChannelLookup;
 use App\Features\DonationChannels\Services\DonationChannelWorkflowService;
 use App\Features\DonationChannels\Services\DonationQrMediaService;
@@ -36,6 +38,7 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        DonationChannel::observe(DonationChannelObserver::class);
         parent::boot();
 
         $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(DonationChannelResourceDefinition::class));

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Models;
 
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
-use App\Features\Institutions\Api\InstitutionWorkflow;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,17 +33,6 @@ class InstitutionName extends Model
         'language_code',
         'is_primary',
     ];
-
-    protected static function booted(): void
-    {
-        static::saved(function (InstitutionName $name): void {
-            app(InstitutionWorkflow::class)->enforceSinglePrimaryName(
-                (string) $name->getKey(),
-                (string) $name->institution_id,
-                (bool) $name->is_primary,
-            );
-        });
-    }
 
     protected function casts(): array
     {

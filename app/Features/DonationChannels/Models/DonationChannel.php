@@ -146,9 +146,6 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
             }
         });
 
-        static::saved(function (self $channel): void {
-            app(DonationChannelWorkflow::class)->demoteDefault((string) $channel->getKey());
-        });
     }
 
     private function applyStatusTimestamp(DonationChannelStatus $status, CarbonImmutable $at, bool $overwrite = false): void
