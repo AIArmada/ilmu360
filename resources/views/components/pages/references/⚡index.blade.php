@@ -5,6 +5,7 @@ use App\Features\Engagement\Api\EngagementSubjectType;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\Events\Models\Event;
 use App\Features\References\Models\Reference;
@@ -163,17 +164,6 @@ new
                 Reference::query()->active(),
             )
                 ->select('references.*')
-                ->selectSub($this->nextPublicEventQuery()->select('events.id'), 'next_event_id')
-                ->selectSub(
-                    app(ReferenceQueries::class)->constrainEventReferenceSubtree(Event::query()->active())
-                        ->join("{$occurrencesTable} as upcoming_event_occurrences", 'upcoming_event_occurrences.event_id', '=', 'events.id')
-                        ->whereIn('upcoming_event_occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
-                        ->whereIn('upcoming_event_occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
-                        ->whereNotNull('upcoming_event_occurrences.starts_at')
-                        ->where('upcoming_event_occurrences.starts_at', '>=', now())
-                        ->selectRaw('COUNT(DISTINCT upcoming_event_occurrences.id)'),
-                    'upcoming_events_count',
-                )
                 // Cards only read front/back covers, so skip the gallery
                 // collection instead of loading every media row per page.
                 ->with([
@@ -208,6 +198,22 @@ new
         {
             if ($references === []) {
                 return;
+            }
+
+            $families = [];
+
+            foreach ($references as $reference) {
+                $referenceId = (string) $reference->getKey();
+                $families[$referenceId] = app(ReferenceQueries::class)->defaultEventReferenceIds($referenceId);
+            }
+
+            $facts = app(EventScheduleReads::class)->referenceDirectoryFacts($families);
+
+            foreach ($references as $reference) {
+                $fact = $facts[(string) $reference->getKey()] ?? ['next_event_id' => null, 'upcoming_events_count' => 0];
+
+                $reference->setAttribute('next_event_id', $fact['next_event_id']);
+                $reference->setAttribute('upcoming_events_count', $fact['upcoming_events_count']);
             }
 
             $nextEventIds = collect($references)
@@ -254,24 +260,6 @@ new
                 ->where("{$occurrencesTable}.starts_at", '>=', now())
                 ->groupBy('events.id', 'events.slug', 'events.title')
                 ->get();
-        }
-
-        /**
-         * @return Builder<Event>
-         */
-        private function nextPublicEventQuery(): Builder
-        {
-            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-
-            return app(ReferenceQueries::class)->constrainEventReferenceSubtree(Event::query())
-                ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
-                ->where('next_event_occurrences.starts_at', '>=', now())
-                ->whereNotNull('events.published_at')
-                ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                ->where('events.visibility', EventVisibility::Public->value)
-                ->orderBy('next_event_occurrences.starts_at')
-                ->orderBy('events.id')
-                ->limit(1);
         }
 
         private function directSearch(string $search): LengthAwarePaginatorContract

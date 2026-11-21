@@ -128,13 +128,4 @@ interface EventOrmPort extends EventScheduleReads
      * @param  array<string, mixed>  $venueEagerLoads
      */
     public function referenceEventsQuery(array $referenceIds, array $venueEagerLoads): EventBuilder;
-
-    /**
-     * Public event-count subquery constrained to the reference subtree, for
-     * reference directory selects.
-     */
-    /**
-     * @return \Illuminate\Database\Eloquent\Builder<Event>
-     */
-    public function publicReferenceEventCountSubquery(): \Illuminate\Database\Eloquent\Builder;
 }

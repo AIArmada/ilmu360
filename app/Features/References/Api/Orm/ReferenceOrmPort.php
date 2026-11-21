@@ -30,16 +30,4 @@ interface ReferenceOrmPort extends ReferenceQueries
      * @return TQuery
      */
     public function applyPublicVisibility(Builder|QueryBuilder $query, ?string $table = null): Builder|QueryBuilder;
-
-    /**
-     * Apply the reference-family visibility predicate to an Events query.
-     *
-     * Correlated-subquery projection used by the reference directory count;
-     * the owner keeps the family/visibility SQL, callers keep only event
-     * status rules.
-     *
-     * @param  Builder<\App\Features\Events\Models\Event>  $query
-     * @return Builder<\App\Features\Events\Models\Event>
-     */
-    public function constrainEventReferenceSubtree(Builder $query, string $referenceIdColumn = 'references.id'): Builder;
 }

@@ -92,6 +92,55 @@ try {
     }
     ksort($paths);
 
+    // Business-query escape detection needs the published ORM surface before
+    // the per-file pass. Record every Api/Orm method's return shape so a
+    // foreign consumer that receives a builder can be rejected even when the
+    // port is annotated @internal with an accurate Consumers list.
+    $ormContracts = [];
+    foreach ($paths as $relative => $path) {
+        if (preg_match('~^app/Features/([^/]+)/Api/Orm/~', $relative, $ownerMatch) !== 1) {
+            continue;
+        }
+        $ormAst = $parser->parse((string) file_get_contents($path)) ?? [];
+        $ormTraverser = new NodeTraverser;
+        $ormTraverser->addVisitor(new NameResolver);
+        $ormAst = $ormTraverser->traverse($ormAst);
+        foreach ($finder->findInstanceOf($ormAst, Node\Stmt\ClassLike::class) as $ormClass) {
+            if ($ormClass->name === null) {
+                continue;
+            }
+            $declared = isset($ormClass->namespacedName) ? $ormClass->namespacedName->toString() : $ormClass->name->toString();
+            $ormContracts[$declared] = ['owner' => $ownerMatch[1], 'file' => $relative, 'methods' => []];
+            foreach ($ormClass->getMethods() as $ormMethod) {
+                if (! $ormMethod->isPublic()) {
+                    continue;
+                }
+                $returnType = $ormMethod->returnType instanceof Node\NullableType ? $ormMethod->returnType->type : $ormMethod->returnType;
+                $nativeReturn = $returnType instanceof Node\Identifier
+                    ? strtolower($returnType->toString())
+                    : ($returnType instanceof Node\Name ? strtolower($returnType->toString()) : '');
+                $ormDoc = $ormMethod->getDocComment()?->getText() ?? '';
+                $docReturn = preg_match('~@return\s+([^\n*]+)~', $ormDoc, $docMatch) === 1 ? trim($docMatch[1]) : '';
+                $returnShape = 'scalar';
+                if (in_array($nativeReturn, ['object', 'mixed'], true)) {
+                    $returnShape = 'opaque';
+                } elseif (str_contains($nativeReturn, 'builder') || str_contains($docReturn, 'Builder')
+                    || str_contains($nativeReturn, 'relation') || str_contains($docReturn, 'Relation')) {
+                    $returnShape = 'builder';
+                } elseif (str_contains($nativeReturn, 'collection') || str_contains($docReturn, 'Collection')
+                    || str_contains($nativeReturn, 'paginator') || str_contains($docReturn, 'Paginator')) {
+                    $returnShape = 'collection';
+                } elseif (preg_match('~App\\\\Features\\\\[A-Za-z]+\\\\Models\\\\~', $nativeReturn.' '.$docReturn) === 1) {
+                    $returnShape = 'model';
+                }
+                $ormContracts[$declared]['methods'][$ormMethod->name->toString()] = [
+                    'shape' => $returnShape,
+                    'line' => $ormMethod->getStartLine(),
+                ];
+            }
+        }
+    }
+
     // Conventional Fortify contracts/pipeline are framework entrypoints, not
     // business Actions. All other actions belong in their owning features.
     $fortifyEntrypoints = [
@@ -397,6 +446,118 @@ try {
             if (is_string($ormSource)
                 && (preg_match('/@internal\b/', $ormSource) !== 1 || preg_match('/Consumers:/', $ormSource) !== 1)) {
                 $report('orm-port-contract', $relative, 1, 'Api/Orm', 'Every Api/Orm port must document @internal and its Consumers: list.');
+            }
+
+            foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassMethod::class) as $ormMethod) {
+                if (! $ormMethod->isPublic()) {
+                    continue;
+                }
+                $ormReturn = $ormMethod->returnType instanceof Node\NullableType ? $ormMethod->returnType->type : $ormMethod->returnType;
+                $ormReturnName = $ormReturn instanceof Node\Identifier
+                    ? strtolower($ormReturn->toString())
+                    : ($ormReturn instanceof Node\Name ? strtolower($ormReturn->toString()) : null);
+
+                if (in_array($ormReturnName, ['object', 'mixed'], true)) {
+                    $report('orm-opaque-return', $relative, $ormMethod->getStartLine(), $ormMethod->name->toString(), 'Name the concrete owner model, Eloquent collection/builder or immutable value; opaque object/mixed is not an integration seam.');
+                }
+            }
+        }
+
+        if ($sourceFeature && ! str_contains($relative, '/Api/Orm/') && $ormContracts !== []) {
+            $foreignBuilderMethods = [];
+            $consumerSource = (string) file_get_contents($path);
+
+            foreach ($ormContracts as $contractName => $contract) {
+                if ($contract['owner'] === $sourceFeature) {
+                    continue;
+                }
+
+                $contractShort = substr($contractName, (int) strrpos($contractName, '\\') + 1);
+
+                if (! str_contains($consumerSource, $contractShort)) {
+                    continue;
+                }
+
+                foreach ($contract['methods'] as $methodName => $methodMeta) {
+                    if ($methodMeta['shape'] === 'builder') {
+                        $foreignBuilderMethods[$methodName] = $contractName;
+                    }
+                }
+            }
+
+            if ($foreignBuilderMethods !== []) {
+                $compositionMethods = [
+                    'where', 'orWhere', 'whereIn', 'whereNotIn', 'whereNull', 'whereNotNull',
+                    'whereHas', 'orWhereHas', 'whereDoesntHave', 'whereRelation', 'whereRaw', 'orWhereRaw',
+                    'join', 'leftJoin', 'rightJoin', 'select', 'addSelect', 'selectRaw', 'with', 'withCount',
+                    'orderBy', 'orderByDesc', 'groupBy', 'having', 'limit', 'offset', 'take', 'skip',
+                    'reorder', 'distinct', 'lockForUpdate', 'sharedLock',
+                    'update', 'delete', 'forceDelete', 'insert', 'create', 'save',
+                    'firstOrCreate', 'updateOrCreate',
+                ];
+
+                $isForeignBuilderCall = static fn (Node\Expr $expression): ?string => $expression instanceof Node\Expr\MethodCall
+                    && $expression->name instanceof Node\Identifier
+                    && isset($foreignBuilderMethods[$expression->name->toString()])
+                        ? $foreignBuilderMethods[$expression->name->toString()]
+                        : null;
+
+                foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassMethod::class) as $consumerMethod) {
+                    $taintedBuilders = [];
+
+                    foreach ($finder->find($consumerMethod, static fn (Node $node): bool => true) as $node) {
+                        if ($node instanceof Node\Expr\Assign) {
+                            if ($isForeignBuilderCall($node->expr) === null) {
+                                continue;
+                            }
+
+                            if ($node->var instanceof Node\Expr\Variable && is_string($node->var->name)) {
+                                $taintedBuilders[$node->var->name] = $node->getStartLine();
+                            } elseif ($node->var instanceof Node\Expr\PropertyFetch
+                                && $node->var->name instanceof Node\Identifier
+                                && $node->var->var instanceof Node\Expr\Variable
+                                && $node->var->var->name === 'this') {
+                                $taintedBuilders['this->'.$node->var->name->toString()] = $node->getStartLine();
+                            }
+
+                            continue;
+                        }
+
+                        if (! $node instanceof Node\Expr\MethodCall || ! $node->name instanceof Node\Identifier) {
+                            continue;
+                        }
+
+                        if (! in_array($node->name->toString(), $compositionMethods, true)) {
+                            continue;
+                        }
+
+                        $consumer = $node->var;
+                        $taintedKey = null;
+
+                        if ($consumer instanceof Node\Expr\Variable && is_string($consumer->name)) {
+                            $taintedKey = $consumer->name;
+                        } elseif ($consumer instanceof Node\Expr\PropertyFetch
+                            && $consumer->name instanceof Node\Identifier
+                            && $consumer->var instanceof Node\Expr\Variable
+                            && $consumer->var->name === 'this') {
+                            $taintedKey = 'this->'.$consumer->name->toString();
+                        }
+
+                        $contract = $isForeignBuilderCall($consumer);
+
+                        if ($contract === null && ($taintedKey === null || ! isset($taintedBuilders[$taintedKey]))) {
+                            continue;
+                        }
+
+                        $report(
+                            'orm-query-escape',
+                            $relative,
+                            $node->getStartLine(),
+                            $contract ?? 'tainted-builder',
+                            'A foreign owner builder is being composed here; pass typed criteria to the owner and consume its immutable result instead of calling '.$node->name->toString().'().',
+                        );
+                    }
+                }
             }
         }
 

@@ -2167,17 +2167,161 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
     }
 
     /**
-     * @return Builder<Event>
+     * @param  array<string, list<string>>  $referenceFamilies
+     * @return array<string, int>
      */
-    public function publicReferenceEventCountSubquery(): Builder
+    public function publicEventCountsForReferenceFamilies(array $referenceFamilies): array
     {
-        return $this->referenceQueries->constrainEventReferenceSubtree(
-            Event::query()
-                ->whereNotNull('events.published_at')
-                ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                ->where('events.visibility', EventVisibility::Public)
-                ->whereHas('occurrences'),
-        )->selectRaw('count(distinct events.id)');
+        $uniqueIds = [];
+
+        foreach ($referenceFamilies as $ids) {
+            foreach ($ids as $referenceId) {
+                if (is_string($referenceId) && $referenceId !== '') {
+                    $uniqueIds[$referenceId] = true;
+                }
+            }
+        }
+
+        if ($uniqueIds === []) {
+            return [];
+        }
+
+        $pivotTable = (string) config('events.database.tables.event_references', 'event_references');
+        $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
+
+        $rows = DB::table('events')
+            ->join("{$pivotTable} as reference_links", 'reference_links.event_id', '=', 'events.id')
+            ->where('reference_links.referenceable_type', $this->referenceQueries->referenceMorphType())
+            ->whereIn('reference_links.referenceable_id', array_keys($uniqueIds))
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->whereExists(static function (QueryBuilder $occurrences) use ($occurrencesTable): void {
+                $occurrences->selectRaw('1')
+                    ->from($occurrencesTable)
+                    ->whereColumn("{$occurrencesTable}.event_id", 'events.id');
+            })
+            ->distinct()
+            ->select(['reference_links.referenceable_id as reference_id', 'events.id as event_id'])
+            ->get();
+
+        $eventIdsByReference = [];
+
+        foreach ($rows as $row) {
+            $eventIdsByReference[(string) $row->reference_id][(string) $row->event_id] = true;
+        }
+
+        $counts = [];
+
+        foreach ($referenceFamilies as $rootId => $ids) {
+            $eventIds = [];
+
+            foreach ($ids as $referenceId) {
+                foreach (array_keys($eventIdsByReference[$referenceId] ?? []) as $eventId) {
+                    $eventIds[$eventId] = true;
+                }
+            }
+
+            $counts[(string) $rootId] = count($eventIds);
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param  array<string, list<string>>  $referenceFamilies
+     * @return array<string, array{next_event_id: ?string, upcoming_events_count: int}>
+     */
+    public function referenceDirectoryFacts(array $referenceFamilies): array
+    {
+        $uniqueIds = [];
+
+        foreach ($referenceFamilies as $ids) {
+            foreach ($ids as $referenceId) {
+                if (is_string($referenceId) && $referenceId !== '') {
+                    $uniqueIds[$referenceId] = true;
+                }
+            }
+        }
+
+        if ($uniqueIds === []) {
+            return [];
+        }
+
+        $pivotTable = (string) config('events.database.tables.event_references', 'event_references');
+        $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
+
+        $rows = DB::table('events')
+            ->join("{$pivotTable} as reference_links", 'reference_links.event_id', '=', 'events.id')
+            ->join("{$occurrencesTable} as upcoming_occurrences", 'upcoming_occurrences.event_id', '=', 'events.id')
+            ->where('reference_links.referenceable_type', $this->referenceQueries->referenceMorphType())
+            ->whereIn('reference_links.referenceable_id', array_keys($uniqueIds))
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->whereIn('upcoming_occurrences.status', $this->stringValues(Event::PUBLIC_SCHEDULE_STATUSES))
+            ->whereIn('upcoming_occurrences.visibility', $this->stringValues(Event::PUBLIC_SCHEDULE_VISIBILITIES))
+            ->whereNotNull('upcoming_occurrences.starts_at')
+            ->where('upcoming_occurrences.starts_at', '>=', now())
+            ->distinct()
+            ->select([
+                'reference_links.referenceable_id as reference_id',
+                'events.id as event_id',
+                'upcoming_occurrences.id as occurrence_id',
+                'upcoming_occurrences.starts_at as occurrence_starts_at',
+            ])
+            ->get();
+
+        $byReference = [];
+
+        foreach ($rows as $row) {
+            $referenceId = (string) $row->reference_id;
+            $eventId = (string) $row->event_id;
+            $occurrenceId = (string) $row->occurrence_id;
+            $startsAt = (string) $row->occurrence_starts_at;
+
+            $byReference[$referenceId]['event_starts'][$eventId] = isset($byReference[$referenceId]['event_starts'][$eventId])
+                ? min($byReference[$referenceId]['event_starts'][$eventId], $startsAt)
+                : $startsAt;
+            $byReference[$referenceId]['occurrences'][$occurrenceId] = true;
+        }
+
+        $facts = [];
+
+        foreach ($referenceFamilies as $rootId => $ids) {
+            $eventStarts = [];
+            $occurrences = [];
+
+            foreach ($ids as $referenceId) {
+                foreach ($byReference[$referenceId]['event_starts'] ?? [] as $eventId => $startsAt) {
+                    $eventStarts[$eventId] = isset($eventStarts[$eventId]) ? min($eventStarts[$eventId], $startsAt) : $startsAt;
+                }
+
+                foreach (array_keys($byReference[$referenceId]['occurrences'] ?? []) as $occurrenceId) {
+                    $occurrences[$occurrenceId] = true;
+                }
+            }
+
+            $nextEventId = null;
+            $nextStartsAt = null;
+
+            foreach ($eventStarts as $eventId => $startsAt) {
+                $eventId = (string) $eventId;
+
+                if ($nextStartsAt === null || $startsAt < $nextStartsAt
+                    || ($startsAt === $nextStartsAt && $nextEventId !== null && $eventId < $nextEventId)) {
+                    $nextStartsAt = $startsAt;
+                    $nextEventId = $eventId;
+                }
+            }
+
+            $facts[(string) $rootId] = [
+                'next_event_id' => $nextEventId,
+                'upcoming_events_count' => count($occurrences),
+            ];
+        }
+
+        return $facts;
     }
 
     /**

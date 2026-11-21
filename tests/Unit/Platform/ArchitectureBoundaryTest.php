@@ -3426,3 +3426,132 @@ PHP);
     expect($result['exitCode'])->toBe(1)
         ->and(array_column($findings, 'rule'))->toContain('feature-private');
 });
+
+it('rejects opaque object and mixed returns from Api/Orm ports', function (): void {
+    $this->project->write('app/Features/Orders/Api/Orm/FindOrderOrm.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+/**
+ * @internal
+ *
+ * Consumers: Billing reads.
+ */
+interface FindOrderOrm
+{
+    public function latest(): object;
+    public function first(): mixed;
+}
+SOURCE);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('orm-opaque-return')
+        ->and(array_column($findings, 'target'))->toContain('latest')
+        ->and(array_column($findings, 'target'))->toContain('first');
+});
+
+it('rejects foreign composition on a builder returned by an owner ORM port', function (string $source): void {
+    $this->project->write('app/Features/Orders/Api/Orm/OrderQuery.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+/**
+ * @internal
+ *
+ * Consumers: Billing reads.
+ */
+interface OrderQuery
+{
+    public function latest(): \Illuminate\Database\Eloquent\Builder;
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Actions/LoadOrders.php', $source);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('orm-query-escape');
+})->with([
+    'container chained' => [<<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+class LoadOrders
+{
+    public function handle(): void
+    {
+        app(OrderQuery::class)->latest()->where('status', 'paid')->get();
+    }
+}
+SOURCE],
+    'container variable' => [<<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+class LoadOrders
+{
+    public function handle(): void
+    {
+        $query = app(OrderQuery::class)->latest();
+        $query->whereHas('lines')->get();
+    }
+}
+SOURCE],
+    'injected property' => [<<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+class LoadOrders
+{
+    public function __construct(private OrderQuery $orders) {}
+
+    public function handle(): void
+    {
+        $this->orders->latest()->orderByDesc('created_at')->get();
+    }
+}
+SOURCE],
+    'typed parameter' => [<<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+class LoadOrders
+{
+    public function handle(OrderQuery $orders): void
+    {
+        $orders->latest()->limit(10)->get();
+    }
+}
+SOURCE],
+]);
+
+it('allows immutable owner facts across a feature boundary', function (): void {
+    $this->project->write('app/Features/Orders/Api/OrderCards.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api;
+interface OrderCards
+{
+    /** @return list<array{id: string, title: string}> */
+    public function recent(int $limit): array;
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Actions/SummariseOrders.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\OrderCards;
+class SummariseOrders
+{
+    public function handle(): int
+    {
+        return count(app(OrderCards::class)->recent(10));
+    }
+}
+SOURCE);
+
+    $result = $this->project->check();
+
+    expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
+        ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'])->toBe([]);
+});

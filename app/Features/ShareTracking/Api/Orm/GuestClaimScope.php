@@ -19,4 +19,10 @@ interface GuestClaimScope
      * @return \Illuminate\Database\Eloquent\Builder<\AIArmada\Affiliates\Models\AffiliateClaim>
      */
     public function guestClaims();
+
+    /**
+     * The active user claimant for a guest share profile, or null when the
+     * affiliate is unclaimed, revoked, or claimed by another subject type.
+     */
+    public function activeClaimantIdForAffiliate(string $affiliateId): ?string;
 }

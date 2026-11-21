@@ -33,6 +33,11 @@ interface ReferenceQueries
      */
     public function referenceModelClass(): string;
 
+    /**
+     * The stored polymorphic alias for reference links.
+     */
+    public function referenceMorphType(): string;
+
     /** @return list<string> */
     public function publicSearchIds(string $search): array;
 

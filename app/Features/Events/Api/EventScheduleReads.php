@@ -84,4 +84,20 @@ interface EventScheduleReads
      * @return array<string, array{total: int, public: int, upcoming: int, draft: int, pending: int}>
      */
     public function institutionEventStats(array $institutionIds): array;
+
+    /**
+     * Public event counts for reference directory families.
+     *
+     * @param  array<string, list<string>>  $referenceFamilies  Family reference ids keyed by directory root id.
+     * @return array<string, int>
+     */
+    public function publicEventCountsForReferenceFamilies(array $referenceFamilies): array;
+
+    /**
+     * Next upcoming event and upcoming-occurrence count per reference family.
+     *
+     * @param  array<string, list<string>>  $referenceFamilies  Family reference ids keyed by directory root id.
+     * @return array<string, array{next_event_id: ?string, upcoming_events_count: int}>
+     */
+    public function referenceDirectoryFacts(array $referenceFamilies): array;
 }

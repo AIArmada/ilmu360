@@ -7,7 +7,7 @@ namespace App\Features\References\EntryPoints\Http;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventCollections;
-use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\References\Api\Data\ReferenceDetailData;
 use App\Features\References\Api\Data\ReferenceListData;
 use App\Features\References\Api\Documentation\Schemas\ReferenceDirectoryResponse;
@@ -66,7 +66,6 @@ final class ReferenceDirectoryController extends FrontendController
         private readonly ReferenceSearch $referenceSearch,
         private readonly ReferenceQueries $referenceQueries,
         private readonly EventCollections $eventCollections,
-        private readonly EventOrmPort $eventScheduleQuery,
         private readonly SearchRequestNormalizer $searchRequestNormalizer,
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
         private readonly PublicDiscovery $publicDiscovery,
@@ -122,6 +121,7 @@ final class ReferenceDirectoryController extends FrontendController
         }
 
         $this->applyFollowStates($paginator->items(), $followingIds);
+        $this->applyEventCounts($paginator->items());
 
         return response()->json([
             'data' => $paginator
@@ -195,6 +195,25 @@ final class ReferenceDirectoryController extends FrontendController
 
     /**
      * @param  iterable<int, Reference>  $references
+     */
+    private function applyEventCounts(iterable $references): void
+    {
+        $families = [];
+
+        foreach ($references as $reference) {
+            $referenceId = (string) $reference->getKey();
+            $families[$referenceId] = $this->referenceQueries->defaultEventReferenceIds($referenceId);
+        }
+
+        $counts = app(EventScheduleReads::class)->publicEventCountsForReferenceFamilies($families);
+
+        foreach ($references as $reference) {
+            $reference->setAttribute('events_count', $counts[(string) $reference->getKey()] ?? 0);
+        }
+    }
+
+    /**
+     * @param  iterable<int, Reference>  $references
      * @param  list<string>  $followingIds
      */
     private function applyFollowStates(iterable $references, array $followingIds): void
@@ -230,7 +249,6 @@ final class ReferenceDirectoryController extends FrontendController
         return Reference::query()
             ->select('references.*')
             ->active()
-            ->selectSub($this->eventScheduleQuery->publicReferenceEventCountSubquery(), 'events_count')
             ->with(['media', 'parentReference.parentReference']);
     }
 

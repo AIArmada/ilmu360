@@ -355,25 +355,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
 
     private function activeClaimantFor(string $affiliateId): ?string
     {
-        if ($affiliateId === '') {
-            return null;
-        }
-
-        $claim = app(GuestClaimScope::class)->guestClaims()
-            ->where('affiliate_id', $affiliateId)
-            ->where('status', 'active')
-            ->whereNull('revoked_at')
-            ->first();
-
-        if (! $claim instanceof AffiliateClaim || ! $claim->isActive()) {
-            return null;
-        }
-
-        if ($claim->claimant_type !== (new User)->getMorphClass()) {
-            return null;
-        }
-
-        return $this->nullableUuid($claim->getAttribute('claimant_id'));
+        return app(GuestClaimScope::class)->activeClaimantIdForAffiliate($affiliateId);
     }
 
     /**

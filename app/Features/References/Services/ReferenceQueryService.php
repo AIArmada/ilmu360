@@ -23,15 +23,6 @@ final readonly class ReferenceQueryService implements ReferenceOrmPort
         return Reference::applyPublicVisibility($query, $table);
     }
 
-    /**
-     * @param  Builder<\App\Features\Events\Models\Event>  $query
-     * @return Builder<\App\Features\Events\Models\Event>
-     */
-    public function constrainEventReferenceSubtree(Builder $query, string $referenceIdColumn = 'references.id'): Builder
-    {
-        return Reference::constrainEventReferenceSubtree($query, $referenceIdColumn);
-    }
-
     public function expandReferenceIdsForFiltering(array $referenceIds): array
     {
         return ReferenceFamily::expandIds($referenceIds);
@@ -54,6 +45,11 @@ final readonly class ReferenceQueryService implements ReferenceOrmPort
     public function referenceModelClass(): string
     {
         return Reference::class;
+    }
+
+    public function referenceMorphType(): string
+    {
+        return (new Reference)->getMorphClass();
     }
 
     public function publicSearchIds(string $search): array

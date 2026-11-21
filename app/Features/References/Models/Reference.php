@@ -227,38 +227,6 @@ class Reference extends PackageReference implements AuditableContract, Followabl
             ->whereIn($table.'.status', self::PUBLIC_STATUSES);
     }
 
-    /**
-     * @param  Builder<Event>  $query
-     * @return Builder<Event>
-     */
-    public static function constrainEventReferenceSubtree(Builder $query, string $referenceIdColumn = 'references.id'): Builder
-    {
-        $pivotTable = config('events.database.tables.event_references', 'event_references');
-
-        return $query->whereExists(function (QueryBuilder $links) use ($pivotTable, $referenceIdColumn): void {
-            $links->selectRaw('1')
-                ->from($pivotTable.' as subtree_links')
-                ->join('references as subtree_references', 'subtree_references.id', '=', 'subtree_links.referenceable_id')
-                ->whereColumn('subtree_links.event_id', 'events.id')
-                ->where('subtree_links.referenceable_type', (new self)->getMorphClass());
-
-            self::applyPublicVisibility($links, 'subtree_references');
-
-            $links->where(function (QueryBuilder $subtree) use ($referenceIdColumn): void {
-                $subtree->whereColumn('subtree_references.id', $referenceIdColumn)
-                    ->orWhereColumn('subtree_references.parent_id', $referenceIdColumn)
-                    ->orWhereExists(function (QueryBuilder $parent) use ($referenceIdColumn): void {
-                        $parent->selectRaw('1')
-                            ->from('references as subtree_parent')
-                            ->whereColumn('subtree_parent.id', 'subtree_references.parent_id')
-                            ->whereColumn('subtree_parent.parent_id', $referenceIdColumn);
-
-                        self::applyPublicVisibility($parent, 'subtree_parent');
-                    });
-            });
-        });
-    }
-
     public function isPubliclyVisible(): bool
     {
         return $this->published_at !== null
