@@ -2,9 +2,9 @@
 
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Contributions\Api\ContributionOrganizer;
-use App\Features\Events\Services\SubmissionContextResolver;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Services\SubmissionContextResolver;
 use App\Features\Events\Support\AdminEventFormStateBuilder;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;

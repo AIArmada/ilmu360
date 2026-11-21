@@ -485,5 +485,4 @@ final readonly class SubmissionContextResolver
 
         return $normalized !== '' ? $normalized : null;
     }
-
 }
