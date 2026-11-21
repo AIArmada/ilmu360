@@ -63,7 +63,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
     ): LengthAwarePaginator {
         $search = Event::search($query ?? '')
             ->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
-                ->with($this->relationProvider->relations()));
+                ->with(SearchResultRelations::forCards($this->relationProvider->relations())));
 
         $sortBy = match ($sort) {
             'relevance' => '_text_match:desc,starts_at:asc',
@@ -92,7 +92,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         $search = Event::search('');
 
         $search->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
-            ->with($this->relationProvider->relations()));
+            ->with(SearchResultRelations::forCards($this->relationProvider->relations())));
         $search->options([
             'filter_by' => implode(' && ', [
                 "location:({$lat}, {$lng}, {$radiusKm} km)",
@@ -118,7 +118,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
     ): LengthAwarePaginator {
         $search = Event::search($query)
             ->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
-                ->with($this->relationProvider->relations()));
+                ->with(SearchResultRelations::forCards($this->relationProvider->relations())));
 
         $filterBy = implode(' && ', [
             "location:({$lat}, {$lng}, {$radiusKm} km)",

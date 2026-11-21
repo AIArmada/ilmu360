@@ -83,7 +83,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
         if ($query === null) {
             $queryBuilder = $this->buildDatabaseQuery(null, $filters)
-                ->with($this->relationProvider->relations());
+                ->with(SearchResultRelations::forCards($this->relationProvider->relations()));
 
             $this->applyDatabaseOrdering($queryBuilder, $sort, null);
 
@@ -91,7 +91,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         }
 
         $directQuery = $this->buildDatabaseQuery(null, $filters)
-            ->with($this->relationProvider->relations());
+            ->with(SearchResultRelations::forCards($this->relationProvider->relations()));
         $this->applyDirectSearch(
             $directQuery,
             $query,
@@ -1139,7 +1139,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
         if ($normalizedSearch === '') {
             $queryBuilder = $this->buildDatabaseQuery(null, $filters)
-                ->with($this->relationProvider->relations())
+                ->with(SearchResultRelations::forCards($this->relationProvider->relations()))
                 ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc');
 
             return $queryBuilder->paginate($perPage);
@@ -1179,7 +1179,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         }
 
         $events = $this->buildDatabaseQuery(null, $filters)
-            ->with($this->relationProvider->relations())
+            ->with(SearchResultRelations::forCards($this->relationProvider->relations()))
             ->whereIn('events.id', $paginatedIds)
             ->get()
             ->sortBy(static function (Event $event) use ($paginatedIds): int {
@@ -1270,7 +1270,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->select("{$eventsTable}.*")
             ->selectRaw("{$distanceSql} as distance_km", [$lat, $lng, $lat])
             ->whereRaw("{$distanceSql} <= ?", [$lat, $lng, $lat, $radiusKm])
-            ->with($this->relationProvider->relations())
+            ->with(SearchResultRelations::forCards($this->relationProvider->relations()))
             ->orderBy('distance_km', 'asc')
             ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc')
             ->paginate($perPage);

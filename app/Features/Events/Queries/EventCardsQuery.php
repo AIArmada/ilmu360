@@ -85,12 +85,7 @@ final readonly class EventCardsQuery implements EventCards
      */
     private function cardRelations(): array
     {
-        return array_filter(
-            $this->relationProvider->relations(),
-            static fn (mixed $relation, int|string $key): bool => $key !== 'displayOccurrence.media'
-                && $relation !== 'displayOccurrence.media',
-            ARRAY_FILTER_USE_BOTH,
-        );
+        return SearchResultRelations::forCards($this->relationProvider->relations());
     }
 
     /**
