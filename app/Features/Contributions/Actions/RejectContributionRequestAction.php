@@ -21,6 +21,7 @@ class RejectContributionRequestAction
         private readonly ContributionRequestNotifier $contributionRequestNotifications,
         private readonly PersonWorkflow $personWorkflow,
         private readonly ReferenceWorkflow $referenceWorkflow,
+        private readonly InstitutionWorkflow $institutionWorkflow,
     ) {}
 
     /**
@@ -61,7 +62,7 @@ class RejectContributionRequestAction
                 $entity = $request->entity;
 
                 if ($entity instanceof Model && ContributionModel::isInstitution($entity)) {
-                    app(InstitutionWorkflow::class)->changeStatus((string) $entity->getKey(), 'rejected');
+                    $this->institutionWorkflow->changeStatus((string) $entity->getKey(), 'rejected');
                 } elseif ($entity instanceof Model && ContributionModel::isPerson($entity)) {
                     $this->personWorkflow->changeStatus((string) $entity->getKey(), 'rejected');
                 } elseif ($entity instanceof Model && ContributionModel::isReference($entity)) {

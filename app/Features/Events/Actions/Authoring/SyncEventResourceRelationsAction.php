@@ -15,6 +15,7 @@ class SyncEventResourceRelationsAction
     public function __construct(
         private readonly SyncEventKeyPeopleAction $syncKeyPeople,
         private readonly AdmissionFacts $admissionFacts,
+        private readonly SyncEventClassificationsAction $classifications,
     ) {}
 
     /**
@@ -83,7 +84,7 @@ class SyncEventResourceRelationsAction
         if (array_key_exists('event_category_ids', $state)) {
             $classificationState['event_category_ids'] = is_array($state['event_category_ids']) ? $state['event_category_ids'] : [];
         }
-        app(SyncEventClassificationsAction::class)->handle($event, $classificationState);
+        $this->classifications->handle($event, $classificationState);
 
         if ($syncKeyPeople) {
             $this->syncKeyPeople->syncEvent(

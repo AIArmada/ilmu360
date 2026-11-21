@@ -22,6 +22,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class SubmissionRelationSync
 {
+    public function __construct(private readonly PublicReferenceConstraint $references) {}
+
     /** @param array<string, mixed> $state */
     public function assertCatalogSelectionsAreAvailable(array $state, string $validationKeyPrefix): void
     {
@@ -33,7 +35,7 @@ final class SubmissionRelationSync
             $errors[SubmissionValues::prefixedKey('languages', $validationKeyPrefix)] = __('The selected language is invalid.');
         }
 
-        if ($referenceIds !== [] && array_diff($referenceIds, app(PublicReferenceConstraint::class)->apply(EventModel::query('reference'))->whereIn('references.id', $referenceIds)->pluck('references.id')->all()) !== []) {
+        if ($referenceIds !== [] && array_diff($referenceIds, $this->references->apply(EventModel::query('reference'))->whereIn('references.id', $referenceIds)->pluck('references.id')->all()) !== []) {
             $errors[SubmissionValues::prefixedKey('references', $validationKeyPrefix)] = __('The selected reference is unavailable.');
         }
 

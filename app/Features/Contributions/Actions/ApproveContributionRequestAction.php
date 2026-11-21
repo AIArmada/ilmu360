@@ -274,7 +274,7 @@ class ApproveContributionRequestAction
 
         if ($entity instanceof Model && ContributionModel::isInstitution($entity)) {
             $entity = ContributionModel::assert($entity, 'institution');
-            app(InstitutionWorkflow::class)->changeStatus((string) $entity->getKey(), 'verified');
+            $this->institutionWorkflow->changeStatus((string) $entity->getKey(), 'verified');
             $this->attachAsOwnerIfSupported($request->proposer, $entity);
 
             return $entity;

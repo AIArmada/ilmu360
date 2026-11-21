@@ -38,6 +38,7 @@ final readonly class ClaimGuestProfileAction implements GuestShareClaims
         private GuestClaims $guestClaims,
         private ClaimRecipients $claimRecipients,
         private SignupAttributionWorkflow $signupAttribution,
+        private ClaimAffiliateIdentity $affiliateClaims,
     ) {}
 
     public function claim(
@@ -142,7 +143,7 @@ final readonly class ClaimGuestProfileAction implements GuestShareClaims
         // transaction). A racing claimant loses with SealedIdentityException:
         // resolve the committed winner without writing anything further.
         try {
-            $claim = app(ClaimAffiliateIdentity::class)->run(
+            $claim = $this->affiliateClaims->run(
                 $presentedCapability,
                 $claimantMorphType,
                 $claimantId,
