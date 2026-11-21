@@ -62,11 +62,14 @@ use App\Platform\Media\MediaChangeListener;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Contracts\AddressableChangeEffects;
 use App\Shared\Contracts\AddressChangeEffects;
+use App\Features\Institutions\Queries\InstitutionResourceSearchAdapter;
+use App\Platform\Search\ResourceSearchAdapter;
 
 class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->tag([InstitutionResourceSearchAdapter::class], ResourceSearchAdapter::TAG);
         $this->app->bind(InstitutionSearch::class, InstitutionSearchService::class);
         $this->app->bind(InstitutionCards::class, InstitutionCardsQuery::class);
         $this->app->bind(AddressChangeEffects::class, SyncAddressChangeEffectsAction::class);

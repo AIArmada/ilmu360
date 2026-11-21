@@ -9,7 +9,6 @@ use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
-use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
 use AIArmada\Contacting\Models\ContactMethod;
@@ -48,7 +47,6 @@ use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
-use App\Features\Events\Contributors\ModerationAccountLifecycleContributor;
 use App\Features\Events\EntryPoints\Ui\EventJsonLd;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
@@ -65,18 +63,15 @@ use App\Features\Events\Observers\EventTaxonomyObserver;
 use App\Features\Events\Observers\EventTermObserver;
 use App\Features\Events\Observers\EventTimeExpressionObserver;
 use App\Features\Events\Policies\EventPolicy;
-use App\Features\Identity\Api\SignupAttributionSourceResolver;
 use App\Features\Identity\Listeners\ClaimGuestSubmissionsOnVerified;
 use App\Features\Identity\Listeners\RecordVerifiedEmail;
 use App\Features\Identity\Listeners\SendRegisteredUserEmails;
 use App\Features\Identity\Observers\UserObserver;
-use App\Features\Identity\Support\NullSignupAttributionSourceResolver;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionImportExclusion;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Features\Institutions\Observers\InstitutionImportExclusionObserver;
 use App\Features\Institutions\Observers\InstitutionObserver;
-use App\Features\Institutions\Queries\InstitutionResourceSearchAdapter;
 use App\Features\Membership\Models\MemberInvitation;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Moderation\Models\ModerationReview;
@@ -88,7 +83,6 @@ use App\Features\Persons\Observers\PersonNameObserver;
 use App\Features\Persons\Observers\PersonObserver;
 use App\Features\Persons\Observers\PersonTitleObserver;
 use App\Features\Persons\Observers\TitleCategoryObserver;
-use App\Features\Persons\Queries\PersonResourceSearchAdapter;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Features\Places\Observers\VenueObserver;
@@ -99,9 +93,7 @@ use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Policies\RegistrationPolicy;
 use App\Features\Rewards\Models\RewardDigestSlot;
-use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Features\ShareTracking\EntryPoints\Listeners\ReverseRegistrationShareOutcome;
-use App\Features\ShareTracking\Integrations\Auth\AffiliateSignupAttributionSourceResolver;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
@@ -150,13 +142,11 @@ use App\Platform\Media\MediaFileNamer;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
-use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\EntryPoints\ApiDocumentation\MobileTelemetryRequestExampleContributor;
 use App\Platform\Telemetry\ProductSignalRecorder;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Platform\Time\DefaultUserDateTimeFormatter;
 use App\Platform\Ui\ContentVersionedJs;
-use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Captcha\CaptchaVerifier;
 use App\Shared\Contracts\AffiliateSnapshotPersistence;
 use App\Shared\Contracts\SearchHealthProbe;
@@ -247,19 +237,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SignalSchemaRegistry::class);
         $this->app->singleton(RequestExampleRegistry::class);
         $this->app->singleton(McpSurfaceRegistry::class);
-        $this->app->tag([
-            ModerationAccountLifecycleContributor::class,
-        ], AccountLifecycleContributor::TAG);
 
         $this->app->bind(SignalRecorder::class, ProductSignalRecorder::class);
         $this->app->bind(VisitorCountryResolving::class, VisitorCountryResolver::class);
         $this->app->bind(UserDateTimeFormatting::class, DefaultUserDateTimeFormatter::class);
         $this->app->bind(MediaCollectionSync::class, EloquentMediaCollectionSync::class);
         $this->app->bind(ApiErrorDetailsEnricher::class, AdminValidateOnlyRemediationEnricher::class);
-        $this->app->tag([
-            PersonResourceSearchAdapter::class,
-            InstitutionResourceSearchAdapter::class,
-        ], ResourceSearchAdapter::TAG);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
         $this->registerPublicSlugRegistry();
@@ -283,12 +266,6 @@ class AppServiceProvider extends ServiceProvider
             },
         );
 
-        // ShareTrackingContract stays the public seam for test doubles and
-        // optional integrations; contract resolution is a singleton of the
-        // concrete affiliates service. Direct concrete injection stays transient.
-        $this->app->bind(SignupAttributionSourceResolver::class, class_exists(Affiliate::class)
-            ? AffiliateSignupAttributionSourceResolver::class
-            : NullSignupAttributionSourceResolver::class);
 
         $this->registerPackageMigrations();
     }

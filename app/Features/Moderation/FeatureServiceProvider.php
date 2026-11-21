@@ -8,6 +8,8 @@ use App\Features\Moderation\Api\ModerationActionHistory;
 use App\Features\Moderation\Api\RecordModerationAction;
 use App\Features\Moderation\Persistence\ModerationActionStore;
 use App\Platform\FeatureModule;
+use App\Features\Moderation\Contributors\ModerationAccountLifecycleContributor;
+use App\Shared\Auth\AccountLifecycleContributor;
 
 /**
  * Moderation owns recorded moderation actions and their account attribution.
@@ -19,6 +21,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->tag([ModerationAccountLifecycleContributor::class], AccountLifecycleContributor::TAG);
         $this->app->bind(ModerationActionHistory::class, ModerationActionStore::class);
         $this->app->bind(RecordModerationAction::class, ModerationActionStore::class);
     }

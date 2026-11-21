@@ -82,6 +82,8 @@ use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Support\Facades\Event as EventFacade;
+use App\Features\Identity\Api\SignupAttributionSourceResolver;
+use App\Features\ShareTracking\Integrations\Auth\AffiliateSignupAttributionSourceResolver;
 
 /**
  * Share tracking claims all seven app tables named in feature.json: browser
@@ -168,6 +170,7 @@ class FeatureServiceProvider extends FeatureModule
 
     public function register(): void
     {
+        $this->app->bind(SignupAttributionSourceResolver::class, AffiliateSignupAttributionSourceResolver::class);
         $this->app->bind(GuestClaims::class, GuestClaimLookup::class);
         $this->app->bind(ClaimRecipients::class, ClaimRecipientLookup::class);
         $this->app->bind(SignupRecorder::class, ShareTrackingSignupRecorder::class);

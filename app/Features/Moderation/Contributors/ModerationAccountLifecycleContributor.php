@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Contributors;
+namespace App\Features\Moderation\Contributors;
 
 use App\Features\Moderation\Api\ModerationActionHistory;
 use App\Shared\Auth\AccountLifecycleContributor;

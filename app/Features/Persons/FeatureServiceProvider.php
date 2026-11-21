@@ -51,11 +51,14 @@ use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 use App\Platform\Telemetry\SignalSchemaRegistry;
+use App\Features\Persons\Queries\PersonResourceSearchAdapter;
+use App\Platform\Search\ResourceSearchAdapter;
 
 class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->tag([PersonResourceSearchAdapter::class], ResourceSearchAdapter::TAG);
         $this->app->bind(PruneOrphanedPersons::class, PruneOrphanedPersonsAction::class);
         $this->app->bind(PersonCards::class, PersonCardsQuery::class);
         $this->app->bind(PersonSearch::class, PersonSearchService::class);
