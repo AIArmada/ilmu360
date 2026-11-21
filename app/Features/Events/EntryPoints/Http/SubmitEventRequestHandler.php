@@ -20,7 +20,6 @@ use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Notifications\EventOccurrenceSubmittedNotification;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Events\Support\SubmitterContactRules;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
@@ -65,14 +64,13 @@ final readonly class SubmitEventRequestHandler
         Request $request,
         ?User $submitter = null,
         ?Event $eventContainer = null,
-        ?Institution $scopedInstitution = null,
+        ?string $scopedInstitutionId = null,
         ?callable $persistRelationships = null,
         string $validationKeyPrefix = '',
     ): array {
-        $resolvedScopedInstitution = $this->context->authorizedScopedInstitutionFor($scopedInstitution, $submitter, $validationKeyPrefix, $state);
-        $scopedInstitution = $resolvedScopedInstitution instanceof Institution ? $resolvedScopedInstitution : null;
+        $scopedInstitutionId = $this->context->authorizedScopedInstitutionFor($scopedInstitutionId, $submitter, $validationKeyPrefix, $state);
 
-        $resolvedEventContainer = $this->context->authorizedEventContainerFor($eventContainer, $submitter, $scopedInstitution, $validationKeyPrefix);
+        $resolvedEventContainer = $this->context->authorizedEventContainerFor($eventContainer, $submitter, $scopedInstitutionId, $validationKeyPrefix);
         $eventContainer = $resolvedEventContainer instanceof Event ? $resolvedEventContainer : null;
 
         // Structural boundary: reject malformed shapes, invalid explicit enums,
@@ -82,7 +80,7 @@ final readonly class SubmitEventRequestHandler
         $validated = $this->submissions->validate($state, $validationKeyPrefix);
 
         $validated = $this->submissions->normalizeCategories($validated, $validationKeyPrefix);
-        $validated = $this->context->normalizeScopedInstitutionStateFor($validated, $scopedInstitution, $validationKeyPrefix);
+        $validated = $this->context->normalizeScopedInstitutionStateFor($validated, $scopedInstitutionId, $validationKeyPrefix);
         $validated = $this->context->normalizeSpaceSelection($validated);
 
         $submissionCountryId = $this->context->resolveSubmissionCountryId($validated, $validationKeyPrefix);
@@ -105,7 +103,7 @@ final readonly class SubmitEventRequestHandler
         $this->entitySubmissionAccess->assertSubmissionEntitiesAreAccessible($validated, $submitter, $organizerKind, $validationKeyPrefix);
         $this->submissions->assertCatalogSelectionsAreAvailable($validated, $validationKeyPrefix);
         SubmitterContactRules::assertSubmitterContactsAreValid($validated, $submitter, $validationKeyPrefix);
-        $this->entitySubmissionAccess->assertSubmissionEntitiesMatchCountryFor($validated, $organizerKind, $submissionCountryId, $scopedInstitution, $validationKeyPrefix);
+        $this->entitySubmissionAccess->assertSubmissionEntitiesMatchCountryFor($validated, $organizerKind, $submissionCountryId, $scopedInstitutionId, $validationKeyPrefix);
 
         $this->submissions->assertCommunityPhysicalFormat($validated, $validationKeyPrefix);
 
@@ -161,7 +159,7 @@ final readonly class SubmitEventRequestHandler
         // burns the single-use token (or the verification HTTP call).
         $this->assertCaptchaIsValid($request, $validated['captcha_token'] ?? null, $validationKeyPrefix);
 
-        $autoApproved = $scopedInstitution instanceof Institution;
+        $autoApproved = $scopedInstitutionId !== null;
         $personSlugSegments = $this->authoring->personSlugSegmentsForState(
             is_array($validated['persons'] ?? null) ? $validated['persons'] : [],
             $organizerKind,

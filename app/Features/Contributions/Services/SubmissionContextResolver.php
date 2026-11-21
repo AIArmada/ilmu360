@@ -49,17 +49,17 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      * @param  array<string, mixed>  $state
      */
     public function authorizedScopedInstitution(
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         ?User $submitter,
         string $validationKeyPrefix,
         array $state = [],
-    ): ?Institution {
+    ): ?string {
         $requestedScopeId = $state['scoped_institution_id'] ?? null;
         $requestedScopeId = is_string($requestedScopeId) && trim($requestedScopeId) !== ''
             ? trim($requestedScopeId)
             : null;
 
-        if (! $scopedInstitution instanceof Institution) {
+        if ($scopedInstitutionId === null) {
             if ($requestedScopeId !== null) {
                 throw ValidationException::withMessages([
                     SubmissionValues::prefixedKey('scoped_institution_id', $validationKeyPrefix) => __('Anda tidak dibenarkan menghantar bagi pihak institusi ini.'),
@@ -69,7 +69,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
             return null;
         }
 
-        $institutionId = (string) $scopedInstitution->getKey();
+        $institutionId = $scopedInstitutionId;
 
         if (! Str::isUuid($institutionId)) {
             throw ValidationException::withMessages([
@@ -83,12 +83,8 @@ final readonly class SubmissionContextResolver implements SubmissionContext
             ]);
         }
 
-        $persisted = $submitter instanceof User
-            ? $this->entitySubmissionAccess->memberInstitution($submitter, $institutionId)
-            : null;
-
-        if ($persisted instanceof Institution) {
-            return $persisted;
+        if ($submitter instanceof User && $this->entitySubmissionAccess->canUseMemberInstitution($submitter, $institutionId)) {
+            return $institutionId;
         }
 
         throw ValidationException::withMessages([
@@ -104,7 +100,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
     public function authorizedEventContainer(
         ?Event $eventContainer,
         ?User $submitter,
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         string $validationKeyPrefix,
     ): ?Event {
         if (! $eventContainer instanceof Event) {
@@ -134,11 +130,11 @@ final readonly class SubmissionContextResolver implements SubmissionContext
         }
 
         if (
-            $scopedInstitution instanceof Institution
+            $scopedInstitutionId !== null
             && ! app(OrganizerLookup::class)->involvementMatchesInstitution(
                 $persisted->primaryOrganizerInvolvement?->involveable_type,
                 $persisted->primaryOrganizerInvolvement?->involveable_id,
-                (string) $scopedInstitution->getKey(),
+                $scopedInstitutionId,
             )
         ) {
             throw ValidationException::withMessages([
@@ -153,20 +149,20 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    public function normalizeScopedInstitutionState(array $validated, ?Institution $scopedInstitution, string $validationKeyPrefix): array
+    public function normalizeScopedInstitutionState(array $validated, ?string $scopedInstitutionId, string $validationKeyPrefix): array
     {
-        if (! $scopedInstitution instanceof Institution) {
+        if ($scopedInstitutionId === null) {
             return $validated;
         }
 
-        $validated['primary_organizer_id'] = $scopedInstitution->getKey();
+        $validated['primary_organizer_id'] = $scopedInstitutionId;
         $validated['primary_organizer_kind'] = 'institution';
-        $validated['primary_organizer_institution_id'] = $scopedInstitution->getKey();
+        $validated['primary_organizer_institution_id'] = $scopedInstitutionId;
         $validated['location_same_as_institution'] = (bool) ($validated['location_same_as_institution'] ?? true);
 
         if (SubmissionValues::enumValue($validated['event_format'] ?? null, EventFormat::Physical->value) === EventFormat::Online->value) {
             $validated['location_type'] = 'institution';
-            $validated['location_institution_id'] = $scopedInstitution->getKey();
+            $validated['location_institution_id'] = $scopedInstitutionId;
             $validated['location_venue_id'] = null;
 
             return $validated;
@@ -174,7 +170,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
 
         if ($validated['location_same_as_institution']) {
             $validated['location_type'] = 'institution';
-            $validated['location_institution_id'] = $scopedInstitution->getKey();
+            $validated['location_institution_id'] = $scopedInstitutionId;
             $validated['location_venue_id'] = null;
 
             return $validated;
@@ -469,13 +465,13 @@ final readonly class SubmissionContextResolver implements SubmissionContext
     }
 
     public function authorizedScopedInstitutionFor(
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         ?User $submitter,
         string $validationKeyPrefix,
         array $state = [],
-    ): ?Institution {
+    ): ?string {
         return $this->authorizedScopedInstitution(
-            $scopedInstitution,
+            $scopedInstitutionId,
             $submitter,
             $validationKeyPrefix,
             $state,
@@ -485,25 +481,25 @@ final readonly class SubmissionContextResolver implements SubmissionContext
     public function authorizedEventContainerFor(
         ?Event $eventContainer,
         ?User $submitter,
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         string $validationKeyPrefix,
     ): ?Event {
         return $this->authorizedEventContainer(
             $eventContainer,
             $submitter,
-            $scopedInstitution,
+            $scopedInstitutionId,
             $validationKeyPrefix,
         );
     }
 
     public function normalizeScopedInstitutionStateFor(
         array $validated,
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         string $validationKeyPrefix,
     ): array {
         return $this->normalizeScopedInstitutionState(
             $validated,
-            $scopedInstitution,
+            $scopedInstitutionId,
             $validationKeyPrefix,
         );
     }

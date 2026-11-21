@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Api\Orm;
 
-use App\Features\Institutions\Models\Institution;
 
 /**
  * Submitter entity access plus country consistency for event submissions.
@@ -18,13 +17,13 @@ interface SubmissionEntityAccess extends EntitySubmissionAccessContract
 {
     /**
      * @param  array<string, mixed>  $validated
-     * @param  Institution|null  $scopedInstitution  Hydrated institution model.
+     * @param  string|null  $scopedInstitutionId  Authorized institution identity.
      */
     public function assertSubmissionEntitiesMatchCountryFor(
         array $validated,
         ?string $organizerKind,
         string $submissionCountryId,
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         string $validationKeyPrefix = '',
     ): void;
 }

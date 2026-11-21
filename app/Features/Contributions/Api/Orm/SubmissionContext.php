@@ -6,7 +6,6 @@ namespace App\Features\Contributions\Api\Orm;
 
 use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 
 /**
@@ -26,16 +25,16 @@ interface SubmissionContext
      * @param  array<string, mixed>  $state
      */
     public function authorizedScopedInstitutionFor(
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         ?User $submitter,
         string $validationKeyPrefix,
         array $state = [],
-    ): ?Institution;
+    ): ?string;
 
     public function authorizedEventContainerFor(
         ?Event $eventContainer,
         ?User $submitter,
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         string $validationKeyPrefix,
     ): ?Event;
 
@@ -45,7 +44,7 @@ interface SubmissionContext
      */
     public function normalizeScopedInstitutionStateFor(
         array $validated,
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         string $validationKeyPrefix,
     ): array;
 

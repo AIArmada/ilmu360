@@ -78,7 +78,7 @@ it('rejects a forged scoped institution the submitter does not belong to', funct
         ]),
         request: submitSecurityRequest(),
         submitter: $user,
-        scopedInstitution: $institution,
+        scopedInstitutionId: (string) $institution->getKey(),
     ))->toThrow(ValidationException::class, 'institusi ini')
         ->and(Event::query()->where('title', 'Security Submission')->exists())->toBeFalse();
 });
@@ -169,7 +169,7 @@ it('does not treat the location institution as ownership for scoped containers',
         request: submitSecurityRequest(),
         submitter: $user,
         eventContainer: $event,
-        scopedInstitution: $locationInstitution,
+        scopedInstitutionId: (string) $locationInstitution->getKey(),
     ))->toThrow(ValidationException::class, 'bukan di bawah institusi ini');
 
     $this->actingAs($user)

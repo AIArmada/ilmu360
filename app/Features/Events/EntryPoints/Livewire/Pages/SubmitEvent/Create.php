@@ -488,7 +488,7 @@ class Create extends Component implements HasActions, HasForms
         // Context is resolved fresh on every request via the component
         // guards; the schema never retains the component instance.
         $context = new SubmitEventFormContext(
-            scopedInstitution: $this->scopedInstitution(),
+            scopedInstitutionId: $this->scopedInstitutionId,
             eventContainer: $this->selectedEventContainer(),
             submitter: $this->submitterUser(),
             requestedOccurrenceId: $this->eventOccurrenceId,
@@ -883,7 +883,7 @@ class Create extends Component implements HasActions, HasForms
                 request: request(),
                 submitter: $this->submitterUser(),
                 eventContainer: $eventContainer,
-                scopedInstitution: $this->scopedInstitution(),
+                scopedInstitutionId: $this->scopedInstitutionId,
                 persistRelationships: function (HasMedia $model): void {
                     if (! $model instanceof Model) {
                         throw new RuntimeException('Submit-event media persistence requires an Eloquent model, '.$model::class.' given.');

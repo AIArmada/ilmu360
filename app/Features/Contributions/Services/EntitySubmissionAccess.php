@@ -153,7 +153,7 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
         array $validated,
         ?string $organizerKind,
         string $submissionCountryId,
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         string $validationKeyPrefix = '',
     ): void {
         $primaryOrganizerId = (string) ($validated['primary_organizer_id'] ?? '');
@@ -161,9 +161,9 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
         $requiresLocationChoice = $organizerKind === 'person' || ! ($validated['location_same_as_institution'] ?? true);
         $locationType = (string) ($validated['location_type'] ?? 'institution');
 
-        $isScopedOrganizer = $scopedInstitution instanceof Institution
+        $isScopedOrganizer = $scopedInstitutionId !== null
             && $organizerKind === 'institution'
-            && $primaryOrganizerId === (string) $scopedInstitution->getKey();
+            && $primaryOrganizerId === $scopedInstitutionId;
 
         if ($organizerKind === 'institution' && $primaryOrganizerId !== '' && ! $isScopedOrganizer
             && ! $this->institutionBelongsToCountry($primaryOrganizerId, $submissionCountryId)) {
@@ -176,8 +176,8 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
         $usesLocationInstitution = $eventFormat !== EventFormat::Online->value
             && $requiresLocationChoice
             && $locationType === 'institution';
-        $isScopedLocation = $scopedInstitution instanceof Institution
-            && $locationInstitutionId === (string) $scopedInstitution->getKey();
+        $isScopedLocation = $scopedInstitutionId !== null
+            && $locationInstitutionId === $scopedInstitutionId;
 
         if ($usesLocationInstitution && $locationInstitutionId !== '' && ! $isScopedLocation
             && ! $this->institutionBelongsToCountry($locationInstitutionId, $submissionCountryId)) {
@@ -203,14 +203,14 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
         array $validated,
         ?string $organizerKind,
         string $submissionCountryId,
-        ?Institution $scopedInstitution,
+        ?string $scopedInstitutionId,
         string $validationKeyPrefix = '',
     ): void {
         $this->assertSubmissionEntitiesMatchCountry(
             $validated,
             $organizerKind,
             $submissionCountryId,
-            $scopedInstitution,
+            $scopedInstitutionId,
             $validationKeyPrefix,
         );
     }

@@ -756,7 +756,7 @@ it('keeps scoped session submissions honest with no parent auto-approval', funct
         request: submitSessionRequest(),
         submitter: $user,
         eventContainer: $event,
-        scopedInstitution: $institution,
+        scopedInstitutionId: (string) $institution->getKey(),
     );
 
     expect($result['auto_approved'])->toBeFalse()

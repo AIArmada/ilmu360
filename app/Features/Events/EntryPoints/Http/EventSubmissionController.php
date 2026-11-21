@@ -12,7 +12,6 @@ use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Support\SubmitterContactRules;
 use App\Features\Institutions\Api\InstitutionDirectoryRecord;
 use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
@@ -122,7 +121,7 @@ class EventSubmissionController extends FrontendController
             request: $request,
             submitter: $user,
             eventContainer: $eventContainer,
-            scopedInstitution: $scopedInstitution,
+            scopedInstitutionId: $scopedInstitution,
             persistRelationships: function (HasMedia $model) use ($request, $mediaCollectionSync): void {
                 $mediaCollectionSync->syncSingle($model, $request->file('cover'), 'cover');
                 $mediaCollectionSync->syncSingle($model, $request->file('poster'), 'poster');
@@ -193,7 +192,7 @@ class EventSubmissionController extends FrontendController
         }
     }
 
-    private function resolveScopedInstitution(mixed $institutionId, ?User $user): ?Institution
+    private function resolveScopedInstitution(mixed $institutionId, ?User $user): ?string
     {
         if (! is_string($institutionId) || ! Str::isUuid($institutionId)) {
             return null;
@@ -205,7 +204,7 @@ class EventSubmissionController extends FrontendController
 
         abort_unless($institution instanceof InstitutionDirectoryRecord, 403);
 
-        return Institution::query()->findOrFail($institution->id);
+        return $institution->id;
     }
 
     private function resolveEventContainer(mixed $eventId, mixed $scopedInstitutionId, ?User $user): ?Event
@@ -224,7 +223,7 @@ class EventSubmissionController extends FrontendController
         $scopedInstitution = $this->resolveScopedInstitution($scopedInstitutionId, $user);
 
         if (
-            $scopedInstitution instanceof Institution
+            $scopedInstitution !== null
             && ! $this->eventMatchesScopedInstitution($event, $scopedInstitution)
         ) {
             abort(403);
@@ -233,14 +232,14 @@ class EventSubmissionController extends FrontendController
         return $event;
     }
 
-    private function eventMatchesScopedInstitution(Event $event, Institution $institution): bool
+    private function eventMatchesScopedInstitution(Event $event, string $institutionId): bool
     {
         // The location institution is not ownership; only the primary
         // organizer establishes the institutional scope.
         return OrganizerResolver::involvementMatchesInstitution(
             $event->primaryOrganizerInvolvement?->involveable_type,
             $event->primaryOrganizerInvolvement?->involveable_id,
-            (string) $institution->getKey(),
+            $institutionId,
         );
     }
 }
