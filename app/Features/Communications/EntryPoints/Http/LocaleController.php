@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Platform\Language\EntryPoints\Http;
+namespace App\Features\Communications\EntryPoints\Http;
 
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Http\Controllers\Controller;
@@ -8,8 +8,10 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
-class LocaleController extends Controller
+final class LocaleController extends Controller
 {
+    public function __construct(private readonly AccountNotificationPreferences $preferences) {}
+
     public function __invoke(Request $request, string $locale): RedirectResponse
     {
         $supportedLocales = array_keys(config('app.supported_locales', []));
@@ -23,7 +25,7 @@ class LocaleController extends Controller
         $user = $request->user();
 
         if ($user instanceof User) {
-            app(AccountNotificationPreferences::class)->updateLocale((string) $user->getKey(), $locale);
+            $this->preferences->updateLocale((string) $user->getKey(), $locale);
         }
 
         return redirect()->back();

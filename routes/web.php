@@ -29,7 +29,6 @@ use App\Features\ShareTracking\EntryPoints\Livewire\Pages\DakwahIndex;
 use App\Features\ShareTracking\EntryPoints\Livewire\Pages\DakwahLinkShow;
 use App\Features\SlugRedirects\EntryPoints\Http\Middleware\ResolvePublicSlugRedirect;
 use App\Platform\Diagnostics\EntryPoints\Http\NetworkDiagnosticsController;
-use App\Platform\Language\EntryPoints\Http\LocaleController;
 use App\Platform\Language\Http\Middleware\SetLocale;
 use App\Platform\Routing\EntryPoints\Http\SitemapController;
 use App\Platform\Ui\Pages\About\Show as AboutPage;
@@ -44,7 +43,6 @@ Route::livewire('/tentang-kami', AboutPage::class)->name('about');
 Route::view('/privasi', 'pages.legal', ['pageKey' => 'privacy'])->name('privacy');
 Route::view('/terma', 'pages.legal', ['pageKey' => 'terms'])->name('terms');
 Route::view('/hubungi-kami', 'pages.legal', ['pageKey' => 'contact'])->name('contact');
-Route::get('/bahasa/{locale}', LocaleController::class)->name('locale.switch');
 
 Route::get('/jemputan/{token}', ReferralInviteLandingController::class)
     ->middleware(['throttle:share-tracking', TrackShareAttribution::class])
