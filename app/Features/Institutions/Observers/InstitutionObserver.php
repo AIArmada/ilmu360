@@ -1,64 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Institutions\Observers;
 
-use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
-use App\Features\Institutions\Api\InstitutionListingCacheVersion;
-use App\Features\Institutions\Api\InstitutionWorkflow;
+use App\Features\Institutions\Actions\Projection\SyncInstitutionDirectoryEffectsAction;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Institutions\Services\InstitutionSearchService;
-use App\Features\SlugRedirects\Api\SlugRedirectCommands;
-use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class InstitutionObserver implements ShouldHandleEventsAfterCommit
+/** Eloquent lifecycle adapter; cross-owner projections are handled by the Action. */
+final readonly class InstitutionObserver implements ShouldHandleEventsAfterCommit
 {
-    use SyncsCurrentAndPreviousValues;
+    public function __construct(private SyncInstitutionDirectoryEffectsAction $effects) {}
 
-    public function __construct(
-        protected InstitutionWorkflow $institutionWorkflow,
-        protected SlugRedirectCommands $slugRedirectCommands,
-        protected InstitutionListingCacheVersion $institutionCacheVersion,
-        protected PublicListingsCacheInvalidator $publicListingsCache,
-        protected InstitutionSearchService $institutionSearchService,
-    ) {}
-
-    public function saved(Institution $institution): void
+    public function saved(Institution $record): void
     {
-        if (! $institution->wasRecentlyCreated && ! $institution->wasChanged()) {
-            return;
-        }
-
-        if ($institution->wasRecentlyCreated || $institution->wasChanged('name')) {
-            // A slug explicitly changed in the same save wins over
-            // name-derived regeneration for this row; same-name peers still
-            // re-stabilize around it.
-            $exceptInstitutionId = ! $institution->wasRecentlyCreated && $institution->wasChanged('slug')
-                ? (string) $institution->getKey()
-                : null;
-
-            $this->syncCurrentAndPreviousString(
-                $institution->name,
-                $institution->wasChanged('name') ? ($institution->getPrevious()['name'] ?? null) : null,
-                fn (string $name): bool => $this->institutionWorkflow->syncSlugsForName($name, $exceptInstitutionId),
-            );
-        }
-
-        $this->publicListingsCache->bustHomepageStats();
-        $this->publicListingsCache->bustMajlisListing();
-        $this->institutionCacheVersion->bump();
-        $this->institutionSearchService->bustPublicSearchCache();
+        $this->effects->saved($record);
     }
 
-    public function deleted(Institution $institution): void
+    public function deleted(Institution $record): void
     {
-        // Bridge rows are removed synchronously inside Institution::delete();
-        // this after-commit observer keeps derived side effects only.
-        $this->slugRedirectCommands->purge($institution->getMorphClass(), (string) $institution->getKey());
-        $this->institutionWorkflow->syncSlugsForName($institution->name);
-        $this->publicListingsCache->bustHomepageStats();
-        $this->publicListingsCache->bustMajlisListing();
-        $this->institutionCacheVersion->bump();
-        $this->institutionSearchService->bustPublicSearchCache();
+        $this->effects->deleted($record);
     }
 }
