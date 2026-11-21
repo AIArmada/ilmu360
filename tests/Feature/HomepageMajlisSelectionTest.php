@@ -91,10 +91,10 @@ it('includes upcoming majlis related to each type of active follow', function (s
     }
     homepageMajlis();
 
-    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection($user);
+    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection((string) $user->getKey());
     expect($selection->map(fn ($leaf) => $leaf->event->id)->all())->toBe([$event->id]);
     $user->unfollow($subject);
-    expect(app(PublicScheduleDiscoveryService::class)->homepageSelection($user))->toBeEmpty();
+    expect(app(PublicScheduleDiscoveryService::class)->homepageSelection((string) $user->getKey()))->toBeEmpty();
 })->with(['person', 'institution', 'reference']);
 
 it('prioritizes featured cards and fills remaining slots without duplicates', function () {
@@ -104,7 +104,7 @@ it('prioritizes featured cards and fills remaining slots without duplicates', fu
     $featured = homepageMajlis(['is_featured' => true, 'institution_id' => $institution->id]);
     $related = collect(range(1, 12))->map(fn () => homepageMajlis(['institution_id' => $institution->id]));
 
-    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection($user);
+    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection((string) $user->getKey());
     expect($selection)->toHaveCount(9)
         ->and($selection->first()->id())->toBe($featured->occurrences()->firstOrFail()->id)
         ->and($selection->map(fn ($leaf) => $leaf->id())->unique())->toHaveCount(9);
@@ -129,14 +129,14 @@ it('keeps followed-event filler inside the 14-day recommendation window', functi
         'ends_at' => now()->addDays(20)->addHour(),
     ]);
 
-    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection($user);
+    $selection = app(PublicScheduleDiscoveryService::class)->homepageSelection((string) $user->getKey());
 
     expect($selection->map(fn ($leaf) => $leaf->event->id)->all())->toBe([$inside->id]);
 });
 
 it('does not fall back to unrelated schedules for users with no follows', function () {
     homepageMajlis();
-    expect(app(PublicScheduleDiscoveryService::class)->homepageSelection(User::factory()->create()))->toBeEmpty();
+    expect(app(PublicScheduleDiscoveryService::class)->homepageSelection((string) User::factory()->create()->getKey()))->toBeEmpty();
 });
 
 it('caps admin featured schedules at nine cards in upcoming order', function () {

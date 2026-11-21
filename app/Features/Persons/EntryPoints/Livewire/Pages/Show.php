@@ -310,7 +310,7 @@ class Show extends Component
         }
 
         $events = $this->personEventQuery()->reorder()->with('involvements')->get()->unique('id');
-        $leaves = app(PublicScheduleOrmPort::class)->leavesForEvents($events)
+        $leaves = app(PublicScheduleOrmPort::class)->leavesForEventIds($events->modelKeys())
             ->map(fn (PublicScheduleLeafContract $leaf): ?PublicScheduleLeafContract => $this->speakerLeafFor($leaf))
             ->filter()
             ->values();

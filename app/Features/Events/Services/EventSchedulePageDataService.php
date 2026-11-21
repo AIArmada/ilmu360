@@ -8,9 +8,7 @@ use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Models\Builders\EventBuilder;
-use App\Features\Events\Models\Event;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 /**
@@ -28,10 +26,11 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         ?CarbonInterface $rangeTo = null,
         ?callable $filterLeaves = null,
     ): array {
-        $events = (clone $baseQuery)->reorder()->select('events.*')->get()
-            ->filter(static fn (Model $event): bool => $event instanceof Event)
-            ->values();
-        $leaves = $this->schedule->leavesForEvents($events);
+        $eventIds = (clone $baseQuery)->reorder()->pluck('events.id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
+        $leaves = $this->schedule->leavesForEventIds($eventIds);
 
         if ($filterLeaves !== null) {
             /** @var Collection<int, PublicScheduleModelLeaf> $leaves */

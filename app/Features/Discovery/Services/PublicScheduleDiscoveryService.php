@@ -22,7 +22,6 @@ use App\Features\Events\Models\Event;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
-use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -116,10 +115,9 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
     }
 
     /** @return Collection<int, PublicScheduleModelLeaf> */
-    public function homepageSelection(?User $user): Collection
+    public function homepageSelection(?string $accountId): Collection
     {
         $engagement = app(SubjectFollows::class);
-        $accountId = $user?->getKey() !== null ? (string) $user->getKey() : null;
         $personIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Person) : [];
         $institutionIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Institution) : [];
         $referenceIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Reference) : [];
@@ -171,17 +169,12 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
     }
 
     /**
-     * @param  iterable<int, Event>  $events
+     * @param  list<string>  $eventIds
      * @return Collection<int, PublicScheduleModelLeaf>
      */
-    public function leavesForEvents(iterable $events): Collection
+    public function leavesForEventIds(array $eventIds): Collection
     {
-        $eventIds = collect($events)
-            ->filter(static fn (mixed $event): bool => $event instanceof Event)
-            ->map(static fn (Event $event): string => (string) $event->getKey())
-            ->unique()
-            ->values()
-            ->all();
+        $eventIds = array_values(array_unique($eventIds));
         $factSet = $this->scheduleEvents->scheduleFactsForEventIds($eventIds);
         $leaves = collect($factSet->leaves)
             ->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($left, $right))

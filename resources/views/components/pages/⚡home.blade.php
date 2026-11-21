@@ -31,7 +31,7 @@ new
         #[Computed]
         public function featuredEvents(): \Illuminate\Support\Collection
         {
-            return app(PublicScheduleDiscoveryService::class)->homepageSelection(auth()->user());
+            return app(PublicScheduleDiscoveryService::class)->homepageSelection(auth()->id() !== null ? (string) auth()->id() : null);
         }
 
         public function toggleSave(string $eventId): void

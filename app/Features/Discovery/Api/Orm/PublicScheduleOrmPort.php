@@ -6,7 +6,6 @@ namespace App\Features\Discovery\Api\Orm;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
-use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -40,13 +39,13 @@ interface PublicScheduleOrmPort
     /**
      * @return Collection<int, PublicScheduleModelLeaf>
      */
-    public function homepageSelection(?User $user): Collection;
+    public function homepageSelection(?string $accountId): Collection;
 
     /**
-     * @param  iterable<int, Event>  $events
+     * @param  list<string>  $eventIds
      * @return Collection<int, PublicScheduleModelLeaf>
      */
-    public function leavesForEvents(iterable $events): Collection;
+    public function leavesForEventIds(array $eventIds): Collection;
 
     /**
      * Build one leaf from already-loaded models, so pages that own the
