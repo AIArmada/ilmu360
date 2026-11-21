@@ -27,15 +27,6 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 interface EventOrmPort extends EventScheduleReads
 {
     /**
-     * Card details for the already-selected next event ids, hydrated in one
-     * batched query.
-     *
-     * @param  list<string>  $eventIds
-     * @return array<string, array{slug: string, title: string, next_event_starts_at: string}>
-     */
-    public function institutionNextEventDetails(array $eventIds): array;
-
-    /**
      * A hydrated Event model for framework contracts (policies, Livewire page
      * state, eager-loaded relations, media and share subjects).
      */

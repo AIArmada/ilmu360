@@ -75,7 +75,7 @@ class ShareAnalyticsController extends FrontendController
 
         return response()->json([
             'data' => [
-                'summary' => $this->analytics->summaryForUser($user),
+                'summary' => $this->analytics->summaryForAccount($user),
                 'provider_breakdown' => $this->arrayRows($this->analytics->providerBreakdownForUser($user)),
                 'subject_summaries' => $this->arrayRows($this->analytics->subjectSummariesForUser($user)),
                 'top_subjects' => $this->arrayRows($this->analytics->topSubjectsForUser($user)),

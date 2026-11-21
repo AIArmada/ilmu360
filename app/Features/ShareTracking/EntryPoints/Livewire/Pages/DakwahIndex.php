@@ -166,7 +166,7 @@ class DakwahIndex extends Component
     #[Computed]
     public function impactSummary(): array
     {
-        return $this->analytics()->summaryForUser($this->currentUser());
+        return $this->analytics()->summaryForAccount($this->currentUser());
     }
 
     #[Computed]

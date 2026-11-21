@@ -29,7 +29,7 @@ use App\Features\Reports\EntryPoints\Http\ReportTriageController as AdminReportT
 use App\Features\ShareTracking\EntryPoints\Http\ShareAnalyticsController;
 use App\Features\ShareTracking\EntryPoints\Http\ShareClaimController;
 use App\Features\ShareTracking\EntryPoints\Http\ShareController;
-use App\Platform\Api\Admin\EntryPoints\Http\CatalogController as AdminCatalogController;
+use App\Features\Discovery\EntryPoints\Http\AdminCatalogController;
 use App\Platform\Api\Admin\EntryPoints\Http\ManifestController as AdminManifestController;
 use App\Platform\Api\Admin\EntryPoints\Http\ResourceController as AdminResourceController;
 use App\Platform\ApiDocumentation\EntryPoints\Http\DocumentationController;

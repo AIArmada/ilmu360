@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Platform\Api\Admin\EntryPoints\Http;
+namespace App\Features\Discovery\EntryPoints\Http;
 
 use App\Http\Controllers\Controller;
-use App\Platform\Api\Frontend\CatalogDispatcher;
+use App\Features\Discovery\Services\CatalogDispatcher;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
     'Authenticated catalog endpoints for schema-driven admin writes. '
     .'Use these lookups for package-native geography: country_id, optional state_id, city_id, and area_assignments (administrative_district / administrative_subdivision).',
 )]
-class CatalogController extends Controller
+class AdminCatalogController extends Controller
 {
     public function __construct(
         private readonly CatalogDispatcher $catalogs,

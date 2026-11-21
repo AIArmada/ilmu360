@@ -11,4 +11,13 @@ namespace App\Features\Events\Api;
 interface EventDirectoryProjectionProvider
 {
     public function institutionDirectoryEventColumns(): EventDirectorySqlProjection;
+
+    /**
+     * Card details for the already-selected next event ids, hydrated in one
+     * batched query.
+     *
+     * @param  list<string>  $eventIds
+     * @return array<string, array{slug: string, title: string, next_event_starts_at: string}>
+     */
+    public function institutionNextEventDetails(array $eventIds): array;
 }
