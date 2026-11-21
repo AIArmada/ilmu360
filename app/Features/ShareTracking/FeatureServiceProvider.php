@@ -79,6 +79,10 @@ use App\Features\ShareTracking\Services\SavedSearchOutcomeRecorder;
 use App\Features\ShareTracking\Services\ShareTrackingActiveAttribution;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Features\ShareTracking\Services\ShareTrackingParticipationAttribution;
+use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
+use App\Features\ShareTracking\Observers\ShareSourceAttributionReceiptObserver;
+use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Observers\ShareOutcomeCorrectionObserver;
 use App\Features\ShareTracking\Services\ShareTrackingSignupRecorder;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
@@ -158,6 +162,8 @@ class FeatureServiceProvider extends FeatureModule
     {
         parent::boot();
         AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);
+        ShareSourceAttributionReceipt::observe(ShareSourceAttributionReceiptObserver::class);
+        ShareOutcomeCorrection::observe(ShareOutcomeCorrectionObserver::class);
 
         if (! app()->bound('share.schedule_reversal.listeners.registered')) {
             EventFacade::listen(EventCancelled::class, [ReverseScheduleCancellationShareOutcome::class, 'handle']);

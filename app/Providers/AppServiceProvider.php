@@ -97,12 +97,8 @@ use App\Features\ShareTracking\EntryPoints\Listeners\ReverseRegistrationShareOut
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
-use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
 use App\Features\ShareTracking\Models\ShareSignalReaderSkip;
-use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
-use App\Features\ShareTracking\Observers\ShareOutcomeCorrectionObserver;
-use App\Features\ShareTracking\Observers\ShareSourceAttributionReceiptObserver;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Host\Affiliates\EloquentAffiliateSnapshotPersistence;
 use App\Host\Pango\ShareCards\PangoShareCardRenderer;
@@ -562,8 +558,6 @@ class AppServiceProvider extends ServiceProvider
         Reference::observe(ReferenceObserver::class);
         ReferenceContributor::observe(ReferenceContributorObserver::class);
         Venue::observe(VenueObserver::class);
-        ShareSourceAttributionReceipt::observe(ShareSourceAttributionReceiptObserver::class);
-        ShareOutcomeCorrection::observe(ShareOutcomeCorrectionObserver::class);
 
         app()->instance($registrationKey, true);
     }
