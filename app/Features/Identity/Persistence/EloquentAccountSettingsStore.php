@@ -104,6 +104,11 @@ final readonly class EloquentAccountSettingsStore implements AccountSettingsStor
         return $this->user($accountId)->tokens()->whereKey($tokenId)->delete() > 0;
     }
 
+    public function revokeAllTokens(string $accountId): void
+    {
+        $this->user($accountId)->tokens()->delete();
+    }
+
     private function user(string $accountId): User
     {
         return User::query()->findOrFail($accountId);

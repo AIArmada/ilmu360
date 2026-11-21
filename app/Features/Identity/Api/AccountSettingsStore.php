@@ -40,4 +40,6 @@ interface AccountSettingsStore
     public function createToken(string $accountId, string $name): string;
 
     public function revokeToken(string $accountId, int|string $tokenId): bool;
+
+    public function revokeAllTokens(string $accountId): void;
 }

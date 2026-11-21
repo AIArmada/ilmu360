@@ -31,7 +31,10 @@ it('stores lifecycle state under contributor and authorization keys', function (
     ]);
 
     $userId = (string) $user->id;
+    $user->createToken('deleted-account-test');
     $user->delete();
+
+    expect($user->tokens()->count())->toBe(0);
 
     $deleted = DeletedModel::query()
         ->where('key', $userId)

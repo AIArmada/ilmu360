@@ -4,6 +4,7 @@ namespace App\Features\Identity\Persistence;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Identity\Api\AccountLifecycle;
+use App\Features\Identity\Api\AccountSettingsStore;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -128,7 +129,7 @@ trait HasUserRestoration
 
     protected function deleteAuthenticationState(): void
     {
-        $this->tokens()->delete();
+        app(AccountSettingsStore::class)->revokeAllTokens((string) $this->getKey());
 
         DB::table('sessions')->where('user_id', $this->id)->delete();
         DB::table('password_reset_tokens')->where('email', $this->email)->delete();

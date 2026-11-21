@@ -59,18 +59,6 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/Identity/Persistence/HasUserRestoration.php",
-      "target": "table:unknown",
-      "model": "Laravel\\Sanctum\\PersonalAccessToken",
-      "model_provider": "sanctum",
-      "relation": "tokens",
-      "relation_owner": "App\\Models\\User",
-      "reason": "Identity revokes the user's configured Sanctum tokens through the package relation; token storage remains Sanctum-owned.",
-      "owner": "Identity",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
       "file": "app/Features/Registration/Actions/PrepareAdmissionCheckoutAction.php",
       "target": "table:unknown",
       "model": "AIArmada\\Checkout\\Models\\CheckoutSession",
