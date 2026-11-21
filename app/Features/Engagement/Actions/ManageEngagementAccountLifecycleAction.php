@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class ManageEngagementAccountLifecycleAction
 {
+    public function __construct(private EngagementManager $engagementManager) {}
+
     /** @return array<string, mixed> */
     public function snapshot(string $accountId): array
     {
@@ -161,7 +163,7 @@ final readonly class ManageEngagementAccountLifecycleAction
                 $event = $eventClass::query()->find($data['event_id'] ?? null);
 
                 if ($event instanceof Model && $event instanceof Respondable) {
-                    app(EngagementManager::class)->respond($user, $event, (string) ($data['response_type'] ?? 'going'));
+                    $this->engagementManager->respond($user, $event, (string) ($data['response_type'] ?? 'going'));
                 }
             });
         }
