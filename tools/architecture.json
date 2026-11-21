@@ -71,18 +71,6 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Platform/Mcp/McpTokenManager.php",
-      "target": "table:unknown",
-      "model": "Laravel\\Sanctum\\PersonalAccessToken",
-      "model_provider": "sanctum",
-      "relation": "tokens",
-      "relation_owner": "App\\Models\\User",
-      "reason": "Identity's MCP token integration revokes an ability-scoped token selected from the user's Sanctum relation; token storage remains Sanctum-owned.",
-      "owner": "Identity",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
       "file": "app/Features/Registration/Actions/PrepareAdmissionCheckoutAction.php",
       "target": "table:unknown",
       "model": "AIArmada\\Checkout\\Models\\CheckoutSession",

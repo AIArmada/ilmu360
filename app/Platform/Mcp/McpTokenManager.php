@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Mcp;
 
+use App\Features\Identity\Api\AccountSettingsStore;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -11,6 +12,8 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class McpTokenManager
 {
+    public function __construct(private readonly AccountSettingsStore $accountSettingsStore) {}
+
     public const string ADMIN_SERVER = 'admin';
 
     public const string MEMBER_SERVER = 'member';
@@ -123,7 +126,7 @@ class McpTokenManager
 
         abort_unless($this->serverForToken($token) !== null, 404);
 
-        $token->delete();
+        $this->accountSettingsStore->revokeToken((string) $user->getKey(), $tokenId);
     }
 
     private function serverForToken(PersonalAccessToken $token): ?string

@@ -310,11 +310,17 @@ it('does not expose unscoped MCP tokens as server tokens', function () {
 
     $user = User::factory()->create();
     $user->assignRole('super_admin');
-    $user->createToken('admin-mcp-token');
+    $nonMcpToken = $user->createToken('admin-mcp-token');
 
     Sanctum::actingAs($user);
 
     $this->getJson(route('api.client.account-settings.mcp-tokens.index'))
         ->assertOk()
         ->assertJsonPath('data.tokens', []);
+
+    $this->deleteJson(route('api.client.account-settings.mcp-tokens.destroy', [
+        'tokenId' => $nonMcpToken->accessToken->getKey(),
+    ]))->assertNotFound();
+
+    expect($user->fresh()->tokens()->count())->toBe(1);
 });
