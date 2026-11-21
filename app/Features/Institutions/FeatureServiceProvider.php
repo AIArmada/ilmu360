@@ -37,6 +37,7 @@ use App\Features\Institutions\EntryPoints\Filament\Stats\PendingInstitutionsStat
 use App\Features\Institutions\EntryPoints\Sitemap\InstitutionSitemapUrls;
 use App\Features\Institutions\Listeners\InstitutionMediaCacheListener;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Models\InstitutionImportExclusion;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Features\Institutions\Observers\InstitutionImportExclusionObserver;
 use App\Features\Institutions\Observers\InstitutionNameObserver;
@@ -69,6 +70,7 @@ use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Contracts\AddressableChangeEffects;
 use App\Shared\Contracts\AddressChangeEffects;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -109,6 +111,12 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'institution' => Institution::class,
+            'institution_name' => InstitutionName::class,
+            'institution_import_exclusion' => InstitutionImportExclusion::class,
+        ]);
+
         Institution::observe(InstitutionObserver::class);
         Institution::observe(InstitutionImportExclusionObserver::class);
         InstitutionName::observe(InstitutionNameObserver::class);

@@ -149,6 +149,9 @@ use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventPosterImageTool;
 use App\Features\Events\EntryPoints\Sitemap\EventSitemapUrls;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Models\MediaLink;
+use App\Features\Events\Models\Series;
 use App\Features\Events\Notifications\EloquentEventEscalationTransport;
 use App\Features\Events\Notifications\EventChangeNoticeNotificationAdapter;
 use App\Features\Events\Notifications\EventNotificationService;
@@ -218,6 +221,7 @@ use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Telemetry\SignalSchemaRegistry;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Schedule;
 
 /**
@@ -409,6 +413,14 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'event' => Event::class,
+            'event_key_person' => EventKeyPerson::class,
+            'event_submission' => EventSubmission::class,
+            'media_link' => MediaLink::class,
+            'series' => Series::class,
+        ]);
+
         Event::observe(EventLifecycleObserver::class);
         Event::observe(EventLocationSyncObserver::class);
         Event::observe(EventObserver::class);

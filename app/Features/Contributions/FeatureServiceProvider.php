@@ -36,6 +36,7 @@ use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberApproveContributionRe
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberCancelContributionRequestTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberListContributionRequestsTool;
 use App\Features\Contributions\EntryPoints\Mcp\Tools\MemberRejectContributionRequestTool;
+use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Notifications\ContributionRequestNotificationService;
 use App\Features\Contributions\Persistence\CacheVerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Queries\EloquentContributionRequestReader;
@@ -57,6 +58,7 @@ use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
  * Contributions owns contribution requests from C3 onward.
@@ -117,6 +119,10 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'contribution_request' => ContributionRequest::class,
+        ]);
+
         $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(ContributionRequestResourceDefinition::class));
         parent::boot();
 

@@ -21,6 +21,7 @@ use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -38,6 +39,10 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'donation_channel' => DonationChannel::class,
+        ]);
+
         DonationChannel::observe(DonationChannelObserver::class);
         parent::boot();
 

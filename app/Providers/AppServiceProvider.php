@@ -28,19 +28,10 @@ use AIArmada\Orders\Models\OrderRefund;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\EntryPoints\Ui\EventJsonLd;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Models\EventKeyPerson;
-use App\Features\Events\Models\EventSubmission;
-use App\Features\Events\Models\MediaLink;
-use App\Features\Events\Models\Series;
 use App\Features\Events\Policies\EventPolicy;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Institutions\Models\InstitutionImportExclusion;
-use App\Features\Institutions\Models\InstitutionName;
 use App\Features\Membership\Models\MemberInvitation;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Moderation\Models\ModerationReview;
@@ -311,13 +302,10 @@ class AppServiceProvider extends ServiceProvider
             'contact' => ContactMethod::class,
             'customer' => Customer::class,
             'user' => User::class,
-            'event' => Event::class,
             'package_event' => PackageEvent::class,
             'event_access_policy' => EventAccessPolicy::class,
-            'event_key_person' => EventKeyPerson::class,
             'event_location' => EventLocation::class,
             'event_occurrence' => EventOccurrence::class,
-            'event_submission' => EventSubmission::class,
             'event_session' => EventSession::class,
             'checkin' => EventCheckin::class,
             'checkout_session' => CheckoutSession::class,
@@ -326,21 +314,14 @@ class AppServiceProvider extends ServiceProvider
             'order_note' => OrderNote::class,
             'order_payment' => OrderPayment::class,
             'order_refund' => OrderRefund::class,
-            'contribution_request' => ContributionRequest::class,
             'event_registration_participant' => EventRegistrationParticipant::class,
             'membership_application' => MembershipApplication::class,
             'moderation_review' => ModerationReview::class,
-            'media_link' => MediaLink::class,
-            'institution' => Institution::class,
-            'institution_name' => InstitutionName::class,
-            'institution_import_exclusion' => InstitutionImportExclusion::class,
-            'donation_channel' => DonationChannel::class,
             'member_invitation' => MemberInvitation::class,
             'registration' => Registration::class,
             'person' => Person::class,
             'person_name' => PersonName::class,
             'affiliation' => Affiliation::class,
-            'series' => Series::class,
             'social_media' => SocialProfile::class,
             'space' => Space::class,
             'venue' => Venue::class,
