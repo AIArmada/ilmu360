@@ -10,10 +10,12 @@ use App\Features\Institutions\Actions\SyncAddressChangeEffectsAction;
 use App\Features\Institutions\Api\ContributionProjection;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Api\Frontend\InstitutionWorkspaceFormContractContributor;
+use App\Features\Institutions\Api\InstitutionCards;
 use App\Features\Institutions\Api\InstitutionCatalog;
 use App\Features\Institutions\Api\InstitutionHomepageStats;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
+use App\Features\Institutions\Api\InstitutionSearch;
 use App\Features\Institutions\Api\InstitutionSearchCache;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
@@ -42,8 +44,10 @@ use App\Features\Institutions\Persistence\InstitutionSearchCacheStore;
 use App\Features\Institutions\Persistence\InstitutionSubmissionOptionsCacheStore;
 use App\Features\Institutions\Queries\EloquentInstitutionAuthoringCandidates;
 use App\Features\Institutions\Queries\EloquentInstitutionLookup;
+use App\Features\Institutions\Queries\InstitutionCardsQuery;
 use App\Features\Institutions\Queries\InstitutionContributionProjection;
 use App\Features\Institutions\Services\EloquentInstitutionCatalog;
+use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Institutions\Services\InstitutionVenueLinkService;
 use App\Features\Institutions\Services\InstitutionWorkflowService;
 use App\Features\Institutions\Support\Telemetry\InstitutionsSignalSchemaContributor;
@@ -63,6 +67,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(InstitutionSearch::class, InstitutionSearchService::class);
+        $this->app->bind(InstitutionCards::class, InstitutionCardsQuery::class);
         $this->app->bind(AddressChangeEffects::class, SyncAddressChangeEffectsAction::class);
         $this->app->bind(AddressableChangeEffects::class, SyncAddressChangeEffectsAction::class);
         $this->app->bind(ContributionProjection::class, InstitutionContributionProjection::class);

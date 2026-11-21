@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Membership;
 
+use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
+use AIArmada\Membership\Contracts\MembershipHook;
 use App\Features\Membership\Api\Frontend\MembershipApplicationFormContractContributor;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipApplications;
@@ -13,6 +15,7 @@ use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipSubjectOptionsCatalog;
+use App\Features\Membership\Api\OrganizationEventAccessContract;
 use App\Features\Membership\Api\Orm\Filament\AccountMembershipDirectory;
 use App\Features\Membership\Api\Orm\Filament\MemberInvitationAccess;
 use App\Features\Membership\Api\ScopedMembershipRoleStore;
@@ -32,6 +35,8 @@ use App\Features\Membership\EntryPoints\Mcp\Tools\AdminReviewMembershipApplicati
 use App\Features\Membership\EntryPoints\Mcp\Tools\MemberCancelMembershipApplicationTool;
 use App\Features\Membership\EntryPoints\Mcp\Tools\MemberListMembershipApplicationsTool;
 use App\Features\Membership\EntryPoints\Mcp\Tools\MemberSubmitMembershipApplicationTool;
+use App\Features\Membership\Integrations\AppMembershipHook;
+use App\Features\Membership\Notifications\AppMembershipApplicationNotifier;
 use App\Features\Membership\Persistence\EloquentScopedMembershipRoleStore;
 use App\Features\Membership\Services\EloquentMembershipSubjectCatalog;
 use App\Features\Membership\Services\EloquentMembershipSubjectOptionsCatalog;
@@ -41,6 +46,7 @@ use App\Features\Membership\Services\MembershipAuthorizationService;
 use App\Features\Membership\Services\MembershipCommandsService;
 use App\Features\Membership\Services\MembershipDirectoryService;
 use App\Features\Membership\Services\MembershipInvitationsService;
+use App\Features\Membership\Services\OrganizationEventAccess;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
@@ -85,6 +91,9 @@ final class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(OrganizationEventAccessContract::class, OrganizationEventAccess::class);
+        $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
+        $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
         $this->app->bind(AccountMembershipDirectory::class, AccountMembershipDirectoryAdapter::class);
         $this->app->bind(MemberInvitationAccess::class, MemberInvitationAccessAdapter::class);
         $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);

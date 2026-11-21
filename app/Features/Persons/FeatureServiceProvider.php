@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace App\Features\Persons;
 
 use App\Features\Persons\Actions\PersonSubmissionAccessAction;
+use App\Features\Persons\Actions\PruneOrphanedPersonsAction;
 use App\Features\Persons\Api\ContributionProjection;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Api\PersonAuthoringCandidates;
+use App\Features\Persons\Api\PersonCards;
 use App\Features\Persons\Api\PersonCatalog;
 use App\Features\Persons\Api\PersonHomepageStats;
 use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\Persons\Api\PersonSearch;
 use App\Features\Persons\Api\PersonSearchCache;
+use App\Features\Persons\Api\PersonSearchMaintenance;
 use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
 use App\Features\Persons\Api\PersonWorkflow;
+use App\Features\Persons\Api\PruneOrphanedPersons;
 use App\Features\Persons\EntryPoints\Admin\Member\PersonMemberResourceHooks;
 use App\Features\Persons\EntryPoints\Admin\Resources\PersonAdminHooks;
 use App\Features\Persons\EntryPoints\Admin\Resources\PersonMutationHooks;
@@ -33,8 +38,10 @@ use App\Features\Persons\Persistence\PersonSearchCacheStore;
 use App\Features\Persons\Persistence\PersonSubmissionOptionsCacheStore;
 use App\Features\Persons\Queries\EloquentPersonAuthoringCandidates;
 use App\Features\Persons\Queries\EloquentPersonLookup;
+use App\Features\Persons\Queries\PersonCardsQuery;
 use App\Features\Persons\Queries\PersonContributionProjection;
 use App\Features\Persons\Services\EloquentPersonCatalog;
+use App\Features\Persons\Services\PersonSearchService;
 use App\Features\Persons\Services\PersonWorkflowService;
 use App\Features\Persons\Support\Telemetry\PersonsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
@@ -49,6 +56,10 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(PruneOrphanedPersons::class, PruneOrphanedPersonsAction::class);
+        $this->app->bind(PersonCards::class, PersonCardsQuery::class);
+        $this->app->bind(PersonSearch::class, PersonSearchService::class);
+        $this->app->bind(PersonSearchMaintenance::class, PersonSearchService::class);
         $this->app->bind(ContributionProjection::class, PersonContributionProjection::class);
         $this->app->bind(PersonQuickAdd::class, PersonFormSchema::class);
         $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new PersonAdminHooks);

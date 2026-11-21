@@ -32,8 +32,6 @@ use AIArmada\Inventory\Models\InventoryAllocation;
 use AIArmada\Inventory\Models\InventoryLevel;
 use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Inventory\Models\InventoryMovement;
-use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
-use AIArmada\Membership\Contracts\MembershipHook;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderItem;
 use AIArmada\Orders\Models\OrderNote;
@@ -51,12 +49,6 @@ use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\DonationChannels\Models\DonationChannel;
-use App\Features\Engagement\Api\EngagementActivityReader;
-use App\Features\Engagement\Api\EventEngagement;
-use App\Features\Engagement\Api\EventEngagementToggles;
-use App\Features\Engagement\Api\SubjectFollows;
-use App\Features\Engagement\Queries\EloquentEngagementReader;
-use App\Features\Engagement\Services\EventEngagementToggleService;
 use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\Contributors\ModerationAccountLifecycleContributor;
 use App\Features\Events\EntryPoints\Ui\EventJsonLd;
@@ -83,28 +75,15 @@ use App\Features\Identity\Listeners\RecordVerifiedEmail;
 use App\Features\Identity\Listeners\SendRegisteredUserEmails;
 use App\Features\Identity\Observers\UserObserver;
 use App\Features\Identity\Support\NullSignupAttributionSourceResolver;
-use App\Features\Institutions\Api\InstitutionCards;
-use App\Features\Institutions\Api\InstitutionSearch;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionImportExclusion;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Features\Institutions\Observers\InstitutionImportExclusionObserver;
 use App\Features\Institutions\Observers\InstitutionObserver;
-use App\Features\Institutions\Queries\InstitutionCardsQuery;
 use App\Features\Institutions\Queries\InstitutionResourceSearchAdapter;
-use App\Features\Institutions\Services\InstitutionSearchService;
-use App\Features\Membership\Api\OrganizationEventAccessContract;
-use App\Features\Membership\Integrations\AppMembershipHook;
 use App\Features\Membership\Models\MemberInvitation;
 use App\Features\Membership\Models\MembershipApplication;
-use App\Features\Membership\Notifications\AppMembershipApplicationNotifier;
-use App\Features\Membership\Services\OrganizationEventAccess;
 use App\Features\Moderation\Models\ModerationReview;
-use App\Features\Persons\Actions\PruneOrphanedPersonsAction;
-use App\Features\Persons\Api\PersonCards;
-use App\Features\Persons\Api\PersonSearch;
-use App\Features\Persons\Api\PersonSearchMaintenance;
-use App\Features\Persons\Api\PruneOrphanedPersons;
 use App\Features\Persons\Models\Affiliation;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Models\PersonName;
@@ -113,9 +92,7 @@ use App\Features\Persons\Observers\PersonNameObserver;
 use App\Features\Persons\Observers\PersonObserver;
 use App\Features\Persons\Observers\PersonTitleObserver;
 use App\Features\Persons\Observers\TitleCategoryObserver;
-use App\Features\Persons\Queries\PersonCardsQuery;
 use App\Features\Persons\Queries\PersonResourceSearchAdapter;
-use App\Features\Persons\Services\PersonSearchService;
 use App\Features\Places\Actions\PruneOrphanedVenuesAction;
 use App\Features\Places\Api\PruneOrphanedVenues;
 use App\Features\Places\Api\SpaceLocation;
@@ -125,12 +102,9 @@ use App\Features\Places\Observers\VenueObserver;
 use App\Features\Places\Services\SpaceLocationResolver;
 use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Services\PrayerLocationResolverService;
-use App\Features\References\Api\ReferenceSearch;
 use App\Features\References\Models\Reference;
 use App\Features\References\Observers\ReferenceContributorObserver;
 use App\Features\References\Observers\ReferenceObserver;
-use App\Features\References\Services\ReferenceSearchService;
-use App\Features\References\Support\ReferenceScopedSearch;
 use App\Features\Registration\Api\CheckInNotifier;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
@@ -280,13 +254,6 @@ class AppServiceProvider extends ServiceProvider
         );
         $this->app->bind(PrayerLocationResolver::class, PrayerLocationResolverService::class);
         $this->app->bind(PruneOrphanedVenues::class, PruneOrphanedVenuesAction::class);
-        $this->app->bind(EventEngagementToggles::class, EventEngagementToggleService::class);
-        $this->app->bind(OrganizationEventAccessContract::class, OrganizationEventAccess::class);
-        $this->app->bind(PruneOrphanedPersons::class, PruneOrphanedPersonsAction::class);
-        $this->app->bind(InstitutionSearch::class, InstitutionSearchService::class);
-        $this->app->bind(ReferenceSearch::class, ReferenceSearchService::class);
-        $this->app->bind(InstitutionCards::class, InstitutionCardsQuery::class);
-        $this->app->bind(PersonCards::class, PersonCardsQuery::class);
         $this->app->bind(SpaceLocation::class, SpaceLocationResolver::class);
         $this->app->bind(LanguageOptions::class, EloquentLanguageOptions::class);
         $this->app->bind(AddressCatalog::class, EloquentAddressCatalog::class);
@@ -295,16 +262,11 @@ class AppServiceProvider extends ServiceProvider
         EventFacade::listen('eloquent.deleting: '.EventOccurrence::class, [GuardEventOccurrenceDeletionAction::class, 'handle']);
 
         $this->app->bind(AuditRecorder::class, EloquentAuditRecorder::class);
-        $this->app->bind(PersonSearch::class, PersonSearchService::class);
-        $this->app->bind(PersonSearchMaintenance::class, PersonSearchService::class);
         $this->app->bind(LanguageCatalog::class, DatabaseLanguageCatalog::class);
         $this->app->bind(SignupAttributionContextResolver::class, SignupAttributionContextResolverAdapter::class);
         $this->app->bind(CheckInNotifier::class, EventNotificationCheckInNotifier::class);
         $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
         $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
-        $this->app->bind(EngagementActivityReader::class, EloquentEngagementReader::class);
-        $this->app->bind(EventEngagement::class, EloquentEngagementReader::class);
-        $this->app->bind(SubjectFollows::class, EloquentEngagementReader::class);
         $this->app->singleton(SignalSchemaRegistry::class);
         $this->app->singleton(RequestExampleRegistry::class);
         $this->app->singleton(McpSurfaceRegistry::class);
@@ -322,7 +284,6 @@ class AppServiceProvider extends ServiceProvider
             PersonResourceSearchAdapter::class,
             InstitutionResourceSearchAdapter::class,
         ], ResourceSearchAdapter::TAG);
-        $this->app->bind(ReferenceScopedSearch::class, ReferenceSearchService::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
         $this->registerPublicSlugRegistry();
@@ -336,8 +297,6 @@ class AppServiceProvider extends ServiceProvider
             $this->loadViewsFrom($filamentAuditingViews, 'filament-auditing');
         }
 
-        $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
-        $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
         $this->app->bind(
             function ($app): CaptchaVerifier {
                 $verifier = $app->make(TurnstileVerifier::class);

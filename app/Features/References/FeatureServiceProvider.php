@@ -11,6 +11,7 @@ use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\References\Api\ReferenceCatalog;
 use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Api\ReferenceSearch;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\EntryPoints\Admin\Member\ReferenceMemberResourceHooks;
@@ -30,7 +31,9 @@ use App\Features\References\Queries\ReferenceContributionProjection;
 use App\Features\References\Queries\ReferenceResourceSearchAdapter;
 use App\Features\References\Services\EloquentReferenceCatalog;
 use App\Features\References\Services\ReferenceQueryService;
+use App\Features\References\Services\ReferenceSearchService;
 use App\Features\References\Services\ReferenceWorkflowService;
+use App\Features\References\Support\ReferenceScopedSearch;
 use App\Features\References\Support\Telemetry\ReferencesSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
@@ -46,6 +49,8 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(ReferenceSearch::class, ReferenceSearchService::class);
+        $this->app->bind(ReferenceScopedSearch::class, ReferenceSearchService::class);
         $this->app->bind(ContributionProjection::class, ReferenceContributionProjection::class);
         $this->app->bind(ReferenceQuickCreate::class, ReferenceFormSchema::class);
         $this->app->make(\App\Platform\Api\Admin\AdminResourceHookRegistry::class)->register(new ReferenceAdminHooks);
