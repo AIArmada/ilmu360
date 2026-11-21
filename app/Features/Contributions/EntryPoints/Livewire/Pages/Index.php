@@ -12,7 +12,7 @@ use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Orm\EventSubmissions;
-use App\Features\Events\Api\Orm\PublicScheduleEligibility;
+use App\Features\Events\Api\PublicScheduleVisibility;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
@@ -240,7 +240,7 @@ class Index extends Component implements HasForms
 
         if ($event instanceof Event && $event->isPubliclyReachable()) {
             if ($occurrence instanceof EventOccurrence) {
-                if (app(PublicScheduleEligibility::class)->isPublicOccurrence($occurrence)) {
+                if (app(PublicScheduleVisibility::class)->isPublicOccurrence((string) $occurrence->getKey())) {
                     $url = route('events.occurrence', [
                         $event,
                         PublicScheduleSlug::occurrence(

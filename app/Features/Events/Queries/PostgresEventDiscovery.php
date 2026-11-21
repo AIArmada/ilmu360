@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
+use App\Features\Events\Policies\PublicSchedulePolicy;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
@@ -26,7 +27,6 @@ use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Api\Orm\PublicScheduleEligibility;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Builders\EventBuilder;
@@ -444,7 +444,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
      */
     private function scheduleFactSet(EloquentCollection $events, array $distanceByEventId = []): EventScheduleFactSet
     {
-        $eligibility = app(PublicScheduleEligibility::class);
         $eventIds = [];
         $leaves = [];
 
@@ -461,7 +460,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             $eventTimeFacts = $this->scheduleTimeFacts($event->timeExpressions);
 
             foreach ($event->occurrences as $occurrence) {
-                if (! $eligibility->isPublicOccurrence($occurrence)) {
+                if (! PublicSchedulePolicy::isPublicOccurrence($occurrence)) {
                     continue;
                 }
 
@@ -475,7 +474,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
                 $sessionIds = [];
 
                 foreach ($occurrence->sessions as $session) {
-                    if ($eligibility->isMeaningfulSession($session)) {
+                    if (PublicSchedulePolicy::isMeaningfulSession($session)) {
                         $sessionIds[] = (string) $session->getKey();
                     }
                 }

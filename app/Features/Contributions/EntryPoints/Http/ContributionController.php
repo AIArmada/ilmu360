@@ -19,7 +19,7 @@ use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionReques
 use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Services\ContributionEntityStateService;
-use App\Features\Events\Api\Orm\EventContributionStateMapper;
+use App\Features\Events\Api\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
@@ -568,14 +568,14 @@ class ContributionController extends FrontendController
                 $mergedState['end_date'] = null;
             }
 
-            $normalizedState = app(EventContributionStateMapper::class)->toPersistenceState($mergedState, $entity);
+            $normalizedState = app(EventContributionStateMapper::class)->toPersistenceState($mergedState, (string) $entity->getKey());
         }
         $comparableSubmissionState = $entity instanceof Person
             ? $this->apiInitialState($entity, $normalizedState)
             : $normalizedState;
         $changes = $submissionPreparation->changedPayload(
             $comparableSubmissionState,
-            $comparableOriginalData + app(EventContributionStateMapper::class)->provenanceOriginals($entity),
+            $comparableOriginalData + app(EventContributionStateMapper::class)->provenanceOriginals($entity instanceof Event ? (string) $entity->getKey() : null),
         );
         $hasDirectEditMediaChange = collect($directEditMediaFields)
             ->contains(fn (string $field): bool => $request->hasFile($field));

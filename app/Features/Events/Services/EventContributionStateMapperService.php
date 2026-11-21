@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\Events\Api\Orm\EventContributionStateMapper;
+use App\Features\Events\Api\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
-use Illuminate\Database\Eloquent\Model;
 
 final readonly class EventContributionStateMapperService implements EventContributionStateMapper
 {
@@ -15,18 +14,15 @@ final readonly class EventContributionStateMapperService implements EventContrib
         return EventContributionUpdateStateMapper::toHelperState($state);
     }
 
-    public function toPersistenceState(array $state, ?Event $event = null): array
+    public function toPersistenceState(array $state, ?string $eventId = null): array
     {
-        return EventContributionUpdateStateMapper::toPersistenceState($state, $event);
+        return EventContributionUpdateStateMapper::toPersistenceState($state, $eventId !== null ? Event::query()->findOrFail($eventId) : null);
     }
 
-    public function provenanceOriginals(Model $entity): array
+    public function provenanceOriginals(?string $eventId = null): array
     {
-        return EventContributionUpdateStateMapper::provenanceOriginals($entity);
+        return EventContributionUpdateStateMapper::provenanceOriginals($eventId !== null ? Event::query()->findOrFail($eventId) : null);
     }
 
-    public function effectiveOptionsCountry(array $formState, ?Event $event = null): string
-    {
-        return EventContributionUpdateStateMapper::effectiveOptionsCountry($formState, $event);
-    }
+
 }

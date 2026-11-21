@@ -20,7 +20,7 @@ use App\Features\Contributions\EntryPoints\Filament\Forms\ReferenceContributionF
 use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
-use App\Features\Events\Api\Orm\EventContributionStateMapper;
+use App\Features\Events\Api\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Institutions\Models\Institution;
@@ -404,7 +404,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 $state = $this->normalizeSubmissionState($submissionState['state']);
                 $changes = $submissionPreparation->changedPayload(
                     $state,
-                    $this->originalData + app(EventContributionStateMapper::class)->provenanceOriginals($this->entity),
+                    $this->originalData + app(EventContributionStateMapper::class)->provenanceOriginals($this->entity instanceof Event ? (string) $this->entity->getKey() : null),
                 );
                 $hasDirectEditMediaChange = $this->hasDirectEditMediaChange();
                 $hasNewMedia = $this->hasNewMedia();
@@ -1181,7 +1181,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $state['end_date'] = $this->originalData['end_date'] ?? null;
         }
 
-        return app(EventContributionStateMapper::class)->toPersistenceState($state, $this->entity);
+        return app(EventContributionStateMapper::class)->toPersistenceState($state, (string) $this->entity->getKey());
     }
 
     /**

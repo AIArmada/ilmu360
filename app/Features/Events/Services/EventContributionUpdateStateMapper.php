@@ -14,7 +14,6 @@ use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon as IlluminateCarbon;
 
 class EventContributionUpdateStateMapper
@@ -95,7 +94,7 @@ class EventContributionUpdateStateMapper
      *
      * @return array<string, mixed>
      */
-    public static function provenanceOriginals(Model $entity): array
+    public static function provenanceOriginals(?Event $entity): array
     {
         $meta = $entity instanceof Event ? self::currentPrayerMeta($entity) : [];
         $originals = [];
