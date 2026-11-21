@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking;
 
+use AIArmada\Events\Events\EventRegistrationCancelled;
+use AIArmada\Events\Events\EventRegistrationRefunded;
+use AIArmada\Events\Events\EventRegistrationRejected;
+use App\Features\ShareTracking\EntryPoints\Listeners\ReverseRegistrationShareOutcome;
+
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Checkout\Contracts\StepContributor;
 use AIArmada\Events\Events\EventCancelled;
@@ -164,6 +169,14 @@ class FeatureServiceProvider extends FeatureModule
         AffiliateTouchpoint::observe(CommittedShareTouchpointObserver::class);
         ShareSourceAttributionReceipt::observe(ShareSourceAttributionReceiptObserver::class);
         ShareOutcomeCorrection::observe(ShareOutcomeCorrectionObserver::class);
+
+        if (! app()->bound('share.registration_reversal.listeners.registered')) {
+            EventFacade::listen(EventRegistrationCancelled::class, [ReverseRegistrationShareOutcome::class, 'handle']);
+            EventFacade::listen(EventRegistrationRejected::class, [ReverseRegistrationShareOutcome::class, 'handle']);
+            EventFacade::listen(EventRegistrationRefunded::class, [ReverseRegistrationShareOutcome::class, 'handle']);
+
+            app()->instance('share.registration_reversal.listeners.registered', true);
+        }
 
         if (! app()->bound('share.schedule_reversal.listeners.registered')) {
             EventFacade::listen(EventCancelled::class, [ReverseScheduleCancellationShareOutcome::class, 'handle']);

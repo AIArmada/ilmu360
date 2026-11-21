@@ -14,9 +14,6 @@ use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Customers\Models\Customer;
-use AIArmada\Events\Events\EventRegistrationCancelled;
-use AIArmada\Events\Events\EventRegistrationRefunded;
-use AIArmada\Events\Events\EventRegistrationRejected;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventLocation;
@@ -70,7 +67,6 @@ use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Policies\RegistrationPolicy;
 use App\Features\Rewards\Models\RewardDigestSlot;
-use App\Features\ShareTracking\EntryPoints\Listeners\ReverseRegistrationShareOutcome;
 use App\Features\ShareTracking\Models\ShareBrowserSelection;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareEffectReceipt;
@@ -316,14 +312,6 @@ class AppServiceProvider extends ServiceProvider
             'events',
             static fn (Organization $organization): MorphMany => $organization->morphMany(Event::class, 'owner'),
         );
-
-        if (! app()->bound('share.registration_reversal.listeners.registered')) {
-            EventFacade::listen(EventRegistrationCancelled::class, [ReverseRegistrationShareOutcome::class, 'handle']);
-            EventFacade::listen(EventRegistrationRejected::class, [ReverseRegistrationShareOutcome::class, 'handle']);
-            EventFacade::listen(EventRegistrationRefunded::class, [ReverseRegistrationShareOutcome::class, 'handle']);
-
-            app()->instance('share.registration_reversal.listeners.registered', true);
-        }
 
         if (! self::$languageSwitchConfigured) {
             LanguageSwitch::configureUsing(function (LanguageSwitch $switch): void {
