@@ -5,20 +5,14 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\Services;
 
 use AIArmada\Affiliates\Models\AffiliateClaim;
-use App\Features\ShareTracking\Api\Orm\GuestClaimScope;
+use App\Features\ShareTracking\Api\ActiveGuestClaimants;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Boundary adapter over the member/guest share-profile scope.
  */
-final readonly class GuestClaimScopeService implements GuestClaimScope
+final readonly class GuestClaimScopeService implements ActiveGuestClaimants
 {
-    public function guestClaims(): Builder
-    {
-        return ShareProfileScope::guestClaims();
-    }
-
     public function activeClaimantIdForAffiliate(string $affiliateId): ?string
     {
         if ($affiliateId === '') {

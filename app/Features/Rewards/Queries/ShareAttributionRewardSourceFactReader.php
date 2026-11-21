@@ -23,7 +23,7 @@ use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
-use App\Features\ShareTracking\Api\Orm\GuestClaimScope;
+use App\Features\ShareTracking\Api\ActiveGuestClaimants;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
@@ -355,7 +355,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
 
     private function activeClaimantFor(string $affiliateId): ?string
     {
-        return app(GuestClaimScope::class)->activeClaimantIdForAffiliate($affiliateId);
+        return app(ActiveGuestClaimants::class)->activeClaimantIdForAffiliate($affiliateId);
     }
 
     /**

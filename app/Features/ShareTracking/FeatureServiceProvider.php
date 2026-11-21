@@ -23,6 +23,7 @@ use App\Features\ShareTracking\Actions\Reversals\ReverseEventParticipationOutcom
 use App\Features\ShareTracking\Actions\Reversals\ReverseShareOutcomeAction;
 use App\Features\ShareTracking\Actions\Touchpoints\RecordOutboundShareTouchpointAction;
 use App\Features\ShareTracking\Actions\Touchpoints\RecordVisitTouchpointAction;
+use App\Features\ShareTracking\Api\ActiveGuestClaimants;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Api\EffectReceipts;
@@ -58,6 +59,7 @@ use App\Features\ShareTracking\Queries\AffiliateFinancialObligationReader as Dat
 use App\Features\ShareTracking\Queries\DatabaseMarkedShareAffiliateIds;
 use App\Features\ShareTracking\Queries\DatabaseShareOutcomeEvidenceReader;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
+use App\Features\ShareTracking\Services\GuestClaimScopeService;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\FeatureModule;
 use Illuminate\Support\Facades\Event as EventFacade;
@@ -166,6 +168,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(FinancialObligationReader::class, DatabaseFinancialObligationReader::class);
         $this->app->bind(GuestProfilePruner::class, PruneAbandonedGuestProfilesAction::class);
         $this->app->bind(GuestShareClaims::class, ClaimGuestProfileAction::class);
+        $this->app->bind(ActiveGuestClaimants::class, GuestClaimScopeService::class);
         $this->app->bind(LandingAttributionWriter::class, CreateLandingAttributionAction::class);
         $this->app->bind(MarkedShareAffiliateIds::class, DatabaseMarkedShareAffiliateIds::class);
         $this->app->bind(MemberAffiliateProfileWriter::class, EnsureMemberAffiliateProfileAction::class);
