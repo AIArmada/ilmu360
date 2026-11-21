@@ -25,6 +25,7 @@ use App\Platform\Language\Observers\LanguageObserver;
 use App\Platform\Routing\PublicSlugRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -55,6 +56,10 @@ final class PlatformServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'language' => Language::class,
+        ]);
+
         Address::observe(AddressObserver::class);
         AddressArea::observe(AddressAreaObserver::class);
         AddressAreaRelationship::observe(AddressAreaRelationshipObserver::class);

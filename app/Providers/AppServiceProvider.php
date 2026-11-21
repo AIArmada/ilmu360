@@ -54,7 +54,6 @@ use App\Platform\Captcha\TurnstileVerifier;
 use App\Platform\Language\Api\LanguageOptions;
 use App\Platform\Language\DatabaseLanguageCatalog;
 use App\Platform\Language\EloquentLanguageOptions;
-use App\Platform\Language\Models\Language;
 use App\Platform\Location\Api\AddressCatalog;
 use App\Platform\Location\EloquentAddressCatalog;
 use App\Platform\Location\VisitorCountryResolver;
@@ -299,7 +298,6 @@ class AppServiceProvider extends ServiceProvider
             'order_refund' => OrderRefund::class,
             'event_registration_participant' => EventRegistrationParticipant::class,
             'social_media' => SocialProfile::class,
-            'language' => Language::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,
             'inventory_level' => InventoryLevel::class,
