@@ -4,31 +4,22 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
+use App\Features\Events\Actions\Projection\InvalidateEventTermCatalogAction;
 use AIArmada\Events\Models\EventTerm;
-use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
-use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
+/** Eloquent notification adapter; derived projections run in the owning Action. */
 final readonly class EventTermObserver implements ShouldHandleEventsAfterCommit
 {
-    public function __construct(
-        private PublicListingsCacheInvalidator $publicListingsCache,
-        private SelectionCatalogCache $selectionCatalogCache,
-    ) {}
+    public function __construct(private InvalidateEventTermCatalogAction $effects) {}
 
-    public function saved(EventTerm $term): void
+    public function saved(EventTerm $record): void
     {
-        if (! $term->wasRecentlyCreated && ! $term->wasChanged()) {
-            return;
-        }
-
-        $this->publicListingsCache->bustMajlisListing();
-        $this->selectionCatalogCache->bustEventCategories();
+        $this->effects->saved($record);
     }
 
-    public function deleted(EventTerm $term): void
+    public function deleted(EventTerm $record): void
     {
-        $this->publicListingsCache->bustMajlisListing();
-        $this->selectionCatalogCache->bustEventCategories();
+        $this->effects->deleted($record);
     }
 }

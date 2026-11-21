@@ -4,23 +4,22 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
+use App\Features\Events\Actions\Projection\InvalidateEventTaxonomyCatalogAction;
 use AIArmada\Events\Models\EventTaxonomy;
-use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
+/** Eloquent notification adapter; derived projections run in the owning Action. */
 final readonly class EventTaxonomyObserver implements ShouldHandleEventsAfterCommit
 {
-    public function __construct(private SelectionCatalogCache $selectionCatalogCache) {}
+    public function __construct(private InvalidateEventTaxonomyCatalogAction $effects) {}
 
-    public function saved(EventTaxonomy $taxonomy): void
+    public function saved(EventTaxonomy $record): void
     {
-        if ($taxonomy->wasRecentlyCreated || $taxonomy->wasChanged()) {
-            $this->selectionCatalogCache->bustEventCategories();
-        }
+        $this->effects->saved($record);
     }
 
-    public function deleted(EventTaxonomy $taxonomy): void
+    public function deleted(EventTaxonomy $record): void
     {
-        $this->selectionCatalogCache->bustEventCategories();
+        $this->effects->deleted($record);
     }
 }
