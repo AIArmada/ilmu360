@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
  */
 final readonly class ReorderFeaturedPersonsAction
 {
+    public function __construct(private PackageReorder $packageReorder) {}
+
     /**
      * @param  list<string>  $order
      */
@@ -23,7 +25,7 @@ final readonly class ReorderFeaturedPersonsAction
         abort_unless(auth()->user()?->hasGlobalAdminAccess(), 403);
 
         DB::transaction(function () use ($order): void {
-            app(PackageReorder::class)->handle(Person::class, $order, function (array $before, array $after): void {
+            $this->packageReorder->handle(Person::class, $order, function (array $before, array $after): void {
                 $person = Person::query()->findOrFail($after[0]);
 
                 if ($person instanceof Model && $person instanceof RecordsCustomAuditEvents) {

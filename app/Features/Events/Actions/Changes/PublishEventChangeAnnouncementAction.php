@@ -23,6 +23,12 @@ use ValueError;
 
 final readonly class PublishEventChangeAnnouncementAction implements EventChangePublisher
 {
+    public function __construct(
+        private EventAuthoring $authoring,
+        private ParticipationOutcomeReversals $participationReversals,
+        private EventChangeNoticeNotifier $notifier,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $changes
      */
@@ -65,7 +71,7 @@ final readonly class PublishEventChangeAnnouncementAction implements EventChange
             $event->loadMissing($this->snapshotRelations());
 
             $beforeSnapshot = $this->snapshot($event);
-            $changedFields = app(EventAuthoring::class)->applyChangeAnnouncementMutations(
+            $changedFields = $this->authoring->applyChangeAnnouncementMutations(
                 (string) $event->getKey(),
                 $type->value,
                 $changes,
@@ -73,12 +79,8 @@ final readonly class PublishEventChangeAnnouncementAction implements EventChange
             $event->refresh();
             $event->loadMissing($this->snapshotRelations());
 
-            // A published cancellation is a canonical event cancellation:
-            // participation outcomes stop qualifying in the same
-            // transaction. Occurrence-scoped rows were already reversed by
-            // the schedule listener; this covers event-level rows.
             if ($type === EventChangeType::Cancelled) {
-                app(ParticipationOutcomeReversals::class)->reverse(
+                $this->participationReversals->reverse(
                     'event',
                     (string) $event->getKey(),
                     (string) $actor->getKey(),
@@ -91,7 +93,7 @@ final readonly class PublishEventChangeAnnouncementAction implements EventChange
 
             $message = $this->publicMessage($type, $publicMessage, $replacementEvent);
 
-            $announcementId = app(EventAuthoring::class)->createChangeAnnouncement([
+            $announcementId = $this->authoring->createChangeAnnouncement([
                 'event_id' => (string) $event->getKey(),
                 'replacement_event_id' => $replacementEvent instanceof Event ? (string) $replacementEvent->getKey() : null,
                 'created_by_type' => $actor->getMorphClass(),
@@ -120,7 +122,7 @@ final readonly class PublishEventChangeAnnouncementAction implements EventChange
         });
 
         if ($notify) {
-            app(EventChangeNoticeNotifier::class)->notify($announcementId);
+            $this->notifier->notify($announcementId);
         }
 
         return $announcementId;
