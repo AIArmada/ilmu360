@@ -16,6 +16,7 @@ final readonly class RegisterApiUserAction
 
     public function __construct(
         private AccountAccess $accounts,
+        private RegisterNewAccountAction $registration,
         private SignalRecorder $signals,
     ) {}
 
@@ -24,16 +25,16 @@ final readonly class RegisterApiUserAction
      */
     public function handle(array $input, string $deviceName, Request $request): AccountSession
     {
-        $profile = $this->accounts->register($input);
+        $accountId = (string) $this->registration->handle($input)->getKey();
 
-        $this->accounts->dispatchRegistered($profile->id);
+        $this->accounts->dispatchRegistered($accountId);
 
-        $accessToken = $this->accounts->issueToken($profile->id, $deviceName);
+        $accessToken = $this->accounts->issueToken($accountId, $deviceName);
 
         $this->signals->record(
             eventName: 'auth.login',
             eventCategory: 'auth',
-            actorId: $profile->id,
+            actorId: $accountId,
             properties: [
                 'method' => 'api_token',
                 'created_account' => true,
@@ -42,7 +43,7 @@ final readonly class RegisterApiUserAction
         );
 
         return new AccountSession(
-            accountId: $profile->id,
+            accountId: $accountId,
             accessToken: $accessToken,
         );
     }

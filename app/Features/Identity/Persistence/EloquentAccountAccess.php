@@ -8,7 +8,6 @@ use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountSession;
 use App\Models\User;
-use App\Platform\Auth\Fortify\CreateNewUser;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Auth\Events\PasswordReset;
@@ -20,15 +19,9 @@ use Illuminate\Validation\ValidationException;
 final readonly class EloquentAccountAccess implements AccountAccess
 {
     public function __construct(
-        private CreateNewUser $createNewUser,
         private AccountDirectory $accounts,
         private SignalRecorder $signals,
     ) {}
-
-    public function register(array $input): AccountProfile
-    {
-        return $this->profileOrFail((string) $this->createNewUser->create($input)->getKey());
-    }
 
     public function create(array $attributes): AccountProfile
     {

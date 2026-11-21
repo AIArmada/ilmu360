@@ -11,6 +11,9 @@ use App\Features\ShareTracking\Api\SignupRecorder;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
 use App\Shared\Signals\SignalRecorder;
+use App\Platform\Auth\PasswordValidationRules;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -18,6 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 final readonly class RegisterNewAccountAction
 {
+    use PasswordValidationRules;
     public function __construct(
         private AccountAccess $accounts,
         private NewAccountAttribution $attribution,
@@ -29,6 +33,19 @@ final readonly class RegisterNewAccountAction
     /** @param array<string, mixed> $input */
     public function handle(array $input): User
     {
+        Validator::make($input, [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'nullable', 'required_without:phone', 'string', 'email', 'max:255',
+                Rule::unique(User::class),
+            ],
+            'phone' => [
+                'nullable', 'required_without:email', 'string', 'max:20',
+                Rule::unique(User::class),
+            ],
+            'password' => $this->passwordRules(),
+        ])->validate();
+
         return DB::transaction(function () use ($input): User {
             $profile = $this->accounts->create([
                 'name' => $input['name'],

@@ -13,13 +13,6 @@ namespace App\Features\Identity\Api;
 interface AccountAccess
 {
     /**
-     * Register through the conventional Fortify registration path.
-     *
-     * @param  array<string, mixed>  $input
-     */
-    public function register(array $input): AccountProfile;
-
-    /**
      * Create a raw account row (for trusted provider sign-ups).
      *
      * @param  array<string, mixed>  $attributes

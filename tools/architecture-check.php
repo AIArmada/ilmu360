@@ -881,21 +881,6 @@ try {
         }
     };
 
-    // Conventional Fortify contracts/pipeline are framework entrypoints, not
-    // business Actions. All other actions belong in their owning features.
-    $fortifyEntrypoints = [
-        'app/Platform/Auth/Fortify/CreateNewUser.php',
-        'app/Platform/Auth/Fortify/RecordSuccessfulLogin.php',
-        'app/Platform/Auth/Fortify/ResetUserPassword.php',
-    ];
-    // An allowlisted framework hook must exist. A deleted adapter may not
-    // leave behind a permanently ignored, stale architectural exception.
-    foreach ($fortifyEntrypoints as $entrypoint) {
-        if (! isset($paths[$entrypoint])) {
-            $report('stale-fortify-entrypoint', $entrypoint, 1, $entrypoint, 'Remove the obsolete Fortify exception or restore its actual framework adapter.');
-        }
-    }
-
     // Root domain folders are retired. Only genuinely unowned framework
     // composition roots (Http, Providers, Platform, Shared, Features) and the
     // two framework user models may live outside a feature or the platform.
@@ -907,7 +892,7 @@ try {
     // fixture projects can opt in to the gate with their own allowlist.
     $rootModelAllowlist = is_array($config['root_models'] ?? null) ? $config['root_models'] : null;
     foreach ($paths as $relative => $path) {
-        if (str_starts_with($relative, 'app/Actions/') && ! in_array($relative, $fortifyEntrypoints, true)) {
+        if (str_starts_with($relative, 'app/Actions/')) {
             $report('root-domain-action', $relative, 1, $relative, 'Move this domain action into its owning feature, or place a genuine HTTP transport adapter under app/Http.');
         }
         foreach ($retiredRootDirectories as $retiredDirectory) {
