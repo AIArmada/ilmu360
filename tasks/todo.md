@@ -976,5 +976,7 @@ Source: `ilmu360-orm-boundary-final-audit-2026-11-21.md`, reviewed at
   and unspaced `Collection<int, Order>` negative fixtures.
 - [x] Run architecture, PHPStan, Pint, Rector, and focused Pest; record the
   evidence in `tasks/orm-boundary-refactor-progress.md`.
-- [ ] Push the validated code and closeout records to `refactor`, then verify
+- [x] Push the validated code and closeout records to `refactor`, then verify
   the exact final SHA with a full GitHub Quality run. Never force-push.
+  Code + ledger SHA `a66bd4e5` passed all 26 jobs in
+  [run 44892798081](https://github.com/AIArmada/ilmu360/actions/runs/44892798081).

@@ -397,7 +397,7 @@ Audit: `ilmu360-orm-boundary-final-audit-2026-11-21.md`, reviewed HEAD
 | `PublicScheduleDiscoveryTest` / `EventSearchTypesenseFilterTest` / `InstitutionDirectoryQueryTest` | 29 passed, 117 assertions |
 | `InstitutionIndexTest` | 44 passed, 224 assertions |
 | `ReferenceFamilyTest` | 10 passed, 72 assertions |
-| Full GitHub Quality CI | pending final closeout SHA |
+| GitHub Quality on `a66bd4e5` (code + ledgers) | passed; 26/26 jobs, including 20 Pest shards, PHPStan, Rector, Pint and Chromium smoke; [run 44892798081](https://github.com/AIArmada/ilmu360/actions/runs/44892798081) |
 
 Local-only exemptions, unchanged by this work: `EventSearchTest`'s registration
 group can hit the persistent local rate-limit cache when several tests share
