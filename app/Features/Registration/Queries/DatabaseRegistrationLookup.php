@@ -8,6 +8,7 @@ use App\Features\Registration\Api\Data\CheckInSourceFacts;
 use App\Features\Registration\Api\Data\EventCheckInFacts;
 use App\Features\Registration\Api\Data\EventRegistrationData;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
@@ -15,7 +16,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-final readonly class DatabaseRegistrationLookup implements RegistrationLookup
+final readonly class DatabaseRegistrationLookup implements RegistrationLookup, RegistrationNotificationAudience
 {
     public function exists(string $registrationId): bool
     {

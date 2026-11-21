@@ -29,10 +29,8 @@ use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\User;
@@ -49,7 +47,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
         protected MemberPermissions $memberPermissionGate,
         protected NotificationMessageRendering $messageRenderer,
         protected SavedSearchReader $savedSearchReader,
-        protected RegistrationLookup $registrationLookup,
+        protected RegistrationNotificationAudience $registrationNotifications,
         protected RegistrationConfirmationFactsReader $registrationConfirmationFacts,
     ) {}
 
@@ -405,7 +403,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
 
     public function checkInConfirmed(string $checkinId): void
     {
-        $facts = $this->registrationLookup->checkInFacts($checkinId);
+        $facts = $this->registrationNotifications->checkInFacts($checkinId);
 
         if (! $facts instanceof \App\Features\Registration\Api\Data\EventCheckInFacts) {
             return;
@@ -419,18 +417,6 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
         }
 
         $this->dispatchCheckInConfirmed($user, $event, $facts->id);
-    }
-
-    public function notifyCheckinConfirmed(EventCheckin $checkin): void
-    {
-        $user = $checkin->user;
-        $event = $checkin->event;
-
-        if (! $user instanceof User || ! $event instanceof Event) {
-            return;
-        }
-
-        $this->dispatchCheckInConfirmed($user, $event, (string) $checkin->getKey());
     }
 
     private function dispatchCheckInConfirmed(User $user, Event $event, string $checkinId): void
@@ -554,7 +540,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
      */
     protected function trackedUsers(Event $event): Collection
     {
-        $registrationUserIds = $this->registrationLookup->activeRegistrantUserIds((string) $event->id);
+        $registrationUserIds = $this->registrationNotifications->activeRegistrantUserIds((string) $event->id);
         $registrations = $registrationUserIds === []
             ? collect()
             : User::query()->whereKey($registrationUserIds)->get();
@@ -573,7 +559,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
      */
     protected function registeredUsers(Event $event): Collection
     {
-        $registrationUserIds = $this->registrationLookup->activeRegistrantUserIds((string) $event->id);
+        $registrationUserIds = $this->registrationNotifications->activeRegistrantUserIds((string) $event->id);
 
         if ($registrationUserIds === []) {
             return collect();

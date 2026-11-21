@@ -23,6 +23,7 @@ use App\Features\Registration\Api\EventRegistrationDeletion;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Api\PaidRegistrationFacts;
 use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
+use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Api\ParticipationSourceIds;
 use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
 use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
@@ -47,6 +48,7 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(RegistrationLookup::class, DatabaseRegistrationLookup::class);
+        $this->app->bind(RegistrationNotificationAudience::class, DatabaseRegistrationLookup::class);
         $this->app->bind(RegistrationConfirmationFactsReader::class, DatabaseRegistrationConfirmationFactsReader::class);
         $this->app->bind(AdmissionFacts::class, DatabaseAdmissionFacts::class);
         $this->app->bind(PaidRegistrationFacts::class, DatabasePaidRegistrationFacts::class);
