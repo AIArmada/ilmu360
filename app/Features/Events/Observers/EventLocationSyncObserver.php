@@ -10,6 +10,7 @@ use App\Features\Events\Models\Event;
 final readonly class EventLocationSyncObserver
 {
     public function __construct(private SyncEventLocationsAction $locations) {}
+
     public function updated(Event $event): void
     {
         if (! $event->wasChanged(['default_venue_id', 'institution_id'])) {

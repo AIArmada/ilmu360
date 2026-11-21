@@ -24,8 +24,8 @@ it('loads compiled Platform manifests without re-reading changed source', functi
         $project->write('app/Features/Orders/feature.json', '{invalid json');
         FeatureCatalog::flushRuntime();
 
-        expect(FeatureCatalog::runtime($project->path)['owners']['table:orders'])->toBe('Orders');
-        expect(fn () => FeatureCatalog::load($project->path))->toThrow(JsonException::class);
+        expect(FeatureCatalog::runtime($project->path)['owners']['table:orders'])->toBe('Orders')
+            ->and(fn () => FeatureCatalog::load($project->path))->toThrow(JsonException::class);
     } finally {
         FeatureCatalog::flushRuntime();
         $project->remove();

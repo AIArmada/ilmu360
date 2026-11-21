@@ -7,8 +7,8 @@ namespace App\Features\Events\Actions\Authoring;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\VenueSpaceType;
 use App\Features\Events\Api\EventLocations;
-use App\Features\Events\Support\EventModel;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Support\EventModel;
 use Illuminate\Database\Eloquent\Model;
 
 /**
