@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Queries;
 
-use App\Features\Persons\Api\Orm\PersonAuthoringCandidates;
+use App\Features\Persons\Api\PersonAuthoringCandidates;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
+use App\Shared\Auth\AccountActor;
 use Illuminate\Database\Eloquent\Builder;
 
 final readonly class EloquentPersonAuthoringCandidates implements PersonAuthoringCandidates
@@ -16,7 +17,7 @@ final readonly class EloquentPersonAuthoringCandidates implements PersonAuthorin
      */
     private const array ALLOWED_STATUSES = ['verified', 'pending'];
 
-    public function options(?User $submitter): array
+    public function options(?AccountActor $submitter): array
     {
         return $this->submitterQuery($submitter)
             ->orderBy('name')
@@ -28,7 +29,7 @@ final readonly class EloquentPersonAuthoringCandidates implements PersonAuthorin
             ->all();
     }
 
-    public function labels(?User $submitter, array $personIds): array
+    public function labels(?AccountActor $submitter, array $personIds): array
     {
         if ($personIds === []) {
             return [];
@@ -45,14 +46,14 @@ final readonly class EloquentPersonAuthoringCandidates implements PersonAuthorin
             ->all();
     }
 
-    public function canUse(?User $submitter, string $personId): bool
+    public function canUse(?AccountActor $submitter, string $personId): bool
     {
         return $this->submitterQuery($submitter)
             ->whereKey($personId)
             ->exists();
     }
 
-    public function unusableIds(?User $submitter, array $personIds): array
+    public function unusableIds(?AccountActor $submitter, array $personIds): array
     {
         $ids = array_values(array_unique(array_filter(
             $personIds,
@@ -75,7 +76,7 @@ final readonly class EloquentPersonAuthoringCandidates implements PersonAuthorin
     /**
      * @return Builder<Person>
      */
-    private function submitterQuery(?User $submitter): Builder
+    private function submitterQuery(?AccountActor $submitter): Builder
     {
         return Person::query()
             ->whereIn('persons.status', self::ALLOWED_STATUSES)

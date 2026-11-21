@@ -7,7 +7,7 @@ namespace App\Features\Persons;
 use App\Features\Persons\Actions\PersonSubmissionAccessAction;
 use App\Features\Persons\Api\ContributionProjection;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
-use App\Features\Persons\Api\Orm\PersonAuthoringCandidates;
+use App\Features\Persons\Api\PersonAuthoringCandidates;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Api\PersonCatalog;
 use App\Features\Persons\Api\PersonHomepageStats;

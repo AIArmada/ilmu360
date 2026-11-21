@@ -2,17 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Persons\Api\Orm;
+namespace App\Features\Persons\Api;
 
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 
 /**
  * Person-owned authoring candidate reads.
  *
- * @internal No model transport: every method returns final labels or ids.
- *
- * Consumers: Contributions EntitySubmissionAccess and the Events submit-event
- * option/label providers.
+ * Public value-only selection boundary for event and contribution forms.
  */
 interface PersonAuthoringCandidates
 {
@@ -21,7 +18,7 @@ interface PersonAuthoringCandidates
      *
      * @return array<string, string>
      */
-    public function options(?User $submitter): array;
+    public function options(?AccountActor $submitter): array;
 
     /**
      * Formatted labels for the supplied ids, restricted to the same submitter
@@ -30,9 +27,9 @@ interface PersonAuthoringCandidates
      * @param  list<string>  $personIds
      * @return array<string, string>
      */
-    public function labels(?User $submitter, array $personIds): array;
+    public function labels(?AccountActor $submitter, array $personIds): array;
 
-    public function canUse(?User $submitter, string $personId): bool;
+    public function canUse(?AccountActor $submitter, string $personId): bool;
 
     /**
      * The subset of ids the submitter is not allowed to use.
@@ -40,5 +37,5 @@ interface PersonAuthoringCandidates
      * @param  list<string>  $personIds
      * @return list<string>
      */
-    public function unusableIds(?User $submitter, array $personIds): array;
+    public function unusableIds(?AccountActor $submitter, array $personIds): array;
 }
