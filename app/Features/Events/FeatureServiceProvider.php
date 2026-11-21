@@ -83,6 +83,7 @@ use App\Features\Events\Api\TaxonomyCatalog;
 use App\Features\Events\Api\TicketAffiliateCommissions;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\Events\EntryPoints\Admin\AdminEventModerationService;
+use App\Features\Events\Notifications\EventNotificationService;
 use App\Features\Events\EntryPoints\Admin\Member\EventMemberResourceHooks;
 use App\Features\Events\EntryPoints\Admin\RecordActions\EventRecordActionContributor;
 use App\Features\Events\EntryPoints\Admin\Resources\EventAdminHooks;
