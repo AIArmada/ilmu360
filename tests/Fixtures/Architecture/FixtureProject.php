@@ -34,7 +34,7 @@ final readonly class FixtureProject
     public function configure(array $exceptions = [], array $rootStoreWriters = [], array $extra = []): void
     {
         $this->write('tools/architecture.json', json_encode([
-            'schema' => 2,
+            'schema' => 1,
             'root_store_writers' => $rootStoreWriters,
             'exceptions' => $exceptions,
             'root_models' => ['app/Models/User.php', 'app/Models/PassportUser.php'],
@@ -49,7 +49,7 @@ final readonly class FixtureProject
     public function feature(string $name, array $owns = [], array $aliases = []): void
     {
         $this->write("app/Features/{$name}/feature.json", json_encode([
-            'schema' => 2,
+            'schema' => 1,
             'name' => $name,
             'owns' => $owns,
             'aliases' => $aliases,

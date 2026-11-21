@@ -17,7 +17,7 @@ final class PlatformServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $catalog = FeatureCatalog::runtime($this->app->basePath());
+        $catalog = FeatureCatalog::load($this->app->basePath());
 
         $this->app->singleton(
             ExtensionRegistry::class,

@@ -333,7 +333,7 @@ PHP);
     $result = $this->project->check();
     expect($result)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
         ->and(json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR))->toBe([
-            'schema' => 2,
+            'schema' => 1,
             'findings' => [],
             'features' => ['Billing', 'Orders'],
         ]);

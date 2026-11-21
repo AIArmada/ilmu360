@@ -74,11 +74,11 @@ $phpDocReturnType = static function (string $docComment) use ($phpDocParser, $ph
 
 try {
     $config = json_decode(file_get_contents($root.'/tools/architecture.json'), true, 512, JSON_THROW_ON_ERROR);
-    if (($config['schema'] ?? null) !== 2 || ! is_array($config['exceptions'] ?? null)
+    if (($config['schema'] ?? null) !== 1 || ! is_array($config['exceptions'] ?? null)
         || ! is_array($config['root_store_writers'] ?? null)) {
         throw new RuntimeException('Invalid tools/architecture.json schema.');
     }
-    $catalog = FeatureCatalog::load($root, $config['root_store_writers']);
+    $catalog = FeatureCatalog::scan($root);
     $owners = $catalog['owners'];
     $features = $catalog['features'];
     $readAdapters = $config['read_adapters'] ?? [];
@@ -2992,7 +2992,7 @@ try {
 
 $findings = array_values($findings);
 if (isset($options['json'])) {
-    echo json_encode(['schema' => 2, 'findings' => $findings, 'features' => array_keys($features)], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n";
+    echo json_encode(['schema' => 1, 'findings' => $findings, 'features' => array_keys($features)], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n";
 } else {
     foreach ($findings as $finding) {
         echo "{$finding['file']}:{$finding['line']} [{$finding['rule']}] {$finding['target']}: {$finding['message']}\n";

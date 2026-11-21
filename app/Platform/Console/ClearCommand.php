@@ -17,7 +17,7 @@ final class ClearCommand extends Command
         if (is_file($target)) {
             unlink($target);
         }
-        FeatureCatalog::flushRuntime();
+        FeatureCatalog::flushMemory();
         $this->components->info('Platform catalog cache cleared.');
 
         return self::SUCCESS;

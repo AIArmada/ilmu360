@@ -57,9 +57,6 @@ final class OwnedWriteRule implements Rule
     /** @var array<string, array<string, array<string, array<string, true>>>> Rule, project-relative file, target, model. */
     private array $writeExceptions = [];
 
-    /** @var array<string, array{adapter: 'cache'|'filesystem'|'redis', resource: string, reason: string, expires: string}> */
-    private array $rootStoreWriterDeclarations = [];
-
     /** @var array<string, string|null> */
     private array $modelResources = [];
 
@@ -69,7 +66,7 @@ final class OwnedWriteRule implements Rule
     public function __construct(private readonly ReflectionProvider $reflectionProvider, private readonly string $projectRoot)
     {
         $this->writeExceptions = $this->loadWriteExceptions($projectRoot);
-        $this->catalog = FeatureCatalog::load($projectRoot, $this->rootStoreWriterDeclarations);
+        $this->catalog = FeatureCatalog::scan($projectRoot);
     }
 
     public function getNodeType(): string
@@ -246,41 +243,12 @@ final class OwnedWriteRule implements Rule
             throw new RuntimeException("Invalid {$path}: {$exception->getMessage()}", 0, $exception);
         }
 
-        if (! is_array($config) || ($config['schema'] ?? null) !== 2) {
+        if (! is_array($config) || ($config['schema'] ?? null) !== 1) {
             throw new RuntimeException("Invalid {$path} schema.");
         }
 
         if (! is_array($config['root_store_writers'] ?? null)) {
             throw new RuntimeException("Invalid {$path} root store writer registry.");
-        }
-
-        foreach ($config['root_store_writers'] as $class => $writer) {
-            if (! is_string($class) || ! is_array($writer)) {
-                throw new RuntimeException("Invalid {$path} root store writer entry.");
-            }
-
-            if (array_is_list($writer)
-                || array_diff(array_keys($writer), ['adapter', 'resource', 'reason', 'expires']) !== []
-                || array_diff(['adapter', 'resource', 'reason', 'expires'], array_keys($writer)) !== []) {
-                throw new RuntimeException("Invalid {$path} root store writer entry.");
-            }
-
-            $adapter = $writer['adapter'] ?? null;
-            $resource = $writer['resource'] ?? null;
-            $reason = $writer['reason'] ?? null;
-            $expires = $writer['expires'] ?? null;
-
-            if (! is_string($adapter) || ! in_array($adapter, ['cache', 'filesystem', 'redis'], true)
-                || ! is_string($resource) || ! is_string($reason) || ! is_string($expires)) {
-                throw new RuntimeException("Invalid {$path} root store writer entry.");
-            }
-
-            $this->rootStoreWriterDeclarations[$class] = [
-                'adapter' => $adapter,
-                'resource' => $resource,
-                'reason' => $reason,
-                'expires' => $expires,
-            ];
         }
 
         $declared = $config['exceptions'] ?? null;

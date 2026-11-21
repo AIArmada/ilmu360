@@ -10,11 +10,11 @@ use RuntimeException;
 final class FeatureCatalog
 {
     /** @var array<string, array<string, mixed>> */
-    private static array $runtimeCatalogs = [];
+    private static array $memory = [];
 
-    public static function flushRuntime(): void
+    public static function flushMemory(): void
     {
-        self::$runtimeCatalogs = [];
+        self::$memory = [];
     }
 
     public static function cachePath(string $root): string
@@ -23,34 +23,38 @@ final class FeatureCatalog
     }
 
     /**
-     * Runtime callers use the precompiled manifest. Static analysis deliberately
-     * continues to call load() so changed manifests cannot evade validation.
+     * Loads an immutable catalog snapshot for application runtime.
+     * Architecture validation and cache generation call scan() to bypass caching.
      *
      * @return array<string, mixed>
      */
-    public static function runtime(string $root): array
+    public static function load(string $root, bool $useCache = true): array
     {
         $root = rtrim($root, '/');
 
-        if (isset(self::$runtimeCatalogs[$root])) {
-            return self::$runtimeCatalogs[$root];
+        if ($useCache && isset(self::$memory[$root])) {
+            return self::$memory[$root];
         }
 
-        $cache = self::cachePath($root);
-        if (is_file($cache)) {
-            $catalog = require $cache;
-            if (! is_array($catalog) || ! isset($catalog['features'], $catalog['owners'], $catalog['writes'], $catalog['aliases'], $catalog['rootStoreWriters'], $catalog['extensions'])) {
+        $cacheFile = self::cachePath($root);
+        if ($useCache && is_file($cacheFile)) {
+            $catalog = require $cacheFile;
+
+            if (! is_array($catalog)
+                || ! isset($catalog['features'], $catalog['owners'], $catalog['writes'], $catalog['aliases'], $catalog['extensions'], $catalog['rootStoreWriters'])) {
                 throw new RuntimeException('Invalid cached Platform catalog. Run php artisan platform:clear.');
             }
 
-            return self::$runtimeCatalogs[$root] = $catalog;
+            return self::$memory[$root] = $catalog;
         }
 
-        $configPath = $root.'/tools/architecture.json';
-        $config = is_file($configPath) ? json_decode((string) file_get_contents($configPath), true, 512, JSON_THROW_ON_ERROR) : [];
-        $rootStoreWriters = is_array($config['root_store_writers'] ?? null) ? $config['root_store_writers'] : [];
+        $catalog = self::scan($root);
 
-        return self::$runtimeCatalogs[$root] = self::load($root, $rootStoreWriters);
+        if ($useCache) {
+            self::$memory[$root] = $catalog;
+        }
+
+        return $catalog;
     }
 
     /** @var list<string> */
@@ -62,11 +66,17 @@ final class FeatureCatalog
     ];
 
     /**
-     * @param  array<string, mixed>  $rootStoreWriters
      * @return array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>, extensions: array<string, list<string>>, rootStoreWriters: array<string, array{adapter: 'cache'|'filesystem'|'redis', resource: string, reason: string, expires: string}>}
      */
-    public static function load(string $root, array $rootStoreWriters = []): array
+    public static function scan(string $root): array
     {
+        $root = rtrim($root, '/');
+        $configPath = $root.'/tools/architecture.json';
+        $config = json_decode((string) file_get_contents($configPath), true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($config) || ($config['schema'] ?? null) !== 1 || ! is_array($config['root_store_writers'] ?? null)) {
+            throw new RuntimeException("Invalid Platform architecture configuration at {$configPath}.");
+        }
+        $rootStoreWriters = $config['root_store_writers'];
         $features = $owners = $writes = $aliases = $declaredAliases = [];
         $aliasResources = [];
         $extensions = [];
@@ -80,7 +90,7 @@ final class FeatureCatalog
                 throw new RuntimeException("Missing {$path}");
             }
             $data = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
-            if (! preg_match('/^[A-Z][A-Za-z0-9]*$/D', $name) || ($data['schema'] ?? null) !== 2
+            if (! preg_match('/^[A-Z][A-Za-z0-9]*$/D', $name) || ($data['schema'] ?? null) !== 1
                 || ($data['name'] ?? null) !== $name || ! is_array($data['owns'] ?? null)
                 || ! is_file($folder.'/FeatureServiceProvider.php')) {
                 throw new RuntimeException("Invalid feature/provider manifest: {$path}");

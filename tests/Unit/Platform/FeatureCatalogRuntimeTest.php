@@ -15,25 +15,25 @@ it('loads compiled Platform manifests without re-reading changed source', functi
     try {
         $writer = $project->writer('Orders', 'PlaceOrder');
         $project->feature('Orders', ['table:orders' => [$writer]]);
-        FeatureCatalog::flushRuntime();
+        FeatureCatalog::flushMemory();
 
-        $catalog = FeatureCatalog::runtime($project->path);
+        $catalog = FeatureCatalog::load($project->path);
         expect($catalog['owners']['table:orders'])->toBe('Orders');
 
         $project->write('bootstrap/cache/platform.php', "<?php\nreturn ".var_export($catalog, true).";\n");
         $project->write('app/Features/Orders/feature.json', '{invalid json');
-        FeatureCatalog::flushRuntime();
+        FeatureCatalog::flushMemory();
 
-        expect(FeatureCatalog::runtime($project->path)['owners']['table:orders'])->toBe('Orders')
-            ->and(fn () => FeatureCatalog::load($project->path))->toThrow(JsonException::class);
+        expect(FeatureCatalog::load($project->path)['owners']['table:orders'])->toBe('Orders')
+            ->and(fn () => FeatureCatalog::scan($project->path))->toThrow(JsonException::class);
     } finally {
-        FeatureCatalog::flushRuntime();
+        FeatureCatalog::flushMemory();
         $project->remove();
     }
 });
 
 it('discovers every feature provider through Platform bootstrap', function (): void {
-    $catalog = FeatureCatalog::runtime(base_path());
+    $catalog = FeatureCatalog::load(base_path());
     $loaded = app()->getLoadedProviders();
 
     foreach (array_keys($catalog['features']) as $feature) {

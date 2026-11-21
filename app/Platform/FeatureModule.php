@@ -11,10 +11,9 @@ abstract class FeatureModule extends ServiceProvider
 {
     public function boot(): void
     {
-        FeatureCatalog::runtime($this->app->basePath());
         $root = dirname(new ReflectionClass($this)->getFileName());
 
-        foreach (['web', 'api'] as $transport) {
+        foreach (['web', 'api', 'console'] as $transport) {
             $path = $root.'/Routes/'.$transport.'.php';
             if (is_file($path)) {
                 // Each route file declares its own middleware, prefix and name group.

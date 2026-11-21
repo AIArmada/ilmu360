@@ -15,8 +15,7 @@ final class CacheCommand extends Command
     public function handle(): int
     {
         $root = $this->laravel->basePath();
-        $config = json_decode((string) file_get_contents($root.'/tools/architecture.json'), true, 512, JSON_THROW_ON_ERROR);
-        $catalog = FeatureCatalog::load($root, $config['root_store_writers'] ?? []);
+        $catalog = FeatureCatalog::scan($root);
         $target = FeatureCatalog::cachePath($root);
         $temp = $target.'.'.getmypid().'.tmp';
         $payload = "<?php\n\ndeclare(strict_types=1);\n\nreturn ".var_export($catalog, true).";\n";
@@ -26,7 +25,7 @@ final class CacheCommand extends Command
             throw new RuntimeException("Unable to write {$target}");
         }
 
-        FeatureCatalog::flushRuntime();
+        FeatureCatalog::flushMemory();
         $this->components->info(sprintf(
             'Cached %d features, %d resources, %d extension slots.',
             count($catalog['features']), count($catalog['owners']), count($catalog['extensions']),

@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 1,
   "root_store_writers": {
     "App\\Platform\\Media\\Commands\\MigrateMediaToNewStructure": {
       "adapter": "filesystem",
