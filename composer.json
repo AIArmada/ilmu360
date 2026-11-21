@@ -184,7 +184,7 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ],
         "arch:boundaries": "@php tools/architecture-check.php",
-        "arch:writes": "@php -d max_memory_limit=1G vendor/bin/phpstan analyse -c tools/architecture-phpstan.neon --autoload-file=tools/Architecture/OwnedWriteRule.php --memory-limit=1G --no-progress",
+        "arch:writes": "@php -d max_memory_limit=1G vendor/bin/phpstan analyse -c tools/architecture-phpstan.neon --memory-limit=1G --no-progress",
         "arch:check": [
             "@arch:boundaries",
             "@arch:writes"

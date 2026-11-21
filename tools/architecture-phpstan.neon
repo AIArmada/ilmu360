@@ -10,7 +10,7 @@ parameters:
 
 services:
     -
-        class: LaravelAgentArchitecture\OwnedWriteRule
+        class: Tools\Architecture\OwnedWriteRule
         arguments:
             projectRoot: %currentWorkingDirectory%
         tags:

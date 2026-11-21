@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelAgentArchitecture;
+namespace Tools\Architecture;
 
 use App\Platform\FeatureCatalog;
 use DateTimeImmutable;
