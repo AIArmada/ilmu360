@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\Services;
 
 use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Api\Orm\SeriesAuthoring;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\References\Api\Orm\ReferenceLookup;

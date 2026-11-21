@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Api\Orm;
+namespace App\Features\Events\Api;
 
-use App\Features\Events\Models\Series;
 use App\Shared\Directory\FollowableSubject;
 
 /**
@@ -14,9 +13,6 @@ use App\Shared\Directory\FollowableSubject;
  * model remains conventional. Every method takes scalar identifiers or plain
  * arrays; no Eloquent models cross this boundary.
  *
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
- * Consumers: Events/FeatureServiceProvider.php, Engagement/EntryPoints, Events/Services, Events/EntryPoints, Contributions/EntryPoints, ShareTracking/Policies
  */
 interface SeriesAuthoring
 {

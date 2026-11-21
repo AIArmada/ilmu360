@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Api\Orm\Filament;
+namespace App\Features\Events\Api;
 
-use App\Features\Events\Models\Event;
 
 /**
  * Effective prayer-options country for the contribution event form.
@@ -12,14 +11,11 @@ use App\Features\Events\Models\Event;
  * The owning feature resolves the same organizer/location normalization used
  * by contribution persistence; consumers only supply raw form state.
  *
- * @internal Explicit ORM integration port for Filament form/relation state.
- *
- * Consumers: owning Filament resources and relation managers.
  */
 interface EventContributionOptionsCountry
 {
     /**
      * @param  array<string, mixed>  $formState
      */
-    public function forFormState(array $formState, ?Event $event = null): string;
+    public function forFormState(array $formState, ?string $eventId = null): string;
 }

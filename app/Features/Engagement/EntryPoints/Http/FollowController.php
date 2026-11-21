@@ -7,7 +7,7 @@ use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Engagement\EntryPoints\Http\Data\FollowStateData;
-use App\Features\Events\Api\Orm\SeriesAuthoring;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\References\Api\Orm\ReferenceLookup;

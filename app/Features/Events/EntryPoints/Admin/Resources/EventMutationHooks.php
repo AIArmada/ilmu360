@@ -16,7 +16,7 @@ use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\SeriesAuthoring;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;

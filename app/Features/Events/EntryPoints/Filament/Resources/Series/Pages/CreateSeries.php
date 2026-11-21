@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Filament\Resources\Series\Pages;
 
 use AIArmada\FilamentCommerceSupport\Concerns\AuditsRelatedStateChanges;
-use App\Features\Events\Api\Orm\SeriesAuthoring;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\EntryPoints\Filament\Resources\Series\SeriesResource;
 use App\Features\Events\Models\Series;
 use App\Platform\Language\Models\Language;

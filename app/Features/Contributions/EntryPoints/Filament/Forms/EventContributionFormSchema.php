@@ -13,8 +13,8 @@ use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\Filament\EventContributionOptionsCountry;
-use App\Features\Events\Api\Orm\SeriesAuthoring;
+use App\Features\Events\Api\EventContributionOptionsCountry;
+use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
@@ -123,7 +123,7 @@ class EventContributionFormSchema
                                 'location_institution_id' => $get('location_institution_id'),
                                 'location_venue_id' => $get('location_venue_id'),
                                 'space_id' => $get('space_id'),
-                            ], $event),
+                            ], $event?->getKey() !== null ? (string) $event->getKey() : null),
                         ))
                         ->default(EventPrayerTime::LainWaktu->value)
                         ->afterStateUpdated(function (mixed $state, Set $set): void {
