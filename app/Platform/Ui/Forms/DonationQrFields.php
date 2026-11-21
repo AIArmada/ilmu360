@@ -2,7 +2,7 @@
 
 namespace App\Platform\Ui\Forms;
 
-use App\Features\Contributions\Api\ContributionPayload;
+use App\Shared\Normalization\SubmittedFieldNormalizer;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class DonationQrFields
@@ -16,7 +16,7 @@ class DonationQrFields
      */
     public static function normalizeDonationChannelRowsForComparison(array $rows): array
     {
-        return ContributionPayload::normalizeDonationChannelRowsForComparison($rows);
+        return SubmittedFieldNormalizer::normalizeDonationChannelRowsForComparison($rows);
     }
 
     /**

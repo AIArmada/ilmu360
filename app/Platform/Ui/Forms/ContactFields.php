@@ -4,7 +4,7 @@ namespace App\Platform\Ui\Forms;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use App\Features\Contributions\Api\ContributionPayload;
+use App\Shared\Normalization\SubmittedFieldNormalizer;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -140,7 +140,7 @@ class ContactFields
      */
     public static function normalizeContactRowsForComparison(array $data): array
     {
-        return ContributionPayload::normalizeContactRowsForComparison($data);
+        return SubmittedFieldNormalizer::normalizeContactRowsForComparison($data);
     }
 
     /**
@@ -198,17 +198,17 @@ class ContactFields
 
     public static function isPhoneContactType(mixed $type): bool
     {
-        return ContributionPayload::isPhoneContactType($type);
+        return SubmittedFieldNormalizer::isPhoneContactType($type);
     }
 
     public static function normalizedContactValue(mixed $value): ?string
     {
-        return ContributionPayload::normalizedContactValue($value);
+        return SubmittedFieldNormalizer::normalizedContactValue($value);
     }
 
     public static function normalizedComparablePhoneValue(mixed $value): ?string
     {
-        return ContributionPayload::normalizedComparablePhoneValue($value);
+        return SubmittedFieldNormalizer::normalizedComparablePhoneValue($value);
     }
 
     /**

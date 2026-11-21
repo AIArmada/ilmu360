@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Contributions\Api;
+namespace App\Shared\Normalization;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
@@ -11,7 +11,7 @@ use AIArmada\Contacting\Enums\ContactPurpose;
  * Projects submitted contribution payload fragments onto the canonical stored
  * shape so unchanged rows compare equal against persisted state.
  */
-final readonly class ContributionPayload
+final readonly class SubmittedFieldNormalizer
 {
     /**
      * @param  array<string, mixed>|list<array<string, mixed>>  $data
