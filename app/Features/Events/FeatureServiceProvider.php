@@ -476,7 +476,7 @@ class FeatureServiceProvider extends FeatureModule
                 ->withoutOverlapping();
         }
 
-        $this->app->make(PublicSlugRegistry::class)->prepend(new PublicSlugResource(
+        $this->app->make(PublicSlugRegistry::class)->register(new PublicSlugResource(
             parameter: 'event',
             routeName: 'events.show',
             modelClass: EventModel::event(),
