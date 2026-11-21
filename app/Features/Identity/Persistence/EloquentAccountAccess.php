@@ -7,6 +7,7 @@ namespace App\Features\Identity\Persistence;
 use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountSession;
+use App\Features\Identity\Api\AccountSettingsStore;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Signals\SignalRecorder;
@@ -20,6 +21,7 @@ final readonly class EloquentAccountAccess implements AccountAccess
 {
     public function __construct(
         private AccountDirectory $accounts,
+        private AccountSettingsStore $settings,
         private SignalRecorder $signals,
     ) {}
 
@@ -49,13 +51,13 @@ final readonly class EloquentAccountAccess implements AccountAccess
 
         return new AccountSession(
             accountId: (string) $user->getKey(),
-            accessToken: $user->createToken($deviceName)->plainTextToken,
+            accessToken: $this->settings->createToken((string) $user->getKey(), $deviceName),
         );
     }
 
     public function issueToken(string $accountId, string $deviceName): string
     {
-        return $this->user($accountId)->createToken($deviceName)->plainTextToken;
+        return $this->settings->createToken($accountId, $deviceName);
     }
 
     public function dispatchRegistered(string $accountId): void
@@ -69,7 +71,7 @@ final readonly class EloquentAccountAccess implements AccountAccess
             return;
         }
 
-        $this->user($accountId)->tokens()->whereKey($accessTokenId)->delete();
+        $this->settings->revokeToken($accountId, $accessTokenId);
     }
 
     public function markEmailVerified(string $accountId): void

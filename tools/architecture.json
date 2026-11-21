@@ -382,18 +382,6 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/Identity/Persistence/EloquentAccountAccess.php",
-      "target": "table:unknown",
-      "model": "Laravel\\Sanctum\\PersonalAccessToken",
-      "model_provider": "sanctum",
-      "relation": "tokens",
-      "relation_owner": "App\\Models\\User",
-      "reason": "Identity revokes an account-scoped Sanctum token through the canonical User relation; token storage remains Sanctum-owned.",
-      "owner": "Identity",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
       "file": "app/Features/Membership/Persistence/EloquentScopedMembershipRoleStore.php",
       "target": "table:model_has_roles",
       "model": "Illuminate\\Database\\Query\\Builder",
