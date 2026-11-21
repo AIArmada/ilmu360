@@ -17,7 +17,6 @@ use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Features\Contributions\Api\Filament\PersonContributionSchema;
 use App\Features\Contributions\Api\Frontend\SubmitInstitutionFormContractContributor;
 use App\Features\Contributions\Api\Frontend\SubmitPersonFormContractContributor;
-use App\Features\Contributions\Api\Orm\AdminContributionRequestReview;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\SubmissionCatalog;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -88,7 +87,6 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(PersonContributionSchema::class, PersonContributionFormSchema::class);
-        $this->app->bind(AdminContributionRequestReview::class, AdminContributionRequestReviewService::class);
 
         $this->app->bind(SubmissionCatalog::class, EloquentSubmissionCatalog::class);
         $this->app->bind(ContributionRequestReader::class, EloquentContributionRequestReader::class);

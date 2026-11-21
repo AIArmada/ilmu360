@@ -6,7 +6,6 @@ namespace App\Features\Contributions\EntryPoints\Admin;
 
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionReviewAccess;
-use App\Features\Contributions\Api\Orm\AdminContributionRequestReview;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
@@ -16,7 +15,7 @@ use App\Platform\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
-final readonly class AdminContributionRequestReviewService implements AdminContributionRequestReview
+final readonly class AdminContributionRequestReviewService 
 {
     use ProvidesWorkflowResponse;
 
