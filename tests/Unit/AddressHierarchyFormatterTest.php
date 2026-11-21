@@ -62,6 +62,16 @@ it('derives MY one-liners from the package renderer, never the postal town', fun
         ->and(AddressHierarchyFormatter::formatShort(baganTestAddress()))->toBe('Batu Pahat, Johor');
 });
 
+it('does not repeat identical locality and state names in short labels', function (): void {
+    $address = hierarchyTestAddress([
+        'city' => 'Perlis',
+        'state' => 'Perlis',
+        'country_code' => 'MY',
+    ]);
+
+    expect(AddressHierarchyFormatter::formatShort($address))->toBe('Perlis');
+});
+
 it('leads with the mukim when no locality assignment exists', function (): void {
     // Live 4511 shape: district + mukim subdivision, no postal_locality.
     $address = hierarchyTestAddress([

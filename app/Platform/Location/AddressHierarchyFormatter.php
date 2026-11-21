@@ -41,7 +41,9 @@ final class AddressHierarchyFormatter
      */
     public static function shortParts(?Address $address): array
     {
-        return array_slice(self::parts($address), -2);
+        // A locality and its state can share the same label (for example, Perlis).
+        // Keep one label on public cards instead of repeating "Perlis, Perlis".
+        return array_values(array_unique(array_slice(self::parts($address), -2)));
     }
 
     /** @return array{street: ?string, locality: ?string, regional: ?string} */
