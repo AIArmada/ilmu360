@@ -981,3 +981,53 @@ PHP);
         $project->remove();
     }
 });
+
+it('isolates concrete third-party model writes in Host adapters', function (): void {
+    $project = ownedWriteFixture();
+
+    try {
+        $project->write('app/Host/Affiliates/ExternalAffiliateWriter.php', <<<'PHP'
+<?php
+namespace App\Host\Affiliates;
+use AIArmada\Affiliates\Models\Affiliate;
+final class ExternalAffiliateWriter
+{
+    public function persist(Affiliate $affiliate): void { $affiliate->saveQuietly(); }
+}
+PHP);
+
+        $analysis = runOwnedWriteAnalysis($project);
+        expect($analysis['exitCode'])->toBe(0, $analysis['stderr'].$analysis['stdout'])
+            ->and(decodeOwnedWriteReport($analysis['stdout'])['totals'])->toBe([
+                'errors' => 0,
+                'file_errors' => 0,
+            ]);
+    } finally {
+        $project->remove();
+    }
+});
+
+it('rejects Host mutations of application-owned models', function (): void {
+    $project = ownedWriteFixture();
+
+    try {
+        $project->write('app/Host/Affiliates/UnauthorizedOrderWriter.php', <<<'PHP'
+<?php
+namespace App\Host\Affiliates;
+use App\Features\Orders\Models\Order;
+final class UnauthorizedOrderWriter
+{
+    public function persist(Order $order): void { $order->save(); }
+}
+PHP);
+
+        $analysis = runOwnedWriteAnalysis($project);
+        expect($analysis['exitCode'])->toBe(1, $analysis['stderr'].$analysis['stdout']);
+
+        $report = decodeOwnedWriteReport($analysis['stdout']);
+        $messages = $report['files'][$project->path.'/app/Host/Affiliates/UnauthorizedOrderWriter.php']['messages'] ?? [];
+        expect(array_column($messages, 'identifier'))->toContain('architecture.foreignWrite');
+    } finally {
+        $project->remove();
+    }
+});
