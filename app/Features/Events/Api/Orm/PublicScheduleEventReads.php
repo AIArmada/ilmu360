@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
@@ -86,16 +84,6 @@ interface PublicScheduleEventReads
         bool $withOccurrenceReferences = false,
         array $distanceByEventId = [],
     ): EloquentCollection;
-
-    /**
-     * Resolve the public occurrence for an event by its public slug.
-     */
-    public function findPublicOccurrence(Event $event, string $slug): ?EventOccurrence;
-
-    /**
-     * Resolve the public session for an occurrence by its public slug.
-     */
-    public function findPublicSession(EventOccurrence $occurrence, string $slug): ?EventSession;
 
     /**
      * Base event query for an institution detail page schedule section.

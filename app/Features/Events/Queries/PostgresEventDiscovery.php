@@ -27,7 +27,6 @@ use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
-use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
@@ -296,53 +295,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         }
 
         return new EloquentCollection($orderedEvents->all());
-    }
-
-    public function findPublicOccurrence(Event $event, string $slug): ?EventOccurrence
-    {
-        // Load the public schedule set up front so detail mounts can reuse it
-        // via loadMissing() instead of querying occurrences twice.
-        $event->loadMissing(['occurrences' => function (Relation $query): void {
-            $this->constrainPublicSchedule($query);
-            $query
-                ->orderBy('starts_at')
-                ->orderBy('created_at')
-                ->orderBy('id');
-        }]);
-
-        /** @var EventOccurrence|null $occurrence */
-        $occurrence = $event->occurrences->first(
-            fn (EventOccurrence $candidate): bool => PublicScheduleSlug::occurrence(
-                slug: (string) $candidate->slug,
-                title: $candidate->title,
-                id: (string) $candidate->getKey(),
-            ) === $slug,
-        );
-
-        return $occurrence;
-    }
-
-    public function findPublicSession(EventOccurrence $occurrence, string $slug): ?EventSession
-    {
-        $occurrence->loadMissing(['sessions' => function (Relation $query): void {
-            $this->constrainPublicSchedule($query);
-            $query
-                ->orderBy('sort_order')
-                ->orderBy('starts_at')
-                ->orderBy('created_at')
-                ->orderBy('id');
-        }]);
-
-        /** @var EventSession|null $session */
-        $session = $occurrence->sessions->first(
-            fn (EventSession $candidate): bool => PublicScheduleSlug::session(
-                slug: (string) $candidate->slug,
-                title: $candidate->title,
-                id: (string) $candidate->getKey(),
-            ) === $slug,
-        );
-
-        return $session;
     }
 
     /**

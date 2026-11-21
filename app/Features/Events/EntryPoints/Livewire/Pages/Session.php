@@ -8,7 +8,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
-use App\Features\Events\Api\Orm\PublicScheduleEventReads;
+use App\Features\Events\Queries\PublicScheduleDetailResolver;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Institutions\Models\Institution;
@@ -31,7 +31,7 @@ class Session extends Occurrence
     {
         parent::mount($event, $occurrenceSlug);
 
-        $session = app(PublicScheduleEventReads::class)->findPublicSession($this->occurrence, $sessionSlug);
+        $session = app(PublicScheduleDetailResolver::class)->session($this->occurrence, $sessionSlug);
 
         if (! $session instanceof EventSession || ! PublicSchedulePolicy::isMeaningfulSession($session)) {
             abort(404);
