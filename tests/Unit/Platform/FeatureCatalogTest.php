@@ -5,6 +5,18 @@ declare(strict_types=1);
 use App\Platform\FeatureCatalog;
 use Tests\Fixtures\Architecture\FixtureProject;
 
+/**
+ * Explicitly configure the fixture and scan its manifests uncached.
+ *
+ * @param array<string, array<string, string>> $rootStoreWriters
+ */
+function scanWithRootStoreWriters(FixtureProject $project, array $rootStoreWriters): array
+{
+    $project->configure([], $rootStoreWriters);
+
+    return FeatureCatalog::scan($project->path);
+}
+
 beforeEach(function (): void {
     $this->project = new FixtureProject;
 });
@@ -45,7 +57,7 @@ it('allows several named actions to own mutations of the same resource', functio
     ]]);
 });
 
-it('accepts contributor writers as named owners of their direct writes', function (): void {
+it('rejects contributor writers because only Actions and Persistence can own writes', function (): void {
     $place = $this->project->writer('Orders', 'PlaceOrder');
     $lifecycle = $this->project->writer('Orders', 'OrderLifecycle', 'Contributors');
     $this->project->feature('Orders', [
@@ -53,9 +65,8 @@ it('accepts contributor writers as named owners of their direct writes', functio
         'table:order_lifecycle' => [$lifecycle],
     ]);
 
-    $catalog = FeatureCatalog::load($this->project->path);
-
-    expect($catalog['writes'][$lifecycle])->toBe(['table:order_lifecycle']);
+    expect(fn (): array => FeatureCatalog::scan($this->project->path))
+        ->toThrow(RuntimeException::class, 'write classes must be under');
 });
 
 it('registers exact root store writers with a declared adapter and expiry', function (): void {
@@ -74,7 +85,7 @@ PHP);
         ],
     ];
 
-    $catalog = FeatureCatalog::load($this->project->path, $rootStoreWriters);
+    $catalog = scanWithRootStoreWriters($this->project, $rootStoreWriters);
 
     expect($catalog['rootStoreWriters'])->toBe([
         $writer => [
@@ -99,7 +110,7 @@ it('rejects root store writers without exact class and store metadata', function
 
     $rootStoreWriters = [$class => $writer];
 
-    expect(fn (): array => FeatureCatalog::load($this->project->path, $rootStoreWriters))
+    expect(fn (): array => scanWithRootStoreWriters($this->project, $rootStoreWriters))
         ->toThrow(RuntimeException::class, $message);
 })->with([
     'wildcard class' => [
@@ -170,7 +181,7 @@ it('rejects root store writers that collide with feature writer classes', functi
         ],
     ];
 
-    expect(fn (): array => FeatureCatalog::load($this->project->path, $rootStoreWriters))
+    expect(fn (): array => scanWithRootStoreWriters($this->project, $rootStoreWriters))
         ->toThrow(RuntimeException::class, 'Root store writer collides with feature writer');
 });
 
@@ -192,7 +203,7 @@ PHP);
         ],
     ];
 
-    expect(fn (): array => FeatureCatalog::load($this->project->path, $rootStoreWriters))
+    expect(fn (): array => scanWithRootStoreWriters($this->project, $rootStoreWriters))
         ->toThrow(RuntimeException::class, 'Root store writer cannot target feature-owned resource');
 });
 

@@ -70,7 +70,7 @@ function decodeOwnedWriteReport(string $stdout): array
 function configureRootStoreWriterDeclarations(FixtureProject $project, array $rootStoreWriters): void
 {
     $project->write('tools/architecture.json', json_encode([
-        'schema' => 2,
+        'schema' => 1,
         'root_store_writers' => $rootStoreWriters,
         'exceptions' => [],
     ], JSON_THROW_ON_ERROR));

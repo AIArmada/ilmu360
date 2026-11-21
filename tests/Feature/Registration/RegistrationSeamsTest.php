@@ -9,6 +9,7 @@ use AIArmada\Events\Models\EventRegistrationItem;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Actions\ConfirmOfflineAdmissionAction;
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
+use App\Features\Registration\Actions\ManageRegistrationAccountLinksAction;
 use App\Features\Registration\Actions\PrepareAdmissionCheckoutAction;
 use App\Features\Registration\Actions\ProcessAdmissionRefundAction;
 use App\Features\Registration\Actions\RecordEventParticipantCheckInAction;
@@ -153,7 +154,7 @@ it('discovers the registration feature manifest and provider exactly once', func
         ->and($catalog['writes'][RecordFreeCheckoutMetadataAction::class])->toEqualCanonicalizing([
             'table:event_registrations',
         ])
-        ->and($catalog['writes'][RegistrationAccountLifecycleContributor::class])->toEqualCanonicalizing([
+        ->and($catalog['writes'][ManageRegistrationAccountLinksAction::class])->toEqualCanonicalizing([
             'table:event_registrations',
             'table:event_attendances',
         ])

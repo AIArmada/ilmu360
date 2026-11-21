@@ -72,11 +72,15 @@ final class FeatureCatalog
     {
         $root = rtrim($root, '/');
         $configPath = $root.'/tools/architecture.json';
-        $config = json_decode((string) file_get_contents($configPath), true, 512, JSON_THROW_ON_ERROR);
-        if (! is_array($config) || ($config['schema'] ?? null) !== 1 || ! is_array($config['root_store_writers'] ?? null)) {
+        $config = is_file($configPath)
+            ? json_decode((string) file_get_contents($configPath), true, 512, JSON_THROW_ON_ERROR)
+            : [];
+        if (! is_array($config)
+            || ($config !== [] && ($config['schema'] ?? null) !== 1)
+            || ! is_array($config['root_store_writers'] ?? [])) {
             throw new RuntimeException("Invalid Platform architecture configuration at {$configPath}.");
         }
-        $rootStoreWriters = $config['root_store_writers'];
+        $rootStoreWriters = $config['root_store_writers'] ?? [];
         $features = $owners = $writes = $aliases = $declaredAliases = [];
         $aliasResources = [];
         $extensions = [];
