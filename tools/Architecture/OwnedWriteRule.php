@@ -216,7 +216,7 @@ final class OwnedWriteRule implements Rule
         // A writer's ownership of one resource cannot authorize an
         // unresolved mutation against every other resource.
         return $this->violation(
-            "Cannot resolve {$prefix}unknown from receiver model types [{$receiverTypes}]; storage mutations belong in a named owning-feature Actions/Persistence/Contributors class listed in feature.json.",
+            "Cannot resolve {$prefix}unknown from receiver model types [{$receiverTypes}]; storage mutations belong in a named owning-feature Actions/Persistence class listed in feature.json.",
             self::WRITE_LOCATION,
             $exceptionFile,
             $prefix.'unknown',
