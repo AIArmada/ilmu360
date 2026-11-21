@@ -33,15 +33,8 @@ final readonly class EventListPayloadPresenter implements EventListPayloads
         private EventCategoryPayloads $eventCategories,
     ) {}
 
-    public function forEvent(object $event): EventListData
+    public function forEvent(Event $event): EventListData
     {
-        if (! $event instanceof Event) {
-            throw new \InvalidArgumentException(sprintf(
-                'EventListPayloadPresenter expects an instance of %s.',
-                Event::class,
-            ));
-        }
-
         $event->loadMissing('displayOccurrence.media');
 
         $eventCategories = $this->eventCategories->forEventPayload($event);

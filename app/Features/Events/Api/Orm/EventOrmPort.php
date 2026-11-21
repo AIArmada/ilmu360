@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Events\Api\Orm;
 
 use App\Features\Events\Api\EventScheduleReads;
+use App\Features\Events\Models\Builders\EventBuilder;
+use App\Features\Events\Models\Event;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Explicit Eloquent integration port for event schedule composition.
@@ -26,31 +30,32 @@ interface EventOrmPort extends EventScheduleReads
      * Correlated upcoming-occurrence count subquery for the institutions
      * directory listing. The caller applies it with selectSub().
      */
-    public function institutionUpcomingCountSubquery(): object;
+    public function institutionUpcomingCountSubquery(): QueryBuilder;
 
     /**
      * Correlated next-event id subquery for the institutions directory listing.
      */
-    public function institutionNextEventIdSubquery(): object;
+    public function institutionNextEventIdSubquery(): EventBuilder;
 
     /**
      * Card details for the already-selected next event ids, hydrated in one
      * batched query.
      *
      * @param  list<string>  $eventIds
+     * @return EloquentCollection<int, Event>
      */
-    public function institutionNextEventDetails(array $eventIds): object;
+    public function institutionNextEventDetails(array $eventIds): EloquentCollection;
 
     /**
      * A hydrated Event model for framework contracts (policies, Livewire page
      * state, eager-loaded relations, media and share subjects).
      */
-    public function findEvent(string $eventId): ?object;
+    public function findEvent(string $eventId): ?Event;
 
     /**
      * A hydrated Event model resolved by public slug.
      */
-    public function findEventBySlug(string $slug): ?object;
+    public function findEventBySlug(string $slug): ?Event;
 
     /**
      * Hydrated Event models for schedule leaves, keyed by id and loaded with
@@ -58,68 +63,63 @@ interface EventOrmPort extends EventScheduleReads
      *
      * @param  list<string>  $eventIds
      * @param  list<string>  $relations
+     * @return EloquentCollection<string, Event>
      */
-    public function hydrateEventsForIds(array $eventIds, array $relations): object;
+    public function hydrateEventsForIds(array $eventIds, array $relations): EloquentCollection;
 
     /**
      * Events owned by an organization, newest first.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Events\Models\Event>
+     * @return EloquentCollection<int, Event>
      */
-    public function eventsForOwner(string $ownerType, string $ownerId, int $limit): object;
+    public function eventsForOwner(string $ownerType, string $ownerId, int $limit): EloquentCollection;
 
     /**
      * Planner cards for the supplied ids, in starts_at order, with the planner
      * relation set eager loaded.
      *
      * @param  list<string>  $eventIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Events\Models\Event>
+     * @return EloquentCollection<int, Event>
      */
-    public function plannerEventsForIds(array $eventIds, bool $activeOnly): object;
+    public function plannerEventsForIds(array $eventIds, bool $activeOnly): EloquentCollection;
 
     /**
      * The next recommended planner card, excluding the supplied ids.
      *
      * @param  list<string>  $excludedEventIds
      */
-    public function recommendedPlannerEvent(array $excludedEventIds, string $fromUtc): ?object;
+    public function recommendedPlannerEvent(array $excludedEventIds, string $fromUtc): ?Event;
 
     /**
      * Events with the admin account relation set.
      *
      * @param  list<string>  $eventIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Events\Models\Event>
+     * @return EloquentCollection<int, Event>
      */
-    public function eventsWithAdminRelations(array $eventIds): object;
+    public function eventsWithAdminRelations(array $eventIds): EloquentCollection;
 
     /**
      * Institution dashboard table query with the table relation set and
      * dashboard registration count.
      */
-    public function institutionTableQuery(string $institutionId): object;
+    public function institutionTableQuery(string $institutionId): EventBuilder;
 
     /**
      * Institution dashboard card query with the card relation set and
      * dashboard registration count.
      */
-    public function institutionEventCardsQuery(string $institutionId): object;
-
-    /**
-     * Correlated institution event count subquery for institution-stat
-     * selects. Callers may add read-only predicates.
-     */
-    public function institutionEventCountSubquery(): object;
+    public function institutionEventCardsQuery(string $institutionId): EventBuilder;
 
     /**
      * A guaranteed-empty event query.
      */
-    public function emptyEventsQuery(): object;
+    public function emptyEventsQuery(): EventBuilder;
 
     /**
      * Person dashboard event query (events the person is involved in,
      * including private/draft workspace rows).
      */
-    public function personDashboardQuery(string $personId): object;
+    public function personDashboardQuery(string $personId): EventBuilder;
 
     /**
      * Public schedule query for a reference family.
@@ -127,16 +127,14 @@ interface EventOrmPort extends EventScheduleReads
      * @param  list<string>  $referenceIds
      * @param  array<string, mixed>  $venueEagerLoads
      */
-    public function referenceEventsQuery(array $referenceIds, array $venueEagerLoads): object;
-
-    /**
-     * Base institution event query.
-     */
-    public function institutionPublicEventCountSubquery(bool $upcomingOnly = false): object;
+    public function referenceEventsQuery(array $referenceIds, array $venueEagerLoads): EventBuilder;
 
     /**
      * Public event-count subquery constrained to the reference subtree, for
      * reference directory selects.
      */
-    public function publicReferenceEventCountSubquery(): object;
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<Event>
+     */
+    public function publicReferenceEventCountSubquery(): \Illuminate\Database\Eloquent\Builder;
 }

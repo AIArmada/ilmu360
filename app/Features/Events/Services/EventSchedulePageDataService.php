@@ -7,12 +7,11 @@ namespace App\Features\Events\Services;
 use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
+use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use InvalidArgumentException;
 
 /**
  * Owner implementation of the upcoming/past event-page schedule split.
@@ -22,17 +21,13 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     public function __construct(private PublicScheduleOrmPort $schedule) {}
 
     public function forQuery(
-        object $baseQuery,
+        EventBuilder $baseQuery,
         int $upcomingLimit,
         int $pastLimit,
         ?CarbonInterface $rangeFrom = null,
         ?CarbonInterface $rangeTo = null,
         ?callable $filterLeaves = null,
     ): array {
-        if (! $baseQuery instanceof Builder) {
-            throw new InvalidArgumentException('The event-page base query must be an Eloquent builder.');
-        }
-
         $events = (clone $baseQuery)->reorder()->select('events.*')->get()
             ->filter(static fn (Model $event): bool => $event instanceof Event)
             ->values();

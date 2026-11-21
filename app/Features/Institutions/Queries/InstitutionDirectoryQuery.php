@@ -398,7 +398,7 @@ final readonly class InstitutionDirectoryQuery
 
     /**
      * @param  list<string>  $eventIds
-     * @return \Illuminate\Support\Collection<string, \Illuminate\Database\Eloquent\Model>
+     * @return \Illuminate\Support\Collection<string, \App\Features\Events\Models\Event>
      */
     private function nextEventDetails(array $eventIds): \Illuminate\Support\Collection
     {
@@ -407,10 +407,6 @@ final readonly class InstitutionDirectoryQuery
         }
 
         $details = $this->eventReader->institutionNextEventDetails($eventIds);
-
-        if (! $details instanceof \Illuminate\Database\Eloquent\Collection) {
-            return collect();
-        }
 
         return $details->keyBy(static fn (\Illuminate\Database\Eloquent\Model $event): string => (string) $event->getKey());
     }

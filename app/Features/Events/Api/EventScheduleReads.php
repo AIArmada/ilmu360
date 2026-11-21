@@ -76,4 +76,12 @@ interface EventScheduleReads
      * Distinct speakers on the institution's upcoming public events.
      */
     public function institutionSpeakerCount(string $institutionId): int;
+
+    /**
+     * Institution event counts by category, keyed by institution id.
+     *
+     * @param  list<string>  $institutionIds
+     * @return array<string, array{total: int, public: int, upcoming: int, draft: int, pending: int}>
+     */
+    public function institutionEventStats(array $institutionIds): array;
 }

@@ -12,7 +12,6 @@ use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Models\Builders\EventBuilder;
-use App\Features\Events\Models\Event;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
 use App\Models\User;
@@ -21,7 +20,6 @@ use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\IntendedRedirect;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -311,8 +309,7 @@ class Show extends Component
             ->values();
     }
 
-    /** @return Builder<Event> */
-    protected function eventPageBaseQuery(): Builder
+    protected function eventPageBaseQuery(): EventBuilder
     {
         return $this->eventQuery();
     }

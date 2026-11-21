@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
+use App\Features\Events\Models\Builders\EventBuilder;
 use Carbon\CarbonInterface;
 
 /**
@@ -19,12 +20,12 @@ use Carbon\CarbonInterface;
 interface EventSchedulePageData
 {
     /**
-     * @param  object  $baseQuery  Eloquent builder of events.
+     * @param  EventBuilder  $baseQuery  Events-owned base query.
      * @param  (callable(\Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>): \Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>)|null  $filterLeaves
      * @return array{upcoming: \Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>, past: \Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     public function forQuery(
-        object $baseQuery,
+        EventBuilder $baseQuery,
         int $upcomingLimit,
         int $pastLimit,
         ?CarbonInterface $rangeFrom = null,

@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
@@ -318,36 +319,36 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return collect();
         }
 
-        return $this->availableInstitutionsQuery($user)
+        $institutions = $this->availableInstitutionsQuery($user)
             ->with('media')
-            ->addSelect([
-                'events_count' => $this->institutionEventCountSubquery(),
-                'public_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
-                    $query
-                        ->whereNotNull('events.published_at')
-                        ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                        ->where('events.visibility', EventVisibility::Public->value)
-                        ->whereHas('occurrences');
-                }),
-                'upcoming_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
-                    $query
-                        ->whereNotNull('events.starts_at')
-                        ->where('events.starts_at', '>=', now())
-                        ->where('events.starts_at', '<=', now()->addDays(30));
-                }),
-                'draft_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
-                    $query->where('events.status', 'draft');
-                }),
-                'pending_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
-                    $query->whereIn('events.status', ['pending', 'needs_changes']);
-                }),
-            ])
             ->withCount([
                 'members',
                 'follows as followers_count' => fn (Builder $query): Builder => $query->where('status', 'active'),
             ])
             ->orderBy('name')
             ->get();
+
+        $stats = app(EventScheduleReads::class)->institutionEventStats(
+            $institutions
+                ->map(static fn (Institution $institution): string => (string) $institution->getKey())
+                ->all(),
+        );
+
+        return $institutions->each(function (Institution $institution) use ($stats): void {
+            $stat = $stats[(string) $institution->getKey()] ?? [
+                'total' => 0,
+                'public' => 0,
+                'upcoming' => 0,
+                'draft' => 0,
+                'pending' => 0,
+            ];
+
+            $institution->setAttribute('events_count', $stat['total']);
+            $institution->setAttribute('public_events_count', $stat['public']);
+            $institution->setAttribute('upcoming_events_count', $stat['upcoming']);
+            $institution->setAttribute('draft_events_count', $stat['draft']);
+            $institution->setAttribute('pending_events_count', $stat['pending']);
+        });
     }
 
     #[Computed]
@@ -713,21 +714,6 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                 MemberSubjectType::Institution,
             ),
         );
-    }
-
-    /**
-     * @param  (callable(Builder<Event>): void)|null  $callback
-     * @return Builder<Event>
-     */
-    protected function institutionEventCountSubquery(?callable $callback = null): Builder
-    {
-        $query = app(EventOrmPort::class)->institutionEventCountSubquery();
-
-        if ($callback !== null) {
-            $callback($query);
-        }
-
-        return $query;
     }
 
     /**

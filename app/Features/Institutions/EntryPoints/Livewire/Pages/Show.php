@@ -11,22 +11,17 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
+use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Builders\EventBuilder;
-use App\Features\Events\Models\Event;
-use App\Features\Events\Models\EventReferencePivot;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
-use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\IntendedRedirect;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Collection;
@@ -280,30 +275,15 @@ class Show extends Component
         ];
 
         /** @var EventBuilder $query */
-        $query = $this->institution->events()->getQuery();
+        $query = app(PublicScheduleEventReads::class)->institutionScheduleQuery(
+            (string) $this->institution->getKey(),
+            $addressRelations,
+        );
 
-        return $query
-            ->active()
-            ->with([
-                ...$addressRelations,
-                'persons.media',
-                'persons.titleAssignments.title.category',
-                'keyPeople.person',
-                'references' => /** @param BelongsToMany<Reference, Event, EventReferencePivot, 'pivot'> $references */ function (BelongsToMany $references): void {
-                    app(ReferenceOrmPort::class)->applyPublicVisibility($references->getQuery());
-                },
-                'media',
-                'institution.media',
-                'classifications.term',
-                'primaryOccurrence',
-                'displayOccurrence.media',
-                'timeExpressions',
-                'links',
-            ]);
+        return $query;
     }
 
-    /** @return Builder<Event> */
-    protected function eventPageBaseQuery(): Builder
+    protected function eventPageBaseQuery(): EventBuilder
     {
         return $this->eventQuery();
     }

@@ -46,6 +46,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -296,6 +297,32 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         );
 
         return $session;
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $relations
+     */
+    public function institutionScheduleQuery(string $institutionId, array $relations): EventBuilder
+    {
+        return Event::query()
+            ->where('institution_id', $institutionId)
+            ->active()
+            ->with([
+                ...$relations,
+                'persons.media',
+                'persons.titleAssignments.title.category',
+                'keyPeople.person',
+                'references' => function (BelongsToMany $references): void {
+                    $this->referenceQueries->applyPublicVisibility($references->getQuery());
+                },
+                'media',
+                'institution.media',
+                'classifications.term',
+                'primaryOccurrence',
+                'displayOccurrence.media',
+                'timeExpressions',
+                'links',
+            ]);
     }
 
     /**
@@ -1716,7 +1743,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         ];
     }
 
-    public function institutionUpcomingCountSubquery(): object
+    public function institutionUpcomingCountSubquery(): QueryBuilder
     {
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
 
@@ -1733,7 +1760,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->selectRaw('count(*)');
     }
 
-    public function institutionNextEventIdSubquery(): object
+    public function institutionNextEventIdSubquery(): EventBuilder
     {
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
 
@@ -1750,7 +1777,11 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->select('events.id');
     }
 
-    public function institutionNextEventDetails(array $eventIds): object
+    /**
+     * @param  list<string>  $eventIds
+     * @return EloquentCollection<int, Event>
+     */
+    public function institutionNextEventDetails(array $eventIds): EloquentCollection
     {
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
 
@@ -1880,17 +1911,22 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->all();
     }
 
-    public function findEvent(string $eventId): ?object
+    public function findEvent(string $eventId): ?Event
     {
         return Event::query()->find($eventId);
     }
 
-    public function findEventBySlug(string $slug): ?object
+    public function findEventBySlug(string $slug): ?Event
     {
         return Event::query()->where('slug', $slug)->first();
     }
 
-    public function hydrateEventsForIds(array $eventIds, array $relations): object
+    /**
+     * @param  list<string>  $eventIds
+     * @param  list<string>  $relations
+     * @return EloquentCollection<string, Event>
+     */
+    public function hydrateEventsForIds(array $eventIds, array $relations): EloquentCollection
     {
         return Event::query()
             ->with($relations)
@@ -1913,7 +1949,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         return $event instanceof Event && $event->isPubliclyReachable();
     }
 
-    public function eventsForOwner(string $ownerType, string $ownerId, int $limit): object
+    public function eventsForOwner(string $ownerType, string $ownerId, int $limit): EloquentCollection
     {
         return Event::query()
             ->where('owner_type', $ownerType)
@@ -1923,7 +1959,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->get();
     }
 
-    public function plannerEventsForIds(array $eventIds, bool $activeOnly): object
+    public function plannerEventsForIds(array $eventIds, bool $activeOnly): EloquentCollection
     {
         return Event::query()
             ->whereKey($eventIds)
@@ -1933,7 +1969,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->get();
     }
 
-    public function recommendedPlannerEvent(array $excludedEventIds, string $fromUtc): ?object
+    public function recommendedPlannerEvent(array $excludedEventIds, string $fromUtc): ?Event
     {
         return Event::query()
             ->active()
@@ -1944,7 +1980,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->first();
     }
 
-    public function eventsWithAdminRelations(array $eventIds): object
+    public function eventsWithAdminRelations(array $eventIds): EloquentCollection
     {
         return Event::query()
             ->whereKey($eventIds)
@@ -1967,7 +2003,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         return (new Series)->getTable();
     }
 
-    public function institutionTableQuery(string $institutionId): object
+    public function institutionTableQuery(string $institutionId): EventBuilder
     {
         return Event::query()
             ->where('institution_id', $institutionId)
@@ -1979,7 +2015,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->withCount(['registrations as dashboard_registrations_count']);
     }
 
-    public function institutionEventCardsQuery(string $institutionId): object
+    public function institutionEventCardsQuery(string $institutionId): EventBuilder
     {
         return Event::query()
             ->where('institution_id', $institutionId)
@@ -1992,13 +2028,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->withCount(['registrations as dashboard_registrations_count']);
     }
 
-    public function institutionEventCountSubquery(): object
-    {
-        return Event::query()
-            ->selectRaw('count(*)')
-            ->whereColumn('events.institution_id', 'institutions.id');
-    }
-
     public function institutionRegistrationCount(string $institutionId): int
     {
         return (int) Event::query()
@@ -2008,19 +2037,19 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->sum(fn (Event $event): int => (int) ($event->registrations_count ?? 0));
     }
 
-    public function emptyEventsQuery(): object
+    public function emptyEventsQuery(): EventBuilder
     {
         return Event::query()->whereRaw('1 = 0');
     }
 
-    public function personDashboardQuery(string $personId): object
+    public function personDashboardQuery(string $personId): EventBuilder
     {
         return Event::query()->whereHas('persons', function (Builder $personQuery) use ($personId): void {
             $personQuery->whereKey($personId);
         });
     }
 
-    public function referenceEventsQuery(array $referenceIds, array $venueEagerLoads): object
+    public function referenceEventsQuery(array $referenceIds, array $venueEagerLoads): EventBuilder
     {
         return Event::query()
             ->where(function (Builder $referenceFilter) use ($referenceIds): void {
@@ -2063,23 +2092,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ]);
     }
 
-    public function institutionPublicEventCountSubquery(bool $upcomingOnly = false): object
-    {
-        $query = Event::query()
-            ->selectRaw('count(*)')
-            ->whereColumn('events.institution_id', 'institutions.id')
-            ->whereNotNull('events.published_at')
-            ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public)
-            ->whereHas('occurrences');
-
-        if ($upcomingOnly) {
-            $query->where('events.starts_at', '>=', now());
-        }
-
-        return $query;
-    }
-
     public function institutionSpeakerCount(string $institutionId): int
     {
         $endInstant = app(EventScheduleSql::class)->endInstantSql((new Event)->getTable());
@@ -2099,7 +2111,65 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ->count();
     }
 
-    public function publicReferenceEventCountSubquery(): object
+    public function institutionEventStats(array $institutionIds): array
+    {
+        $institutionIds = $this->uniqueIds($institutionIds);
+
+        if ($institutionIds === []) {
+            return [];
+        }
+
+        $table = (new Event)->getTable();
+        $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
+        $statuses = $this->stringValues(Event::PUBLIC_STATUSES);
+        $statusPlaceholders = implode(', ', array_fill(0, count($statuses), '?'));
+
+        $rows = DB::table($table)
+            ->whereIn('institution_id', $institutionIds)
+            ->groupBy('institution_id')
+            ->select('institution_id')
+            ->selectRaw('count(*) as total_count')
+            ->selectRaw(
+                "sum(case when published_at is not null and status in ({$statusPlaceholders}) and visibility = ? and exists (select 1 from {$occurrencesTable} where {$occurrencesTable}.event_id = {$table}.id) then 1 else 0 end) as public_count",
+                [...$statuses, EventVisibility::Public->value],
+            )
+            ->selectRaw(
+                "sum(case when exists (select 1 from {$occurrencesTable} where {$occurrencesTable}.event_id = {$table}.id and {$occurrencesTable}.starts_at is not null and {$occurrencesTable}.starts_at >= ? and {$occurrencesTable}.starts_at <= ?) then 1 else 0 end) as upcoming_count",
+                [now(), now()->addDays(30)],
+            )
+            ->selectRaw('sum(case when status = ? then 1 else 0 end) as draft_count', ['draft'])
+            ->selectRaw('sum(case when status in (?, ?) then 1 else 0 end) as pending_count', ['pending', 'needs_changes'])
+            ->get();
+
+        $stats = [];
+
+        foreach ($institutionIds as $institutionId) {
+            $stats[$institutionId] = [
+                'total' => 0,
+                'public' => 0,
+                'upcoming' => 0,
+                'draft' => 0,
+                'pending' => 0,
+            ];
+        }
+
+        foreach ($rows as $row) {
+            $stats[(string) $row->institution_id] = [
+                'total' => (int) $row->total_count,
+                'public' => (int) $row->public_count,
+                'upcoming' => (int) $row->upcoming_count,
+                'draft' => (int) $row->draft_count,
+                'pending' => (int) $row->pending_count,
+            ];
+        }
+
+        return $stats;
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    public function publicReferenceEventCountSubquery(): Builder
     {
         return $this->referenceQueries->constrainEventReferenceSubtree(
             Event::query()

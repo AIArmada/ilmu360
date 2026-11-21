@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Discovery\Api\Orm;
 
 use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Events\Models\Event;
 
 /**
  * Public event-card payload boundary.
@@ -18,5 +19,5 @@ use App\Features\Discovery\Api\Data\EventListData;
  */
 interface EventListPayloads
 {
-    public function forEvent(object $event): EventListData;
+    public function forEvent(Event $event): EventListData;
 }

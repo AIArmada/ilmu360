@@ -85,7 +85,6 @@ use App\Features\Events\Api\OrganizerLookup;
 use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Api\Orm\EventContributionStateMapper;
 use App\Features\Events\Api\Orm\EventOccurrenceDeletionPreflight;
-use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
 use App\Features\Events\Api\Orm\EventRegistrationNotifications;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Api\Orm\PublicScheduleEligibility;
@@ -123,7 +122,6 @@ use App\Features\Events\Queries\EloquentAccountEventFacts;
 use App\Features\Events\Queries\EloquentEventCollections;
 use App\Features\Events\Services\EventContributionStateMapperService;
 use App\Features\Events\Services\EventEngagementEligibilityService;
-use App\Features\Events\Services\EventPageScheduleService;
 use App\Features\Events\Services\EventSchedulePageDataService;
 use App\Features\Events\Services\OrganizerLookupService;
 use App\Features\Events\Services\PublicScheduleEligibilityService;
@@ -351,7 +349,6 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
-        $this->app->bind(EventPageScheduleOrmPort::class, EventPageScheduleService::class);
         $this->app->bind(EventContributionStateMapper::class, EventContributionStateMapperService::class);
         $this->app->bind(OrganizerLookup::class, OrganizerLookupService::class);
         $this->app->bind(PublicScheduleEligibility::class, PublicScheduleEligibilityService::class);
