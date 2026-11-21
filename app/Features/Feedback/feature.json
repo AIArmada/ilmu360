@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 1,
   "name": "Feedback",
   "owns": {
     "table:app_feedback": [
