@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 1,
   "name": "Ai",
   "owns": {
     "table:ai_model_pricings": [

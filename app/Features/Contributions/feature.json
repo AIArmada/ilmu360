@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 1,
   "name": "Contributions",
   "owns": {
     "store:verified-institution-maps-selections": [
