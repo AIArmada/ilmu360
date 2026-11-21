@@ -394,15 +394,6 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/ShareTracking/EntryPoints/Console/ActivateLocalShareExamples.php",
-      "target": "table:users",
-      "model": "App\\Models\\User",
-      "reason": "Local share-example command toggles demo account fields on the framework User model; this is an explicit local-only console adapter.",
-      "owner": "ShareTracking",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
       "file": "app/Features/Membership/Persistence/EloquentScopedMembershipRoleStore.php",
       "target": "table:model_has_roles",
       "model": "Illuminate\\Database\\Query\\Builder",

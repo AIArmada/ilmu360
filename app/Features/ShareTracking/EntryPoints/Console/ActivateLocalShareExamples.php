@@ -16,6 +16,8 @@ use AIArmada\Rewards\Models\RewardBenefitItem;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Support\RewardMaterialTerms;
 use AIArmada\Rewards\Support\RewardPublishAssembler;
+use App\Features\Identity\Api\AccountAccess;
+use App\Features\Identity\Api\AccountAdministration;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
@@ -34,7 +36,7 @@ final class ActivateLocalShareExamples extends Command
 
     private const string DEMO_PASSWORD = 'Ilmu360Demo!2026';
 
-    public function handle(): int
+    public function handle(AccountAccess $accounts, AccountAdministration $administration): int
     {
         if (! app()->environment('local')) {
             $this->error('This activation command can run only when APP_ENV=local.');
@@ -43,7 +45,7 @@ final class ActivateLocalShareExamples extends Command
         }
 
         try {
-            $result = DB::transaction(fn (): array => $this->activateExamples());
+            $result = DB::transaction(fn (): array => $this->activateExamples($accounts, $administration));
         } catch (\Throwable $exception) {
             report($exception);
             $this->error('Local Share example activation failed: '.$exception->getMessage());
@@ -65,7 +67,7 @@ final class ActivateLocalShareExamples extends Command
     /**
      * @return array{points_program: string, referral_program: string, benefit_item: string, demo_users: int}
      */
-    private function activateExamples(): array
+    private function activateExamples(AccountAccess $accounts, AccountAdministration $administration): array
     {
         $admin = User::query()->where('email', 'superadmin@ilmu360.com')->first();
 
@@ -73,8 +75,8 @@ final class ActivateLocalShareExamples extends Command
             throw new RuntimeException('The local superadmin account is required to provision the benefit item.');
         }
 
-        $this->upsertDemoUser('sharer.demo@ilmu360.test', 'Share Demo Sharer');
-        $this->upsertDemoUser('visitor.demo@ilmu360.test', 'Share Demo Visitor');
+        $this->upsertDemoUser('sharer.demo@ilmu360.test', 'Share Demo Sharer', $accounts, $administration);
+        $this->upsertDemoUser('visitor.demo@ilmu360.test', 'Share Demo Visitor', $accounts, $administration);
 
         $program = RewardProgram::query()->where('family_key', self::POINTS_FAMILY_KEY)->first();
 
@@ -286,15 +288,22 @@ final class ActivateLocalShareExamples extends Command
         ];
     }
 
-    private function upsertDemoUser(string $email, string $name): User
+    private function upsertDemoUser(string $email, string $name, AccountAccess $accounts, AccountAdministration $administration): void
     {
-        $user = User::query()->firstOrNew(['email' => $email]);
-        $user->forceFill([
+        $attributes = [
             'name' => $name,
             'password' => self::DEMO_PASSWORD,
             'email_verified_at' => CarbonImmutable::now('UTC'),
-        ])->save();
+        ];
 
-        return $user;
+        $account = $accounts->findByEmail($email);
+
+        if ($account === null) {
+            $administration->create(['email' => $email, ...$attributes]);
+
+            return;
+        }
+
+        $administration->update($account->id, $attributes);
     }
 }
