@@ -119,8 +119,8 @@ sections below.
 
 | Finding | Status |
 |---|---|
-| F1 owner APIs expose mutable ORM data | ✅ zero model/Builder imports; 40 explicit `Api/Orm` ports |
-| F2 checker/fixtures do not prove the seam | ✅ model/opaque-object/port/container/mutation rules + fixtures; production root_models |
+| F1 owner APIs expose mutable ORM data | ✅ cross-owner query composition removed; 43 typed `Api/Orm` seams, 29 removed/replaced methods |
+| F2 checker/fixtures do not prove the seam | ✅ adds `orm-opaque-return` + `orm-query-escape`; 67 boundary tests |
 | F3 registry silent collisions | ✅ explicit reward-awards allowlist; unexpected collisions throw |
 | F4 ledgers incomplete | ✅ 378 migration commits; 62 PROVEN writes; RA-11 REMOVED |
 | F5 OpenAPI patcher concealment | ✅ frozen 24-operation fixture + runtime key assertions |
@@ -128,3 +128,14 @@ sections below.
 | F7 shared form helper / large Events query | recorded follow-up; non-blocking |
 
 Detail: `tasks/post-refactor-audit-closeout.md`.
+
+## ORM boundary completion (2026-11-21)
+
+| Requirement | Status |
+|---|---|
+| Cross-owner mutable Event builder removed from Discovery | ✅ `PublicScheduleEventReads` owns predicates/eager loads/execution |
+| `EventOrmPort` query methods used by directory/dashboard consumers | ✅ typed; count/stats moved to owner reads; 29 methods removed/replaced |
+| Submitter candidate builders (`newInstitutionQuery`, …) | ✅ owner authoring candidate APIs |
+| Opaque `object`/`mixed` `Api/Orm` returns | ✅ zero |
+| Checker proves the seam | ✅ `orm-opaque-return`, `orm-query-escape`, negative fixtures |
+| Inventory | ✅ `tasks/orm-boundary-inventory.csv` (301 rows) |

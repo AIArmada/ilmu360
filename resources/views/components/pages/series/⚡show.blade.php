@@ -3,6 +3,7 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
+use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
 use App\Shared\Auth\IntendedRedirect;
@@ -97,7 +98,7 @@ new
 
         protected function eventPageBaseQuery(): Builder
         {
-            return $this->series->events()->getQuery()->active();
+            return app(PublicScheduleEventReads::class)->seriesScheduleQuery($this->series);
         }
 
         protected function eventPageEagerLoads(): array

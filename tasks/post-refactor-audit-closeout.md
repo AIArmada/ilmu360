@@ -9,9 +9,11 @@ This file records how each finding was closed, with the code/gate evidence.
   `Features/*/Models`, Eloquent `Builder`/`Collection`, paginator or
   `Illuminate\Support\Collection`, and zero opaque `object` signatures (the
   framework `?object $request` integration parameter is the only allowed form).
-- Every model/builder-shaped surface moved under
+- Every model/builder-shaped surface was initially moved under
   `app/Features/<Owner>/Api/Orm/` with an `@internal` marker and a
-  `Consumers:` list (40 ports). The checker enforces both.
+  `Consumers:` list (40 ports). The checker enforced both, but the ORM
+  boundary completion wave below removed or replaced the ports whose
+  consumers still composed foreign business queries.
 - Named findings specifically:
   - `EventScheduleQuery` split into `EventScheduleReads` (scalar/card/count)
     and `Api/Orm/EventOrmPort` (models/builders); all consumers migrated.
@@ -38,6 +40,8 @@ This file records how each finding was closed, with the code/gate evidence.
 | `api-opaque-param` | ordinary Api has an opaque `object` parameter other than the framework request |
 | `api-opaque-return` | ordinary Api returns `object` |
 | `orm-port-contract` | an `Api/Orm` file lacks `@internal` or `Consumers:` |
+| `orm-opaque-return` | an `Api/Orm` public method returns native `object`/`mixed` |
+| `orm-query-escape` | a foreign consumer receives an `Api/Orm` builder and composes a business predicate (`where`, `whereHas`, `with`, `join`, `select`, ordering, writes, …) through a chain, variable, injected property or typed parameter |
 | `foreign-model-domain-operation` | foreign model static query/construction, container resolution (`app`/`resolve`) or instance mutation |
 
 Fixtures in `tests/Unit/Platform/ArchitectureBoundaryTest.php` cover the
@@ -106,9 +110,13 @@ Deleted 11 `config/*.pre-majlisilmu-merge-20260511` backups plus
 - `PublishedContractSchemaParityTest` now checks nested detail and pagination
   value types against the frozen OpenAPI response contract, in addition to
   schema snapshots and response keys. The published document is unchanged.
-- The 40 explicit `Api/Orm` ports remain narrowly documented, internal
-  integration boundaries. Fully replacing model/builder ports with scalar
-  readers would require a separate, larger behavior-sensitive refactor.
+- The ORM boundary completion wave (2026-11-21) replaced the cross-owner
+  mutable business-query ports instead of only documenting them. See
+  `tasks/orm-boundary-refactor-progress.md` for the final 43-file, 272-method
+  inventory, the 29 removed/replaced methods and the strengthened checker
+  fixtures. Model transport that remains is limited to typed
+  Livewire/Filament rendering, policy/media identity and owner-executed
+  directory projections.
 
 
 ## Verification at this closeout

@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
+use App\Features\Places\Models\Venue;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
@@ -117,4 +118,18 @@ interface PublicScheduleEventReads
      * @param  array<int|string, mixed>  $relations
      */
     public function institutionScheduleQuery(string $institutionId, array $relations): EventBuilder;
+
+    /**
+     * Base active event query for a venue detail page.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<Event>
+     */
+    public function venueScheduleQuery(Venue $venue): \Illuminate\Database\Eloquent\Builder;
+
+    /**
+     * Base active event query for a series detail page.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<Event>
+     */
+    public function seriesScheduleQuery(\App\Features\Events\Models\Series $series): \Illuminate\Database\Eloquent\Builder;
 }

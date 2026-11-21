@@ -1,6 +1,7 @@
 <?php
 
 use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
+use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
@@ -86,7 +87,7 @@ new class extends Component
 
     protected function eventPageBaseQuery(): Builder
     {
-        return $this->venue->events()->getQuery()->active();
+        return app(PublicScheduleEventReads::class)->venueScheduleQuery($this->venue);
     }
 
     protected function eventPageEagerLoads(): array

@@ -30,6 +30,7 @@ use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
@@ -300,6 +301,22 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
     }
 
     /**
+     * @return Builder<Event>
+     */
+    public function venueScheduleQuery(Venue $venue): Builder
+    {
+        return $venue->events()->getQuery()->active();
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    public function seriesScheduleQuery(Series $series): Builder
+    {
+        return $series->events()->getQuery()->active();
+    }
+
+    /**
      * @param  array<int|string, mixed>  $relations
      */
     public function institutionScheduleQuery(string $institutionId, array $relations): EventBuilder
@@ -334,7 +351,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
     {
         $occurrenceTable = (new EventOccurrence)->getTable();
 
-        /** @var EventBuilder $query */
         $query = $this->buildPublicEventQuery(null, ['time_scope' => 'all']);
 
         return $query
@@ -359,7 +375,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
      */
     private function homepageFollowedEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
     {
-        /** @var EventBuilder $baseQuery */
         $baseQuery = $this->buildPublicEventQuery(null, ['time_scope' => 'all']);
         $query = $baseQuery->whereIn('events.status', Event::PUBLIC_STATUSES);
 
@@ -2306,8 +2321,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             $nextStartsAt = null;
 
             foreach ($eventStarts as $eventId => $startsAt) {
-                $eventId = (string) $eventId;
-
                 if ($nextStartsAt === null || $startsAt < $nextStartsAt
                     || ($startsAt === $nextStartsAt && $nextEventId !== null && $eventId < $nextEventId)) {
                     $nextStartsAt = $startsAt;
