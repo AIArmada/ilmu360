@@ -48,6 +48,8 @@ use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Auth\AccountDirectory;
 use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\UserMorphType;
+use App\Shared\Contracts\AccountTimezoneUpdater;
+use App\Shared\Contracts\AccountTokenRevoker;
 use Illuminate\Contracts\Foundation\Application;
 
 class FeatureServiceProvider extends FeatureModule
@@ -58,6 +60,8 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(AccountAccess::class, EloquentAccountAccess::class);
         $this->app->bind(AccountDirectory::class, EloquentAccountDirectory::class);
         $this->app->bind(AccountSettingsStore::class, EloquentAccountSettingsStore::class);
+        $this->app->bind(AccountTimezoneUpdater::class, EloquentAccountSettingsStore::class);
+        $this->app->bind(AccountTokenRevoker::class, EloquentAccountSettingsStore::class);
         $this->app->bind(UserMorphType::class, EloquentUserMorphType::class);
         $this->app->bind(AccountSubmissionEligibility::class, AccountSubmissionEligibilityService::class);
         $this->app->bind(AccountPreferences::class, AccountPreferencesService::class);

@@ -2,7 +2,7 @@
 
 namespace App\Platform\Time\Http\Middleware;
 
-use App\Features\Identity\Api\AccountSettingsStore;
+use App\Shared\Contracts\AccountTimezoneUpdater;
 use App\Platform\Time\UserTimezoneResolver;
 use Closure;
 use Filament\Support\Facades\FilamentTimezone;
@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SetFilamentTimezone
 {
-    public function __construct(private readonly AccountSettingsStore $accountSettings) {}
+    public function __construct(private readonly AccountTimezoneUpdater $accountSettings) {}
 
     /**
      * Handle an incoming request.

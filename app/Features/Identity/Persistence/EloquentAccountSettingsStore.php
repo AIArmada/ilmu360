@@ -10,11 +10,13 @@ use App\Features\Identity\Api\AccountSettingsStore;
 use App\Features\Identity\Api\AccountToken;
 use App\Models\User;
 use App\Shared\Auth\AccountDirectory;
+use App\Shared\Contracts\AccountTimezoneUpdater;
+use App\Shared\Contracts\AccountTokenRevoker;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Laravel\Sanctum\PersonalAccessToken;
 
-final readonly class EloquentAccountSettingsStore implements AccountSettingsStore
+final readonly class EloquentAccountSettingsStore implements AccountSettingsStore, AccountTimezoneUpdater, AccountTokenRevoker
 {
     public function __construct(private AccountDirectory $accounts) {}
 
