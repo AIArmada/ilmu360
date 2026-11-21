@@ -5,6 +5,8 @@ use AIArmada\Engagement\Models\Response;
 use AIArmada\Seating\Enums\SeatingMode;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
+use App\Features\Registration\Api\Data\RegistrationConfirmationFacts;
+use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
@@ -190,4 +192,46 @@ it('requires authentication to inspect the current users event state', function 
 
     $this->getJson(route('api.events.me.show', $event))
         ->assertUnauthorized();
+});
+
+it('exposes confirmation identities through immutable Registration-owned facts', function (): void {
+    $user = User::factory()->create();
+    $event = registrationReadyEvent();
+
+    Sanctum::actingAs($user);
+
+    $this->postJson(route('api.events.registrations.store', $event), [
+        'name' => 'Verified Account Registrant',
+    ])->assertCreated();
+
+    $registration = Registration::query()
+        ->where('event_id', $event->getKey())
+        ->forUser($user)
+        ->firstOrFail();
+
+    $reader = app(RegistrationConfirmationFactsReader::class);
+
+    expect($reader->find((string) $registration->getKey()))
+        ->toEqual(new RegistrationConfirmationFacts(
+            registrationId: (string) $registration->getKey(),
+            eventId: (string) $event->getKey(),
+            userId: (string) $user->getKey(),
+        ))
+        ->and($reader->find('not-a-registration-id'))->toBeNull();
+});
+
+it('does not expose an authenticated notification recipient for guest registrations', function (): void {
+    $event = registrationReadyEvent();
+
+    $this->postJson(route('api.events.registrations.store', $event), [
+        'name' => 'Guest',
+        'email' => 'guest-notification-facts@example.test',
+    ])->assertCreated();
+
+    $registration = Registration::query()
+        ->where('event_id', $event->getKey())
+        ->forPrimaryContact('guest-notification-facts@example.test')
+        ->firstOrFail();
+
+    expect(app(RegistrationConfirmationFactsReader::class)->find((string) $registration->getKey()))->toBeNull();
 });
