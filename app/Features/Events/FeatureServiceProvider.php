@@ -4,6 +4,22 @@ declare(strict_types=1);
 
 namespace App\Features\Events;
 
+use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Models\EventTaxonomy;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\Observers\EventLifecycleObserver;
+use App\Features\Events\Observers\EventLocationSyncObserver;
+use App\Features\Events\Observers\EventObserver;
+use App\Features\Events\Observers\EventTermObserver;
+use App\Features\Events\Observers\EventKeyPersonObserver;
+use App\Features\Events\Observers\EventOccurrenceObserver;
+use App\Features\Events\Observers\EventOccurrenceFeaturedObserver;
+use App\Features\Events\Observers\EventTimeExpressionObserver;
+use App\Features\Events\Observers\EventTaxonomyObserver;
+
 use AIArmada\Checkout\Contracts\StepContributor;
 use AIArmada\FilamentEvents\Resources\EventAttendanceResource;
 use AIArmada\FilamentEvents\Resources\EventChangeLogResource;
@@ -394,6 +410,16 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Event::observe(EventLifecycleObserver::class);
+        Event::observe(EventLocationSyncObserver::class);
+        Event::observe(EventObserver::class);
+        EventTerm::observe(EventTermObserver::class);
+        EventKeyPerson::observe(EventKeyPersonObserver::class);
+        EventOccurrence::observe(EventOccurrenceObserver::class);
+        EventOccurrence::observe(EventOccurrenceFeaturedObserver::class);
+        EventTimeExpression::observe(EventTimeExpressionObserver::class);
+        EventTaxonomy::observe(EventTaxonomyObserver::class);
+
         $registry = $this->app->make(ResourceDefinitionRegistry::class);
         $memberDefinition = $this->app->make(EventMemberResourceDefinition::class);
         $registry->register($memberDefinition);

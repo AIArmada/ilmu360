@@ -53,15 +53,6 @@ use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Models\MediaLink;
 use App\Features\Events\Models\Series;
-use App\Features\Events\Observers\EventKeyPersonObserver;
-use App\Features\Events\Observers\EventLifecycleObserver;
-use App\Features\Events\Observers\EventLocationSyncObserver;
-use App\Features\Events\Observers\EventObserver;
-use App\Features\Events\Observers\EventOccurrenceFeaturedObserver;
-use App\Features\Events\Observers\EventOccurrenceObserver;
-use App\Features\Events\Observers\EventTaxonomyObserver;
-use App\Features\Events\Observers\EventTermObserver;
-use App\Features\Events\Observers\EventTimeExpressionObserver;
 use App\Features\Events\Policies\EventPolicy;
 use App\Features\Identity\Listeners\ClaimGuestSubmissionsOnVerified;
 use App\Features\Identity\Listeners\RecordVerifiedEmail;
@@ -518,10 +509,6 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        Event::observe(EventLifecycleObserver::class);
-        Event::observe(EventLocationSyncObserver::class);
-        Event::observe(EventObserver::class);
-        EventTerm::observe(EventTermObserver::class);
         Address::observe(AddressObserver::class);
         AddressArea::observe(AddressAreaObserver::class);
         AddressAreaRelationship::observe(AddressAreaRelationshipObserver::class);
@@ -529,11 +516,6 @@ class AppServiceProvider extends ServiceProvider
         AddressCountry::observe(AddressCountryObserver::class);
         City::observe(AddressCatalogObserver::class);
         State::observe(AddressCatalogObserver::class);
-        EventKeyPerson::observe(EventKeyPersonObserver::class);
-        EventOccurrence::observe(EventOccurrenceObserver::class);
-        EventOccurrence::observe(EventOccurrenceFeaturedObserver::class);
-        EventTimeExpression::observe(EventTimeExpressionObserver::class);
-        EventTaxonomy::observe(EventTaxonomyObserver::class);
         Language::observe(LanguageObserver::class);
         CommerceLanguage::observe(LanguageObserver::class);
 
