@@ -61,7 +61,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
-final readonly class PostgresEventDiscovery implements EventDirectoryProjectionProvider, EventDiscoveryReader, EventScheduleReads, EventOrmPort, PublicScheduleEventReads
+final readonly class PostgresEventDiscovery implements EventDirectoryProjectionProvider, EventDiscoveryReader, EventOrmPort, EventScheduleReads, PublicScheduleEventReads
 {
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
