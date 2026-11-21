@@ -19,7 +19,7 @@ use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventChangeSeverity;
-use App\Features\Events\Api\Orm\EventRegistrationNotifications;
+use App\Features\Events\Api\EventRegistrationNotifications;
 use App\Features\Events\Contracts\EventReminderNotificationDispatch;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
@@ -30,6 +30,7 @@ use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -49,6 +50,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
         protected NotificationMessageRendering $messageRenderer,
         protected SavedSearchReader $savedSearchReader,
         protected RegistrationLookup $registrationLookup,
+        protected RegistrationConfirmationFactsReader $registrationConfirmationFacts,
     ) {}
 
     public function notifySubmissionReceived(Event $event): void
@@ -372,15 +374,15 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
         }
     }
 
-    public function registrationConfirmed(Registration $registration): void
+    public function registrationConfirmed(string $registrationId): void
     {
-        $this->notifyRegistrationConfirmed($registration);
-    }
+        $facts = $this->registrationConfirmationFacts->find($registrationId);
+        if ($facts === null) {
+            return;
+        }
 
-    public function notifyRegistrationConfirmed(Registration $registration): void
-    {
-        $user = $registration->registrant;
-        $event = $registration->event;
+        $user = User::query()->find($facts->userId);
+        $event = Event::query()->find($facts->eventId);
 
         if (! $user instanceof User || ! $event instanceof Event) {
             return;
@@ -397,7 +399,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
             entityType: Event::class,
             entityId: $event->id,
             priority: NotificationPriority::Medium,
-            fingerprint: 'registration-confirmed:'.$registration->id,
+            fingerprint: 'registration-confirmed:'.$facts->registrationId,
         ));
     }
 

@@ -86,7 +86,6 @@ use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Api\Orm\EventContributionStateMapper;
 use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
-use App\Features\Events\Api\Orm\EventRegistrationNotifications;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Api\Orm\PublicScheduleEligibility;
 use App\Features\Events\Api\PublicSubmissionLockSweeper;
@@ -384,7 +383,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AdminEventSearch::class, McpEventSearchService::class);
         $this->app->bind(EventCategoryPayloads::class, EventCategoryPayloadPresenter::class);
         $this->app->bind(EventScheduleSql::class, PrimaryOccurrenceScheduleSql::class);
-        $this->app->bind(EventRegistrationNotifications::class, EventNotificationService::class);
         $this->app->bind(EventTicketing::class, EventTicketingPolicy::class);
         $this->app->bind(SpaceLocation::class, SpaceLocationResolver::class);
         $this->app->bind(SubmissionEntityAccess::class, EntitySubmissionAccess::class);
