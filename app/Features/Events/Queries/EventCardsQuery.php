@@ -29,7 +29,7 @@ final readonly class EventCardsQuery implements EventCards
         }
 
         $events = Event::query()
-            ->with($this->relationProvider->relations())
+            ->with($this->cardRelations())
             ->whereHas('occurrences')
             ->whereKey($eventIds)
             ->get();
@@ -64,7 +64,7 @@ final readonly class EventCardsQuery implements EventCards
         }
 
         $events = Event::query()
-            ->with([...$this->relationProvider->relations(), 'displayOccurrence.media'])
+            ->with($this->relationProvider->relations())
             ->whereHas('occurrences')
             ->whereKey($eventIds)
             ->get()
@@ -74,6 +74,23 @@ final readonly class EventCardsQuery implements EventCards
             ->map(static fn (Event $event): array => $event->toArray())
             ->values()
             ->all();
+    }
+
+    /**
+     * The shared search relation set serves full event-array consumers.
+     * Card projection loads occurrence media once for every displayed event,
+     * so that relation is excluded from the initial query here only.
+     *
+     * @return array<int|string, mixed>
+     */
+    private function cardRelations(): array
+    {
+        return array_filter(
+            $this->relationProvider->relations(),
+            static fn (mixed $relation, int|string $key): bool => $key !== 'displayOccurrence.media'
+                && $relation !== 'displayOccurrence.media',
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 
     /**
