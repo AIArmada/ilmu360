@@ -10,6 +10,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Platform\Time\UserDateTimeFormatter;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
@@ -100,18 +101,18 @@ final readonly class PublicScheduleLeaf implements \App\Features\Discovery\Api\O
         ));
     }
 
-    public function startsAt(): ?CarbonInterface
+    public function startsAt(): ?CarbonImmutable
     {
         $value = $this->occurrence->getAttribute('starts_at');
 
-        return $value instanceof CarbonInterface ? $value : null;
+        return $value instanceof CarbonInterface ? CarbonImmutable::instance($value) : null;
     }
 
-    public function endsAt(): ?CarbonInterface
+    public function endsAt(): ?CarbonImmutable
     {
         $value = $this->occurrence->getAttribute('ends_at');
 
-        return $value instanceof CarbonInterface ? $value : null;
+        return $value instanceof CarbonInterface ? CarbonImmutable::instance($value) : null;
     }
 
     public function timingText(string $format = 'g:i A'): string

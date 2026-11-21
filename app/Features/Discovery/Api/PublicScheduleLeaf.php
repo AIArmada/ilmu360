@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Api;
 
-use Carbon\CarbonInterface;
+use Carbon\CarbonImmutable;
 
 /**
  * Public-schedule leaf time contract.
@@ -27,9 +27,9 @@ interface PublicScheduleLeaf
      */
     public function sessionIds(): array;
 
-    public function startsAt(): ?CarbonInterface;
+    public function startsAt(): ?CarbonImmutable;
 
-    public function endsAt(): ?CarbonInterface;
+    public function endsAt(): ?CarbonImmutable;
 
     /**
      * Rebuild this leaf with the given session subset, preserving order.
