@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Api\Orm;
 
-
 /**
  * Submitter entity access plus country consistency for event submissions.
  *

@@ -488,10 +488,10 @@ class Create extends Component implements HasActions, HasForms
         // Context is resolved fresh on every request via the component
         // guards; the schema never retains the component instance.
         $context = new SubmitEventFormContext(
-            scopedInstitutionId: $this->scopedInstitutionId,
             eventContainer: $this->selectedEventContainer(),
             submitter: $this->submitterUser(),
             requestedOccurrenceId: $this->eventOccurrenceId,
+            scopedInstitutionId: $this->scopedInstitutionId,
         );
 
         return new EventSubmissionFormSchema($context, app(SubmitEventOptionsProvider::class))
