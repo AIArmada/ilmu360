@@ -70,8 +70,6 @@ use App\Features\Identity\Observers\UserObserver;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionImportExclusion;
 use App\Features\Institutions\Models\InstitutionName;
-use App\Features\Institutions\Observers\InstitutionImportExclusionObserver;
-use App\Features\Institutions\Observers\InstitutionObserver;
 use App\Features\Membership\Models\MemberInvitation;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Moderation\Models\ModerationReview;
@@ -85,10 +83,7 @@ use App\Features\Persons\Observers\PersonTitleObserver;
 use App\Features\Persons\Observers\TitleCategoryObserver;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
-use App\Features\Places\Observers\VenueObserver;
 use App\Features\References\Models\Reference;
-use App\Features\References\Observers\ReferenceContributorObserver;
-use App\Features\References\Observers\ReferenceObserver;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Policies\RegistrationPolicy;
@@ -533,8 +528,6 @@ class AppServiceProvider extends ServiceProvider
         Event::observe(EventObserver::class);
         EventTerm::observe(EventTermObserver::class);
         Address::observe(AddressObserver::class);
-        Institution::observe(InstitutionObserver::class);
-        Institution::observe(InstitutionImportExclusionObserver::class);
         AddressArea::observe(AddressAreaObserver::class);
         AddressAreaRelationship::observe(AddressAreaRelationshipObserver::class);
         Addressable::observe(AddressableObserver::class);
@@ -555,9 +548,6 @@ class AppServiceProvider extends ServiceProvider
         Title::observe(PersonTitleObserver::class);
         TitleAssignment::observe(PersonTitleObserver::class);
         TitleCategory::observe(TitleCategoryObserver::class);
-        Reference::observe(ReferenceObserver::class);
-        ReferenceContributor::observe(ReferenceContributorObserver::class);
-        Venue::observe(VenueObserver::class);
 
         app()->instance($registrationKey, true);
     }

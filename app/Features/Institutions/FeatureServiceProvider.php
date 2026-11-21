@@ -36,7 +36,10 @@ use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Instit
 use App\Features\Institutions\EntryPoints\Filament\Stats\PendingInstitutionsStat;
 use App\Features\Institutions\EntryPoints\Sitemap\InstitutionSitemapUrls;
 use App\Features\Institutions\Listeners\InstitutionMediaCacheListener;
+use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
+use App\Features\Institutions\Observers\InstitutionImportExclusionObserver;
+use App\Features\Institutions\Observers\InstitutionObserver;
 use App\Features\Institutions\Observers\InstitutionNameObserver;
 use App\Features\Institutions\Persistence\InstitutionHomepageStatsCacheStore;
 use App\Features\Institutions\Persistence\InstitutionListingCacheVersionStore;
@@ -104,6 +107,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Institution::observe(InstitutionObserver::class);
+        Institution::observe(InstitutionImportExclusionObserver::class);
         InstitutionName::observe(InstitutionNameObserver::class);
 
         $memberRegistry = $this->app->make(ResourceDefinitionRegistry::class);

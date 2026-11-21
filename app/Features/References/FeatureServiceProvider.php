@@ -22,7 +22,10 @@ use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\Refer
 use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\EntryPoints\Filament\Stats\PendingReferencesStat;
+use AIArmada\References\Models\ReferenceContributor;
 use App\Features\References\Models\Reference;
+use App\Features\References\Observers\ReferenceContributorObserver;
+use App\Features\References\Observers\ReferenceObserver;
 use App\Features\References\Persistence\ReferenceHomepageStatsCacheStore;
 use App\Features\References\Persistence\ReferenceSearchCacheStore;
 use App\Features\References\Queries\EloquentReferenceLookup;
@@ -75,6 +78,9 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Reference::observe(ReferenceObserver::class);
+        ReferenceContributor::observe(ReferenceContributorObserver::class);
+
         $memberRegistry = $this->app->make(ResourceDefinitionRegistry::class);
         $memberDefinition = $this->app->make(ReferenceMemberResourceDefinition::class);
         $memberRegistry->register($memberDefinition);

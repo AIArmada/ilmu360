@@ -26,6 +26,7 @@ use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Features\Places\Observers\SpaceInstitutionLinkCleanupObserver;
 use App\Features\Places\Observers\VenueInstitutionLinkCleanupObserver;
+use App\Features\Places\Observers\VenueObserver;
 use App\Features\Places\Queries\EloquentPlaceLookup;
 use App\Features\Places\Queries\EloquentVenueAuthoringCandidates;
 use App\Features\Places\Services\EloquentPlaceCatalog;
@@ -68,6 +69,7 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         Space::observe(SpaceInstitutionLinkCleanupObserver::class);
+        Venue::observe(VenueObserver::class);
         Venue::observe(VenueInstitutionLinkCleanupObserver::class);
 
         $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(SpaceResourceDefinition::class));
