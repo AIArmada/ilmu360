@@ -11,14 +11,14 @@ namespace App\Shared\Contracts;
 interface AffiliateSnapshotPersistence
 {
     /**
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      * @return string The persisted affiliate identifier
      */
     public function restoreProfile(array $attributes): string;
 
     /**
-     * @param 'link'|'attribution'|'touchpoint'|'conversion' $kind
-     * @param array<string, mixed> $attributes
+     * @param  'link'|'attribution'|'touchpoint'|'conversion'  $kind
+     * @param  array<string, mixed>  $attributes
      */
     public function restoreChild(string $kind, array $attributes): void;
 }

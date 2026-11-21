@@ -444,8 +444,8 @@ final class OwnedWriteRule implements Rule
      * A concrete vendor model can only be mutated by an isolated Host adapter.
      * Application feature models and claimed resources retain their write gate.
      *
-     * @param list<string> $models
-     * @param list<string> $resources
+     * @param  list<string>  $models
+     * @param  list<string>  $resources
      */
     private function isExternalHostModelWrite(string $relative, string $root, array $models, array $resources): bool
     {

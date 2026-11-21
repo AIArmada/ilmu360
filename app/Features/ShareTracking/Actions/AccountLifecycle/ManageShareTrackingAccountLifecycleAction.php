@@ -14,8 +14,8 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Support\ShareTrackingFinance;
 use App\Features\ShareTracking\Support\ShareTrackingProfile;
-use App\Shared\Contracts\AffiliateSnapshotPersistence;
 use App\Models\User;
+use App\Shared\Contracts\AffiliateSnapshotPersistence;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 
