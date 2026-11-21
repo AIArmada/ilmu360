@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\EntryPoints\Admin\RecordActions;
 
-use App\Features\Reports\Api\Orm\AdminReportTriage;
+use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\BuildsWorkflowActionDescriptors;
@@ -20,7 +20,7 @@ final readonly class ReportRecordActionContributor implements RecordActionContri
     use BuildsWorkflowActionDescriptors;
 
     public function __construct(
-        private AdminReportTriage $reportTriageService,
+        private AdminReportTriageService $reportTriageService,
         private ReportTriageContract $reportTriageContract,
     ) {}
 

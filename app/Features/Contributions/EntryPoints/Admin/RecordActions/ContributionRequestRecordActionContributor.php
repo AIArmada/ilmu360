@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\EntryPoints\Admin\RecordActions;
 
-use App\Features\Contributions\Api\Orm\AdminContributionRequestReview;
+use App\Features\Contributions\EntryPoints\Admin\AdminContributionRequestReviewService;
 use App\Models\User;
 use App\Platform\Api\Admin\Concerns\BuildsWorkflowActionDescriptors;
 use App\Platform\Api\Admin\Contracts\RecordActionContributor;
@@ -19,7 +19,7 @@ final readonly class ContributionRequestRecordActionContributor implements Recor
     use BuildsWorkflowActionDescriptors;
 
     public function __construct(
-        private AdminContributionRequestReview $contributionRequestReviewService,
+        private AdminContributionRequestReviewService $contributionRequestReviewService,
     ) {}
 
     public function supports(string $surface, string $resourceKey, Model $record): bool
