@@ -45,7 +45,7 @@ final readonly class EventCardsQuery implements EventCards
             ->values();
 
         if ($occurrences->isNotEmpty()) {
-            (new EloquentCollection($occurrences->all()))->loadMissing('media');
+            new EloquentCollection($occurrences->all())->loadMissing('media');
         }
 
         return $this->orderedEvents($eventIds, $events->keyBy('id'))
