@@ -722,7 +722,16 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
                 break;
             }
 
-            usleep(5000);
+            $read = array_values(array_filter(
+                $pipes,
+                static fn (mixed $pipe): bool => is_resource($pipe) && ! feof($pipe),
+            ));
+
+            if ($read !== []) {
+                $write = null;
+                $except = null;
+                stream_select($read, $write, $except, 0, 5000);
+            }
         }
 
         foreach ($pipes as $pipe) {
