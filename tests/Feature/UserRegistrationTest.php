@@ -4,7 +4,7 @@ use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Features\ShareTracking\Api\SignupRecorder;
 use App\Models\User;
-use App\Platform\Auth\Fortify\CreateNewUser;
+use App\Features\Identity\EntryPoints\Fortify\CreateNewUser;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Validation\ValidationException;
 
@@ -25,7 +25,7 @@ it('can create user with phone only', function () {
 });
 
 it('requires either email or phone when creating user', function () {
-    $action = new CreateNewUser;
+    $action = app(CreateNewUser::class);
 
     $action->create([
         'name' => 'Test User',
@@ -39,7 +39,7 @@ it('requires either email or phone when creating user', function () {
 it('validates unique email', function () {
     User::factory()->create(['email' => 'test@example.com']);
 
-    $action = new CreateNewUser;
+    $action = app(CreateNewUser::class);
 
     $action->create([
         'name' => 'Test User',
@@ -52,7 +52,7 @@ it('validates unique email', function () {
 it('validates unique phone', function () {
     User::factory()->create(['phone' => '+60123456789']);
 
-    $action = new CreateNewUser;
+    $action = app(CreateNewUser::class);
 
     $action->create([
         'name' => 'Test User',
@@ -63,7 +63,7 @@ it('validates unique phone', function () {
 })->throws(ValidationException::class);
 
 it('allows registering with email and phone together', function () {
-    $action = new CreateNewUser;
+    $action = app(CreateNewUser::class);
 
     $user = $action->create([
         'name' => 'Test User',
