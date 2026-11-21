@@ -231,9 +231,8 @@ environment-dependent files.
 
 ## Independent audit follow-up (2026-11-21)
 
-The independent audit at `a29ee601` identified F1–F5. The working tree now
-addresses each finding; the final GitHub Quality run is still pending the
-follow-up commit and push.
+The independent audit at `a29ee601` identified F1–F5. The implementation and
+verification are complete; the final gate results are recorded below.
 
 ### F1 — immutable Discovery schedule reads
 
@@ -337,6 +336,6 @@ follow-up commit and push.
 
 All 26 Quality jobs passed, including the 20 Pest shards, PHPStan, Rector,
 Pint, and Chromium smoke. The closeout commit changes only these audit records;
-run `workflow_dispatch` on its resulting branch SHA to verify the final commit.
+a separate `workflow_dispatch` run verifies its resulting branch SHA.
 
 
