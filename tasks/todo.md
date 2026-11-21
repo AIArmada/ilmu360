@@ -918,7 +918,7 @@ duplicate contracts. Every slice ends green and is committed/pushed before the n
 
 ```bash
 php tools/architecture-check.php
-composer architecture:types
+composer arch:writes
 ./pest --compact tests/Unit/Platform/ArchitectureBoundaryTest.php
 # slice-specific feature tests
 ```

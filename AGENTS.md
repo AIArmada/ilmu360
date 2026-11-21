@@ -292,8 +292,8 @@ final readonly class CancelOrderController
 - Consult `.ai/rules/index.md` before planning or editing any file.
 - Use Boost `search-docs` for version-accurate Laravel/ecosystem APIs and `database-schema` / `last-error` / `browser-logs` for evidence-backed verification.
 - Record durable judgment-only rules via Boost's `record-rule` MCP tool (never edit `.ai/rules/index.md` inconsistently by hand).
-- Activate on-demand skills when relevant: `laravel-dune` (feature development & bootstrap), `laravel-dune-convert` (legacy migration), `laravel-dune-verify` (runtime verification & Feature Map), `laravel-dune-correct` (turning repeated corrections into mechanical checks).
-- Before declaring done, run `composer architecture:test` plus affected Pest/PHPUnit tests—**"it compiles" is not evidence.**
+- Activate on-demand skills when relevant: `laravel-dune` (app feature development & bootstrap), `laravel-dune-convert` (legacy app migration), `laravel-dune-package` (Laravel Composer packages under `src/`, both focused single-capability and modular multi-feature, fresh or convert), `laravel-dune-verify` (runtime verification & Feature Map), `laravel-dune-correct` (turning repeated corrections into mechanical checks).
+- Before declaring done, run `composer arch:check` plus affected Pest/PHPUnit tests—**"it compiles" is not evidence.**
 
 === .ai/lifecycle rules ===
 
@@ -490,13 +490,6 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
 
-=== herd rules ===
-
-# Laravel Herd
-
-- The application is served by Laravel Herd at `https?://[kebab-case-project-dir].test`. Use the `get-absolute-url` tool to generate valid URLs. Never run commands to serve the site. It is always available.
-- Use the `herd` CLI to manage services, PHP versions, and sites (e.g. `herd sites`, `herd services:start <service>`, `herd php:list`). Run `herd list` to discover all available commands.
-
 === tests rules ===
 
 # Test Enforcement
@@ -535,15 +528,21 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 === laravel-octane/core rules ===
 
-# Laravel Octane
+# Octane
 
-This application uses Laravel Octane, a long-running PHP server. The application bootstraps once and handles many requests within the same process.
+- Octane boots the application once and reuses it across requests, so singletons persist between requests.
+- The Laravel container's `scoped` method may be used as a safe alternative to `singleton`.
+- Never inject the container, request, or config repository into a singleton's constructor; use a resolver closure or `bind()` instead:
 
-- Never store request-specific state in singletons or static properties, because it can leak across requests.
-- Use `config('octane.server')` to detect the active driver (`swoole`, `roadrunner`, or `frankenphp`).
-- Prefer scoped bindings (`$this->app->scoped()`) over singletons for per-request services.
+```php
+// Bad
+$this->app->singleton(Service::class, fn (Application $app) => new Service($app['request']));
 
-When working on Octane-specific features (concurrency, shared tables, memory, driver configuration, testing), invoke `octane-development` for detailed rules.
+// Good
+$this->app->singleton(Service::class, fn () => new Service(fn () => request()));
+```
+
+- Never append to static properties, as they accumulate in memory across requests.
 
 === pint/core rules ===
 

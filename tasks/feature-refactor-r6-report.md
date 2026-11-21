@@ -99,7 +99,7 @@ an explicit owner Api return shape.
 | Gate | Command | Result |
 |---|---|---|
 | Architecture boundaries | `php tools/architecture-check.php` | 0 findings, exit 0 |
-| Ownership types | `phpstan -c tools/architecture.neon` (OwnedWriteRule) | 0 errors |
+| Ownership types | `phpstan -c tools/architecture-phpstan.neon` (OwnedWriteRule) | 0 errors |
 | Static analysis | `phpstan analyse` (level 6) | 0 errors |
 | Style | `vendor/bin/pint --test` | pass |
 | Rector | `vendor/bin/rector process --dry-run` | 0 changes |

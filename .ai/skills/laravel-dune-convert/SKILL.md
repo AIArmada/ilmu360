@@ -5,7 +5,7 @@ description: Convert an existing conventional or partly modular Laravel applicat
 
 # Convert an Existing Laravel App to Laravel Dune
 
-Migrate an existing Laravel 11 / 12 / 13 codebase (brownfield or vibe-coded greenfield) into **Laravel Dune** without breaking routes, middleware order, authorization, tenancy, transactions, or queues. Read [references/migration-playbook.md](references/migration-playbook.md) for Livewire, Filament, Inertia, Observers, Policies, and Auth recipes.
+Migrate an existing Laravel 11 / 12 / 13 codebase (brownfield or vibe-coded greenfield) into **Laravel Dune** without breaking routes, middleware order, authorization, tenancy, transactions, or queues. Read [references/migration-playbook.md](references/migration-playbook.md) for Livewire, Filament, Inertia, Observers, Policies, and Auth recipes. (Converting a reusable Composer package on `src/` instead of an app? Use **`laravel-dune-package`** in Convert mode.)
 
 ## Phase 0 — Establish a Verified Baseline
 
@@ -31,7 +31,7 @@ Migrate an existing Laravel 11 / 12 / 13 codebase (brownfield or vibe-coded gree
    python3 "$ARCH_SKILL_DIR/scripts/arch_scaffold.py" init --root "$PROJECT_ROOT" --apply
    ```
 2. Register `App\Platform\PlatformServiceProvider::class` once in `bootstrap/providers.php`.
-3. Install `nikic/php-parser:^5`, `phpstan/phpstan:^2.3`, `larastan/larastan:^3.14` and wire `architecture:boundaries:diff` (`php tools/architecture-check.php --diff-base=main`) plus `architecture:types` into Composer & CI.
+3. Install `nikic/php-parser:^5`, `phpstan/phpstan:^2.3`, `larastan/larastan:^3.14` and wire `arch:boundaries:diff` (`php tools/architecture-check.php --diff-base=main`) plus `arch:writes` into Composer & CI.
    - **Why `--diff-base=main`:** Enforces full architecture rules on every new/migrated `app/Features/**` slice AND stops new anti-slop regressions in touched legacy files without failing on 500 untouched legacy files on Day 1.
 
 ## Phase 2 — Convert Tested Vertical Slices (One Capability per PR)
@@ -57,7 +57,7 @@ php artisan optimize:clear
 php artisan route:list --json > /tmp/arch-routes-after.json
 python3 "$CONVERT_SKILL_DIR/scripts/compare_routes.py" /tmp/arch-routes-before.json /tmp/arch-routes-after.json
 php tools/architecture-check.php --diff-base=main
-composer architecture:types
+composer arch:writes
 php artisan test --compact
 php artisan platform:cache && php artisan route:cache && php artisan config:cache
 php artisan optimize:clear
@@ -69,6 +69,6 @@ Also inspect Boost MCP (`last-error`, `browser-logs`, `database-query`) after ex
 
 Once all in-scope capabilities are migrated:
 1. Remove all temporary migration exceptions from `tools/architecture.json` (stale exceptions fail CI automatically).
-2. Switch CI from `--diff-base=main` to full `composer architecture:test` (`php tools/architecture-check.php` + `OwnedWriteRule`).
+2. Switch CI from `--diff-base=main` to full `composer arch:check` (`php tools/architecture-check.php` + `OwnedWriteRule`).
 3. Run `laravel-dune-correct` to sweep narrative comments and promote any recurring migration pitfalls into permanent checks.
 4. Run `php artisan boost:update` and verify the full test suite + cached boot (`php artisan optimize && php artisan optimize:clear`).

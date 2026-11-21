@@ -206,7 +206,7 @@ jobs:
           CACHE_STORE: array
           SESSION_DRIVER: array
           QUEUE_CONNECTION: sync
-        run: composer architecture:test
+        run: composer arch:check
 
       - name: Verify optimized Platform and Laravel bootstrap
         run: |

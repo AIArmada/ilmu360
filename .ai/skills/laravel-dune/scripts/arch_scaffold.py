@@ -193,7 +193,7 @@ def main() -> int:
         write_files(root, files, args.apply)
         print("Next: register App\\Platform\\PlatformServiceProvider::class once in bootstrap/providers.php.")
         print("Install dev tools: composer require --dev 'nikic/php-parser:^5' 'phpstan/phpstan:^2.3' 'larastan/larastan:^3.14'")
-        print("Wire composer scripts (architecture:boundaries, architecture:types, architecture:test) and run `php artisan boost:update`.")
+        print("Wire composer scripts (arch:boundaries, arch:writes, arch:check) and run `php artisan boost:update`.")
         return 0
 
     if not args.name:

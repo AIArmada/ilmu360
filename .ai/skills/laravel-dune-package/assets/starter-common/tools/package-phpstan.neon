@@ -1,0 +1,18 @@
+parameters:
+    customRulesetUsed: true
+    paths:
+        - ../src
+        - ../config
+    excludePaths:
+        analyse:
+            - ../database/migrations/*
+            - ../src/Features/*/Database/Migrations/*
+    tmpDir: ../build/phpstan-arch
+
+services:
+    -
+        class: PackageArchitecture\StaticAnalysis\PackageOwnedWriteRule
+        arguments:
+            projectRoot: %currentWorkingDirectory%
+        tags:
+            - phpstan.rules.rule

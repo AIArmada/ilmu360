@@ -24,7 +24,7 @@ Delete all narrating comments, commented-out code, workaround justifications, an
 - No service-locator `app(...)` / `resolve(...)` inside Feature Actions when constructor DI works.
 
 ## Proof Before Done ("Prove It Works")
-- Always run `composer architecture:test` (AST boundaries + Larastan `OwnedWriteRule` + normal PHPStan) and affected Pest/PHPUnit tests.
+- Always run `composer arch:check` (AST boundaries + Larastan `OwnedWriteRule` + normal PHPStan) and affected Pest/PHPUnit tests.
 - Test observable behavior (HTTP status/JSON, persisted DB state read back, authorization/tenant isolation, rollback on failure, idempotency on retry)—never pin tests to private helper calls.
 - Verify route/config/platform caches (`php artisan route:cache`, `config:cache`, `platform:cache`) on structural changes and clear temporary caches after.
 - Use Laravel Boost MCP (`last-error`, `browser-logs`, `database-query`) to confirm zero silent runtime errors.

@@ -12,6 +12,7 @@ Build feature-owned, agent-friendly Laravel applications using Laravel's native 
 - Initializing a fresh Laravel 11 / 12 / 13 project with Laravel Dune.
 - Adding a new Feature, Action, EntryPoint, Extension, Api contract, or Host integration in an already-adopted app.
 - For converting an existing conventional Laravel app, use the **`laravel-dune-convert`** skill instead.
+- For building or converting a reusable Laravel Composer package (`src/` + Spatie skeleton), use the **`laravel-dune-package`** skill instead.
 
 ## Bootstrap a fresh Laravel app
 
@@ -31,7 +32,7 @@ Complete adoption in the same task:
    ```sh
    composer require --dev 'nikic/php-parser:^5' 'phpstan/phpstan:^2.3' 'larastan/larastan:^3.14'
    ```
-3. Add Composer scripts (`architecture:boundaries`, `architecture:types`, `architecture:test`) and wire `composer architecture:test` plus Pest/PHPUnit tests into CI (see [references/tooling.md](references/tooling.md)).
+3. Add Composer scripts (`arch:boundaries`, `arch:writes`, `arch:check`) and wire `composer arch:check` plus Pest/PHPUnit tests into CI (see [references/tooling.md](references/tooling.md)).
 4. Run `php artisan boost:update` so Laravel Boost indexes `.ai/guidelines/laravel-dune.blade.php`, `.ai/rules/`, and `.ai/skills/`.
 5. Remove or replace the example `GetStatus` / `StatusController` stub when implementing real behavior.
 
@@ -49,7 +50,7 @@ Complete adoption in the same task:
 ## Verify before declaring done
 
 ```sh
-composer architecture:test
+composer arch:check
 php artisan test --compact
 php artisan platform:cache && php artisan route:cache && php artisan config:cache
 php artisan optimize:clear

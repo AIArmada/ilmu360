@@ -308,7 +308,7 @@ The first GitHub Quality run (44001740277) flagged four `feature-private` violat
 ### Enforce final root Action exceptions
 - [x] Architecture checker permanently rejects domain files under `app/Actions` outside the three Fortify framework integration hooks.
 - [x] Architecture checker also rejects stale `App\\Actions\\...` imports and `::class` references across production, resources/Volt, tests, routes, configuration and tools.
-- [x] Remove temporary migration-audit workflow; canonical `composer architecture:test` runs the checks in regular Quality CI. No duplicate CI workflow or compatibility shims.
+- [x] Remove temporary migration-audit workflow; canonical `composer arch:check` runs the checks in regular Quality CI. No duplicate CI workflow or compatibility shims.
 - [ ] Verify architecture-test + Pest suite after checker consolidation.
 
 ## Final ownership checkpoint (2026-11-17)

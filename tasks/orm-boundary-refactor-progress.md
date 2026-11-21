@@ -10,7 +10,7 @@
 | Gate | Result | Artifact |
 |---|---|---|
 | `php tools/architecture-check.php --json` | 0 findings, 28 features | `/tmp/ilmu360-orm-before-architecture.json` |
-| `composer architecture:types` | passed, 0 errors | `/tmp/ilmu360-orm-before-types.log` |
+| `composer arch:writes` | passed, 0 errors | `/tmp/ilmu360-orm-before-types.log` |
 | `php artisan route:list --json` | 738 routes | `/tmp/ilmu360-orm-before-routes.json` |
 | `php artisan schedule:list` | 24 lines | `/tmp/ilmu360-orm-before-schedule.txt` |
 
@@ -181,7 +181,7 @@ checker/documentation wave.
 | Gate | Result | Artifact |
 |---|---|---|
 | `php tools/architecture-check.php --json` | 0 findings, 28 features | `/tmp/ilmu360-orm-final-architecture.json` |
-| `composer architecture:types` | passed, 0 errors | `/tmp/ilmu360-orm-final-types.log` |
+| `composer arch:writes` | passed, 0 errors | `/tmp/ilmu360-orm-final-types.log` |
 | `vendor/bin/pint --test` | passed | `/tmp/ilmu360-orm-final-pint.log` |
 | `vendor/bin/rector process --dry-run` | passed, 0 changes | `/tmp/ilmu360-orm-final-rector.log` |
 | `php artisan route:list --json` | 738 routes (baseline 738) | `/tmp/ilmu360-orm-final-routes.json` |
@@ -260,7 +260,7 @@ verification are complete; the final gate results are recorded below.
   exact correlated `selectSub` composition while rejecting mutation of that
   subquery.
 - `php tools/architecture-check.php` reports **0 violations across 28
-  features**. `composer architecture:test` passes with PHPStan reporting zero
+  features**. `composer arch:check` passes with PHPStan reporting zero
   errors.
 - The scanner is a tested static AST analysis, not general PHP interprocedural
   type inference. Dynamic method names, reflection, runtime macros, and
@@ -327,7 +327,7 @@ verification are complete; the final gate results are recorded below.
 | Venue/Series public page regression | 1 passed, 12 assertions |
 | Frontend API and published schema parity | 111 passed, 1,027 assertions |
 | `php tools/architecture-check.php` | 0 violations, 28 features |
-| `composer architecture:test` | passed; PHPStan 0 errors |
+| `composer arch:check` | passed; PHPStan 0 errors |
 | `vendor/bin/pint --dirty --format agent` | passed; formatting fixes applied before the gate rerun |
 | `vendor/bin/pint --test` | passed |
 | `vendor/bin/rector process --dry-run --ansi` | passed; 0 changes |
@@ -389,7 +389,7 @@ Audit: `ilmu360-orm-boundary-final-audit-2026-11-21.md`, reviewed HEAD
 | Gate | Result |
 |---|---|
 | `php tools/architecture-check.php` | 0 violations, 28 features |
-| `composer architecture:types` | 0 errors |
+| `composer arch:writes` | 0 errors |
 | `vendor/bin/phpstan analyse` | 0 errors |
 | `vendor/bin/rector process --dry-run` | passed, 0 changes |
 | `vendor/bin/pint --dirty --format agent` | passed |
@@ -442,7 +442,7 @@ Audit: `ilmu360-orm-audit-2026-11-21-1834.md`, reviewed HEAD
 | Gate | Result |
 |---|---|
 | `php tools/architecture-check.php` | 0 violations, 28 features |
-| `composer architecture:types` | 0 errors |
+| `composer arch:writes` | 0 errors |
 | `vendor/bin/phpstan analyse` | 0 errors |
 | `vendor/bin/pint --dirty --format agent` | passed |
 | `InstitutionIndexTest` / `PublicScheduleDiscoveryTest` / `EventSearchTypesenseFilterTest` / `InstitutionDirectoryQueryTest` | 78 passed, 357 assertions |

@@ -125,7 +125,7 @@ it('closes every exception ledger row as proven or removed', function (): void {
         $rows,
         static fn (array $row): bool => $row['current_status'] === 'PROVEN'
             && (! str_contains($row['final_evidence'], 'callsite ')
-                || ! str_contains($row['final_evidence'], 'composer architecture:test')
+                || ! str_contains($row['final_evidence'], 'composer arch:check')
                 || preg_match('/verified at [0-9a-f]{7,40}/', $row['final_evidence']) !== 1),
     ));
 

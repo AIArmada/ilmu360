@@ -1,0 +1,1 @@
+{"name":"acme/suite","require":{"php":"^8.2"},"autoload":{"psr-4":{"Acme\\Suite\\":"src/"}}}

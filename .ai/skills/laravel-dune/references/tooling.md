@@ -16,18 +16,18 @@ Merge these scripts into `composer.json` without overwriting existing scripts:
 ```json
 {
   "scripts": {
-    "architecture:boundaries": "@php tools/architecture-check.php",
-    "architecture:boundaries:diff": "@php tools/architecture-check.php --diff-base=main",
-    "architecture:types": "@php vendor/bin/phpstan analyse -c tools/architecture.neon --autoload-file=tools/Architecture/OwnedWriteRule.php --no-progress",
-    "architecture:test": [
-      "@architecture:boundaries",
-      "@architecture:types"
+    "arch:boundaries": "@php tools/architecture-check.php",
+    "arch:boundaries:diff": "@php tools/architecture-check.php --diff-base=main",
+    "arch:writes": "@php vendor/bin/phpstan analyse -c tools/architecture-phpstan.neon --autoload-file=tools/Architecture/OwnedWriteRule.php --no-progress",
+    "arch:check": [
+      "@arch:boundaries",
+      "@arch:writes"
     ]
   }
 }
 ```
 
-Also keep your normal `phpstan.neon` analysis (level 6–9) running in CI alongside `architecture:types`, because `tools/architecture.neon` intentionally uses `customRulesetUsed: true` to isolate ownership diagnostics cleanly.
+Also keep your normal `phpstan.neon` analysis (level 6–9) running in CI alongside `arch:writes`, because `tools/architecture-phpstan.neon` intentionally uses `customRulesetUsed: true` to isolate ownership diagnostics cleanly.
 
 ## Ratcheting Mode (`--diff-base`)
 

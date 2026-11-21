@@ -39,7 +39,7 @@ Keep internal PHP class names and code paths out of the Feature Map—agents dis
 
 ## 4. Mandatory verification checklist for every PR
 
-1. Run `composer architecture:test` (AST boundaries + Larastan `OwnedWriteRule`) and normal PHPStan.
+1. Run `composer arch:check` (AST boundaries + Larastan `OwnedWriteRule`) and normal PHPStan.
 2. Run affected Pest/PHPUnit feature tests + `tests/Arch/ArchitectureTest.php`.
 3. Drive the changed user journey through `verify/cli/verify-app` (or HTTP/Browser harness) and verify persistence from a second read-only view.
 4. Check Boost MCP `last-error` and `browser-logs` to prove zero uncaught exceptions or console errors.
