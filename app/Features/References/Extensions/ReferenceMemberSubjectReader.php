@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\References\Extensions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\References\Models\Reference;
 use App\Features\Membership\Api\MemberSubjectReader;
 use App\Features\Membership\Api\MemberSubjectRecord;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\References\Models\Reference;
 use InvalidArgumentException;
 
 final readonly class ReferenceMemberSubjectReader implements MemberSubjectReader
@@ -24,7 +24,7 @@ final readonly class ReferenceMemberSubjectReader implements MemberSubjectReader
             return [];
         }
 
-        if (! in_array($orderColumn, ['title'], true)
+        if ($orderColumn !== 'title'
             || ! in_array($direction, ['asc', 'desc'], true)) {
             throw new InvalidArgumentException('Unsupported member subject sorting.');
         }
@@ -37,7 +37,7 @@ final readonly class ReferenceMemberSubjectReader implements MemberSubjectReader
             ->map(static fn (Reference $model): MemberSubjectRecord => new MemberSubjectRecord(
                 type: MemberSubjectType::Reference,
                 id: (string) $model->getKey(),
-                name: (string) $model->displayTitle(),
+                name: $model->displayTitle(),
                 status: (string) $model->status,
             ))
             ->values()

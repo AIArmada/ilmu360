@@ -51,7 +51,7 @@ it('projects owner records as immutable member subject values', function (): voi
             ->and($items[0]->id)->toBe((string) $model->getKey())
             ->and($items[0]->name)->toBe($name)
             ->and($items[0]->type)->toBe($type)
-            ->and($items[0])->not->toBeInstanceOf(\Illuminate\Database\Eloquent\Model::class);
+            ->and($items[0])->not->toBeInstanceOf(Illuminate\Database\Eloquent\Model::class);
     }
 });
 
@@ -60,6 +60,6 @@ it('returns no models for account types without memberships', function (): void 
     $directory = app(AccountMembershipDirectory::class);
 
     foreach (MemberSubjectType::cases() as $type) {
-        expect($directory->subjects((string) $user->getKey(), $type))->toBe([]);
+        expect($directory->subjects((string) $user->getKey(), $type))->toBeEmpty();
     }
 });

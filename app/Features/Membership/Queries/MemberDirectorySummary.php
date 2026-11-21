@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Membership\Queries;
 
 use App\Features\Membership\Api\AccountMembershipDirectory;
-use App\Features\Membership\Api\MemberSubjectReader;
-use App\Features\Membership\Api\MemberSubjectRecord;
-use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Api\MembershipDirectory;
-use App\Features\Membership\Api\MembershipRecord;
+use App\Features\Membership\Api\MemberSubjectReader;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\ExtensionRegistry;
 use RuntimeException;
 

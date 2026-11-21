@@ -24,13 +24,13 @@ final readonly class OrganizationMemberSubjectReader implements MemberSubjectRea
             return [];
         }
 
-        if (! in_array($orderColumn, ['name'], true)
+        if ($orderColumn !== 'name'
             || ! in_array($direction, ['asc', 'desc'], true)) {
             throw new InvalidArgumentException('Unsupported member subject sorting.');
         }
 
         return OwnerContext::withOwner(null, static fn (): array => Organization::query()
-            
+
             ->whereKey($subjectIds)
             ->orderBy($orderColumn, $direction)
             ->get()

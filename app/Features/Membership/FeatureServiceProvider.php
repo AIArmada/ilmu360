@@ -6,6 +6,7 @@ namespace App\Features\Membership;
 
 use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
 use AIArmada\Membership\Contracts\MembershipHook;
+use App\Features\Membership\Api\AccountMembershipDirectory;
 use App\Features\Membership\Api\Frontend\MembershipApplicationFormContractContributor;
 use App\Features\Membership\Api\MemberInvitationAccess;
 use App\Features\Membership\Api\MemberPermissions;
@@ -17,7 +18,6 @@ use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipSubjectOptionsCatalog;
 use App\Features\Membership\Api\OrganizationEventAccessContract;
-use App\Features\Membership\Api\AccountMembershipDirectory;
 use App\Features\Membership\Api\ScopedMembershipRoleStore;
 use App\Features\Membership\Contracts\MembershipPermissionEvaluator;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
@@ -26,7 +26,6 @@ use App\Features\Membership\EntryPoints\Admin\RecordActions\MembershipApplicatio
 use App\Features\Membership\EntryPoints\Api\Admin\MembershipApplicationResourceDefinition;
 use App\Features\Membership\EntryPoints\ApiDocumentation\MembershipRequestExampleContributor;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
-use App\Features\Membership\Queries\MemberDirectorySummary;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index;
 use App\Features\Membership\EntryPoints\Mcp\Tools\AdminGetMembershipApplicationReviewSchemaTool;
@@ -37,6 +36,7 @@ use App\Features\Membership\EntryPoints\Mcp\Tools\MemberSubmitMembershipApplicat
 use App\Features\Membership\Integrations\AppMembershipHook;
 use App\Features\Membership\Notifications\AppMembershipApplicationNotifier;
 use App\Features\Membership\Persistence\EloquentScopedMembershipRoleStore;
+use App\Features\Membership\Queries\MemberDirectorySummary;
 use App\Features\Membership\Services\EloquentMembershipSubjectCatalog;
 use App\Features\Membership\Services\EloquentMembershipSubjectOptionsCatalog;
 use App\Features\Membership\Services\MemberInvitationGate;

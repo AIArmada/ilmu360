@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Features\Persons;
 
+use App\Features\Persons\Actions\ChangePersonMemberRoleAction;
 use App\Features\Persons\Actions\PersonSubmissionAccessAction;
 use App\Features\Persons\Actions\PruneOrphanedPersonsAction;
 use App\Features\Persons\Api\ContributionProjection;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Api\PersonAuthoringCandidates;
-use App\Features\Persons\Actions\ChangePersonMemberRoleAction;
-use App\Features\Persons\Api\PersonMemberRoleChanges;
 use App\Features\Persons\Api\PersonCards;
 use App\Features\Persons\Api\PersonCatalog;
 use App\Features\Persons\Api\PersonHomepageStats;
 use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\Persons\Api\PersonMemberRoleChanges;
 use App\Features\Persons\Api\PersonSearch;
 use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Api\PersonSearchMaintenance;

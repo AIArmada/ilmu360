@@ -7,10 +7,10 @@ namespace App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResourc
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
-use App\Features\Membership\Api\MembershipCommands;
-use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Api\AccountMembershipDirectory;
+use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectRecord;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonMemberRoleChanges;
 use App\Models\User;
 use Filament\Notifications\Notification;
@@ -136,7 +136,7 @@ class EditUser extends EditRecord
         if ($role !== null) {
             $subject = $this->firstResolvedSubject($subjectType, $user);
 
-            if ($subject !== null) {
+            if ($subject instanceof MemberSubjectRecord) {
                 $subjectId = $subject->id;
                 $accountId = (string) $user->getKey();
 

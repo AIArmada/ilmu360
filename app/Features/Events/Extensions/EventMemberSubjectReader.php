@@ -40,9 +40,9 @@ final readonly class EventMemberSubjectReader implements MemberSubjectReader
                 id: (string) $model->getKey(),
                 name: (string) $model->title,
                 status: (string) $model->status,
-                    startsAt: $model->starts_at instanceof \Carbon\CarbonInterface ? CarbonImmutable::instance($model->starts_at) : null,
-                    institutionName: $model->institution?->name,
-                    venueName: $model->venue?->name,
+                startsAt: $model->starts_at instanceof \Carbon\CarbonInterface ? CarbonImmutable::instance($model->starts_at) : null,
+                institutionName: $model->institution?->name,
+                venueName: $model->venue?->name,
             ))
             ->values()
             ->all());
