@@ -6,7 +6,6 @@ namespace App\Features\Discovery;
 
 use App\Features\Discovery\Actions\InvalidateAddressCatalogsAction;
 use App\Features\Discovery\Api\EventSearchReader;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Discovery\Api\SearchFilterCatalog;
@@ -14,7 +13,6 @@ use App\Features\Discovery\Api\SearchFilterLabels;
 use App\Features\Discovery\Api\SearchFilterNormalizer;
 use App\Features\Discovery\Api\SearchFilterRules;
 use App\Features\Discovery\Contributors\FrontendManifestContributor;
-use App\Features\Discovery\EntryPoints\Http\EventListPayloadPresenter;
 use App\Features\Discovery\Queries\DatabaseSearchFilterLabels;
 use App\Features\Discovery\Services\EventSearchFilterCatalog;
 use App\Features\Discovery\Services\EventSearchFilterNormalizer;
@@ -41,7 +39,6 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(PublicScheduleOrmPort::class, PublicScheduleDiscoveryService::class);
         $this->app->bind(EventSearchReader::class, EventSearchService::class);
-        $this->app->bind(EventListPayloads::class, EventListPayloadPresenter::class);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(AddressCatalogEffects::class, InvalidateAddressCatalogsAction::class);
         $this->app->bind(PublicListingsCacheInvalidator::class, PublicListingsCache::class);

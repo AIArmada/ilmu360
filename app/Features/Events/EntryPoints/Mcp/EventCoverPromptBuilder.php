@@ -13,7 +13,7 @@ use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventTaxonomyCode;
-use App\Features\Events\Api\Orm\EventCategoryPayloads;
+use App\Features\Events\Queries\EventCategoryPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\MediaLink;
@@ -961,7 +961,7 @@ class EventCoverPromptBuilder
     {
         return array_values(array_filter(array_map(
             static fn (array $category): string => (string) ($category['path'] ?? $category['name'] ?? ''),
-            app(EventCategoryPayloads::class)->forEventPayload($event),
+            app(EventCategoryPresenter::class)->forEvent($event),
         )));
     }
 

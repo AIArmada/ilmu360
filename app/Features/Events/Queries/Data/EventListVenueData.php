@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Features\Discovery\EntryPoints\Http\Data;
+namespace App\Features\Events\Queries\Data;
 
 use App\Features\Places\Models\Venue;
 use Spatie\LaravelData\Data;

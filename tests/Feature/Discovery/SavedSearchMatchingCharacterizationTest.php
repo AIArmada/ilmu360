@@ -6,7 +6,7 @@ use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\Discovery\Api\Data\EventSearchPage;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventNotificationService;
@@ -67,7 +67,7 @@ final class D0CountingEventSearchService extends EventSearchService
     private function page(int $perPage): EventSearchPage
     {
         $items = array_map(
-            static fn (Event $event) => app(EventListPayloads::class)->forEvent($event),
+            static fn (Event $event) => app(EventListPayloadPresenter::class)->forEvent($event),
             $this->results,
         );
         $total = count($items);

@@ -2,7 +2,7 @@
 
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\EventDetailPresenter;
 use App\Features\Institutions\Models\Institution;
@@ -42,7 +42,7 @@ it('prefers the explicit venue over the institution for offsite events', functio
     expect($event->hasExplicitVenueSelection())->toBeTrue()
         ->and($event->resolvedLocationAddress()?->getKey())->toBe($venue->primaryAddress()?->getKey())
         ->and($event->resolvedLocationName())->toBe($venue->name)
-        ->and(app(EventListPayloads::class)->forEvent($event->fresh())->location)->toContain((string) $venue->name);
+        ->and(app(EventListPayloadPresenter::class)->forEvent($event->fresh())->location)->toContain((string) $venue->name);
 });
 
 it('does not fall back to the institution when the selected venue has no address', function (): void {

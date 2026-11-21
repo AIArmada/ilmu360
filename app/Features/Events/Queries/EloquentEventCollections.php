@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use App\Features\Discovery\Api\Orm\EventListPayloads;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\EventCollections;
 use App\Features\Events\Api\EventScheduleSql;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 final readonly class EloquentEventCollections implements EventCollections
 {
     public function __construct(
-        private EventListPayloads $eventListPayloads,
+        private EventListPayloadPresenter $eventListPayloads,
         private EventScheduleSql $eventScheduleSql,
         private ReferenceOrmPort $referenceQueries,
         private SearchPayloadTransformer $searchPayloadTransformer,

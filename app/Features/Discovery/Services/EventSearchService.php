@@ -8,14 +8,12 @@ use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
 use App\Features\Events\Api\EventCards;
 use App\Features\Events\Api\EventSearchCache;
 use App\Features\Events\Models\Event;
 use App\Platform\Search\EventDiscoveryReaders;
 use App\Platform\Search\TypesenseHealthCheckService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -26,7 +24,6 @@ class EventSearchService implements EventSearchReader
         private readonly EventSearchCache $eventSearchCache,
         private readonly EventDiscoveryReaders $readers,
         private readonly EventCards $eventCards,
-        private readonly EventListPayloads $eventListPayloads,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
     ) {}
 
@@ -138,19 +135,20 @@ class EventSearchService implements EventSearchReader
             static fn (mixed $event): bool => $event instanceof Event,
         ));
 
-        new EloquentCollection($events)->loadMissing('displayOccurrence.media');
-
-        $items = [];
+        $items = array_map(
+            EventListData::fromArray(...),
+            $this->eventCards->forIds(array_map(
+                static fn (Event $event): string => (string) $event->getKey(),
+                $events,
+            )),
+        );
         $distances = [];
 
         foreach ($events as $event) {
-            $item = $this->eventListPayloads->forEvent($event);
-            $items[] = $item;
-
             $distanceKm = $event->getAttributes()['distance_km'] ?? null;
 
             if (is_numeric($distanceKm)) {
-                $distances[$item->id] = round((float) $distanceKm, 3);
+                $distances[(string) $event->getKey()] = round((float) $distanceKm, 3);
             }
         }
 

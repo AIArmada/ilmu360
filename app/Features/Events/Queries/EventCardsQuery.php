@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Api\EventCards;
 use App\Features\Events\Models\Event;
 use Illuminate\Support\Collection;
@@ -14,7 +14,7 @@ final readonly class EventCardsQuery implements EventCards
 {
     public function __construct(
         private EventSearchRelationProvider $relationProvider,
-        private EventListPayloads $eventListPayloads,
+        private EventListPayloadPresenter $eventListPayloads,
     ) {}
 
     /**

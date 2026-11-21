@@ -25,7 +25,7 @@ use App\Features\Events\Api\EventScheduleFact;
 use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Api\EventScheduleTimeFact;
-use App\Features\Events\Api\Orm\EventCategoryPayloads;
+use App\Features\Events\Queries\EventCategoryPresenter;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\PublicScheduleEligibility;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
@@ -1780,7 +1780,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->simplePaginate($perPage, page: max(1, $page));
 
         $items = [];
-        $categoryPayloads = app(EventCategoryPayloads::class);
+        $categoryPayloads = app(EventCategoryPresenter::class);
 
         foreach ($events->items() as $event) {
             $items[] = [
@@ -1797,7 +1797,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
                 'venue_id' => $event->default_venue_id,
                 'event_url' => $event->event_url,
                 'live_url' => $event->live_url,
-                'event_categories' => $categoryPayloads->forEventPayload($event),
+                'event_categories' => $categoryPayloads->forEvent($event),
                 'event_format' => $this->enumValue($event->delivery_mode),
                 'language' => $event->language,
                 'institution' => $event->relationLoaded('institution') && $event->institution !== null

@@ -9,7 +9,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\VenueSpace;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\EventChangeSeverity;
-use App\Features\Events\Api\Orm\EventCategoryPayloads;
+use App\Features\Events\Queries\EventCategoryPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Events\Models\EventKeyPerson;
@@ -115,7 +115,7 @@ class EventPayloadData extends Data
             'prayer_reference' => $occurrencePrayerExpression->anchor_code ?? self::enumValue($event->prayer_reference),
             'prayer_offset' => self::signedPrayerOffset($occurrencePrayerExpression, $event->prayer_offset),
             'prayer_display_text' => $occurrencePrayerExpression->display_label ?? $event->prayer_display_text,
-            'event_categories' => app(EventCategoryPayloads::class)->forEventPayload($event),
+            'event_categories' => app(EventCategoryPresenter::class)->forEvent($event),
             'gender' => $occurrenceScopedContent && $displayOccurrence instanceof EventOccurrence
                 ? $occurrenceAudiences->firstWhere('audience_type', 'gender')?->value
                 : self::enumValue($event->gender),

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Features\Discovery\EntryPoints\Http\Data;
+namespace App\Features\Events\Queries\Data;
 
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;

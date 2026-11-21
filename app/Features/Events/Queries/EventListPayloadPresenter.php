@@ -2,15 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Discovery\EntryPoints\Http;
+namespace App\Features\Events\Queries;
 
 use App\Features\Discovery\Api\Data\EventListData;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
-use App\Features\Discovery\EntryPoints\Http\Data\EventListInstitutionData;
-use App\Features\Discovery\EntryPoints\Http\Data\EventListPersonData;
-use App\Features\Discovery\EntryPoints\Http\Data\EventListVenueData;
+use App\Features\Events\Queries\Data\EventListInstitutionData;
+use App\Features\Events\Queries\Data\EventListPersonData;
+use App\Features\Events\Queries\Data\EventListVenueData;
 use App\Features\Events\Api\Enums\EventFormat;
-use App\Features\Events\Api\Orm\EventCategoryPayloads;
+use App\Features\Events\Queries\EventCategoryPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
@@ -27,17 +26,17 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 /**
  * Builds the public event-card payload from a hydrated event model.
  */
-final readonly class EventListPayloadPresenter implements EventListPayloads
+final readonly class EventListPayloadPresenter
 {
     public function __construct(
-        private EventCategoryPayloads $eventCategories,
+        private EventCategoryPresenter $eventCategories,
     ) {}
 
     public function forEvent(Event $event): EventListData
     {
         $event->loadMissing('displayOccurrence.media');
 
-        $eventCategories = $this->eventCategories->forEventPayload($event);
+        $eventCategories = $this->eventCategories->forEvent($event);
         $eventFormat = $event->delivery_mode;
         $eventFormatValue = $this->enumValue($eventFormat);
         $status = $event->status;

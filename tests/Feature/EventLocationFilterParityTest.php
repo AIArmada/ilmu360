@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Models\Event;
@@ -259,7 +259,7 @@ it('treats institution-only events as the current place in filters and payloads'
         ->and($fresh->resolvedLocationAddress()?->getKey())->toBe($institution->primaryAddress()?->getKey())
         ->and(parityApiTitles(['state_id' => (string) $selangor['state']->getKey()]))
         ->toContain('Parity Institution Home')
-        ->and(app(EventListPayloads::class)->forEvent($fresh)->location)->toContain('Masjid Parity Home Ground');
+        ->and(app(EventListPayloadPresenter::class)->forEvent($fresh)->location)->toContain('Masjid Parity Home Ground');
 });
 
 it('measures nearby distance from the selected owner address', function (): void {
@@ -331,7 +331,7 @@ it('serializes the selected package venue place in the list payload', function (
     ]));
     $event->syncLocation((string) $packageVenue->getKey());
 
-    $location = app(EventListPayloads::class)->forEvent($event->fresh())->location;
+    $location = app(EventListPayloadPresenter::class)->forEvent($event->fresh())->location;
 
     expect($location)->toContain('Dewan Payload Parity')
         ->and($location)->toContain('Selangor')
@@ -551,7 +551,7 @@ it('reuses eager-loaded primary places without per-item queries', function (): v
     $locations = [];
 
     foreach ($events as $event) {
-        $locations[] = app(EventListPayloads::class)->forEvent($event)->location;
+        $locations[] = app(EventListPayloadPresenter::class)->forEvent($event)->location;
     }
 
     expect(count(DB::getQueryLog()))->toBeLessThan($events->count())

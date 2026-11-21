@@ -7,7 +7,7 @@ use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Discovery\Api\SearchSignal;
 use App\Features\Engagement\Api\Data\EventGoingStateData;
 use App\Features\Engagement\Api\Data\EventSaveStateData;
@@ -56,7 +56,7 @@ class EventController extends Controller
     public function __construct(
         private readonly SignalRecorder $signals,
         private readonly ReferenceOrmPort $referenceQueries,
-        private readonly EventListPayloads $eventListPayloads,
+        private readonly EventListPayloadPresenter $eventListPayloads,
         private readonly PlaceLookup $placeLookup,
         private readonly RegistrationLookup $registrationLookup,
     ) {}

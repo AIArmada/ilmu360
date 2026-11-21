@@ -11,7 +11,7 @@ use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Discovery\Api\Orm\EventListPayloads;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -1407,7 +1407,7 @@ it('serializes event list payloads with card image metadata for mobile clients',
     $event->addMedia(fakeGeneratedImageUpload('event-poster.jpg', 1200, 1600))
         ->toMediaCollection('poster');
 
-    $item = app(EventListPayloads::class)
+    $item = app(EventListPayloadPresenter::class)
         ->forEvent($event->fresh(['institution.media', 'venue', 'persons.media', 'keyPeople.person']))
         ->toArray();
 
