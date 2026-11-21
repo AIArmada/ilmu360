@@ -1,5 +1,23 @@
 {
   "schema": 1,
   "name": "Communications",
-  "owns": {}
+  "owns": {
+    "table:communication_destinations": [
+      "App\\Features\\Communications\\Actions\\DeletePushDestinationAction",
+      "App\\Features\\Communications\\Actions\\RemovePushDestinationAction",
+      "App\\Features\\Communications\\Actions\\SyncPushDestinationDetailsAction",
+      "App\\Features\\Communications\\Actions\\SyncSystemEmailDestinationAction",
+      "App\\Features\\Communications\\Actions\\ManageCommunicationsAccountLifecycleAction"
+    ],
+    "table:communication_preferences": [
+      "App\\Features\\Communications\\Actions\\EnsureNotificationPreferencesAction",
+      "App\\Features\\Communications\\Actions\\SaveNotificationPreferencesAction",
+      "App\\Features\\Communications\\Actions\\SyncNotificationPreferenceAction",
+      "App\\Features\\Communications\\Actions\\UpdateNotificationLocaleAction",
+      "App\\Features\\Communications\\Actions\\ManageCommunicationsAccountLifecycleAction"
+    ],
+    "table:notification_inboxes": [
+      "App\\Features\\Communications\\Actions\\ManageCommunicationsAccountLifecycleAction"
+    ]
+  }
 }
