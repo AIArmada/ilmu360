@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 1,
   "name": "Rewards",
   "owns": {
     "table:reward_digest_slots": [
