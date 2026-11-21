@@ -193,7 +193,7 @@ class EventPayloadData extends Data
                 $payload['institution_space'] = [
                     'id' => (string) $space->getKey(),
                     'name' => app(SpaceLocation::class)->name(
-                        (string) ($location?->space_name_snapshot ?? ''),
+                        (string) ($location->space_name_snapshot ?? ''),
                         $space->name,
                     ),
                     'capacity' => app(SpaceLocation::class)->effectiveCapacity(

@@ -544,8 +544,8 @@ class EventCoverPromptBuilder
                     ? array_replace(
                         $this->modelPayload($event->primaryLocation->venueSpace),
                         ['name' => app(SpaceLocation::class)->name(
-                            (string) ($event->primaryLocation?->space_name_snapshot ?? ''),
-                            $event->primaryLocation?->venueSpace?->name,
+                            (string) ($event->primaryLocation->space_name_snapshot ?? ''),
+                            $event->primaryLocation->venueSpace->name,
                         )],
                     )
                     : null,
@@ -870,8 +870,8 @@ class EventCoverPromptBuilder
 
         if ($event->primaryLocation?->venueSpace !== null) {
             $parts[] = (string) app(SpaceLocation::class)->name(
-                (string) ($event->primaryLocation?->space_name_snapshot ?? ''),
-                $event->primaryLocation?->venueSpace?->name,
+                (string) ($event->primaryLocation->space_name_snapshot ?? ''),
+                $event->primaryLocation->venueSpace->name,
             );
         }
 

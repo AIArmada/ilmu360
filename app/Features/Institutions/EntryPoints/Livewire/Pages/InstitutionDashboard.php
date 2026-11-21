@@ -646,7 +646,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                 TextColumn::make('primaryLocation.venueSpace.name')
                     ->label(__('Location'))
                     ->state(fn (Event $record): ?string => app(SpaceLocation::class)->name(
-                        (string) ($record->primaryLocation?->space_name_snapshot ?? ''),
+                        (string) ($record->primaryLocation->space_name_snapshot ?? ''),
                         $record->primaryLocation?->venueSpace?->name,
                     ))
                     ->placeholder('-')
