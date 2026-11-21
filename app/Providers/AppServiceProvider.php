@@ -84,7 +84,7 @@ use App\Features\Events\Api\EventTicketing;
 use App\Features\Events\Api\OrganizerLookup;
 use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Api\Orm\EventContributionStateMapper;
-use App\Features\Events\Api\Orm\EventOccurrenceDeletionPreflight;
+use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\Api\Orm\EventPageScheduleOrmPort;
 use App\Features\Events\Api\Orm\EventRegistrationNotifications;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
@@ -396,7 +396,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AddressCatalog::class, EloquentAddressCatalog::class);
         // Register before the final vendor EventOccurrence model boots so
         // integrity preflight precedes the vendor's cascading deleting hook.
-        EventFacade::listen('eloquent.deleting: '.EventOccurrence::class, [EventOccurrenceDeletionPreflight::class, 'handle']);
+        EventFacade::listen('eloquent.deleting: '.EventOccurrence::class, [GuardEventOccurrenceDeletionAction::class, 'handle']);
 
         $this->app->bind(AuditRecorder::class, EloquentAuditRecorder::class);
         $this->app->bind(AccountAccess::class, EloquentAccountAccess::class);
