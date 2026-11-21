@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "discovery": "auto",
+  "antiSlop": {
+    "banSleep": true,
+    "banEnvOutsideConfig": true,
+    "banModelUnguard": true,
+    "banInlineSuppressions": true,
+    "commentHygiene": true
+  },
+  "exceptions": []
+}

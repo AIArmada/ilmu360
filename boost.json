@@ -17,7 +17,10 @@
         "spatie/laravel-query-builder",
         "spatie/laravel-activitylog",
         "pestphp/pest-plugin-agent",
-        "spatie/laravel-sluggable"
+        "spatie/laravel-sluggable",
+        "aiarmada/commerce-support",
+        "pestphp/pest-plugin-evals",
+        "dedoc/scramble"
     ],
     "sail": false,
     "skills": [
@@ -33,6 +36,12 @@
         "socialite-development",
         "fluxui-development",
         "tailwindcss-development",
+        "laravel-dune",
+        "laravel-dune-convert",
+        "laravel-dune-correct",
+        "laravel-dune-package",
+        "laravel-dune-verify",
+        "scramble-development",
         "filament-development",
         "blaze-optimize",
         "laravel-actions",
@@ -43,14 +52,11 @@
         "planning-filament",
         "reviewing-filament-plans",
         "pest-plugin-agent",
+        "test-ai-agent",
         "spatie-javascript",
         "spatie-laravel-php",
         "spatie-security",
         "spatie-version-control",
-        "laravel-dune",
-        "laravel-dune-convert",
-        "laravel-dune-correct",
-        "laravel-dune-verify",
         "laravel-specialist"
     ]
 }

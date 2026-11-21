@@ -228,73 +228,6 @@ Always use the OpenAI developer documentation MCP server (`openaiDeveloperDocs`)
 
 Never run destructive git commands (`clean -fdx`, `reset --hard`, `checkout -- .`, `push --force`/`--delete`, `stash drop`/`clear`) or multi-commit operations without explicit per-command approval — ask first. Safe: `git stash` / `stash pop`.
 
-=== .ai/laravel-dune rules ===
-
-## Laravel Dune
-
-This application follows **Laravel Dune**, a deterministic, feature-owned architecture built on Laravel's native container, Eloquent, transactions, queues, and Boost MCP tooling.
-
-Core rule: **Make the locally obvious change the globally correct change. Unsafe shortcuts fail mechanically with errors naming the supported owner.**
-
-### The Five Architectural Laws
-
-1. **Conventional path requires fewer decisions:** Inject concrete feature `Actions` directly via Laravel's container. Add `Api/` interfaces only for real cross-feature or external boundaries.
-2. **Forbidden dependencies fail mechanically:** `php tools/architecture-check.php` (AST) and Larastan `OwnedWriteRule` enforce boundaries and single-writer ownership in CI. Never bypass them with suppressions.
-3. **Every durable value has one obvious owner:** Each `table:*` and `store:*` belongs to exactly one feature in `app/Features/<Name>/feature.json`. Only listed `Actions/` or `Persistence/` classes in that feature may mutate it.
-4. **New product work adds isolated files, not branches in shared roots:** Place routes, views, migrations, and domain `Extensions/` inside the owning feature folder so `PlatformServiceProvider` discovers them automatically.
-5. **Exceptions are narrow, explicit, and expiry-dated:** Architecture exceptions live exclusively in `tools/architecture.json` with exact file, exact target, reason, owner, and expiry date (never wildcards).
-
-### Five Public Nouns & Directory Boundaries
-
-- **Framework Core (`app/Platform/`):** Generic discovery, `FeatureModule`, `ExtensionRegistry`, strict runtime defaults. **Never imports `app/Features/` or `app/Host/`.**
-- **Feature (`app/Features/<Name>/`):** Owned capability folder (`feature.json`, `FeatureServiceProvider.php`, `Actions/`, `Models/`, `EntryPoints/`, `Routes/`, optional `Api/`, `Queries/`, `Extensions/`, `Persistence/`, `Views/`). Sibling features may import only another feature's `Api/` namespace.
-- **Entrypoints (`Routes/{web,api,console}.php` & `EntryPoints/`):** Thin HTTP controllers, FormRequests, jobs, console commands, Livewire/Filament adapters. Validate and authorize at the boundary, then delegate immediately to an Action.
-- **Extensions (`Extensions/`):** Pluggable domain units (widgets, tools, renderers, handlers) discovered via `ExtensionRegistry` instead of central `match`/`switch` blocks.
-- **Host (`app/Host/`):** External SDKs, payment/LLM/mail gateways, OS/process exec, and raw infrastructure behind pure contracts in `app/Shared/Contracts/`. **Never imports concrete features.**
-
-### Shortest Supported Write Path
-
-<code-snippet name="Thin Entrypoint calling a Concrete Owning Action" lang="php">
-declare(strict_types=1);
-
-namespace App\Features\Orders\EntryPoints\Http;
-
-use App\Features\Orders\Actions\CancelOrder;
-use Illuminate\Http\JsonResponse;
-
-final readonly class CancelOrderController
-{
-    public function __invoke(CancelOrderRequest $request, int $orderId, CancelOrder $cancelOrder): JsonResponse
-    {
-        $receipt = $cancelOrder->handle(
-            orderId: $orderId,
-            actorId: $request->user()->id,
-            reason: $request->validated('reason'),
-        );
-
-        return new JsonResponse(['order_id' => $receipt->orderId, 'status' => $receipt->status]);
-    }
-}
-</code-snippet>
-
-### Banned Anti-Slop Patterns in Product Code
-
-- **No hidden Observer/model-hook mutations:** Keep write side effects in named `Actions`; observers/listeners may only delegate to an Action.
-- **No cross-feature mutable Eloquent leaks:** Never return an Eloquent `Model`, `Builder`, or `Illuminate\*` runtime type from `Api/` or `app/Shared/Contracts/`. Use `final readonly` DTOs, IDs, or backed enums.
-- **No explicit `$table` omissions:** Every concrete feature Eloquent model MUST declare a literal `protected $table = '...';`.
-- **No imperative timing hacks:** Never call `sleep()`, `usleep()`, `time_nanosleep()`, or `Sleep::sleep()` as synchronization workarounds.
-- **No `env()` outside `config/`:** Always read via `config()`.
-- **No `Model::unguard()` or mass-assignment bypasses** and **no inline `@phpstan-ignore` / `phpcs:ignore` suppressions**.
-- **No narrative comments (~99% ban):** Keep only legal headers, verified external vendor quirks, pure formatter ignores, public API contract docs, and RFC/issue links. Encode `DO NOT REMOVE` invariants as types, lints, or tests.
-
-### Boost MCP & Skill Workflow
-
-- Consult `.ai/rules/index.md` before planning or editing any file.
-- Use Boost `search-docs` for version-accurate Laravel/ecosystem APIs and `database-schema` / `last-error` / `browser-logs` for evidence-backed verification.
-- Record durable judgment-only rules via Boost's `record-rule` MCP tool (never edit `.ai/rules/index.md` inconsistently by hand).
-- Activate on-demand skills when relevant: `laravel-dune` (app feature development & bootstrap), `laravel-dune-convert` (legacy app migration), `laravel-dune-package` (Laravel Composer packages under `src/`, both focused single-capability and modular multi-feature, fresh or convert), `laravel-dune-verify` (runtime verification & Feature Map), `laravel-dune-correct` (turning repeated corrections into mechanical checks).
-- Before declaring done, run `composer arch:check` plus affected Pest/PHPUnit tests—**"it compiles" is not evidence.**
-
 === .ai/lifecycle rules ===
 
 # Lifecycle Audit (Status & Timestamp Columns)
@@ -490,6 +423,13 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
 
+=== herd rules ===
+
+# Laravel Herd
+
+- The application is served by Laravel Herd at `https?://[kebab-case-project-dir].test`. Use the `get-absolute-url` tool to generate valid URLs. Never run commands to serve the site. It is always available.
+- Use the `herd` CLI to manage services, PHP versions, and sites (e.g. `herd sites`, `herd services:start <service>`, `herd php:list`). Run `herd list` to discover all available commands.
+
 === tests rules ===
 
 # Test Enforcement
@@ -565,6 +505,190 @@ $this->app->singleton(Service::class, fn () => new Service(fn () => request()));
 - Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `php artisan test --compact`.
 - Rerun a test after each change to it.
 - Run `vendor/bin/pest` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
+
+=== aiarmada/commerce-support/laravel-dune rules ===
+
+## Laravel Dune
+
+This application follows **Laravel Dune**, a deterministic, feature-owned architecture built on Laravel's native container, Eloquent, transactions, queues, and Boost MCP tooling.
+
+Core rule: **Make the locally obvious change the globally correct change. Unsafe shortcuts fail mechanically with errors naming the supported owner.**
+
+### The Five Architectural Laws
+
+1. **Conventional path requires fewer decisions:** Inject concrete feature `Actions` directly via Laravel's container. Add `Api/` interfaces only for real cross-feature or external boundaries.
+2. **Forbidden dependencies fail mechanically:** `php tools/architecture-check.php` (AST) and Larastan `OwnedWriteRule` enforce boundaries and single-writer ownership in CI. Never bypass them with suppressions.
+3. **Every durable value has one obvious owner:** Each `table:*` and `store:*` belongs to exactly one feature in `app/Features/<Name>/feature.json`. Only listed `Actions/` or `Persistence/` classes in that feature may mutate it.
+4. **New product work adds isolated files, not branches in shared roots:** Place routes, views, migrations, and domain `Extensions/` inside the owning feature folder so `PlatformServiceProvider` discovers them automatically.
+5. **Exceptions are narrow, explicit, and expiry-dated:** Architecture exceptions live exclusively in `tools/architecture.json` with exact file, exact target, reason, owner, and expiry date (never wildcards).
+
+### Five Public Nouns & Directory Boundaries
+
+- **Framework Core (`app/Platform/`):** Generic discovery, `FeatureModule`, `ExtensionRegistry`, strict runtime defaults. **Never imports `app/Features/` or `app/Host/`.**
+- **Feature (`app/Features/<Name>/`):** Owned capability folder (`feature.json`, `FeatureServiceProvider.php`, `Actions/`, `Models/`, `EntryPoints/`, `Routes/`, optional `Api/`, `Queries/`, `Extensions/`, `Persistence/`, `Views/`). Sibling features may import only another feature's `Api/` namespace.
+- **Entrypoints (`Routes/{web,api,console}.php` & `EntryPoints/`):** Thin HTTP controllers, FormRequests, jobs, console commands, Livewire/Filament adapters. Validate and authorize at the boundary, then delegate immediately to an Action.
+- **Extensions (`Extensions/`):** Pluggable domain units (widgets, tools, renderers, handlers) discovered via `ExtensionRegistry` instead of central `match`/`switch` blocks.
+- **Host (`app/Host/`):** External SDKs, payment/LLM/mail gateways, OS/process exec, and raw infrastructure behind pure contracts in `app/Shared/Contracts/`. **Never imports concrete features.**
+
+### Shortest Supported Write Path
+
+<code-snippet name="Thin Entrypoint calling a Concrete Owning Action" lang="php">
+declare(strict_types=1);
+
+namespace App\Features\Orders\EntryPoints\Http;
+
+use App\Features\Orders\Actions\CancelOrder;
+use Illuminate\Http\JsonResponse;
+
+final readonly class CancelOrderController
+{
+    public function __invoke(CancelOrderRequest $request, int $orderId, CancelOrder $cancelOrder): JsonResponse
+    {
+        $receipt = $cancelOrder->handle(
+            orderId: $orderId,
+            actorId: $request->user()->id,
+            reason: $request->validated('reason'),
+        );
+
+        return new JsonResponse(['order_id' => $receipt->orderId, 'status' => $receipt->status]);
+    }
+}
+</code-snippet>
+
+### Banned Anti-Slop Patterns in Product Code
+
+- **No hidden Observer/model-hook mutations:** Keep write side effects in named `Actions`; observers/listeners may only delegate to an Action.
+- **No cross-feature mutable Eloquent leaks:** Never return an Eloquent `Model`, `Builder`, or `Illuminate\*` runtime type from `Api/` or `app/Shared/Contracts/`. Use `final readonly` DTOs, IDs, or backed enums.
+- **No explicit `$table` omissions:** Every concrete feature Eloquent model MUST declare a literal `protected $table = '...';`.
+- **No imperative timing hacks:** Never call `sleep()`, `usleep()`, `time_nanosleep()`, or `Sleep::sleep()` as synchronization workarounds.
+- **No `env()` outside `config/`:** Always read via `config()`.
+- **No `Model::unguard()` or mass-assignment bypasses** and **no inline `@phpstan-ignore` / `phpcs:ignore` suppressions**.
+- **No backward-compatibility shims, legacy wrappers, or leftover dead files:** Update callers directly and delete superseded classes, aliases, routes, observers, and unused config keys in the same change.
+- **No narrative comments (~99% ban):** Keep only legal headers, verified external vendor quirks, pure formatter ignores, public API contract docs, and RFC/issue links. Encode `DO NOT REMOVE` invariants as types, lints, or tests.
+
+### Boost MCP & Skill Workflow
+
+- Consult `.ai/rules/index.md` before planning or editing any file.
+- Use Boost `search-docs` for version-accurate Laravel/ecosystem APIs and `database-schema` / `last-error` / `browser-logs` for evidence-backed verification.
+- Record durable judgment-only rules via Boost's `record-rule` MCP tool (never edit `.ai/rules/index.md` inconsistently by hand).
+- Activate on-demand skills when relevant: `laravel-dune` (app feature development & bootstrap), `laravel-dune-convert` (legacy app migration), `laravel-dune-package` (Laravel Composer packages under `src/`, both focused single-capability and modular multi-feature, fresh or convert), `laravel-dune-verify` (runtime verification & Feature Map), `laravel-dune-correct` (turning repeated corrections into mechanical checks).
+- Before declaring done, run `composer arch:check` plus affected Pest/PHPUnit tests—**"it compiles" is not evidence.**
+
+=== aiarmada/commerce-support/rules/laravel-dune rules ===
+
+# Platform Core
+
+## Strict One-Way Dependency
+
+`app/Platform/**` MUST NEVER import or reference any class under `App\Features\*` or `App\Host\*`. Use generic contracts, PHP attributes, or manifest metadata (`feature.json`) instead.
+
+## Zero Per-Request Disk Globs in Production
+
+`FeatureCatalog::load()` MUST memoize in-memory per process and read from `bootstrap/cache/platform.php` when present. Any change to discovery or manifest loading must keep `php artisan platform:cache` and `php artisan optimize` compatible.
+
+## Narrow Architecture Exceptions Only
+
+Low-level framework mechanics (reflection, runtime strictness switches, service-provider wiring) belong here rather than in product features. Changes to `app/Platform/**` are architecture changes and require explicit review plus regression tests proving both passing and failing boundary cases.
+
+# Feature Modules
+
+## Owned Capability Folder & Manifest
+
+- Every directory under `app/Features/<PascalCase>/` must contain `feature.json` (schema v1) and `FeatureServiceProvider.php` extending `App\Platform\FeatureModule`.
+- Declare every owned `table:<name>` and `store:<name>` in `feature.json` with the exact local `Actions\` or `Persistence\` FQCNs permitted to mutate it. Never register an `EntryPoints\` class as a write owner.
+- Multiple named actions in the same feature (e.g. `PlaceOrder`, `CancelOrder`) may write the same owned table—do not create a god-class `OrderWriter`.
+
+## Concrete Actions by Default
+
+- Use concrete `final readonly class` Actions resolved automatically by Laravel's container. Do not create a redundant interface or repository for single-feature use cases.
+- Actions own their `DB::transaction(...)` boundaries, explicit actor/tenant authorization checks (so jobs and CLI cannot bypass HTTP FormRequests), and idempotency on retried operations.
+
+## Models Stay Private & Explicit
+
+- Every concrete Eloquent model under `Models/` MUST declare an explicit literal `protected $table = '...';` matching a `table:*` owned by this feature.
+- Never import another feature's `Models/`, `Actions/`, `Persistence/`, or `EntryPoints/`. Cross-feature reads/writes go strictly through the owning feature's `Api/` namespace.
+- Keep mutation side effects out of Eloquent Observers and `booted()` hooks; observers/listeners may only delegate to a declared named Action.
+
+## Thin EntryPoints & Isolated Routes
+
+- `EntryPoints/{Http,Jobs,Console,Livewire,Filament}/` only parse/validate transport input, authorize the actor, call the Action/Query, and format the response.
+- Feature route files (`Routes/web.php`, `Routes/api.php`, `Routes/console.php`) MUST declare their own middleware, URI prefixes, and route name groups explicitly.
+- If overriding `FeatureServiceProvider::boot()`, always call `parent::boot()`.
+- For repeatable domain plugs (widgets, tools, renderers, handlers), add an isolated class under `Extensions/` and register it with `ExtensionRegistry` instead of branching in a shared root file.
+
+# Public API & Shared Contracts
+
+## Pure Immutable Boundary Shapes
+
+- All classes in `app/Features/*/Api/**` and `app/Shared/Contracts/**` must be `interface`, `enum`, or `final readonly class` value objects / DTOs.
+- NEVER expose Eloquent `Model`, `Builder`, `Collection`, `Request`, `Response`, or any `Illuminate\*` runtime type in public signatures or DTO properties. Use scalar/branded IDs, backed enums, `CarbonImmutable`, or immutable DTOs.
+
+## Parse Once at the Boundary
+
+- Validate and parse external/untrusted payloads once at the transport or Host boundary into typed DTOs. Inside features, trust typed domain values—do not duplicate defensive null/array checks.
+- Public contracts may depend only on PHP built-ins, backed enums, `App\Shared\Contracts\*`, or another feature's `Api\*` types.
+
+# Host & External Boundaries
+
+## Keep Privileged Runtime & SDKs in the Box
+
+- All third-party HTTP/SDK integrations (Stripe, LLM providers, mail/SMS APIs, webhooks), filesystem gateways, and OS/process execution (`Process::run`) live in `app/Host/<Integration>/`.
+- Each Host integration implements a pure interface defined in `app/Shared/Contracts/` and is bound in `App\Providers\AppServiceProvider` (or a dedicated Host provider).
+
+## Direction & Isolation
+
+- `app/Host/**` MUST NEVER import any class under `App\Features\*`.
+- Parse raw third-party responses/webhooks at the Host boundary into immutable contract DTOs or domain exceptions—never leak vendor SDK objects or raw HTTP arrays into Features.
+- Features call Host behavior exclusively through the typed interface in `App\Shared\Contracts\*`, making external boundaries trivially fakeable in tests without mocking internals.
+
+# Verification, Hygiene & Anti-Slop Governance
+
+## Comment-Sicko Policy (~99% Comment Ban)
+
+Only five comment types may remain in committed code:
+1. Legal or license headers.
+2. Verified external vendor/framework quirks we cannot reshape (proven on a live path).
+3. Purely stylistic formatter ignores (`// prettier-ignore`). Never keep correctness/type suppressions (`@phpstan-ignore*`, `phpcs:ignore`).
+4. Public API contract docblocks (`Api/`, `Shared/Contracts/`, PHPStan generic templates).
+5. Issue or RFC links explaining an unavoidable external constraint.
+
+Delete all narrating comments, commented-out code, workaround justifications, and over-rotated PR feedback (`// X said never do this`). Convert `DO NOT REMOVE` comments into types, lints, or tests.
+
+## Banned Shortcuts
+
+- No `sleep()`, `usleep()`, `time_nanosleep()`, or `Sleep::sleep()` synchronization hacks in `app/`.
+- No `env()` calls outside `config/`.
+- No `Model::unguard()` or disabling mass-assignment protection in `app/`.
+- No service-locator `app(...)` / `resolve(...)` inside Feature Actions when constructor DI works.
+- No backward-compatibility shims, pass-through legacy wrappers, compatibility aliases, or leftover dead files—migrate callers directly and delete superseded code in the same change.
+
+## Proof Before Done ("Prove It Works")
+
+- Always run `composer arch:check` (AST boundaries + Larastan `OwnedWriteRule` + normal PHPStan) and affected Pest/PHPUnit tests.
+- Test observable behavior (HTTP status/JSON, persisted DB state read back, authorization/tenant isolation, rollback on failure, idempotency on retry)—never pin tests to private helper calls.
+- Verify route/config/platform caches (`php artisan route:cache`, `config:cache`, `platform:cache`) on structural changes and clear temporary caches after.
+- Use Laravel Boost MCP (`last-error`, `browser-logs`, `database-query`) to confirm zero silent runtime errors.
+
+## Rule → Enforcement Table (Updated via `laravel-dune-correct`)
+
+| Mistake Class | Mechanical Enforcer | Layer |
+| --- | --- | --- |
+| Cross-feature private import | `php tools/architecture-check.php` (`feature-private`) | L2 AST |
+| `app/Platform` / `app/Host` / `app/Shared` importing feature | `php tools/architecture-check.php` (`layer-direction`) | L2 AST |
+| Unregistered DB / Cache / Storage / Redis write | PHPStan `OwnedWriteRule` (`architecture.writeOwner`) | L2 Type |
+| Missing literal `$table` on feature model | `php tools/architecture-check.php` (`model-table`) | L2 AST |
+| Mutable Laravel / Eloquent leak in `Api/` or `Contracts/` | `php tools/architecture-check.php` (`api-shape`, `api-leak`) | L2 AST |
+| `sleep()` / `env()` / `Model::unguard()` / `@phpstan-ignore` | `php tools/architecture-check.php` (`banned-footgun`, `no-suppression`) | L2 AST |
+| Narrative / workaround comment slop | `php tools/architecture-check.php` (`comment-hygiene`) + `laravel-dune-correct` | L2/L4 |
+| Behavioral regressions & broken routes | `verify/feature-map/` + Pest feature & arch tests + Boost MCP | L3 Verify |
+
+=== dedoc/scramble/core rules ===
+
+## Scramble
+
+This project uses `dedoc/scramble` to generate OpenAPI documentation from application code. Prefer inference over redundant annotations.
+
+Follow the `scramble-development` skill when changing API endpoints or the resources, FormRequests, shared types, and authentication they use, or when configuring or troubleshooting Scramble documentation.
 
 === spatie/laravel-activitylog/core rules ===
 
