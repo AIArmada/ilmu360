@@ -209,6 +209,7 @@ final readonly class ManageShareTrackingAccountLifecycleAction
                 AffiliateAttribution::class => 'attribution',
                 AffiliateTouchpoint::class => 'touchpoint',
                 AffiliateConversion::class => 'conversion',
+                default => throw new \LogicException('Unexpected affiliate snapshot model.'),
             };
 
             $this->snapshots->restoreChild($kind, $this->sanitizeShareSnapshotAttributes($modelClass, $attributes));
