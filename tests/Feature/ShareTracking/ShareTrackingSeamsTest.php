@@ -142,3 +142,14 @@ it('removes the old shared vocabulary locations without aliases', function (): v
     expect(app_path('Enums/ShareOutcomeType.php'))->not->toBeFile()
         ->and(app_path('Support/ShareTracking/ShareOutcomeBusinessKey.php'))->not->toBeFile();
 });
+
+it('registers exactly one ShareTracking account lifecycle contributor', function (): void {
+    $contributors = collect(app()->tagged(\App\Shared\Auth\AccountLifecycleContributor::TAG))
+        ->filter(static fn (\App\Shared\Auth\AccountLifecycleContributor $contributor): bool => $contributor->key() === 'share_tracking')
+        ->values();
+
+    expect($contributors)->toHaveCount(1)
+        ->and($contributors->first())->toBeInstanceOf(
+            \App\Features\ShareTracking\Contributors\ShareTrackingAccountLifecycleContributor::class,
+        );
+});

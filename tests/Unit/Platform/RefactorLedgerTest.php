@@ -161,6 +161,19 @@ it('matches the current architecture write-exception inventory', function (): vo
         static fn (array $exception): bool => ($exception['rule'] ?? null) === 'architecture.writeLocation',
     ));
 
+    $approved = [];
+    foreach ($provenWrites as $row) {
+        $approved[$row['rule'].'|'.$row['file'].'|'.$row['target'].'|'.$row['owner']] = true;
+    }
+
+    $unapproved = array_values(array_filter(
+        $writeExceptions,
+        static fn (array $exception): bool => ! isset(
+            $approved[$exception['rule'].'|'.$exception['file'].'|'.$exception['target'].'|'.$exception['owner']]
+        ),
+    ));
+
     expect($provenWrites)->toHaveCount(62)
-        ->and($writeExceptions)->toHaveCount(62);
+        ->and($unapproved)->toBeEmpty()
+        ->and(count($writeExceptions))->toBeLessThan(count($provenWrites));
 });
