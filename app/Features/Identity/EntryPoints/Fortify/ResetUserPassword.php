@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Platform\Auth\Fortify;
+namespace App\Features\Identity\EntryPoints\Fortify;
 
 use App\Features\Identity\Api\AccountAccess;
 use App\Models\User;
