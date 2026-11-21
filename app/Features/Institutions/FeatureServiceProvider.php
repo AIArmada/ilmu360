@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Institutions;
 
 use App\Features\Institutions\Actions\InstitutionSubmissionAccessAction;
-use App\Features\Institutions\Actions\SyncAddressChangeEffectsAction;
 use App\Features\Institutions\Actions\ResolveInstitutionMapsPlaceSelectionAction;
+use App\Features\Institutions\Actions\SyncAddressChangeEffectsAction;
 use App\Features\Institutions\Api\ContributionProjection;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Api\Frontend\InstitutionWorkspaceFormContractContributor;
@@ -55,8 +55,8 @@ use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
-use App\Shared\Contracts\AddressChangeEffects;
 use App\Platform\Telemetry\SignalSchemaRegistry;
+use App\Shared\Contracts\AddressChangeEffects;
 
 class FeatureServiceProvider extends FeatureModule
 {

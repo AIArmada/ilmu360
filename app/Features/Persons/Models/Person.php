@@ -15,7 +15,6 @@ use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Models\CredentialAssignment;
 use AIArmada\Persons\Models\TitleAssignment;
-use AIArmada\References\Models\ReferenceContributor;
 use App\Features\DonationChannels\Concerns\HasDonationChannels;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Models\Event;
@@ -47,7 +46,6 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use RuntimeException;
@@ -394,9 +392,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      * App-owned lifecycle Actions replace those package model hooks.
      */
     #[\Override]
-    protected static function booted(): void
-    {
-    }
+    protected static function booted(): void {}
 
     public function getAvatarUrlAttribute(): ?string
     {

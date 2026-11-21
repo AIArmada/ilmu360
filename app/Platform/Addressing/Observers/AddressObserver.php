@@ -84,5 +84,4 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
 
         return $events->pluck('id')->map(static fn (mixed $id): string => (string) $id)->all();
     }
-
 }
