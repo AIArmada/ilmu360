@@ -83,16 +83,4 @@ interface ReferenceLookup
      * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\References\Models\Reference>
      */
     public function referencesByIds(array $referenceIds): object;
-
-    /**
-     * Documented transport: reference detail record with media, social
-     * profiles and parent chain, resolved by slug or uuid.
-     */
-    public function findDetailRecord(string $identifier): ?object;
-
-    /**
-     * Documented transport: public reference directory base query with the
-     * follow-state select, event-count subquery and directory relations.
-     */
-    public function baseDirectoryQuery(?string $accountId = null): object;
 }

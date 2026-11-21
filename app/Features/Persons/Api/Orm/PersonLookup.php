@@ -104,19 +104,6 @@ interface PersonLookup
      */
     public function personsByIds(array $personIds): object;
 
-    /**
-     * Documented transport: person detail record with the directory relation
-     * set, resolved by slug or uuid.
-     */
-    public function findDetailRecord(string $identifier): ?object;
-
-    /**
-     * Documented transport: public person directory base query with the
-     * follow-state select, upcoming public event count and directory
-     * relations.
-     */
-    public function baseDirectoryQuery(?string $accountId = null): object;
-
     public function resolveIdentifier(string $identifier): ?string;
 
     public function find(string $identifier): ?PersonSummary;

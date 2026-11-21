@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\References\Queries;
 
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\References\Api\Orm\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
 use App\Features\References\Models\Reference;
 use App\Features\Reports\Api\ReportSubject;
 use App\Features\Reports\Api\ReportSubjectType;
-use App\Models\User;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\FollowableSubject;
@@ -251,43 +249,6 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
             ->whereKey($referenceIds)
             ->orderBy('title')
             ->get();
-    }
-
-    public function findDetailRecord(string $identifier): ?object
-    {
-        return Reference::query()
-            ->with(['media', 'socialProfiles', 'parentReference.parentReference'])
-            ->tap(fn (Builder $query): Builder => $this->resolver->apply($query, 'references.slug', $identifier))
-            ->first();
-    }
-
-    public function baseDirectoryQuery(?string $accountId = null): object
-    {
-        $query = Reference::query()->select('references.*');
-
-        if ($accountId !== null) {
-            $grammar = $query->getQuery()->getGrammar();
-            $followsTable = $grammar->wrapTable($this->followsTable());
-            $referenceIdColumn = $grammar->wrap((new Reference)->qualifyColumn('id'));
-
-            $query->select('references.*')
-                ->selectRaw(
-                    "exists(select 1 from {$followsTable} where {$followsTable}.follower_id = ? and {$followsTable}.followable_id = {$referenceIdColumn} and {$followsTable}.followable_type = ? and {$followsTable}.follower_type = ? and {$followsTable}.status = ?) as is_following",
-                    [$accountId, $this->referenceMorphType(), (new User)->getMorphClass(), 'active'],
-                );
-        }
-
-        return $query->active()
-            ->selectSub(
-                app(EventOrmPort::class)->publicReferenceEventCountSubquery(),
-                'events_count',
-            )
-            ->with(['media', 'parentReference.parentReference']);
-    }
-
-    private function followsTable(): string
-    {
-        return (string) config('engagement.database.tables.follows', 'engagement_follows');
     }
 
     public function title(string $referenceId): ?string

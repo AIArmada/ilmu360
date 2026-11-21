@@ -58,15 +58,5 @@ interface PublicScheduleOrmPort
 
     public function findSession(EventOccurrence $occurrence, string $slug): ?EventSession;
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function publicRelations(): array;
-
-    /**
-     * @return array<int|string, mixed>
-     */
-    public function occurrencePageRelations(): array;
-
     public function hydrateOccurrencePageVenues(object $event): void;
 }

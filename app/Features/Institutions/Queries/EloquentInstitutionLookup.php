@@ -6,16 +6,13 @@ namespace App\Features\Institutions\Queries;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
-use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionSummary;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Reports\Api\ReportSubject;
 use App\Features\Reports\Api\ReportSubjectType;
-use App\Models\User;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Models\SlugOrUuidResolver;
@@ -62,88 +59,6 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             ->whereKey($institutionIds)
             ->orderBy('name')
             ->get();
-    }
-
-    public function findDetailRecord(string $identifier): ?object
-    {
-        return Institution::query()
-            ->with([
-                'names',
-                'media',
-                'addresses.country',
-                'contactMethods',
-                'socialProfiles',
-                'donationChannels.media',
-                'persons' => fn ($query) => $query->where('status', 'verified')->orderByPivot('is_primary', 'desc')->limit(12),
-                'persons.media',
-                'spaces' => fn ($query) => $query->where('status', 'active'),
-                'languages',
-            ])
-            ->tap(fn (Builder $query): Builder => $this->resolver->apply($query, 'institutions.slug', $identifier))
-            ->first();
-    }
-
-    public function aggregateSearchItemsQuery(array $institutionIds = []): object
-    {
-        $query = Institution::query()
-            ->select('institutions.*')
-            ->active()
-            ->selectSub(app(EventOrmPort::class)->institutionPublicEventCountSubquery(upcomingOnly: true), 'events_count')
-            ->with(['addresses', 'media', 'names']);
-
-        if ($institutionIds !== []) {
-            $query->whereIn('institutions.id', $institutionIds);
-        }
-
-        return $query;
-    }
-
-    public function baseDirectoryQuery(
-        ?string $type = null,
-        ?string $countryId = null,
-        ?string $stateId = null,
-        ?string $cityId = null,
-        ?string $adminArea1Id = null,
-        ?string $adminArea2Id = null,
-        ?string $accountId = null,
-    ): object {
-        $query = Institution::query()
-            ->select('institutions.*');
-
-        if ($accountId !== null) {
-            $followsTable = $query->getQuery()->getGrammar()->wrapTable($this->followsTable());
-
-            $query->selectRaw(
-                "exists(select 1 from {$followsTable} where {$followsTable}.follower_id = ? and {$followsTable}.followable_id = institutions.id and {$followsTable}.followable_type = ? and {$followsTable}.follower_type = ? and {$followsTable}.status = ?) as is_following",
-                [$accountId, $this->institutionMorphType(), (new User)->getMorphClass(), 'active'],
-            );
-        }
-
-        $query
-            ->active()
-            ->selectSub(app(EventOrmPort::class)->institutionPublicEventCountSubquery(), 'events_count')
-            ->with(['addresses', 'media', 'names']);
-
-        if ($type !== null && InstitutionType::tryFrom($type) instanceof InstitutionType) {
-            $query->where('institutions.type', $type);
-        }
-
-        app(AddressLocationScope::class)->apply($query, new AddressLocationData(
-            countryId: $countryId,
-            stateId: $stateId,
-            cityId: $cityId,
-            areaAssignments: array_filter([
-                'administrative_district' => $adminArea1Id,
-                'administrative_subdivision' => $adminArea2Id,
-            ]),
-        ));
-
-        return $query;
-    }
-
-    private function followsTable(): string
-    {
-        return (string) config('engagement.database.tables.follows', 'engagement_follows');
     }
 
     public function institutionsForMember(string $accountId): object

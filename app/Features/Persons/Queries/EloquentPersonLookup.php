@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Queries;
 
-use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Models\Event;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Api\PersonSummary;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
 use App\Features\Reports\Api\ReportSubject;
 use App\Features\Reports\Api\ReportSubjectType;
-use App\Models\User;
 use App\Platform\Admin\AdminResourceUrl;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\FollowableSubject;
@@ -406,52 +403,6 @@ final readonly class EloquentPersonLookup implements PersonLookup
             ->whereKey($personIds)
             ->orderBy('name')
             ->get();
-    }
-
-    public function findDetailRecord(string $identifier): ?object
-    {
-        return Person::query()
-            ->with([
-                'media',
-                'contactMethods',
-                'socialProfiles',
-                'addresses.country',
-                'institutions' => fn ($query) => $query->orderByPivot('is_primary', 'desc')->limit(3),
-                'institutions.media',
-            ])
-            ->tap(fn (Builder $query): Builder => $this->resolver->apply($query, 'persons.slug', $identifier))
-            ->first();
-    }
-
-    public function baseDirectoryQuery(?string $accountId = null): object
-    {
-        $query = Person::query();
-
-        if ($accountId !== null) {
-            $followsTable = $query->getQuery()->getGrammar()->wrapTable($this->followsTable());
-
-            $query->select('persons.*')
-                ->selectRaw(
-                    "exists(select 1 from {$followsTable} where {$followsTable}.follower_id = ? and {$followsTable}.followable_id = persons.id and {$followsTable}.followable_type = ? and {$followsTable}.follower_type = ? and {$followsTable}.status = ?) as is_following",
-                    [$accountId, $this->personMorphType(), (new User)->getMorphClass(), 'active'],
-                );
-        }
-
-        return $query->active()
-            ->withCount(['events' => function (Builder $events): void {
-                $events
-                    ->whereNotNull('events.published_at')
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->whereHas('occurrences')
-                    ->where('events.starts_at', '>=', now());
-            }])
-            ->with(['media', 'addresses']);
-    }
-
-    private function followsTable(): string
-    {
-        return (string) config('engagement.database.tables.follows', 'engagement_follows');
     }
 
     /**

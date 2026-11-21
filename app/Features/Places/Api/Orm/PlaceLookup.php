@@ -30,12 +30,6 @@ interface PlaceLookup
     public function newVenueQuery(): object;
 
     /**
-     * Documented transport: venue detail record with media, addresses,
-     * contacts and social profiles, resolved by slug or uuid.
-     */
-    public function findVenueDetail(string $identifier): ?object;
-
-    /**
      * Primary address for a venue, falling back to its operating institution.
      */
     public function resolvedPrimaryAddressId(string $venueId): ?string;

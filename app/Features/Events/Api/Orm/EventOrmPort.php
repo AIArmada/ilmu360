@@ -137,26 +137,7 @@ interface EventOrmPort extends EventScheduleReads
     /**
      * Base institution event query.
      */
-    public function institutionEventsQuery(string $institutionId): object;
-
-    /**
-     * Correlated public event count subquery for institution selects.
-     */
     public function institutionPublicEventCountSubquery(bool $upcomingOnly = false): object;
-
-    /**
-     * Institution detail upcoming/past event query with the public detail
-     * relation set.
-     */
-    public function institutionDetailEventsQuery(string $institutionId, bool $past, \DateTimeInterface $now): object;
-
-    /**
-     * Reference detail upcoming/past event query with the public reference
-     * relation set.
-     *
-     * @param  list<string>  $referenceIds
-     */
-    public function referenceDetailEventsQuery(array $referenceIds, bool $past, \DateTimeInterface $now): object;
 
     /**
      * Public event-count subquery constrained to the reference subtree, for

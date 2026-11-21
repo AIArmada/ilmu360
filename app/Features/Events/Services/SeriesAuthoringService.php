@@ -10,7 +10,6 @@ use App\Features\Events\Api\Orm\SeriesAuthoring;
 use App\Features\Events\Models\Series;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\FollowableSubject;
-use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Default implementation of the series authoring boundary.
@@ -88,13 +87,5 @@ final readonly class SeriesAuthoringService implements SeriesAuthoring
         $series = Series::query()->find($seriesId);
 
         return $series instanceof Series && (string) $series->status === 'active';
-    }
-
-    public function findSeriesDetail(string $identifier): ?object
-    {
-        return Series::query()
-            ->with(['media'])
-            ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, (new Series)->getTable().'.slug', $identifier))
-            ->first();
     }
 }

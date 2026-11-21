@@ -46,10 +46,4 @@ interface SeriesAuthoring
     public function findSeriesBySlug(string $slug): ?object;
 
     public function isPubliclyReachable(string $seriesId): bool;
-
-    /**
-     * Documented transport: series detail record with media, resolved by slug
-     * or uuid.
-     */
-    public function findSeriesDetail(string $identifier): ?object;
 }

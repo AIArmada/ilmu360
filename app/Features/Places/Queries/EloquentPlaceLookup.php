@@ -8,7 +8,6 @@ use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Platform\Models\SlugOrUuidResolver;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 final readonly class EloquentPlaceLookup implements PlaceLookup
@@ -57,19 +56,6 @@ final readonly class EloquentPlaceLookup implements PlaceLookup
     public function newVenueQuery(): object
     {
         return Venue::query();
-    }
-
-    public function findVenueDetail(string $identifier): ?object
-    {
-        return Venue::query()
-            ->with([
-                'media',
-                'addresses.country',
-                'contactMethods',
-                'socialProfiles',
-            ])
-            ->tap(fn (Builder $query): Builder => $this->resolver->apply($query, 'venues.slug', $identifier))
-            ->first();
     }
 
     public function resolvedPrimaryAddressId(string $venueId): ?string

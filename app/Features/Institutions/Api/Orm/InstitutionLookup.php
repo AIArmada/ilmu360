@@ -67,34 +67,6 @@ interface InstitutionLookup
     public function institutionsByIds(array $institutionIds): object;
 
     /**
-     * Documented transport: institution detail record with directory relation
-     * set, resolved by slug or uuid.
-     */
-    public function findDetailRecord(string $identifier): ?object;
-
-    /**
-     * Documented transport: aggregate discovery institution items with the
-     * upcoming public event count and directory relations.
-     *
-     * @param  list<string>  $institutionIds
-     */
-    public function aggregateSearchItemsQuery(array $institutionIds = []): object;
-
-    /**
-     * Documented transport: public institution directory base query with the
-     * follow-state select, public event count subquery and location scope.
-     */
-    public function baseDirectoryQuery(
-        ?string $type = null,
-        ?string $countryId = null,
-        ?string $stateId = null,
-        ?string $cityId = null,
-        ?string $adminArea1Id = null,
-        ?string $adminArea2Id = null,
-        ?string $accountId = null,
-    ): object;
-
-    /**
      * Documented transport: institutions the account is a member of, ordered
      * by name, with the member count eager loaded.
      *

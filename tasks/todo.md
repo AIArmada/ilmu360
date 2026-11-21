@@ -883,3 +883,50 @@ PHPStan L6 0, ownership types 0, Pint and Rector clean. CI Quality 26/26 at
 Review: architecture 0, PHPStan L6 0, ownership types 0, Pint/Rector clean,
 OpenAPI 152/152 canonical-equal, 738 routes, targeted suites 108 + 263 + 186 +
 94 + 37 + 166. CI is the full gate.
+# ORM boundary refactor — execution plan
+
+Source: `ilmu360-orm-boundary-refactor-handoff.md` (baseline `3a44843817072d13581db88fa1d0b238749ede94`).
+
+Working branch: `refactor`. Behaviour parity is mandatory; no aliases, forwarders or
+duplicate contracts. Every slice ends green and is committed/pushed before the next.
+
+## Slices
+
+1. **Dead contract surface** — delete the 14 methods proven to have zero call sites
+   (verified by token scan plus literal `rg`), with their implementations. Keep
+   framework listener callbacks such as `EventOccurrenceDeletionPreflight::handle`.
+2. **Events ↔ Discovery (P0)** — move every event-domain predicate, status/visibility
+   rule, occurrence/session match, eager-load set and query execution into Events.
+   Discovery keeps cross-domain orchestration (search fallback, distance, in-memory
+   leaf filters, ordering, pagination) and receives hydrated leaves/models through a
+   narrow, typed Events rendering seam. Delete `EventOrmPort::publicEventQuery`.
+3. **Owner directory lookups (P0)** — Institutions/Persons/References/Places: delete
+   builder-returning directory/member methods, replace callers with owner-scoped
+   IDs/scalars or owner-executed reads.
+4. **Schedule/page model seams (P1)** — `PublicScheduleOrmPort`, `EventPageScheduleOrmPort`,
+   `EventSchedulePageData`, `EventListPayloads`: type the model seams, remove dead
+   relation accessors, keep only Livewire/Filament-required identity.
+5. **Registration/submissions/contributions (P1)** — replace opaque `object` returns
+   with typed models/collections/paginators or immutable summaries; no new writer.
+6. **Checker hardening (required)** — extend `tools/architecture-check.php` and
+   `ArchitectureBoundaryTest` with business-query-escape detection and negative
+   fixtures, so `@internal` + `Consumers:` cannot exempt foreign query composition.
+7. **Ledgers + final verification** — inventory reconciliation, `post-refactor-audit-closeout`,
+   plan sync, Pint/PHPStan/Rector/Pest/build, push, CI green.
+
+## Verification per slice
+
+```bash
+php tools/architecture-check.php
+composer architecture:types
+./pest --compact tests/Unit/Platform/ArchitectureBoundaryTest.php
+# slice-specific feature tests
+```
+
+One full Pest run at the final verification point, output retained in `/tmp`.
+
+## Guardrails
+
+- Keep Eloquent relationships, morphs, policies, Livewire/Filament model identity.
+- Do not rewrite unrelated work; no force-push; small commits.
+- No new broad architecture exceptions.

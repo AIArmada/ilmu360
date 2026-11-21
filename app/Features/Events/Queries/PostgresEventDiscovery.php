@@ -1762,11 +1762,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
             ]);
     }
 
-    public function institutionEventsQuery(string $institutionId): object
-    {
-        return Event::query()->where('institution_id', $institutionId);
-    }
-
     public function institutionPublicEventCountSubquery(bool $upcomingOnly = false): object
     {
         $query = Event::query()
@@ -1782,70 +1777,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         }
 
         return $query;
-    }
-
-    public function institutionDetailEventsQuery(string $institutionId, bool $past, \DateTimeInterface $now): object
-    {
-        $endInstant = app(EventScheduleSql::class)->endInstantSql((new Event)->getTable());
-
-        $query = Event::query()
-            ->where('institution_id', $institutionId)
-            ->active()
-            ->with([
-                'institution.media',
-                'venue.addresses.country',
-                'persons.media',
-                'keyPeople.person',
-                'media',
-                'references' => fn ($references) => $references->active(),
-                'primaryOccurrence',
-                'classifications.term',
-                'timeExpressions',
-            ]);
-
-        if ($past) {
-            return $query
-                ->whereRaw($endInstant.' < ?', [$now])
-                ->orderByDesc('starts_at');
-        }
-
-        return $query
-            ->whereRaw($endInstant.' >= ?', [$now])
-            ->orderBy('starts_at');
-    }
-
-    public function referenceDetailEventsQuery(array $referenceIds, bool $past, \DateTimeInterface $now): object
-    {
-        $endInstant = app(EventScheduleSql::class)->endInstantSql((new Event)->getTable());
-
-        $query = Event::query()
-            ->active()
-            ->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                $this->referenceQueries->applyPublicVisibility($referenceQuery)
-                    ->whereIn('references.id', $referenceIds);
-            })
-            ->with([
-                'institution',
-                'institution.media',
-                'institution.addresses.country',
-                'venue.addresses.country',
-                'persons.media',
-                'media',
-                'references' => fn ($references) => $references->active(),
-                'primaryOccurrence',
-                'classifications.term',
-                'timeExpressions',
-            ]);
-
-        if ($past) {
-            return $query
-                ->whereRaw($endInstant.' < ?', [$now])
-                ->orderByDesc('starts_at');
-        }
-
-        return $query
-            ->whereRaw($endInstant.' >= ?', [$now])
-            ->orderBy('starts_at', 'asc');
     }
 
     public function institutionSpeakerCount(string $institutionId): int
