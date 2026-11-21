@@ -980,3 +980,23 @@ Source: `ilmu360-orm-boundary-final-audit-2026-11-21.md`, reviewed at
   the exact final SHA with a full GitHub Quality run. Never force-push.
   Code + ledger SHA `a66bd4e5` passed all 26 jobs in
   [run 44892798081](https://github.com/AIArmada/ilmu360/actions/runs/44892798081).
+
+## ORM follow-up audit closeout (2026-11-21, 18:34)
+
+Source: `ilmu360-orm-audit-2026-11-21-1834.md`, reviewed at
+`438cb5349a238dc5966728a826c3c4917def068a`.
+
+- [x] **G1 — public occurrence state on institution next-event cards:** share
+  one public-occurrence predicate across the correlated count, next-event id,
+  next-event details and batch directory facts; add card-level regressions for
+  earlier private/draft occurrences and parents with no public future date.
+- [x] **G2 — final schedule hydration:** reapply current public parent state in
+  the final public schedule hydration query; cover direct private ids and a
+  state change between fact selection and hydration.
+- [x] **G3 — true stale-index fixture:** add a fake Typesense engine returning
+  stale private/unpublished hit ids and assert both payload and total are
+  callback-filtered.
+- [x] Run architecture, PHPStan, Pint, and the affected Pest suites on the
+  isolated SQLite testing environment; record the evidence in
+  `tasks/orm-boundary-refactor-progress.md`.
+- [ ] Push and verify the final Quality CI run. Never force-push.

@@ -405,4 +405,55 @@ one process, and one Event show assertion expects the CI `APP_URL`
 (`https://ilmu360.test`) while the local `.env` points at another host. Neither
 is a code-path regression; CI provides the authoritative run.
 
+## Follow-up audit closeout (2026-11-21, 18:34)
+
+Audit: `ilmu360-orm-audit-2026-11-21-1834.md`, reviewed HEAD
+`438cb5349a238dc5966728a826c3c4917def068a`. Functional closeout:
+`96a810c4666941b6b289794ab1da1c9f9aa53dfe`.
+
+### G1 — public occurrence state on institution next-event cards
+
+- Extracted `constrainPublicUpcomingOccurrences()` as the single owner predicate
+  for occurrence status, visibility and future-start eligibility.
+- Applied it to the institution correlated upcoming count, next-event id
+  selection, `institutionNextEventDetails()`, `nextPublicEventIds()`,
+  `nextPublicEventDetails()` and the batch `institutionDirectoryFacts()` path.
+  The detail queries also recheck parent public state.
+- Added end-to-end `InstitutionIndexTest` regressions: an earlier draft/private
+  occurrence is ignored in favour of the later public occurrence, and a parent
+  with only private future occurrences gets no "Next event" card.
+
+### G2 — final public schedule hydration
+
+- `hydrateEventsForIds()` now re-applies `constrainCurrentPublicEventState()`;
+  it is private and only used by the public `hydrateScheduleEvents()` path.
+- Added `PublicScheduleDiscoveryTest` coverage for direct private/unpublished
+  ids and for a visibility change between fact selection and final hydration.
+
+### G3 — true stale-index Typesense fixture
+
+- Added a fake `TypesenseEngine` returning stale private/unpublished hit ids;
+  the Scout query callback filters both the hydrated payload and the
+  recomputed paginator total. The test documents that totals are
+  callback-recomputed, not raw index counts.
+
+### Verification
+
+| Gate | Result |
+|---|---|
+| `php tools/architecture-check.php` | 0 violations, 28 features |
+| `composer architecture:types` | 0 errors |
+| `vendor/bin/phpstan analyse` | 0 errors |
+| `vendor/bin/pint --dirty --format agent` | passed |
+| `InstitutionIndexTest` / `PublicScheduleDiscoveryTest` / `EventSearchTypesenseFilterTest` / `InstitutionDirectoryQueryTest` | 78 passed, 357 assertions |
+| `EventSearchTest` | 127 passed, 457 assertions |
+| `EventShowPageTest` / `DashboardPagesTest` / `ReferenceFamilyTest` / `ArchitectureBoundaryTest` | 161 passed, 849 assertions |
+| `FrontendApiParityTest` | 108 passed, 772 assertions |
+| GitHub Quality on the final closeout SHA | pending |
+
+Local suites were run with `APP_ENV=testing DB_CONNECTION=sqlite
+DB_DATABASE=:memory: CACHE_STORE=array APP_URL=https://ilmu360.test`; the shell
+in this workspace exports staging DB variables that would otherwise override
+`phpunit.xml`.
+
 

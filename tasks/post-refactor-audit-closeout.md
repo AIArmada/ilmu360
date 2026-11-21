@@ -136,3 +136,8 @@ Deleted 11 `config/*.pre-majlisilmu-merge-20260511` backups plus
 - Final ORM audit closeout on `a66bd4e5`: Quality run
   [44892798081](https://github.com/AIArmada/ilmu360/actions/runs/44892798081)
   passed all 26 jobs (20 Pest shards, PHPStan, Rector, Pint, Chromium smoke).
+- Follow-up audit on `438cb534` closed F1–F3: the institution next-event
+  count/id/details now share public occurrence eligibility, final public
+  schedule hydration revalidates parent state, and stale Typesense hits are
+  covered by a fake-engine test. See the follow-up section in
+  `tasks/orm-boundary-refactor-progress.md`.
