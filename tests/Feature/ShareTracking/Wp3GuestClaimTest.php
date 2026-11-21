@@ -429,7 +429,7 @@ it('scopes ownership reads to primary plus actively claimed profiles', function 
     app(GuestShareClaims::class)->claim((string) $this->claimant->getKey(), $this->claimant->getMorphClass(), $guest['capability'], true);
 
     $analytics = app(AffiliatesShareTrackingAnalyticsService::class);
-    $summary = $analytics->summaryForAccount($this->claimant);
+    $summary = $analytics->summaryForUser($this->claimant);
 
     expect($summary['outbound_shares'])->toBe(1)
         ->and($summary['visits'])->toBe(1);
@@ -443,14 +443,14 @@ it('scopes ownership reads to primary plus actively claimed profiles', function 
     $revocable = AffiliateClaim::query()->where('affiliate_id', $guest['affiliate_id'])->firstOrFail();
     app(RevokeAffiliateClaim::class)->handle($revocable);
 
-    expect($analytics->summaryForAccount($this->claimant)['outbound_shares'])->toBe(0)
-        ->and($analytics->summaryForAccount($this->claimant)['visits'])->toBe(0)
+    expect($analytics->summaryForUser($this->claimant)['outbound_shares'])->toBe(0)
+        ->and($analytics->summaryForUser($this->claimant)['visits'])->toBe(0)
         ->and($analytics->linksForUser($this->claimant)->isEmpty())->toBeTrue()
         ->and($analytics->findLinkForUser($this->claimant, $guestLinkId))->toBeNull();
 
     // The rival never saw the history at all.
-    expect($analytics->summaryForAccount($this->rival)['outbound_shares'])->toBe(0)
-        ->and($analytics->summaryForAccount($this->rival)['visits'])->toBe(0);
+    expect($analytics->summaryForUser($this->rival)['outbound_shares'])->toBe(0)
+        ->and($analytics->summaryForUser($this->rival)['visits'])->toBe(0);
 });
 
 it('never auto-claims through signup or login', function (): void {
@@ -668,7 +668,7 @@ it('seals claimed history from later anonymous activity on the same browser', fu
         ->and($source->owner)->toBeNull();
 
     $analytics = app(AffiliatesShareTrackingAnalyticsService::class);
-    $summary = $analytics->summaryForAccount($this->claimant);
+    $summary = $analytics->summaryForUser($this->claimant);
 
     expect($summary['outbound_shares'])->toBe(1)
         ->and($summary['visits'])->toBe(1);

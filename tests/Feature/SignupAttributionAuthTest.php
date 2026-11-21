@@ -14,7 +14,7 @@ use App\Features\Identity\Api\SignupAttributionStatus;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Models\User;
-use App\Platform\Auth\Fortify\CreateNewUser;
+use App\Features\Identity\EntryPoints\Fortify\CreateNewUser;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
