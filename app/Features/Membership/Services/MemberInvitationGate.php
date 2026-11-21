@@ -4,42 +4,33 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
-use AIArmada\Organizations\Contracts\OrganizationAuthorization;
-use AIArmada\Organizations\Models\Organization;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
+use App\Features\Events\Api\EventMemberInvitationEligibility;
+use App\Features\Membership\Api\MemberInvitationAccess;
+use App\Features\Membership\Api\MemberPermissions;
+use App\Features\Membership\Api\MemberSubjectType;
+use App\Features\Organizations\Api\OrganizationAccess;
 use App\Shared\Auth\AccountActor;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\Model;
 
-final readonly class MemberInvitationGate
+final readonly class MemberInvitationGate implements MemberInvitationAccess
 {
     public function __construct(
-        private MemberPermissionGate $memberPermissionGate,
-        private OrganizationAuthorization $organizationAuthorization,
+        private MemberPermissions $memberPermissions,
+        private EventMemberInvitationEligibility $eventInvitations,
+        private OrganizationAccess $organizations,
     ) {}
 
-    public function canInvite(AccountActor $user, Institution|Person|Event|Reference|Organization $subject): bool
+    public function canInvite(AccountActor $actor, MemberSubjectType $subjectType, string $subjectId): bool
     {
-        return match (true) {
-            $subject instanceof Institution => $this->memberPermissionGate->canInstitution($user, 'institution.manage-members', $subject),
-            $subject instanceof Person => $this->memberPermissionGate->canPerson($user, 'person.manage-members', $subject),
-            $subject instanceof Event => $subject->userHasScopedEventPermission($user, 'event.manage-members'),
-            $subject instanceof Reference => $this->memberPermissionGate->canReference($user, 'reference.manage-members', $subject),
-            $subject instanceof Organization => $user instanceof Model && $this->canInviteToOrganization($user, $subject),
-        };
-    }
-
-    private function canInviteToOrganization(Model $user, Organization $organization): bool
-    {
-        try {
-            $this->organizationAuthorization->authorize($user, $organization, 'organization.manage-members');
-
-            return true;
-        } catch (AuthorizationException) {
+        if ($subjectId === '') {
             return false;
         }
+
+        return match ($subjectType) {
+            MemberSubjectType::Institution => $this->memberPermissions->canSubject($actor, 'institution.manage-members', $subjectType, $subjectId),
+            MemberSubjectType::Person => $this->memberPermissions->canSubject($actor, 'person.manage-members', $subjectType, $subjectId),
+            MemberSubjectType::Reference => $this->memberPermissions->canSubject($actor, 'reference.manage-members', $subjectType, $subjectId),
+            MemberSubjectType::Event => $this->eventInvitations->canInvite($actor, $subjectId),
+            MemberSubjectType::Organization => $this->organizations->can($actor->actorId(), $subjectId, 'organization.manage-members'),
+        };
     }
 }

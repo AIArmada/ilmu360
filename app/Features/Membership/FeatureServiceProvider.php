@@ -17,7 +17,7 @@ use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MembershipSubjectOptionsCatalog;
 use App\Features\Membership\Api\OrganizationEventAccessContract;
 use App\Features\Membership\Api\Orm\Filament\AccountMembershipDirectory;
-use App\Features\Membership\Api\Orm\Filament\MemberInvitationAccess;
+use App\Features\Membership\Api\MemberInvitationAccess;
 use App\Features\Membership\Api\ScopedMembershipRoleStore;
 use App\Features\Membership\Contracts\MembershipPermissionEvaluator;
 use App\Features\Membership\Contributors\MembershipAccountLifecycleContributor;
@@ -27,7 +27,7 @@ use App\Features\Membership\EntryPoints\Api\Admin\MembershipApplicationResourceD
 use App\Features\Membership\EntryPoints\ApiDocumentation\MembershipRequestExampleContributor;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Features\Membership\EntryPoints\Filament\Support\AccountMembershipDirectoryAdapter;
-use App\Features\Membership\EntryPoints\Filament\Support\MemberInvitationAccessAdapter;
+use App\Features\Membership\Services\MemberInvitationGate;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Create;
 use App\Features\Membership\EntryPoints\Livewire\Pages\MembershipApplications\Index;
 use App\Features\Membership\EntryPoints\Mcp\Tools\AdminGetMembershipApplicationReviewSchemaTool;
@@ -95,7 +95,7 @@ final class FeatureServiceProvider extends FeatureModule
         $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
         $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
         $this->app->bind(AccountMembershipDirectory::class, AccountMembershipDirectoryAdapter::class);
-        $this->app->bind(MemberInvitationAccess::class, MemberInvitationAccessAdapter::class);
+        $this->app->bind(MemberInvitationAccess::class, MemberInvitationGate::class);
         $this->app->bind(MembershipSubjectCatalog::class, EloquentMembershipSubjectCatalog::class);
         $this->app->bind(MemberPermissions::class, MemberPermissionGate::class);
         $this->app->bind(ScopedMembershipRoleStore::class, EloquentScopedMembershipRoleStore::class);

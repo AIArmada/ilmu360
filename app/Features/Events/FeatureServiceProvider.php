@@ -43,6 +43,7 @@ use App\Features\Events\Api\ContributionProjection;
 use App\Features\Events\Api\EventAccountOwnership;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventCards;
+use App\Features\Events\Api\EventMemberInvitationEligibility;
 use App\Features\Events\Api\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventChangePublisher;
@@ -155,6 +156,7 @@ use App\Features\Events\Policies\EventTicketingPolicy;
 use App\Features\Events\Queries\EloquentAccountEventFacts;
 use App\Features\Events\Queries\EloquentEventCollections;
 use App\Features\Events\Queries\EventCardsQuery;
+use App\Features\Events\Queries\EventMemberInvitationEligibilityQuery;
 use App\Features\Events\Queries\EventContributionOptionsCountryQuery;
 use App\Features\Events\Queries\EventContributionProjection;
 use App\Features\Events\Queries\EventDiscoveryReaderFactory;
@@ -270,6 +272,7 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(EventMemberInvitationEligibility::class, EventMemberInvitationEligibilityQuery::class);
         $this->app->bind(EventContributionStateMapper::class, EventContributionStateMapperService::class);
         $this->app->bind(OrganizerLookup::class, OrganizerLookupService::class);
         $this->app->bind(PublicScheduleVisibility::class, PublicScheduleVisibilityQuery::class);

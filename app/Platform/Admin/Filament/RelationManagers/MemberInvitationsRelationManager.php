@@ -10,7 +10,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Models\MembershipInvitation;
 use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Membership\Api\Orm\Filament\MemberInvitationAccess;
+use App\Features\Membership\Api\MemberInvitationAccess;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -46,8 +46,11 @@ abstract class MemberInvitationsRelationManager extends RelationManager
             return false;
         }
 
-        return parent::canViewForRecord($ownerRecord, $pageClass)
-            && app(MemberInvitationAccess::class)->canInviteOwnerRecord($user, $ownerRecord);
+        $type = MemberSubjectType::tryFrom($ownerRecord->getMorphClass());
+
+        return $type instanceof MemberSubjectType
+            && parent::canViewForRecord($ownerRecord, $pageClass)
+            && app(MemberInvitationAccess::class)->canInvite($user, $type, (string) $ownerRecord->getKey());
     }
 
     public function table(Table $table): Table

@@ -10,7 +10,8 @@ use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Relati
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\EntryPoints\Livewire\Pages\ShowInvitation;
 use App\Features\Membership\Models\MemberInvitation;
-use App\Features\Membership\Services\MemberInvitationGate;
+use App\Features\Membership\Api\MemberInvitationAccess;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -55,7 +56,7 @@ it('lets institution admins create and revoke institution member invitations fro
 
     addTestMember($institution, $administrator, MemberRole::Admin);
 
-    expect(app(MemberInvitationGate::class)->canInvite($administrator, $institution))
+    expect(app(MemberInvitationAccess::class)->canInvite($administrator, MemberSubjectType::Institution, (string) $institution->getKey()))
         ->toBeTrue();
 
     Notification::fake();
@@ -99,12 +100,12 @@ it('does not allow moderators to invite event members', function () {
         'visibility' => 'private',
     ]);
 
-    $gate = app(MemberInvitationGate::class);
+    $gate = app(MemberInvitationAccess::class);
 
     assignInvitationUiSuperAdmin($moderator);
     assignInvitationUiGlobalRole($moderator, 'moderator');
 
-    expect($gate->canInvite($moderator, $event))->toBeFalse();
+    expect($gate->canInvite($moderator, MemberSubjectType::Event, (string) $event->getKey()))->toBeFalse();
 });
 
 it('redirects guests to login for member invitation pages', function () {
