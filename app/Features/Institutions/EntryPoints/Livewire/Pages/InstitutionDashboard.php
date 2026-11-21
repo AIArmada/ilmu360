@@ -4,7 +4,7 @@ namespace App\Features\Institutions\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\Orm\EventOrmPort;

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Contributions\Api\Orm;
+namespace App\Features\Contributions\Api;
 
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 
 /**
  * Submitter-scoped access to the entities an event submission may reference.
@@ -16,14 +16,14 @@ use App\Models\User;
  * institution resolver and request handler; Institution dashboard membership
  * check.
  */
-interface EntitySubmissionAccessContract
+interface SubmissionEntityAccess
 {
     /**
      * Institutions the submitter may choose, keyed by id.
      *
      * @return array<string, string>
      */
-    public function institutionOptions(?User $user, ?string $countryId = null): array;
+    public function institutionOptions(?AccountActor $user, ?string $countryId = null): array;
 
     /**
      * Display labels for the supplied ids within the submitter scope.
@@ -31,21 +31,21 @@ interface EntitySubmissionAccessContract
      * @param  list<string>  $institutionIds
      * @return array<string, string>
      */
-    public function institutionLabels(?User $user, array $institutionIds): array;
+    public function institutionLabels(?AccountActor $user, array $institutionIds): array;
 
     /**
      * Institutions the account is a visible member of, keyed by id.
      *
      * @return array<string, string>
      */
-    public function memberInstitutionOptions(User $user): array;
+    public function memberInstitutionOptions(AccountActor $user): array;
 
     /**
      * Persons the submitter may choose, keyed by id.
      *
      * @return array<string, string>
      */
-    public function personOptions(?User $user): array;
+    public function personOptions(?AccountActor $user): array;
 
     /**
      * Formatted labels for the supplied ids within the submitter scope.
@@ -53,9 +53,9 @@ interface EntitySubmissionAccessContract
      * @param  list<string>  $personIds
      * @return array<string, string>
      */
-    public function personLabels(?User $user, array $personIds): array;
+    public function personLabels(?AccountActor $user, array $personIds): array;
 
-    public function personLabel(?User $user, string $personId): ?string;
+    public function personLabel(?AccountActor $user, string $personId): ?string;
 
     /**
      * Venues available for authoring, keyed by id.
@@ -64,24 +64,24 @@ interface EntitySubmissionAccessContract
      */
     public function venueOptions(?string $countryId = null): array;
 
-    public function canUseInstitution(?User $user, string $institutionId): bool;
+    public function canUseInstitution(?AccountActor $user, string $institutionId): bool;
 
-    public function canUseMemberInstitution(User $user, string $institutionId): bool;
+    public function canUseMemberInstitution(AccountActor $user, string $institutionId): bool;
 
-    public function canUsePerson(?User $user, string $personId): bool;
+    public function canUsePerson(?AccountActor $user, string $personId): bool;
 
     /**
      * @param  list<string>  $personIds
      * @return list<string> The subset of IDs the submitter is not allowed to use.
      */
-    public function unusablePersonIds(?User $user, array $personIds): array;
+    public function unusablePersonIds(?AccountActor $user, array $personIds): array;
 
     /**
      * @param  array<string, mixed>  $validated
      */
     public function assertSubmissionEntitiesAreAccessible(
         array $validated,
-        ?User $submitter,
+        ?AccountActor $submitter,
         ?string $organizerKind,
         string $validationKeyPrefix = '',
     ): void;
@@ -89,4 +89,15 @@ interface EntitySubmissionAccessContract
     public function institutionBelongsToCountry(string $institutionId, string $countryId): bool;
 
     public function venueBelongsToCountry(string $venueId, string $countryId): bool;
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    public function assertSubmissionEntitiesMatchCountryFor(
+        array $validated,
+        ?string $organizerKind,
+        string $submissionCountryId,
+        ?string $scopedInstitutionId,
+        string $validationKeyPrefix = '',
+    ): void;
 }

@@ -8,7 +8,7 @@ use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Features\Contributions\Api\Orm\EntitySubmissionAccessContract;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventSubmissionOptionsCache;
@@ -62,7 +62,7 @@ final class SubmitEventOptionsProvider
             return $this->optionMemo[$memoKey];
         }
 
-        $access = app(EntitySubmissionAccessContract::class);
+        $access = app(SubmissionEntityAccess::class);
 
         $load = fn (): array => $access->institutionOptions($submitter, $countryId);
 
@@ -85,7 +85,7 @@ final class SubmitEventOptionsProvider
             return $this->optionMemo[$memoKey];
         }
 
-        $access = app(EntitySubmissionAccessContract::class);
+        $access = app(SubmissionEntityAccess::class);
 
         $load = fn (): array => $access->personOptions($submitter);
 
@@ -101,7 +101,7 @@ final class SubmitEventOptionsProvider
     {
         return $this->submissionOptionsCache->rememberVenueOptions(
             $countryId,
-            fn (): array => app(EntitySubmissionAccessContract::class)->venueOptions($countryId),
+            fn (): array => app(SubmissionEntityAccess::class)->venueOptions($countryId),
         );
     }
 

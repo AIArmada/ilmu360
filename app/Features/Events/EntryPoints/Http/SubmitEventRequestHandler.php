@@ -6,7 +6,7 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Contributions\Api\Orm\SubmissionContext;
-use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;

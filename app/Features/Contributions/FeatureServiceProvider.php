@@ -18,9 +18,8 @@ use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Features\Contributions\Api\Filament\PersonContributionSchema;
 use App\Features\Contributions\Api\Frontend\SubmitInstitutionFormContractContributor;
 use App\Features\Contributions\Api\Frontend\SubmitPersonFormContractContributor;
-use App\Features\Contributions\Api\Orm\EntitySubmissionAccessContract;
 use App\Features\Contributions\Api\Orm\SubmissionContext;
-use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\SubmissionCatalog;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
@@ -94,7 +93,6 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
-        $this->app->bind(EntitySubmissionAccessContract::class, EntitySubmissionAccess::class);
         $this->app->bind(SubmissionEntityAccess::class, EntitySubmissionAccess::class);
         $this->app->bind(SubmissionContext::class, SubmissionContextResolver::class);
         $this->app->bind(ContributionEntityState::class, ContributionEntityStateService::class);

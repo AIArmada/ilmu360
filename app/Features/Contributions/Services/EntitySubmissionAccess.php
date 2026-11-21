@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Services;
 
-use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Institutions\Api\InstitutionAuthoringCandidates;
 use App\Features\Persons\Api\PersonAuthoringCandidates;
 use App\Features\Places\Api\VenueAuthoringCandidates;
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 use Illuminate\Validation\ValidationException;
 
 final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
@@ -21,32 +21,32 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
         private VenueAuthoringCandidates $venues,
     ) {}
 
-    public function institutionOptions(?User $user, ?string $countryId = null): array
+    public function institutionOptions(?AccountActor $user, ?string $countryId = null): array
     {
-        return $this->institutions->options($user instanceof User ? (string) $user->getKey() : null, $countryId);
+        return $this->institutions->options($user instanceof AccountActor ? $user->actorId() : null, $countryId);
     }
 
-    public function institutionLabels(?User $user, array $institutionIds): array
+    public function institutionLabels(?AccountActor $user, array $institutionIds): array
     {
-        return $this->institutions->labels($user instanceof User ? (string) $user->getKey() : null, $institutionIds);
+        return $this->institutions->labels($user instanceof AccountActor ? $user->actorId() : null, $institutionIds);
     }
 
-    public function memberInstitutionOptions(User $user): array
+    public function memberInstitutionOptions(AccountActor $user): array
     {
-        return $this->institutions->memberOptions((string) $user->getKey());
+        return $this->institutions->memberOptions($user->actorId());
     }
 
-    public function personOptions(?User $user): array
+    public function personOptions(?AccountActor $user): array
     {
         return $this->persons->options($user);
     }
 
-    public function personLabels(?User $user, array $personIds): array
+    public function personLabels(?AccountActor $user, array $personIds): array
     {
         return $this->persons->labels($user, $personIds);
     }
 
-    public function personLabel(?User $user, string $personId): ?string
+    public function personLabel(?AccountActor $user, string $personId): ?string
     {
         return $this->persons->labels($user, [$personId])[$personId] ?? null;
     }
@@ -56,22 +56,22 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
         return $this->venues->options($countryId);
     }
 
-    public function canUseInstitution(?User $user, string $institutionId): bool
+    public function canUseInstitution(?AccountActor $user, string $institutionId): bool
     {
-        return $this->institutions->canUse($user instanceof User ? (string) $user->getKey() : null, $institutionId);
+        return $this->institutions->canUse($user instanceof AccountActor ? $user->actorId() : null, $institutionId);
     }
 
-    public function canUseMemberInstitution(User $user, string $institutionId): bool
+    public function canUseMemberInstitution(AccountActor $user, string $institutionId): bool
     {
-        return $this->institutions->canMemberUse((string) $user->getKey(), $institutionId);
+        return $this->institutions->canMemberUse($user->actorId(), $institutionId);
     }
 
-    public function canUsePerson(?User $user, string $personId): bool
+    public function canUsePerson(?AccountActor $user, string $personId): bool
     {
         return $this->persons->canUse($user, $personId);
     }
 
-    public function unusablePersonIds(?User $user, array $personIds): array
+    public function unusablePersonIds(?AccountActor $user, array $personIds): array
     {
         return $this->persons->unusableIds($user, $personIds);
     }
@@ -81,7 +81,7 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
      */
     public function assertSubmissionEntitiesAreAccessible(
         array $validated,
-        ?User $submitter,
+        ?AccountActor $submitter,
         ?string $organizerKind,
         string $validationKeyPrefix = '',
     ): void {
