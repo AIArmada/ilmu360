@@ -2,14 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Reports\Api\Orm;
+namespace App\Features\Reports\Api;
 
 use App\Features\Reports\Api\ReportSnapshot;
 
 /**
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
- * Consumers: Reports/FeatureServiceProvider.php, Reports/Services, Reports/EntryPoints
  */
 interface ReportAdminContract
 {

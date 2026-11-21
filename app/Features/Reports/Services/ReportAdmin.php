@@ -6,7 +6,7 @@ namespace App\Features\Reports\Services;
 
 use App\Features\Reports\Actions\ResolveReportCategoryOptionsAction;
 use App\Features\Reports\Actions\SaveReportAction;
-use App\Features\Reports\Api\Orm\ReportAdminContract;
+use App\Features\Reports\Api\ReportAdminContract;
 use App\Features\Reports\Api\ReportCommands as ReportCommandsContract;
 use App\Features\Reports\Api\ReportSnapshot;
 use App\Features\Reports\Api\ReportSubjectResolver;
