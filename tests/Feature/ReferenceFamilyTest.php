@@ -96,12 +96,13 @@ it('expands multiple default-event reference families in bounded queries', funct
         'parent_id' => $edition->getKey(),
         'status' => 'verified',
     ]);
+    $missingReferenceId = '00000000-0000-4000-8000-000000000000';
 
     $families = app(ReferenceQueries::class)->defaultEventReferenceIdsForMany([
         (string) $work->getKey(),
         (string) $edition->getKey(),
         (string) $part->getKey(),
-        'missing-reference-id',
+        $missingReferenceId,
     ]);
 
     expect($families[(string) $work->getKey()])->toEqualCanonicalizing([
@@ -114,7 +115,7 @@ it('expands multiple default-event reference families in bounded queries', funct
             (string) $part->getKey(),
         ])
         ->and($families[(string) $part->getKey()])->toBe([(string) $part->getKey()])
-        ->and($families['missing-reference-id'])->toBeEmpty();
+        ->and($families[$missingReferenceId])->toBeEmpty();
 });
 
 it('keeps reference directory family and count queries bounded for 1, 12, and 50 rows', function (): void {
