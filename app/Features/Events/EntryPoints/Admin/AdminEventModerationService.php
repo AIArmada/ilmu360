@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Admin;
 
 use App\Features\Events\Api\EventModeration;
-use App\Features\Events\Api\Orm\AdminEventModeration;
+use App\Features\Events\Api\AdminEventModeration;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
-use App\Models\User;
+use App\Shared\Auth\AccountActor;
 use App\Platform\Api\Admin\AdminResourceRegistry;
 use App\Platform\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use Illuminate\Support\Facades\Validator;
@@ -23,15 +23,15 @@ final readonly class AdminEventModerationService implements AdminEventModeration
         private EventModeration $eventModeration,
     ) {}
 
-    public function canModerate(?User $actor = null): bool
+    public function canModerate(?AccountActor $actor = null): bool
     {
-        return $actor instanceof User && $actor->hasAnyRole(['super_admin', 'moderator']);
+        return $actor instanceof AccountActor && $actor->hasAnyRole(['super_admin', 'moderator']);
     }
 
     /**
      * @return array{data: array{resource: array<string, mixed>, record: array<string, mixed>, schema: array<string, mixed>}}
      */
-    public function schema(string $recordKey, ?User $actor = null): array
+    public function schema(string $recordKey, ?AccountActor $actor = null): array
     {
         abort_unless($this->canModerate($actor), 403);
 
@@ -97,10 +97,10 @@ final readonly class AdminEventModerationService implements AdminEventModeration
      * @param  array<string, mixed>  $payload
      * @return array{data: array{resource: array<string, mixed>, record: array<string, mixed>}}
      */
-    public function moderate(string $recordKey, array $payload, ?User $actor = null): array
+    public function moderate(string $recordKey, array $payload, ?AccountActor $actor = null): array
     {
         abort_unless($this->canModerate($actor), 403);
-        abort_unless($actor instanceof User, 403);
+        abort_unless($actor instanceof AccountActor, 403);
 
         $event = $this->resolveEvent($recordKey);
         $availableActions = $this->eventModeration->availableActions((string) $event->getKey());
@@ -123,7 +123,7 @@ final readonly class AdminEventModerationService implements AdminEventModeration
 
         $action = (string) $validated['action'];
         $eventId = (string) $event->getKey();
-        $actorId = (string) $actor->getKey();
+        $actorId = $actor->actorId();
         $note = filled($validated['note'] ?? null) ? (string) $validated['note'] : null;
         $reasonCode = filled($validated['reason_code'] ?? null) ? (string) $validated['reason_code'] : null;
 

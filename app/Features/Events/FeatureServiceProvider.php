@@ -64,7 +64,7 @@ use App\Features\Events\Api\Frontend\SubmitEventFormContractContributor;
 use App\Features\Events\Api\GuestEventSubmissionClaims;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
-use App\Features\Events\Api\Orm\AdminEventModeration;
+use App\Features\Events\Api\AdminEventModeration;
 use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Events\Api\Orm\EventCategoryCatalog as EventCategoryCatalogContract;
