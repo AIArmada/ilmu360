@@ -12,7 +12,7 @@
       "App\\Features\\Contributions\\Actions\\RejectContributionRequestAction",
       "App\\Features\\Contributions\\Actions\\SubmitContributionCreateRequestAction",
       "App\\Features\\Contributions\\Actions\\SubmitContributionUpdateRequestAction",
-      "App\\Features\\Contributions\\Contributors\\ContributionsAccountLifecycleContributor"
+      "App\\Features\\Contributions\\Actions\\ManageContributionAccountAttributionAction"
     ]
   }
 }

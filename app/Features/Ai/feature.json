@@ -10,7 +10,7 @@
     ],
     "table:ai_usage_logs": [
       "App\\Features\\Ai\\Actions\\RecordAiUsageAction",
-      "App\\Features\\Ai\\Contributors\\AiAccountLifecycleContributor"
+      "App\\Features\\Ai\\Actions\\ManageAiUsageAccountLifecycleAction"
     ]
   }
 }
