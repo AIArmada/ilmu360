@@ -62,6 +62,8 @@ use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Media\MediaChangeListener;
 use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\SignalSchemaRegistry;
@@ -121,6 +123,14 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->make(RequestExampleRegistry::class)->register(new InstitutionWorkspaceRequestExampleContributor);
 
         parent::boot();
+
+        $this->app->make(PublicSlugRegistry::class)->register(new PublicSlugResource(
+            parameter: 'institution',
+            routeName: 'institutions.show',
+            modelClass: Institution::class,
+            searchColumns: ['name', 'slug'],
+            labelAttribute: 'name',
+        ));
 
         $this->app->make(FrontendFormContractRegistry::class)->register(InstitutionWorkspaceFormContractContributor::class);
 

@@ -64,6 +64,8 @@ use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
 use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Media\MediaChangeListener;
 use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\SignalSchemaRegistry;
@@ -126,6 +128,14 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->make(SignalSchemaRegistry::class)->register(new PersonsSignalSchemaContributor);
 
         parent::boot();
+
+        $this->app->make(PublicSlugRegistry::class)->register(new PublicSlugResource(
+            parameter: 'person',
+            routeName: 'persons.show',
+            modelClass: Person::class,
+            searchColumns: ['name', 'slug'],
+            labelAttribute: 'formatted_name',
+        ));
 
         $this->app->make(MemberResourceHookRegistry::class)->register($this->app->make(PersonMemberResourceHooks::class));
 

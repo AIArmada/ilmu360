@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
- * Canonical list of public slug surfaces. Concrete models are supplied by root
- * wiring so this Platform contract never imports a feature-owned class.
+ * Canonical registry of public slug surfaces. Each owning feature registers its
+ * own resource, so Platform never imports a feature-owned model.
  */
 final class PublicSlugRegistry
 {

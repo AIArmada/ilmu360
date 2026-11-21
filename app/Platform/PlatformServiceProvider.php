@@ -23,6 +23,7 @@ use App\Platform\Language\Observers\LanguageObserver;
 
 use App\Platform\Console\CacheCommand;
 use App\Platform\Console\ClearCommand;
+use App\Platform\Routing\PublicSlugRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Date;
@@ -34,6 +35,8 @@ final class PlatformServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(PublicSlugRegistry::class, static fn (): PublicSlugRegistry => new PublicSlugRegistry([]));
+
         $catalog = FeatureCatalog::load($this->app->basePath());
 
         $this->app->singleton(

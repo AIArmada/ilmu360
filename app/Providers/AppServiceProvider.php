@@ -200,8 +200,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ApiErrorDetailsEnricher::class, AdminValidateOnlyRemediationEnricher::class);
         $this->app->bind(Js::class, ContentVersionedJs::class);
 
-        $this->registerPublicSlugRegistry();
-
         $this->app->singleton(PrettyPrinter::class, PrettyPrinter\Standard::class);
         $this->app->bind(McpOAuthRegisterController::class, OAuthRegisterController::class);
 
@@ -459,26 +457,6 @@ class AppServiceProvider extends ServiceProvider
             });
             self::$mediaUploadConfiguredFor = $componentManager;
         }
-    }
-
-    private function registerPublicSlugRegistry(): void
-    {
-        $this->app->singleton(PublicSlugRegistry::class, static fn (): PublicSlugRegistry => new PublicSlugRegistry([
-            new PublicSlugResource(
-                parameter: 'institution',
-                routeName: 'institutions.show',
-                modelClass: Institution::class,
-                searchColumns: ['name', 'slug'],
-                labelAttribute: 'name',
-            ),
-            new PublicSlugResource(
-                parameter: 'person',
-                routeName: 'persons.show',
-                modelClass: Person::class,
-                searchColumns: ['name', 'slug'],
-                labelAttribute: 'formatted_name',
-            ),
-        ]));
     }
 
     private function registerPublicSlugBindings(): void
