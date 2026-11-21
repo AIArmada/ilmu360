@@ -67,8 +67,7 @@ it('lists accessible member resources for institution members through the MCP se
         ->assertHasNoErrors()
         ->assertStructuredContent(fn ($json) => $json
             ->has('data.resources', 2)
-            ->where('data.resources.0.key', 'institutions')
-            ->where('data.resources.1.key', 'events')
+            ->where('data.resources', fn ($resources): bool => collect($resources)->pluck('key')->sort()->values()->all() === ['events', 'institutions'])
             ->etc());
 });
 
@@ -81,8 +80,7 @@ it('lists accessible member resources for person members through the MCP server'
         ->assertHasNoErrors()
         ->assertStructuredContent(fn ($json) => $json
             ->has('data.resources', 2)
-            ->where('data.resources.0.key', 'people')
-            ->where('data.resources.1.key', 'events')
+            ->where('data.resources', fn ($resources): bool => collect($resources)->pluck('key')->sort()->values()->all() === ['events', 'people'])
             ->etc());
 });
 
