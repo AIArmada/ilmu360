@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Api\Frontend\Contributors;
+namespace App\Features\Discovery\Contributors;
 
 use App\Features\GitHubIssues\Api\GitHubIssueReporterContract;
 use App\Features\ShareTracking\Api\ShareTrackingContract;

@@ -14,7 +14,6 @@ use App\Platform\Admin\FilamentWidgetRegistry;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 use App\Platform\Api\Admin\AdminResourceHookRegistry;
 use App\Platform\Api\Admin\RecordActionContributorRegistry;
-use App\Platform\Api\Frontend\Contributors\FrontendManifestContributor;
 use App\Platform\Api\Frontend\Contributors\MobileTelemetryFormContractContributor;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\Api\Member\MemberResourceHookRegistry;
@@ -78,7 +77,6 @@ class AdminRegistryServiceProvider extends ServiceProvider
     {
         $contracts = $this->app->make(FrontendFormContractRegistry::class);
 
-        $contracts->register(FrontendManifestContributor::class);
         $contracts->register(MobileTelemetryFormContractContributor::class);
 
         $this->app->booted(function (): void {

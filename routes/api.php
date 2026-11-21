@@ -32,7 +32,6 @@ use App\Features\ShareTracking\EntryPoints\Http\ShareController;
 use App\Platform\Api\Admin\EntryPoints\Http\CatalogController as AdminCatalogController;
 use App\Platform\Api\Admin\EntryPoints\Http\ManifestController as AdminManifestController;
 use App\Platform\Api\Admin\EntryPoints\Http\ResourceController as AdminResourceController;
-use App\Platform\Api\Frontend\EntryPoints\Http\ManifestController;
 use App\Platform\ApiDocumentation\EntryPoints\Http\DocumentationController;
 use App\Platform\Http\Middleware\EnsureAdminApiAccess;
 use App\Platform\Telemetry\EntryPoints\Http\MobileTelemetryController;
@@ -41,18 +40,9 @@ use Illuminate\Support\Facades\Route;
 // Public API endpoints
 Route::prefix('v1')->group(function () {
     Route::name('api.client.')->group(function () {
-        Route::get('/manifest', [ManifestController::class, 'manifest'])->name('manifest');
-
         Route::prefix('documentation')->name('documentation.')->group(function (): void {
             Route::get('/', [DocumentationController::class, 'index'])->name('index');
             Route::get('/{documentId}', [DocumentationController::class, 'show'])->name('show');
-        });
-
-        Route::prefix('forms')->name('forms.')->group(function () {
-            Route::get('/mobile-telemetry', [ManifestController::class, 'mobileTelemetry'])->name('mobile-telemetry');
-            Route::get('/submit-event', [ManifestController::class, 'submitEvent'])->name('submit-event');
-            Route::get('/contributions/institutions', [ManifestController::class, 'submitInstitution'])->name('contributions.institutions');
-            Route::get('/contributions/persons', [ManifestController::class, 'submitPerson'])->name('contributions.persons');
         });
 
         Route::get('/search', [SearchController::class, 'search'])->name('search.index');
@@ -133,14 +123,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         });
 
         Route::prefix('forms')->name('forms.')->group(function () {
-            Route::get('/report', [ManifestController::class, 'report'])->name('report');
-            Route::get('/github-issue-report', [ManifestController::class, 'githubIssueReport'])->name('github-issue-report');
-            Route::get('/account-settings', [ManifestController::class, 'accountSettings'])->name('account-settings');
-            Route::get('/advanced-events', [ManifestController::class, 'advancedEvent'])->name('advanced-events');
-            Route::get('/institution-workspace', [ManifestController::class, 'institutionWorkspace'])->name('institution-workspace');
-            Route::get('/membership-applications/{subjectType}', [ManifestController::class, 'membershipApplication'])
-                ->whereIn('subjectType', MembershipApplicationSubjectType::routeSegments())
-                ->name('membership-applications');
             Route::get('/contributions/{subjectType}/{subject}/suggest', [ContributionController::class, 'suggestContext'])
                 ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
                 ->name('contributions.suggest');

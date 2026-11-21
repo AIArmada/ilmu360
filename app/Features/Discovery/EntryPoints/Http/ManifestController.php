@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Platform\Api\Frontend\EntryPoints\Http;
+namespace App\Features\Discovery\EntryPoints\Http;
 
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Api\Frontend\FrontendFormContractService;
