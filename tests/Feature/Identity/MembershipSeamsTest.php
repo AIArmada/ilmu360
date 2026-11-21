@@ -127,8 +127,7 @@ it('registers the membership and organizations feature providers exactly once', 
     $providers = require base_path('bootstrap/providers.php');
     $loaded = app()->getLoadedProviders();
 
-    expect(array_keys($providers, MembershipFeatureServiceProvider::class, true))->toHaveCount(1)
-        ->and(array_keys($providers, OrganizationsFeatureServiceProvider::class, true))->toHaveCount(1)
+    expect(array_keys($providers, \App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
         ->and($loaded)->toHaveKey(MembershipFeatureServiceProvider::class)
         ->and($loaded)->toHaveKey(OrganizationsFeatureServiceProvider::class);
 });

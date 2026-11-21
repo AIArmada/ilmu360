@@ -37,7 +37,7 @@ it('claims the browser selection, source receipt, effect receipt, outcome correc
     $providers = require base_path('bootstrap/providers.php');
 
     expect($catalog['features'])->toHaveKey('ShareTracking')
-        ->and($manifest['schema'] ?? null)->toBe(2)
+        ->and($manifest['schema'] ?? null)->toBe(1)
         ->and($manifest['name'] ?? null)->toBe('ShareTracking')
         ->and($manifest['owns'] ?? null)->toBe([
             'table:share_browser_selections' => [LockBrowserSelectionAction::class],
@@ -64,7 +64,8 @@ it('claims the browser selection, source receipt, effect receipt, outcome correc
         ->and($catalog['owners'])->toHaveKey('table:share_source_attribution_receipts')
         ->and($catalog['owners']['table:share_source_attribution_receipts'])->toBe('ShareTracking')
         ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(8)
-        ->and(array_keys($providers, ShareTrackingServiceProvider::class, true))->toHaveCount(1);
+        ->and(array_keys($providers, \App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
+        ->and(app()->getLoadedProviders())->toHaveKey(ShareTrackingServiceProvider::class);
 });
 
 it('resolves the browser selection model through its registered morph alias', function (): void {

@@ -170,7 +170,7 @@ it('discovers the registration feature manifest and provider exactly once', func
             'table:event_attendances',
             'table:event_attendance_logs',
         ])
-        ->and(array_keys($providers, RegistrationFeatureServiceProvider::class, true))->toHaveCount(1)
+        ->and(array_keys($providers, \App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(RegistrationFeatureServiceProvider::class);
 });
 

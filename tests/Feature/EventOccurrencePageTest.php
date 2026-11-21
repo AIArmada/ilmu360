@@ -233,7 +233,7 @@ it('shows classifications even without a parent description', function (): void 
 
 it('shows the muslim-only audience marker on the occurrence page', function (): void {
     $this->event->is_muslim_only = true;
-    $this->event->syncAudiences();
+    app(\App\Features\Events\Actions\Authoring\SyncPendingEventProjectionsAction::class)->handle($this->event);
 
     $this->get(route('events.occurrence', [
         'event' => $this->event,

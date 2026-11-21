@@ -142,7 +142,8 @@ it('claims reward_digest_slots with exactly the three gratitude digest writers',
     ])
         ->and($catalog['owners']['table:reward_digest_slots'] ?? null)->toBe('Rewards')
         ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'Rewards'))->toHaveCount(1)
-        ->and(array_keys($providers, RewardsFeatureServiceProvider::class, true))->toHaveCount(1);
+        ->and(array_keys($providers, \App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
+        ->and(app()->getLoadedProviders())->toHaveKey(RewardsFeatureServiceProvider::class);
 });
 
 it('resolves the root digest slot model through its morph alias and literal table', function (): void {
