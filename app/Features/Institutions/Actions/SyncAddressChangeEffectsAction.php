@@ -12,8 +12,9 @@ use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Shared\Contracts\AddressChangeEffects;
+use App\Shared\Contracts\AddressableChangeEffects;
 
-final readonly class SyncAddressChangeEffectsAction implements AddressChangeEffects
+final readonly class SyncAddressChangeEffectsAction implements AddressChangeEffects, AddressableChangeEffects
 {
     public function __construct(
         private EventAuthoring $eventAuthoring,
@@ -28,33 +29,15 @@ final readonly class SyncAddressChangeEffectsAction implements AddressChangeEffe
     public function apply(array $subjects, array $morphTypes): void
     {
         foreach ($subjects as $subject) {
-            $id = $subject['id'];
-            $name = $subject['name'];
-
-            switch ($subject['morph_type']) {
-                case 'institution':
-                    $this->institutionWorkflow->syncSlugsForName($name);
-                    $this->institutionWorkflow->syncSearchProjection($id);
-                    $this->eventAuthoring->syncSearchableEventsByIds($subject['event_ids']);
-                    $this->publicListingsCache->bustMajlisListing();
-
-                    break;
-                case 'person':
-                    $this->personWorkflow->syncSlugsForName($name);
-                    $this->eventAuthoring->syncEventSlugsForPersonName($name);
-                    $this->personWorkflow->syncSearchProjection($id);
-                    $this->publicListingsCache->bustMajlisListing();
-
-                    break;
-                case 'venue':
-                    $this->venueWorkflow->syncSlugsForName($name);
-                    $this->eventAuthoring->syncSearchableEventsByIds($subject['event_ids']);
-                    $this->publicListingsCache->bustMajlisListing();
-
-                    break;
-            }
+            $this->syncAddressable($subject['morph_type'], $subject['id'], $subject['name'], $subject['event_ids']);
         }
 
+        $this->bumpAffectedDirectoryVersions($morphTypes);
+    }
+
+    /** @param list<string> $morphTypes */
+    public function bumpAffectedDirectoryVersions(array $morphTypes): void
+    {
         if (in_array('institution', $morphTypes, true)) {
             $this->institutionCacheVersion->bump();
         }
@@ -63,4 +46,36 @@ final readonly class SyncAddressChangeEffectsAction implements AddressChangeEffe
             $this->personCacheVersion->bump();
         }
     }
+
+    /**
+     * @param list<string> $eventIds
+     * @param array<string, mixed>|null $deletedAddress
+     */
+    public function syncAddressable(string $morphType, string $id, string $name, array $eventIds, ?array $deletedAddress = null): void
+    {
+        switch ($morphType) {
+            case 'institution':
+                $this->institutionWorkflow->syncSlugsForName($name);
+                $this->institutionWorkflow->syncSearchProjection($id);
+                $this->eventAuthoring->syncSearchableEventsByIds($eventIds);
+                $this->publicListingsCache->bustMajlisListing();
+                break;
+            case 'person':
+                if ($deletedAddress !== null) {
+                    $this->personWorkflow->syncSlugAfterAddressDeleted($id, $deletedAddress);
+                } else {
+                    $this->personWorkflow->syncSlugsForName($name);
+                }
+                $this->eventAuthoring->syncEventSlugsForPersonName($name);
+                $this->personWorkflow->syncSearchProjection($id);
+                $this->publicListingsCache->bustMajlisListing();
+                break;
+            case 'venue':
+                $this->venueWorkflow->syncSlugsForName($name);
+                $this->eventAuthoring->syncSearchableEventsByIds($eventIds);
+                $this->publicListingsCache->bustMajlisListing();
+                break;
+        }
+    }
+
 }

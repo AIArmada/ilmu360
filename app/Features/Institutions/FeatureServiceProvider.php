@@ -57,12 +57,14 @@ use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Contracts\AddressChangeEffects;
+use App\Shared\Contracts\AddressableChangeEffects;
 
 class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
         $this->app->bind(AddressChangeEffects::class, SyncAddressChangeEffectsAction::class);
+        $this->app->bind(AddressableChangeEffects::class, SyncAddressChangeEffectsAction::class);
         $this->app->bind(ContributionProjection::class, InstitutionContributionProjection::class);
         $this->app->bind(InstitutionQuickAdd::class, InstitutionFormSchema::class);
         $this->app->bind(InstitutionCatalog::class, EloquentInstitutionCatalog::class);
