@@ -175,4 +175,53 @@ All are typed, `@internal`, list their consumers, and are guarded by
 
 ## Verification
 
-Populated at the final integration point (commands, exit codes, CI link).
+Final tree: `c647f310` plus the restored venue/series port (committed) and the
+checker/documentation wave.
+
+| Gate | Result | Artifact |
+|---|---|---|
+| `php tools/architecture-check.php --json` | 0 findings, 28 features | `/tmp/ilmu360-orm-final-architecture.json` |
+| `composer architecture:types` | passed, 0 errors | `/tmp/ilmu360-orm-final-types.log` |
+| `vendor/bin/pint --test` | passed | `/tmp/ilmu360-orm-final-pint.log` |
+| `vendor/bin/rector process --dry-run` | passed, 0 changes | `/tmp/ilmu360-orm-final-rector.log` |
+| `php artisan route:list --json` | 738 routes (baseline 738) | `/tmp/ilmu360-orm-final-routes.json` |
+| `php artisan schedule:list` | 24 lines (baseline 24) | `/tmp/ilmu360-orm-final-schedule.txt` |
+| `npm run build` | passed | `/tmp/ilmu360-orm-final-build.log` |
+| `git diff --check` | passed | — |
+| Full Pest | per-file process isolation, see below | `/tmp/pest-by-file-results.txt` |
+
+The repository's local Paratest wrapper (`--parallel`) fails before execution
+with the known `WrapperRunner::getTestFiles()` TypeError, and a single-process
+serial run exhausts 512 MB/2 GB inside Scramble's `TypeWalker`/`PhpDoc` lexer
+after several hundred files. Both are process-lifetime limits, not failures:
+`PublishedContractSchemaParityTest` passes alone (3/3). The suite was therefore
+run the way CI runs it — one process per test file.
+
+A 6-way per-file run passed 527/549 files. Every non-environmental failure was
+re-run serially and passed:
+
+| File | 6-way | Serial |
+|---|---|---|
+| `Api/EventApiContractTest` | 1 media race | 30/30 |
+| `Api/Frontend/FrontendApiParityTest` | 1 media race | 108/108 |
+| `ContributionPagesTest` | 1 media race | 85/85 |
+| `EventShowPageTest` | 1 media race | 46/46 |
+| `EventSearchTest` | poster/cover race | 127/127 |
+| `Mcp/EventImageGenerationToolTest` | 7 media races | 14/14 |
+| `MediaCollectionSyncTest` | media race | 7/7 |
+| `MediaConversionsTest` | media race | 46/46 |
+
+The remaining per-file failures are environment-only and excluded from the
+local run:
+
+- `pango-view` is not installed locally, so `Wp3ShareCardTest`, the two
+  `PangoShareCardRenderer*` suites and `ShareCardGlyphGuardTest` report
+  `shaper_unavailable`. CI installs Pango and fonts.
+- The ten `real-driver` files report "No tests found" when individually
+  excluded; they run in CI's sharded group and via `composer test:drivers`.
+
+The final serial sweep of the remaining 535 files is recorded in
+`/tmp/pest-serial-results.txt`; CI Quality is the authoritative full-suite
+gate for the environment-dependent files.
+
+
