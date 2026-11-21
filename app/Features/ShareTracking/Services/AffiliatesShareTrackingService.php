@@ -34,7 +34,6 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Actions\UpdateLink;
 use AIArmada\Links\Models\Link;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;
-use App\Features\References\Models\Reference;
 use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Features\ShareTracking\Api\ActivityRewardBusinessKey;
 use App\Features\ShareTracking\Api\BrowserSelectionWriter;

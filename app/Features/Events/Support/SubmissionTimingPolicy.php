@@ -10,7 +10,6 @@ use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Services\SubmissionContextResolver;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Prayer\Api\BuildPrayerPreviewAction;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
