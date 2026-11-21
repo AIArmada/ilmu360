@@ -1929,26 +1929,25 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
     public function institutionDirectoryEventColumns(): EventDirectorySqlProjection
     {
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
+        $now = now();
 
         $upcomingCount = DB::table("{$occurrencesTable} as public_occurrences")
             ->join('events', 'events.id', '=', 'public_occurrences.event_id')
             ->whereColumn('events.institution_id', 'institutions.id')
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public->value)
-            ->whereIn('public_occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
-            ->whereIn('public_occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
-            ->whereNotNull('public_occurrences.starts_at')
-            ->where('public_occurrences.starts_at', '>=', now())
-            ->selectRaw('count(*)');
+            ->where('events.visibility', EventVisibility::Public->value);
+        $this->constrainPublicUpcomingOccurrences($upcomingCount, 'public_occurrences', $now);
+        $upcomingCount->selectRaw('count(*)');
 
         $nextEventId = Event::query()
             ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
             ->whereColumn('events.institution_id', 'institutions.id')
-            ->where('next_event_occurrences.starts_at', '>=', now())
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public->value)
+            ->where('events.visibility', EventVisibility::Public->value);
+        $this->constrainPublicUpcomingOccurrences($nextEventId, 'next_event_occurrences', $now);
+        $nextEventId
             ->orderBy('next_event_occurrences.starts_at')
             ->orderBy('events.id')
             ->limit(1)
@@ -1977,11 +1976,15 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         }
 
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
-
-        return DB::table('events')
+        $details = DB::table('events')
             ->join($occurrencesTable, "{$occurrencesTable}.event_id", '=', 'events.id')
             ->whereIn('events.id', $eventIds)
-            ->where("{$occurrencesTable}.starts_at", '>=', now())
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public->value);
+        $this->constrainPublicUpcomingOccurrences($details, $occurrencesTable);
+
+        return $details
             ->groupBy('events.id', 'events.slug', 'events.title')
             ->selectRaw("events.id, events.slug, events.title, min(\"{$occurrencesTable}\".\"starts_at\") as next_event_starts_at")
             ->get()
@@ -1991,6 +1994,24 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
                 'next_event_starts_at' => (string) $row->next_event_starts_at,
             ]])
             ->all();
+    }
+
+    /**
+     * Public occurrence state shared by directory counts, next-event
+     * selection and next-event detail lookups.
+     *
+     * @param  Builder<Event>|QueryBuilder  $query
+     */
+    private function constrainPublicUpcomingOccurrences(
+        Builder|QueryBuilder $query,
+        string $occurrencesTable,
+        ?CarbonInterface $now = null,
+    ): void {
+        $query
+            ->whereIn("{$occurrencesTable}.status", Event::PUBLIC_SCHEDULE_STATUSES)
+            ->whereIn("{$occurrencesTable}.visibility", Event::PUBLIC_SCHEDULE_VISIBILITIES)
+            ->whereNotNull("{$occurrencesTable}.starts_at")
+            ->where("{$occurrencesTable}.starts_at", '>=', $now ?? now());
     }
 
     public function institutionDirectoryFacts(array $institutionIds): array
@@ -2004,24 +2025,23 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
         $now = now();
 
-        $counts = DB::table("{$occurrencesTable} as public_occurrences")
+        $countsQuery = DB::table("{$occurrencesTable} as public_occurrences")
             ->join('events', 'events.id', '=', 'public_occurrences.event_id')
             ->whereIn('events.institution_id', $institutionIds)
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
-            ->where('events.visibility', EventVisibility::Public->value)
-            ->whereIn('public_occurrences.status', $this->stringValues(Event::PUBLIC_SCHEDULE_STATUSES))
-            ->whereIn('public_occurrences.visibility', $this->stringValues(Event::PUBLIC_SCHEDULE_VISIBILITIES))
-            ->whereNotNull('public_occurrences.starts_at')
-            ->where('public_occurrences.starts_at', '>=', $now)
+            ->where('events.visibility', EventVisibility::Public->value);
+        $this->constrainPublicUpcomingOccurrences($countsQuery, 'public_occurrences', $now);
+
+        $counts = $countsQuery
             ->groupBy('events.institution_id')
             ->selectRaw('events.institution_id as institution_id, count(*) as aggregate')
             ->pluck('aggregate', 'institution_id')
             ->mapWithKeys(static fn (mixed $count, mixed $id): array => [(string) $id => (int) $count])
             ->all();
 
-        $nextEventIds = $this->nextPublicEventIds($institutionIds, $occurrencesTable, $now->toDateTimeString());
-        $details = $this->nextPublicEventDetails(array_values($nextEventIds), $occurrencesTable);
+        $nextEventIds = $this->nextPublicEventIds($institutionIds, $occurrencesTable, $now);
+        $details = $this->nextPublicEventDetails(array_values($nextEventIds), $occurrencesTable, $now);
 
         $facts = [];
 
@@ -2056,15 +2076,17 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
      * @param  list<string>  $institutionIds
      * @return array<string, string>
      */
-    private function nextPublicEventIds(array $institutionIds, string $occurrencesTable, string $now): array
+    private function nextPublicEventIds(array $institutionIds, string $occurrencesTable, CarbonInterface $now): array
     {
-        $rows = DB::table('events')
+        $query = DB::table('events')
             ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
             ->whereIn('events.institution_id', $institutionIds)
-            ->where('next_event_occurrences.starts_at', '>=', $now)
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
-            ->where('events.visibility', EventVisibility::Public->value)
+            ->where('events.visibility', EventVisibility::Public->value);
+        $this->constrainPublicUpcomingOccurrences($query, 'next_event_occurrences', $now);
+
+        $rows = $query
             ->orderBy('next_event_occurrences.starts_at')
             ->orderBy('events.id')
             ->get(['events.institution_id', 'events.id']);
@@ -2086,16 +2108,21 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
      * @param  list<string>  $eventIds
      * @return array<string, array{slug: string, title: string, starts_at: string}>
      */
-    private function nextPublicEventDetails(array $eventIds, string $occurrencesTable): array
+    private function nextPublicEventDetails(array $eventIds, string $occurrencesTable, CarbonInterface $now): array
     {
         if ($eventIds === []) {
             return [];
         }
 
-        return DB::table('events')
+        $query = DB::table('events')
             ->join($occurrencesTable, "{$occurrencesTable}.event_id", '=', 'events.id')
             ->whereIn('events.id', $eventIds)
-            ->where("{$occurrencesTable}.starts_at", '>=', now())
+            ->whereNotNull('events.published_at')
+            ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
+            ->where('events.visibility', EventVisibility::Public->value);
+        $this->constrainPublicUpcomingOccurrences($query, $occurrencesTable, $now);
+
+        return $query
             ->groupBy('events.id', 'events.slug', 'events.title')
             ->selectRaw("events.id, events.slug, events.title, min(\"{$occurrencesTable}\".\"starts_at\") as next_event_starts_at")
             ->get()
@@ -2130,15 +2157,19 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
     }
 
     /**
+     * Hydrate current public parent events for selected public schedule ids.
+     *
      * @param  list<string>  $eventIds
      * @param  list<string>  $relations
      * @return EloquentCollection<string, Event>
      */
     private function hydrateEventsForIds(array $eventIds, array $relations): EloquentCollection
     {
-        return Event::query()
-            ->with($relations)
-            ->whereKey($eventIds)
+        return $this->constrainCurrentPublicEventState(
+            Event::query()
+                ->with($relations)
+                ->whereKey($eventIds),
+        )
             ->get()
             ->keyBy('id');
     }

@@ -623,3 +623,53 @@ it('does not render stale search ids from the discovery fallback or nearby path'
 
     expect($nearby->total())->toBe(0);
 });
+
+it('drops current non-public ids at final schedule hydration', function (): void {
+    $public = Event::factory()->create([
+        'title' => 'Current Public Hydration Programme',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $private = Event::factory()->create([
+        'title' => 'Private Hydration Programme',
+        'status' => 'approved',
+        'visibility' => 'private',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $unpublished = Event::factory()->create([
+        'title' => 'Unpublished Hydration Programme',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(2),
+    ]);
+    $unpublished->updateQuietly(['published_at' => null]);
+
+    $hydrated = app(PublicScheduleEventReads::class)->hydrateScheduleEvents([
+        (string) $private->getKey(),
+        (string) $unpublished->getKey(),
+        (string) $public->getKey(),
+    ]);
+
+    expect($hydrated->pluck('id')->all())->toBe([(string) $public->getKey()]);
+});
+
+it('revalidates public state between fact selection and final hydration', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Hydration Race Programme',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $readers = app(PublicScheduleEventReads::class);
+    $facts = $readers->publicScheduleFactSet('Hydration Race Programme', ['time_scope' => 'all']);
+
+    expect($facts->eventIds)->toContain((string) $event->getKey());
+
+    $event->updateQuietly(['visibility' => 'private']);
+
+    expect($readers->hydrateScheduleEvents($facts->eventIds))->toBeEmpty();
+});

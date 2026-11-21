@@ -8,6 +8,9 @@ use App\Features\Events\Queries\EventDiscoveryFilterSet;
 use App\Features\Events\Queries\TypesenseEventDiscovery;
 use App\Features\References\Api\ReferenceQueries;
 use Illuminate\Support\Str;
+use Laravel\Scout\EngineManager;
+use Laravel\Scout\Engines\TypesenseEngine;
+use Mockery;
 
 /**
  * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog, 2: EventSearchRelationProvider, 3: ReferenceQueries}
@@ -226,4 +229,54 @@ test('typesense rehydration revalidates current event visibility and publication
     expect(collect($results->items())->pluck('id')->all())->toBe($expectedIds)
         ->and(collect($nearby->items())->pluck('id')->all())->toBe($expectedIds)
         ->and(collect($nearbyQuery->items())->pluck('id')->all())->toBe($expectedIds);
+});
+
+test('typesense rehydration drops stale ids returned by the index', function () {
+    $fresh = Event::factory()->create([
+        'title' => 'Fresh Indexed Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $stalePrivate = Event::factory()->create([
+        'title' => 'Stale Indexed Private Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(3),
+    ]);
+    $staleUnpublished = Event::factory()->create([
+        'title' => 'Stale Indexed Unpublished Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(4),
+    ]);
+    $stalePrivate->updateQuietly(['visibility' => 'private']);
+    $staleUnpublished->updateQuietly(['published_at' => null]);
+
+    $engine = Mockery::mock(TypesenseEngine::class)->makePartial();
+    $engine->shouldReceive('paginate')
+        ->once()
+        ->andReturn([
+            'found' => 3,
+            'hits' => [
+                ['document' => ['id' => (string) $stalePrivate->getKey()]],
+                ['document' => ['id' => (string) $fresh->getKey()]],
+                ['document' => ['id' => (string) $staleUnpublished->getKey()]],
+            ],
+        ]);
+
+    app(EngineManager::class)->extend('stale-typesense', fn () => $engine);
+    config(['scout.driver' => 'stale-typesense', 'scout.queue' => false]);
+
+    $discovery = app(TypesenseEventDiscovery::class);
+    $criteria = app(EventDiscoveryCriteriaFactory::class)->fromSearch('Stale Index', [], 20, 'time');
+    $results = $discovery->search($criteria);
+
+    // Scout recomputes the paginator total through the query callback, so both
+    // the hydrated payload and the total exclude stale current-state rows.
+    expect(collect($results->items())->pluck('id')->all())->toBe([(string) $fresh->getKey()])
+        ->and($results->total())->toBe(1);
 });

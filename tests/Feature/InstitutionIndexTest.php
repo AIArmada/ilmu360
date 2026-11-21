@@ -4,6 +4,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use App\Features\Contributions\Actions\EnsureUniqueContributionCreateAction;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitInstitution;
@@ -13,6 +14,7 @@ use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
+use App\Platform\Time\UserDateTimeFormatter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -906,6 +908,73 @@ it('shows the nearest upcoming public majlis on state-filtered cards with one ba
             static fn (string $query): bool => str_contains($query, 'next_event_starts_at')
                 && str_contains($query, 'min('),
         ))->toHaveCount(1);
+});
+
+it('shows the earliest public occurrence on institution next-event cards', function (): void {
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Majlis Awam',
+        'status' => 'verified',
+    ]);
+    $event = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Awam Terdekat',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(9),
+    ]);
+    $publicOccurrence = $event->occurrences()->firstOrFail();
+    $privateOccurrence = app(CreateEventOccurrenceAction::class)->handle($event, [
+        'title' => 'Private Earlier Day',
+        'starts_at' => now()->addDays(2),
+        'status' => 'draft',
+        'visibility' => 'private',
+    ]);
+
+    $html = (string) get('/institusi')->assertSuccessful()->getContent();
+    preg_match(
+        '/<article[^>]*wire:key="institution-'.preg_quote((string) $institution->getKey(), '/').'".*?<\/article>/s',
+        $html,
+        $card,
+    );
+    $publicDate = UserDateTimeFormatter::translatedFormat($publicOccurrence->starts_at, 'j M');
+    $privateDate = UserDateTimeFormatter::translatedFormat($privateOccurrence->starts_at, 'j M');
+
+    expect($card[0] ?? null)->not->toBeNull()
+        ->toContain('data-next-event')
+        ->toContain($publicDate)
+        ->toContain('Majlis Awam Terdekat')
+        ->not->toContain($privateDate);
+});
+
+it('does not show a next-event card when only private future occurrences exist', function (): void {
+    $institution = Institution::factory()->create([
+        'name' => 'Institusi Tiada Majlis Awam',
+        'status' => 'verified',
+    ]);
+    $event = Event::factory()->for($institution)->create([
+        'title' => 'Majlis Lama Awam',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDays(10),
+        'starts_at' => now()->subDay(),
+    ]);
+    app(CreateEventOccurrenceAction::class)->handle($event, [
+        'title' => 'Private Future Day',
+        'starts_at' => now()->addDay(),
+        'status' => 'draft',
+        'visibility' => 'private',
+    ]);
+
+    $html = (string) get('/institusi')->assertSuccessful()->getContent();
+    preg_match(
+        '/<article[^>]*wire:key="institution-'.preg_quote((string) $institution->getKey(), '/').'".*?<\/article>/s',
+        $html,
+        $card,
+    );
+
+    expect($card[0] ?? null)->not->toBeNull()
+        ->toContain('0 '.__('Upcoming Events'))
+        ->not->toContain('data-next-event');
 });
 
 it('issues single like predicates for single-word institution search', function () {
