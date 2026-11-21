@@ -321,6 +321,8 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use PhpParser\PrettyPrinter;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use App\Shared\Contracts\SearchHealthProbe;
+use App\Host\Typesense\TypesenseHealthProbe;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -351,6 +353,7 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
+        $this->app->bind(SearchHealthProbe::class, TypesenseHealthProbe::class);
         $this->app->bind(EventContributionStateMapper::class, EventContributionStateMapperService::class);
         $this->app->bind(OrganizerLookup::class, OrganizerLookupService::class);
         $this->app->bind(PublicScheduleEligibility::class, PublicScheduleEligibilityService::class);

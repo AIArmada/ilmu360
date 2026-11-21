@@ -6,11 +6,13 @@ namespace App\Platform\Search;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Shared\Contracts\SearchHealthProbe;
 use Throwable;
-use Typesense\Client as TypesenseClient;
 
 class TypesenseHealthCheckService
 {
+    public function __construct(private readonly SearchHealthProbe $healthProbe) {}
+
     /**
      * The cache duration for health check results (in seconds).
      */
@@ -63,12 +65,7 @@ class TypesenseHealthCheckService
                 return false;
             }
 
-            $client = new TypesenseClient($settings);
-
-            // Attempt to fetch health - lightweight operation
-            $client->health->retrieve();
-
-            return true;
+            return $this->healthProbe->isHealthy($settings);
         } catch (Throwable $e) {
             Log::debug('Typesense health check failed', [
                 'error' => $e->getMessage(),
