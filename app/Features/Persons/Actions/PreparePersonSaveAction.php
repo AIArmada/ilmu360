@@ -35,6 +35,9 @@ final readonly class PreparePersonSaveAction
             throw new AuthorizationException('Only global administrators may curate featured people.');
         }
 
-        $person->syncFeaturedOrder();
+        if ($person->is_featured
+            && ($person->order_column === null || ($person->exists && $person->isDirty('is_featured')))) {
+            $person->setHighestOrderNumber();
+        }
     }
 }
