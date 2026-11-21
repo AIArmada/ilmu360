@@ -1,0 +1,24 @@
+name: Dune source audit snapshot
+on:
+  push:
+    branches: [refactor]
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive source for full boundary audit
+        shell: bash
+        run: |
+          paths=()
+          for path in app tests tools config database resources bootstrap routes .agents .ai composer.json composer.lock phpstan.neon phpstan-baseline.neon; do
+            if [ -e "$path" ]; then paths+=("$path"); fi
+          done
+          tar -czf /tmp/dune-refactor-source.tar.gz "${paths[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dune-audit-source
+          path: /tmp/dune-refactor-source.tar.gz
+          if-no-files-found: error
