@@ -18,6 +18,16 @@
     ],
     "table:notification_inboxes": [
       "App\\Features\\Communications\\Actions\\ManageCommunicationsAccountLifecycleAction"
+    ],
+    "table:communication_attempts": [
+      "App\\Features\\Communications\\Actions\\PersistDeliveryFencingAction",
+      "App\\Features\\Communications\\Actions\\RecordExternalDeliveryResolutionEvidenceAction"
+    ],
+    "table:communication_deliveries": [
+      "App\\Features\\Communications\\Actions\\PersistDeliveryFencingAction"
+    ],
+    "table:communications": [
+      "App\\Features\\Communications\\Actions\\PersistDeliveryFencingAction"
     ]
   }
 }

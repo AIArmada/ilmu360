@@ -6,12 +6,12 @@ namespace App\Features\Communications\Support\Delivery;
 
 use AIArmada\Communications\Actions\CompleteDeliveryAttemptAction;
 use AIArmada\Communications\Actions\StartDeliveryAttemptAction;
-use AIArmada\Communications\Contracts\CommunicationRecorder;
 use AIArmada\Communications\Enums\CommunicationStatus;
 use AIArmada\Communications\Enums\DeliveryStatus;
 use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\CommunicationDelivery;
+use App\Features\Communications\Actions\PersistDeliveryFencingAction;
 use Carbon\CarbonImmutable;
 use Illuminate\Notifications\Notification;
 
@@ -190,10 +190,7 @@ final class GuardedDeliverySend
             'destination_hash' => $delivery->destination_hash,
         ]);
 
-        $metadata = is_array($attempt->metadata) ? $attempt->metadata : [];
-        $metadata['digest_mail_fence'] = $frozen;
-        $attempt->metadata = $metadata;
-        $attempt->save();
+        app(PersistDeliveryFencingAction::class)->recordFrozenAttempt($attempt, $frozen);
 
         return $attempt->refresh();
     }
@@ -265,7 +262,7 @@ final class GuardedDeliverySend
             [],
         );
 
-        app(CommunicationRecorder::class)->markSent($communicationId, $deliveryId, $result);
+        app(PersistDeliveryFencingAction::class)->markSent($communicationId, $deliveryId, $result);
 
         return true;
     }
@@ -334,12 +331,8 @@ final class GuardedDeliverySend
             return false;
         }
 
-        $attempt->failed_at = CarbonImmutable::now();
-        $attempt->failure_code = $failureCode;
-        $attempt->failure_message = mb_substr($failureMessage, 0, 2000);
-        $attempt->save();
-
-        app(CommunicationRecorder::class)->markFailed($communicationId, $deliveryId, $failureMessage);
+        app(PersistDeliveryFencingAction::class)->recordFailure($attempt, $failureMessage, $failureCode);
+        app(PersistDeliveryFencingAction::class)->markFailed($communicationId, $deliveryId, $failureMessage);
 
         return true;
     }
@@ -434,15 +427,7 @@ final class GuardedDeliverySend
      */
     private static function restoreCancel(CommunicationDelivery $delivery, Communication $communication): void
     {
-        if ($delivery->status !== DeliveryStatus::Cancelled) {
-            $delivery->status = DeliveryStatus::Cancelled;
-            $delivery->save();
-        }
-
-        if ($communication->status !== CommunicationStatus::Cancelled) {
-            $communication->status = CommunicationStatus::Cancelled;
-            $communication->save();
-        }
+        app(PersistDeliveryFencingAction::class)->restoreCancelled($delivery, $communication);
     }
 
     /**
@@ -482,8 +467,7 @@ final class GuardedDeliverySend
         };
 
         if ($restored instanceof DeliveryStatus) {
-            $delivery->status = $restored;
-            $delivery->save();
+            app(PersistDeliveryFencingAction::class)->restoreSettledDelivery($delivery, $restored);
         }
     }
 }

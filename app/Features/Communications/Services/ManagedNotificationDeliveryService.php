@@ -15,6 +15,7 @@ use AIArmada\Communications\Jobs\DispatchManagedNotificationJob;
 use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\CommunicationDelivery;
+use App\Features\Communications\Actions\RecordExternalDeliveryResolutionEvidenceAction;
 use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Api\ManagedCommunicationSnapshot;
 use App\Features\Communications\Api\ManagedDeliveryResolutionSnapshot;
@@ -35,6 +36,7 @@ final readonly class ManagedNotificationDeliveryService implements ManagedNotifi
         private AccountDirectory $accounts,
         private DispatchManagedNotificationAction $dispatchNotification,
         private DeliveryFencing $deliveryFencing,
+        private RecordExternalDeliveryResolutionEvidenceAction $resolutionEvidence,
     ) {}
 
     public function adoptOrDispatch(ManagedNotificationDispatchRequest $request): ?ManagedCommunicationSnapshot
@@ -251,8 +253,7 @@ final readonly class ManagedNotificationDeliveryService implements ManagedNotifi
                     'reason' => $decision === 'failed' ? (string) $reason : null,
                     'resolved_at' => CarbonImmutable::now('UTC')->toIso8601String(),
                 ];
-                $resolvedAttempt->metadata = $metadata;
-                $resolvedAttempt->save();
+                $this->resolutionEvidence->handle($resolvedAttempt, $metadata);
             }
 
             $resolvedDelivery = $delivery->refresh();

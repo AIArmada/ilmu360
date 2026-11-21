@@ -128,42 +128,6 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/Communications/Services/ManagedNotificationDeliveryService.php",
-      "target": "table:communication_attempts",
-      "model": "AIArmada\\Communications\\Models\\CommunicationAttempt",
-      "reason": "The Communications package owns delivery attempts; this feature service settles the documented fenced external send outcome through its canonical model.",
-      "owner": "Communications",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Communications/Support/Delivery/GuardedDeliverySend.php",
-      "target": "table:communication_attempts",
-      "model": "AIArmada\\Communications\\Models\\CommunicationAttempt",
-      "reason": "The Communications package owns delivery attempts; this feature support class writes the fenced channel outcome through its canonical model.",
-      "owner": "Communications",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Communications/Support/Delivery/GuardedDeliverySend.php",
-      "target": "table:communication_deliveries",
-      "model": "AIArmada\\Communications\\Models\\CommunicationDelivery",
-      "reason": "The Communications package owns deliveries; this feature support class updates the documented channel delivery fence through its canonical model.",
-      "owner": "Communications",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Communications/Support/Delivery/GuardedDeliverySend.php",
-      "target": "table:communications",
-      "model": "AIArmada\\Communications\\Models\\Communication",
-      "reason": "The Communications package owns communications; this feature support class updates the documented channel delivery fence through its canonical model.",
-      "owner": "Communications",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
       "file": "app/Features/Events/Actions/Authoring/ConfigureEventAdmissionAction.php",
       "target": "table:ticket_ticket_type_seating_options",
       "model": "AIArmada\\Ticketing\\Models\\TicketTypeSeatingOption",
