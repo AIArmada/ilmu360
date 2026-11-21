@@ -64,7 +64,7 @@ final readonly class EventCardsQuery implements EventCards
         }
 
         $events = Event::query()
-            ->with($this->relationProvider->relations())
+            ->with([...$this->relationProvider->relations(), 'displayOccurrence.media'])
             ->whereHas('occurrences')
             ->whereKey($eventIds)
             ->get()

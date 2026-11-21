@@ -320,38 +320,38 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @return Collection<int, \Illuminate\Database\Eloquent\Model>
+     * @return \Illuminate\Support\Collection<int, InstitutionDirectoryRecord>
      */
     #[Computed]
-    public function followingInstitutions(): Collection
+    public function followingInstitutions(): \Illuminate\Support\Collection
     {
         return $this->followedSubjects(
             EngagementSubjectType::Institution,
-            fn (array $ids): object => collect(app(InstitutionLookup::class)->institutionsByIds($ids)),
+            fn (array $ids): \Illuminate\Support\Collection => collect(app(InstitutionLookup::class)->institutionsByIds($ids)),
         );
     }
 
     /**
-     * @return Collection<int, \Illuminate\Database\Eloquent\Model>
+     * @return \Illuminate\Support\Collection<int, PersonDirectoryRecord>
      */
     #[Computed]
-    public function followingPersons(): Collection
+    public function followingPersons(): \Illuminate\Support\Collection
     {
         return $this->followedSubjects(
             EngagementSubjectType::Person,
-            fn (array $ids): object => collect(app(PersonLookup::class)->personsByIds($ids)),
+            fn (array $ids): \Illuminate\Support\Collection => collect(app(PersonLookup::class)->personsByIds($ids)),
         );
     }
 
     /**
-     * @return Collection<int, \Illuminate\Database\Eloquent\Model>
+     * @return \Illuminate\Support\Collection<int, ReferenceSummary>
      */
     #[Computed]
-    public function followingReferences(): Collection
+    public function followingReferences(): \Illuminate\Support\Collection
     {
         return $this->followedSubjects(
             EngagementSubjectType::Reference,
-            fn (array $ids): object => collect(app(ReferenceLookup::class)->referencesByIds($ids)),
+            fn (array $ids): \Illuminate\Support\Collection => collect(app(ReferenceLookup::class)->referencesByIds($ids)),
         );
     }
 
@@ -460,21 +460,21 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @param  callable(list<string>): object  $fetch
-     * @return Collection<int, \Illuminate\Database\Eloquent\Model>
+     * @param  callable(list<string>): \Illuminate\Support\Collection<int, mixed>  $fetch
+     * @return \Illuminate\Support\Collection<int, mixed>
      */
-    private function followedSubjects(EngagementSubjectType $subjectType, callable $fetch): Collection
+    private function followedSubjects(EngagementSubjectType $subjectType, callable $fetch): \Illuminate\Support\Collection
     {
         $user = $this->userRecord();
 
-        return OwnerContext::withOwner(null, function () use ($subjectType, $fetch, $user): Collection {
+        return OwnerContext::withOwner(null, function () use ($subjectType, $fetch, $user): \Illuminate\Support\Collection {
             $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), $subjectType);
 
             if ($ids === []) {
                 return new Collection;
             }
 
-            /** @var Collection<int, \Illuminate\Database\Eloquent\Model> $subjects */
+            /** @var \Illuminate\Support\Collection<int, mixed> $subjects */
             $subjects = $fetch($ids);
 
             return $subjects;
