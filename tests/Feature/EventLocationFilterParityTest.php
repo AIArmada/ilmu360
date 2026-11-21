@@ -3,11 +3,11 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventCardRelationshipProvider;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Models\Venue;

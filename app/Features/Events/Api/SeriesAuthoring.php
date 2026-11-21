@@ -12,7 +12,6 @@ use App\Shared\Directory\FollowableSubject;
  * Root transports (Filament/admin API/MCP) use this interface while the Series
  * model remains conventional. Every method takes scalar identifiers or plain
  * arrays; no Eloquent models cross this boundary.
- *
  */
 interface SeriesAuthoring
 {

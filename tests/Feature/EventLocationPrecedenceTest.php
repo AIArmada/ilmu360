@@ -2,8 +2,8 @@
 
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Models\EventLocation;
-use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Services\EventDetailPresenter;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Models\Venue;

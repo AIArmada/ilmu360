@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Api\EventCards;
 use App\Features\Events\Models\Event;
 use Illuminate\Support\Collection;

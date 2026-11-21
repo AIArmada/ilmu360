@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Events\Api\Enums\EventFormat;
+use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\Data\EventListInstitutionData;
 use App\Features\Events\Queries\Data\EventListPersonData;
 use App\Features\Events\Queries\Data\EventListVenueData;
-use App\Features\Events\Api\Enums\EventFormat;
-use App\Features\Events\Queries\EventCategoryPresenter;
-use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;

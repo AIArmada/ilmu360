@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\EventCollections;
 use App\Features\Events\Api\EventScheduleSql;
