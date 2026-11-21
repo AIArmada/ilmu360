@@ -5,13 +5,7 @@ namespace App\Platform\Addressing\Observers;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
-use App\Features\Events\Api\EventAuthoring;
-use App\Features\Institutions\Api\InstitutionListingCacheVersion;
-use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Features\Persons\Api\PersonListingCacheVersion;
-use App\Features\Persons\Api\PersonWorkflow;
-use App\Features\Places\Api\VenueWorkflow;
+use App\Shared\Contracts\AddressChangeEffects;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -19,13 +13,7 @@ use Illuminate\Support\Collection;
 class AddressObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        protected EventAuthoring $eventAuthoring,
-        protected InstitutionWorkflow $institutionWorkflow,
-        protected PersonWorkflow $personWorkflow,
-        protected VenueWorkflow $venueWorkflow,
-        protected InstitutionListingCacheVersion $institutionCacheVersion,
-        protected PersonListingCacheVersion $personCacheVersion,
-        protected PublicListingsCacheInvalidator $publicListingsCache,
+        protected AddressChangeEffects $effects,
         protected AddressCountryResolver $addressingCountryResolver,
     ) {}
 
@@ -48,53 +36,39 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
             return;
         }
 
-        $this->syncInstitutionSlug($address);
-        $this->bumpDirectoryVersionsForAddress($address);
+        $this->dispatchChanges($address);
     }
 
     public function deleted(Address $address): void
     {
-        $this->syncInstitutionSlug($address);
-        $this->bumpDirectoryVersionsForAddress($address);
+        $this->dispatchChanges($address);
     }
 
-    private function syncInstitutionSlug(Address $address): void
+    private function dispatchChanges(Address $address): void
     {
         $address->loadMissing('addressableLinks.addressable');
 
+        $subjects = [];
         foreach ($address->addressableLinks as $link) {
             $addressable = $link->addressable;
-
             if (! $addressable instanceof Model) {
                 continue;
             }
 
-            $id = (string) $addressable->getKey();
-            $name = (string) ($addressable->name ?? '');
-
-            switch ($addressable->getMorphClass()) {
-                case 'institution':
-                    $this->institutionWorkflow->syncSlugsForName($name);
-                    $this->institutionWorkflow->syncSearchProjection($id);
-                    $this->eventAuthoring->syncSearchableEventsByIds($this->eventIds($addressable));
-                    $this->publicListingsCache->bustMajlisListing();
-
-                    break;
-                case 'person':
-                    $this->personWorkflow->syncSlugsForName($name);
-                    $this->eventAuthoring->syncEventSlugsForPersonName($name);
-                    $this->personWorkflow->syncSearchProjection($id);
-                    $this->publicListingsCache->bustMajlisListing();
-
-                    break;
-                case 'venue':
-                    $this->venueWorkflow->syncSlugsForName($name);
-                    $this->eventAuthoring->syncSearchableEventsByIds($this->eventIds($addressable));
-                    $this->publicListingsCache->bustMajlisListing();
-
-                    break;
-            }
+            $subjects[] = [
+                'morph_type' => (string) $addressable->getMorphClass(),
+                'id' => (string) $addressable->getKey(),
+                'name' => (string) ($addressable->name ?? ''),
+                'event_ids' => $this->eventIds($addressable),
+            ];
         }
+
+        $morphTypes = $address->addressableLinks
+            ->map(static fn (Addressable $link): string => (string) $link->addressable_type)
+            ->values()
+            ->all();
+
+        $this->effects->apply($subjects, $morphTypes);
     }
 
     /**
@@ -111,25 +85,4 @@ class AddressObserver implements ShouldHandleEventsAfterCommit
         return $events->pluck('id')->map(static fn (mixed $id): string => (string) $id)->all();
     }
 
-    private function bumpDirectoryVersionsForAddress(Address $address): void
-    {
-        $address->loadMissing('addressableLinks');
-
-        $addressableMorphTypes = $address->addressableLinks
-            ->map(static fn (Addressable $link): string => (string) $link->addressable_type)
-            ->values()
-            ->all();
-
-        if (in_array('institution', $addressableMorphTypes, true)) {
-            $this->institutionCacheVersion->bump();
-        }
-
-        if (in_array('person', $addressableMorphTypes, true)) {
-            $this->personCacheVersion->bump();
-        }
-    }
-
-    /**
-     * @param  EloquentCollection<int, Event>  $events
-     */
 }

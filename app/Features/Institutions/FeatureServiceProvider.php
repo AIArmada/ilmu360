@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Institutions;
 
 use App\Features\Institutions\Actions\InstitutionSubmissionAccessAction;
+use App\Features\Institutions\Actions\SyncAddressChangeEffectsAction;
 use App\Features\Institutions\Actions\ResolveInstitutionMapsPlaceSelectionAction;
 use App\Features\Institutions\Api\ContributionProjection;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
@@ -54,12 +55,14 @@ use App\Platform\Api\Resources\ResourceDefinitionRegistry;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
+use App\Shared\Contracts\AddressChangeEffects;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 
 class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        $this->app->bind(AddressChangeEffects::class, SyncAddressChangeEffectsAction::class);
         $this->app->bind(ContributionProjection::class, InstitutionContributionProjection::class);
         $this->app->bind(InstitutionQuickAdd::class, InstitutionFormSchema::class);
         $this->app->bind(InstitutionCatalog::class, EloquentInstitutionCatalog::class);
