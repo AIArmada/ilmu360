@@ -268,6 +268,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->commands([
             EntryPoints\Console\Commands\IndexEventsToTypesense::class,
             EntryPoints\Console\Commands\PruneShareCards::class,
+            EntryPoints\Console\Commands\SyncPublicSubmissionLocks::class,
         ]);
 
         config()->set('filament-events.resources.term_form_extensions', [

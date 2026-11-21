@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Platform\Console\Commands;
+namespace App\Features\Events\EntryPoints\Console\Commands;
 
 use App\Features\Events\Api\PublicSubmissionLockSweeper;
 use Illuminate\Console\Attributes\Description;

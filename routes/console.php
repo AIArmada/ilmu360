@@ -50,13 +50,6 @@ Schedule::command('app:prune-orphaned-entities')
     ->name('prune-orphaned-entities')
     ->withoutOverlapping();
 
-// Auto-reopen public submission when lock credibility requirements are no longer met.
-Schedule::command('app:sync-public-submission-locks')
-    ->hourly()
-    ->timezone('Asia/Kuala_Lumpur')
-    ->name('sync-public-submission-locks')
-    ->withoutOverlapping();
-
 // Share-card file retention: revision-pinned files regenerate on demand,
 // so pruning is always safe.
 Schedule::command('app:prune-share-cards')
