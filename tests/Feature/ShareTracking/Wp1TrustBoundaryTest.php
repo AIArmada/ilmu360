@@ -147,7 +147,7 @@ it('marks new member share profiles and never adopts an unmarked commercial prof
 it('reads analytics only for the marked profile and leaves commercial-only users empty', function (): void {
     wp1TrustBoundaryCommercialAffiliate($this->sharer, 'wp1-commercial-002');
 
-    $summary = app(ShareTrackingAnalyticsService::class)->summaryForUser($this->sharer);
+    $summary = app(ShareTrackingAnalyticsService::class)->summaryForAccount($this->sharer);
 
     expect($summary)->toMatchArray([
         'outbound_shares' => 0,
@@ -736,7 +736,7 @@ it('withholds uncertified measurements until reporting is configured', function 
     $payload = wp1SharePayload($this, $this->sharer, route('events.show', $this->event));
     wp1LandingCookie($this, (string) $payload['url']);
 
-    $summary = app(ShareTrackingAnalyticsService::class)->summaryForUser($this->sharer);
+    $summary = app(ShareTrackingAnalyticsService::class)->summaryForAccount($this->sharer);
 
     expect($summary)->toMatchArray([
         'outbound_shares' => 0,

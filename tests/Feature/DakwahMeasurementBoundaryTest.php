@@ -30,7 +30,7 @@ test('invalid reporting starts withhold measurements consistently across readers
     expect(ShareTrackingMeasurement::reportingStart())->toBeNull()
         ->and(ShareTrackingMeasurement::status())->toBe('not_configured')
         ->and($canonical['status'])->toBe('not_configured')
-        ->and($analytics->summaryForUser($user)['visits'])->toBe(0)
+        ->and($analytics->summaryForAccount($user)['visits'])->toBe(0)
         ->and($analytics->providerBreakdownForUser($user))->toBeEmpty()
         ->and($analytics->linksForUser($user)->first()->lastSharedAt)->toBeNull();
 })->with([
@@ -91,7 +91,7 @@ test('landing browser history remains visible in channel breakdowns without visi
         'event_submissions' => 0,
     ];
 
-    expect($analytics->summaryForUser($user)['distinct_browsers'])->toBe(1)
+    expect($analytics->summaryForAccount($user)['distinct_browsers'])->toBe(1)
         ->and($analytics->providerBreakdownForUser($user)->firstWhere('provider', 'telegram'))->toBe($expected)
         ->and($analytics->providerBreakdownForLink($linkData)->firstWhere('provider', 'telegram'))->toBe($expected);
 });
@@ -157,7 +157,7 @@ test('future facts are excluded from user and link measurements even later on th
     $analytics = app(ShareTrackingAnalyticsService::class);
     $linkData = $analytics->findLinkForUser($user, $link->id);
 
-    expect($analytics->summaryForUser($user))->toBe([
+    expect($analytics->summaryForAccount($user))->toBe([
         'outbound_shares' => 1,
         'visits' => 1,
         'distinct_browsers' => 1,
@@ -203,7 +203,7 @@ test('link detail excludes foreign affiliate facts incorrectly pointing at an ow
     $analytics = app(ShareTrackingAnalyticsService::class);
     $linkData = $analytics->findLinkForUser($user, $link->id);
 
-    expect($analytics->summaryForUser($user)['total_outcomes'])->toBe(0)
+    expect($analytics->summaryForAccount($user)['total_outcomes'])->toBe(0)
         ->and($analytics->summaryForLink($linkData))->toBe([
             'outbound_shares' => 0,
             'visits' => 0,
@@ -238,6 +238,6 @@ test('deactivated links keep their historical detail report readable without cre
         ->assertSee('Historical events');
 
     expect(AffiliateLink::query()->count())->toBe(1)
-        ->and($analytics->summaryForUser($user)['visits'])->toBe(1)
+        ->and($analytics->summaryForAccount($user)['visits'])->toBe(1)
         ->and($analytics->summaryForLink($analytics->findLinkForUser($user, $link->id))['signups'])->toBe(1);
 });

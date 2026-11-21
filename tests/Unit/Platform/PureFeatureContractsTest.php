@@ -55,6 +55,6 @@ it('does not retain the deleted ORM boundary declarations', function (): void {
         'app/Features/ShareTracking/Api/Orm/GuestClaimScope.php',
         'app/Features/ShareTracking/Api/Orm/ShareTrackingAnalytics.php',
     ] as $oldFile) {
-        expect(file_exists(base_path($oldFile)))->toBeFalse();
+        expect(file_exists(dirname(__DIR__, 3).'/'.$oldFile))->toBeFalse();
     }
 });

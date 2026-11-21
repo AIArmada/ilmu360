@@ -7,7 +7,7 @@ use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
-use App\Platform\Api\Frontend\CatalogDispatcher;
+use App\Features\Discovery\Services\CatalogDispatcher;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;

@@ -15,7 +15,7 @@ use App\Features\Community\Models\CommunityRelease;
 use App\Features\Community\Queries\CommunityReleaseReader;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Models\User;
 use App\Platform\Api\Admin\AdminResourceRegistry;
 use Carbon\CarbonImmutable;
