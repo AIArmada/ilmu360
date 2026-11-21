@@ -6,6 +6,7 @@ namespace App\Features\Events\Queries;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\References\Api\ReferenceQueries;
@@ -61,9 +62,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         string $sort
     ): LengthAwarePaginator {
         $search = Event::search($query ?? '')
-            ->query(fn (Builder $builder) => $builder
-                ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                ->whereHas('occurrences')
+            ->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
                 ->with($this->relationProvider->relations()));
 
         $sortBy = match ($sort) {
@@ -92,9 +91,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         $radiusKm = $criteria->radiusKm ?? 0.0;
         $search = Event::search('');
 
-        $search->query(fn (Builder $builder) => $builder
-            ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->whereHas('occurrences')
+        $search->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
             ->with($this->relationProvider->relations()));
         $search->options([
             'filter_by' => implode(' && ', [
@@ -120,9 +117,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         int $perPage
     ): LengthAwarePaginator {
         $search = Event::search($query)
-            ->query(fn (Builder $builder) => $builder
-                ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                ->whereHas('occurrences')
+            ->query(fn (Builder $builder) => $this->constrainCurrentPublicState($builder)
                 ->with($this->relationProvider->relations()));
 
         $filterBy = implode(' && ', [
@@ -137,6 +132,26 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         ]);
 
         return $search->paginate($perPage);
+    }
+
+    /**
+     * Reapply current public parent and occurrence state during model
+     * rehydration. Typesense filters indexed values, which may be stale.
+     *
+     * @param  Builder<Event>  $builder
+     * @return Builder<Event>
+     */
+    private function constrainCurrentPublicState(Builder $builder): Builder
+    {
+        return $builder
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->whereNotNull('events.published_at')
+            ->whereHas('occurrences', function (Builder $occurrences): void {
+                $occurrences
+                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
+            });
     }
 
     /**

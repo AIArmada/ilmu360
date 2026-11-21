@@ -4,7 +4,10 @@ use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventReference;
+use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
+use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\TimingMode;
@@ -22,6 +25,7 @@ use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Models\Reference;
 use App\Platform\Location\VisitorCountryResolver;
 use Livewire\Livewire;
+use Mockery\MockInterface;
 
 beforeEach(function (): void {
     app(VisitorCountryResolver::class)->forget();
@@ -538,4 +542,84 @@ it('renders localized inherited prayer timing and keeps session-specific labels 
     } finally {
         app()->setLocale($previousLocale);
     }
+});
+
+it('rejects rehydrated search ids whose events are no longer publicly visible', function (): void {
+    $private = Event::factory()->create([
+        'title' => 'Stale Private Rehydration Programme',
+        'status' => 'approved',
+        'visibility' => 'private',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $unpublished = Event::factory()->create([
+        'title' => 'Stale Unpublished Rehydration Programme',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(2),
+    ]);
+    $unpublished->updateQuietly(['published_at' => null]);
+    $public = Event::factory()->create([
+        'title' => 'Current Public Rehydration Programme',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(3),
+    ]);
+
+    $factSet = app(PublicScheduleEventReads::class)->scheduleFactsForEventIds([
+        (string) $private->getKey(),
+        (string) $unpublished->getKey(),
+        (string) $public->getKey(),
+    ]);
+
+    expect($factSet->eventIds)->toBe([(string) $public->getKey()])
+        ->and(collect($factSet->leaves)->pluck('eventId')->unique()->values()->all())
+        ->toBe([(string) $public->getKey()]);
+});
+
+it('does not render stale search ids from the discovery fallback or nearby path', function (): void {
+    $private = Event::factory()->create([
+        'title' => 'Stale Fallback Private Programme',
+        'status' => 'approved',
+        'visibility' => 'private',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $privateEventId = (string) $private->getKey();
+    $page = new EventSearchPage(
+        items: [EventListData::fromArray(['id' => $privateEventId])],
+        distances: [$privateEventId => 2.5],
+        total: 1,
+        perPage: 12,
+        currentPage: 1,
+        lastPage: 1,
+        from: 1,
+        to: 1,
+        hasMorePages: false,
+    );
+
+    $this->mock(EventSearchService::class, function (MockInterface $mock) use ($page): void {
+        $mock->shouldReceive('search')->once()->andReturn($page);
+        $mock->shouldReceive('searchNearbyWithQuery')->once()->andReturn($page);
+    });
+
+    $service = app(PublicScheduleDiscoveryService::class);
+
+    $fallback = $service->search(
+        query: 'Stale Fallback Private Programme',
+        filters: ['time_scope' => 'all'],
+    );
+
+    expect($fallback->total())->toBe(0);
+
+    $nearby = $service->search(
+        query: 'Stale Fallback Private Programme',
+        filters: ['time_scope' => 'all'],
+        latitude: 3.139,
+        longitude: 101.6869,
+        radiusKm: 15,
+    );
+
+    expect($nearby->total())->toBe(0);
 });

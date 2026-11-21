@@ -3,6 +3,7 @@
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Events\Api\Orm\EventCategoryCatalog;
+use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventDiscoveryFilterSet;
 use App\Features\Events\Queries\TypesenseEventDiscovery;
 use App\Features\References\Api\ReferenceQueries;
@@ -174,4 +175,55 @@ test('typesense past scope filters by the end instant', function () {
 
     expect(collect($filters)->contains(static fn (string $filter): bool => str_starts_with($filter, 'ends_at:<')))
         ->toBeTrue();
+});
+
+test('typesense rehydration revalidates current event visibility and publication', function () {
+    config(['scout.driver' => 'database']);
+
+    $stalePrivate = Event::factory()->create([
+        'title' => 'Stale Rehydration Private Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+    ]);
+    $staleUnpublished = Event::factory()->create([
+        'title' => 'Stale Rehydration Unpublished Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(3),
+    ]);
+    $fresh = Event::factory()->create([
+        'title' => 'Stale Rehydration Current Event',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(4),
+    ]);
+
+    // Search-engine filters read indexed values; the current rows are now
+    // non-public while the engine still matches the same query text.
+    $stalePrivate->updateQuietly(['visibility' => 'private']);
+    $staleUnpublished->updateQuietly(['published_at' => null]);
+
+    $discovery = app(TypesenseEventDiscovery::class);
+    $factory = app(EventDiscoveryCriteriaFactory::class);
+    $expectedIds = [(string) $fresh->getKey()];
+
+    $results = $discovery->search($factory->fromSearch('Stale Rehydration', [], 20, 'time'));
+    $nearby = $discovery->nearby($factory->fromSearch(null, [], 20, 'distance', 3.139, 101.6869, 20));
+    $nearbyQuery = $discovery->nearbyWithQuery($factory->fromSearch(
+        'Stale Rehydration',
+        [],
+        20,
+        'distance',
+        3.139,
+        101.6869,
+        20,
+    ));
+
+    expect(collect($results->items())->pluck('id')->all())->toBe($expectedIds)
+        ->and(collect($nearby->items())->pluck('id')->all())->toBe($expectedIds)
+        ->and(collect($nearbyQuery->items())->pluck('id')->all())->toBe($expectedIds);
 });

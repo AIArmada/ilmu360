@@ -9,16 +9,15 @@ use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Explicit Eloquent integration port for event schedule composition.
  *
  * @internal This port exists for framework contracts that cannot be expressed
  *           as scalar rows: Livewire page state, policy subjects, eager-loaded
- *           relation sets, share subjects and correlated subqueries. Consumers
- *           must not start new business queries from returned models and must
- *           not import Event internals directly.
+ *           relation sets, share subjects and owner-registered SQL projections.
+ *           Consumers must not start new business queries from returned models
+ *           and must not import Event internals directly.
  *
  * Consumers: Registration dashboard/checkout, Identity user dashboard,
  * Organizations workspace, Institution dashboard, Person dashboard,
@@ -28,15 +27,11 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 interface EventOrmPort extends EventScheduleReads
 {
     /**
-     * Correlated upcoming-occurrence count subquery for the institutions
-     * directory listing. The caller applies it with selectSub().
+     * Immutable correlated SQL columns for the institutions directory listing.
+     * The caller applies each column with selectRaw(); no mutable builder
+     * crosses the owner boundary.
      */
-    public function institutionUpcomingCountSubquery(): QueryBuilder;
-
-    /**
-     * Correlated next-event id subquery for the institutions directory listing.
-     */
-    public function institutionNextEventIdSubquery(): EventBuilder;
+    public function institutionDirectoryEventColumns(): EventDirectorySqlProjection;
 
     /**
      * Card details for the already-selected next event ids, hydrated in one

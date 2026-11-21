@@ -158,11 +158,19 @@ final readonly class InstitutionDirectoryQuery
     private function baseInstitutionsQuery(array $locationIds, bool $followedOnly, array $followingInstitutionIds): Builder
     {
         $query = $this->scopedInstitutionsQuery($locationIds, $followedOnly, $followingInstitutionIds);
+        $eventColumns = $this->eventReader->institutionDirectoryEventColumns();
+        $grammar = $query->getQuery()->getGrammar();
 
         return $query
             ->select('institutions.*')
-            ->selectSub($this->eventReader->institutionUpcomingCountSubquery(), 'events_count')
-            ->selectSub($this->eventReader->institutionNextEventIdSubquery(), 'next_event_id')
+            ->selectRaw(
+                "({$eventColumns->upcomingCount->sql}) as {$grammar->wrap('events_count')}",
+                $eventColumns->upcomingCount->bindings,
+            )
+            ->selectRaw(
+                "({$eventColumns->nextEventId->sql}) as {$grammar->wrap('next_event_id')}",
+                $eventColumns->nextEventId->bindings,
+            )
             ->with([
                 'addresses.state',
                 'addresses.city',

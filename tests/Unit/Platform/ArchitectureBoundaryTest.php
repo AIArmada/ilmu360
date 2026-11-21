@@ -3606,16 +3606,57 @@ SOURCE);
         ->and(array_column($findings, 'rule'))->not->toContain('orm-query-escape');
 });
 
-it('allows exact correlated SQL subquery composition but rejects mutating the foreign subquery', function (): void {
+it('allows owner-registered immutable SQL projections but rejects a foreign builder composition', function (): void {
     $this->project->write('app/Features/Orders/Api/Orm/OrderDirectorySql.php', <<<'SOURCE'
+<?php
+namespace App\Features\Orders\Api\Orm;
+/**
+ * @internal
+ * Consumers: Billing directory correlated count.
+ */
+final readonly class OrderDirectorySql
+{
+    /**
+     * @param list<mixed> $bindings
+     */
+    public function __construct(
+        public string $sql,
+        public array $bindings,
+    ) {}
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Queries/InvoiceDirectoryQuery.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Queries;
+use App\Features\Orders\Api\Orm\OrderDirectorySql;
+use Illuminate\Support\Facades\DB;
+class InvoiceDirectoryQuery
+{
+    public function read(): void
+    {
+        $column = app(OrderDirectorySql::class);
+        DB::table('invoices')
+            ->selectRaw("({$column->sql}) as order_count", $column->bindings)
+            ->get();
+    }
+}
+SOURCE);
+
+    $projectionComposition = $this->project->check();
+    $projectionFindings = json_decode($projectionComposition['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($projectionComposition)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
+        ->and(array_column($projectionFindings, 'rule'))->not->toContain('orm-query-escape');
+
+    $this->project->write('app/Features/Orders/Api/Orm/OrderDirectoryQuery.php', <<<'SOURCE'
 <?php
 namespace App\Features\Orders\Api\Orm;
 use Illuminate\Database\Query\Builder;
 /**
  * @internal
- * Consumers: Billing directory correlated count.
+ * Consumers: Billing reads.
  */
-interface OrderDirectorySql
+interface OrderDirectoryQuery
 {
     public function upcomingCountSubquery(): Builder;
 }
@@ -3623,36 +3664,14 @@ SOURCE);
     $this->project->write('app/Features/Billing/Queries/InvoiceDirectoryQuery.php', <<<'SOURCE'
 <?php
 namespace App\Features\Billing\Queries;
-use App\Features\Orders\Api\Orm\OrderDirectorySql;
+use App\Features\Orders\Api\Orm\OrderDirectoryQuery;
 use Illuminate\Support\Facades\DB;
 class InvoiceDirectoryQuery
 {
-    public function read(): void
-    {
-        DB::table('invoices')
-            ->selectSub(app(OrderDirectorySql::class)->upcomingCountSubquery(), 'order_count')
-            ->get();
-    }
-}
-SOURCE);
-
-    $correlatedComposition = $this->project->check();
-    $compositionFindings = json_decode($correlatedComposition['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
-
-    expect($correlatedComposition)->toMatchArray(['exitCode' => 0, 'stderr' => ''])
-        ->and(array_column($compositionFindings, 'rule'))->not->toContain('orm-query-escape');
-
-    $this->project->write('app/Features/Billing/Queries/InvoiceDirectoryQuery.php', <<<'SOURCE'
-<?php
-namespace App\Features\Billing\Queries;
-use App\Features\Orders\Api\Orm\OrderDirectorySql;
-use Illuminate\Support\Facades\DB;
-class InvoiceDirectoryQuery
-{
-    public function read(): void
+    public function read(OrderDirectoryQuery $orders): void
     {
         DB::table('invoices')->selectSub(
-            app(OrderDirectorySql::class)->upcomingCountSubquery()->whereBetween('created_at', [1, 2]),
+            $orders->upcomingCountSubquery()->whereBetween('created_at', [1, 2]),
             'order_count',
         )->get();
     }
@@ -3754,6 +3773,48 @@ SOURCE);
         ->and(array_column($findings, 'rule'))->toContain('orm-mutation-escape')
         ->and(collect($findings)->where('rule', 'orm-mutation-escape'))->toHaveCount(4);
 });
+
+it('rejects model mutations through spaced PHPDoc generic collections', function (string $returnType): void {
+    $this->project->write('app/Features/Orders/Api/Orm/OrderQuery.php', <<<SOURCE
+<?php
+namespace App\Features\Orders\Api\Orm;
+use App\Features\Orders\Models\Order;
+use Illuminate\Support\Collection;
+/**
+ * @internal
+ *
+ * Consumers: Billing reads.
+ */
+interface OrderQuery
+{
+    /** @return {$returnType} */
+    public function orders(): Collection;
+}
+SOURCE);
+    $this->project->write('app/Features/Billing/Actions/MutateOrders.php', <<<'SOURCE'
+<?php
+namespace App\Features\Billing\Actions;
+use App\Features\Orders\Api\Orm\OrderQuery;
+class MutateOrders
+{
+    public function __construct(private OrderQuery $orders) {}
+
+    public function handle(): void
+    {
+        $this->orders->orders()->first()->update(['status' => 'paid']);
+    }
+}
+SOURCE);
+
+    $result = $this->project->check();
+    $findings = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR)['findings'];
+
+    expect($result['exitCode'])->toBe(1)
+        ->and(array_column($findings, 'rule'))->toContain('orm-mutation-escape');
+})->with([
+    'space after comma' => ['Collection<int, Order>'],
+    'no space after comma' => ['Collection<int,Order>'],
+]);
 
 it('checks ORM builder escapes from API ORM, Platform, and Blade consumers', function (): void {
     $this->project->write('app/Features/Orders/Api/Orm/OrderQuery.php', <<<'SOURCE'

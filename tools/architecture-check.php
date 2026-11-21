@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-// AST dependency and ownership guard; writes are checked by the separate PHPStan rule. Does not boot Laravel or connect to a database.
+// Bounded AST dependency and ownership guard; not a formal whole-program
+// proof. Writes are checked by the separate PHPStan rule. Does not boot
+// Laravel or connect to a database.
 use App\Platform\FeatureCatalog;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
@@ -46,6 +48,29 @@ $report = static function (string $rule, string $file, int $line, string $target
 $featureOf = (static fn (string $name): ?string => preg_match('/^App\\\\Features\\\\([A-Z][A-Za-z0-9]*)\\\\/', $name, $match) ? $match[1] : null);
 $finder = new NodeFinder;
 $parser = (new ParserFactory)->createForNewestSupportedVersion();
+$phpDocConfig = new ParserConfig([]);
+$phpDocConstExprParser = new ConstExprParser($phpDocConfig);
+$phpDocParser = new PhpDocParser($phpDocConfig, new TypeParser($phpDocConfig, $phpDocConstExprParser), $phpDocConstExprParser);
+$phpDocLexer = new PhpDocLexer($phpDocConfig);
+$phpDocReturnType = static function (string $docComment) use ($phpDocParser, $phpDocLexer): ?string {
+    if ($docComment === '') {
+        return null;
+    }
+
+    try {
+        $phpDoc = $phpDocParser->parse(new TokenIterator($phpDocLexer->tokenize($docComment)));
+    } catch (Throwable) {
+        return null;
+    }
+
+    foreach ($phpDoc->children as $child) {
+        if ($child instanceof PhpDocTagNode && $child->name === '@return' && $child->value instanceof ReturnTagValueNode) {
+            return (string) $child->value->type;
+        }
+    }
+
+    return null;
+};
 
 try {
     $config = json_decode(file_get_contents($root.'/tools/architecture.json'), true, 512, JSON_THROW_ON_ERROR);
@@ -148,10 +173,13 @@ try {
         $hasCollection = false;
         $hasEloquentCollection = false;
         $hasModel = false;
+        $hasOpaque = false;
 
         foreach ($typeNames as $typeName) {
             if (in_array($typeName, ['object', 'mixed'], true)) {
-                return 'opaque';
+                $hasOpaque = true;
+
+                continue;
             }
 
             $lastSeparator = strrpos($typeName, '\\');
@@ -184,6 +212,10 @@ try {
 
         if ($hasCollection) {
             return 'value';
+        }
+
+        if ($hasOpaque) {
+            return 'opaque';
         }
 
         return $hasModel ? 'model' : 'value';
@@ -230,7 +262,13 @@ try {
                     continue;
                 }
                 $ormDoc = $ormMethod->getDocComment()?->getText() ?? '';
-                $docReturn = preg_match('~@return\s+([^\s*]+)~', $ormDoc, $docMatch) === 1 ? trim($docMatch[1]) : '';
+                $docReturn = $phpDocReturnType($ormDoc) ?? '';
+
+                if ($docReturn === '' && preg_match('~@return\s+([^\s*]+)~', $ormDoc, $docMatch) === 1) {
+                    // Fallback for malformed PHPDoc that the parser rejects.
+                    $docReturn = trim($docMatch[1]);
+                }
+
                 $typeNames = $nativeTypeNames($ormMethod->returnType);
 
                 if ($docReturn !== '') {
