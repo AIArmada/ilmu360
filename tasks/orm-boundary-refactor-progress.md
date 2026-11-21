@@ -220,8 +220,13 @@ local run:
 - The ten `real-driver` files report "No tests found" when individually
   excluded; they run in CI's sharded group and via `composer test:drivers`.
 
-The final serial sweep of the remaining 535 files is recorded in
-`/tmp/pest-serial-results.txt`; CI Quality is the authoritative full-suite
-gate for the environment-dependent files.
+After commit `1427e330`, CI Quality run
+https://github.com/AIArmada/ilmu360/actions/runs/44859486755 completed
+successfully: all 26 jobs passed, including all Pest shards, PHPStan, Rector,
+Pint, and browser smoke. A local serial continuation was stopped after 212
+passing files and zero failures once that full CI result was available; it is
+not a complete local suite run. `pest-serial-results.txt` contains those
+partial local results. CI is authoritative for the complete suite and the
+environment-dependent files.
 
 
